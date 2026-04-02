@@ -3,14 +3,16 @@ import { useNavigate, useLocation } from "react-router-dom";
 import api from "../../lib/api";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
+import closeButtonIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import { TimePickerWheel } from "../../components/TimePickerWheel";
-import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import {
     formatTimeForDisplay,
     FormDropdown,
     TaskDropdown,
-    AttachmentPreviewItem,
+    formatFileSize,
     taskToFormValues,
     type FormDropdownId,
     type Task,
@@ -32,6 +34,50 @@ const initialForm = {
     checklist: "",
 };
 
+/** Opens a local `File` in a new browser tab (e.g. PDF viewer) instead of an in-app modal. */
+function openAttachmentInNewTab(file: File) {
+    const url = URL.createObjectURL(file);
+    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    if (!opened) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+    // Revoke after delay so the new tab can load the blob (revoking too early breaks the viewer).
+    window.setTimeout(() => URL.revokeObjectURL(url), 300_000);
+}
+
+function parseOutputFilepaths(raw: unknown): string[] {
+    if (typeof raw !== "string" || !raw.trim()) return [];
+    return raw.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+function getTaskOutputFileUrl(storedFilename: string): string {
+    if (!storedFilename) return "";
+    const base = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+    return `${base}/uploads/task/${encodeURIComponent(storedFilename)}`;
+}
+
+/** Stored names are `{uuid}_{sanitizedOriginal}` from the backend. */
+function displayNameFromStoredFilename(stored: string): string {
+    const m = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_(.+)$/i.exec(stored);
+    return m ? m[1] : stored;
+}
+
+function openServerOutputInNewTab(storedFilename: string) {
+    const url = getTaskOutputFileUrl(storedFilename);
+    if (!url) return;
+    window.open(url, "_blank", "noopener,noreferrer");
+}
+
+type PendingAttachmentDelete =
+    | { type: "local"; index: number }
+    | { type: "server"; stored: string };
+
 export default function AddTaskTD() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -45,18 +91,21 @@ export default function AddTaskTD() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [addTaskForm, setAddTaskForm] = useState(initialForm);
     const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+    /** Filenames already saved on the task (`tasks.outputfilepath`), shown when editing. */
+    const [existingOutputFilenames, setExistingOutputFilenames] = useState<string[]>([]);
     const [openFormDropdown, setOpenFormDropdown] = useState<FormDropdownId>(null);
     const [tasklistOpen, setTasklistOpen] = useState(false);
-    const [attachmentPreviewFile, setAttachmentPreviewFile] = useState<File | null>(null);
+    const [pendingAttachmentDelete, setPendingAttachmentDelete] = useState<PendingAttachmentDelete | null>(null);
+    const [serverAttachmentDeleting, setServerAttachmentDeleting] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const formProjectTriggerRef = useRef<HTMLButtonElement>(null);
+    const formProjectTriggerRef = useRef<HTMLElement | null>(null);
     const formProjectMenuRef = useRef<HTMLDivElement>(null);
-    const formModuleTriggerRef = useRef<HTMLButtonElement>(null);
+    const formModuleTriggerRef = useRef<HTMLElement | null>(null);
     const formModuleMenuRef = useRef<HTMLDivElement>(null);
-    const formTypeTriggerRef = useRef<HTMLButtonElement>(null);
+    const formTypeTriggerRef = useRef<HTMLElement | null>(null);
     const formTypeMenuRef = useRef<HTMLDivElement>(null);
-    const formAssignTriggerRef = useRef<HTMLButtonElement>(null);
+    const formAssignTriggerRef = useRef<HTMLElement | null>(null);
     const formAssignMenuRef = useRef<HTMLDivElement>(null);
     const formStartTimeTriggerRef = useRef<HTMLButtonElement>(null);
     const formStartTimeMenuRef = useRef<HTMLDivElement>(null);
@@ -69,20 +118,53 @@ export default function AddTaskTD() {
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/tasks"),
             api.get<{ employees?: Employee[] }>("/api/employees"),
-            api.get<{ projects?: Project[] }>("/api/projects"),
-        ]).then(([tasksRes, empRes, projRes]) => {
+            api.get<{ projects?: Record<string, unknown>[] }>("/api/projects"),
+            api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects"),
+        ]).then(([tasksRes, empRes, projRes1, projRes2]) => {
             setList(tasksRes.data.tasks ?? []);
             setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
-            setProjects(projRes.data.projects ?? []);
+            
+            const p1 = (projRes1.data.projects ?? []).map(r => ({
+                id: Number(r.id),
+                project_name: String(r.project_name || ""),
+                tasks: String(r.tasks || ""),
+                modules: String(r.modules || ""),
+                source: String(r.source || "In House")
+            }));
+            const p2 = (projRes2.data.projects ?? []).map(r => ({
+                id: Number(r.id),
+                project_name: String(r.project_name || ""),
+                tasks: String(r.tasks || ""),
+                modules: String(r.modules || ""),
+                source: "Outsource"
+            }));
+            
+            setProjects([...p1, ...p2] as any);
         });
     }, []);
 
     useEffect(() => {
-        if (editingTask) {
-            setEditingTaskId(editingTask.id);
-            setAddTaskForm(taskToFormValues(editingTask));
-            setEditingTaskId(editingTask.id);
+        if (!editingTask) {
+            setEditingTaskId(null);
+            setExistingOutputFilenames([]);
+            return;
         }
+        setEditingTaskId(editingTask.id);
+        setAddTaskForm(taskToFormValues(editingTask));
+        setAttachmentFiles([]);
+        setExistingOutputFilenames(parseOutputFilepaths(editingTask.outputfilepath));
+
+        let cancelled = false;
+        api.get<Record<string, unknown>>(`/api/tasks/${editingTask.id}`)
+            .then((res) => {
+                if (cancelled) return;
+                setExistingOutputFilenames(parseOutputFilepaths(res.data?.outputfilepath));
+            })
+            .catch(() => {});
+
+        return () => {
+            cancelled = true;
+        };
     }, [editingTask]);
 
     useEffect(() => {
@@ -114,17 +196,64 @@ export default function AddTaskTD() {
     }, [openFormDropdown, tasklistOpen]);
 
     const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.currentTarget.files;
+        const input = e.currentTarget;
+        const files = input.files;
         if (!files?.length) return;
-        setAttachmentFiles((prev) => [...prev, ...Array.from(files)]);
-        e.currentTarget.value = "";
+        const picked = Array.from(files);
+        setAttachmentFiles((prev) => [...prev, ...picked]);
+        // Defer reset so the browser always finishes delivering the selection (some Edge/Chrome + form combos drop updates if cleared synchronously).
+        requestAnimationFrame(() => {
+            input.value = "";
+        });
+    };
+
+    const openFilePicker = () => {
+        requestAnimationFrame(() => {
+            fileInputRef.current?.click();
+        });
     };
 
     const removeAttachment = (index: number) => {
         setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
     };
 
+    const confirmRemoveAttachment = () => {
+        if (!pendingAttachmentDelete) return;
+        if (pendingAttachmentDelete.type === "local") {
+            removeAttachment(pendingAttachmentDelete.index);
+            setPendingAttachmentDelete(null);
+            return;
+        }
+        const stored = pendingAttachmentDelete.stored;
+        const taskId = editingTaskId;
+        if (taskId == null) {
+            setPendingAttachmentDelete(null);
+            return;
+        }
+        setServerAttachmentDeleting(true);
+        const next = existingOutputFilenames.filter((f) => f !== stored);
+        const newPath = next.length > 0 ? next.join(",") : "";
+        api.patch(`/api/tasks/${taskId}`, { outputfilepath: newPath })
+            .then(() => {
+                setExistingOutputFilenames(next);
+                setPendingAttachmentDelete(null);
+            })
+            .catch(() => {
+                setAddError("Failed to remove attachment. Please try again.");
+            })
+            .finally(() => setServerAttachmentDeleting(false));
+    };
+
+    const pendingDeleteFileName = (() => {
+        if (!pendingAttachmentDelete) return "";
+        if (pendingAttachmentDelete.type === "local") {
+            return attachmentFiles[pendingAttachmentDelete.index]?.name ?? "";
+        }
+        return displayNameFromStoredFilename(pendingAttachmentDelete.stored);
+    })();
+
     const merged = list.filter(Boolean);
+    const totalAttachmentCount = existingOutputFilenames.length + attachmentFiles.length;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -185,9 +314,13 @@ export default function AddTaskTD() {
             }
         };
 
+        const selectedProj = projects.find((p) => p.project_name === addTaskForm.projectName);
+        const isOutsource = selectedProj?.source === "Outsource";
+        const baseEndpoint = isOutsource ? "/api/vendors/vendor-tasks" : "/api/tasks";
+
         if (editingTaskId != null) {
             api
-                .patch(`/api/tasks/${editingTaskId}`, {
+                .patch(`${baseEndpoint}/${editingTaskId}`, {
                     task_name: payload.taskName,
                     assigned_to: payload.assignedTo,
                     due_date: payload.dueDate,
@@ -208,7 +341,7 @@ export default function AddTaskTD() {
                 })
                 .finally(() => setAddSubmitting(false));
         } else {
-            api.post("/api/tasks", payload).then((res) => {
+            api.post(baseEndpoint, payload).then((res) => {
                 if (res.data.success && res.data.task_id) {
                     handleFiles(res.data.task_id);
                     navigate(location.state?.from === "teamtasks" ? "/td/teamtasks" : "/td/mytasks");
@@ -261,7 +394,7 @@ export default function AddTaskTD() {
     };
 
     return (
-        <div className="flex-1 min-h-0 p-2 bg-white overflow-hidden">
+        <div className="flex-1 min-h-0 p-4 bg-white overflow-hidden">
             <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col">
                 <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
                     <button
@@ -278,7 +411,17 @@ export default function AddTaskTD() {
                     <div className="w-10" />
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
+                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-6">
+                    {/* File input outside <form> avoids picker/change quirks in some browsers; still same state + submit integration. */}
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        tabIndex={-1}
+                        className="fixed left-[-9999px] top-0 h-px w-px opacity-0"
+                        onChange={handleAttachmentChange}
+                        accept="*/*"
+                    />
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {addError && (
                             <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
@@ -336,13 +479,13 @@ export default function AddTaskTD() {
                         </div>
                         <div>
                             <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Task Name <span className="text-[#DD4342]">*</span></label>
-                            <div className="flex relative">
+                            <div className="relative flex min-h-[42px] items-stretch overflow-hidden rounded-[5px] border border-transparent bg-[#F2F3F4] transition-colors focus-within:border-[#AEACAC52]">
                                 <input
                                     type="text"
                                     value={addTaskForm.taskName}
                                     onChange={(e) => setAddTaskForm((f) => ({ ...f, taskName: e.target.value }))}
                                     placeholder="Enter Task / Select Task"
-                                    className="flex-1 w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] rounded-r-none font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                                    className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B]"
                                 />
                                 <TaskDropdown
                                     label="Tasklist"
@@ -360,6 +503,9 @@ export default function AddTaskTD() {
                                     onClose={() => setTasklistOpen(false)}
                                     triggerRef={tasklistTriggerRef}
                                     dropdownRef={tasklistMenuRef}
+                                    menuAlign="right"
+                                    menuUseFixedLayer
+                                    triggerVariant="compositeEnd"
                                     searchable
                                     searchPlaceholder="Search task..."
                                     maxVisibleItems={6}
@@ -430,7 +576,7 @@ export default function AddTaskTD() {
                                     <img
                                         src={ArrowDown}
                                         alt=""
-                                        className={`ml-2 h-4 w-4 shrink-0 transition-transform ${openFormDropdown === "type_start_time" ? "rotate-180" : ""}`}
+                                        className={`ml-2 h-3 w-3 shrink-0 transition-transform ${openFormDropdown === "type_start_time" ? "rotate-180" : ""}`}
                                     />
                                 </button>
                                 {openFormDropdown === "type_start_time" && (
@@ -465,7 +611,7 @@ export default function AddTaskTD() {
                                     <img
                                         src={ArrowDown}
                                         alt=""
-                                        className={`ml-2 h-4 w-4 shrink-0 transition-transform ${openFormDropdown === "type_end_time" ? "rotate-180" : ""}`}
+                                        className={`ml-2 h-3 w-3 shrink-0 transition-transform ${openFormDropdown === "type_end_time" ? "rotate-180" : ""}`}
                                     />
                                 </button>
                                 {openFormDropdown === "type_end_time" && (
@@ -518,43 +664,103 @@ export default function AddTaskTD() {
                             />
                         </div>
                         <div className="md:col-span-2 space-y-2">
-                            <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Attachments</label>
-                            <input
-                                ref={fileInputRef}
-                                id="add-task-file-input"
-                                type="file"
-                                multiple
-                                className="hidden"
-                                onChange={handleAttachmentChange}
-                                accept="*/*"
-                            />
+                            <span className="block text-[16px] font-semibold text-[#000000] font-Gantari">Attachments</span>
                             <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
-                                <div
-                                    className="flex-1 px-4 text-[14px] text-[#979797] truncate min-w-0 py-2"
-                                    title={attachmentFiles.length > 0 ? attachmentFiles.map((f) => f.name).join(", ") : undefined}
-                                >
-                                    {attachmentFiles.length > 0
-                                        ? attachmentFiles.map((f) => f.name).join(", ")
+                                <div className="flex-1 px-4 text-[14px] text-[#979797] truncate min-w-0 py-2">
+                                    {totalAttachmentCount > 0
+                                        ? `${totalAttachmentCount} file(s) attached`
                                         : "Choose file"}
                                 </div>
-                                <label
-                                    htmlFor="add-task-file-input"
-                                    className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari"
+                                <button
+                                    type="button"
+                                    onClick={(ev) => {
+                                        ev.stopPropagation();
+                                        openFilePicker();
+                                    }}
+                                    className="px-5 py-2 bg-[#E2E2E2] text-[#8B8B8B] text-[14px] cursor-pointer transition-colors shrink-0 font-Gantari border-0"
                                 >
                                     Browse File
-                                </label>
+                                </button>
                             </div>
-                            {attachmentFiles.length > 0 && (
-                                <ul className="mt-2 space-y-1">
-                                    {attachmentFiles.map((file, index) => (
-                                        <AttachmentPreviewItem
-                                            key={`${file.name}-${index}-${file.size}`}
-                                            file={file}
-                                            onRemove={() => removeAttachment(index)}
-                                            onPreviewClick={setAttachmentPreviewFile}
-                                        />
+                            {totalAttachmentCount > 0 && (
+                                <div className="flex flex-col gap-2">
+                                    {existingOutputFilenames.map((stored) => (
+                                        <div
+                                            key={`server-${stored}`}
+                                            className="flex items-center gap-2 rounded-[5px] bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827]"
+                                        >
+                                            <div className="min-w-0 flex-1">
+                                                <span
+                                                    className="block truncate font-Gantari"
+                                                    title={displayNameFromStoredFilename(stored)}
+                                                >
+                                                    {displayNameFromStoredFilename(stored)}
+                                                </span>
+                                                <span className="text-xs text-[#8B8B8B]">Saved on task</span>
+                                            </div>
+                                            <div className="flex shrink-0 items-center gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openServerOutputInNewTab(stored)}
+                                                    className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
+                                                    title="View in new tab"
+                                                    aria-label={`View ${displayNameFromStoredFilename(stored)} in new tab`}
+                                                >
+                                                    <img src={viewIcon} alt="" className="h-5 w-5" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setPendingAttachmentDelete({ type: "server", stored })
+                                                    }
+                                                    className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
+                                                    title="Remove"
+                                                    aria-label={`Remove ${displayNameFromStoredFilename(stored)}`}
+                                                >
+                                                    <img src={deleteIcon} alt="" className="h-5 w-5" />
+                                                </button>
+                                            </div>
+                                        </div>
                                     ))}
-                                </ul>
+                                    {attachmentFiles.map((file, index) => (
+                                        <div
+                                            key={`${file.name}-${index}-${file.size}`}
+                                            className="flex items-center gap-2 rounded-[5px] bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827]"
+                                        >
+                                            <div className="min-w-0 flex-1">
+                                                <span className="block truncate font-Gantari" title={file.name}>
+                                                    {file.name}
+                                                </span>
+                                                <span className="text-xs text-[#8B8B8B]">
+                                                    {formatFileSize(file.size)}
+                                                </span>
+                                            </div>
+                                            <div className="flex shrink-0 items-center gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openAttachmentInNewTab(file)}
+                                                    className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
+                                                    title="View in new tab"
+                                                    aria-label={`View ${file.name} in new tab`}
+                                                >
+                                                    <img src={viewIcon} alt="" className="h-5 w-5" />
+                                                </button>
+                                               
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setPendingAttachmentDelete({ type: "local", index })
+                                                    }
+                                                    className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
+                                                    title="Remove"
+                                                    aria-label={`Remove ${file.name}`}
+                                                >
+                                                    <img src={deleteIcon} alt="" className="h-5 w-5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             )}
                         </div>
                         </div>
@@ -577,10 +783,63 @@ export default function AddTaskTD() {
                     </form>
                 </div>
             </div>
-            <AttachmentPreviewModal
-                file={attachmentPreviewFile}
-                onClose={() => setAttachmentPreviewFile(null)}
-            />
+            {pendingAttachmentDelete !== null && (
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
+                    onClick={() => !serverAttachmentDeleting && setPendingAttachmentDelete(null)}
+                    role="presentation"
+                >
+                    <div
+                        className="w-full max-w-[520px] rounded-md bg-white p-8 shadow-xl font-Gantari"
+                        onClick={(e) => e.stopPropagation()}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="attachment-delete-title"
+                    >
+                        <div className="relative">
+                            <button
+                                type="button"
+                                disabled={serverAttachmentDeleting}
+                                onClick={() => setPendingAttachmentDelete(null)}
+                                className="absolute left-0 top-0 shrink-0 rounded-lg p-1 bg-[#F2F2F2] cursor-pointer border-0 bg-transparent disabled:opacity-50"
+                                aria-label="Close"
+                            >
+                                <img
+                                    src={closeButtonIcon}
+                                    alt=""
+                                    className="h-5 w-5"
+                                    aria-hidden
+                                />
+                            </button>
+                            <p
+                                id="attachment-delete-title"
+                                className="mx-auto max-w-full px-10 text-center text-[16px] leading-relaxed text-[#353535]"
+                            >
+                                Are you sure you want to delete{" "}
+                                <strong className="font-semibold text-[#353535]">{pendingDeleteFileName}</strong>?
+                            </p>
+                        </div>
+                        <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+                            <button
+                                type="button"
+                                disabled={serverAttachmentDeleting}
+                                onClick={() => setPendingAttachmentDelete(null)}
+                                className="min-w-[140px] rounded-md bg-[#F2F2F2] px-8 py-2 text-[14px] font-semibold text-[#353535] cursor-pointer transition-opacity hover:opacity-90 border-0 disabled:opacity-50"
+                            >
+                                Discard
+                            </button>
+                            <button
+                                type="button"
+                                disabled={serverAttachmentDeleting}
+                                onClick={confirmRemoveAttachment}
+                                className="min-w-[140px] rounded-md bg-[#FED9D9] px-8 py-2 text-[14px] font-semibold text-[#E00100] cursor-pointer transition-opacity hover:opacity-90 border-0 disabled:opacity-50"
+                            >
+                                {serverAttachmentDeleting ? "Removing…" : "Yes, Delete"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -283,36 +283,36 @@ export default function DashboardEV() {
   // KPI card definitions — vendor-specific metrics
   const kpiCards = [
     {
-      title: "Active\nOpportunities",
+      title: "Total\nProjects",
       value: stats.active_opportunities,
       barColor: "#DE3D3A",
-      label: "Active Opportunities",
+      label: "Total projects",
       percent: 75,
-      link: "/v/opportunities",
+      // link: "/ve/projects",
     },
     {
-      title: "Bids\nSubmitted",
+      title: "Completed\nProjects",
       value: stats.bids_submitted,
       barColor: "#3B82F6",
-      label: "Total Bids Submitted",
+      label: "Completed projects",
       percent: 50,
-      link: "/v/mybids",
+      // link: "/ve/projects?status=Completed",
     },
     {
-      title: "Proposals\nAwaiting",
+      title: "Inprogress\nTasks",
       value: stats.proposals_awaiting,
       barColor: "#E47E00",
-      label: "Proposals Awaiting",
+      label: "Inprogress tasks",
       percent: 30,
-      link: "/v/proposals",
+      link: "/ve/mytasks?status=In Progress",
     },
     {
-      title: "Active\nProjects",
+      title: "Completed\nTasks",
       value: stats.active_projects,
       barColor: "#00882E",
-      label: "Active Projects",
+      label: "Completed tasks",
       percent: 20,
-      link: "/v/projects?status=Active",
+      link: "/ve/mytasks?status=Completed",
     },
   ];
 
@@ -329,7 +329,7 @@ export default function DashboardEV() {
       {/* Header and KPI Cards */}
       <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
         <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">
-          Dashboardytyuru
+          Dashboard
         </h1>
         {/* KPI Grid — same style as DashboardTD */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -337,12 +337,12 @@ export default function DashboardEV() {
             <Link
               key={i}
               to={card.link || "#"}
-              className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 no-underline cursor-pointer"
+              className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 no-underline cursor-pointer transition-colors"
             >
-              <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">
+              <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#FFFFFF] font-medium font-gantari transition-colors">
                 {card.label}
               </h3>
-              <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
+              <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#FFFFFF] font-bold leading-none transition-colors">
                 {card.value}
               </p>
             </Link>
@@ -354,10 +354,10 @@ export default function DashboardEV() {
         {/* Today's Priority */}
         <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
           <div className="flex items-center justify-between mb-4 shrink-0">
-            <h2 className="text-xl font-semibold text-[#353535] font-gantari">
+            <h2 className="text-[18px] font-medium text-[#353535] font-gantari">
               Today's Priority
             </h2>
-            <button
+            {/* <button
               type="button"
               className="p-1 text-[#717171] hover:text-[#353535]"
               aria-label="Filter or options"
@@ -375,13 +375,11 @@ export default function DashboardEV() {
                   d="M19 9l-7 7-7-7"
                 />
               </svg>
-            </button>
+            </button> */}
           </div>
-          <div className="border-b border-[#AEACAC52] mb-4" aria-hidden />
-
           <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
             {priorityTasks.length === 0 ? (
-              <p className="text-[#717171] text-sm font-gantari py-4">
+              <p className="text-[#717171] text-[14px] font-gantari">
                 No priority tasks for today.
               </p>
             ) : (
@@ -457,23 +455,23 @@ export default function DashboardEV() {
                             return (
                               <div
                                 key={task.id}
-                                className="flex items-center gap-5 p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative"
+                                className="flex items-center gap-5 p-5 bg-[#F8F8F8] rounded-md border border-[#AEACAC52] shadow-sm relative hover:shadow-md transition-shadow"
                               >
-                                <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
+                                <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
                                   <svg className="w-full h-full -rotate-90">
                                     <circle
-                                      cx="40"
-                                      cy="40"
-                                      r="36"
+                                      cx="32"
+                                      cy="32"
+                                      r="28"
                                       stroke="#E5E7EB"
                                       strokeWidth="5"
                                       fill="transparent"
                                       className="opacity-60"
                                     />
                                     <circle
-                                      cx="40"
-                                      cy="40"
-                                      r="36"
+                                      cx="32"
+                                      cy="32"
+                                      r="28"
                                       stroke="#00882E"
                                       strokeWidth="5"
                                       fill="transparent"
@@ -487,10 +485,10 @@ export default function DashboardEV() {
                                   </span>
                                 </div>
                                 <div className="flex-1 min-w-0 pr-2">
-                                  <h3 className="text-xl font-bold text-black truncate mb-0.5">
+                                  <h3 className="text-[18px] font-medium text-[#353535] truncate mb-0.5 font-gantari">
                                     {task.task_name ?? "Task"}
                                   </h3>
-                                  <p className="text-[14px] text-[#6B7280] font-medium leading-tight">
+                                  <p className="text-[12px] text-[#666666] font-medium leading-tight font-gantari">
                                     {dateLabel} — {timeRangeLabel}
                                   </p>
                                 </div>

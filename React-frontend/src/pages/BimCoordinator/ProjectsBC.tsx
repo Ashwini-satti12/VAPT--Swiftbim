@@ -176,6 +176,7 @@ interface Project {
   description?: string;
   tasks?: string;
   document_attachment?: string;
+  source?: "In House" | "Outsource";
 }
 
 interface Milestone {
@@ -224,7 +225,7 @@ export default function ProjectsBC() {
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState("");
   const [editError, setEditError] = useState("");
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteProject, setDeleteProject] = useState<Project | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [showProjectView, setShowProjectView] = useState(
@@ -421,12 +422,16 @@ export default function ProjectsBC() {
       setPmTaskStatsLoading(false);
       return;
     }
-    let cancelled = false;
     setPmTaskStatsLoading(true);
+    let cancelled = false;
+
+    const source = searchParams.get("source") || "In House";
+    const statsApi = source === "Outsource" ? `/api/vendors/vendor-projects/${projectId}/module-progress` : `/api/projects/${projectId}/module-progress`;
+
     api
       .get<{
         status_counts?: { todo?: number; inprogress?: number; paused?: number; completed?: number };
-      }>(`/api/projects/${projectId}/module-progress`)
+      }>(statsApi)
       .then(({ data }) => {
         if (cancelled) return;
         const c = data?.status_counts ?? {};
@@ -449,28 +454,38 @@ export default function ProjectsBC() {
     return () => {
       cancelled = true;
     };
-  }, [showProjectView, selectedProjectForView?.id]);
+  }, [showProjectView, selectedProjectForView?.id, searchParams]);
 
-  useEffect(() => {
+  const fetchProjects = () => {
     const status = searchParams.get('status');
-    api
-      .get<{ projects?: Record<string, unknown>[] }>("/api/projects", {
-        params: { status: status || undefined }
-      })
-      .then((res) => {
-        const allProjects = res.data.projects ?? [];
-        const userId = user?.id;
-        const filtered = userId
-          ? allProjects.filter((p: any) => {
-            if (!p.bim_coordinator_id) return false;
-            return String(p.bim_coordinator_id).split(',').map(s => s.trim()).includes(String(userId));
-          })
-          : allProjects;
-        setList(filtered.map(mapApiProjectToProject));
-      })
+    const params = { status: status || undefined };
+
+    setLoading(true);
+    Promise.all([
+      api.get<{ projects?: Record<string, unknown>[] }>("/api/projects", { params }),
+      api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects", { params })
+    ]).then(([res1, res2]) => {
+      const internal = (res1.data.projects ?? []).map((p) => ({ ...p, source: "In House" }));
+      const vendor = (res2.data.projects ?? []).map((p) => ({ ...p, source: "Outsource" }));
+
+      const allProjects = [...internal, ...vendor];
+
+      const userId = user?.id;
+      const filtered = userId
+        ? allProjects.filter((p: any) => {
+          if (!p.bim_coordinator_id) return false;
+          return String(p.bim_coordinator_id).split(',').map((s: string) => s.trim()).includes(String(userId));
+        })
+        : allProjects;
+      setList(filtered.map(mapApiProjectToProject));
+    })
       .catch(() => { })
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, [searchParams]);
 
   const fetchMilestones = (projectId: number) => {
     setMilestonesLoading(true);
@@ -515,8 +530,11 @@ export default function ProjectsBC() {
       setShowProjectView(true);
     }
 
+    const source = searchParams.get("source") || "In House";
+    const baseApi = source === "Outsource" ? "/api/vendors/vendor-projects" : "/api/projects";
+
     api
-      .get<Record<string, unknown>>(`/api/projects/${id}`)
+      .get<Record<string, unknown>>(`${baseApi}/${id}`)
       .then(({ data }) => {
         setSelectedProjectForView(mapApiProjectToProject(data));
       })
@@ -2964,7 +2982,7 @@ export default function ProjectsBC() {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setOpenMenuProjectId(null);
-                                    setSearchParams({ projectId: String(p.id) });
+                                    setSearchParams({ projectId: String(p.id), source: String(p.source || "In House") });
                                   }}
                                   className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                                 >
@@ -3112,7 +3130,7 @@ export default function ProjectsBC() {
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setOpenMenuProjectId(null);
-                                      setDeleteId(p.id);
+                                      setDeleteProject(p);
                                     }}
                                     className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                                   >
@@ -3141,11 +3159,11 @@ export default function ProjectsBC() {
                           role="button"
                           tabIndex={0}
                           className="flex items-center justify-between border-t border-[#E8E8E8] pt-2 mt-auto cursor-pointer"
-                          onClick={() => setSearchParams({ projectId: String(p.id) })}
+                          onClick={() => setSearchParams({ projectId: String(p.id), source: String(p.source || "In House") })}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              setSearchParams({ projectId: String(p.id) });
+                              setSearchParams({ projectId: String(p.id), source: String(p.source || "In House") });
                             }
                           }}
                           title="View project details"
@@ -3263,59 +3281,46 @@ export default function ProjectsBC() {
           </div>
         )}
 
-        {/* Delete confirmation (Keep as modal) */}
-        {deleteId !== null && (
-          <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
-              {/* Close Button */}
-              <button
-                type="button"
-                onClick={() => setDeleteId(null)}
-                className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                title="Close"
-              >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-              </button>
-
-              {/* Content */}
-              <h3 className="text-[18px] font-Gantari font-semibold text-[#020202] mt-[12px] mb-3">
-                Delete Project
-              </h3>
-              <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
-                Are you sure, you want to Delete this?
-              </p>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
+        {deleteProject !== null && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-white rounded-[20px] shadow-2xl max-w-sm w-full p-8 text-center border border-gray-100">
+              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2 font-Gantari">Delete Project</h3>
+              <p className="text-gray-500 mb-8 font-Gantari">Are you sure you want to delete this project? This action cannot be undone.</p>
+              <div className="flex gap-3 justify-center">
                 <button
                   type="button"
-                  onClick={() => setDeleteId(null)}
-                  className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#E8E8E8] text-[#000000] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+                  onClick={() => setDeleteProject(null)}
+                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-all font-Gantari cursor-pointer"
                 >
-                  Discard
+                  Cancel
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    if (deleteId === null) return;
-                    api
-                      .delete(`/api/projects/${deleteId}`)
+                    if (deleteProject === null) return;
+                    const isOutsource = deleteProject.source === "Outsource";
+                    const baseEndpoint = isOutsource ? `/api/vendors/vendor-projects/${deleteProject.id}` : `/api/projects/${deleteProject.id}`;
+                    
+                    api.delete(baseEndpoint)
                       .then(() => {
-                        setList((prev) => prev.filter((p) => p.id !== deleteId));
-                        setDeleteId(null);
+                        setList(prev => prev.filter(p => p.id !== deleteProject.id));
+                        setDeleteProject(null);
                       })
-                      .catch(() => {
-                        setDeleteId(null);
-                      });
-                  }}
-                  className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
-                >
-                  Yes, Delete
-                </button>
-              </div>
+                      .catch(() => { });
+                }}
+                className="flex-1 px-6 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all font-Gantari shadow-lg shadow-red-200 cursor-pointer"
+              >
+                Delete
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
         {/* Add Payment Milestone Modal */}
         {showAddMilestoneModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">

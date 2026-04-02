@@ -46,6 +46,7 @@ export interface Project {
     bim_coordinator_name?: string | null;
     uploader_name?: string | null;
     members?: string;
+    source?: "In House" | "Outsource";
 }
 
 export interface FormDropdownProps {
@@ -94,18 +95,18 @@ export function FormDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm cursor-pointer"
+                className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-[14px] cursor-pointer"
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
-                <span className={value ? "text-[#353535]" : "text-[#616161]"}>
+                <span className={value ? "text-[#353535]" : "text-[#8B8B8B]"}>
                     {displayLabel}
                 </span>
                 <img
                     src={ArrowDown}
                     alt="arrow"
-                    className={`ml-2 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                    className={`ml-2  w-3 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
                 />
             </button>
             {isOpen && (
@@ -137,7 +138,7 @@ export function FormDropdown({
                                     onChange(opt.value);
                                     onClose();
                                 }}
-                                className="block w-full px-3 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg cursor-pointer"
+                                className="block w-full px-3 py-2 text-left text-[14px] text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2] first:rounded-t-lg last:rounded-b-lg cursor-pointer"
                             >
                                 {opt.label}
                             </button>
@@ -206,15 +207,15 @@ export function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
-                <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>
+                <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
                     {label.toLowerCase() === 'show' && selected && selected !== label ? (
                         <>
-                            <span className="text-sm text-[#353535]">Show:</span>{" "}
+                            <span className="text-[14px] text-[#353535]">Show:</span>{" "}
                             <span>{selected}</span>
                         </>
                     ) : (
@@ -224,7 +225,7 @@ export function TaskDropdown({
                 <img
                     src={ArrowDown}
                     alt="arrow"
-                    className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                    className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
                 />
             </button>
             {isOpen && (
@@ -262,7 +263,7 @@ export function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
+                                className={`block w-full px-4 py-2 text-left text-[14px] font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
                             >
                                 {opt}
                             </button>
@@ -398,6 +399,8 @@ export interface Task {
     Approval?: string;
     projectid?: number;
     created_at?: string;
+    Actual_start_time?: string;
+    source?: "In House" | "Outsource";
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -517,7 +520,6 @@ export function TaskCard({
     onEditTask?: (task: Task) => void;
     onDeleteTask?: (task: Task) => void;
 }) {
-    const style = STATUS_STYLE[status];
     const progress =
         task.progress !== undefined
             ? task.progress
@@ -534,6 +536,7 @@ export function TaskCard({
         : "";
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
+    const isCompleted = status === "completed";
 
     useEffect(() => {
         if (!menuOpen) return;
@@ -547,6 +550,10 @@ export function TaskCard({
     }, [menuOpen]);
 
     const handleDragStart = (e: React.DragEvent) => {
+        if (status === "completed") {
+            e.preventDefault();
+            return;
+        }
         e.dataTransfer.setData("taskId", String(task.id));
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("text/plain", task.task_name || "Task");
@@ -554,18 +561,15 @@ export function TaskCard({
 
     return (
         <div
-            draggable
+            draggable={!isCompleted}
             onDragStart={handleDragStart}
-            className="rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative cursor-grab active:cursor-grabbing"
+            className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
-            <div className="flex items-start justify-between gap-2 mb-2">
-                <span
-                    className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium ${style.bg}`}
-                >
-                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`} />
-                    {style.label}
-                </span>
-                <div className="relative shrink-0" ref={menuRef}>
+            <div className="flex items-center justify-between gap-2 mb-2">
+                <h4 className="font-semibold text-[#353535] text-[20px] truncate">
+                    {task.task_name || "Task Name"}
+                </h4>
+                <div className="relative" ref={menuRef}>
                     <button
                         type="button"
                         draggable={false}
@@ -573,7 +577,7 @@ export function TaskCard({
                             e.stopPropagation();
                             setMenuOpen((prev) => !prev);
                         }}
-                        className="p-1 rounded cursor-pointer leading-none"
+                        className="p-0.5 rounded cursor-pointer"
                         aria-label="More options"
                         aria-expanded={menuOpen}
                     >
@@ -581,7 +585,7 @@ export function TaskCard({
                     </button>
                     {menuOpen && (
                         <div
-                            className="absolute right-0 top-full mt-2 z-[100] min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all origin-top-right overflow-hidden"
+                            className="absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right"
                             role="menu"
                         >
                             <button
@@ -602,49 +606,50 @@ export function TaskCard({
                                     View
                                 </span>
                             </button>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onEditTask?.(task);
-                                }}
-                            >
-                                <img
-                                    src={editIcon}
-                                    alt="edit"
-                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                />
-                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    Edit
-                                </span>
-                            </button>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onDeleteTask?.(task);
-                                }}
-                            >
-                                <img
-                                    src={deleteIcon}
-                                    alt="delete"
-                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                />
-                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    Delete
-                                </span>
-                            </button>
+                            {!isCompleted && (
+                                <>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onEditTask?.(task);
+                                        }}
+                                    >
+                                        <img
+                                            src={editIcon}
+                                            alt="edit"
+                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                        />
+                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                            Edit
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onDeleteTask?.(task);
+                                        }}
+                                    >
+                                        <img
+                                            src={deleteIcon}
+                                            alt="delete"
+                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                        />
+                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                            Delete
+                                        </span>
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
             </div>
-            <h4 className="font-semibold text-[#353535] text-[20px] truncate mb-2">
-                {task.task_name || "Task Name"}
-            </h4>
             <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex flex-col">
                     <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
@@ -655,13 +660,13 @@ export function TaskCard({
                     <span className="text-[14px] font-medium text-[#8B8B8B]">{endStr}</span>
                 </div>
             </div>
-            <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-xs text-slate-600">Progress</span>
-                <span className="text-xs font-medium text-slate-700">{progress}%</span>
+            <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-xs text-[#8B8B8B]">Progress</span>
+                <span className="text-xs font-medium text-[#8B8B8B]">{progress}%</span>
             </div>
-            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
                 <div
-                    className="h-full rounded-full bg-slate-500"
+                    className="h-full rounded-full bg-[#8B8B8B]"
                     style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                 />
             </div>
@@ -733,9 +738,10 @@ export function TaskCard({
                         </div>
                     </div>
                 </div>
-                <Link
-                    to={`/tasks/${task.id}`}
+                <button
+                    type="button"
                     draggable={false}
+                    onClick={() => onViewTask?.(task)}
                     className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer"
                 >
                     Details
@@ -744,7 +750,7 @@ export function TaskCard({
                         alt="Arrow"
                         className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
                     />
-                </Link>
+                </button>
             </div>
         </div>
     );
@@ -818,38 +824,45 @@ export default function MytaskBC() {
         return "Rejected";
     };
 
-    const handleMoveTask = (
+    const handleMoveTask = async (
         taskId: number,
-        newStatus: "todo" | "in_progress" | "completed" | "approved" | "rejected"
+        newStatus: "todo" | "in_progress" | "completed",
     ) => {
-        const label = statusToLabel(newStatus);
-        
-        // Find task to get projectId if possible
-        const task = list.find(t => t.id === taskId);
-        const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
+        try {
+            const statusMap = {
+                todo: "Todo",
+                in_progress: "InProgress",
+                completed: "Completed"
+            };
 
-        // Visual update immediately
-        setList((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: label } : t)));
+            const task = list.find(t => t.id === taskId);
+            const projectId = (task as any)?.projectid ?? (task as any)?.project_id;
+            
+            const isOutsource = task?.source === "Outsource";
+            const endpoint = isOutsource
+                ? `/api/vendors/vendor-tasks/${taskId}/status`
+                : `/api/tasks/${taskId}/status`;
 
-        // Backend update
-        api.patch(`/api/tasks/${taskId}/status`, { 
-            status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
-            projectId 
-        }).catch(err => {
-            console.error("Failed to update task status:", err);
-        });
+            await api.patch(endpoint, {
+                status: statusMap[newStatus],
+                projectId
+            });
+            setList(prev => prev.map(t => t.id === taskId ? { ...t, status: statusMap[newStatus] } : t));
+        } catch (error) {
+            console.error("Error moving task:", error);
+        }
     };
 
-    const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+    const [deleteTask, setDeleteTask] = useState<Task | null>(null);
     const [attachmentPreviewFile, setAttachmentPreviewFile] = useState<File | null>(null);
     const navigate = useNavigate();
 
     const openEditTask = (task: Task) => {
-        navigate("/bc/mytasks/add", { state: { task, from: isTeam ? "teamtasks" : "mytasks" } });
+        navigate("/bc/mytasks/add", { state: { task } });
     };
 
     const openDeleteTask = (task: Task) => {
-        setDeleteTaskId(task.id);
+        setDeleteTask(task);
     };
 
     const openViewTask = (task: Task) => {
@@ -878,7 +891,15 @@ export default function MytaskBC() {
 
     useEffect(() => {
         api.get<{ employees: Employee[] }>("/api/employees").then(res => setEmployees((res.data.employees || []).filter(isEmployeeActiveForProjectAssignment)));
-        api.get<{ projects: Project[] }>("/api/projects").then(res => setProjects(res.data.projects || []));
+        
+        Promise.all([
+            api.get<{ projects: Project[] }>("/api/projects"),
+            api.get<{ projects: Project[] }>("/api/vendors/vendor-projects")
+        ]).then(([res1, res2]) => {
+            const p1 = (res1.data.projects || []).map(p => ({ ...p, source: "In House" }));
+            const p2 = (res2.data.projects || []).map(p => ({ ...p, source: "Outsource" }));
+            setProjects([...p1, ...p2] as Project[]);
+        });
     }, []);
 
     useEffect(() => {
@@ -888,19 +909,33 @@ export default function MytaskBC() {
             params.condition = "1";
             params.employeeid = "all";
         }
-        api
-            .get<{ tasks?: Task[] }>("/api/tasks", { params })
-            .then(({ data }) => setList(data.tasks ?? []))
+        
+        const taskParams: Record<string, string> = { ...params };
+        
+        Promise.all([
+            api.get<{ tasks?: Task[] }>("/api/tasks", { params: taskParams }),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: taskParams })
+        ])
+            .then(([res1, res2]) => {
+                const t1 = (res1.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
+                const t2 = (res2.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
+                setList([...t1, ...t2] as Task[]);
+            })
             .catch(() => setList([]))
             .finally(() => setLoading(false));
     }, [isTeam, statusFilter]);
 
     const confirmDeleteTask = async () => {
-        if (deleteTaskId === null) return;
+        if (deleteTask === null) return;
         try {
-            await api.delete(`/api/tasks/${deleteTaskId}`);
-            setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
-            setDeleteTaskId(null);
+            const isOutsource = deleteTask.source === "Outsource";
+            const endpoint = isOutsource
+                ? `/api/vendors/vendor-tasks/${deleteTask.id}`
+                : `/api/tasks/${deleteTask.id}`;
+
+            await api.delete(endpoint);
+            setList((prev) => prev.filter((t) => t.id !== deleteTask.id));
+            setDeleteTask(null);
         } catch (error) {
             console.error("Error deleting task:", error);
         }
@@ -1056,7 +1091,7 @@ export default function MytaskBC() {
                         <button
                             type="button"
                             onClick={() => navigate("/bc/mytasks/add")}
-                            className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm"
+                            className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-[#F2F2F2] shadow-sm"
                         >
                             <img src={AddBtn} alt="Add" className="h-5 w-5" />
                             Add task
@@ -1101,9 +1136,9 @@ export default function MytaskBC() {
 
             {/* Task columns scrollable area */}
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pb-4">
                     <div
-                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
                         onDragOver={(e) => {
                             e.preventDefault();
                             e.dataTransfer.dropEffect = "move";
@@ -1126,7 +1161,7 @@ export default function MytaskBC() {
                         ))}
                     </div>
                     <div
-                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
                         onDragOver={(e) => {
                             e.preventDefault();
                             e.dataTransfer.dropEffect = "move";
@@ -1149,7 +1184,7 @@ export default function MytaskBC() {
                         ))}
                     </div>
                     <div
-                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
                         onDragOver={(e) => {
                             e.preventDefault();
                             e.dataTransfer.dropEffect = "move";
@@ -1175,52 +1210,48 @@ export default function MytaskBC() {
             </div>
 
             {/* Delete Task confirmation modal */}
-            {deleteTaskId !== null && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-                        <div className="flex items-center justify-between px-6 py-4">
-                            <button
-                                type="button"
-                                onClick={() => setDeleteTaskId(null)}
-                                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors"
-                                aria-label="Close"
+            {deleteTask !== null && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+                        {/* Close */}
+                        <button
+                            type="button"
+                            onClick={() => setDeleteTask(null)}
+                            className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+                            title="Close"
+                        >
+                            <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
                             >
-                                <svg
-                                    className="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                            <h3 className="flex-1 text-center text-lg font-semibold text-[#353535]">
-                                Delete Task
-                            </h3>
-                            <div className="w-9" />
-                        </div>
-                        <div className="px-6 py-5">
-                            <p className="text-black text-center">
-                                Are you sure, you want to Delete this Task?
-                            </p>
-                        </div>
-                        <div className="flex justify-center gap-3 px-6 py-4 bg-slate-50/50">
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M6 18L18 6M6 6l12 12"
+                                />
+                            </svg>
+                        </button>
+                        <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
+                            Delete Task
+                        </h3>
+                        <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+                            Are you sure, you want to Delete this?
+                        </p>
+                        <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
                             <button
                                 type="button"
-                                onClick={() => setDeleteTaskId(null)}
-                                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0]"
+                                onClick={() => setDeleteTask(null)}
+                                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
                             >
                                 Discard
                             </button>
                             <button
                                 type="button"
                                 onClick={confirmDeleteTask}
-                                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3]"
+                                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
                             >
                                 Yes, Delete
                             </button>

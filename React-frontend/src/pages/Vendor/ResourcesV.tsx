@@ -13,6 +13,8 @@ import messageIcon from "../../assets/ProjectManager/consultant/messageIcon.svg"
 import callIcon from "../../assets/ProjectManager/consultant/callIcon.svg";
 import eyeIcon from "../../assets/ProjectManager/consultant/eyeIcon.svg";
 import editIcon from "../../assets/ProjectManager/consultant/editIcon.svg";
+import { VendorUploadPreviewModal } from "../../components/VendorUploadPreviewModal";
+import { sanitizeVendorVendorsFilename } from "../../lib/vendorUploads";
 
 interface Employee {
   id: number;
@@ -173,7 +175,7 @@ export default function ResourcesV() {
     email: "",
     password: "",
     type: "",
-    user_role: "Consultant",
+    user_role: "",
     joining_date: "",
     department: "",
     address: "",
@@ -208,6 +210,9 @@ export default function ResourcesV() {
   });
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [certificationPreviewRaw, setCertificationPreviewRaw] = useState<
+    string | null
+  >(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null,
   );
@@ -340,6 +345,38 @@ export default function ResourcesV() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
+
+  function renderProfileCertificationsCard() {
+    const certList = selectedEmployee?.certifications?.trim();
+    if (!certList || !selectedEmployee) return null;
+    const certRaw = certList.split(",")[0].trim();
+    const displayName =
+      sanitizeVendorVendorsFilename(certRaw) ||
+      certRaw.split(/[/\\]/).pop() ||
+      certRaw;
+    return (
+      <div className="py-3 w-full max-w-xl">
+        <p className="text-[#353535] font-gantari text-[14px] font-medium mb-2">
+          Certifications
+        </p>
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
+          <span
+            className="text-[13px] text-[#334155] font-gantari font-medium truncate min-w-0"
+            title={displayName}
+          >
+            {displayName}
+          </span>
+          <button
+            type="button"
+            onClick={() => setCertificationPreviewRaw(certRaw)}
+            className="shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold font-gantari text-[#DD4342] bg-white border border-[#E2E8F0] hover:bg-[#FFF5F5] hover:border-[#DD4342]/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#DD4342]/40"
+          >
+            View
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   function exportCsv() {
     const headers = ["Name", "Email", "Role", "Status", "Phone", "Department"];
@@ -543,7 +580,7 @@ export default function ResourcesV() {
                   setItemsPerPage(parseInt(val, 10));
                   setCurrentPage(1);
                 }}
-                placeholder="Show"
+                placeholder="Show Entries"
                 className="flex-1 sm:min-w-[120px] rounded-md"
                 styleType="header"
               />
@@ -824,7 +861,7 @@ export default function ResourcesV() {
                 onClick={() => setShowDetailsModal(false)}
                 className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
               >
-              <FiX className="w-5 h-5" />
+                <FiX className="w-5 h-5" />
               </button>
 
               <div className="flex-1 text-center mx-6 min-w-0">
@@ -847,38 +884,64 @@ export default function ResourcesV() {
               <div className="flex flex-col text-left ">
                 {[
                   { label: "Login Email", value: selectedEmployee.email },
-                  { label: "Phone Number", value: selectedEmployee.phone_number },
+                  {
+                    label: "Phone Number",
+                    value: selectedEmployee.phone_number,
+                  },
                   { label: "Login Role", value: selectedEmployee.user_role },
                   { label: "Designation", value: selectedEmployee.designation },
                   { label: "Discipline", value: selectedEmployee.discipline },
-                  { label: "Years of Experience", value: selectedEmployee.years_of_experience },
-                  { label: "Resource Role", value: selectedEmployee.resource_role },
+                  {
+                    label: "Years of Experience",
+                    value: selectedEmployee.years_of_experience,
+                  },
+                  {
+                    label: "Resource Role",
+                    value: selectedEmployee.resource_role,
+                  },
                   { label: "Expertise", value: selectedEmployee.expertise },
                   { label: "Software", value: selectedEmployee.software },
-                  { label: "Certifications", value: selectedEmployee.certifications },
-                  { label: "Projects Worked On", value: selectedEmployee.projects_worked_on },
-                  { label: "Address", value: selectedEmployee.address },
+                  {
+                    label: "Projects Worked On",
+                    value: selectedEmployee.projects_worked_on,
+                  },
                 ].map(({ label, value }) =>
                   value ? (
                     <div key={label} className="flex items-center py-2 gap-6">
                       <span className="text-[#353535] font-gantari text-[14px] font-medium w-52 shrink-0">
                         {label}
                       </span>
-                      <span className="text-[#353535] font-gantari text-[14px] font-medium shrink-0">:</span>
+                      <span className="text-[#353535] font-gantari text-[14px] font-medium shrink-0">
+                        :
+                      </span>
                       <span className="text-[#000000] font-gantari text-[14px] font-semibold break-words">
                         {value}
                       </span>
                     </div>
-                  ) : null
+                  ) : null,
                 )}
+                {renderProfileCertificationsCard()}
+                {selectedEmployee.address ? (
+                  <div className="flex items-center py-2 gap-6">
+                    <span className="text-[#353535] font-gantari text-[14px] font-medium w-52 shrink-0">
+                      Address
+                    </span>
+                    <span className="text-[#353535] font-gantari text-[14px] font-medium shrink-0">
+                      :
+                    </span>
+                    <span className="text-[#000000] font-gantari text-[14px] font-semibold break-words">
+                      {selectedEmployee.address}
+                    </span>
+                  </div>
+                ) : null}
               </div>
 
-            {canAdd && (
-              <div
-                id="assign-login-section"
-                className="mt-8 border-t border-[#F0F0F0] pt-6"
-              >
-                {/* <h4 className="text-sm font-bold text-[#353535] mb-4">
+              {canAdd && (
+                <div
+                  id="assign-login-section"
+                  className="mt-8 border-t border-[#F0F0F0] pt-6"
+                >
+                  {/* <h4 className="text-sm font-bold text-[#353535] mb-4">
                                     {selectedEmployee.email ? 'Edit Login' : 'Assign Login'}
                                 </h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
@@ -923,11 +986,18 @@ export default function ResourcesV() {
                                         </button>
                                     </div>
                                 </div> */}
-              </div>
-            )}
+                </div>
+              )}
             </div>
           </div>
         </div>
+      )}
+
+      {certificationPreviewRaw && (
+        <VendorUploadPreviewModal
+          fileName={certificationPreviewRaw}
+          onClose={() => setCertificationPreviewRaw(null)}
+        />
       )}
 
       {activeView === "list" ? (
@@ -973,7 +1043,7 @@ export default function ResourcesV() {
                         Full Name
                         <span className="text-red-500">*</span>
                       </label>
-                      
+
                       <input
                         type="text"
                         placeholder="Worker Full Name"
@@ -1052,7 +1122,7 @@ export default function ResourcesV() {
                       <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
                         Role
                       </label>
-                      <CustomDropdown 
+                      <CustomDropdown
                         options={
                           roleOptions.length
                             ? roleOptions
@@ -1070,7 +1140,6 @@ export default function ResourcesV() {
                         }
                         placeholder="Select Role"
                         placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
-                        
                       />
                     </div>
                     <div>
@@ -1109,9 +1178,7 @@ export default function ResourcesV() {
                       <div className="flex gap-2">
                         <select
                           value={
-                            activeView === "add"
-                              ? countryCode
-                              : editCountryCode
+                            activeView === "add" ? countryCode : editCountryCode
                           }
                           onChange={(e) =>
                             activeView === "add"

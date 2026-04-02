@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
+import { useAuth } from "../../contexts/AuthContext";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
-import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
+import { FiUploadCloud, FiPaperclip, FiArrowRight } from "react-icons/fi";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
+import swifterzLogo from "../../assets/ProductNavbarIcons/swifterzlogo.png";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
 // import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
@@ -29,17 +31,21 @@ interface Project {
     due_date?: string;
     totalhours?: string;
     perday?: string;
+    per_day?: string;
     department?: string;
     lead_id?: string;
     bim_coordinator_id?: string;
     members?: string;
     no_resource?: string;
+    resources?: string;
     no_resources_required?: string;
+    required_resources?: string;
     priority?: string;
     location?: string;
     description?: string;
     budget_ceiling?: string;
     bidding_end_date?: string;
+    end_date?: string;
     proposal_id?: number;
     opportunity_id?: number;
     deliverables?: string;
@@ -53,7 +59,33 @@ interface Employee {
     email?: string;
 }
 
+/** Normalize API / input value to YYYY-MM-DD for date inputs and day math. */
+function toCalendarYmd(raw: string): string | null {
+    if (!raw?.trim()) return null;
+    const s = raw.trim().split("T")[0];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    return s;
+}
+
+/** Inclusive calendar days from start through end (both dates count as working days). */
+function countInclusiveProjectDays(startYmd: string, endYmd: string): number | null {
+    const a = toCalendarYmd(startYmd);
+    const b = toCalendarYmd(endYmd);
+    if (!a || !b) return null;
+    const [ys, ms, ds] = a.split("-").map(Number);
+    const [ye, me, de] = b.split("-").map(Number);
+    const start = new Date(ys, ms - 1, ds);
+    const end = new Date(ye, me - 1, de);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+    const diffDays = Math.round((end.getTime() - start.getTime()) / 86400000);
+    if (diffDays < 0) return null;
+    return diffDays + 1;
+}
+
 export default function ProjectsV() {
+    const { user: authUser } = useAuth();
+    const userRole = authUser?.user_role || "";
+
     const [list, setList] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(null);
@@ -95,7 +127,6 @@ export default function ProjectsV() {
     const [createProjectManager, setCreateProjectManager] = useState("");
     const [createStartDate, setCreateStartDate] = useState("");
     const [createEndDate, setCreateEndDate] = useState("");
-    const [createTotalHours, setCreateTotalHours] = useState("");
     const [createPerDay, setCreatePerDay] = useState("");
     const [createBIMLead, setCreateBIMLead] = useState("");
     const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState("");
@@ -122,6 +153,20 @@ export default function ProjectsV() {
     const [milestonesProject, setMilestonesProject] = useState<Project | null>(null);
 
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+    const computedTotalHours = useMemo(() => {
+        const days = countInclusiveProjectDays(createStartDate, createEndDate);
+        const per = parseFloat(String(createPerDay).trim().replace(/,/g, ""));
+        if (
+            days === null ||
+            days < 1 ||
+            !Number.isFinite(per) ||
+            per <= 0
+        ) {
+            return "";
+        }
+        return (days * per).toFixed(2);
+    }, [createStartDate, createEndDate, createPerDay]);
 
     const [searchParams] = useSearchParams();
     const statusFilter = searchParams.get("status");
@@ -289,7 +334,7 @@ export default function ProjectsV() {
             !createStartDate ||
             !createEndDate ||
             !createPerDay ||
-            !createTotalHours ||
+            !computedTotalHours ||
             !createPriority ||
             !createLocation
         ) {
@@ -308,7 +353,7 @@ export default function ProjectsV() {
             bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
             start_date: createStartDate,
             due_date: createEndDate,
-            totalhours: createTotalHours,
+            totalhours: computedTotalHours,
             perday: createPerDay,
             members: selectedMemberIds.join(","),
             // Backend column names are no_resource / no_resources_required
@@ -325,7 +370,7 @@ export default function ProjectsV() {
                     // Reset fields
                     setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
                     setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate("");
-                    setCreateTotalHours(""); setCreatePerDay(""); setCreateBIMLead("");
+                    setCreatePerDay(""); setCreateBIMLead("");
                     setCreateBIMCoOrdinator(""); setSelectedMemberIds([]); setCreateResources("");
                     setCreateRequiredResources(""); setCreatePriority(""); setCreateLocation("");
                     setCreateDescription(""); setCreateDeliverables(""); setCreateFile(null);
@@ -359,9 +404,10 @@ export default function ProjectsV() {
             ""
         );
         setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
-        setCreateEndDate(p.due_date || "");
-        setCreateTotalHours(p.totalhours || "");
-        setCreatePerDay(p.perday || "");
+        setCreateEndDate(
+            (p.end_date || p.due_date || "").split("T")[0] || "",
+        );
+        setCreatePerDay(p.per_day || p.perday || "");
         // Resolve BIM Lead from bimLeads array (vendor BIM Leads from vendor-by-role API)
         // Fall back to allEmployees if not found in bimLeads
         setCreateBIMLead(
@@ -370,8 +416,8 @@ export default function ProjectsV() {
             ""
         );
         setCreateBIMCoOrdinator(idToName(p.bim_coordinator_id, allEmployees));
-        setCreateResources(p.no_resource || "");
-        setCreateRequiredResources(p.no_resources_required || "");
+        setCreateResources(p.resources || p.no_resource || "");
+        setCreateRequiredResources(p.required_resources || p.no_resources_required || "");
         setCreatePriority(p.priority || "");
         setCreateLocation(p.location || "");
         // Strip HTML tags / entities so the textarea shows clean text
@@ -391,7 +437,7 @@ export default function ProjectsV() {
             !createStartDate ||
             !createEndDate ||
             !createPerDay ||
-            !createTotalHours ||
+            !computedTotalHours ||
             !createPriority ||
             !createLocation
         ) {
@@ -410,7 +456,7 @@ export default function ProjectsV() {
             bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
             start_date: createStartDate,
             due_date: createEndDate,
-            totalhours: createTotalHours,
+            totalhours: computedTotalHours,
             perday: createPerDay,
             members: selectedMemberIds.join(","),
             // Backend column names are no_resource / no_resources_required
@@ -427,7 +473,7 @@ export default function ProjectsV() {
                     // Reset fields
                     setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
                     setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate("");
-                    setCreateTotalHours(""); setCreatePerDay(""); setCreateBIMLead("");
+                    setCreatePerDay(""); setCreateBIMLead("");
                     setCreateBIMCoOrdinator(""); setSelectedMemberIds([]); setCreateResources("");
                     setCreateRequiredResources(""); setCreatePriority(""); setCreateLocation("");
                     setCreateDescription(""); setCreateDeliverables(""); setCreateFile(null);
@@ -458,7 +504,6 @@ export default function ProjectsV() {
             }
         }
     }, [showEditModal, editId, clientsList, list, createClientName]);
-
 
     const toggleMember = (id: number) => {
         setSelectedMemberIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -608,18 +653,20 @@ export default function ProjectsV() {
                 </div>
 
                 {/* Row 2: Client Budget (read-only), Outsourcing Budget */}
-                <div className="space-y-2">
-                    <label className="block text-[16px] font-medium text-[#000000]">
-                        Budget
-                    </label>
-                    <input
-                        type="text"
-                        readOnly
-                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] font-medium text-gray-500 cursor-not-allowed"
-                        placeholder="Auto-fetched from contract"
-                        value={createBudget}
-                    />
-                </div>
+                {userRole === "Vendor" && (
+                    <div className="space-y-2">
+                        <label className="block text-[16px] font-medium text-[#000000]">
+                            Budget
+                        </label>
+                        <input
+                            type="text"
+                            readOnly
+                            className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] font-medium text-gray-500 cursor-not-allowed"
+                            placeholder="Auto-fetched from contract"
+                            value={createBudget}
+                        />
+                    </div>
+                )}
 
                 {/* Row 3: Bidding End Date, Project Manager */}
                 <div className="space-y-2">
@@ -796,7 +843,16 @@ export default function ProjectsV() {
                 {/* Row 5: Start Date, End Date */}
                 <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">Project Start Date <span className="text-[#DD4342]">*</span></label>
-                    <input type="date" value={createStartDate} onChange={e => setCreateStartDate(e.target.value)}
+                    <input type="date" value={createStartDate}
+                        onChange={e => {
+                            const val = e.target.value;
+                            setCreateStartDate(val);
+                            if (val && (!createEndDate || createEndDate === "")) {
+                                const d = new Date(val);
+                                d.setMonth(d.getMonth() + 6);
+                                setCreateEndDate(d.toISOString().split('T')[0]);
+                            }
+                        }}
                         className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" />
                 </div>
                 <div className="space-y-2">
@@ -812,9 +868,20 @@ export default function ProjectsV() {
                         className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Hours Per Day" />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[16px] font-medium text-[#000000]">Total Hours <span className="text-[#DD4342]">*</span></label>
-                    <input type="text" value={createTotalHours} onChange={e => setCreateTotalHours(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Total Estimated Hours" />
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                        Total Hours <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        readOnly
+                        value={computedTotalHours}
+                        className="w-full px-5 py-3.5 bg-[#E8EAED] border-none rounded-[5px] font-medium text-gray-700 cursor-not-allowed"
+                        placeholder="Set start date, end date, and per day"
+                        title="Calculated: (days from start to end, inclusive) × hours per day"
+                    />
+                    <p className="text-[12px] font-Gantari text-[#888888]">
+                        Auto-calculated from project dates and per day.
+                    </p>
                 </div>
 
                 {/* Row 7: Resources, Required Resources */}
@@ -979,7 +1046,7 @@ export default function ProjectsV() {
                                     // Reset all form fields
                                     setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
                                     setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate("");
-                                    setCreateTotalHours(""); setCreatePerDay(""); setCreateBIMLead("");
+                                    setCreatePerDay(""); setCreateBIMLead("");
                                     setCreateBIMCoOrdinator(""); setCreateResources(""); setCreateRequiredResources("");
                                     setCreatePriority(""); setCreateLocation(""); setCreateDescription("");
                                     setCreateDeliverables(""); setSelectedMemberIds([]); setCreateFile(null);
@@ -1071,64 +1138,110 @@ export default function ProjectsV() {
                             </div>
 
 
-                            {/* Team Overview */}
-                            <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 lg:p-4">
-                                <h4 className="text-xl font-Gantari font-semibold text-[#000000] mb-8">
+                            {/* Team Roles Section */}
+                            <div className="border border-slate-200 rounded-xl md:rounded-xl p-8 space-y-10">
+                                <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">
                                     Team Overview
                                 </h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-center">
-                                    {/* Project Manager/Technical Lead */}
-                                    <div className="min-w-0">
-                                        <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
-                                            Team Members
-                                        </p>
-                                        <div className="flex items-center -space-x-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                                    {/* Project Manager */}
+                                    <div className="space-y-4">
+                                        <p className="text-[16px] font-bold text-[#000000]">Project Manager</p>
+                                        <div className="flex items-center gap-4">
                                             {(() => {
-                                                const memberIds = (selectedProject.members || "").split(",").filter(Boolean);
-                                                const projectMembers = memberIds.map(id => {
-                                                    return vendorResourceProfiles.find(r => r.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
-                                                }).filter(Boolean);
-
-                                                const visibleMembers = projectMembers.slice(0, 3);
-                                                const remainingCount = Math.max(0, projectMembers.length - 3);
-
+                                                const id = selectedProject.project_manager_id;
+                                                const name = getEmployeeName(id);
+                                                const emp = allEmployees.find(e => e.id === Number(id));
+                                                const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
                                                 return (
                                                     <>
-                                                        {visibleMembers.map((emp: any) => {
-                                                            const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                                                            return (
-                                                                <div key={emp.id} className="relative group shrink-0">
-                                                                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
-                                                                        {profileUrl ? (
-                                                                            <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                                                        ) : (
-                                                                            <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                                                                {(emp.full_name || "M").charAt(0).toUpperCase()}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                                                        {emp.full_name}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                        {remainingCount > 0 && (
-                                                            <div className="relative group shrink-0">
-                                                                <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0">
-                                                                    +{remainingCount}
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        {projectMembers.length === 0 && (
-                                                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
-                                                                <span className="text-slate-600 text-xs font-bold">TM</span>
-                                                            </div>
-                                                        )}
+                                                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                                                            {profileUrl ? (
+                                                                <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
+                                                            ) : (
+                                                                <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
+                                                            )}
+                                                        </div>
+                                                        <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                                                            {name || "Not assigned"}
+                                                        </p>
                                                     </>
                                                 );
                                             })()}
                                         </div>
+                                    </div>
+
+                                    {/* BIM Lead */}
+                                    <div className="space-y-4">
+                                        <p className="text-[16px] font-bold text-[#000000]">BIM Lead</p>
+                                        <div className="flex items-center gap-4">
+                                            {(() => {
+                                                const id = selectedProject.lead_id;
+                                                const name = getEmployeeName(id);
+                                                const emp = bimLeads.find(e => e.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
+                                                const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                return (
+                                                    <>
+                                                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                                                            {profileUrl ? (
+                                                                <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
+                                                            ) : (
+                                                                <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
+                                                            )}
+                                                        </div>
+                                                        <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                                                            {name || "Not assigned"}
+                                                        </p>
+                                                    </>
+                                                );
+                                            })()}
+                                        </div>
+                                    </div>
+
+                                    {/* Department Involved */}
+                                    <div className="space-y-4">
+                                        <p className="text-[16px] font-bold text-[#000000]">Department Involved</p>
+                                        <div className="h-10 flex items-center">
+                                            <p className="text-[14px] font-bold text-[#666666] transition-all">
+                                                {selectedProject.department || "N/A"}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Members Involved */}
+                                    <div className="space-y-4">
+                                        <p className="text-[16px] font-bold text-[#000000]">Members Involved</p>
+                                        {(() => {
+                                            const memberIds = (selectedProject.members || "").split(",").filter(Boolean);
+                                            const projectMembers = memberIds.map(id => {
+                                                return vendorResourceProfiles.find(r => r.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
+                                            }).filter(Boolean);
+
+                                            if (projectMembers.length === 0) {
+                                                return (
+                                                    <div className="h-10 flex items-center text-[14px] font-bold text-[#666666]">
+                                                        N/A
+                                                    </div>
+                                                );
+                                            }
+
+                                            const firstMember = projectMembers[0] as any;
+                                            const profileUrl = firstMember.profile_picture ? getGlobalProfileUrl(firstMember.id, firstMember.profile_picture) : null;
+                                            return (
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                                                        {profileUrl ? (
+                                                            <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
+                                                        ) : (
+                                                            <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                                                        {firstMember.full_name} {projectMembers.length > 1 ? `+${projectMembers.length - 1}` : ""}
+                                                    </p>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             </div>
@@ -1136,83 +1249,88 @@ export default function ProjectsV() {
 
                             {/* Project Details */}
                             <div className="rounded-lg border border-slate-200 p-6 md:p-8">
-                                <h4 className="text-xl font-Gantari font-semibold text-[#1A1A1A] mb-6">
+                                <h4 className="text-[20px] font-Gantari font-semibold text-[#1A1A1A] mb-6">
                                     Project Details
                                 </h4>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
                                     <div className="space-y-4 md:space-y-5">
                                         <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                                                Priority
-                                            </span>
-                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                                                {selectedProject.priority || "—"}
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                                                Budget
-                                            </span>
-                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                                                {selectedProject.budget || "—"}
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                                                 Actual Start Date
                                             </span>
-                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                                            <span className="text-md font-Gantari font-medium text-[#666666]">
+                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
                                                 {formatDate(selectedProject.start_date)}
                                             </span>
                                         </div>
                                         <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                                                Location
+                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                                Total Project Hours
                                             </span>
-                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                                                {selectedProject.location || "—"}
+                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                {selectedProject.totalhours ? `${selectedProject.totalhours}hrs` : "N/A"}
+                                            </span>
+                                        </div>
+                                        {userRole === "Vendor" && (
+                                            <>
+                                                <div className="flex flex-col sm:flex-row sm:items-center">
+                                                    <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                                        Budget
+                                                    </span>
+                                                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                                    <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                        {selectedProject.budget ? `${selectedProject.budget}$` : "N/A"}
+                                                    </span>
+                                                </div>
+                                            </>
+                                        )}
+                                        <div className="flex flex-col sm:flex-row sm:items-center">
+                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                                Total Resources Available
+                                            </span>
+                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                {selectedProject.resources || selectedProject.no_resource || "N/A"}
                                             </span>
                                         </div>
                                     </div>
+
                                     <div className="space-y-4 md:space-y-5">
                                         <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                                Location
+                                            </span>
+                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                {selectedProject.location || "N/A"}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row sm:items-center">
+                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                                                 Actual End Date
                                             </span>
-                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                                                {formatDate(selectedProject.due_date)}
+                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                {formatDate(selectedProject.end_date || selectedProject.due_date)}
                                             </span>
                                         </div>
                                         <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                                                Total Project Hours
-                                            </span>
-                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                                                {selectedProject.totalhours || "—"}
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                                                 Hours/Day
                                             </span>
-                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                                                {selectedProject.perday || "—"}
+                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                {selectedProject.per_day || selectedProject.perday ? `${selectedProject.per_day || selectedProject.perday}hrs` : "N/A"}
                                             </span>
                                         </div>
                                         <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                                                Modules
+                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                                Required Resources
                                             </span>
-                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                                                {selectedProject.modules || "—"}
+                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                {selectedProject.required_resources || selectedProject.no_resources_required || "N/A"}
                                             </span>
                                         </div>
                                     </div>
@@ -1280,108 +1398,108 @@ export default function ProjectsV() {
                                                 }}
                                                 className="bg-white rounded-2xl border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                                             >
-                                                    <div className="flex items-start justify-between mb-2">
-                                                        <div className="relative flex items-center justify-center shrink-0 mt-3 ml-2">
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <div className="relative flex items-center justify-center shrink-0 mt-3 ml-2">
 
-                                                            <svg className="w-20 h-20 transform -rotate-90">
-                                                                <circle cx="40" cy="40" r={radius} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
-                                                                <circle
-                                                                    cx="40"
-                                                                    cy="40"
-                                                                    r={radius}
-                                                                    stroke="#0a9344"
-                                                                    strokeWidth="6"
-                                                                    fill="transparent"
-                                                                    strokeDasharray={circumference}
-                                                                    strokeDashoffset={strokeOffset}
-                                                                    strokeLinecap="round"
-                                                                    style={{ transition: "stroke-dashoffset 0.8s ease-in-out" }}
-                                                                />
-                                                            </svg>
-                                                            <span className="absolute text-[16px] font-Gantari font-bold text-[#353535]">
-                                                                {progress}%
-                                                            </span>
-                                                        </div>
-                                                        <div className="relative shrink-0 project-menu-container">
+                                                        <svg className="w-20 h-20 transform -rotate-90">
+                                                            <circle cx="40" cy="40" r={radius} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
+                                                            <circle
+                                                                cx="40"
+                                                                cy="40"
+                                                                r={radius}
+                                                                stroke="#0a9344"
+                                                                strokeWidth="6"
+                                                                fill="transparent"
+                                                                strokeDasharray={circumference}
+                                                                strokeDashoffset={strokeOffset}
+                                                                strokeLinecap="round"
+                                                                style={{ transition: "stroke-dashoffset 0.8s ease-in-out" }}
+                                                            />
+                                                        </svg>
+                                                        <span className="absolute text-[16px] font-Gantari font-bold text-[#353535]">
+                                                            {progress}%
+                                                        </span>
+                                                    </div>
+                                                    <div className="relative shrink-0 project-menu-container">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setOpenMenuProjectId((prev) => (prev === p.id ? null : p.id));
+                                                            }}
+                                                            className="p-2 rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
+                                                        >
+                                                            <img
+                                                                src={threedot}
+                                                                alt="threeDots"
+                                                                className="w-5 h-5 text-[#8B8B8B]"
+                                                            />
+                                                        </button>
+                                                        <div
+                                                            className={`absolute right-0 mt-3 w-60 bg-white/20 backdrop-blur-md rounded-xl border border-[#595959]/50 shadow-xl transition-all origin-top-right z-50 ${openMenuProjectId === p.id ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
+                                                        >
                                                             <button
-                                                                type="button"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    setOpenMenuProjectId((prev) => (prev === p.id ? null : p.id));
+                                                                    setOpenMenuProjectId(null);
+                                                                    setSelectedProject(p);
+                                                                    setShowProjectView(true);
                                                                 }}
-                                                                className="p-2 rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
+                                                                className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                                             >
                                                                 <img
-                                                                    src={threedot}
-                                                                    alt="threeDots"
-                                                                    className="w-5 h-5 text-[#8B8B8B]"
+                                                                    src={viewIcon}
+                                                                    alt="view"
+                                                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                                                 />
+                                                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                                                    View
+                                                                </span>
                                                             </button>
-                                                            <div
-                                                                className={`absolute right-0 mt-3 w-60 bg-white/20 backdrop-blur-md rounded-xl border border-[#595959]/50 shadow-xl transition-all origin-top-right z-50 ${openMenuProjectId === p.id ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenMenuProjectId(null);
+                                                                    openEdit(p);
+                                                                }}
+                                                                className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                                             >
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setOpenMenuProjectId(null);
-                                                                        setSelectedProject(p);
-                                                                        setShowProjectView(true);
-                                                                    }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                                                >
-                                                                    <img
-                                                                        src={viewIcon}
-                                                                        alt="view"
-                                                                        className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                                                    />
-                                                                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                                                        View
-                                                                    </span>
-                                                                </button>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setOpenMenuProjectId(null);
-                                                                        openEdit(p);
-                                                                    }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                                                >
-                                                                    <img
-                                                                        src={editIcon}
-                                                                        alt="edit"
-                                                                        className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                                                    />
-                                                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
-                                                                        Edit
-                                                                    </span>
-                                                                </button>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setOpenMenuProjectId(null);
-                                                                        setMilestonesProject(p);
-                                                                        setShowMilestones(true);
-                                                                    }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                                                >
-                                                                    <img
-                                                                        src={paymentMilestoneIcon}
-                                                                        alt="payment milestone"
-                                                                        className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                                                    />
-                                                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
-                                                                       Payment Milestones
-                                                                    </span>
-                                                                </button>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setOpenMenuProjectId(null);
-                                                                        setDeleteId(p.id);
-                                                                    }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer bg-transparent border-none"
-                                                                >
-                                                                    {/* <img
+                                                                <img
+                                                                    src={editIcon}
+                                                                    alt="edit"
+                                                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                                                />
+                                                                <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                                                    Edit
+                                                                </span>
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenMenuProjectId(null);
+                                                                    setMilestonesProject(p);
+                                                                    setShowMilestones(true);
+                                                                }}
+                                                                className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                            >
+                                                                <img
+                                                                    src={paymentMilestoneIcon}
+                                                                    alt="payment milestone"
+                                                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                                                />
+                                                                <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                                                    Payment Milestones
+                                                                </span>
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenMenuProjectId(null);
+                                                                    setDeleteId(p.id);
+                                                                }}
+                                                                className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer bg-transparent border-none"
+                                                            >
+                                                                {/* <img
                                                                         src={deleteIcon}
                                                                         alt="delete"
                                                                         className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
@@ -1389,16 +1507,25 @@ export default function ProjectsV() {
                                                                     <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                                                         Delete
                                                                     </span> */}
-                                                                </button>
-                                                            </div>
+                                                            </button>
                                                         </div>
                                                     </div>
+                                                </div>
 
-                                                    <div className="mb-4 ml-6 -mt-2">
-                                                        <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
-                                                            {p.project_name ?? "Untitled Project"}
-                                                        </h3>
-                                                    </div>
+                                                <div className="mb-4 ml-6 -mt-2">
+                                                    <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                                                        {p.project_name ?? "Untitled Project"}
+                                                    </h3>
+                                                    {(userRole === "Vendor") && (
+                                                        <div className="mt-1 space-y-0.5">
+                                                            {p.budget_ceiling && (
+                                                                <p className="text-[13px] font-Gantari font-medium text-[#666666]">
+                                                                    Outsourcing Budget: <span className="font-bold text-[#353535]">{p.budget_ceiling}</span>
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
 
 
                                                 <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
@@ -1475,8 +1602,9 @@ export default function ProjectsV() {
                                                             {p.priority}
                                                         </div>
                                                     ) : (
-                                                        <div className="min-w-[2.75rem] h-9 flex items-center justify-center rounded-lg bg-sky-100 border border-sky-200/90 text-sky-700 text-lg font-bold font-Gantari shrink-0">
-                                                            —
+                                                        <div className="min-w-[2.75rem] h-9 flex items-center justify-center rounded-lg bg-sky-100 border border-sky-200/90 text-black text-[13px] px-4 py-2 font-Gantari shrink-0">
+                                                                Low
+                                                        {/* <FiArrowRight className="w-4 h-4 gap-2" /> */}
                                                         </div>
                                                     )}
                                                 </div>

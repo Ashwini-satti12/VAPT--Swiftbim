@@ -137,7 +137,7 @@ export default function DashboardTD() {
   // Integration: GET /api/dashboard/stats → KPI cards (totalProjects, completedProjects, inProgressTasks, completedTasks)
   useEffect(() => {
     api
-      .get<DashboardStats>("/api/dashboard/stats")
+      .get<DashboardStats>("/api/dashboard/td-stats")
       .then(({ data }) =>
         setStats({
           totalProjects: Number(data?.totalProjects) || 0,

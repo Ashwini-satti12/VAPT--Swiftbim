@@ -143,14 +143,14 @@ def list_tasks():
 
     if status:
         if status == 'todo':
-            status = 'Todo'
+            where.append("t.status = 'Todo'")
         elif status == 'in_progress':
-            status = 'InProgress'
+            where.append("t.status = 'InProgress' AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))")
         elif status == 'completed':
-            status = 'Completed'
-            
-        where.append("t.status = %s")
-        params.append(status)
+            where.append("(t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))")
+        else:
+            where.append("t.status = %s")
+            params.append(status)
     if project_id:
         where.append("t.projectid = %s")
         params.append(project_id)
@@ -340,7 +340,7 @@ def update_task(task_id):
     conn = get_db()
     cur = conn.cursor()
     # Build dynamic update
-    allowed = ("task_name", "assigned_to", "due_date", "category", "description", "checklist", "status", "modules_name", "Actual_start_time", "perferstart_time", "perferend_time")
+    allowed = ("task_name", "assigned_to", "due_date", "category", "description", "checklist", "status", "modules_name", "Actual_start_time", "perferstart_time", "perferend_time", "outputfilepath")
     sets = []
     params = []
     for key in allowed:

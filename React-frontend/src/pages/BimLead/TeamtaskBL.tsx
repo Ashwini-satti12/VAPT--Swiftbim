@@ -216,15 +216,15 @@ function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
-                <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>
+                <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
                     {label.toLowerCase() === 'show' && selected && selected !== label ? (
                         <>
-                            <span className="text-sm text-[#353535]">Show:</span>{" "}
+                            <span className="text-[14px] text-[#353535]">Show:</span>{" "}
                             <span>{selected}</span>
                         </>
                     ) : (
@@ -234,14 +234,14 @@ function TaskDropdown({
                 <img
                     src={ArrowDown}
                     alt="arrow"
-                    className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                    className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
                 />
             </button>
             {isOpen && (
                 <div
                     ref={dropdownRef}
                     role="listbox"
-                    className={`absolute top-full left-0 z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg ${narrow ? "min-w-[110px]" : "min-w-[160px]"}`}
+                    className={`absolute top-full z-[100] mt-1 rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 min-w-[110px]" : "left-0 min-w-[160px]"}`}
                 >
                     {searchable && (
                         <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
@@ -272,7 +272,7 @@ function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
+                                className={`block w-full px-4 py-2 text-left text-[14px] font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
                             >
                                 {opt}
                             </button>
@@ -372,6 +372,7 @@ interface Task {
     created_at?: string;
     Actual_start_time?: string;
     projectid?: number;
+    source?: "In House" | "Outsource";
 }
 
 interface Employee {
@@ -391,6 +392,7 @@ interface Project {
     lead_name?: string | null;
     bim_coordinator_name?: string | null;
     uploader_name?: string | null;
+    source?: "In House" | "Outsource";
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -482,7 +484,7 @@ function TaskCard({
     }, [menuOpen]);
 
     const handleDragStart = (e: React.DragEvent) => {
-        if (status === "completed") {
+        if (status === "completed" || task.source === "Outsource") {
             e.preventDefault();
             return;
         }
@@ -497,13 +499,13 @@ function TaskCard({
         <div
             draggable={!isCompleted}
             onDragStart={handleDragStart}
-            className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+            className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
             <div className="flex items-center justify-between gap-2 mb-2">
-                <h4 className="font-semibold text-slate-900 text-xl truncate">
+                <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[20px] truncate">
                     {task.task_name || "Task Name"}
                 </h4>
-                <div className="relative" ref={menuRef}>
+                <div className="relative shrink-0" ref={menuRef}>
                     <button
                         type="button"
                         draggable={false}
@@ -511,15 +513,15 @@ function TaskCard({
                             e.stopPropagation();
                             setMenuOpen((prev) => !prev);
                         }}
-                        className="p-0.5 rounded hover:bg-slate-100 cursor-pointer"
+                        className="p-1 rounded cursor-pointer leading-none"
                         aria-label="More options"
                         aria-expanded={menuOpen}
                     >
-                        <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+                        <img src={Dot} alt="Dot" className="w-5 h-5 object-contain" />
                     </button>
                     {menuOpen && (
                         <div
-                            className={`absolute top-full mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
+                            className={`absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right
                                 ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
                             role="menu"
                         >
@@ -537,62 +539,75 @@ function TaskCard({
                                     alt="view"
                                     className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                 />
-                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                                     View
                                 </span>
                             </button>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onEditTask?.(task);
-                                }}
-                            >
-                                <img
-                                    src={editIcon}
-                                    alt="edit"
-                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                />
-                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    Edit
-                                </span>
-                            </button>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onDeleteTask?.(task);
-                                }}
-                            >
-                                <img
-                                    src={deleteIcon}
-                                    alt="delete"
-                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                />
-                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    Delete
-                                </span>
-                            </button>
+                            {task.source !== "Outsource" && (
+                                <>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onEditTask?.(task);
+                                        }}
+                                    >
+                                        <img
+                                            src={editIcon}
+                                            alt="edit"
+                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                        />
+                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                            Edit
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onDeleteTask?.(task);
+                                        }}
+                                    >
+                                        <img
+                                            src={deleteIcon}
+                                            alt="delete"
+                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(180%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                        />
+                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                            Delete
+                                        </span>
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
             </div>
-            <div className="flex items-center justify-between gap-2 mb-3 text-[13px] font-medium text-[#0A2E65]">
-                <span>{(task.start_date || task.Actual_start_time) ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, '0')}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}` : "—"}</span>
-
-                <span>{task.due_date ? `${new Date(task.due_date).getDate().toString().padStart(2, '0')}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.due_date).getFullYear()}` : ""}</span>
+            <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex flex-col ">
+                    <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
+                    <span className="text-[14px] font-medium text-[#8B8B8B]">
+                        {(task.start_date || task.Actual_start_time) ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, '0')}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}` : "—"}
+                    </span>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                    <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+                    <span className="text-[14px] font-medium text-[#8B8B8B]">
+                        {task.due_date ? `${new Date(task.due_date).getDate().toString().padStart(2, '0')}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.due_date).getFullYear()}` : ""}
+                    </span>
+                </div>
             </div>
-            <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-xs text-slate-600">Progress</span>
-                <span className="text-xs font-medium text-slate-700">{progress}%</span>
+            <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-xs text-[#8B8B8B]">Progress</span>
+                <span className="text-xs font-medium text-[#8B8B8B]">{progress}%</span>
             </div>
-            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
                 <div
-                    className="h-full rounded-full bg-slate-500"
+                    className="h-full rounded-full bg-[#8B8B8B]"
                     style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                 />
             </div>
@@ -617,7 +632,7 @@ function TaskCard({
                                     .toUpperCase();
                                 return (
                                     <div
-                                        className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                                        className="w-7 h-7 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                                         title={`Assigned To: ${task.assigned_full_name}`}
                                     >
                                         {src ? (
@@ -646,7 +661,7 @@ function TaskCard({
                                     .toUpperCase();
                                 return (
                                     <div
-                                        className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                                        className="w-7 h-7 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                                         title={`Assigned By: ${task.uploader_full_name}`}
                                     >
                                         {src ? (
@@ -659,15 +674,19 @@ function TaskCard({
                             })()}
                     </div>
                 </div>
-                <Link
-                    to="/bl/mytasks/view"
-                    state={{ task, from: "teamtask" }}
+                <button
+                    type="button"
                     draggable={false}
-                    className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2 cursor-pointer"
+                    onClick={() => onViewTask?.(task)}
+                    className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer"
                 >
                     Details
-                    <img src={Arrow} alt="Arrow" className="w-2 h-2" />
-                </Link>
+                    <img
+                        src={Arrow}
+                        alt="Arrow"
+                        className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
+                    />
+                </button>
             </div>
         </div>
     );
@@ -733,10 +752,15 @@ export default function TeamtaskBL() {
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
     const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-    const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+    const [deleteTask, setDeleteTask] = useState<Task | null>(null);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [modules, setModules] = useState<string[]>([]);
+
+    const isOutsourceProjectSelected = useMemo(() => {
+        if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All" || selectedProject === "Projects") return false;
+        return projects.find(p => p.project_name === selectedProject)?.source === "Outsource";
+    }, [selectedProject, projects]);
     const [addTaskForm, setAddTaskForm] = useState({
         projectName: "",
         module: "",
@@ -869,6 +893,10 @@ export default function TeamtaskBL() {
 
         // Find task to get projectId if possible
         const task = merged.find(t => t.id === taskId);
+        if (task?.source === "Outsource") {
+            console.warn("Bim Lead cannot update status of an Outsource task.");
+            return;
+        }
         const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
 
         // Visual update immediately
@@ -886,7 +914,12 @@ export default function TeamtaskBL() {
         });
 
         // Backend update
-        api.patch(`/api/tasks/${taskId}/status`, {
+        const isOutsource = task?.source === ("Outsource" as any);
+        const endpoint = isOutsource 
+            ? `/api/vendors/vendor-tasks/${taskId}/status` 
+            : `/api/tasks/${taskId}/status`;
+
+        api.patch(endpoint, {
             status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
             projectId
         }).catch(err => {
@@ -915,13 +948,11 @@ export default function TeamtaskBL() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const openEditTask = (task: Task) => {
-        setAddTaskForm(taskToFormValues(task));
-        setEditingTaskId(task.id);
-        setAddTaskModalOpen(true);
+        navigate("/bl/teamtasks/add", { state: { task, from: "teamtasks" } });
     };
 
     const openDeleteTask = (task: Task) => {
-        setDeleteTaskId(task.id);
+        setDeleteTask(task);
     };
 
     const openViewTask = (task: Task) => {
@@ -929,16 +960,33 @@ export default function TeamtaskBL() {
     };
 
     const confirmDeleteTask = () => {
-        if (deleteTaskId !== null) {
-            api.delete(`/api/tasks/${deleteTaskId}`).then(() => {
-                api.get<{ tasks?: Task[] }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
-                    .then(res => setList(res.data.tasks ?? []));
-                setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
+        if (deleteTask !== null) {
+            const isOutsource = deleteTask.source === "Outsource";
+            const endpoint = isOutsource 
+                ? `/api/vendors/vendor-tasks/${deleteTask.id}` 
+                : `/api/tasks/${deleteTask.id}`;
+
+            api.delete(endpoint).then(() => {
+                const params: Record<string, string> = {
+                    condition: isTeam ? "1" : "0",
+                    employeeid: "all"
+                };
+                
+                Promise.all([
+                    api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+                    api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params })
+                ]).then(([res1, res2]) => {
+                    const internal = (res1.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
+                    const vendor = (res2.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
+                    setList([...internal, ...vendor] as Task[]);
+                });
+
+                setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTask.id));
                 setDeletedIds((prev) =>
-                    prev.includes(deleteTaskId) ? prev : [...prev, deleteTaskId],
+                    prev.includes(deleteTask.id) ? prev : [...prev, deleteTask.id],
                 );
             }).finally(() => {
-                setDeleteTaskId(null);
+                setDeleteTask(null);
             });
         }
     };
@@ -1044,13 +1092,21 @@ export default function TeamtaskBL() {
 
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params }),
             api.get<{ employees?: Employee[] }>("/api/employees"),
             api.get<{ projects?: Project[] }>("/api/projects"),
+            api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects")
         ])
-            .then(([tasksRes, empRes, projRes]) => {
-                setList(tasksRes.data.tasks ?? []);
-                setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
-                setProjects(projRes.data.projects ?? []);
+            .then(([resTasks, resVendorTasks, resEmployees, resProjects, resVendorProjects]) => {
+                const internalTasks = (resTasks.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
+                const vendorTasks = (resVendorTasks.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
+                setList([...internalTasks, ...vendorTasks] as Task[]);
+
+                setEmployees((resEmployees.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
+                
+                const internalProjs = (resProjects.data.projects ?? []).map(p => ({ ...p, source: "In House" }));
+                const vendorProjs = (resVendorProjects.data.projects ?? []).map(p => ({ ...p, source: "Outsource" }));
+                setProjects([...internalProjs, ...vendorProjs] as Project[]);
             })
             .catch(() => {
                 setList([]);
@@ -1090,7 +1146,7 @@ export default function TeamtaskBL() {
     }
 
     return (
-        <div className="h-full min-h-0 flex flex-col overflow-hidden">
+        <div className="flex flex-col h-full bg-white px-2 py-2 overflow-hidden">
             <div className="bg-white pb-3 flex-shrink-0">
                 {/* Top row: title + dropdowns + Add task */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
@@ -1099,7 +1155,7 @@ export default function TeamtaskBL() {
                     </h2>
                     <div
                         ref={dropdownsContainerRef}
-                        className="flex flex-wrap items-center gap-2 w-fit"
+                        className="flex flex-wrap items-center gap-2 w-fit "
                     >
                         <TaskDropdown
                             label="Select Employee"
@@ -1165,24 +1221,14 @@ export default function TeamtaskBL() {
                         />
                         <button
                             type="button"
-                            onClick={() => {
-                                setEditingTaskId(null);
-                                setAddTaskForm({
-                                    projectName: "",
-                                    module: "",
-                                    taskName: "",
-                                    type: "",
-                                    actualStartDate: "",
-                                    actualEndDate: "",
-                                    startTime: "",
-                                    dueTime: "",
-                                    assignTo: "",
-                                    description: "",
-                                    checklist: "",
-                                });
-                                setAddTaskModalOpen(true);
-                            }}
-                            className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm cursor-pointer"
+                            disabled={isOutsourceProjectSelected}
+                            onClick={() =>
+                                navigate("/bl/teamtasks/add", {
+                                    state: { from: "teamtasks" },
+                                })
+                            }
+                            className={`inline-flex cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-[14px] font-medium shadow-sm ml-auto ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-[#F2F2F2]"}`}
+                            title={isOutsourceProjectSelected ? "Cannot add tasks to Outsource projects" : "Add task"}
                         >
                             <img src={AddBtn} alt="Add" className="h-5 w-5" />
                             Add task
@@ -1191,7 +1237,7 @@ export default function TeamtaskBL() {
                 </div>
 
                 {/* Status summary cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
                     <Link
                         to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
                         className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
@@ -1239,10 +1285,10 @@ export default function TeamtaskBL() {
             </div>
 
             {/* Task columns scrollable area */}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
+            <div className="mt-2 flex-1 min-h-0 overflow-y-auto custom-scrollbar smooth-scroll">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pb-4">
                     <div
-                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
                         onDragOver={(e) => {
                             e.preventDefault();
                             e.dataTransfer.dropEffect = "move";
@@ -1265,7 +1311,7 @@ export default function TeamtaskBL() {
                         ))}
                     </div>
                     <div
-                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
                         onDragOver={(e) => {
                             e.preventDefault();
                             e.dataTransfer.dropEffect = "move";
@@ -1288,7 +1334,7 @@ export default function TeamtaskBL() {
                         ))}
                     </div>
                     <div
-                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
                         onDragOver={(e) => {
                             e.preventDefault();
                             e.dataTransfer.dropEffect = "move";
@@ -1313,53 +1359,38 @@ export default function TeamtaskBL() {
                 </div>
             </div>
 
-            {/* Delete Task confirmation modal */}
-            {deleteTaskId !== null && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-                        <div className="flex items-center justify-between px-6 py-4">
+            {deleteTask !== null && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+                        {/* Close */}
+                        <button
+                            type="button"
+                            onClick={() => setDeleteTask(null)}
+                            className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+                            title="Close"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                        <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
+                            Delete Task
+                        </h3>
+                        <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+                            Are you sure, you want to Delete this?
+                        </p>
+                        <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
                             <button
                                 type="button"
-                                onClick={() => setDeleteTaskId(null)}
-                                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
-                                aria-label="Close"
-                            >
-                                <svg
-                                    className="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                            <h3 className="flex-1 text-center text-lg font-semibold text-[#353535]">
-                                Delete Task
-                            </h3>
-                            <div className="w-9" />
-                        </div>
-                        <div className="px-6 py-5">
-                            <p className="text-black text-center">
-                                Are you sure, you want to Delete this Task?
-                            </p>
-                        </div>
-                        <div className="flex justify-center gap-3 px-6 py-4 bg-slate-50/50">
-                            <button
-                                type="button"
-                                onClick={() => setDeleteTaskId(null)}
-                                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0] cursor-pointer"
+                                onClick={() => setDeleteTask(null)}
+                                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
                             >
                                 Discard
                             </button>
                             <button
                                 type="button"
                                 onClick={confirmDeleteTask}
-                                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3] cursor-pointer"
+                                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
                             >
                                 Yes, Delete
                             </button>

@@ -26,18 +26,22 @@ interface Project {
   due_date?: string;
   totalhours?: string;
   perday?: string;
+  per_day?: string;
   department?: string;
   lead_id?: string;
   bim_coordinator_id?: string;
   members?: string;
   no_resource?: string;
+  resources?: string;
   no_resources_required?: string;
+  required_resources?: string;
   priority?: string;
   location?: string;
   description?: string;
   deliverables?: string;
   budget_ceiling?: string;
   bidding_end_date?: string;
+  end_date?: string;
   proposal_id?: number;
   opportunity_id?: number;
 }
@@ -181,82 +185,30 @@ export default function VendorBimLeadProjects() {
     return found ? found.id : "";
   };
 
-  //   const handleCreate = (e: React.FormEvent) => {
-  //     e.preventDefault();
-  //     setCreateSubmitting(true);
-  //     api
-  //       .post("/api/vendors/vendor-projects", {
-  //         project_name: createName,
-  //         budget: createBudget,
-  //         modules: createModuleName,
-  //         client_id: getClientIdByName(createClientName),
-  //         project_manager_id: nameToId(createProjectManager, projectManagers),
-  //         start_date: createStartDate,
-  //         due_date: createEndDate,
-  //         totalhours: createTotalHours,
-  //         perday: createPerDay,
-  //         lead_id: nameToId(createBIMLead, bimLeads),
-  //         bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
-  //         members: selectedMemberIds.join(","),
-  //         no_resource: createResources,
-  //         no_resources_required: createRequiredResources,
-  //         priority: createPriority,
-  //         location: createLocation,
-  //         description: createDescription,
-  //         deliverables: createDeliverables,
-  //       })
-  //       .then(({ data }) => {
-  //         if (data.success) {
-  //           setShowCreateModal(false);
-  //           setCreateName("");
-  //           setCreateBudget("");
-  //           setCreateModuleName("");
-  //           setCreateClientName("");
-  //           setCreateProjectManager("");
-  //           setCreateStartDate("");
-  //           setCreateEndDate("");
-  //           setCreateTotalHours("");
-  //           setCreatePerDay("");
-  //           setCreateBIMLead("");
-  //           setCreateBIMCoOrdinator("");
-  //           setSelectedMemberIds([]);
-  //           setCreateResources("");
-  //           setCreateRequiredResources("");
-  //           setCreatePriority("");
-  //           setCreateLocation("");
-  //           setCreateDescription("");
-  //           setCreateDeliverables("");
-  //           setCreateFile(null);
-  //           setSuccessMsg("Project created!");
-  //           setTimeout(() => setSuccessMsg(null), 3000);
-  //           fetchProjects();
-  //         }
-  //       })
-  //       .catch(() => {})
-  //       .finally(() => setCreateSubmitting(false));
-  //   };
+  const idToNameClients = (id: string | number | undefined, list: any[]) => {
+    if (!id) return "";
+    const found = list.find((c) => String(c.id) === String(id));
+    return found?.fullName || found?.full_name || "";
+  };
 
-  const openEdit = (p: Project) => {
+  const handleEditClick = (p: Project) => {
     setEditId(p.id);
     setCreateName(p.project_name || "");
     setCreateBudget(p.budget || "");
     setCreateModuleName(p.modules || "");
-    setCreateClientName(
-      getClientNameById(p.client_id) ||
-      (p.client_id ? String(p.client_id) : ""),
-    );
+    setCreateClientName(idToNameClients(p.client_id, clientsList));
     setCreateProjectManager(idToName(p.project_manager_id, allEmployees));
     setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
-    setCreateEndDate(p.due_date ? p.due_date.split("T")[0] : "");
+    setCreateEndDate(p.end_date || p.due_date || "");
     setCreateTotalHours(p.totalhours || "");
-    setCreatePerDay(p.perday || "");
+    setCreatePerDay(p.per_day || p.perday || "");
     setCreateBIMLead(idToName(p.lead_id, allEmployees));
     setCreateBIMCoOrdinator(idToName(p.bim_coordinator_id, allEmployees));
+    setCreateResources(p.resources || p.no_resource || "");
+    setCreateRequiredResources(p.required_resources || p.no_resources_required || "");
     setSelectedMemberIds(
       p.members ? p.members.split(",").filter(Boolean).map(Number) : [],
     );
-    setCreateResources(p.no_resource || "");
-    setCreateRequiredResources(p.no_resources_required || "");
     setCreatePriority(p.priority || "Medium");
     setCreateLocation(p.location || "");
     setCreateDescription(p.description || "");
@@ -289,14 +241,14 @@ export default function VendorBimLeadProjects() {
         client_id: getClientIdByName(createClientName),
         project_manager_id: nameToId(createProjectManager, projectManagers),
         start_date: createStartDate,
-        due_date: createEndDate,
+        end_date: createEndDate,
         totalhours: createTotalHours,
-        perday: createPerDay,
+        per_day: createPerDay,
         lead_id: nameToId(createBIMLead, bimLeads),
         bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
         members: selectedMemberIds.join(","),
-        no_resource: createResources,
-        no_resources_required: createRequiredResources,
+        resources: createResources,
+        required_resources: createRequiredResources,
         priority: createPriority,
         location: createLocation,
         description: createDescription,
@@ -483,18 +435,7 @@ export default function VendorBimLeadProjects() {
             onChange={(e) => setCreateClientName(e.target.value)}
           />
         </div>
-        <div className="space-y-2">
-          <label className="block text-[15px] font-bold text-[#353535]">
-            Budget
-          </label>
-          <input
-            type="text"
-            readOnly
-            className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-gray-500 cursor-not-allowed"
-            placeholder="Auto-fetched from contract"
-            value={createBudget}
-          />
-        </div>
+        {/* Budget hidden for VBL in edit mode */}
         <div className="space-y-2">
           <label className="block text-[15px] font-bold text-[#353535]">
             Select Project Manager <span className="text-[#DD4342]">*</span>
@@ -592,9 +533,18 @@ export default function VendorBimLeadProjects() {
           </div>
         </div>
         <div className="space-y-2">
-          <label className="block text-[15px] font-bold text-[#353535]">Project Start Date <span className="text-[#DD4342]">*</span></label>
-          <input type="date" value={createStartDate} onChange={e => setCreateStartDate(e.target.value)}
-            className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-[#353535]" />
+          <label className="block text-[16px] font-medium text-[#000000]">Project Start Date <span className="text-[#DD4342]">*</span></label>
+          <input type="date" value={createStartDate} 
+              onChange={e => {
+                  const val = e.target.value;
+                  setCreateStartDate(val);
+                  if (val && (!createEndDate || createEndDate === "")) {
+                      const d = new Date(val);
+                      d.setMonth(d.getMonth() + 6);
+                      setCreateEndDate(d.toISOString().split('T')[0]);
+                  }
+              }}
+              className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" />
         </div>
         <div className="space-y-2">
           <label className="block text-[15px] font-bold text-[#353535]">Project End Date <span className="text-[#DD4342]">*</span></label>
@@ -854,76 +804,88 @@ export default function VendorBimLeadProjects() {
                   </button>
                 ))}
               </div>
-
               <div className="border border-slate-200 rounded-[10px] p-6 md:p-8">
-                <h4 className="text-[18px] md:text-[22px] font-bold text-[#000000] mb-4">
-                  Project Details
+                <h4 className="text-[20px] font-Gantari font-semibold text-[#1A1A1A] mb-6">
+                    Project Details
                 </h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
-                  <div>
-                    <span className="text-[#999999] block text-xs font-semibold mb-1">
-                      Priority
-                    </span>
-                    <span className="text-[#1A1A1A] font-bold">
-                      {selectedProject.priority || "—"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[#999999] block text-xs font-semibold mb-1">
-                      Budget
-                    </span>
-                    <span className="text-[#1A1A1A] font-bold">
-                      {selectedProject.budget || "—"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[#999999] block text-xs font-semibold mb-1">
-                      Start Date
-                    </span>
-                    <span className="text-[#1A1A1A] font-bold">
-                      {formatDate(selectedProject.start_date)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[#999999] block text-xs font-semibold mb-1">
-                      Due Date
-                    </span>
-                    <span className="text-[#1A1A1A] font-bold">
-                      {formatDate(selectedProject.due_date)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[#999999] block text-xs font-semibold mb-1">
-                      Location
-                    </span>
-                    <span className="text-[#1A1A1A] font-bold">
-                      {selectedProject.location || "—"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[#999999] block text-xs font-semibold mb-1">
-                      Total Hours
-                    </span>
-                    <span className="text-[#1A1A1A] font-bold">
-                      {selectedProject.totalhours || "—"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[#999999] block text-xs font-semibold mb-1">
-                      Per Day
-                    </span>
-                    <span className="text-[#1A1A1A] font-bold">
-                      {selectedProject.perday || "—"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[#999999] block text-xs font-semibold mb-1">
-                      Deliverables
-                    </span>
-                    <span className="text-[#1A1A1A] font-bold">
-                      {selectedProject.deliverables || "—"}
-                    </span>
-                  </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
+                    <div className="space-y-4 md:space-y-5">
+                        <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                Actual Start Date
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                {formatDate(selectedProject.start_date)}
+                            </span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                Total Project Hours
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                {selectedProject.totalhours ? `${selectedProject.totalhours}hrs` : "N/A"}
+                            </span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                Outsourcing Budget
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                {selectedProject.budget_ceiling || "N/A"}
+                            </span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                Total Resources Available
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                {selectedProject.resources || selectedProject.no_resource || "N/A"}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 md:space-y-5">
+                        <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                Location
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                {selectedProject.location || "N/A"}
+                            </span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                Actual End Date
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                {formatDate(selectedProject.end_date || selectedProject.due_date)}
+                            </span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                Hours/Day
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                {selectedProject.per_day || selectedProject.perday ? `${selectedProject.per_day || selectedProject.perday}hrs` : "N/A"}
+                            </span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                Required Resources
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                {selectedProject.required_resources || selectedProject.no_resources_required || "N/A"}
+                            </span>
+                        </div>
+                    </div>
                 </div>
               </div>
 
@@ -936,38 +898,82 @@ export default function VendorBimLeadProjects() {
                 </p>
               </div>
 
-              <div className="border border-slate-200 rounded-[10px] p-6 md:p-8">
-                <h4 className="text-[18px] md:text-[22px] font-bold text-[#000000] mb-6">
+              {/* Team Roles Section */}
+              <div className="border border-slate-200 rounded-[10px] p-6 md:p-8 space-y-6">
+                <h4 className="text-[18px] md:text-[22px] font-bold text-[#000000]">
                   Team Overview
                 </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {(selectedProject.members || "")
-                    .split(",")
-                    .filter(Boolean)
-                    .map((id) => {
-                      const emp = allEmployees.find((e) => e.id === Number(id));
-                      return emp ? (
-                        <div key={id} className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold shadow-sm">
-                            {(emp.full_name || "?")[0]}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  {[
+                    {
+                      label: "Project Manager",
+                      id: selectedProject.project_manager_id,
+                    },
+                    { label: "BIM Lead", id: selectedProject.lead_id },
+                    {
+                      label: "BIM Coordinator",
+                      id: selectedProject.bim_coordinator_id,
+                    },
+                  ].map((role) => (
+                    <div key={role.label} className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                        <span className="text-slate-400 font-bold text-sm">
+                          {getEmployeeName(role.id)
+                            ? getEmployeeName(role.id).charAt(0).toUpperCase()
+                            : "??"}
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-[#999999] uppercase tracking-wider">
+                          {role.label}
+                        </p>
+                        <p className="text-[15px] font-bold text-[#353535] truncate">
+                          {getEmployeeName(role.id) || "Not assigned"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-6 border-t border-slate-100">
+                  <p className="text-xs font-bold text-[#999999] uppercase tracking-wider mb-4">
+                    Team Members
+                  </p>
+                  <div className="flex flex-wrap gap-4">
+                    {(selectedProject.members || "")
+                      .split(",")
+                      .filter(Boolean)
+                      .map((id) => {
+                        const emp = allEmployees.find(
+                          (e) => e.id === Number(id),
+                        );
+                        return emp ? (
+                          <div
+                            key={id}
+                            className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-xs font-bold">
+                              {(emp.full_name || "?")[0]}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-[#1E293B] truncate max-w-[120px]">
+                                {emp.full_name}
+                              </p>
+                              <p className="text-[10px] text-[#999] font-medium">
+                                {emp.user_role || "Member"}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-bold text-[#1E293B]">
-                              {emp.full_name}
-                            </p>
-                            <p className="text-xs text-[#999]">
-                              {emp.user_role || "Member"}
-                            </p>
-                          </div>
-                        </div>
-                      ) : null;
-                    })}
-                  {!(selectedProject.members || "").split(",").filter(Boolean)
-                    .length && (
-                      <p className="col-span-full text-[#999] text-sm">
+                        ) : null;
+                      })}
+                    {!(selectedProject.members || "")
+                      .split(",")
+                      .filter(Boolean).length && (
+                      <p className="text-[#999] text-sm italic">
                         No team members assigned
                       </p>
                     )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1006,28 +1012,6 @@ export default function VendorBimLeadProjects() {
               <h2 className="text-[24px] font-semibold text-[#000000]">
                 Projects
               </h2>
-              {/* <button
-                onClick={() => {
-                  setShowCreateModal(true);
-                  setSelectedMemberIds([]);
-                }}
-                className="flex items-center justify-center gap-2 bg-[#DD4342] text-white px-5 py-2.5 rounded-lg hover:opacity-90 transition-all font-semibold shadow-sm text-sm"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                Create Project
-              </button> */}
             </div>
             <div className="flex-1 overflow-y-auto pt-4 pb-10 px-4 space-y-8 custom-scrollbar">
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
@@ -1036,12 +1020,6 @@ export default function VendorBimLeadProjects() {
                     <p className="text-slate-500 font-medium">
                       No projects assigned yet.
                     </p>
-                    {/* <button
-                      onClick={() => setShowCreateModal(true)}
-                      className="text-[#DD4342] font-bold hover:underline"
-                    >
-                      New Project
-                    </button> */}
                   </div>
                 ) : (
                   list.map((p) => {

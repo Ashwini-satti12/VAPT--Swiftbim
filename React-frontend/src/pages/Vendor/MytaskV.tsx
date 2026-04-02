@@ -73,6 +73,7 @@ export interface Task {
   created_at?: string;
   Approval?: string;
   Actual_start_time?: string;
+  outputfilepath?: string;
 }
 
 const getApiBaseUrl = () => {
@@ -222,6 +223,17 @@ function normalizeStatus(
   return "todo";
 }
 
+function toApiTaskStatusParam(
+  statusFilter: string | null | undefined,
+): string | undefined {
+  if (!statusFilter) return undefined;
+  const s = statusFilter.toLowerCase().trim();
+  if (s === "in_progress" || s === "inprogress") return "InProgress";
+  if (s === "completed" || s === "complete" || s === "done") return "Completed";
+  if (s === "todo" || s === "to_do" || s === "to-do") return "Todo";
+  return statusFilter;
+}
+
 export interface FormDropdownProps {
   label: string;
   options: { value: string; label: string }[];
@@ -334,19 +346,19 @@ export function TaskDropdown({
   const q = (searchQuery || "").trim().toLowerCase();
   const filteredOptions = searchable
     ? (() => {
-        if (!q) return options;
-        const first = options[0];
-        const isPlaceholderOption = (o: string) =>
-          o === first &&
-          (first === "Select Employee" || first === "Select Projects");
-        return options.filter((opt) => {
-          if (isPlaceholderOption(opt)) return false;
-          const name = String(opt ?? "")
-            .trim()
-            .toLowerCase();
-          return name.includes(q);
-        });
-      })()
+      if (!q) return options;
+      const first = options[0];
+      const isPlaceholderOption = (o: string) =>
+        o === first &&
+        (first === "Select Employee" || first === "Select Projects");
+      return options.filter((opt) => {
+        if (isPlaceholderOption(opt)) return false;
+        const name = String(opt ?? "")
+          .trim()
+          .toLowerCase();
+        return name.includes(q);
+      });
+    })()
     : options;
   const listMaxHeight = `${maxVisibleItems * 40}px`;
   return (
@@ -462,10 +474,6 @@ function TaskCard({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen]);
   const handleDragStart = (e: React.DragEvent) => {
-    if (status === "completed") {
-      e.preventDefault();
-      return;
-    }
     e.dataTransfer.setData("taskId", String(task.id));
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", task.task_name || "Task");
@@ -473,7 +481,7 @@ function TaskCard({
   const isCompleted = status === "completed";
   return (
     <div
-      draggable={!isCompleted}
+      draggable
       onDragStart={handleDragStart}
       className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
@@ -593,9 +601,9 @@ function TaskCard({
                 const src =
                   task.assigned_to != null && task.assigned_profile_picture
                     ? getGlobalProfileUrl(
-                        task.assigned_to,
-                        task.assigned_profile_picture,
-                      )
+                      task.assigned_to,
+                      task.assigned_profile_picture,
+                    )
                     : task.assigned_profile_picture
                       ? getProfileUrl(task.assigned_profile_picture)
                       : "";
@@ -628,9 +636,9 @@ function TaskCard({
                 const src =
                   task.uploaderid != null && task.uploader_profile_picture
                     ? getGlobalProfileUrl(
-                        task.uploaderid,
-                        task.uploader_profile_picture,
-                      )
+                      task.uploaderid,
+                      task.uploader_profile_picture,
+                    )
                     : task.uploader_profile_picture
                       ? getProfileUrl(task.uploader_profile_picture)
                       : "";
@@ -661,7 +669,8 @@ function TaskCard({
           </div>
         </div>
         <Link
-          to={`/tasks/${task.id}`}
+          to={`/v/mytasks/view/${task.id}`}
+          state={{ task, from: "mytask" }}
           draggable={false}
           className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2 font-Gantari"
         >
@@ -674,7 +683,7 @@ function TaskCard({
 }
 
 const SHOW_OPTIONS = [
-  "Show",
+  "Show Entries",
   "1-50",
   "51-100",
   "101-150",
@@ -706,12 +715,15 @@ export default function MytaskV() {
   const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
-  const [selectedShow, setSelectedShow] = useState<string | null>("Show");
+  const [selectedShow, setSelectedShow] = useState<string | null>("Show Entries");
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [addError, setAddError] = useState("");
   const [addSubmitting, setAddSubmitting] = useState(false);
+  const [existingAttachmentNames, setExistingAttachmentNames] = useState<string[]>(
+    [],
+  );
   const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
   const [tasklistOpen, setTasklistOpen] = useState(false);
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
@@ -801,6 +813,12 @@ export default function MytaskV() {
   const openEditTask = (task: Task) => {
     setAddTaskForm(buildFormFromTask(task, employees));
     setAttachmentFiles([]);
+    setExistingAttachmentNames(
+      String(task.outputfilepath || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    );
     setEditingTaskId(task.id);
     setAddTaskModalOpen(true);
   };
@@ -834,6 +852,7 @@ export default function MytaskV() {
     setAddError("");
     setAddSubmitting(false);
     setAttachmentFiles([]);
+    setExistingAttachmentNames([]);
     setAddTaskForm({
       projectName: "",
       module: "",
@@ -963,7 +982,8 @@ export default function MytaskV() {
 
   useEffect(() => {
     const params: Record<string, string> = {};
-    if (statusFilter) params.status = statusFilter;
+    const apiStatus = toApiTaskStatusParam(statusFilter);
+    if (apiStatus) params.status = apiStatus;
     if (isTeam) {
       params.condition = "1";
       params.employeeid = "all";
@@ -1132,7 +1152,7 @@ export default function MytaskV() {
               maxVisibleItems={4}
             />
             <TaskDropdown
-              label="Show"
+              label="Show Entries"
               options={SHOW_OPTIONS}
               selected={selectedShow}
               onSelect={setSelectedShow}
@@ -1179,10 +1199,11 @@ export default function MytaskV() {
                   checklist: "",
                 });
                 setAddTaskModalOpen(true);
+                setExistingAttachmentNames([]);
               }}
               className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium font-Gantari text-white shadow-sm cursor-pointer"
             >
-               <svg
+              <svg
                 className="h-5 w-5"
                 fill="none"
                 stroke="currentColor"
@@ -1500,6 +1521,20 @@ export default function MytaskV() {
                   modules: addTaskForm.module,
                 };
 
+                const uploadTaskAttachments = async (
+                  taskId: number,
+                  files: File[],
+                ) => {
+                  if (!files.length) return;
+                  const formData = new FormData();
+                  for (const file of files) formData.append("image", file);
+                  await api.post(
+                    `/api/vendors/vendor-tasks/${taskId}/output-files`,
+                    formData,
+                    { headers: { "Content-Type": "multipart/form-data" } },
+                  );
+                };
+
                 if (isEditing && existing) {
                   api
                     .patch(`/api/vendors/vendor-tasks/${existing.id}`, {
@@ -1515,7 +1550,8 @@ export default function MytaskV() {
                       description: addTaskForm.description,
                       checklist: addTaskForm.checklist,
                     })
-                    .then(() => {
+                    .then(async () => {
+                      await uploadTaskAttachments(existing.id, attachmentFiles);
                       api
                         .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks")
                         .then((res) => {
@@ -1531,8 +1567,12 @@ export default function MytaskV() {
                 } else {
                   api
                     .post("/api/vendors/vendor-tasks", payload)
-                    .then((res) => {
+                    .then(async (res) => {
                       if (res.data.success && res.data.task_id) {
+                        await uploadTaskAttachments(
+                          Number(res.data.task_id),
+                          attachmentFiles,
+                        );
                         api
                           .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks")
                           .then((r) => {
@@ -1922,29 +1962,83 @@ export default function MytaskV() {
                           <span className="truncate min-w-0" title={file.name}>
                             {file.name}
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => removeAttachment(index)}
-                            className="ml-2 shrink-0 p-0.5 rounded text-black hover:bg-slate-200 hover:text-slate-700"
-                            aria-label={`Remove ${file.name}`}
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
+                          <div className="flex items-center gap-3 shrink-0 ml-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                const url = URL.createObjectURL(file);
+                                window.open(url, "_blank");
+                              }}
+                              className="p-1 rounded text-black hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
+                              aria-label={`View ${file.name}`}
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                          </button>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeAttachment(index)}
+                              className="p-1 rounded text-black hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
+                              aria-label={`Remove ${file.name}`}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
                         </li>
                       ))}
                     </ul>
+                  )}
+                  {editingTaskId !== null && existingAttachmentNames.length > 0 && (
+                    <div className="mt-3">
+                      <p className="mb-1 text-xs text-[#616161]">
+                        Existing attachments
+                      </p>
+                      <ul className="space-y-1">
+                        {existingAttachmentNames.map((name, idx) => (
+                          <li
+                            key={`${name}-${idx}`}
+                            className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827]"
+                          >
+                            <span className="truncate min-w-0" title={name}>
+                              {name}
+                            </span>
+                            <div className="flex items-center gap-3 shrink-0 ml-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  // Placeholder for view functionality
+                                }}
+                                className="p-1 rounded text-black hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
+                                aria-label={`View ${name}`}
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setExistingAttachmentNames(prev => prev.filter((_, i) => i !== idx));
+                                }}
+                                className="p-1 rounded text-black hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
+                                aria-label={`Remove ${name}`}
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1952,14 +2046,14 @@ export default function MytaskV() {
                 <button
                   type="button"
                   onClick={resetTaskFormAndClose}
-                  className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
+                  className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B]"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={addSubmitting}
-                  className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] hover:bg-[#D5E6FF] disabled:opacity-50"
+                  className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] disabled:opacity-50"
                 >
                   {addSubmitting ? "Submitting..." : "Submit"}
                 </button>

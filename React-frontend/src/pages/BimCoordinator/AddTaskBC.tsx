@@ -68,12 +68,20 @@ export default function AddTaskBC() {
     useEffect(() => {
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/tasks"),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks"),
             api.get<{ employees?: Employee[] }>("/api/employees"),
             api.get<{ projects?: Project[] }>("/api/projects"),
-        ]).then(([tasksRes, empRes, projRes]) => {
-            setList(tasksRes.data.tasks ?? []);
+            api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
+        ]).then(([tasksRes, vTasksRes, empRes, projRes, vProjRes]) => {
+            const internalTasks = (tasksRes.data.tasks ?? []).map((t) => ({ ...t, source: "In House" as const }));
+            const vendorTasks = (vTasksRes.data.tasks ?? []).map((t) => ({ ...t, source: "Outsource" as const }));
+            setList([...internalTasks, ...vendorTasks]);
+
             setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
-            setProjects(projRes.data.projects ?? []);
+
+            const internalProjs = (projRes.data.projects ?? []).map((p) => ({ ...p, source: "In House" as const }));
+            const vendorProjs = (vProjRes.data.projects ?? []).map((p) => ({ ...p, source: "Outsource" as const }));
+            setProjects([...internalProjs, ...vendorProjs]);
         });
     }, []);
 
@@ -160,8 +168,11 @@ export default function AddTaskBC() {
         }
 
         setAddSubmitting(true);
+        const selectedProj = projects.find((p) => p.project_name === addTaskForm.projectName);
+        const isOutsource = selectedProj?.source === "Outsource";
+
         const payload = {
-            projectid: projects.find((p) => p.project_name === addTaskForm.projectName)?.id || addTaskForm.projectName,
+            projectid: selectedProj?.id || addTaskForm.projectName,
             taskName: addTaskForm.taskName,
             category: addTaskForm.type,
             startdate: addTaskForm.actualStartDate,
@@ -178,15 +189,17 @@ export default function AddTaskBC() {
             if (attachmentFiles.length > 0) {
                 const formData = new FormData();
                 attachmentFiles.forEach((f) => formData.append("image", f));
-                api.post(`/api/tasks/${taskId}/output-files`, formData, {
+                const url = isOutsource ? `/api/vendors/vendor-tasks/${taskId}/output-files` : `/api/tasks/${taskId}/output-files`;
+                api.post(url, formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
             }
         };
 
         if (editingTaskId != null) {
+            const url = isOutsource ? `/api/vendors/vendor-tasks/${editingTaskId}` : `/api/tasks/${editingTaskId}`;
             api
-                .patch(`/api/tasks/${editingTaskId}`, {
+                .patch(url, {
                     task_name: payload.taskName,
                     assigned_to: payload.assignedTo,
                     due_date: payload.dueDate,
@@ -207,9 +220,11 @@ export default function AddTaskBC() {
                 })
                 .finally(() => setAddSubmitting(false));
         } else {
-            api.post("/api/tasks", payload).then((res) => {
-                if (res.data.success && res.data.task_id) {
-                    handleFiles(res.data.task_id);
+            const url = isOutsource ? "/api/vendors/vendor-tasks" : "/api/tasks";
+            api.post(url, payload).then((res) => {
+                const taskId = isOutsource ? res.data.id : res.data.task_id;
+                if ((res.data.success || isOutsource) && taskId) {
+                    handleFiles(taskId);
                     navigate(location.state?.from === "teamtasks" ? "/bc/teamtasks" : "/bc/mytasks");
                 }
             })
@@ -263,9 +278,9 @@ export default function AddTaskBC() {
     };
 
     return (
-        <div className="flex-1 overflow-y-auto p-2 bg-white">
-            <div className="max-w-[1174px] mx-auto">
-                <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
+        <div className="flex flex-col flex-1 min-h-0 p-2 bg-white">
+            <div className="max-w-[1174px] mx-auto flex flex-col flex-1 min-h-0 w-full">
+                <div className="flex shrink-0 items-center justify-between mb-6 sm:mb-8 relative">
                     <button
                         type="button"
                         onClick={goBack}
@@ -280,6 +295,7 @@ export default function AddTaskBC() {
                     <div className="w-10" />
                 </div>
 
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {addError && (
                         <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
@@ -578,6 +594,7 @@ export default function AddTaskBC() {
                         </button>
                     </div>
                 </form>
+                </div>
             </div>
             <AttachmentPreviewModal
                 file={attachmentPreviewFile}

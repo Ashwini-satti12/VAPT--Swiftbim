@@ -1,16 +1,15 @@
 import hashlib
 import os
-import smtplib
-import ssl
-from email.mime.text import MIMEText
 from flask import Blueprint, request, jsonify, g, current_app
 from werkzeug.utils import secure_filename
 from db import get_db
 from auth_middleware import project_app_required
+from utils import mailer
 
 bp = Blueprint("employees", __name__, url_prefix="/api/employees")
 
 # Role hierarchy: who can assign which roles (matches PHP employees.php)
+
 def _restricted_roles_for_current_user():
     role = getattr(g, "user_role", "") or ""
     if role == "Technical Director":
@@ -238,6 +237,10 @@ def create_employee():
                 (g.company_id, empid, full_name, email, hashed, phone_number, user_role, active)
             )
             emp_id = cur.lastrowid
+            
+            # Send welcome email
+            mailer.send_welcome_email(email, full_name, user_role, password)
+            
             return jsonify({"success": True, "id": emp_id, "profile_picture": None})
         except Exception as e:
             return jsonify({"success": False, "message": str(e)}), 400
@@ -295,6 +298,10 @@ def create_employee():
             ),
         )
         emp_id = cur.lastrowid
+        
+        # Send welcome email
+        mailer.send_welcome_email(email, full_name, user_role, password)
+        
         return jsonify({"success": True, "id": emp_id, "profile_picture": profile_path})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 400
@@ -476,49 +483,26 @@ def invite():
     if not emails:
         return jsonify({"success": False, "message": "emails required"}), 400
 
-    # Build email content
-    subject = "Welcome to SwiftBIM"
-    body_lines = []
-    if invite_message:
-        body_lines.append(invite_message)
-        body_lines.append("")
-    body_lines.append("You have been invited to join SwiftBIM as a consultant.")
-    body_lines.append("Please contact your administrator for login details.")
-    body = "\n".join(body_lines)
-
-    # SMTP settings from config
-    mail_server = current_app.config.get("MAIL_SERVER") or ""
-    mail_port = int(current_app.config.get("MAIL_PORT") or 587)
-    mail_use_tls = bool(current_app.config.get("MAIL_USE_TLS"))
-    mail_username = current_app.config.get("MAIL_USERNAME") or ""
-    mail_password = current_app.config.get("MAIL_PASSWORD") or ""
-    sender = current_app.config.get("MAIL_DEFAULT_SENDER") or mail_username
-
-    email_sent = False
-    if mail_server and sender:
-        msg = MIMEText(body, "plain", "utf-8")
-        msg["Subject"] = subject
-        msg["From"] = sender
-        msg["To"] = ", ".join(emails)
-
-        try:
-            context = ssl.create_default_context()
-            with smtplib.SMTP(mail_server, mail_port, timeout=10) as server:
-                if mail_use_tls:
-                    server.starttls(context=context)
-                if mail_username and mail_password:
-                    server.login(mail_username, mail_password)
-                server.sendmail(sender, emails, msg.as_string())
-            email_sent = True
-        except Exception:
-            email_sent = False
+    sent_count = 0
+    conn = get_db()
+    cur = conn.cursor(dictionary=True) if hasattr(conn.cursor(), 'dictionary') else conn.cursor()
+    
+    for email in emails:
+        # Try to find if user exists to get their name, otherwise fallback to "Employee" or similar
+        cur.execute("SELECT full_name FROM employee WHERE email = %s AND Company_id = %s LIMIT 1", (email, g.company_id))
+        row = cur.fetchone()
+        name_placeholder = row["full_name"] if row and row.get("full_name") else email
+        
+        invitation_link = "https://projectmanagement.swifterz.ae/login"
+        if mailer.send_invitation_email(email, name_placeholder, invitation_link):
+            sent_count += 1
 
     return jsonify({
         "success": True,
-        "message": "Welcome email sent" if email_sent else "Invitations queued (email not configured)",
+        "message": f"Welcome email sent to {sent_count} recipients" if sent_count > 0 else "Invitations queued (email not configured)",
         "count": len(emails),
         "invite_message": invite_message,
-        "email_sent": email_sent,
+        "email_sent": sent_count > 0,
     })
 
 

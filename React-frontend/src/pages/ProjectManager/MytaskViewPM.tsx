@@ -108,7 +108,16 @@ const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
 
 export default function MytaskViewPM() {
   const location = useLocation();
-  const task = (location.state as { task?: Task } | null)?.task;
+  const locationState = (location.state as { task?: Task; from?: string } | null) ?? null;
+  const task = locationState?.task;
+  const backTo =
+    locationState?.from === "ve-team"
+      ? "/ve/teamtasks"
+      : locationState?.from === "teamtask"
+        ? "/teamtask"
+        : locationState?.from === "ve"
+          ? "/ve/mytasks"
+          : "/tasks";
 
   const [statusDisplay, setStatusDisplay] = useState<StatusKey>(() =>
     task ? normalizeStatus(task.status, task.Approval) : "todo"
@@ -259,7 +268,7 @@ export default function MytaskViewPM() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 ">
         <Link
-          to="/tasks"
+          to={backTo}
           className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
           aria-label="Back"
         >
