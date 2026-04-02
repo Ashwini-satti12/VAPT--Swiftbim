@@ -806,7 +806,7 @@ export default function ProjectsV() {
                 {/* Row 5: Start Date, End Date */}
                 <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">Project Start Date <span className="text-[#DD4342]">*</span></label>
-                    <input type="date" value={createStartDate} 
+                    <input type="date" value={createStartDate}
                         onChange={e => {
                             const val = e.target.value;
                             setCreateStartDate(val);
@@ -1313,108 +1313,108 @@ export default function ProjectsV() {
                                                 }}
                                                 className="bg-white rounded-2xl border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                                             >
-                                                    <div className="flex items-start justify-between mb-2">
-                                                        <div className="relative flex items-center justify-center shrink-0 mt-3 ml-2">
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <div className="relative flex items-center justify-center shrink-0 mt-3 ml-2">
 
-                                                            <svg className="w-20 h-20 transform -rotate-90">
-                                                                <circle cx="40" cy="40" r={radius} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
-                                                                <circle
-                                                                    cx="40"
-                                                                    cy="40"
-                                                                    r={radius}
-                                                                    stroke="#0a9344"
-                                                                    strokeWidth="6"
-                                                                    fill="transparent"
-                                                                    strokeDasharray={circumference}
-                                                                    strokeDashoffset={strokeOffset}
-                                                                    strokeLinecap="round"
-                                                                    style={{ transition: "stroke-dashoffset 0.8s ease-in-out" }}
-                                                                />
-                                                            </svg>
-                                                            <span className="absolute text-[16px] font-Gantari font-bold text-[#353535]">
-                                                                {progress}%
-                                                            </span>
-                                                        </div>
-                                                        <div className="relative shrink-0 project-menu-container">
+                                                        <svg className="w-20 h-20 transform -rotate-90">
+                                                            <circle cx="40" cy="40" r={radius} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
+                                                            <circle
+                                                                cx="40"
+                                                                cy="40"
+                                                                r={radius}
+                                                                stroke="#0a9344"
+                                                                strokeWidth="6"
+                                                                fill="transparent"
+                                                                strokeDasharray={circumference}
+                                                                strokeDashoffset={strokeOffset}
+                                                                strokeLinecap="round"
+                                                                style={{ transition: "stroke-dashoffset 0.8s ease-in-out" }}
+                                                            />
+                                                        </svg>
+                                                        <span className="absolute text-[16px] font-Gantari font-bold text-[#353535]">
+                                                            {progress}%
+                                                        </span>
+                                                    </div>
+                                                    <div className="relative shrink-0 project-menu-container">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setOpenMenuProjectId((prev) => (prev === p.id ? null : p.id));
+                                                            }}
+                                                            className="p-2 rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
+                                                        >
+                                                            <img
+                                                                src={threedot}
+                                                                alt="threeDots"
+                                                                className="w-5 h-5 text-[#8B8B8B]"
+                                                            />
+                                                        </button>
+                                                        <div
+                                                            className={`absolute right-0 mt-3 w-60 bg-white/20 backdrop-blur-md rounded-xl border border-[#595959]/50 shadow-xl transition-all origin-top-right z-50 ${openMenuProjectId === p.id ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
+                                                        >
                                                             <button
-                                                                type="button"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    setOpenMenuProjectId((prev) => (prev === p.id ? null : p.id));
+                                                                    setOpenMenuProjectId(null);
+                                                                    setSelectedProject(p);
+                                                                    setShowProjectView(true);
                                                                 }}
-                                                                className="p-2 rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
+                                                                className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                                             >
                                                                 <img
-                                                                    src={threedot}
-                                                                    alt="threeDots"
-                                                                    className="w-5 h-5 text-[#8B8B8B]"
+                                                                    src={viewIcon}
+                                                                    alt="view"
+                                                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                                                 />
+                                                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                                                    View
+                                                                </span>
                                                             </button>
-                                                            <div
-                                                                className={`absolute right-0 mt-3 w-60 bg-white/20 backdrop-blur-md rounded-xl border border-[#595959]/50 shadow-xl transition-all origin-top-right z-50 ${openMenuProjectId === p.id ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenMenuProjectId(null);
+                                                                    openEdit(p);
+                                                                }}
+                                                                className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                                             >
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setOpenMenuProjectId(null);
-                                                                        setSelectedProject(p);
-                                                                        setShowProjectView(true);
-                                                                    }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                                                >
-                                                                    <img
-                                                                        src={viewIcon}
-                                                                        alt="view"
-                                                                        className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                                                    />
-                                                                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                                                        View
-                                                                    </span>
-                                                                </button>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setOpenMenuProjectId(null);
-                                                                        openEdit(p);
-                                                                    }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                                                >
-                                                                    <img
-                                                                        src={editIcon}
-                                                                        alt="edit"
-                                                                        className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                                                    />
-                                                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
-                                                                        Edit
-                                                                    </span>
-                                                                </button>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setOpenMenuProjectId(null);
-                                                                        setMilestonesProject(p);
-                                                                        setShowMilestones(true);
-                                                                    }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                                                >
-                                                                    <img
-                                                                        src={paymentMilestoneIcon}
-                                                                        alt="payment milestone"
-                                                                        className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                                                    />
-                                                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
-                                                                       Payment Milestones
-                                                                    </span>
-                                                                </button>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setOpenMenuProjectId(null);
-                                                                        setDeleteId(p.id);
-                                                                    }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer bg-transparent border-none"
-                                                                >
-                                                                    {/* <img
+                                                                <img
+                                                                    src={editIcon}
+                                                                    alt="edit"
+                                                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                                                />
+                                                                <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                                                    Edit
+                                                                </span>
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenMenuProjectId(null);
+                                                                    setMilestonesProject(p);
+                                                                    setShowMilestones(true);
+                                                                }}
+                                                                className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                            >
+                                                                <img
+                                                                    src={paymentMilestoneIcon}
+                                                                    alt="payment milestone"
+                                                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                                                />
+                                                                <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                                                    Payment Milestones
+                                                                </span>
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenMenuProjectId(null);
+                                                                    setDeleteId(p.id);
+                                                                }}
+                                                                className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer bg-transparent border-none"
+                                                            >
+                                                                {/* <img
                                                                         src={deleteIcon}
                                                                         alt="delete"
                                                                         className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
@@ -1422,25 +1422,25 @@ export default function ProjectsV() {
                                                                     <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                                                         Delete
                                                                     </span> */}
-                                                                </button>
-                                                            </div>
+                                                            </button>
                                                         </div>
                                                     </div>
+                                                </div>
 
-                                                    <div className="mb-4 ml-6 -mt-2">
-                                                        <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
-                                                            {p.project_name ?? "Untitled Project"}
-                                                        </h3>
-                                                        {(userRole === "Vendor") && (
-                                                            <div className="mt-1 space-y-0.5">
-                                                                {p.budget_ceiling && (
-                                                                    <p className="text-[13px] font-Gantari font-medium text-[#666666]">
-                                                                        Outsourcing Budget: <span className="font-bold text-[#353535]">{p.budget_ceiling}</span>
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                <div className="mb-4 ml-6 -mt-2">
+                                                    <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                                                        {p.project_name ?? "Untitled Project"}
+                                                    </h3>
+                                                    {(userRole === "Vendor") && (
+                                                        <div className="mt-1 space-y-0.5">
+                                                            {p.budget_ceiling && (
+                                                                <p className="text-[13px] font-Gantari font-medium text-[#666666]">
+                                                                    Outsourcing Budget: <span className="font-bold text-[#353535]">{p.budget_ceiling}</span>
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
 
 
                                                 <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
