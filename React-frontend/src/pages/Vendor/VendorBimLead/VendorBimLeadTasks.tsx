@@ -1128,16 +1128,16 @@ export default function VendorBimLeadTasks() {
                                     <button
                                         type="button"
                                         onClick={() => setShowEditModal(false)}
-                                        className="rounded-lg bg-[#F2F2F2] px-10 py-2 text-sm font-bold text-[#8B8B8B] hover:bg-gray-200 cursor-pointer"
+                                        className="rounded-lg bg-[#F2F2F2] px-10 py-2 text-sm font-bold text-[#8B8B8B] cursor-pointer"
                                     >
                                         Discard
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={editSubmitting}
-                                        className="rounded-lg bg-[#DBE9FE] px-10 py-2 text-sm font-bold text-[#101827] hover:bg-blue-200 cursor-pointer disabled:opacity-50"
+                                        className="rounded-lg bg-[#DBE9FE] px-10 py-2 text-sm font-bold text-[#101827]  cursor-pointer disabled:opacity-50"
                                     >
-                                        {editSubmitting ? "Updating..." : "Update Task"}
+                                        {editSubmitting ? "Updating..." : "submit"}
                                     </button>
                                 </div>
                             </form>

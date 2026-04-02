@@ -64,6 +64,9 @@ def stats():
         _involved_where = """p.Company_id = %s AND FIND_IN_SET(%s, REPLACE(IFNULL(p.bim_coordinator_id, ''), ' ', '')) > 0"""
     elif user_role == "BIM Lead":
         _involved_where = """p.Company_id = %s AND FIND_IN_SET(%s, REPLACE(IFNULL(p.lead_id, ''), ' ', '')) > 0"""
+    elif user_role == "Project Manager":
+        # Match projects.py: ONLY projects where they are explicitly the Project Manager
+        _involved_where = """p.Company_id = %s AND FIND_IN_SET(%s, REPLACE(IFNULL(p.project_manager_id, ''), ' ', '')) > 0"""
     # BIM Modeler: only projects where user is in members list (team member)
     elif user_role == "BIM Modeler":
         _involved_where = """p.Company_id = %s AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0"""
@@ -77,11 +80,15 @@ def stats():
     def get_tasks_in_my_projects(uid, task_status):
         """Count tasks with status (InProgress/Completed/Todo) in projects the user is involved in."""
         # Aligned with frontend normalizeStatus logic
-        if task_status == "Completed":
-            status_clause = "(t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))"
+        task_status_lower = task_status.lower()
+        if task_status_lower == "completed":
+            status_clause = "(t.status LIKE '%%Complete%%' OR t.status = 'Done' OR t.Approval IN ('Approved', 'Rejected'))"
             status_params = []
-        elif task_status == "InProgress":
-            status_clause = "t.status = 'InProgress' AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))"
+        elif task_status_lower == "inprogress":
+            status_clause = "(t.status LIKE '%%Progress%%' OR t.status = 'Started') AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))"
+            status_params = []
+        elif task_status_lower == "todo":
+            status_clause = "t.status IN ('Todo', 'To Do', 'To_Do', 'New', 'Pending')"
             status_params = []
         else:
             status_clause = "t.status = %s"
@@ -91,6 +98,9 @@ def stats():
         if user_role in MANAGEMENT_ROLES:
             t_params = (company_id,)
         elif user_role in ("BIM Coordinator", "BIM Lead", "BIM Modeler"):
+            t_params = (company_id, uid)
+        elif user_role == "Project Manager":
+            # PM specific: only tasks in projects they manage (to match projects.py PM list)
             t_params = (company_id, uid)
         else:
             t_params = (company_id, uid, uid, uid, uid, uid, uid)
@@ -134,6 +144,12 @@ def stats():
             sql = """SELECT COUNT(*) AS total_projects FROM projects
                      WHERE Company_id = %s
                        AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0"""
+            params = [company_id, uid]
+        elif user_role == "Project Manager":
+            # PM: ONLY projects where they are the Project Manager (matching projects.py)
+            sql = """SELECT COUNT(*) AS total_projects FROM projects
+                     WHERE Company_id = %s
+                       AND FIND_IN_SET(%s, REPLACE(IFNULL(project_manager_id, ''), ' ', '')) > 0"""
             params = [company_id, uid]
         else:
             sql = """SELECT COUNT(*) AS total_projects FROM projects
@@ -205,6 +221,48 @@ def stats():
         "completedTasks": completed_tasks,
         "newTasks": new_tasks, # keeping for backward comp if needed
         "totaltoday": total_today,
+    })
+
+
+@bp.route("/td-stats", methods=["GET"])
+@project_app_required
+def td_stats():
+    """Special KPI stats for Technical Director: counts all company projects and all tasks 
+    (independent of project joining) to match the Team Task view counts."""
+    company_id = g.company_id
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    # 1. Total Projects
+    cur.execute("SELECT COUNT(*) AS total FROM projects WHERE Company_id = %s", (company_id,))
+    total_projects = cur.fetchone()["total"] or 0
+
+    # 2. Completed Projects
+    cur.execute("SELECT COUNT(*) AS total FROM projects WHERE Company_id = %s AND progress = 100", (company_id,))
+    completed_projects = cur.fetchone()["total"] or 0
+
+    # 3. In Progress Tasks (matching Team Task view logic)
+    cur.execute(
+        """SELECT COUNT(*) AS total FROM tasks 
+           WHERE Company_id = %s AND status = 'InProgress' 
+           AND (Approval IS NULL OR Approval NOT IN ('Approved', 'Rejected'))""",
+        (company_id,)
+    )
+    in_progress_tasks = cur.fetchone()["total"] or 0
+
+    # 4. Completed Tasks (matching Team Task view logic)
+    cur.execute(
+        """SELECT COUNT(*) AS total FROM tasks 
+           WHERE Company_id = %s AND (status = 'Completed' OR Approval IN ('Approved', 'Rejected'))""",
+        (company_id,)
+    )
+    completed_tasks = cur.fetchone()["total"] or 0
+
+    return jsonify({
+        "totalProjects": total_projects,
+        "completedProjects": completed_projects,
+        "inProgressTasks": in_progress_tasks,
+        "completedTasks": completed_tasks
     })
 
 

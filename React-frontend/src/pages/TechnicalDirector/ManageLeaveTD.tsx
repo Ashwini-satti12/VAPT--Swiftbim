@@ -160,12 +160,12 @@ const showEntriesOptions: {
   end: number | null;
 }[] = [
   { value: "show", label: "Show", start: 0, end: 50 },
-  { value: "0-50", label: "0-50", start: 0, end: 50 },
-  { value: "50-100", label: "50-100", start: 50, end: 100 },
-  { value: "100-150", label: "100-150", start: 100, end: 150 },
-  { value: "150-200", label: "150-200", start: 150, end: 200 },
-  { value: "200-250", label: "200-250", start: 200, end: 250 },
-  { value: "250-300", label: "250-300", start: 250, end: 300 },
+  { value: "1-50", label: "1-50", start: 0, end: 50 },
+  { value: "51-100", label: "51-100", start: 50, end: 100 },
+  { value: "101-150", label: "101-150", start: 100, end: 150 },
+  { value: "151-200", label: "151-200", start: 150, end: 200 },
+  { value: "201-250", label: "201-250", start: 200, end: 250 },
+  { value: "251-300", label: "251-300", start: 250, end: 300 },
   { value: "all", label: "All", start: 0, end: null },
 ];
 
@@ -423,32 +423,34 @@ export default function ManageLeave() {
                   e.stopPropagation();
                   setShowEntriesOpen((o) => !o);
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
+                className="flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 w-[120px]"
               >
-                {selectedShowEntries === "show" ? (
-                  <span className="text-[14px] font-medium text-[#8B8B8B] font-gantari">
-                    Show
-                  </span>
-                ) : (
-                  <>
-                    <span className="text-[14px] font-medium text-[#8B8B8B] font-gantari">
-                      Show:
+                <div className="flex items-center gap-2 overflow-hidden">
+                  {selectedShowEntries === "show" ? (
+                    <span className="text-[14px] font-medium text-[#616161] font-gantari">
+                      Show
                     </span>
-                    <span className="text-[14px] font-medium text-[#353535] font-gantari">
-                      {selectedRange.label}
-                    </span>
-                  </>
-                )}
+                  ) : (
+                    <>
+                      <span className="text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
+                        Show:
+                      </span>
+                      <span className="text-[14px] font-medium text-[#353535] font-gantari">
+                        {selectedRange.label}
+                      </span>
+                    </>
+                  )}
+                </div>
                 <img
                   src={ArrowDown}
                   alt="arrow"
-                  className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
+                  className={`w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
                 />
               </button>
               {showEntriesOpen && (
                 <div
                   ref={dropdownContentRef}
-                  className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
+                  className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-full py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
                   onMouseDown={(e) => e.preventDefault()}
                 >
                   {showEntriesOptions.map((opt) => (
@@ -460,7 +462,7 @@ export default function ManageLeave() {
                         setSelectedShowEntries(opt.value);
                         setShowEntriesOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-2 text-[14px] font-medium font-gantari transition-colors hover:text-[#353535] hover:bg-[#F2F2F2] cursor-pointer ${selectedShowEntries === opt.value && opt.value !== "show" ? "text-[#353535]" : "text-[#8B8B8B]"}`}
+                      className="w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors cursor-pointer text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
                     >
                       {opt.label}
                     </button>

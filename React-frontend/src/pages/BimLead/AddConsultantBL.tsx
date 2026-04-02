@@ -193,12 +193,12 @@ export default function AddConsultantBL() {
           <button
             type="button"
             onClick={() => navigate('/bl/consultants')}
-            className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
+            className="p-2 rounded-md bg-[#F2F2F2] text-[#616161] transition-all cursor-pointer"
             title="Back"
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
           </button>
-          <h3 className="text-[20px] sm:text-[24px] font-medium text-[#000000] font-Gantari text-center flex-1">
+          <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
             Add New Consultant
           </h3>
           <div className="w-10" />
@@ -310,15 +310,6 @@ export default function AddConsultantBL() {
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   required
-                />
-              </div>
-              <div className="relative">
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
-                <CustomDropdown
-                  options={['Employee', 'Trainee']}
-                  value={form.type}
-                  onChange={(val) => setForm((f) => ({ ...f, type: val }))}
-                  placeholder="Select Type"
                 />
               </div>
               <div>

@@ -1,225 +1,46 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../../lib/api";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
+import closeButtonIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import { TimePickerWheel } from "../../components/TimePickerWheel";
-import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
+import {
+  FormDropdown,
+  TaskDropdown,
+  formatFileSize,
+  formatTimeForDisplay,
+} from "../TechnicalDirector/MytaskTD";
 
-function formatTimeForDisplay(value: string): string {
-  if (!value || !value.match(/^\d{1,2}:\d{2}$/)) return "--:--";
-  const [hStr, mStr] = value.split(":");
-  const h24 = parseInt(hStr, 10);
-  const m = mStr || "00";
-  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
-  const ampm = h24 < 12 ? "AM" : "PM";
-  return `${h12}:${m} ${ampm}`;
+/** Opens a local `File` in a new browser tab (e.g. PDF viewer). */
+function openAttachmentInNewTab(file: File) {
+  const url = URL.createObjectURL(file);
+  const opened = window.open(url, "_blank", "noopener,noreferrer");
+  if (!opened) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+  window.setTimeout(() => URL.revokeObjectURL(url), 300_000);
 }
 
 type FormDropdownId =
   | "project"
   | "module"
-  | "taskName"
   | "type"
   | "assignTo"
   | "type_start_time"
   | "type_end_time"
   | null;
 
-interface FormDropdownProps {
-  label: string;
-  options: { value: string; label: string }[];
-  value: string;
-  onChange: (value: string) => void;
-  isOpen: boolean;
-  onToggle: () => void;
-  onClose: () => void;
-  triggerRef: React.RefObject<HTMLButtonElement | null>;
-  dropdownRef: React.RefObject<HTMLDivElement | null>;
-  searchable?: boolean;
-}
-
-function FormDropdown({
-  label,
-  options,
-  value,
-  onChange,
-  isOpen,
-  onToggle,
-  onClose,
-  triggerRef,
-  dropdownRef,
-  searchable = false,
-}: FormDropdownProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const displayLabel = value
-    ? (options.find((o) => o.value === value)?.label ?? value)
-    : label;
-  const filteredOptions = searchable
-    ? options.filter(
-      (opt) =>
-        opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        opt.value === "",
-    )
-    : options;
-
-  return (
-    <div className="relative w-full">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle();
-        }}
-        className={`w-full flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent font-Gantari transition-all outline-none ${value ? "text-[#353535]" : "text-[#8B8B8B]"} ${isOpen ? "!border-[#AEACAC52]" : ""} focus:border-[#AEACAC52]`}
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-        aria-label={label}
-      >
-        <span>{displayLabel}</span>
-        <svg
-          className={`ml-2 h-4 w-4 shrink-0 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </button>
-      {isOpen && (
-        <div
-          ref={dropdownRef}
-          role="listbox"
-          className="absolute top-full left-0 z-20 mt-1 w-full rounded-[5px] border border-[#E0E0E0] bg-white py-1 shadow-lg"
-        >
-          {searchable && (
-            <div className="px-2 pb-1">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-                placeholder="Search..."
-                className="w-full rounded border border-slate-200 px-2 py-1 text-[14px] text-[#353535] placeholder-[#8B8B8B]"
-              />
-            </div>
-          )}
-          <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
-            {filteredOptions.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                role="option"
-                onClick={() => {
-                  onChange(opt.value);
-                  setSearchQuery("");
-                  onClose();
-                }}
-                className="block w-full px-4 py-2 text-left text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F4F4F4]"
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + " B";
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
-}
-
-function AttachmentPreviewItem({
-  file,
-  onRemove,
-  onPreviewClick,
-}: {
-  file: File;
-  onRemove: () => void;
-  onPreviewClick?: (file: File) => void;
-}) {
-  const isImage = file.type.startsWith("image/");
-  const [previewUrl] = useState<string | null>(() =>
-    isImage ? URL.createObjectURL(file) : null,
-  );
-  useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
-  return (
-    <li className="flex items-center gap-3 rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827] font-Gantari">
-      <button
-        type="button"
-        onClick={() => onPreviewClick?.(file)}
-        className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-90"
-      >
-        {previewUrl ? (
-          <img
-            src={previewUrl}
-            alt=""
-            className="h-12 w-12 shrink-0 rounded object-cover border border-slate-200 cursor-pointer"
-          />
-        ) : (
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded border border-slate-200 bg-slate-100 text-slate-500 cursor-pointer">
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <span className="truncate block" title={file.name}>
-            {file.name}
-          </span>
-          <span className="text-[12px] text-[#8B8B8B]">
-            {formatFileSize(file.size)}
-          </span>
-        </div>
-      </button>
-      <button
-        type="button"
-        onClick={onRemove}
-        className="shrink-0 p-0.5 rounded text-[#353535] hover:bg-slate-200"
-        aria-label={`Remove ${file.name}`}
-      >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M6 18L18 6M6 6l12 12"
-          />
-        </svg>
-      </button>
-    </li>
-  );
-}
+type PendingAttachmentDelete = { type: "local"; index: number };
 
 interface Task {
   id: number;
@@ -252,6 +73,7 @@ interface Project {
   id: number;
   project_name: string;
   tasks?: string;
+  source?: string;
 }
 
 function taskToFormValues(task: Task | Record<string, unknown>): {
@@ -329,20 +151,21 @@ export default function AddTaskPM() {
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [openFormDropdown, setOpenFormDropdown] =
     useState<FormDropdownId>(null);
-  const [attachmentPreviewFile, setAttachmentPreviewFile] =
-    useState<File | null>(null);
+  const [tasklistOpen, setTasklistOpen] = useState(false);
+  const [pendingAttachmentDelete, setPendingAttachmentDelete] =
+    useState<PendingAttachmentDelete | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const formProjectTriggerRef = useRef<HTMLButtonElement>(null);
+  const formProjectTriggerRef = useRef<HTMLElement | null>(null);
   const formProjectMenuRef = useRef<HTMLDivElement>(null);
-  const formModuleTriggerRef = useRef<HTMLButtonElement>(null);
+  const formModuleTriggerRef = useRef<HTMLElement | null>(null);
   const formModuleMenuRef = useRef<HTMLDivElement>(null);
-  const formTaskNameTriggerRef = useRef<HTMLButtonElement>(null);
-  const formTaskNameMenuRef = useRef<HTMLDivElement>(null);
-  const formTypeTriggerRef = useRef<HTMLButtonElement>(null);
+  const formTypeTriggerRef = useRef<HTMLElement | null>(null);
   const formTypeMenuRef = useRef<HTMLDivElement>(null);
-  const formAssignTriggerRef = useRef<HTMLButtonElement>(null);
+  const formAssignTriggerRef = useRef<HTMLElement | null>(null);
   const formAssignMenuRef = useRef<HTMLDivElement>(null);
+  const tasklistTriggerRef = useRef<HTMLButtonElement>(null);
+  const tasklistMenuRef = useRef<HTMLDivElement>(null);
   const formStartTimeTriggerRef = useRef<HTMLButtonElement>(null);
   const formStartTimeMenuRef = useRef<HTMLDivElement>(null);
   const formEndTimeTriggerRef = useRef<HTMLButtonElement>(null);
@@ -351,10 +174,25 @@ export default function AddTaskPM() {
   useEffect(() => {
     Promise.all([
       api.get<{ employees?: Employee[] }>("/api/employees"),
-      api.get<{ projects?: Project[] }>("/api/projects"),
-    ]).then(([empRes, projRes]) => {
+      api.get<{ projects?: Record<string, unknown>[] }>("/api/projects"),
+      api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects"),
+    ]).then(([empRes, projRes1, projRes2]) => {
       setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
-      setProjects(projRes.data.projects ?? []);
+      
+      const p1 = (projRes1.data.projects ?? []).map(r => ({
+        id: Number(r.id),
+        project_name: String(r.project_name || ""),
+        tasks: String(r.tasks || ""),
+        source: String(r.source || "In House")
+      }));
+      const p2 = (projRes2.data.projects ?? []).map(r => ({
+        id: Number(r.id),
+        project_name: String(r.project_name || ""),
+        tasks: String(r.tasks || ""),
+        source: "Outsource"
+      }));
+      
+      setProjects([...p1, ...p2]);
     });
   }, []);
 
@@ -393,40 +231,77 @@ export default function AddTaskPM() {
   }, [addTaskForm.projectName, projects]);
 
   useEffect(() => {
-    if (openFormDropdown === null) return;
+    if (openFormDropdown === null && !tasklistOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
-      const refs: React.RefObject<HTMLElement | null>[] =
-        openFormDropdown === "project"
+      const refs: React.RefObject<HTMLElement | null>[] = tasklistOpen
+        ? [tasklistTriggerRef, tasklistMenuRef]
+        : openFormDropdown === "project"
           ? [formProjectTriggerRef, formProjectMenuRef]
           : openFormDropdown === "module"
             ? [formModuleTriggerRef, formModuleMenuRef]
-            : openFormDropdown === "taskName"
-              ? [formTaskNameTriggerRef, formTaskNameMenuRef]
-              : openFormDropdown === "type"
-                ? [formTypeTriggerRef, formTypeMenuRef]
-                : openFormDropdown === "type_start_time"
-                  ? [formStartTimeTriggerRef, formStartTimeMenuRef]
-                  : openFormDropdown === "type_end_time"
-                    ? [formEndTimeTriggerRef, formEndTimeMenuRef]
-                    : [formAssignTriggerRef, formAssignMenuRef];
+            : openFormDropdown === "type"
+              ? [formTypeTriggerRef, formTypeMenuRef]
+              : openFormDropdown === "type_start_time"
+                ? [formStartTimeTriggerRef, formStartTimeMenuRef]
+                : openFormDropdown === "type_end_time"
+                  ? [formEndTimeTriggerRef, formEndTimeMenuRef]
+                  : [formAssignTriggerRef, formAssignMenuRef];
       const inside = refs.some((r) => r.current && r.current.contains(target));
-      if (!inside) setOpenFormDropdown(null);
+      if (!inside) {
+        setOpenFormDropdown(null);
+        setTasklistOpen(false);
+      }
     };
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
-  }, [openFormDropdown]);
+  }, [openFormDropdown, tasklistOpen]);
 
   const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.currentTarget.files;
+    const input = e.currentTarget;
+    const files = input.files;
     if (!files?.length) return;
     setAttachmentFiles((prev) => [...prev, ...Array.from(files)]);
-    e.currentTarget.value = "";
+    requestAnimationFrame(() => {
+      input.value = "";
+    });
+  };
+
+  const openFilePicker = () => {
+    requestAnimationFrame(() => {
+      fileInputRef.current?.click();
+    });
   };
 
   const removeAttachment = (index: number) => {
     setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
   };
+
+  const confirmRemoveAttachment = () => {
+    if (!pendingAttachmentDelete) return;
+    removeAttachment(pendingAttachmentDelete.index);
+    setPendingAttachmentDelete(null);
+  };
+
+  const pendingDeleteFileName =
+    pendingAttachmentDelete != null
+      ? (attachmentFiles[pendingAttachmentDelete.index]?.name ?? "")
+      : "";
+
+  const tasklistOptions = useMemo(() => {
+    const taskListStr = projects.find(
+      (p) => p.project_name === addTaskForm.projectName,
+    )?.tasks;
+    const options = taskListStr
+      ? taskListStr
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+      : [];
+    return ["Select Task", ...options];
+  }, [projects, addTaskForm.projectName]);
+
+  const totalAttachmentCount = attachmentFiles.length;
 
   const goBack = () => navigate("/tasks");
 
@@ -496,10 +371,16 @@ export default function AddTaskPM() {
       };
 
       let taskId = editingTaskId;
+      const selectedProj = projects.find(
+        (p) => p.project_name === addTaskForm.projectName,
+      );
+      const isOutsource = selectedProj?.source === "Outsource";
+      const baseEndpoint = isOutsource ? "/api/vendors/vendor-tasks" : "/api/tasks";
+
       if (isEditing) {
-        await api.patch(`/api/tasks/${editingTaskId}`, payload);
+        await api.patch(`${baseEndpoint}/${editingTaskId}`, payload);
       } else {
-        const res = await api.post<{ task_id: number }>("/api/tasks", payload);
+        const res = await api.post<{ task_id: number }>(baseEndpoint, payload);
         taskId = res.data.task_id;
       }
 
@@ -578,7 +459,16 @@ export default function AddTaskPM() {
             <div className="w-10" />
         </div>
 
-        <div className="flex-1 min-h-0 pr-1 -mr-1 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-6">
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            tabIndex={-1}
+            className="fixed left-[-9999px] top-0 h-px w-px opacity-0"
+            onChange={handleAttachmentChange}
+            accept="*/*"
+          />
           <form onSubmit={handleSubmit} className="space-y-6">
             {addError && (
               <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
@@ -649,7 +539,7 @@ export default function AddTaskPM() {
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                   Task Name <span className="text-[#DD4342]">*</span>
                 </label>
-                <div className="flex w-full group">
+                <div className="relative flex min-h-[42px] items-stretch overflow-hidden rounded-[5px] border border-transparent bg-[#F2F3F4] transition-colors focus-within:border-[#AEACAC52]">
                   <input
                     type="text"
                     value={addTaskForm.taskName}
@@ -657,76 +547,28 @@ export default function AddTaskPM() {
                       setAddTaskForm((f) => ({ ...f, taskName: e.target.value }))
                     }
                     placeholder="Enter Task / Select Task"
-                    className="flex-1 min-w-0 px-4 py-2 bg-[#F2F3F4] text-[14px] text-[#353535] rounded-l-[5px] border border-transparent focus:border-[#AEACAC52] outline-none font-Gantari transition-all placeholder-[#8B8B8B]"
+                    className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B]"
                   />
-                  <div className="relative shrink-0">
-                    <button
-                      ref={formTaskNameTriggerRef}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenFormDropdown((d) =>
-                          d === "taskName" ? null : "taskName",
-                        );
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] text-[14px] text-[#8B8B8B] rounded-r-[5px] font-Gantari border-y border-r border-transparent hover:bg-[#D8D8D8] transition-all whitespace-nowrap cursor-pointer"
-                    >
-                      Tasklist
-                      <svg
-                        className={`h-4 w-4 transition-transform ${openFormDropdown === "taskName" ? "rotate-180" : ""}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </button>
-                    {openFormDropdown === "taskName" && (
-                      <div
-                        ref={formTaskNameMenuRef}
-                        className="absolute top-full right-0 z-20 mt-1 w-[250px] rounded-[5px] border border-[#E0E0E0] bg-white py-1 shadow-lg"
-                      >
-                        <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
-                          {(() => {
-                            const taskListStr = projects.find(
-                              (p) => p.project_name === addTaskForm.projectName,
-                            )?.tasks;
-                            const options = taskListStr
-                              ? taskListStr
-                                .split(",")
-                                .map((t) => t.trim())
-                                .filter(Boolean)
-                              : [];
-                            if (options.length === 0) {
-                              return (
-                                <div className="px-4 py-2 text-sm text-[#8B8B8B] italic">
-                                  No predefined tasks
-                                </div>
-                              );
-                            }
-                            return options.map((opt) => (
-                              <button
-                                key={opt}
-                                type="button"
-                                onClick={() => {
-                                  setAddTaskForm((f) => ({ ...f, taskName: opt }));
-                                  setOpenFormDropdown(null);
-                                }}
-                                className="block w-full px-4 py-2 text-left text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F4F4F4]"
-                              >
-                                {opt}
-                              </button>
-                            ));
-                          })()}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <TaskDropdown
+                    label="Tasklist"
+                    options={tasklistOptions}
+                    selected={null}
+                    onSelect={(val) => {
+                      if (!val || val === "Select Task") return;
+                      setAddTaskForm((f) => ({ ...f, taskName: val }));
+                    }}
+                    isOpen={tasklistOpen}
+                    onToggle={() => setTasklistOpen((d) => !d)}
+                    onClose={() => setTasklistOpen(false)}
+                    triggerRef={tasklistTriggerRef}
+                    dropdownRef={tasklistMenuRef}
+                    menuAlign="right"
+                    menuUseFixedLayer
+                    triggerVariant="compositeEnd"
+                    searchable
+                    searchPlaceholder="Search task..."
+                    maxVisibleItems={6}
+                  />
                 </div>
               </div>
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
@@ -751,6 +593,7 @@ export default function AddTaskPM() {
                     onClose={() => setOpenFormDropdown(null)}
                     triggerRef={formTypeTriggerRef}
                     dropdownRef={formTypeMenuRef}
+                    searchable
                   />
                 </div>
                 <div>
@@ -801,7 +644,7 @@ export default function AddTaskPM() {
                         d === "type_start_time" ? null : "type_start_time",
                       )
                     }
-                    className="flex w-full items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] font-Gantari border border-transparent focus:border-[#AEACAC52] outline-none"
+                    className="flex w-full items-center justify-between rounded-[5px] bg-[#F2F3F4] border border-transparent px-4 py-2 text-left text-[14px] font-Gantari focus:border-[#AEACAC52] outline-none shadow-none transition-all cursor-pointer"
                   >
                     <span
                       className={
@@ -810,26 +653,20 @@ export default function AddTaskPM() {
                           : "text-[#8B8B8B]"
                       }
                     >
-                      {formatTimeForDisplay(addTaskForm.startTime) || "__:__"}
+                      {addTaskForm.startTime
+                        ? formatTimeForDisplay(addTaskForm.startTime)
+                        : "__:__"}
                     </span>
-                    <svg
-                      className="ml-2 h-4 w-4 shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
+                    <img
+                      src={ArrowDown}
+                      alt=""
+                      className={`ml-2 h-3 w-3 shrink-0 transition-transform ${openFormDropdown === "type_start_time" ? "rotate-180" : ""}`}
+                    />
                   </button>
                   {openFormDropdown === "type_start_time" && (
                     <div
                       ref={formStartTimeMenuRef}
-                      className="absolute top-full left-0 z-20 mt-1"
+                      className="absolute top-full left-0 z-20 mt-2 w-full min-w-[200px] rounded-lg border border-[#AEACAC52] bg-white overflow-hidden shadow-none"
                     >
                       <TimePickerWheel
                         value={addTaskForm.startTime}
@@ -853,7 +690,7 @@ export default function AddTaskPM() {
                         d === "type_end_time" ? null : "type_end_time",
                       )
                     }
-                    className="flex w-full items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] font-Gantari border border-transparent focus:border-[#AEACAC52] outline-none"
+                    className="flex w-full items-center justify-between rounded-[5px] bg-[#F2F3F4] border border-transparent px-4 py-2 text-left text-[14px] font-Gantari focus:border-[#AEACAC52] outline-none shadow-none transition-all cursor-pointer"
                   >
                     <span
                       className={
@@ -862,26 +699,20 @@ export default function AddTaskPM() {
                           : "text-[#8B8B8B]"
                       }
                     >
-                      {formatTimeForDisplay(addTaskForm.dueTime) || "__:__"}
+                      {addTaskForm.dueTime
+                        ? formatTimeForDisplay(addTaskForm.dueTime)
+                        : "__:__"}
                     </span>
-                    <svg
-                      className="ml-2 h-4 w-4 shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
+                    <img
+                      src={ArrowDown}
+                      alt=""
+                      className={`ml-2 h-3 w-3 shrink-0 transition-transform ${openFormDropdown === "type_end_time" ? "rotate-180" : ""}`}
+                    />
                   </button>
                   {openFormDropdown === "type_end_time" && (
                     <div
                       ref={formEndTimeMenuRef}
-                      className="absolute top-full left-0 z-20 mt-1"
+                      className="absolute top-full left-0 z-20 mt-2 w-full min-w-[200px] rounded-lg border border-[#AEACAC52] bg-white overflow-hidden shadow-none"
                     >
                       <TimePickerWheel
                         value={addTaskForm.dueTime}
@@ -930,7 +761,7 @@ export default function AddTaskPM() {
                     }))
                   }
                   placeholder="Enter Description..."
-                  rows={3}
+                  rows={4}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                 />
               </div>
@@ -948,43 +779,70 @@ export default function AddTaskPM() {
                   className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                 />
               </div>
-              <div className="md:col-span-2">
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+              <div className="md:col-span-2 space-y-2">
+                <span className="block text-[16px] font-semibold text-[#000000] font-Gantari">
                   Attachments
-                </label>
-                <input
-                  ref={fileInputRef}
-                  id="add-task-file-input"
-                  type="file"
-                  multiple
-                  className="sr-only"
-                  onChange={handleAttachmentChange}
-                  accept="*/*"
-                />
-                <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
-                  <div className="flex-1 px-4 py-2 text-[14px] text-[#979797] font-Gantari truncate">
-                    {attachmentFiles.length > 0
-                      ? attachmentFiles.map((f) => f.name).join(", ")
+                </span>
+                <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
+                  <div className="flex-1 px-4 text-[14px] text-[#979797] truncate min-w-0 py-2">
+                    {totalAttachmentCount > 0
+                      ? `${totalAttachmentCount} file(s) attached`
                       : "Choose file"}
                   </div>
-                  <label
-                    htmlFor="add-task-file-input"
-                    className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-semibold cursor-pointer font-Gantari shrink-0"
+                  <button
+                    type="button"
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      openFilePicker();
+                    }}
+                    className="px-5 py-2 bg-[#E2E2E2] text-[#8B8B8B] text-[14px] cursor-pointer transition-colors shrink-0 font-Gantari border-0"
                   >
                     Browse File
-                  </label>
+                  </button>
                 </div>
-                {attachmentFiles.length > 0 && (
-                  <ul className="mt-2 space-y-1">
+                {totalAttachmentCount > 0 && (
+                  <div className="flex flex-col gap-2">
                     {attachmentFiles.map((file, index) => (
-                      <AttachmentPreviewItem
+                      <div
                         key={`${file.name}-${index}-${file.size}`}
-                        file={file}
-                        onRemove={() => removeAttachment(index)}
-                        onPreviewClick={setAttachmentPreviewFile}
-                      />
+                        className="flex items-center gap-2 rounded-[5px] bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827]"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <span
+                            className="block truncate font-Gantari"
+                            title={file.name}
+                          >
+                            {file.name}
+                          </span>
+                          <span className="text-xs text-[#8B8B8B]">
+                            {formatFileSize(file.size)}
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openAttachmentInNewTab(file)}
+                            className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
+                            title="View in new tab"
+                            aria-label={`View ${file.name} in new tab`}
+                          >
+                            <img src={viewIcon} alt="" className="h-5 w-5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPendingAttachmentDelete({ type: "local", index })
+                            }
+                            className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
+                            title="Remove"
+                            aria-label={`Remove ${file.name}`}
+                          >
+                            <img src={deleteIcon} alt="" className="h-5 w-5" />
+                          </button>
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 )}
               </div>
             </div>
@@ -993,25 +851,78 @@ export default function AddTaskPM() {
               <button
                 type="button"
                 onClick={goBack}
-                className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#101827] font-semibold text-[16px] font-Gantari transition-all"
+                className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
               >
                 Discard
               </button>
               <button
                 type="submit"
                 disabled={addSubmitting}
-                className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] font-Gantari disabled:opacity-50 transition-all"
+                className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer disabled:opacity-50"
               >
                 {addSubmitting ? "Submitting..." : "Submit"}
               </button>
             </div>
           </form>
         </div>
+        {pendingAttachmentDelete !== null && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
+            onClick={() => setPendingAttachmentDelete(null)}
+            role="presentation"
+          >
+            <div
+              className="w-full max-w-[520px] rounded-md bg-white p-8 shadow-xl font-Gantari"
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="attachment-delete-title-pm"
+            >
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setPendingAttachmentDelete(null)}
+                  className="absolute left-0 top-0 shrink-0 rounded-md p-1 bg-[#E8E8E8] cursor-pointer border-0 bg-transparent"
+                  aria-label="Close"
+                >
+                  <img
+                    src={closeButtonIcon}
+                    alt=""
+                    className="h-5 w-5"
+                    aria-hidden
+                  />
+                </button>
+                <p
+                  id="attachment-delete-title-pm"
+                  className="mx-auto max-w-full px-10 text-center text-[16px] leading-relaxed text-[#353535] font-Gantari"
+                >
+                  Are you sure you want to delete{" "}
+                  <strong className="font-semibold text-[#353535]">
+                    {pendingDeleteFileName}
+                  </strong>
+                  ?
+                </p>
+              </div>
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setPendingAttachmentDelete(null)}
+                  className="min-w-[140px] rounded-md bg-[#F2F2F2] px-8 py-2 text-[14px] font-semibold text-[#353535] cursor-pointer transition-opacity hover:opacity-90 border-0"
+                >
+                  Discard
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmRemoveAttachment}
+                  className="min-w-[140px] rounded-md bg-[#FED9D9] px-8 py-2 text-[14px] font-semibold text-[#E00100] cursor-pointer transition-opacity hover:opacity-90 border-0"
+                >
+                  Yes, Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-      <AttachmentPreviewModal
-        file={attachmentPreviewFile}
-        onClose={() => setAttachmentPreviewFile(null)}
-      />
     </div>
   );
 }

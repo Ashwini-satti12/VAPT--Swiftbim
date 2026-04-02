@@ -414,8 +414,8 @@ export default function MytaskViewTD() {
               </span>
             </div>
             <div className="flex gap-2 text-sm">
-              <span className="text-black shrink-0 w-28">End Time</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] font-medium shrink-0 w-32">End Time</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.perferend_time || task.due_time || task.end_time
                   ? formatTimeAMPM(task.perferend_time || task.due_time || task.end_time)

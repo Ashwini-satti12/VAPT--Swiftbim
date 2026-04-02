@@ -1101,7 +1101,7 @@ export default function BiddingV() {
                   onChange={(e) =>
                     setBidForm((f) => ({ ...f, bid_amount: e.target.value }))
                   }
-                  className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#DE3D3A]/20 outline-none"
+                  className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#DE3D3A]/20 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   placeholder="0.00"
                 />
               </div>

@@ -22,5 +22,14 @@ export const getGlobalProfileUrl = (empId: number | string | undefined, profileP
 
     // Use the new global endpoint removing '/api' from apiBase if it already includes it
     const baseUrl = apiBase.endsWith('/api') ? apiBase.slice(0, -4) : apiBase;
-    return `${baseUrl}/api/view_profile_picture/${empId}`;
+    const url = `${baseUrl}/api/view_profile_picture/${empId}`;
+    
+    // Add a cache-buster query param using the filename itself if available
+    // This ensures that when the filename changes (e.g. includes a timestamp), 
+    // the browser sees a new URL and reloads the image.
+    if (profilePicture && typeof profilePicture === 'string') {
+        return `${url}?v=${encodeURIComponent(profilePicture)}`;
+    }
+    
+    return url;
 };

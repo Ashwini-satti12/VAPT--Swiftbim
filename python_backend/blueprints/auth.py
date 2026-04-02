@@ -286,8 +286,8 @@ def logout():
                         # Update row even if Company_id mismatch (some legacy rows may not match token company_id)
                         # Uses existing field names only (no schema changes).
                         cur.execute(
-                            "UPDATE attendance SET time_out = %s, num_hr = %s, total_hours = %s WHERE id = %s",
-                            (now_time, total_decimal, total_hms, att_id),
+                            "UPDATE attendance SET time_out = %s, num_hr = %s WHERE id = %s",
+                            (now_time, total_decimal, att_id),
                         )
                         try:
                             conn.commit()

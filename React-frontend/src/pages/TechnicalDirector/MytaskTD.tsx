@@ -1,4 +1,11 @@
-import { useEffect, useState, useRef, useMemo } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+  useMemo,
+  useLayoutEffect,
+} from "react";
+import { createPortal } from "react-dom";
 import {
   Link,
   useSearchParams,
@@ -88,6 +95,7 @@ export interface Project {
   bim_coordinator_name?: string;
   uploader_name?: string;
   members?: string;
+  source?: string;
 }
 
 export interface FormDropdownProps {
@@ -98,9 +106,12 @@ export interface FormDropdownProps {
   isOpen: boolean;
   onToggle: () => void;
   onClose: () => void;
-  triggerRef: React.RefObject<HTMLButtonElement | null>;
+  /** Root element for outside-click checks; assign to wrapper that contains trigger + menu. */
+  triggerRef: React.RefObject<HTMLElement | null>;
   dropdownRef: React.RefObject<HTMLDivElement | null>;
   searchable?: boolean;
+  /** Max option rows visible before scroll. Default 4. */
+  maxVisibleRows?: number;
 }
 
 export function FormDropdown({
@@ -114,74 +125,118 @@ export function FormDropdown({
   triggerRef,
   dropdownRef,
   searchable = false,
+  maxVisibleRows = 4,
 }: FormDropdownProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const q = searchQuery.trim().toLowerCase();
   const filteredOptions =
-    searchable && q
+    searchable && isOpen && q
       ? options.filter(
-        (opt) =>
-          opt.label.toLowerCase().includes(q) ||
-          String(opt.value).toLowerCase().includes(q),
-      )
+          (opt) =>
+            opt.label.toLowerCase().includes(q) ||
+            String(opt.value).toLowerCase().includes(q),
+        )
       : options;
+
+  const listMaxHeightPx = Math.max(120, maxVisibleRows * 40 + 8);
 
   const displayLabel = value
     ? (options.find((o) => o.value === value)?.label ?? value)
     : label;
+
+  useEffect(() => {
+    if (isOpen && searchable) setSearchQuery("");
+  }, [isOpen, searchable]);
+
+  const setRootRef = (node: HTMLDivElement | null) => {
+    (triggerRef as React.MutableRefObject<HTMLElement | null>).current = node;
+  };
+
+  const fieldShellClass =
+    "flex w-full items-center gap-2 rounded-md border border-transparent bg-[#F2F3F4] px-3 py-2 text-left text-[14px] font-Gantari transition-colors focus-within:border-[#AEACAC52]";
+
   return (
-    <div className="relative w-full">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle();
-        }}
-        className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-[14px] cursor-pointer"
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-        aria-label={label}
-      >
-        <span className={value ? "text-[#353535]" : "text-[#8B8B8B]"}>
-          {displayLabel}
-        </span>
-        <img
-          src={ArrowDown}
-          alt="arrow"
-          className={`ml-2  w-3 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
-        />
-      </button>
+    <div ref={setRootRef} className="relative w-full">
+      {isOpen && searchable ? (
+        <div className={fieldShellClass}>
+          <input
+            type="text"
+            autoFocus
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Escape") onClose();
+            }}
+            placeholder={label}
+            className="min-w-0 flex-1 border-0 bg-transparent text-[14px] text-[#353535] outline-none placeholder-[#8B8B8B]"
+            aria-expanded={isOpen}
+            aria-label={label}
+            role="combobox"
+            aria-autocomplete="list"
+          />
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle();
+            }}
+            className="shrink-0 cursor-pointer rounded p-0.5 outline-none focus-visible:ring-1 focus-visible:ring-[#AEACAC52]"
+            aria-label="Close list"
+          >
+            <img
+              src={ArrowDown}
+              alt=""
+              className="h-3 w-3 rotate-180 transition-transform"
+            />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
+          className={`${fieldShellClass} cursor-pointer outline-none focus-visible:border-[#AEACAC52]`}
+          aria-expanded={isOpen}
+          aria-haspopup="listbox"
+          aria-label={label}
+        >
+          <span className={`min-w-0 flex-1 truncate text-left ${value ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
+            {displayLabel}
+          </span>
+          <img
+            src={ArrowDown}
+            alt=""
+            className={`ml-auto h-3 w-3 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+      )}
       {isOpen && (
         <div
           ref={dropdownRef}
           role="listbox"
-          className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+          className="absolute top-full left-0 z-50 mt-0.5 w-full overflow-hidden rounded-md border border-[#E0E0E0] bg-white shadow-lg"
         >
-          {searchable && (
-            <div className="px-2 pb-1">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-                className="w-full rounded border border-slate-200 px-2 py-1 text-xs text-slate-800 placeholder-slate-400"
-                placeholder="Search..."
-              />
-            </div>
-          )}
-          <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
+          <div
+            className="min-h-0 overflow-y-auto py-1 custom-scrollbar"
+            style={{ maxHeight: listMaxHeightPx }}
+          >
             {filteredOptions.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
                 role="option"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   onChange(opt.value);
+                  if (searchable) setSearchQuery("");
                   onClose();
                 }}
-                className="block w-full px-3 py-2 text-left text-[14px] text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2] first:rounded-t-lg last:rounded-b-lg cursor-pointer"
+                className="block w-full px-4 py-2 text-left text-[14px] font-Gantari text-[#8B8B8B] transition-colors hover:bg-[#F2F2F2] hover:text-[#353535] cursor-pointer"
               >
                 {opt.label}
               </button>
@@ -207,6 +262,12 @@ export interface TaskDropdownProps {
   searchable?: boolean;
   searchPlaceholder?: string;
   maxVisibleItems?: number;
+  /** `right`: anchor menu to trigger’s right edge (e.g. task picker beside full-width input). */
+  menuAlign?: "left" | "right";
+  /** Fixed layer + portal so the menu isn’t clipped by `overflow-y-auto` ancestors (e.g. add-task form). */
+  menuUseFixedLayer?: boolean;
+  /** Right segment of a compound field (same bar as text input); matches Attachments “Browse” styling. */
+  triggerVariant?: "default" | "compositeEnd";
 }
 
 export function TaskDropdown({
@@ -223,8 +284,19 @@ export function TaskDropdown({
   searchable = false,
   searchPlaceholder = "Search...",
   maxVisibleItems = 4,
+  menuAlign = "left",
+  menuUseFixedLayer = false,
+  triggerVariant = "default",
 }: TaskDropdownProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [fixedPlacement, setFixedPlacement] = useState<{
+    top: number;
+    right?: number;
+    left?: number;
+    maxH: number;
+    maxW: number;
+    minW: number;
+  } | null>(null);
   const q = (searchQuery || "").trim().toLowerCase();
   const filteredOptions = searchable
     ? (() => {
@@ -243,10 +315,114 @@ export function TaskDropdown({
     })()
     : options;
 
-  const listMaxHeight = `${maxVisibleItems * 40}px`;
+  const positionClass = narrow
+    ? "right-0 min-w-[110px]"
+    : menuAlign === "right"
+      ? "right-0 min-w-[200px] max-w-[min(calc(100vw-1rem),320px)]"
+      : "left-0 min-w-[160px] max-w-[min(calc(100vw-1rem),320px)]";
+
+  useLayoutEffect(() => {
+    if (!isOpen || !menuUseFixedLayer || !triggerRef.current) {
+      setFixedPlacement(null);
+      return;
+    }
+    const el = triggerRef.current;
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const gap = 4;
+      const minW = narrow ? 110 : 200;
+      const maxW = Math.min(320, vw - 16);
+      const searchH = searchable ? 56 : 0;
+      const listCap = maxVisibleItems * 40 + 16;
+      const maxH = Math.min(
+        listCap + searchH,
+        Math.max(120, vh - r.bottom - gap - 12),
+        320,
+      );
+      if (narrow || menuAlign === "right") {
+        setFixedPlacement({
+          top: r.bottom + gap,
+          right: vw - r.right,
+          maxH,
+          maxW,
+          minW,
+        });
+      } else {
+        setFixedPlacement({
+          top: r.bottom + gap,
+          left: Math.max(8, Math.min(r.left, vw - maxW - 8)),
+          maxH,
+          maxW,
+          minW,
+        });
+      }
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [isOpen, menuUseFixedLayer, menuAlign, narrow, maxVisibleItems, searchable]);
+
+  const menuShellClass =
+    "flex flex-col overflow-hidden rounded-md border border-[#E0E0E0] bg-white shadow-lg";
+
+  const triggerButtonClass =
+    triggerVariant === "compositeEnd"
+      ? "inline-flex h-full min-h-[40px] w-auto shrink-0 items-center justify-between gap-2 border-0 border-l border-[#E0E0E0] bg-[#E2E2E2] px-4 py-2 text-[14px] font-Gantari text-[#8B8B8B] cursor-pointer outline-none transition-colors hover:bg-[#dadada] focus-visible:bg-[#dadada]"
+      : `inline-flex items-center justify-between rounded-md border border-transparent bg-[#E8E8E8] px-4 py-2 text-[14px] cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`;
+
+  const triggerTextClass = `truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`;
+
+  const menuContent = (
+    <>
+      {searchable && (
+        <div className="shrink-0 border-b border-slate-100 bg-white p-2">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            placeholder={searchPlaceholder}
+            className="w-full rounded-md border border-transparent bg-[#F2F3F4] px-3 py-2 text-sm font-Gantari text-[#353535] outline-none transition-colors placeholder-[#8B8B8B] focus:border-[#AEACAC52]"
+            aria-label={searchPlaceholder}
+          />
+        </div>
+      )}
+      <div className="min-h-0 flex-1 overflow-y-auto py-1 custom-scrollbar">
+        {filteredOptions.map((opt, idx) => (
+          <button
+            key={`${opt}-${idx}`}
+            type="button"
+            role="option"
+            onClick={() => {
+              if (searchable) setSearchQuery("");
+              onSelect(opt);
+              onClose();
+            }}
+            className={`block w-full px-4 py-2 text-left text-[14px] font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+    </>
+  );
 
   return (
-    <div className="relative">
+    <div
+      className={
+        triggerVariant === "compositeEnd"
+          ? "relative flex h-full min-h-0 shrink-0 self-stretch"
+          : "relative"
+      }
+    >
       <button
         ref={triggerRef}
         type="button"
@@ -254,14 +430,12 @@ export function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+        className={triggerButtonClass}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
       >
-        <span
-          className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}
-        >
+        <span className={triggerTextClass}>
           {label.toLowerCase() === "show" && selected && selected !== label ? (
             <>
               <span className="text-[14px] text-[#353535]">Show:</span>{" "}
@@ -277,49 +451,37 @@ export function TaskDropdown({
           className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
-      {isOpen && (
-        <div
-          ref={dropdownRef}
-          role="listbox"
-          className={`absolute top-full z-10 mt-1 rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 min-w-[110px]" : "left-0 min-w-[160px]"}`}
-        >
-          {searchable && (
-            <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-                placeholder={searchPlaceholder}
-                className="w-full rounded border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400"
-                aria-label={searchPlaceholder}
-              />
-            </div>
-          )}
-          <div
-            className="overflow-y-auto py-1 custom-scrollbar"
-            style={{ maxHeight: listMaxHeight }}
-          >
-            {filteredOptions.map((opt, idx) => (
-              <button
-                key={`${opt}-${idx}`}
-                type="button"
-                role="option"
-                onClick={() => {
-                  if (searchable) setSearchQuery("");
-                  onSelect(opt);
-                  onClose();
+      {isOpen &&
+        (menuUseFixedLayer
+          ? fixedPlacement &&
+            createPortal(
+              <div
+                ref={dropdownRef}
+                role="listbox"
+                className={`${menuShellClass} fixed z-[9999]`}
+                style={{
+                  top: fixedPlacement.top,
+                  ...(fixedPlacement.right !== undefined
+                    ? { right: fixedPlacement.right }
+                    : { left: fixedPlacement.left }),
+                  minWidth: fixedPlacement.minW,
+                  maxWidth: fixedPlacement.maxW,
+                  maxHeight: fixedPlacement.maxH,
                 }}
-                className={`block w-full px-4 py-2 text-left text-[14px] font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
               >
-                {opt}
-              </button>
+                {menuContent}
+              </div>,
+              document.body,
+            )
+          : (
+              <div
+                ref={dropdownRef}
+                role="listbox"
+                className={`absolute top-full z-50 mt-1 flex max-h-[min(18rem,calc(100vh-7rem))] ${menuShellClass} ${positionClass}`}
+              >
+                {menuContent}
+              </div>
             ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -439,6 +601,9 @@ export interface Task {
   Actual_start_time?: string;
   perferstart_time?: string;
   perferend_time?: string;
+  source?: "In House" | "Outsource";
+  /** Comma-separated stored filenames under /uploads/task/ (from POST .../output-files). */
+  outputfilepath?: string;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -845,7 +1010,7 @@ export default function MytaskTD() {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [selectedShow, setSelectedShow] = useState<string | null>("Show");
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-  const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+  const [deleteTask, setDeleteTask] = useState<Task | null>(null);
 
   const safeLocal = Array.isArray(localTasks) ? localTasks.filter(Boolean) : [];
   const safeList = Array.isArray(list) ? list.filter(Boolean) : [];
@@ -943,16 +1108,21 @@ export default function MytaskTD() {
       prev.map((t) => (t.id === taskId ? { ...t, status: label } : t)),
     );
 
+    const isOutsource = task?.source === "Outsource";
+    const endpoint = isOutsource
+      ? `/api/vendors/vendor-tasks/${taskId}/status`
+      : `/api/tasks/${taskId}/status`;
+
+    const projectId = (task as any)?.projectid ?? (task as any)?.project_id;
+
     api
-      .patch(`/api/tasks/${taskId}/status`, {
-        status: statusMap[newStatus],
-        projectId:
-          (task as Task & { projectid?: number; project_id?: number })
-            ?.projectid ??
-          (task as Task & { projectid?: number; project_id?: number })
-            ?.project_id,
+      .patch(endpoint, {
+        status: newStatus.replace("_", ""),
+        projectId,
       })
-      .catch(() => { });
+      .catch((err) => {
+        console.error("Failed to update task status:", err);
+      });
   };
 
   useEffect(() => {
@@ -981,7 +1151,7 @@ export default function MytaskTD() {
   };
 
   const openDeleteTask = (task: Task) => {
-    setDeleteTaskId(task.id);
+    setDeleteTask(task);
   };
 
   const openViewTask = (task: Task) => {
@@ -989,20 +1159,24 @@ export default function MytaskTD() {
   };
 
   const confirmDeleteTask = () => {
-    if (deleteTaskId === null) return;
+    if (deleteTask !== null) {
+      const isOutsource = deleteTask.source === "Outsource";
+      const endpoint = isOutsource
+        ? `/api/vendors/vendor-tasks/${deleteTask.id}`
+        : `/api/tasks/${deleteTask.id}`;
 
-    api
-      .delete(`/api/tasks/${deleteTaskId}`)
-      .then(() => {
-        setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
-        setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
-        setDeletedIds((prev) => [...prev, deleteTaskId]);
-        setDeleteTaskId(null);
-      })
-      .catch(() => {
-        // handle error implicitly
-        setDeleteTaskId(null);
-      });
+      api
+        .delete(endpoint)
+        .then(() => {
+          setList((prev) => prev.filter((t) => t.id !== deleteTask.id));
+          setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTask.id));
+          setDeletedIds((prev) => [...prev, deleteTask.id]);
+          setDeleteTask(null);
+        })
+        .catch(() => {
+          setDeleteTask(null);
+        });
+    }
   };
 
   const dropdownsContainerRef = useRef<HTMLDivElement>(null);
@@ -1032,19 +1206,29 @@ export default function MytaskTD() {
       params.employeeid = "all";
     }
 
+    const taskParams: Record<string, string> = { ...params };
+
     Promise.all([
-      api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+      api.get<{ tasks?: Task[] }>("/api/tasks", { params: taskParams }),
+      api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: taskParams }),
       api.get<{ employees?: Employee[] }>("/api/employees"),
       api.get<{ projects?: Project[] }>("/api/projects"),
+      api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
     ])
-      .then(([tasksRes, empRes, projRes]) => {
-        setList(tasksRes.data.tasks ?? []);
+      .then(([tasksRes, vTasksRes, empRes, projRes, vProjRes]) => {
+        const internalTasks = (tasksRes.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
+        const vendorTasks = (vTasksRes.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
+        setList([...internalTasks, ...vendorTasks] as Task[]);
+
         setEmployees(
           (empRes.data.employees ?? []).filter(
             isEmployeeActiveForProjectAssignment,
           ),
         );
-        setProjects(projRes.data.projects ?? []);
+
+        const internalProjs = (projRes.data.projects ?? []).map(p => ({ ...p, source: "In House" }));
+        const vendorProjs = (vProjRes.data.projects ?? []).map(p => ({ ...p, source: "Outsource" }));
+        setProjects([...internalProjs, ...vendorProjs] as Project[]);
       })
       .catch(() => {
         setList([]);
@@ -1350,52 +1534,48 @@ export default function MytaskTD() {
       </div>
 
       {/* Delete Task confirmation modal */}
-      {deleteTaskId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4">
-              <button
-                type="button"
-                onClick={() => setDeleteTaskId(null)}
-                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
-                aria-label="Close"
+      {deleteTask !== null && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+            {/* Close */}
+            <button
+              type="button"
+              onClick={() => setDeleteTask(null)}
+              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+              title="Close"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-              <h3 className="flex-1 text-center text-[18px] font-semibold text-[#353535]">
-                Delete Task
-              </h3>
-              <div className="w-9" />
-            </div>
-            <div className="px-6 py-5">
-              <p className="text-black text-center">
-                Are you sure, you want to Delete this Task?
-              </p>
-            </div>
-            <div className="flex justify-center gap-3 px-6 py-4 bg-slate-50/50">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+            <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
+              Delete Task
+            </h3>
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+              Are you sure, you want to Delete this?
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
               <button
                 type="button"
-                onClick={() => setDeleteTaskId(null)}
-                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black cursor-pointer"
+                onClick={() => setDeleteTask(null)}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
                 Discard
               </button>
               <button
                 type="button"
                 onClick={confirmDeleteTask}
-                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] cursor-pointer"
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
                 Yes, Delete
               </button>
