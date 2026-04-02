@@ -59,6 +59,15 @@ interface Employee {
     email?: string;
 }
 
+interface Tower {
+    id: number;
+    name: string;
+    progress: number;
+    completedTasks: number;
+    totalTasks: number;
+    status: "Approved" | "Pending" | "Review";
+}
+
 /** Normalize API / input value to YYYY-MM-DD for date inputs and day math. */
 function toCalendarYmd(raw: string): string | null {
     if (!raw?.trim()) return null;
@@ -113,6 +122,8 @@ export default function ProjectsV() {
     const [showProjectView, setShowProjectView] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [taskStats, setTaskStats] = useState({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
+    const [towerData, setTowerData] = useState<Tower[]>([]);
+    const [loadingTaskStats, setLoadingTaskStats] = useState(false);
 
     // Create/Edit Project Fields (Matching ProjectsTD)
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -509,31 +520,71 @@ export default function ProjectsV() {
         setSelectedMemberIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
     };
 
-    // Fetch task stats for selected project when viewing it
+    // Fetch task stats and tower data for selected project when viewing it
     useEffect(() => {
-        if (!showProjectView || !selectedProject?.id) {
+        let cancelled = false;
+        const projectId = (showProjectView && selectedProject?.id) ? selectedProject.id : null;
+
+        if (!projectId) {
             setTaskStats({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
+            setTowerData([]);
+            setLoadingTaskStats(false);
             return;
         }
+
+        setLoadingTaskStats(true);
+        setTowerData([]);
+
         api.get<{
             success: boolean;
             status_counts?: { todo?: number; inprogress?: number; paused?: number; completed?: number };
-        }>(`/api/vendors/vendor-projects/${selectedProject.id}/task-stats`)
+            modules?: Array<{
+                module_name?: string;
+                total_tasks?: number;
+                completed_tasks?: number;
+                completion_percentage?: number;
+            }>;
+        }>(`/api/vendors/vendor-projects/${projectId}/module-progress`)
             .then(({ data }) => {
-                if (!data.success || !data.status_counts) {
-                    setTaskStats({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
-                    return;
+                if (cancelled || !data) return;
+
+                if (data.status_counts) {
+                    setTaskStats({
+                        todo: data.status_counts.todo ?? 0,
+                        inProgress: data.status_counts.inprogress ?? 0,
+                        paused: data.status_counts.paused ?? 0,
+                        completed: data.status_counts.completed ?? 0,
+                    });
                 }
-                setTaskStats({
-                    todo: data.status_counts.todo ?? 0,
-                    inProgress: data.status_counts.inprogress ?? 0,
-                    paused: data.status_counts.paused ?? 0,
-                    completed: data.status_counts.completed ?? 0,
+
+                const mods = data.modules ?? [];
+                const towers = mods.map((m, idx) => {
+                    const pct = Number(m.completion_percentage ?? 0);
+                    let status: "Approved" | "Pending" | "Review";
+                    if (pct >= 80) status = "Approved";
+                    else if (pct >= 50) status = "Pending";
+                    else status = "Review";
+                    return {
+                        id: idx + 1,
+                        name: String(m.module_name ?? `Module ${idx + 1}`),
+                        progress: Math.round(pct),
+                        completedTasks: Number(m.completed_tasks ?? 0),
+                        totalTasks: Number(m.total_tasks ?? 0),
+                        status,
+                    };
                 });
+                setTowerData(towers);
             })
             .catch(() => {
+                if (cancelled) return;
                 setTaskStats({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
+                setTowerData([]);
+            })
+            .finally(() => {
+                if (!cancelled) setLoadingTaskStats(false);
             });
+
+        return () => { cancelled = true; };
     }, [showProjectView, selectedProject?.id]);
 
     const renderMemberSelector = () => (
@@ -1128,6 +1179,66 @@ export default function ProjectsV() {
                                 ))}
                             </div>
 
+                            {/* Module Progress Cards */}
+                            <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8">
+                                <div className="max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+                                        {loadingTaskStats ? (
+                                            <div className="col-span-full py-10 flex flex-col items-center justify-center gap-3">
+                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#DD4342]" />
+                                                <p className="text-gray-500 font-medium">Loading module analysis...</p>
+                                            </div>
+                                        ) : towerData.length > 0 ? (
+                                            towerData.map((tower) => {
+                                                const statusColor =
+                                                    tower.status === "Approved" ? "#008F22" :
+                                                        tower.status === "Pending" ? "#EB7200" : "#E00100";
+                                                const statusBg =
+                                                    tower.status === "Approved" ? "bg-[#E0FFE8]" :
+                                                        tower.status === "Pending" ? "bg-[#FFEAD6]" : "bg-[#FFD9D9]";
+
+                                                return (
+                                                    <div key={tower.id} className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[150px]">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <h5 className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">{tower.name}</h5>
+                                                            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md shrink-0 ${statusBg}`}>
+                                                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }}></span>
+                                                                <span className="text-[11px] font-bold font-Gantari" style={{ color: statusColor }}>{tower.status}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center justify-between mt-auto">
+                                                            <div className="relative flex items-center justify-center w-16 h-16">
+                                                                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
+                                                                    <circle cx="32" cy="32" r="26" stroke="#F2F3F5" strokeWidth="5" fill="transparent" />
+                                                                    <circle cx="32" cy="32" r="26" stroke={statusColor} strokeWidth="5" fill="transparent"
+                                                                        strokeDasharray={163.36}
+                                                                        strokeDashoffset={163.36 - (tower.progress / 100) * 163.36}
+                                                                        strokeLinecap="round"
+                                                                        style={{ transition: "stroke-dashoffset 1s ease-in-out" }}
+                                                                    />
+                                                                </svg>
+                                                                <span className="absolute text-[14px] font-bold text-[#353535] font-Gantari">{tower.progress}%</span>
+                                                            </div>
+                                                            <div className="flex flex-col items-end">
+                                                                <p className="text-[12px] font-medium text-[#8B8B8B] font-Gantari mb-1">Tasks Done</p>
+                                                                <div className="flex items-baseline">
+                                                                    <p className="text-[18px] font-bold text-[#353535] font-Gantari">{tower.completedTasks}</p>
+                                                                    <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari">/{tower.totalTasks}</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="col-span-full py-10 text-center text-gray-500 font-medium bg-slate-50 border border-dashed border-slate-200 rounded-xl">
+                                                No module progress available yet.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
 
                             {/* Description */}
                             <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8">
@@ -1603,8 +1714,8 @@ export default function ProjectsV() {
                                                         </div>
                                                     ) : (
                                                         <div className="min-w-[2.75rem] h-9 flex items-center justify-center rounded-lg bg-sky-100 border border-sky-200/90 text-black text-[13px] px-4 py-2 font-Gantari shrink-0">
-                                                                Low
-                                                        {/* <FiArrowRight className="w-4 h-4 gap-2" /> */}
+                                                            Low
+                                                            {/* <FiArrowRight className="w-4 h-4 gap-2" /> */}
                                                         </div>
                                                     )}
                                                 </div>

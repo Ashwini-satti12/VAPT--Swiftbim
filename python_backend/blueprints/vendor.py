@@ -214,6 +214,19 @@ def _hydrate_vendor_projects_phase1(vendor_cur, project_dicts: list[dict]):
                         enq = enq or {}
                 except Exception: pass
 
+            # 2b) Fallback to client-email-based matching for enquiry if still missing
+            if not enq and client_id:
+                try:
+                    vendor_cur.execute("SELECT email FROM users WHERE id = %s LIMIT 1", (client_id,))
+                    u = vendor_cur.fetchone()
+                    if u and u.get("email"):
+                        vendor_cur.execute(
+                            "SELECT * FROM bim_enquiry WHERE email_address = %s ORDER BY id DESC LIMIT 1",
+                            (u["email"],),
+                        )
+                        enq = vendor_cur.fetchone() or {}
+                except Exception: pass
+
             # 3) Global Fallback: If still empty, look for any other project in same batch with same name that found something
             if not prop and p_name:
                 for other in project_dicts:
@@ -307,7 +320,13 @@ def _hydrate_vendor_projects_phase1(vendor_cur, project_dicts: list[dict]):
 
             # 2. Location
             if not p.get("location") or str(p.get("location")).strip().lower() in {"empty", "n/a", "na", ""}:
-                loc_parts = [str(enq.get(k)).strip() for k in enq_loc_parts if enq.get(k) not in (None, "", "NULL")]
+                # Combine address, city, state, country from enquiry
+                loc_parts = []
+                for k in ["address", "city", "state", "country"]:
+                    val = str(enq.get(k) or "").strip()
+                    if val and val.lower() != "null":
+                        loc_parts.append(val)
+                
                 combined_loc = ", ".join(loc_parts).strip(", ").strip()
                 if combined_loc:
                     p["location"] = combined_loc
@@ -3972,20 +3991,21 @@ def list_vendor_projects():
         f"""
         SELECT
             vp.*,
+            COALESCE(NULLIF(p.client_id, ''), NULLIF(vp.client_id, '')) AS client_id,
             -- Prefer client name from new_swiftbim.users; fall back to raw ids
             COALESCE(u.full_name, u.email, p.client_id, vp.client_id) AS client_name,
             -- Prefer main projects.budget_ceiling / budget over vendor_projects values
             COALESCE(p.budget_ceiling, p.budget, vp.budget)       AS budget,
             COALESCE(p.budget_ceiling, vp.budget_ceiling)         AS budget_ceiling,
             -- Sync additional project metrics from main projects table using TD-compatible aliases
-            COALESCE(p.no_resource, vp.no_resource)             AS resources,
-            COALESCE(p.no_resources_requried, vp.no_resources_required) AS required_resources,
+            COALESCE(NULLIF(vp.no_resource, ''), NULLIF(p.no_resource, ''))     AS resources,
+            COALESCE(NULLIF(vp.no_resources_required, ''), NULLIF(p.no_resources_requried, '')) AS required_resources,
             -- Prefer vendor_projects row: edits from vendor UI update vp.* and must win over linked main projects.*
             COALESCE(vp.totalhours, p.totalhours)               AS totalhours,
             COALESCE(vp.perday, p.perday)                       AS per_day,
             -- Maintain old aliases for backward compatibility with existing frontend code (edit modals, etc.)
-            COALESCE(p.no_resource, vp.no_resource)             AS no_resource,
-            COALESCE(p.no_resources_requried, vp.no_resources_required) AS no_resources_required,
+            COALESCE(NULLIF(vp.no_resource, ''), NULLIF(p.no_resource, ''))     AS no_resource,
+            COALESCE(NULLIF(vp.no_resources_required, ''), NULLIF(p.no_resources_requried, '')) AS no_resources_required,
             COALESCE(vp.perday, p.perday)                       AS perday,
             COALESCE(p.location, vp.location)                   AS location,
             COALESCE(vp.start_date, p.start_date)               AS start_date,
@@ -4174,6 +4194,15 @@ def list_vendor_projects():
                             (email,),
                         )
                         prop = vcur.fetchone() or {}
+                        
+                        # Direct fetch enquiry by email if proposal linkage is missing
+                        vcur.execute(
+                            "SELECT * FROM bim_enquiry WHERE email_address = %s ORDER BY id DESC LIMIT 1",
+                            (email,),
+                        )
+                        enq_by_email = vcur.fetchone() or {}
+                        if enq_by_email and not enq:
+                            enq = enq_by_email
                 except Exception:
                     prop = {}
 
@@ -4182,12 +4211,12 @@ def list_vendor_projects():
                 sid = int(sid) if sid is not None and str(sid).isdigit() else None
             except Exception:
                 sid = None
-            if sid is not None:
+            if sid is not None and not enq:
                 try:
                     vcur.execute("SELECT * FROM bim_enquiry WHERE id = %s LIMIT 1", (sid,))
                     enq = vcur.fetchone() or {}
                 except Exception:
-                    enq = {}
+                    pass
 
             if not enq and not prop and not con:
                 pname = (p.get("project_name") or "").strip()
@@ -4201,10 +4230,10 @@ def list_vendor_projects():
             enq_row, prop_row, con_row = _fetch_chain_for_vendor_project(p)
 
             prop_resources = _first(prop_row, [c for c in proposal_res_cols if c in prop_row])
-            if prop_resources:
+            if prop_resources and not p.get("resources") and not p.get("no_resource"):
                 p["resources"] = prop_resources
                 p["required_resources"] = prop_resources
-            else:
+            elif not p.get("resources") and not p.get("no_resource"):
                 # Fallback: derive total resources from proposals.commercial_offer (sum of milestones' `resources`)
                 derived = 0
                 try:
@@ -4342,20 +4371,21 @@ def get_vendor_project_detail(project_id):
         """
         SELECT
             vp.*,
+            COALESCE(NULLIF(p.client_id, ''), NULLIF(vp.client_id, '')) AS client_id,
             -- Prefer client name from new_swiftbim.users; fall back to raw ids
             COALESCE(u.full_name, u.email, p.client_id, vp.client_id) AS client_name,
             -- Prefer main projects.budget_ceiling / budget over vendor_projects values
             COALESCE(p.budget_ceiling, p.budget, vp.budget)       AS budget,
             COALESCE(p.budget_ceiling, vp.budget_ceiling)         AS budget_ceiling,
             -- Sync additional project metrics from main projects table using TD-compatible aliases
-            COALESCE(p.no_resource, vp.no_resource)             AS resources,
-            COALESCE(p.no_resources_requried, vp.no_resources_required) AS required_resources,
+            COALESCE(NULLIF(vp.no_resource, ''), NULLIF(p.no_resource, ''))     AS resources,
+            COALESCE(NULLIF(vp.no_resources_required, ''), NULLIF(p.no_resources_requried, '')) AS required_resources,
             -- Prefer vendor_projects row: edits from vendor UI update vp.* and must win over linked main projects.*
             COALESCE(vp.totalhours, p.totalhours)               AS totalhours,
             COALESCE(vp.perday, p.perday)                       AS per_day,
             -- Maintain old aliases for backward compatibility with existing frontend code (edit modals, etc.)
-            COALESCE(p.no_resource, vp.no_resource)             AS no_resource,
-            COALESCE(p.no_resources_requried, vp.no_resources_required) AS no_resources_required,
+            COALESCE(NULLIF(vp.no_resource, ''), NULLIF(p.no_resource, ''))     AS no_resource,
+            COALESCE(NULLIF(vp.no_resources_required, ''), NULLIF(p.no_resources_requried, '')) AS no_resources_required,
             COALESCE(vp.perday, p.perday)                       AS perday,
             COALESCE(p.location, vp.location)                   AS location,
             COALESCE(vp.start_date, p.start_date)               AS start_date,
