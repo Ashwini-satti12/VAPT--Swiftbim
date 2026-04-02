@@ -18,7 +18,7 @@ import eyeIcon from "../../assets/ProjectManager/consultant/eyeIcon.svg";
 import editIcon from "../../assets/ProjectManager/consultant/editIcon.svg";
 
 const SHOW_OPTIONS = [
-  "Show",
+  "Show Entries",
   "1-50",
   "51-100",
   "101-150",
@@ -200,7 +200,7 @@ function CustomDropdown({
               ? value &&
                 value !== placeholder &&
                 value !== "All" &&
-                value !== "Show" &&
+                value !== "Show Entries" &&
                 value !== "Type" &&
                 value !== "Status"
                 ? "text-[#353535]"
@@ -212,7 +212,7 @@ function CustomDropdown({
           value &&
           value !== placeholder &&
           value !== "All" &&
-          value !== "Show" &&
+          value !== "Show Entries" &&
           value !== "Status" &&
           value !== "Type" ? (
             <>
@@ -294,7 +294,7 @@ export default function ConsultantBC() {
     "All" | "Active" | "Deactive"
   >("All");
   const [typeFilter, setTypeFilter] = useState("All");
-  const [selectedShow, setSelectedShow] = useState<string>("Show");
+  const [selectedShow, setSelectedShow] = useState<string>("Show Entries");
   const todayISO = new Date().toISOString().split("T")[0];
 
   const COUNTRY_CODES = [
@@ -365,7 +365,7 @@ export default function ConsultantBC() {
       limitStart = parseInt(parts[0], 10) - 1;
       limitEnd = parseInt(parts[1], 10);
     }
-  } else if (selectedShow === "All" || selectedShow === "Show") {
+  } else if (selectedShow === "All" || selectedShow === "Show Entries") {
     limitStart = (currentPage - 1) * 10;
     limitEnd = currentPage * 10;
   }
@@ -642,10 +642,10 @@ export default function ConsultantBC() {
           <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
             {viewMode === "table" && (
               <CustomDropdown
-                options={SHOW_OPTIONS.filter((o) => o !== "Show")}
-                value={selectedShow === "Show" ? "Show" : selectedShow}
+                options={SHOW_OPTIONS.filter((o) => o !== "Show Entries")}
+                value={selectedShow === "Show Entries" ? "Show Entries" : selectedShow}
                 onChange={(val) => setSelectedShow(val)}
-                placeholder="Show"
+                placeholder="Show Entries"
                 className="flex-1 sm:min-w-[120px]"
                 styleType="header"
               />

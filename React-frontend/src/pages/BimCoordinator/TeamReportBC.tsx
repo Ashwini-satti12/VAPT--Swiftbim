@@ -407,7 +407,7 @@ export default function TeamReportBC() {
                             onClick={(e) => { e.stopPropagation(); setShowEntriesOpen((o) => !o); }}
                             className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
                         >
-                            <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
+                            <span className="text-sm font-medium text-[#353535] font-gantari">Show Entries:</span>
                             <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#353535" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                                 style={{ transform: showEntriesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>

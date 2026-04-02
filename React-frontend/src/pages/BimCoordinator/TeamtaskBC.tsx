@@ -26,7 +26,7 @@ const getEffectiveStatus = (task: Task): "todo" | "in_progress" | "completed" =>
     return "todo";
 };
 
-const SHOW_OPTIONS = ["Show", "1-10", "1-50", "1-100", "All"];
+const SHOW_OPTIONS = ["Show Entries", "1-10", "1-50", "1-100", "All"];
 const PERIOD_OPTIONS = [
     "Period",
     "Show All",
@@ -78,7 +78,7 @@ export default function TeamtaskBC() {
         const proj = searchParams.get("project");
         if (proj) setSelectedProject(proj);
     }, [searchParams]);
-    const [selectedShow, setSelectedShow] = useState<string | null>("Show");
+    const [selectedShow, setSelectedShow] = useState<string | null>("Show Entries");
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
     const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
     const [attachmentPreviewFile, setAttachmentPreviewFile] = useState<File | null>(null);
@@ -254,7 +254,7 @@ export default function TeamtaskBC() {
     if (selectedShow === "All") {
         limitStart = 0;
         limitEnd = Infinity;
-    } else if (selectedShow && selectedShow !== "Show") {
+    } else if (selectedShow && selectedShow !== "Show Entries") {
         const parts = selectedShow.split('-');
         if (parts.length === 2) {
             limitStart = parseInt(parts[0], 10) - 1;
@@ -325,7 +325,7 @@ export default function TeamtaskBC() {
                             maxVisibleItems={4}
                         />
                         <TaskDropdown
-                            label="Show"
+                            label="Show Entries"
                             options={SHOW_OPTIONS}
                             selected={selectedShow}
                             onSelect={setSelectedShow}

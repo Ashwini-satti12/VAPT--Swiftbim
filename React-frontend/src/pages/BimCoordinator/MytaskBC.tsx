@@ -214,7 +214,7 @@ export function TaskDropdown({
                 <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
                     {label.toLowerCase() === 'show' && selected && selected !== label ? (
                         <>
-                            <span className="text-[14px] text-[#353535]">Show:</span>{" "}
+                            <span className="text-[14px] text-[#353535]">Show Entries:</span>{" "}
                             <span>{selected}</span>
                         </>
                     ) : (
@@ -760,7 +760,7 @@ const getEffectiveStatus = (task: Task): "todo" | "in_progress" | "completed" =>
     return "completed";
 };
 
-const SHOW_OPTIONS = ["Show", "1-10", "1-50", "1-100", "All"];
+const SHOW_OPTIONS = ["Show Entries", "1-10", "1-50", "1-100", "All"];
 const PERIOD_OPTIONS = [
     "Period",
     "Show All",
@@ -784,7 +784,7 @@ export default function MytaskBC() {
     const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
     const [selectedProject, setSelectedProject] = useState<string | null>(null);
-    const [selectedShow, setSelectedShow] = useState<string | null>("Show");
+    const [selectedShow, setSelectedShow] = useState<string | null>("Show Entries");
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
 
     const employeeOptions = useMemo(() => {
@@ -954,7 +954,7 @@ export default function MytaskBC() {
     if (selectedShow === "All") {
         limitStart = 0;
         limitEnd = Infinity;
-    } else if (selectedShow && selectedShow !== "Show") {
+    } else if (selectedShow && selectedShow !== "Show Entries") {
         const parts = selectedShow.split('-');
         if (parts.length === 2) {
             limitStart = parseInt(parts[0], 10) - 1;
@@ -1027,7 +1027,7 @@ export default function MytaskBC() {
                             maxVisibleItems={4}
                         />
                         <TaskDropdown
-                            label="Show"
+                            label="Show Entries"
                             options={SHOW_OPTIONS}
                             selected={selectedShow}
                             onSelect={setSelectedShow}

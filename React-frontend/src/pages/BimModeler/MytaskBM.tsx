@@ -766,7 +766,7 @@ function TaskCard({
     );
 }
 
-const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
+const SHOW_OPTIONS = ["Show Entries", "10", "50", "100", "All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
@@ -792,7 +792,7 @@ export default function MytaskBM() {
     const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
     const [selectedProject, setSelectedProject] = useState<string | null>(null);
-    const [selectedShow, setSelectedShow] = useState<string | null>("Show");
+    const [selectedShow, setSelectedShow] = useState<string | null>("Show Entries");
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
     const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
     const [addError, setAddError] = useState("");
@@ -924,7 +924,7 @@ export default function MytaskBM() {
                             maxVisibleItems={4}
                         />
                         <TaskDropdown
-                            label="Show"
+                            label="Show Entries"
                             options={SHOW_OPTIONS}
                             selected={selectedShow}
                             onSelect={setSelectedShow}
@@ -1862,7 +1862,7 @@ export default function MytaskBM() {
     };
 
     const showLimit =
-        selectedShow === "All" || !selectedShow || selectedShow === "Show"
+        selectedShow === "All" || !selectedShow || selectedShow === "Show Entries"
             ? Number.POSITIVE_INFINITY
             : Math.max(1, Number(selectedShow) || 10);
 
@@ -1925,7 +1925,7 @@ export default function MytaskBM() {
                             maxVisibleItems={4}
                         />
                         <TaskDropdown
-                            label="Show"
+                            label="Show Entries"
                             options={SHOW_OPTIONS}
                             selected={selectedShow}
                             onSelect={setSelectedShow}
