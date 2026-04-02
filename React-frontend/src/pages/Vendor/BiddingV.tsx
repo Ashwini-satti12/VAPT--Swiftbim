@@ -8,8 +8,8 @@ import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 type Opportunity = {
   id: number;
   project_name: string;
-  outsource_budget: number;
-  budget_ceiling?: number;
+  outsource_budget?: number | string;
+  budget_ceiling?: number | string;
   bid_deadline: string;
   status: string;
   description?: string;
@@ -40,6 +40,13 @@ type BidFormState = {
   notes: string;
   timeline: string;
   team_size: string;
+};
+
+const EMPTY_BID_FORM: BidFormState = {
+  bid_amount: "",
+  notes: "",
+  timeline: "",
+  team_size: "",
 };
 
 type ModuleTab = "opportunities" | "my-bids";
@@ -95,6 +102,71 @@ function formatBudget(amount: number) {
   return `₹ ${amount}`;
 }
 
+/** Budget from API (number or string with commas / ₹). */
+function parseBudgetNumeric(raw: unknown): number | null {
+  if (raw == null || raw === "") return null;
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) return raw;
+  const s = String(raw)
+    .replace(/₹/g, "")
+    .replace(/,/g, "")
+    .replace(/\s/g, "")
+    .trim();
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function parseBidAmountInput(raw: string): number | null {
+  const s = String(raw)
+    .replace(/₹/g, "")
+    .replace(/,/g, "")
+    .replace(/\s/g, "")
+    .trim();
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Max bid: minimum of positive outsource_budget and budget_ceiling (matches backend). */
+function maxBidAmountForOpportunity(opp: Opportunity): number | null {
+  const caps: number[] = [];
+  const c = parseBudgetNumeric(opp.budget_ceiling);
+  const o = parseBudgetNumeric(opp.outsource_budget);
+  if (c != null) caps.push(c);
+  if (o != null) caps.push(o);
+  if (!caps.length) return null;
+  return Math.min(...caps);
+}
+
+function bidTooHighMessage(maxInr: number): string {
+  return `Your bid amount is too high. It cannot exceed ${formatBudget(maxInr)} for this opportunity.`;
+}
+
+function extractApiErrorMessage(err: unknown): string | null {
+  const res =
+    err && typeof err === "object" && "response" in err
+      ? (err as { response?: { status?: number; data?: unknown } }).response
+      : undefined;
+  const data = res?.data;
+  if (
+    data &&
+    typeof data === "object" &&
+    data !== null &&
+    "message" in data &&
+    typeof (data as { message: unknown }).message === "string"
+  ) {
+    return (data as { message: string }).message;
+  }
+  return null;
+}
+
+function isBidAmountFieldError(message: string, status?: number): boolean {
+  const m = message.toLowerCase();
+  if (status === 400 && m.includes("invalid bid")) return true;
+  if (status === 400 && (m.includes("bid") || m.includes("exceed"))) return true;
+  return m.includes("too high") || m.includes("exceed") || m.includes("maximum");
+}
+
 const daysUntil = (dateStr: string) => {
   if (!dateStr) return 0;
   const deadline = new Date(dateStr);
@@ -114,13 +186,9 @@ export default function BiddingV() {
   const [detailOpp, setDetailOpp] = useState<Opportunity | null>(null);
   const [bidSuccess, setBidSuccess] = useState<number | null>(null);
   const [bidError, setBidError] = useState<string | null>(null);
+  const [bidAmountError, setBidAmountError] = useState<string | null>(null);
   const [bidSubmitting, setBidSubmitting] = useState(false);
-  const [bidForm, setBidForm] = useState<BidFormState>({
-    bid_amount: "",
-    notes: "",
-    timeline: "",
-    team_size: "",
-  });
+  const [bidForm, setBidForm] = useState<BidFormState>({ ...EMPTY_BID_FORM });
 
   // My Bids State
   const [bids, setBids] = useState<Bid[]>([]);
@@ -159,29 +227,67 @@ export default function BiddingV() {
     if (tab === "my-bids" || tab === "mybids") setMainTab("my-bids");
     else setMainTab("opportunities");
 
-    if (oppStatus === "active" || oppStatus === "all" || oppStatus === "bid" || oppStatus === "closed") {
+    if (
+      oppStatus === "active" ||
+      oppStatus === "all" ||
+      oppStatus === "bid" ||
+      oppStatus === "closed"
+    ) {
       setOppTab(oppStatus as OppTab);
     } else {
       setOppTab("all");
     }
 
     setBidStatusFilter(
-      bidStatus && ["submitted", "shortlisted", "won", "lost", "removed"].includes(bidStatus)
+      bidStatus &&
+        ["submitted", "shortlisted", "won", "lost", "removed"].includes(
+          bidStatus,
+        )
         ? bidStatus
         : "all",
     );
   }, [searchParams]);
 
+  const closeSubmitBidModal = () => {
+    setBidSubmitting(false);
+    setSelectedOpp(null);
+    setBidError(null);
+    setBidAmountError(null);
+    setBidForm({ ...EMPTY_BID_FORM });
+  };
+
+  const openSubmitBidModal = (opp: Opportunity) => {
+    setBidError(null);
+    setBidAmountError(null);
+    setBidForm({ ...EMPTY_BID_FORM });
+    setSelectedOpp(opp);
+  };
+
   const handleBidSubmit = async () => {
-    if (!selectedOpp || !bidForm.bid_amount) {
-      setBidError("Bid amount is required.");
+    if (!selectedOpp) return;
+    if (!String(bidForm.bid_amount).trim()) {
+      setBidError(null);
+      setBidAmountError("Bid amount is required.");
+      return;
+    }
+    const amount = parseBidAmountInput(bidForm.bid_amount);
+    if (amount == null || amount <= 0) {
+      setBidError(null);
+      setBidAmountError("Enter a valid bid amount greater than zero.");
+      return;
+    }
+    const maxBid = maxBidAmountForOpportunity(selectedOpp);
+    if (maxBid != null && amount > maxBid) {
+      setBidError(null);
+      setBidAmountError(bidTooHighMessage(maxBid));
       return;
     }
     setBidSubmitting(true);
     setBidError(null);
+    setBidAmountError(null);
     try {
       await api.post(`/api/vendors/opportunities/${selectedOpp.id}/bid`, {
-        bid_amount: Number(bidForm.bid_amount),
+        bid_amount: amount,
         notes: bidForm.notes,
         timeline: bidForm.timeline,
         team_size: Number(bidForm.team_size) || 0,
@@ -197,11 +303,25 @@ export default function BiddingV() {
       const { data } = await api.get<{ bids: Bid[] }>("/api/vendors/mybids");
       setBids(data.bids ?? []);
 
-      setSelectedOpp(null);
+      closeSubmitBidModal();
       setViewMode("list");
-      setBidForm({ bid_amount: "", notes: "", timeline: "", team_size: "" });
-    } catch {
-      setBidError("Failed to submit bid. Please try again.");
+    } catch (err: unknown) {
+      const res =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response?: { status?: number } }).response
+          : undefined;
+      const apiMessage = extractApiErrorMessage(err);
+      const fallback = "Failed to submit bid. Please try again.";
+      if (
+        apiMessage &&
+        isBidAmountFieldError(apiMessage, res?.status)
+      ) {
+        setBidAmountError(apiMessage);
+        setBidError(null);
+      } else {
+        setBidAmountError(null);
+        setBidError(apiMessage || fallback);
+      }
     } finally {
       setBidSubmitting(false);
     }
@@ -218,12 +338,22 @@ export default function BiddingV() {
   const filteredBids = (() => {
     let out = bids;
     if (bidStatusFilter !== "all") {
-      out = out.filter((b) => (b.status || "").toLowerCase() === bidStatusFilter);
+      out = out.filter(
+        (b) => (b.status || "").toLowerCase() === bidStatusFilter,
+      );
     }
     if (showEntries === "show" || showEntries === "all") return out;
     const [start, end] = showEntries.split("-").map(Number);
     return out.slice(start - 1, end);
   })();
+
+  const submitModalMaxBid =
+    selectedOpp != null ? maxBidAmountForOpportunity(selectedOpp) : null;
+  const submitBidParsed = parseBidAmountInput(bidForm.bid_amount);
+  const submitBidOverMax =
+    submitModalMaxBid != null &&
+    submitBidParsed != null &&
+    submitBidParsed > submitModalMaxBid;
 
   // Stats
   const totalOpps = opportunities.length;
@@ -340,7 +470,9 @@ export default function BiddingV() {
                     </span>
                     <span className="text-[18px] font-bold text-[#DE3D3A] font-gantari">
                       {formatBudget(
-                        detailOpp.budget_ceiling || detailOpp.outsource_budget,
+                        parseBudgetNumeric(detailOpp.budget_ceiling) ??
+                          parseBudgetNumeric(detailOpp.outsource_budget) ??
+                          0,
                       )}
                     </span>
                   </div>
@@ -428,7 +560,8 @@ export default function BiddingV() {
                       participate in this opportunity.
                     </p>
                     <button
-                      onClick={() => setSelectedOpp(detailOpp)}
+                      type="button"
+                      onClick={() => openSubmitBidModal(detailOpp)}
                       className="w-full py-3 bg-[#DD4342] text-white rounded-md font-medium transition-all font-gantari text-[14px]"
                     >
                       Submit Your Bid
@@ -890,7 +1023,9 @@ export default function BiddingV() {
                         <div className="flex items-center justify-between">
                           <p className="text-[18px] font-bold text-[#353535]">
                             {formatBudget(
-                              opp.budget_ceiling || opp.outsource_budget,
+                              parseBudgetNumeric(opp.budget_ceiling) ??
+                                parseBudgetNumeric(opp.outsource_budget) ??
+                                0,
                             )}
                           </p>
                           {opp.bids_count !== undefined && (
@@ -922,7 +1057,8 @@ export default function BiddingV() {
                             </span>
                           ) : isActive ? (
                             <button
-                              onClick={() => setSelectedOpp(opp)}
+                              type="button"
+                              onClick={() => openSubmitBidModal(opp)}
                               className="text-[14px] font-medium text-white bg-[#DE3D3A] px-5 py-2 rounded-lg hover:bg-[#c93d3d] transition-colors shadow-sm"
                             >
                               Submit Bid
@@ -1080,7 +1216,8 @@ export default function BiddingV() {
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-[#12141D]">Submit Bid</h3>
               <button
-                onClick={() => setSelectedOpp(null)}
+                type="button"
+                onClick={closeSubmitBidModal}
                 className="text-slate-500 hover:text-[#DE3D3A] text-2xl"
               >
                 &times;
@@ -1097,13 +1234,47 @@ export default function BiddingV() {
                 </label>
                 <input
                   type="number"
+                  inputMode="decimal"
                   value={bidForm.bid_amount}
-                  onChange={(e) =>
-                    setBidForm((f) => ({ ...f, bid_amount: e.target.value }))
-                  }
-                  className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#DE3D3A]/20 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setBidForm((f) => ({ ...f, bid_amount: v }));
+                    setBidError(null);
+                    const max = maxBidAmountForOpportunity(selectedOpp);
+                    const n = parseBidAmountInput(v);
+                    if (max != null && n != null && n > max) {
+                      setBidAmountError(bidTooHighMessage(max));
+                    } else {
+                      setBidAmountError(null);
+                    }
+                  }}
+                  className={`w-full rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#DE3D3A]/20 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                    bidAmountError
+                      ? "border-2 border-[#DE3D3A] bg-[#FFF8F8]"
+                      : "border border-slate-200"
+                  }`}
                   placeholder="0.00"
+                  min={0}
+                  step="0.01"
+                  aria-invalid={bidAmountError ? true : undefined}
+                  aria-describedby={
+                    bidAmountError ? "bid-amount-error" : undefined
+                  }
                 />
+                {bidAmountError && (
+                  <p
+                    id="bid-amount-error"
+                    className="mt-2 text-sm font-semibold text-[#DE3D3A] leading-snug"
+                  >
+                    {bidAmountError}
+                  </p>
+                )}
+                {!bidAmountError && submitModalMaxBid != null && (
+                  <p className="mt-1.5 text-xs font-medium text-[#666666]">
+                    Maximum bid for this opportunity:{" "}
+                    {formatBudget(submitModalMaxBid)}
+                  </p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -1157,14 +1328,16 @@ export default function BiddingV() {
             </div>
             <div className="flex gap-3 mt-8">
               <button
-                onClick={() => setSelectedOpp(null)}
+                type="button"
+                onClick={closeSubmitBidModal}
                 className="flex-1 py-3 bg-[#F2F2F2] text-[#353535] rounded-lg font-bold hover:bg-slate-200 transition-all"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleBidSubmit}
-                disabled={bidSubmitting}
+                disabled={bidSubmitting || submitBidOverMax}
                 className="flex-1 py-3 bg-[#DE3D3A] text-white rounded-lg font-bold hover:bg-[#c93d3d] transition-all disabled:opacity-50"
               >
                 {bidSubmitting ? "Processing..." : "Submit Bid"}
