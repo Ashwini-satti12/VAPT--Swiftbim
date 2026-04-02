@@ -41,6 +41,21 @@ def vendor_cursor():
     """Return a dictionary cursor from the vendor DB connection."""
     return get_vendor_db().cursor(dictionary=True)
 
+def _get_profile_ids_for_employees(employee_ids):
+    """Helper to resolve profile IDs in new_swiftbim from employee IDs in snh6_swiftproject."""
+    if not employee_ids:
+        return []
+    try:
+        vcur = vendor_cursor()
+        ps = ",".join(["%s"] * len(employee_ids))
+        vcur.execute(
+            f"SELECT id FROM vendor_resource_profiles WHERE vendor_employee_id IN ({ps})",
+            employee_ids
+        )
+        return [int(rp["id"]) for rp in vcur.fetchall() or []]
+    except Exception:
+        return []
+
 def _md5_hash(text: str) -> str:
     return hashlib.md5((text or "").encode()).hexdigest()
 
@@ -214,6 +229,19 @@ def _hydrate_vendor_projects_phase1(vendor_cur, project_dicts: list[dict]):
                         enq = enq or {}
                 except Exception: pass
 
+            # 2b) Fallback to client-email-based matching for enquiry if still missing
+            if not enq and client_id:
+                try:
+                    vendor_cur.execute("SELECT email FROM users WHERE id = %s LIMIT 1", (client_id,))
+                    u = vendor_cur.fetchone()
+                    if u and u.get("email"):
+                        vendor_cur.execute(
+                            "SELECT * FROM bim_enquiry WHERE email_address = %s ORDER BY id DESC LIMIT 1",
+                            (u["email"],),
+                        )
+                        enq = vendor_cur.fetchone() or {}
+                except Exception: pass
+
             # 3) Global Fallback: If still empty, look for any other project in same batch with same name that found something
             if not prop and p_name:
                 for other in project_dicts:
@@ -307,7 +335,13 @@ def _hydrate_vendor_projects_phase1(vendor_cur, project_dicts: list[dict]):
 
             # 2. Location
             if not p.get("location") or str(p.get("location")).strip().lower() in {"empty", "n/a", "na", ""}:
-                loc_parts = [str(enq.get(k)).strip() for k in enq_loc_parts if enq.get(k) not in (None, "", "NULL")]
+                # Combine address, city, state, country from enquiry
+                loc_parts = []
+                for k in ["address", "city", "state", "country"]:
+                    val = str(enq.get(k) or "").strip()
+                    if val and val.lower() != "null":
+                        loc_parts.append(val)
+                
                 combined_loc = ", ".join(loc_parts).strip(", ").strip()
                 if combined_loc:
                     p["location"] = combined_loc
@@ -635,6 +669,7 @@ def vendor_dashboard_stats():
     if user_id:
         try:
             main_cur = conn.cursor(dictionary=True)
+            # 1. Count bids and proposals
             main_cur.execute(
                 """
                 SELECT
@@ -647,11 +682,37 @@ def vendor_dashboard_stats():
             )
             r = main_cur.fetchone()
             bids_submitted = int((r or {}).get("total_cnt") or 0)
-            # Treat "Proposals Awaiting" as bids currently in shortlisted stage.
             proposals_awaiting = int((r or {}).get("shortlisted_cnt") or 0)
+
+            # 2. Count active vendor_projects
+            try:
+                vcur = vendor_cursor() # new_swiftbim DB
+                # Resolve profile IDs for these employees
+                vcur.execute(
+                    f"SELECT id FROM vendor_resource_profiles WHERE vendor_employee_id IN ({pslots})",
+                    v_emp_ids
+                )
+                profile_ids = [int(rp["id"]) for rp in vcur.fetchall() or []]
+                
+                # Combine both employee IDs and profile IDs for filtering as a failsafe
+                combined_ids = list(set(v_emp_ids + profile_ids))
+                ids_placeholders = ",".join(["%s"] * len(combined_ids))
+
+                main_cur.execute(
+                    f"""SELECT COUNT(*) AS cnt FROM snh6_swiftproject.vendor_projects 
+                       WHERE vendor_id IN ({ids_placeholders}) 
+                       AND (LOWER(COALESCE(status, '')) NOT IN ('completed', 'done') OR status IS NULL)""",
+                    combined_ids
+                )
+                r_proj = main_cur.fetchone()
+                active_projects = r_proj["cnt"] if r_proj else 0
+            except Exception:
+                active_projects = 0
+
         except Exception:
             bids_submitted = 0
             proposals_awaiting = 0
+            active_projects = 0
 
     return jsonify({
         "active_opportunities": active_opportunities,
@@ -739,8 +800,15 @@ def vendor_dashboard_priority_tasks():
     _ensure_vp_table()
 
     try:
-        # Note: include tasks either uploaded/created by vendor company members (vt.vendor_id)
-        # OR assigned to vendor company members (vt.assigned_to).
+        # Resolve profile IDs for these employees
+        v_prof_ids = []
+        try:
+            v_prof_ids = _get_profile_ids_for_employees(vendor_employee_ids)
+        except Exception: pass
+        
+        combined_ids = list(set(vendor_employee_ids + v_prof_ids))
+        pslots_final = ",".join(["%s"] * len(combined_ids))
+
         cur.execute(
             f"""
             SELECT
@@ -760,13 +828,13 @@ def vendor_dashboard_priority_tasks():
             FROM snh6_swiftproject.vendor_task vt
             LEFT JOIN snh6_swiftproject.vendor_projects vp ON vt.project_id = vp.id
             LEFT JOIN snh6_swiftproject.vendor_employee ve_uploader ON vt.vendor_id = ve_uploader.id
-            WHERE (vt.vendor_id IN ({placeholders}) OR vt.assigned_to IN ({placeholders}))
-              AND vt.status IN ('Todo', 'InProgress', 'Pause')
+            WHERE (vt.vendor_id IN ({pslots_final}) OR vt.assigned_to IN ({pslots_final}))
+              AND LOWER(vt.status) IN ('todo', 'inprogress', 'in progress', 'pause', 'active')
               AND DATE(vt.due_date) >= %s
             ORDER BY DATE(vt.due_date) ASC, COALESCE(vt.perferstart_time, '00:00:00') ASC
             LIMIT 20
             """,
-            [*vendor_employee_ids, *vendor_employee_ids, today],
+            [*combined_ids, *combined_ids, today],
         )
         rows = cur.fetchall() or []
 
@@ -848,12 +916,15 @@ def vendor_dashboard_project_stats():
         except Exception:
             vendor_employee_ids = [int(user_id)]
 
-        placeholders = ",".join(["%s"] * len(vendor_employee_ids))
+        # Resolve profile IDs from new_swiftbim for these employees
+        v_prof_ids = []
+        try:
+            v_prof_ids = _get_profile_ids_for_employees(vendor_employee_ids)
+        except Exception: pass
+        
+        vendor_id_filter = list(set(vendor_employee_ids + v_prof_ids))
 
-        total_projects = 0
-        completed_projects = 0
-        in_progress_tasks = 0
-        completed_tasks = 0
+        placeholders_final = ",".join(["%s"] * len(vendor_id_filter))
 
         try:
             cur.execute(
@@ -862,17 +933,17 @@ def vendor_dashboard_project_stats():
                     COUNT(*) AS total_projects,
                     SUM(
                         CASE
-                            WHEN (vp.progress IS NOT NULL AND CAST(vp.progress AS DECIMAL(10,2)) >= 100)
-                              OR (vp.status = 'Completed')
+                            WHEN (vp.progress IS NOT NULL AND (vp.progress REGEXP '^[0-9]+' AND CAST(vp.progress AS DECIMAL(10,2)) >= 100))
+                              OR (LOWER(COALESCE(vp.status, '')) IN ('completed', 'done', 'complete'))
                             THEN 1 ELSE 0
                         END
                     ) AS completed_projects
                 FROM snh6_swiftproject.vendor_projects vp
                 WHERE vp.vendor_id IN ("""
-                + placeholders
+                + placeholders_final
                 + """)
                 """,
-                vendor_employee_ids,
+                vendor_id_filter,
             )
             row = cur.fetchone() or {}
             total_projects = int(row.get("total_projects") or 0)
@@ -881,22 +952,22 @@ def vendor_dashboard_project_stats():
             total_projects = 0
             completed_projects = 0
 
-        # Tasks: count items created by the vendor company OR assigned to anyone in the company.
+        # Tasks: count items created by/assigned to anyone in the resolved profile list.
         try:
             cur.execute(
                 """
                 SELECT
-                    SUM(CASE WHEN status = 'InProgress' THEN 1 ELSE 0 END) AS in_progress_tasks,
-                    SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS completed_tasks
+                    SUM(CASE WHEN LOWER(status) IN ('inprogress', 'in progress', 'active') THEN 1 ELSE 0 END) AS in_progress_tasks,
+                    SUM(CASE WHEN LOWER(status) IN ('completed', 'done') THEN 1 ELSE 0 END) AS completed_tasks
                 FROM snh6_swiftproject.vendor_task
                 WHERE vendor_id IN ("""
-                + placeholders
+                + placeholders_final
                 + """)
                    OR assigned_to IN ("""
-                + placeholders
+                + placeholders_final
                 + """)
                 """,
-                [*vendor_employee_ids, *vendor_employee_ids],
+                [*vendor_id_filter, *vendor_id_filter],
             )
             row = cur.fetchone() or {}
             in_progress_tasks = int(row.get("in_progress_tasks") or 0)
@@ -2099,6 +2170,7 @@ def _ensure_vendor_profile_child_tables():
         ("email", "VARCHAR(255)"),
         ("login_role", "VARCHAR(100)"),
         ("vendor_employee_id", "INT"),
+        ("active", "VARCHAR(32) DEFAULT 'active'"),
     ]:
         if col.lower() not in existing_cols:
             try:
@@ -2107,6 +2179,13 @@ def _ensure_vendor_profile_child_tables():
                 # If this fails we simply continue; worst case the assign-login
                 # endpoint will surface an error which can be debugged separately.
                 pass
+    try:
+        cur.execute(
+            "UPDATE vendor_resource_profiles SET active = 'active' WHERE active IS NULL OR TRIM(IFNULL(active,'')) = ''"
+        )
+        get_vendor_db().commit()
+    except Exception:
+        pass
 
 
 def _send_login_email(to_email: str, role: str, temp_password: str):
@@ -2591,6 +2670,83 @@ def list_vendor_resource_profiles():
     cur.execute("SELECT * FROM vendor_resource_profiles WHERE vendor_id = %s ORDER BY id", (vendor_id,))
     rows = cur.fetchall()
     return jsonify({"resources": [{k: _serialize(v) for k, v in r.items()} for r in rows]})
+
+
+@bp.route("/profile/resource-profiles/bulk-status", methods=["POST"])
+@login_required
+def bulk_status_vendor_resource_profiles():
+    """
+    POST /api/vendors/profile/resource-profiles/bulk-status
+    Body: { "ids": [1,2,3], "action": "active" | "inactive" }
+    Persists active/inactive on vendor_resource_profiles (new_swiftbim) and syncs linked vendor_employee rows.
+    """
+    _ensure_vendor_profile_tables()
+    _ensure_vendor_profile_child_tables()
+    vendor_id = _current_vendor_onboarding_id()
+    if not vendor_id:
+        return jsonify({"success": False, "message": "Vendor profile not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    raw_ids = data.get("ids") or data.get("id") or []
+    if isinstance(raw_ids, (int, str)):
+        raw_ids = [raw_ids]
+    ids = []
+    for x in raw_ids:
+        try:
+            ids.append(int(x))
+        except (TypeError, ValueError):
+            continue
+    if not ids:
+        return jsonify({"success": False, "message": "ids required"}), 400
+
+    action = (data.get("action") or "inactive").strip().lower()
+    if action not in ("active", "inactive"):
+        return jsonify({"success": False, "message": "action must be active or inactive"}), 400
+
+    vcur = vendor_cursor()
+    placeholders = ",".join(["%s"] * len(ids))
+    vcur.execute(
+        f"SELECT id, vendor_employee_id FROM vendor_resource_profiles WHERE vendor_id = %s AND id IN ({placeholders})",
+        [vendor_id] + ids,
+    )
+    rows = vcur.fetchall() or []
+    if not rows:
+        return jsonify({"success": False, "message": "No matching resources"}), 404
+
+    vcur.execute(
+        f"UPDATE vendor_resource_profiles SET active = %s WHERE vendor_id = %s AND id IN ({placeholders})",
+        [action, vendor_id] + ids,
+    )
+    profile_updated = vcur.rowcount
+    get_vendor_db().commit()
+
+    ve_ids = [
+        int(r["vendor_employee_id"])
+        for r in rows
+        if r.get("vendor_employee_id") is not None
+    ]
+    ve_updated = 0
+    if ve_ids:
+        try:
+            conn = get_db()
+            cur = conn.cursor()
+            ph2 = ",".join(["%s"] * len(ve_ids))
+            cur.execute(
+                f"UPDATE vendor_employee SET status = %s WHERE vendor_id = %s AND id IN ({ph2})",
+                [action, vendor_id] + ve_ids,
+            )
+            ve_updated = cur.rowcount
+            conn.commit()
+        except Exception:
+            pass
+
+    return jsonify(
+        {
+            "success": True,
+            "updated_profiles": profile_updated,
+            "updated_logins": ve_updated,
+        }
+    )
 
 
 @bp.route("/profile/resource-profiles/<int:resource_id>/assign-login", methods=["POST"])
@@ -3822,6 +3978,48 @@ def upload_vendor_task_output_files(task_id):
     return jsonify({"success": True, "files": names})
 
 
+def _hydrate_vendor_employee_names(cur, rows):
+    """Resolves vendor employee IDs into names (PM, Lead, Coordinator, Members)."""
+    # Collect all unique IDs
+    emp_ids = set()
+    for r in rows:
+        for f in ["project_manager_id", "lead_id", "bim_coordinator_id"]:
+            val = r.get(f)
+            if val:
+                emp_ids.add(str(val))
+        members = r.get("members")
+        if members:
+            for m_id in str(members).split(","):
+                if m_id.strip():
+                    emp_ids.add(m_id.strip())
+    
+    if not emp_ids:
+        return
+    
+    # Fetch names
+    placeholders = ",".join(["%s"] * len(emp_ids))
+    cur.execute(
+        f"SELECT id, full_name FROM snh6_swiftproject.vendor_employee WHERE id IN ({placeholders})",
+        list(emp_ids)
+    )
+    name_map = {str(r["id"]): r["full_name"] for r in cur.fetchall()}
+    
+    # Hydrate
+    for r in rows:
+        r["project_manager_name"] = name_map.get(str(r.get("project_manager_id")), "")
+        r["lead_name"] = name_map.get(str(r.get("lead_id")), "")
+        r["bim_coordinator_name"] = name_map.get(str(r.get("bim_coordinator_id")), "")
+        
+        m_names = []
+        members = r.get("members")
+        if members:
+            for m_id in str(members).split(","):
+                m_id = m_id.strip()
+                if m_id in name_map:
+                    m_names.append(name_map[m_id])
+        r["members_names"] = ", ".join(m_names)
+
+
 @bp.route("/vendor-projects", methods=["GET"])
 @login_required
 def list_vendor_projects():
@@ -3930,20 +4128,21 @@ def list_vendor_projects():
         f"""
         SELECT
             vp.*,
+            COALESCE(NULLIF(p.client_id, ''), NULLIF(vp.client_id, '')) AS client_id,
             -- Prefer client name from new_swiftbim.users; fall back to raw ids
             COALESCE(u.full_name, u.email, p.client_id, vp.client_id) AS client_name,
             -- Prefer main projects.budget_ceiling / budget over vendor_projects values
             COALESCE(p.budget_ceiling, p.budget, vp.budget)       AS budget,
             COALESCE(p.budget_ceiling, vp.budget_ceiling)         AS budget_ceiling,
             -- Sync additional project metrics from main projects table using TD-compatible aliases
-            COALESCE(p.no_resource, vp.no_resource)             AS resources,
-            COALESCE(p.no_resources_requried, vp.no_resources_required) AS required_resources,
+            COALESCE(NULLIF(vp.no_resource, ''), NULLIF(p.no_resource, ''))     AS resources,
+            COALESCE(NULLIF(vp.no_resources_required, ''), NULLIF(p.no_resources_requried, '')) AS required_resources,
             -- Prefer vendor_projects row: edits from vendor UI update vp.* and must win over linked main projects.*
             COALESCE(vp.totalhours, p.totalhours)               AS totalhours,
             COALESCE(vp.perday, p.perday)                       AS per_day,
             -- Maintain old aliases for backward compatibility with existing frontend code (edit modals, etc.)
-            COALESCE(p.no_resource, vp.no_resource)             AS no_resource,
-            COALESCE(p.no_resources_requried, vp.no_resources_required) AS no_resources_required,
+            COALESCE(NULLIF(vp.no_resource, ''), NULLIF(p.no_resource, ''))     AS no_resource,
+            COALESCE(NULLIF(vp.no_resources_required, ''), NULLIF(p.no_resources_requried, '')) AS no_resources_required,
             COALESCE(vp.perday, p.perday)                       AS perday,
             COALESCE(p.location, vp.location)                   AS location,
             COALESCE(vp.start_date, p.start_date)               AS start_date,
@@ -3963,18 +4162,14 @@ def list_vendor_projects():
     )
     rows = cur.fetchall()
     
-    # Hydrate results with phase-1 metrics (resources, location, calculated end_date)
+    # Hydrate results with phase-1 and employee names
     vcur = vendor_cursor()
     projects = [dict(r) for r in rows]
     _hydrate_vendor_projects_phase1(vcur, projects)
+    _hydrate_vendor_employee_names(vcur, projects)
     
-    # Serialize all values for JSON response
-    final_projects = []
-    for p in projects:
-        final_projects.append({k: _serialize(v) for k, v in p.items()})
-
     # Aggregate vendor_task counts per project for task statistics
-    project_ids = [p["id"] for p in final_projects if p.get("id") is not None]
+    project_ids = [p["id"] for p in projects if p.get("id") is not None]
     task_counts = {}
     if project_ids:
         placeholders = ",".join(["%s"] * len(project_ids))
@@ -3996,16 +4191,16 @@ def list_vendor_projects():
                 "completed_tasks": int(r.get("completed_tasks") or 0),
             }
 
-    projects = []
-    for r in rows:
-        d = {k: _serialize(v) for k, v in r.items()}
+    final_projects = []
+    for p in projects:
+        d = {k: _serialize(v) for k, v in p.items()}
         pid = int(d.get("id") or 0)
         counts = task_counts.get(pid, {"total_tasks": 0, "completed_tasks": 0})
         d["total_tasks"] = counts["total_tasks"]
         d["completed_tasks"] = counts["completed_tasks"]
         # Tag every vendor_project row as Outsource so frontend can route correctly
         d["source"] = "Outsource"
-        projects.append(d)
+        final_projects.append(d)
 
     # Enrich from new_swiftbim phase-1 (enquiry/proposal/contract) when fields are missing
     try:
@@ -4136,6 +4331,15 @@ def list_vendor_projects():
                             (email,),
                         )
                         prop = vcur.fetchone() or {}
+                        
+                        # Direct fetch enquiry by email if proposal linkage is missing
+                        vcur.execute(
+                            "SELECT * FROM bim_enquiry WHERE email_address = %s ORDER BY id DESC LIMIT 1",
+                            (email,),
+                        )
+                        enq_by_email = vcur.fetchone() or {}
+                        if enq_by_email and not enq:
+                            enq = enq_by_email
                 except Exception:
                     prop = {}
 
@@ -4144,12 +4348,12 @@ def list_vendor_projects():
                 sid = int(sid) if sid is not None and str(sid).isdigit() else None
             except Exception:
                 sid = None
-            if sid is not None:
+            if sid is not None and not enq:
                 try:
                     vcur.execute("SELECT * FROM bim_enquiry WHERE id = %s LIMIT 1", (sid,))
                     enq = vcur.fetchone() or {}
                 except Exception:
-                    enq = {}
+                    pass
 
             if not enq and not prop and not con:
                 pname = (p.get("project_name") or "").strip()
@@ -4163,10 +4367,10 @@ def list_vendor_projects():
             enq_row, prop_row, con_row = _fetch_chain_for_vendor_project(p)
 
             prop_resources = _first(prop_row, [c for c in proposal_res_cols if c in prop_row])
-            if prop_resources:
+            if prop_resources and not p.get("resources") and not p.get("no_resource"):
                 p["resources"] = prop_resources
                 p["required_resources"] = prop_resources
-            else:
+            elif not p.get("resources") and not p.get("no_resource"):
                 # Fallback: derive total resources from proposals.commercial_offer (sum of milestones' `resources`)
                 derived = 0
                 try:
@@ -4304,19 +4508,27 @@ def get_vendor_project_detail(project_id):
         """
         SELECT
             vp.*,
+            COALESCE(NULLIF(p.client_id, ''), NULLIF(vp.client_id, '')) AS client_id,
+            -- Prefer client name from new_swiftbim.users; fall back to raw ids
             COALESCE(u.full_name, u.email, p.client_id, vp.client_id) AS client_name,
+            -- Prefer main projects.budget_ceiling / budget over vendor_projects values
             COALESCE(p.budget_ceiling, p.budget, vp.budget)       AS budget,
             COALESCE(p.budget_ceiling, vp.budget_ceiling)         AS budget_ceiling,
-            COALESCE(p.no_resource, vp.no_resource)             AS resources,
-            COALESCE(p.no_resources_requried, vp.no_resources_required) AS required_resources,
-            COALESCE(p.totalhours, vp.totalhours)               AS totalhours,
-            COALESCE(p.perday, vp.perday)                       AS per_day,
-            COALESCE(p.no_resource, vp.no_resource)             AS no_resource,
-            COALESCE(p.no_resources_requried, vp.no_resources_required) AS no_resources_required,
-            COALESCE(p.perday, vp.perday)                       AS perday,
+            -- Sync additional project metrics from main projects table using TD-compatible aliases
+            COALESCE(NULLIF(vp.no_resource, ''), NULLIF(p.no_resource, ''))     AS resources,
+            COALESCE(NULLIF(vp.no_resources_required, ''), NULLIF(p.no_resources_requried, '')) AS required_resources,
+            -- Prefer vendor_projects row: edits from vendor UI update vp.* and must win over linked main projects.*
+            COALESCE(vp.totalhours, p.totalhours)               AS totalhours,
+            COALESCE(vp.perday, p.perday)                       AS per_day,
+            -- Maintain old aliases for backward compatibility with existing frontend code (edit modals, etc.)
+            COALESCE(NULLIF(vp.no_resource, ''), NULLIF(p.no_resource, ''))     AS no_resource,
+            COALESCE(NULLIF(vp.no_resources_required, ''), NULLIF(p.no_resources_requried, '')) AS no_resources_required,
+            COALESCE(vp.perday, p.perday)                       AS perday,
             COALESCE(p.location, vp.location)                   AS location,
-            COALESCE(p.start_date, vp.start_date)               AS start_date,
-            COALESCE(p.due_date, vp.due_date)                   AS due_date
+            COALESCE(vp.start_date, p.start_date)               AS start_date,
+            COALESCE(vp.due_date, p.due_date)                   AS due_date,
+            COALESCE(vp.bidding_end_date, p.bidding_end_date)   AS bidding_end_date,
+            p.department                                        AS department_name
         FROM snh6_swiftproject.vendor_projects vp
         LEFT JOIN snh6_swiftproject.projects p
             ON p.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
@@ -4333,6 +4545,7 @@ def get_vendor_project_detail(project_id):
     project = dict(row)
     vcur = vendor_cursor()
     _hydrate_vendor_projects_phase1(vcur, [project])
+    _hydrate_vendor_employee_names(vcur, [project])
 
     # Aggregate vendor_task counts for this project
     cur.execute(

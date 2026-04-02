@@ -424,7 +424,7 @@ export default function CreateteamTD() {
           });
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setSubmitting(false));
   };
 
@@ -456,9 +456,9 @@ export default function CreateteamTD() {
         ? String(team.project_id)
         : team.project_name
           ? String(
-              projects.find((p) => p.project_name === team.project_name)?.id ??
-                "",
-            )
+            projects.find((p) => p.project_name === team.project_name)?.id ??
+            "",
+          )
           : "";
     setSelectedTeam(team);
     setEditForm({
@@ -517,7 +517,7 @@ export default function CreateteamTD() {
             .then((res) => setTeams(res.data.teams ?? []));
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setSubmitting(false));
   };
 
@@ -537,9 +537,9 @@ export default function CreateteamTD() {
     if (proj.bim_coordinator_name) involvedNames.add(proj.bim_coordinator_name);
     if (proj.uploader_name) involvedNames.add(proj.uploader_name);
     if (Array.isArray(proj.members_names)) {
-        proj.members_names.forEach(name => {
-            if (name) involvedNames.add(name);
-        });
+      proj.members_names.forEach(name => {
+        if (name) involvedNames.add(name);
+      });
     }
 
     const filtered = employees.filter(e => e.full_name && involvedNames.has(e.full_name) && isEmployeeActiveForProjectAssignment(e));
@@ -820,9 +820,8 @@ export default function CreateteamTD() {
 
                   {showProjectDropdown && (
                     <div
-                      className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 overflow-y-auto no-scrollbar flex flex-col ${
-                        projectDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"
-                      }`}
+                      className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 overflow-y-auto no-scrollbar flex flex-col ${projectDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"
+                        }`}
                     >
                       {projects.map((p) => (
                         <button
@@ -857,8 +856,8 @@ export default function CreateteamTD() {
                           ? leaderSearchQuery
                           : form.leader
                             ? (employees.find(
-                                (emp) => String(emp.id) === form.leader,
-                              )?.full_name ?? "")
+                              (emp) => String(emp.id) === form.leader,
+                            )?.full_name ?? "")
                             : ""
                       }
                       onChange={(e) => {
@@ -879,8 +878,8 @@ export default function CreateteamTD() {
                         setLeaderSearchQuery(
                           form.leader
                             ? (employees.find(
-                                (emp) => String(emp.id) === form.leader,
-                              )?.full_name ?? "")
+                              (emp) => String(emp.id) === form.leader,
+                            )?.full_name ?? "")
                             : "",
                         );
                       }}
@@ -1041,13 +1040,13 @@ export default function CreateteamTD() {
                               {(() => {
                                 const profileUrl = e.profile_picture ? getGlobalProfileUrl(e.id, e.profile_picture) : null;
                                 return (
-                                    <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden border">
-                                        {profileUrl ? (
-                                            <img src={profileUrl} alt={e.full_name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            (e.full_name || "U")[0].toUpperCase()
-                                        )}
-                                    </div>
+                                  <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden border">
+                                    {profileUrl ? (
+                                      <img src={profileUrl} alt={e.full_name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      (e.full_name || "U")[0].toUpperCase()
+                                    )}
+                                  </div>
                                 );
                               })()}
                               <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535]">
@@ -1155,9 +1154,8 @@ export default function CreateteamTD() {
 
                   {showEditProjectDropdown && (
                     <div
-                      className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 overflow-y-auto no-scrollbar flex flex-col ${
-                        editProjectDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"
-                      }`}
+                      className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 overflow-y-auto no-scrollbar flex flex-col ${editProjectDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"
+                        }`}
                     >
                       {projects.map((p) => (
                         <button
@@ -1192,8 +1190,8 @@ export default function CreateteamTD() {
                           ? leaderSearchQuery
                           : editForm.leader
                             ? (employees.find(
-                                (emp) => String(emp.id) === editForm.leader,
-                              )?.full_name ?? "")
+                              (emp) => String(emp.id) === editForm.leader,
+                            )?.full_name ?? "")
                             : ""
                       }
                       onChange={(e) => {
@@ -1214,8 +1212,8 @@ export default function CreateteamTD() {
                         setLeaderSearchQuery(
                           editForm.leader
                             ? (employees.find(
-                                (emp) => String(emp.id) === editForm.leader,
-                              )?.full_name ?? "")
+                              (emp) => String(emp.id) === editForm.leader,
+                            )?.full_name ?? "")
                             : "",
                         );
                       }}
@@ -1362,13 +1360,13 @@ export default function CreateteamTD() {
                               {(() => {
                                 const profileUrl = e.profile_picture ? getGlobalProfileUrl(e.id, e.profile_picture) : null;
                                 return (
-                                    <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden border">
-                                        {profileUrl ? (
-                                            <img src={profileUrl} alt={e.full_name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            (e.full_name || "U")[0].toUpperCase()
-                                        )}
-                                    </div>
+                                  <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden border">
+                                    {profileUrl ? (
+                                      <img src={profileUrl} alt={e.full_name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      (e.full_name || "U")[0].toUpperCase()
+                                    )}
+                                  </div>
                                 );
                               })()}
                               <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535]">
@@ -1445,10 +1443,10 @@ export default function CreateteamTD() {
                       return (
                         <div className="w-12 h-12 bg-white rounded-full border border-slate-200 flex items-center justify-center text-lg font-bold text-slate-700 shadow-sm overflow-hidden">
                           {profileUrl ? (
-                            <img 
-                              src={profileUrl} 
-                              alt="Leader" 
-                              className="w-full h-full object-cover" 
+                            <img
+                              src={profileUrl}
+                              alt="Leader"
+                              className="w-full h-full object-cover"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src = ProfileIcon;
                               }}
@@ -1489,10 +1487,10 @@ export default function CreateteamTD() {
                           >
                             <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-sm font-bold text-slate-600 overflow-hidden">
                               {empInfo?.profile_picture ? (
-                                <img 
-                                  src={getGlobalProfileUrl(empInfo.id, empInfo.profile_picture)} 
-                                  alt={empInfo.full_name} 
-                                  className="w-full h-full object-cover" 
+                                <img
+                                  src={getGlobalProfileUrl(empInfo.id, empInfo.profile_picture)}
+                                  alt={empInfo.full_name}
+                                  className="w-full h-full object-cover"
                                   onError={(e) => {
                                     (e.target as HTMLImageElement).src = ProfileIcon;
                                   }}

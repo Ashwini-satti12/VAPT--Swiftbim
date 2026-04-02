@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
@@ -453,11 +454,31 @@ export default function ManageLeave() {
     setPaginationWindowStart(1);
   }, [selectedShowEntries, selectedEmployee]);
 
+  const [searchParams] = useSearchParams();
   const employeeFilterShowsAll =
     selectedEmployee === "" || selectedEmployee === "All";
-  const filteredList = employeeFilterShowsAll
-    ? leaves
-    : leaves.filter((l) => l.employeeName === selectedEmployee);
+  const filteredList = useMemo(() => {
+    const q = searchParams.get("q")?.toLowerCase() || "";
+    let list = leaves;
+    if (!employeeFilterShowsAll) {
+      list = list.filter((l) => l.employeeName === selectedEmployee);
+    }
+    if (q) {
+      list = list.filter((l) =>
+        [
+          l.employeeName,
+          l.role,
+          l.leaveType,
+          l.currentStatus,
+          l.description,
+          l.appliedOn,
+          l.fromDate,
+          l.toDate,
+        ].some((f) => (f || "").toLowerCase().includes(q)),
+      );
+    }
+    return list;
+  }, [leaves, searchParams, selectedEmployee, employeeFilterShowsAll]);
   const effectiveShowEntryValue =
     selectedShowEntries || showEntriesOptions[0].value;
   const selectedRange =

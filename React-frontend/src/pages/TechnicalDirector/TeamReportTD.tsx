@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import api from '../../lib/api';
-import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
+import api from "../../lib/api";
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 
 /** Open native date picker — same pattern as TeamreportPM. */
 function openNativeDatePicker(input: HTMLInputElement | null) {
@@ -19,41 +19,40 @@ function openNativeDatePicker(input: HTMLInputElement | null) {
 }
 
 interface TimesheetEntry {
-    id: number;
-    project_name?: string;
-    task_name?: string;
-    start_date?: string; // Format: DD/MM/YYYY
-    end_date?: string;   // Format: DD/MM/YYYY
-    task_date_ymd?: string; // Internal stable YYYY-MM-DD for date filtering
-    duration?: string;
-    assignee_name?: string;
-    team?: string;
-    start_time?: string;
-    end_time?: string;
-    Actual_start_time?: string;
-    due_date?: string;
-    perferstart_time?: string;
-    perferend_time?: string;
-    Pause?: number;
-    restart?: number;
+  id: number;
+  project_name?: string;
+  task_name?: string;
+  start_date?: string; // Format: DD/MM/YYYY
+  end_date?: string; // Format: DD/MM/YYYY
+  task_date_ymd?: string; // Internal stable YYYY-MM-DD for date filtering
+  duration?: string;
+  assignee_name?: string;
+  team?: string;
+  start_time?: string;
+  end_time?: string;
+  Actual_start_time?: string;
+  due_date?: string;
+  perferstart_time?: string;
+  perferend_time?: string;
+  Pause?: number;
+  restart?: number;
 }
 
-
 export default function TeamReportTD() {
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [employee, setEmployee] = useState('All');
-    const [team, setTeam] = useState('All');
-    const [list, setList] = useState<TimesheetEntry[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [employeeOpen, setEmployeeOpen] = useState(false);
-    const [teamOpen, setTeamOpen] = useState(false);
-    const [employeeOptions, setEmployeeOptions] = useState<string[]>(['All']);
-    const [teamOptions, setTeamOptions] = useState<string[]>(['All']);
-    const employeeDropdownRef = useRef<HTMLDivElement>(null);
-    const teamDropdownRef = useRef<HTMLDivElement>(null);
-    const startDateRef = useRef<HTMLInputElement>(null);
-    const endDateRef = useRef<HTMLInputElement>(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [employee, setEmployee] = useState("All");
+  const [team, setTeam] = useState("All");
+  const [list, setList] = useState<TimesheetEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [employeeOpen, setEmployeeOpen] = useState(false);
+  const [teamOpen, setTeamOpen] = useState(false);
+  const [employeeOptions, setEmployeeOptions] = useState<string[]>(["All"]);
+  const [teamOptions, setTeamOptions] = useState<string[]>(["All"]);
+  const employeeDropdownRef = useRef<HTMLDivElement>(null);
+  const teamDropdownRef = useRef<HTMLDivElement>(null);
+  const startDateRef = useRef<HTMLInputElement>(null);
+  const endDateRef = useRef<HTMLInputElement>(null);
 
     const SHOW_ENTRIES_PLACEHOLDER = 'Show Entries';
     const SHOW_ENTRIES_SELECTED_PREFIX = 'Show:';
@@ -100,176 +99,205 @@ export default function TeamReportTD() {
             });
     }, []);
 
-    // Load team names from backend (team table) for Team filter dropdown
-    useEffect(() => {
-        api
-            .get<{ teams?: { team_name?: string | null; name?: string | null; teamname?: string | null }[] }>('/api/teams')
-            .then(({ data }) => {
-                const teamNames = Array.from(
-                    new Set(
-                        (data.teams ?? [])
-                            .map((t) => {
-                                // Try multiple possible field names for team name
-                                return (t.teamname || t.name || t.teamname || '').trim();
-                            })
-                            .filter((name) => name.length > 0),
-                    ),
-                );
-                if (teamNames.length) {
-                    setTeamOptions(['All', ...teamNames]);
-                }
-            })
-            .catch(() => {
-                // On error keep existing default options
-            });
-    }, []);
-
-    const toYmd = (v: string | undefined): string => {
-        if (!v) return '';
-        const s = String(v).trim();
-        if (!s) return '';
-        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.split('T')[0].split(' ')[0];
-        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
-            const [dd, mm, yyyy] = s.split('/');
-            return `${yyyy}-${mm}-${dd}`;
+  // Load team names from backend (team table) for Team filter dropdown
+  useEffect(() => {
+    api
+      .get<{
+        teams?: {
+          team_name?: string | null;
+          name?: string | null;
+          teamname?: string | null;
+        }[];
+      }>("/api/teams")
+      .then(({ data }) => {
+        const teamNames = Array.from(
+          new Set(
+            (data.teams ?? [])
+              .map((t) => {
+                // Try multiple possible field names for team name
+                return (t.teamname || t.name || t.teamname || "").trim();
+              })
+              .filter((name) => name.length > 0),
+          ),
+        );
+        if (teamNames.length) {
+          setTeamOptions(["All", ...teamNames]);
         }
-        return '';
-    };
+      })
+      .catch(() => {
+        // On error keep existing default options
+      });
+  }, []);
 
-    const shiftYmd = (ymd: string, deltaDays: number): string => {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
-        const [yy, mm, dd] = ymd.split('-').map((x) => Number(x));
-        const dt = new Date(Date.UTC(yy, mm - 1, dd));
-        dt.setUTCDate(dt.getUTCDate() + deltaDays);
-        const y = dt.getUTCFullYear();
-        const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
-        const d = String(dt.getUTCDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-    };
+  const toYmd = (v: string | undefined): string => {
+    if (!v) return "";
+    const s = String(v).trim();
+    if (!s) return "";
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.split("T")[0].split(" ")[0];
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+      const [dd, mm, yyyy] = s.split("/");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    return "";
+  };
 
-    const parseDateLike = (value: any): Date | null => {
-        if (!value) return null;
-        if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-        const s = String(value).trim();
-        if (!s) return null;
+  const shiftYmd = (ymd: string, deltaDays: number): string => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
+    const [yy, mm, dd] = ymd.split("-").map((x) => Number(x));
+    const dt = new Date(Date.UTC(yy, mm - 1, dd));
+    dt.setUTCDate(dt.getUTCDate() + deltaDays);
+    const y = dt.getUTCFullYear();
+    const m = String(dt.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(dt.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
 
-        // YYYY-MM-DD
-        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-            const [yy, mm, dd] = s.split('-').map(Number);
-            const d = new Date(yy, mm - 1, dd);
-            return Number.isNaN(d.getTime()) ? null : d;
+  const parseDateLike = (value: any): Date | null => {
+    if (!value) return null;
+    if (value instanceof Date)
+      return Number.isNaN(value.getTime()) ? null : value;
+    const s = String(value).trim();
+    if (!s) return null;
+
+    // YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      const [yy, mm, dd] = s.split("-").map(Number);
+      const d = new Date(yy, mm - 1, dd);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    // DD/MM/YYYY
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+      const [dd, mm, yy] = s.split("/").map(Number);
+      const d = new Date(yy, mm - 1, dd);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    const parsed = new Date(s);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const parseTimeOnDate = (
+    timeValue: any,
+    baseDate: Date | null,
+  ): Date | null => {
+    if (!timeValue || !baseDate) return null;
+    const s = String(timeValue).trim();
+    const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (!m) return null;
+    const hh = Number(m[1]);
+    const mm = Number(m[2]);
+    const ss = Number(m[3] || 0);
+    if (hh > 23 || mm > 59 || ss > 59) return null;
+    const d = new Date(baseDate);
+    d.setHours(hh, mm, ss, 0);
+    return d;
+  };
+
+  // Format date from Date/string to DD/MM/YYYY
+  const formatDateDisplay = (
+    date: Date | string | null | undefined,
+  ): string => {
+    const dObj = parseDateLike(date);
+    if (!dObj) return "-";
+    const dateObj = dObj;
+    const d = dateObj.getDate().toString().padStart(2, "0");
+    const m = (dateObj.getMonth() + 1).toString().padStart(2, "0");
+    const y = dateObj.getFullYear();
+    return `${d}/${m}/${y}`;
+  };
+
+  // Calculate duration between start and end times
+  const formatDuration = (start: Date | null, end: Date | null): string => {
+    if (!start || !end) return "hh:mm:ss";
+    const diffMs = end.getTime() - start.getTime();
+    if (diffMs < 0) return "hh:mm:ss";
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  // Load completed tasks from backend when dates, employee, or team filter changes
+  useEffect(() => {
+    setLoading(true);
+    const payload: any = {};
+
+    // If user picks only one side of the range, treat it as a single-day filter.
+    // Also fix accidental reversed ranges (start > end).
+    let effectiveStart = startDate || endDate;
+    let effectiveEnd = endDate || startDate;
+    if (effectiveStart && effectiveEnd && effectiveStart > effectiveEnd) {
+      [effectiveStart, effectiveEnd] = [effectiveEnd, effectiveStart];
+    }
+    // Expand backend query by +/- 1 day to avoid timezone edge misses.
+    if (effectiveStart) payload.startDate = shiftYmd(effectiveStart, -1);
+    if (effectiveEnd) payload.endDate = shiftYmd(effectiveEnd, 1);
+
+    const loadFilters = async () => {
+      try {
+        // If team filter is set, find team_id by name
+        if (team !== "All") {
+          const { data: teamData } = await api.get<{
+            teams?: {
+              team_id?: number;
+              team_name?: string;
+              name?: string;
+              teamname?: string;
+            }[];
+          }>("/api/teams");
+          const foundTeam = (teamData.teams ?? []).find((t) => {
+            const tName = (t.teamname || t.name || t.teamname || "").trim();
+            return tName === team;
+          });
+          if (foundTeam && foundTeam.team_id) {
+            payload.selectteam = foundTeam.team_id;
+          }
         }
-        // DD/MM/YYYY
-        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
-            const [dd, mm, yy] = s.split('/').map(Number);
-            const d = new Date(yy, mm - 1, dd);
-            return Number.isNaN(d.getTime()) ? null : d;
+
+        // If employee filter is set, find employee ID by name
+        if (employee !== "All") {
+          const { data: empData } = await api.get<{
+            employees?: { id: number; full_name?: string }[];
+          }>("/api/employees");
+          const emp = (empData.employees ?? []).find(
+            (e) => e.full_name === employee,
+          );
+          if (emp) payload.selectmembers = emp.id;
         }
 
-        const parsed = new Date(s);
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
+        fetchTasks(payload);
+      } catch {
+        // If lookup fails, still fetch all tasks and filter client-side
+        fetchTasks(payload);
+      }
     };
 
-    const parseTimeOnDate = (timeValue: any, baseDate: Date | null): Date | null => {
-        if (!timeValue || !baseDate) return null;
-        const s = String(timeValue).trim();
-        const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-        if (!m) return null;
-        const hh = Number(m[1]);
-        const mm = Number(m[2]);
-        const ss = Number(m[3] || 0);
-        if (hh > 23 || mm > 59 || ss > 59) return null;
-        const d = new Date(baseDate);
-        d.setHours(hh, mm, ss, 0);
-        return d;
+    loadFilters();
+  }, [startDate, endDate, employee, team]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        employeeDropdownRef.current &&
+        !employeeDropdownRef.current.contains(event.target as Node)
+      ) {
+        setEmployeeOpen(false);
+      }
+      if (
+        teamDropdownRef.current &&
+        !teamDropdownRef.current.contains(event.target as Node)
+      ) {
+        setTeamOpen(false);
+      }
     };
-
-    // Format date from Date/string to DD/MM/YYYY
-    const formatDateDisplay = (date: Date | string | null | undefined): string => {
-        const dObj = parseDateLike(date);
-        if (!dObj) return '-';
-        const dateObj = dObj;
-        const d = dateObj.getDate().toString().padStart(2, '0');
-        const m = (dateObj.getMonth() + 1).toString().padStart(2, '0');
-        const y = dateObj.getFullYear();
-        return `${d}/${m}/${y}`;
+    if (employeeOpen || teamOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
     };
-
-    // Calculate duration between start and end times
-    const formatDuration = (start: Date | null, end: Date | null): string => {
-        if (!start || !end) return 'hh:mm:ss';
-        const diffMs = end.getTime() - start.getTime();
-        if (diffMs < 0) return 'hh:mm:ss';
-        const hours = Math.floor(diffMs / (1000 * 60 * 60));
-        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    };
-
-    // Load completed tasks from backend when dates, employee, or team filter changes
-    useEffect(() => {
-        setLoading(true);
-        const payload: any = {};
-
-        // If user picks only one side of the range, treat it as a single-day filter.
-        // Also fix accidental reversed ranges (start > end).
-        let effectiveStart = startDate || endDate;
-        let effectiveEnd = endDate || startDate;
-        if (effectiveStart && effectiveEnd && effectiveStart > effectiveEnd) {
-            [effectiveStart, effectiveEnd] = [effectiveEnd, effectiveStart];
-        }
-        // Expand backend query by +/- 1 day to avoid timezone edge misses.
-        if (effectiveStart) payload.startDate = shiftYmd(effectiveStart, -1);
-        if (effectiveEnd) payload.endDate = shiftYmd(effectiveEnd, 1);
-
-        const loadFilters = async () => {
-            try {
-                // If team filter is set, find team_id by name
-                if (team !== 'All') {
-                    const { data: teamData } = await api.get<{ teams?: { team_id?: number; team_name?: string; name?: string; teamname?: string }[] }>('/api/teams');
-                    const foundTeam = (teamData.teams ?? []).find(t => {
-                        const tName = (t.teamname || t.name || t.teamname || '').trim();
-                        return tName === team;
-                    });
-                    if (foundTeam && foundTeam.team_id) {
-                        payload.selectteam = foundTeam.team_id;
-                    }
-                }
-
-                // If employee filter is set, find employee ID by name
-                if (employee !== 'All') {
-                    const { data: empData } = await api.get<{ employees?: { id: number; full_name?: string }[] }>('/api/employees');
-                    const emp = (empData.employees ?? []).find(e => e.full_name === employee);
-                    if (emp) payload.selectmembers = emp.id;
-                }
-
-                fetchTasks(payload);
-            } catch {
-                // If lookup fails, still fetch all tasks and filter client-side
-                fetchTasks(payload);
-            }
-        };
-
-        loadFilters();
-    }, [startDate, endDate, employee, team]);
-
-    // Close dropdowns when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (employeeDropdownRef.current && !employeeDropdownRef.current.contains(event.target as Node)) {
-                setEmployeeOpen(false);
-            }
-            if (teamDropdownRef.current && !teamDropdownRef.current.contains(event.target as Node)) {
-                setTeamOpen(false);
-            }
-        };
-        if (employeeOpen || teamOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [employeeOpen, teamOpen]);
+  }, [employeeOpen, teamOpen]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {

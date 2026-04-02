@@ -30,6 +30,16 @@ const namesToIds = (names: string[], employeesList: Employee[]) => {
     .join(",");
 };
 
+/** True when description has visible text (empty string and empty HTML are treated as missing). */
+function hasProjectDescriptionContent(raw: string | undefined): boolean {
+  if (raw == null) return false;
+  const text = raw
+    .replace(/<[^>]*>?/gm, "")
+    .replace(/&nbsp;/gi, " ")
+    .trim();
+  return text.length > 0;
+}
+
 function FormSelect({
   placeholder,
   options,
@@ -368,8 +378,8 @@ export default function ProjectsTD() {
       end_date: d(r.end_date) ?? d(r.due_date),
       total_hours: str(r.totalhours),
       per_day: str(r.perday),
-      resources: str(r.resources),
-      required_resources: str(r.required_resources),
+      resources: str(r.resources) ?? str(r.no_resource),
+      required_resources: str(r.required_resources) ?? str(r.no_resources_required),
       department: str(r.department_name),
       budget_ceiling: str(r.budget_ceiling),
       bidding_end_date: str(r.bidding_end_date),
@@ -441,7 +451,7 @@ export default function ProjectsTD() {
       .then(() => {
         /* departments data consumed but state was removed */
       })
-      .catch(() => {});
+      .catch(() => { });
 
     api
       .get<{
@@ -744,572 +754,582 @@ export default function ProjectsTD() {
                 {/* Fixed KPI Cards at top */}
                 <div className="px-4 md:px-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
-                  {/* To Do Tasks */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        "/td/teamtasks?status=todo" +
+                    {/* To Do Tasks */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          "/td/teamtasks?status=todo" +
                           (selectedProjectForView?.project_name
                             ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
                             : ""),
-                      )
-                    }
-                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
-                  >
-                    <div className="flex items-center justify-left mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
-                        To Do Tasks
+                        )
+                      }
+                      className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                    >
+                      <div className="flex items-center justify-left mb-2">
+                        <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
+                          To Do Tasks
+                        </p>
+                      </div>
+                      <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
+                        {loadingTaskStats ? "..." : taskStats.todo}
                       </p>
-                    </div>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
-                      {loadingTaskStats ? "..." : taskStats.todo}
-                    </p>
-                  </button>
+                    </button>
 
-                  {/* In Progress Tasks */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        "/td/teamtasks?status=in_progress" +
+                    {/* In Progress Tasks */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          "/td/teamtasks?status=in_progress" +
                           (selectedProjectForView?.project_name
                             ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
                             : ""),
-                      )
-                    }
-                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
-                        In Progress Tasks
+                        )
+                      }
+                      className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
+                          In Progress Tasks
+                        </p>
+                      </div>
+                      <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
+                        {loadingTaskStats ? "..." : taskStats.inProgress}
                       </p>
-                    </div>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
-                      {loadingTaskStats ? "..." : taskStats.inProgress}
-                    </p>
-                  </button>
+                    </button>
 
-                  {/* Paused Tasks */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        "/td/teamtasks?status=paused" +
+                    {/* Paused Tasks */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          "/td/teamtasks?status=paused" +
                           (selectedProjectForView?.project_name
                             ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
                             : ""),
-                      )
-                    }
-                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
-                        Paused Tasks
+                        )
+                      }
+                      className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
+                          Paused Tasks
+                        </p>
+                      </div>
+                      <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
+                        {loadingTaskStats ? "..." : taskStats.paused}
                       </p>
-                    </div>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
-                      {loadingTaskStats ? "..." : taskStats.paused}
-                    </p>
-                  </button>
+                    </button>
 
-                  {/* Completed Tasks */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        "/td/teamtasks?status=completed" +
+                    {/* Completed Tasks */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          "/td/teamtasks?status=completed" +
                           (selectedProjectForView?.project_name
                             ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
                             : ""),
-                      )
-                    }
-                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
-                        Completed Tasks
+                        )
+                      }
+                      className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
+                          Completed Tasks
+                        </p>
+                      </div>
+                      <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
+                        {loadingTaskStats ? "..." : taskStats.completed}
                       </p>
-                    </div>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
-                      {loadingTaskStats ? "..." : taskStats.completed}
-                    </p>
-                  </button>
+                    </button>
                   </div>
                 </div>
 
                 {/* Scrollable Content Below KPI Cards */}
                 <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 px-4 md:px-2 pb-10 pt-4">
                   <div className="border border-slate-200 rounded-md md:rounded-md p-6 md:p-8 lg:p-2">
-                  <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-4">
-                      {loadingTaskStats ? (
-                        <div className="col-span-full text-center py-8 text-gray-500">
-                          Loading tower data...
-                        </div>
-                      ) : towerData.length > 0 ? (
-                        towerData.map((tower) => {
-                          const statusColor =
-                            tower.status === "Review"
-                              ? "#E00100"
-                              : tower.status === "Pending"
-                                ? "#EB7200"
-                                : "#008F22";
-                          const statusBg =
-                            tower.status === "Review"
-                              ? "bg-[#FFD9D9]"
-                              : tower.status === "Pending"
-                                ? "bg-[#FFEAD6]"
-                                : "bg-[#E0FFE8]";
+                    <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-4">
+                        {loadingTaskStats ? (
+                          <div className="col-span-full text-center py-8 text-gray-500">
+                            Loading tower data...
+                          </div>
+                        ) : towerData.length > 0 ? (
+                          towerData.map((tower) => {
+                            const statusColor =
+                              tower.status === "Review"
+                                ? "#E00100"
+                                : tower.status === "Pending"
+                                  ? "#EB7200"
+                                  : "#008F22";
+                            const statusBg =
+                              tower.status === "Review"
+                                ? "bg-[#FFD9D9]"
+                                : tower.status === "Pending"
+                                  ? "bg-[#FFEAD6]"
+                                  : "bg-[#E0FFE8]";
 
-                          return (
-                            <div
-                              key={tower.id}
-                              className="bg-white border border-slate-200 rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[120px]"
-                            >
-                              <div className="flex justify-between items-start">
-                                <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
-                                  {tower.name}
-                                </h5>
-                                <div
-                                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0 ${statusBg}`}
-                                >
-                                  <span
-                                    className="w-1.5 h-1.5 rounded-full"
-                                    style={{ backgroundColor: statusColor }}
-                                  ></span>
-                                  <span
-                                    className="text-[12px] font-bold font-gantari"
-                                    style={{ color: statusColor }}
+                            return (
+                              <div
+                                key={tower.id}
+                                className="bg-white border border-slate-200 rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[120px]"
+                              >
+                                <div className="flex justify-between items-start">
+                                  <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
+                                    {tower.name}
+                                  </h5>
+                                  <div
+                                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0 ${statusBg}`}
                                   >
-                                    {tower.status}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center justify-between mt-2">
-                                <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
-                                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
-                                    <circle
-                                      cx="32"
-                                      cy="32"
-                                      r="26"
-                                      stroke="#F2F3F5"
-                                      strokeWidth="5"
-                                      fill="transparent"
-                                    />
-                                    <circle
-                                      cx="32"
-                                      cy="32"
-                                      r="26"
-                                      stroke={statusColor}
-                                      strokeWidth="5"
-                                      fill="transparent"
-                                      strokeDasharray={163.36}
-                                      strokeDashoffset={
-                                        163.36 - (tower.progress / 100) * 163.36
-                                      }
-                                      strokeLinecap="round"
-                                      style={{
-                                        transition:
-                                          "stroke-dashoffset 1s ease-in-out",
-                                      }}
-                                    />
-                                  </svg>
-                                  <span className="absolute text-[13px] font-bold text-[#8B8B8B] font-Gantari">
-                                    {tower.progress}%
-                                  </span>
+                                    <span
+                                      className="w-1.5 h-1.5 rounded-full"
+                                      style={{ backgroundColor: statusColor }}
+                                    ></span>
+                                    <span
+                                      className="text-[12px] font-bold font-gantari"
+                                      style={{ color: statusColor }}
+                                    >
+                                      {tower.status}
+                                    </span>
+                                  </div>
                                 </div>
 
-                                <div className="flex flex-col items-end">
-                                  <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1">
-                                    Tasks Done
-                                  </p>
-                                  <div className="flex items-baseline border-t border-slate-100 pt-1">
-                                    <p className="text-[18px] font-bold text-[#353535] font-Gantari">
-                                      {tower.completedTasks}
+                                <div className="flex items-center justify-between mt-2">
+                                  <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
+                                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
+                                      <circle
+                                        cx="32"
+                                        cy="32"
+                                        r="26"
+                                        stroke="#F2F3F5"
+                                        strokeWidth="5"
+                                        fill="transparent"
+                                      />
+                                      <circle
+                                        cx="32"
+                                        cy="32"
+                                        r="26"
+                                        stroke={statusColor}
+                                        strokeWidth="5"
+                                        fill="transparent"
+                                        strokeDasharray={163.36}
+                                        strokeDashoffset={
+                                          163.36 - (tower.progress / 100) * 163.36
+                                        }
+                                        strokeLinecap="round"
+                                        style={{
+                                          transition:
+                                            "stroke-dashoffset 1s ease-in-out",
+                                        }}
+                                      />
+                                    </svg>
+                                    <span className="absolute text-[13px] font-bold text-[#8B8B8B] font-Gantari">
+                                      {tower.progress}%
+                                    </span>
+                                  </div>
+
+                                  <div className="flex flex-col items-end">
+                                    <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1">
+                                      Tasks Done
                                     </p>
-                                    <p className="text-[14px] font-bold text-[#8B8B8B] font-Gantari">
-                                      /{tower.totalTasks}
-                                    </p>
+                                    <div className="flex items-baseline border-t border-slate-100 pt-1">
+                                      <p className="text-[18px] font-bold text-[#353535] font-Gantari">
+                                        {tower.completedTasks}
+                                      </p>
+                                      <p className="text-[14px] font-bold text-[#8B8B8B] font-Gantari">
+                                        /{tower.totalTasks}
+                                      </p>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <div className="col-span-full text-center py-8 text-gray-500">
-                          Currently, no modules have been added.
-                        </div>
-                      )}
+                            );
+                          })
+                        ) : (
+                          <div className="col-span-full text-center py-8 text-gray-500">
+                            Currently, no modules have been added.
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-4">
-                  {/* Project Description */}
-                  <div className="border border-slate-200 rounded-md md:rounded-md p-6 md:p-8 lg:p-4">
-                    <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">
-                      Project Description
-                    </h4>
-                    <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
-                      {selectedProjectForView.description ??
-                        "No description available"}
-                    </p>
-                  </div>
+                  <div className="space-y-4">
+                    {/* Project Description */}
+                    <div className="min-w-0 max-w-full overflow-hidden border border-slate-200 rounded-md md:rounded-md p-6 md:p-8 lg:p-4">
+                      <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">
+                        Project Description
+                      </h4>
+                      {hasProjectDescriptionContent(
+                        selectedProjectForView.description,
+                      ) ? (
+                        <div
+                          className="project-description-html text-[14px] font-Gantari font-medium text-[#666666] mt-4 w-full min-w-0 max-w-full leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] [&_*]:max-w-full [&_*]:whitespace-normal [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#DD4342] [&_a]:underline"
+                          dangerouslySetInnerHTML={{
+                            __html: selectedProjectForView.description ?? "",
+                          }}
+                        />
+                      ) : (
+                        <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                          No description available
+                        </p>
+                      )}
+                    </div>
 
-                  {/* Team Overview Section */}
-                  <div className="border border-slate-200 rounded-md md:rounded-md p-6 lg:p-4">
-                    <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-8">
-                      Team Overview
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-center">
-                      {/* Project Manager */}
-                      {(() => {
-                        const pmIds = selectedProjectForView.project_manager_id
-                          ? String(selectedProjectForView.project_manager_id)
+                    {/* Team Overview Section */}
+                    <div className="border border-slate-200 rounded-md md:rounded-md p-6 lg:p-4">
+                      <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-8">
+                        Team Overview
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-center">
+                        {/* Project Manager */}
+                        {(() => {
+                          const pmIds = selectedProjectForView.project_manager_id
+                            ? String(selectedProjectForView.project_manager_id)
                               .split(",")
                               .map((id) => id.trim())
                               .filter(Boolean)
-                          : [];
-                        const pmNames =
-                          selectedProjectForView.project_manager_name
-                            ? String(
+                            : [];
+                          const pmNames =
+                            selectedProjectForView.project_manager_name
+                              ? String(
                                 selectedProjectForView.project_manager_name,
                               )
                                 .split(",")
                                 .map((n) => n.trim())
                                 .filter(Boolean)
-                            : [];
+                              : [];
 
-                        if (pmIds.length === 0 && pmNames.length === 0) {
-                          return (
-                            <div className="min-w-0">
-                              <p className="text-[14px] font-Gantari font-semibold text-[#000000] mb-2">
-                                Project Manager
-                              </p>
-                              <div className="flex items-center -space-x-3">
-                                <div
-                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
-                                  title="Not assigned"
-                                >
-                                  <span className="text-slate-600 text-[14px] font-bold">
-                                    PM
-                                  </span>
+                          if (pmIds.length === 0 && pmNames.length === 0) {
+                            return (
+                              <div className="min-w-0">
+                                <p className="text-[14px] font-Gantari font-semibold text-[#000000] mb-2">
+                                  Project Manager
+                                </p>
+                                <div className="flex items-center -space-x-3">
+                                  <div
+                                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
+                                    title="Not assigned"
+                                  >
+                                    <span className="text-slate-600 text-[14px] font-bold">
+                                      PM
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        }
+                            );
+                          }
 
-                        const maxCount = Math.max(pmIds.length, pmNames.length);
-                        const pmEntries = Array.from({ length: maxCount }).map(
-                          (_, i) => {
-                            const pId = pmIds[i];
-                            const pName = pmNames[i];
-                            const pmEmp = pId
-                              ? allEmployees.find(
+                          const maxCount = Math.max(pmIds.length, pmNames.length);
+                          const pmEntries = Array.from({ length: maxCount }).map(
+                            (_, i) => {
+                              const pId = pmIds[i];
+                              const pName = pmNames[i];
+                              const pmEmp = pId
+                                ? allEmployees.find(
                                   (e: any) => String(e.id) === pId,
                                 )
-                              : null;
-                            const dName =
-                              pmEmp?.full_name || pName || "Unknown";
-                            const url = pmEmp?.profile_picture
-                              ? getGlobalProfileUrl(
+                                : null;
+                              const dName =
+                                pmEmp?.full_name || pName || "Unknown";
+                              const url = pmEmp?.profile_picture
+                                ? getGlobalProfileUrl(
                                   pmEmp.id,
                                   pmEmp.profile_picture,
                                 )
-                              : null;
-                            return { key: i, dName, url };
-                          },
-                        );
-                        const visiblePm = pmEntries.slice(0, 3);
-                        const pmRemaining = Math.max(0, pmEntries.length - 3);
-                        const pmOverflowTitle =
-                          pmRemaining > 0
-                            ? pmEntries
+                                : null;
+                              return { key: i, dName, url };
+                            },
+                          );
+                          const visiblePm = pmEntries.slice(0, 3);
+                          const pmRemaining = Math.max(0, pmEntries.length - 3);
+                          const pmOverflowTitle =
+                            pmRemaining > 0
+                              ? pmEntries
                                 .slice(3)
                                 .map((e) => e.dName)
                                 .join(", ")
-                            : undefined;
+                              : undefined;
 
-                        return (
-                          <div className="min-w-0">
-                            <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
-                              {maxCount > 1
-                                ? "Project Managers"
-                                : "Project Manager"}
-                            </p>
-                            {maxCount === 1 ? (
-                              <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
-                                  {visiblePm[0].url ? (
-                                    <img src={visiblePm[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                      {visiblePm[0].dName.charAt(0).toUpperCase()}
-                                    </div>
-                                  )}
-                                </div>
-                                <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visiblePm[0].dName}</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center -space-x-3">
-                                {visiblePm.map((entry) => (
-                                  <div key={entry.key} className="relative group shrink-0">
-                                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
-                                      {entry.url ? (
-                                        <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                          {entry.dName.charAt(0).toUpperCase()}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                      {entry.dName}
-                                    </div>
-                                  </div>
-                                ))}
-                                {pmRemaining > 0 && (
-                                  <div className="relative group shrink-0">
-                                    <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
-                                      +{pmRemaining}
-                                    </div>
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                      {pmOverflowTitle}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-
-                      {/* BIM Lead */}
-                      {(() => {
-                        const blIds = selectedProjectForView.lead_id
-                          ? String(selectedProjectForView.lead_id)
-                              .split(",")
-                              .map((id) => id.trim())
-                              .filter(Boolean)
-                          : [];
-                        const blNames = selectedProjectForView.lead_name
-                          ? String(selectedProjectForView.lead_name)
-                              .split(",")
-                              .map((n) => n.trim())
-                              .filter(Boolean)
-                          : [];
-
-                        if (blIds.length === 0 && blNames.length === 0) {
                           return (
                             <div className="min-w-0">
                               <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
-                                BIM Lead
+                                {maxCount > 1
+                                  ? "Project Managers"
+                                  : "Project Manager"}
                               </p>
-                              <div className="flex items-center -space-x-3">
-                                <div
-                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
-                                  title="Not assigned"
-                                >
-                                  <span className="text-slate-600 text-xs font-bold">
-                                    BL
-                                  </span>
+                              {maxCount === 1 ? (
+                                <div className="flex items-center gap-3">
+                                  <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
+                                    {visiblePm[0].url ? (
+                                      <img src={visiblePm[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                        {visiblePm[0].dName.charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visiblePm[0].dName}</span>
                                 </div>
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        const maxCount = Math.max(blIds.length, blNames.length);
-                        const blEntries = Array.from({ length: maxCount }).map(
-                          (_, i) => {
-                            const pId = blIds[i];
-                            const pName = blNames[i];
-                            const blEmp = pId
-                              ? allEmployees.find(
-                                  (e: any) => String(e.id) === pId,
-                                )
-                              : null;
-                            const dName =
-                              blEmp?.full_name || pName || "Unknown";
-                            const url = blEmp?.profile_picture
-                              ? getGlobalProfileUrl(
-                                  blEmp.id,
-                                  blEmp.profile_picture,
-                                )
-                              : null;
-                            return { key: i, dName, url };
-                          },
-                        );
-                        const visibleBl = blEntries.slice(0, 3);
-                        const blRemaining = Math.max(0, blEntries.length - 3);
-                        const blOverflowTitle =
-                          blRemaining > 0
-                            ? blEntries
-                                .slice(3)
-                                .map((e) => e.dName)
-                                .join(", ")
-                            : undefined;
-
-                        return (
-                          <div className="min-w-0">
-                            <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
-                              {maxCount > 1 ? "BIM Leads" : "BIM Lead"}
-                            </p>
-                            {maxCount === 1 ? (
-                              <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
-                                  {visibleBl[0].url ? (
-                                    <img src={visibleBl[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                      {visibleBl[0].dName.charAt(0).toUpperCase()}
+                              ) : (
+                                <div className="flex items-center -space-x-3">
+                                  {visiblePm.map((entry) => (
+                                    <div key={entry.key} className="relative group shrink-0">
+                                      <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
+                                        {entry.url ? (
+                                          <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                            {entry.dName.charAt(0).toUpperCase()}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                        {entry.dName}
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {pmRemaining > 0 && (
+                                    <div className="relative group shrink-0">
+                                      <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
+                                        +{pmRemaining}
+                                      </div>
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                        {pmOverflowTitle}
+                                      </div>
                                     </div>
                                   )}
                                 </div>
-                                <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visibleBl[0].dName}</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center -space-x-3">
-                                {visibleBl.map((entry) => (
-                                  <div key={entry.key} className="relative group shrink-0">
-                                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
-                                      {entry.url ? (
-                                        <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                          {entry.dName.charAt(0).toUpperCase()}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                      {entry.dName}
-                                    </div>
-                                  </div>
-                                ))}
-                                {blRemaining > 0 && (
-                                  <div className="relative group shrink-0">
-                                    <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
-                                      +{blRemaining}
-                                    </div>
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                      {blOverflowTitle}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
+                              )}
+                            </div>
+                          );
+                        })()}
 
-                      {/* Department Involved */}
-                      <div className="min-w-0">
-                        <p className="text-md font-Gantari font-semibold text-[#000000]">
-                          Department Involved
-                        </p>
-                        <p className="text-sm font-Gantari text-[#616161] truncate">
-                          {selectedProjectForView.department || "N/A"}
-                        </p>
-                      </div>
+                        {/* BIM Lead */}
+                        {(() => {
+                          const blIds = selectedProjectForView.lead_id
+                            ? String(selectedProjectForView.lead_id)
+                              .split(",")
+                              .map((id) => id.trim())
+                              .filter(Boolean)
+                            : [];
+                          const blNames = selectedProjectForView.lead_name
+                            ? String(selectedProjectForView.lead_name)
+                              .split(",")
+                              .map((n) => n.trim())
+                              .filter(Boolean)
+                            : [];
 
-                      {/* Members Involved */}
-                      <div>
-                        <p className="text-md font-Gantari font-semibold text-[#000000]">
-                          Members Involved
-                        </p>
-                        <div className="flex items-center -space-x-3">
-                          {(() => {
-                            // Get members from project (IDs can be numeric or string from API)
-                            const rawIds =
-                              selectedProjectForView.members ||
-                              selectedProjectForView.member
-                                ? String(
+                          if (blIds.length === 0 && blNames.length === 0) {
+                            return (
+                              <div className="min-w-0">
+                                <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                                  BIM Lead
+                                </p>
+                                <div className="flex items-center -space-x-3">
+                                  <div
+                                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
+                                    title="Not assigned"
+                                  >
+                                    <span className="text-slate-600 text-xs font-bold">
+                                      BL
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          const maxCount = Math.max(blIds.length, blNames.length);
+                          const blEntries = Array.from({ length: maxCount }).map(
+                            (_, i) => {
+                              const pId = blIds[i];
+                              const pName = blNames[i];
+                              const blEmp = pId
+                                ? allEmployees.find(
+                                  (e: any) => String(e.id) === pId,
+                                )
+                                : null;
+                              const dName =
+                                blEmp?.full_name || pName || "Unknown";
+                              const url = blEmp?.profile_picture
+                                ? getGlobalProfileUrl(
+                                  blEmp.id,
+                                  blEmp.profile_picture,
+                                )
+                                : null;
+                              return { key: i, dName, url };
+                            },
+                          );
+                          const visibleBl = blEntries.slice(0, 3);
+                          const blRemaining = Math.max(0, blEntries.length - 3);
+                          const blOverflowTitle =
+                            blRemaining > 0
+                              ? blEntries
+                                .slice(3)
+                                .map((e) => e.dName)
+                                .join(", ")
+                              : undefined;
+
+                          return (
+                            <div className="min-w-0">
+                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                                {maxCount > 1 ? "BIM Leads" : "BIM Lead"}
+                              </p>
+                              {maxCount === 1 ? (
+                                <div className="flex items-center gap-3">
+                                  <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
+                                    {visibleBl[0].url ? (
+                                      <img src={visibleBl[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                        {visibleBl[0].dName.charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visibleBl[0].dName}</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center -space-x-3">
+                                  {visibleBl.map((entry) => (
+                                    <div key={entry.key} className="relative group shrink-0">
+                                      <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
+                                        {entry.url ? (
+                                          <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                            {entry.dName.charAt(0).toUpperCase()}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                        {entry.dName}
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {blRemaining > 0 && (
+                                    <div className="relative group shrink-0">
+                                      <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
+                                        +{blRemaining}
+                                      </div>
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                        {blOverflowTitle}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* Department Involved */}
+                        <div className="min-w-0">
+                          <p className="text-md font-Gantari font-semibold text-[#000000]">
+                            Department Involved
+                          </p>
+                          <p className="text-sm font-Gantari text-[#616161] truncate">
+                            {selectedProjectForView.department || "N/A"}
+                          </p>
+                        </div>
+
+                        {/* Members Involved */}
+                        <div>
+                          <p className="text-md font-Gantari font-semibold text-[#000000]">
+                            Members Involved
+                          </p>
+                          <div className="flex items-center -space-x-3">
+                            {(() => {
+                              // Get members from project (IDs can be numeric or string from API)
+                              const rawIds =
+                                selectedProjectForView.members ||
+                                  selectedProjectForView.member
+                                  ? String(
                                     selectedProjectForView.members ||
-                                      selectedProjectForView.member,
+                                    selectedProjectForView.member,
                                   )
                                     .split(",")
                                     .map((m) => m.trim())
                                     .filter(Boolean)
-                                : [];
-                            const memberIds = rawIds.map((m) => {
-                              const n = Number(m);
-                              return Number.isNaN(n) ? m : n;
-                            });
+                                  : [];
+                              const memberIds = rawIds.map((m) => {
+                                const n = Number(m);
+                                return Number.isNaN(n) ? m : n;
+                              });
 
-                            // Resolve employee data: match by both number and string ID so we don't miss anyone
-                            const projectMembers = memberIds
-                              .map((id) =>
-                                allEmployees.find(
-                                  (e) =>
-                                    Number(e.id) === Number(id) ||
-                                    String(e.id) === String(id),
-                                ),
-                              )
-                              .filter(Boolean) as Employee[];
+                              // Resolve employee data: match by both number and string ID so we don't miss anyone
+                              const projectMembers = memberIds
+                                .map((id) =>
+                                  allEmployees.find(
+                                    (e) =>
+                                      Number(e.id) === Number(id) ||
+                                      String(e.id) === String(id),
+                                  ),
+                                )
+                                .filter(Boolean) as Employee[];
 
-                            // Show up to 3 members, then +X for remaining
-                            const visibleMembers = projectMembers.slice(0, 3);
-                            const remainingCount = Math.max(
-                              0,
-                              projectMembers.length - 3,
-                            );
-                            const hasMore = remainingCount > 0;
-                            const hasIdsButNoResolved =
-                              visibleMembers.length === 0 &&
-                              projectMembers.length === 0 &&
-                              memberIds.length > 0;
-
-                            // Helper to get profile image URL
-                            const getProfileImageUrl = (emp: Employee) => {
-                              return getGlobalProfileUrl(
-                                emp.id,
-                                emp.profile_picture,
+                              // Show up to 3 members, then +X for remaining
+                              const visibleMembers = projectMembers.slice(0, 3);
+                              const remainingCount = Math.max(
+                                0,
+                                projectMembers.length - 3,
                               );
-                            };
+                              const hasMore = remainingCount > 0;
+                              const hasIdsButNoResolved =
+                                visibleMembers.length === 0 &&
+                                projectMembers.length === 0 &&
+                                memberIds.length > 0;
 
-                            const openAllMembersModal = () => {
-                              setAllMembersList(projectMembers);
-                              setShowAllMembersModal(true);
-                            };
+                              // Helper to get profile image URL
+                              const getProfileImageUrl = (emp: Employee) => {
+                                return getGlobalProfileUrl(
+                                  emp.id,
+                                  emp.profile_picture,
+                                );
+                              };
 
-                            return memberIds.length === 1 ? (
-                              <div className="flex items-center gap-3">
-                                {visibleMembers.map((emp) => (
-                                  <div key={emp.id} className="flex items-center gap-3">
-                                    <div
-                                      className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
-                                    >
-                                      {getProfileImageUrl(emp) ? (
-                                        <img
-                                          src={getProfileImageUrl(emp)}
-                                          alt={emp.full_name || "Member"}
-                                          className="w-full h-full object-cover"
-                                          onError={(e) => {
-                                            (
-                                              e.target as HTMLImageElement
-                                            ).src = ProfileIcon;
-                                          }}
-                                        />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                          {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
-                                        </div>
-                                      )}
+                              const openAllMembersModal = () => {
+                                setAllMembersList(projectMembers);
+                                setShowAllMembersModal(true);
+                              };
+
+                              return memberIds.length === 1 ? (
+                                <div className="flex items-center gap-3">
+                                  {visibleMembers.map((emp) => (
+                                    <div key={emp.id} className="flex items-center gap-3">
+                                      <div
+                                        className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
+                                      >
+                                        {getProfileImageUrl(emp) ? (
+                                          <img
+                                            src={getProfileImageUrl(emp)}
+                                            alt={emp.full_name || "Member"}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                              (
+                                                e.target as HTMLImageElement
+                                              ).src = ProfileIcon;
+                                            }}
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                            {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                                        {emp.full_name || `Employee ${emp.id}`}
+                                      </span>
                                     </div>
-                                    <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
-                                      {emp.full_name || `Employee ${emp.id}`}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="flex items-center -space-x-3">
-                                {visibleMembers.length > 0
-                                  ? visibleMembers.map((emp) => (
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="flex items-center -space-x-3">
+                                  {visibleMembers.length > 0
+                                    ? visibleMembers.map((emp) => (
                                       <div key={emp.id} className="relative group shrink-0">
                                         <div
                                           className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0"
@@ -1338,7 +1358,7 @@ export default function ProjectsTD() {
                                         </div>
                                       </div>
                                     ))
-                                  : hasIdsButNoResolved ? [1, 2, 3].map((j) => (
+                                    : hasIdsButNoResolved ? [1, 2, 3].map((j) => (
                                       <div
                                         key={j}
                                         className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
@@ -1350,173 +1370,173 @@ export default function ProjectsTD() {
                                         />
                                       </div>
                                     )) : null}
-                                {(hasMore || hasIdsButNoResolved) && (
-                                  <div className="relative group shrink-0">
-                                    <div
-                                      role="button"
-                                      tabIndex={0}
-                                      className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        openAllMembersModal();
-                                      }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter" || e.key === " ") {
+                                  {(hasMore || hasIdsButNoResolved) && (
+                                    <div className="relative group shrink-0">
+                                      <div
+                                        role="button"
+                                        tabIndex={0}
+                                        className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                                        onClick={(e) => {
                                           e.preventDefault();
+                                          e.stopPropagation();
                                           openAllMembersModal();
-                                        }
-                                      }}
-                                    >
-                                      +{remainingCount || memberIds.length}
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            openAllMembersModal();
+                                          }
+                                        }}
+                                      >
+                                        +{remainingCount || memberIds.length}
+                                      </div>
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                        Click to see all members
+                                      </div>
                                     </div>
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                      Click to see all members
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Project Details Section */}
-                  <div className="rounded-lg border border-slate-200 p-6 md:p-4">
-                    <h4 className="text-[20px] font-Gantari font-semibold text-[#1A1A1A] mb-6">
-                      Project Details
-                    </h4>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
-                      <div className="space-y-4 md:space-y-5">
+                    {/* Project Details Section */}
+                    <div className="rounded-lg border border-slate-200 p-6 md:p-4">
+                      <h4 className="text-[20px] font-Gantari font-semibold text-[#1A1A1A] mb-6">
+                        Project Details
+                      </h4>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
+                        <div className="space-y-4 md:space-y-5">
 
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                            Actual Start Date
-                          </span>
-                          <span className="hidden sm:inline text-[#616161] mr-4">
-                            :
-                          </span>
-                          <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                            {selectedProjectForView.start_date
-                              ? new Date(
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                              Actual Start Date
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">
+                              :
+                            </span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                              {selectedProjectForView.start_date
+                                ? new Date(
                                   selectedProjectForView.start_date,
                                 ).toLocaleDateString("en-GB", {
                                   day: "2-digit",
                                   month: "2-digit",
                                   year: "numeric",
                                 })
-                              : "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                            Total Project Hours
-                          </span>
-                          <span className="hidden sm:inline text-[#616161] mr-4">
-                            :
-                          </span>
-                          <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                            {selectedProjectForView.total_hours
-                              ? `${selectedProjectForView.total_hours}hrs`
-                              : "N/A"}
-                          </span>
-                        </div>
+                                : "N/A"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                              Total Project Hours
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">
+                              :
+                            </span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                              {selectedProjectForView.total_hours
+                                ? `${selectedProjectForView.total_hours}hrs`
+                                : "N/A"}
+                            </span>
+                          </div>
 
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                            Outsourcing Budget
-                          </span>
-                          <span className="hidden sm:inline text-[#616161] mr-4">
-                            :
-                          </span>
-                          <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                            {selectedProjectForView.budget_ceiling || "N/A"}
-                          </span>
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                              Outsourcing Budget
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">
+                              :
+                            </span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                              {selectedProjectForView.budget_ceiling || "N/A"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                              Total Resources Available
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">
+                              :
+                            </span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                              {selectedProjectForView.resources || "N/A"}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                            Total Resources Available
-                          </span>
-                          <span className="hidden sm:inline text-[#616161] mr-4">
-                            :
-                          </span>
-                          <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                            {selectedProjectForView.resources || "N/A"}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="space-y-4 md:space-y-5">
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                            Location
-                          </span>
-                          <span className="hidden sm:inline text-[#616161] mr-4">
-                            :
-                          </span>
-                          <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                            {selectedProjectForView.location || "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                            Actual End Date
-                          </span>
-                          <span className="hidden sm:inline text-[#616161] mr-4">
-                            :
-                          </span>
-                          <span className="text-md font-Gantari font-medium text-[#666666]">
-                            {selectedProjectForView.end_date
-                              ? new Date(
+                        <div className="space-y-4 md:space-y-5">
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                              Location
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">
+                              :
+                            </span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                              {selectedProjectForView.location || "N/A"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                              Actual End Date
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">
+                              :
+                            </span>
+                            <span className="text-md font-Gantari font-medium text-[#666666]">
+                              {selectedProjectForView.end_date
+                                ? new Date(
                                   selectedProjectForView.end_date,
                                 ).toLocaleDateString("en-GB", {
                                   day: "2-digit",
                                   month: "2-digit",
                                   year: "numeric",
                                 })
-                              : "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                            Hours/Day
-                          </span>
-                          <span className="hidden sm:inline text-[#616161] mr-4">
-                            :
-                          </span>
-                          <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                            {selectedProjectForView.per_day
-                              ? `${selectedProjectForView.per_day}hrs`
-                              : "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                            Required Resources
-                          </span>
-                          <span className="hidden sm:inline text-[#616161] mr-4">
-                            :
-                          </span>
-                          <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                            {selectedProjectForView.required_resources || "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                            Project Document
-                          </span>
-                          <span className="hidden sm:inline text-[#616161] mr-4">
-                            :
-                          </span>
-                          <div className="flex items-center gap-3">
-                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                              No Document Available
+                                : "N/A"}
                             </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                              Hours/Day
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">
+                              :
+                            </span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                              {selectedProjectForView.per_day
+                                ? `${selectedProjectForView.per_day}hrs`
+                                : "N/A"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                              Required Resources
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">
+                              :
+                            </span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                              {selectedProjectForView.required_resources || "N/A"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                              Project Document
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">
+                              :
+                            </span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                No Document Available
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
                     </div>
                   </div>
                 </div>
@@ -1660,8 +1680,8 @@ export default function ProjectsTD() {
                               Due:{" "}
                               {m.due_date
                                 ? new Date(m.due_date).toLocaleDateString(
-                                    "en-GB",
-                                  )
+                                  "en-GB",
+                                )
                                 : "-"}
                             </span>
                           </div>
@@ -1709,7 +1729,7 @@ export default function ProjectsTD() {
                                       currentProject?.id &&
                                       fetchMilestones(currentProject.id),
                                   )
-                                  .catch(() => {});
+                                  .catch(() => { });
                               }}
                               className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
                               title="Mark as Paid"
@@ -1743,7 +1763,7 @@ export default function ProjectsTD() {
                                       currentProject?.id &&
                                       fetchMilestones(currentProject.id),
                                   )
-                                  .catch(() => {});
+                                  .catch(() => { });
                               }
                             }}
                             className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors cursor-pointer"
@@ -1805,10 +1825,10 @@ export default function ProjectsTD() {
                     // Get members from project.member field (comma-separated string)
                     const memberIds = p.member
                       ? p.member
-                          .split(",")
-                          .map((m) => m.trim())
-                          .filter(Boolean)
-                          .map(Number)
+                        .split(",")
+                        .map((m) => m.trim())
+                        .filter(Boolean)
+                        .map(Number)
                       : [];
 
                     const radius = 22;
@@ -1935,19 +1955,19 @@ export default function ProjectsTD() {
                                             String(c.id) ===
                                             String(p.client_name),
                                         )?.fullName ??
-                                          clientsList.find(
-                                            (c) =>
-                                              String(c.id) ===
-                                              String(p.client_name),
-                                          )?.full_name ??
-                                          p.client_name ??
-                                          "",
+                                        clientsList.find(
+                                          (c) =>
+                                            String(c.id) ===
+                                            String(p.client_name),
+                                        )?.full_name ??
+                                        p.client_name ??
+                                        "",
                                       );
                                       setCreateProjectManager(
                                         p.project_manager
                                           ? p.project_manager
-                                              .split(",")
-                                              .map((s) => s.trim())
+                                            .split(",")
+                                            .map((s) => s.trim())
                                           : [],
                                       );
                                       setCreateStartDate(p.start_date ?? "");
@@ -1972,15 +1992,15 @@ export default function ProjectsTD() {
                                       setCreateBIMLead(
                                         p.bim_lead
                                           ? p.bim_lead
-                                              .split(",")
-                                              .map((s) => s.trim())
+                                            .split(",")
+                                            .map((s) => s.trim())
                                           : [],
                                       );
                                       setCreateBIMCoOrdinator(
                                         p.bim_co_ordinator
                                           ? p.bim_co_ordinator
-                                              .split(",")
-                                              .map((s) => s.trim())
+                                            .split(",")
+                                            .map((s) => s.trim())
                                           : [],
                                       );
                                       setCreateMember(p.member ?? "");
@@ -2005,7 +2025,7 @@ export default function ProjectsTD() {
                                                 if (
                                                   data.client_budget !== null &&
                                                   data.client_budget !==
-                                                    undefined
+                                                  undefined
                                                 ) {
                                                   setCreateBudget(
                                                     String(data.client_budget),
@@ -2079,9 +2099,9 @@ export default function ProjectsTD() {
                                   {visibleMembers.map((emp) => {
                                     const profileUrl = emp.profile_picture
                                       ? getGlobalProfileUrl(
-                                          emp.id,
-                                          emp.profile_picture,
-                                        )
+                                        emp.id,
+                                        emp.profile_picture,
+                                      )
                                       : null;
 
                                     return (
@@ -2134,11 +2154,10 @@ export default function ProjectsTD() {
                           <div className="flex items-center gap-3">
                             {p.priority && (
                               <div
-                                className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${
-                                  p.priority.toLowerCase() === "high"
+                                className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
                                     ? "bg-[#DD4342]"
                                     : "bg-[#94D6F2]"
-                                }`}
+                                  }`}
                               >
                                 {p.priority}
                               </div>
@@ -2238,10 +2257,10 @@ export default function ProjectsTD() {
                         department: createDepartment || undefined,
                         ...(createDepartment === "Submission Deadline"
                           ? {
-                              budget_ceiling: createBudgetCeiling || undefined,
-                              bidding_end_date:
-                                createBiddingEndDate || undefined,
-                            }
+                            budget_ceiling: createBudgetCeiling || undefined,
+                            bidding_end_date:
+                              createBiddingEndDate || undefined,
+                          }
                           : {}),
                         due_date: createEndDate || undefined,
                         start_date: createStartDate || undefined,
@@ -2294,13 +2313,13 @@ export default function ProjectsTD() {
                             const p2 = (res2.data.projects ?? []).map(mapApiProjectToProject);
                             setList([...p1, ...p2]);
                           })
-                          .catch(() => {});
+                          .catch(() => { });
                       }
                     })
                     .catch((err) =>
                       setCreateError(
                         err.response?.data?.message ||
-                          "Failed to create project",
+                        "Failed to create project",
                       ),
                     )
                     .finally(() => setCreateSubmitting(false));
@@ -2388,7 +2407,7 @@ export default function ProjectsTD() {
                         <span
                           className={
                             createDepartment === "Budget Ceiling" ||
-                            createDepartment === "Submission Deadline"
+                              createDepartment === "Submission Deadline"
                               ? "text-gray-700"
                               : "text-gray-400"
                           }
@@ -2682,11 +2701,11 @@ export default function ProjectsTD() {
                             const p2 = (res2.data.projects ?? []).map(mapApiProjectToProject);
                             setList([...p1, ...p2]);
                           })
-                          .catch(() => {});
+                          .catch(() => { });
                         setDeleteProject(null);
                       }
                     })
-                    .catch(() => {});
+                    .catch(() => { });
                 }}
                 className="px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
@@ -2738,7 +2757,7 @@ export default function ProjectsTD() {
                     setMilestoneNotes("");
                     fetchMilestones(currentProject.id);
                   })
-                  .catch(() => {});
+                  .catch(() => { });
               }}
               className="space-y-6 px-1"
             >
@@ -2946,9 +2965,9 @@ export default function ProjectsTD() {
                       department: createDepartment || undefined,
                       ...(isEditSourceOutsource
                         ? {
-                            budget_ceiling: createBudgetCeiling || undefined,
-                            bidding_end_date: createBiddingEndDate || undefined,
-                          }
+                          budget_ceiling: createBudgetCeiling || undefined,
+                          bidding_end_date: createBiddingEndDate || undefined,
+                        }
                         : {}),
                       due_date: createEndDate || undefined,
                       start_date: createStartDate || undefined,
@@ -2976,10 +2995,10 @@ export default function ProjectsTD() {
                             const p2 = (res2.data.projects ?? []).map(mapApiProjectToProject);
                             setList([...p1, ...p2]);
                           })
-                          .catch(() => {});
+                          .catch(() => { });
                       }
                     })
-                    .catch(() => {})
+                    .catch(() => { })
                     .finally(() => setIsEditSubmitting(false));
                 }}
                 className="space-y-8"
@@ -3041,7 +3060,7 @@ export default function ProjectsTD() {
                         <span
                           className={
                             createDepartment === "Budget Ceiling" ||
-                            createDepartment === "Submission Deadline"
+                              createDepartment === "Submission Deadline"
                               ? "text-gray-700"
                               : "text-gray-400"
                           }
@@ -3074,11 +3093,10 @@ export default function ProjectsTD() {
                               setCreateDepartment("");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${
-                              !createDepartment
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${!createDepartment
                                 ? "bg-[#E2EEFF] text-[#1D7AFC]"
                                 : "text-gray-700"
-                            }`}
+                              }`}
                           >
                             Select Source
                           </button>
@@ -3088,11 +3106,10 @@ export default function ProjectsTD() {
                               setCreateDepartment("Budget Ceiling");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${
-                              createDepartment === "Budget Ceiling"
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${createDepartment === "Budget Ceiling"
                                 ? "bg-[#E2EEFF] text-[#1D7AFC]"
                                 : "text-gray-700"
-                            }`}
+                              }`}
                           >
                             In House
                           </button>
@@ -3102,11 +3119,10 @@ export default function ProjectsTD() {
                               setCreateDepartment("Submission Deadline");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${
-                              createDepartment === "Submission Deadline"
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${createDepartment === "Submission Deadline"
                                 ? "bg-[#E2EEFF] text-[#1D7AFC]"
                                 : "text-gray-700"
-                            }`}
+                              }`}
                           >
                             Outsource
                           </button>
@@ -3305,7 +3321,7 @@ export default function ProjectsTD() {
                         (isEditSourceOutsource &&
                           createBudgetCeiling.trim() &&
                           parseBudgetValue(createBudgetCeiling) >
-                            parseBudgetValue(createBudget))
+                          parseBudgetValue(createBudget))
                       )
                     }
                     className="px-8 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-Gantari font-semibold text-[16px] transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"

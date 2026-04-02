@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { FiGrid, FiMenu, FiX } from "react-icons/fi";
@@ -441,16 +441,25 @@ export default function ConsultantBL() {
       if (isActive) return false;
     }
 
-    if (typeFilter === "Employee") {
-      const currentType = (emp.user_type || "").toLowerCase();
-      if (currentType !== "employee") return false;
-    } else if (typeFilter === "Trainee") {
-      const currentType = (emp.user_type || "").toLowerCase();
-      if (currentType !== "trainee") return false;
-    }
+      if (statusFilter === "Active") {
+        const isActive = (emp.active || "").toLowerCase() === "active";
+        if (!isActive) return false;
+      } else if (statusFilter === "Deactivate") {
+        const isActive = (emp.active || "").toLowerCase() === "active";
+        if (isActive) return false;
+      }
 
-    return true;
-  });
+      if (typeFilter === "Employee") {
+        const currentType = (emp.user_type || "").toLowerCase();
+        if (currentType !== "employee") return false;
+      } else if (typeFilter === "Trainee") {
+        const currentType = (emp.user_type || "").toLowerCase();
+        if (currentType !== "trainee") return false;
+      }
+
+      return true;
+    });
+  }, [list, searchParams, statusFilter, typeFilter]);
 
   const effectiveShowEntryValue =
     selectedShowEntries || showEntriesOptions[0].value;

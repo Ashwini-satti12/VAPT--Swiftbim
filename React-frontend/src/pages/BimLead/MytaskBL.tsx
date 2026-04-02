@@ -1,4 +1,4 @@
- import { useEffect, useState, useRef } from "react";
+ import { useEffect, useState, useRef, useMemo } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import api from "../../lib/api";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
@@ -621,35 +621,69 @@ export default function MytaskBL() {
             .finally(() => setLoading(false));
     }, [isTeam, statusFilter]);
 
-    const allTasks = list.filter((t) => {
-        // Employee filter
-        if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
-            if (t.assigned_full_name !== selectedEmployee) return false;
-        }
-        // Project filter
-        if (selectedProject && !["Select Projects", "Show All", "Projects"].includes(selectedProject)) {
-            if (t.project_name !== selectedProject) return false;
-        }
-        // Period filter 
-        if (selectedPeriod && !["Period", "Show All"].includes(selectedPeriod)) {
-            const taskDate = new Date(t.created_at || t.start_date || "");
-            const now = new Date();
-            if (selectedPeriod === "This Week") {
-                const weekAgo = new Date();
-                weekAgo.setDate(now.getDate() - 7);
-                if (taskDate < weekAgo) return false;
-            } else if (selectedPeriod === "This Month") {
-                const monthAgo = new Date();
-                monthAgo.setMonth(now.getMonth() - 1);
-                if (taskDate < monthAgo) return false;
-            } else if (selectedPeriod === "This Quarter") {
-                const quarterAgo = new Date();
-                quarterAgo.setMonth(now.getMonth() - 3);
-                if (taskDate < quarterAgo) return false;
+    const filteredTasks = useMemo(() => {
+        const q = searchParams.get("q")?.toLowerCase() || "";
+        return list.filter((t) => {
+            // Employee filter
+            if (
+                selectedEmployee &&
+                !["Select Employee", "Show All", "Employee"].includes(
+                    selectedEmployee
+                )
+            ) {
+                if (t.assigned_full_name !== selectedEmployee) return false;
             }
-        }
-        return true;
-    });
+            // Project filter
+            if (
+                selectedProject &&
+                !["Select Projects", "Show All", "Projects"].includes(
+                    selectedProject
+                )
+            ) {
+                if (t.project_name !== selectedProject) return false;
+            }
+            // Period filter
+            if (
+                selectedPeriod &&
+                !["Period", "Show All"].includes(selectedPeriod)
+            ) {
+                const taskDate = new Date(t.created_at || t.start_date || "");
+                const now = new Date();
+                if (selectedPeriod === "This Week") {
+                    const weekAgo = new Date();
+                    weekAgo.setDate(now.getDate() - 7);
+                    if (taskDate < weekAgo) return false;
+                } else if (selectedPeriod === "This Month") {
+                    const monthAgo = new Date();
+                    monthAgo.setMonth(now.getMonth() - 1);
+                    if (taskDate < monthAgo) return false;
+                } else if (selectedPeriod === "This Quarter") {
+                    const quarterAgo = new Date();
+                    quarterAgo.setMonth(now.getMonth() - 3);
+                    if (taskDate < quarterAgo) return false;
+                }
+            }
+
+            // Search filter
+            if (q) {
+                const matches = [
+                    t.task_name,
+                    t.project_name,
+                    t.module,
+                    t.type,
+                    t.description,
+                    t.assigned_full_name,
+                    t.uploader_full_name,
+                    t.status,
+                ].some((f) => (f || "").toLowerCase().includes(q));
+                if (!matches) return false;
+            }
+
+            return true;
+        });
+    }, [list, searchParams, selectedEmployee, selectedProject, selectedPeriod]);
+
+    const allTasks = filteredTasks;
 
     const counts = {
         todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo").length,
