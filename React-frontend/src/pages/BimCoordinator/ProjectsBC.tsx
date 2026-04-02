@@ -2036,58 +2036,42 @@ export default function ProjectsBC() {
                       </label>
                     </div>
                     {createFiles.length > 0 && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-2">
                         {createFiles.map((file, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center gap-3 p-3 bg-white border border-[#AEACAC52] rounded-[8px] group transition-all hover:border-[#DD4342]"
+                            className="flex items-center gap-3 p-3 bg-[#F2F3F4] rounded-[5px] group w-full"
                           >
-                            <div className="w-10 h-10 rounded-lg bg-[#F2F3F4] flex items-center justify-center text-[#DD4342]">
-                              <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                />
-                              </svg>
-                            </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-[14px] font-semibold text-[#333] truncate">
+                              <p className="text-[14px] font-semibold text-[#353535] truncate">
                                 {file.name}
                               </p>
-                              <p className="text-[12px] text-gray-500">
+                              <p className="text-[12px] font-medium text-[#8B8B8B]">
                                 {(file.size / 1024).toFixed(1)} KB
                               </p>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setCreateFiles((prev) =>
-                                  prev.filter((_, i) => i !== idx),
-                                )
-                              }
-                              className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
-                            >
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                            <div className="flex items-center gap-3 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                                className="text-[#DD4342] hover:opacity-80 transition-opacity cursor-pointer shrink-0"
+                                title="View file"
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M6 18L18 6M6 6l12 12"
-                                />
-                              </svg>
-                            </button>
+                                <img src={viewIcon} alt="View" className="w-5 h-5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setCreateFiles((prev) =>
+                                    prev.filter((_, i) => i !== idx),
+                                  )
+                                }
+                                className="text-[#616161] hover:text-[#DD4342] transition-colors cursor-pointer shrink-0"
+                                title="Remove file"
+                              >
+                                <img src={deleteIcon} alt="Delete" className="w-5 h-5" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -2739,66 +2723,42 @@ export default function ProjectsBC() {
                       </label>
                     </div>
                     {(existingFiles.length > 0 || createFiles.length > 0) && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-2">
                         {/* Existing Files */}
                         {existingFiles.map((fileName, idx) => (
                           <div
                             key={`exist-${idx}`}
-                            className="flex items-center gap-3 p-3 bg-[#EEF4FF] border border-[#C7D9FF] rounded-[8px] group"
+                            className="flex items-center gap-3 p-3 bg-[#F2F3F4] rounded-[5px] group w-full"
                           >
-                            <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-[#1D7AFC]">
-                              <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                />
-                              </svg>
-                            </div>
                             <div className="flex-1 min-w-0">
+                              <p className="text-[14px] font-semibold text-[#353535] truncate">{fileName}</p>
+                              <p className="text-[12px] font-medium text-[#8B8B8B]">Existing File</p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
                               <a
                                 href={`${api.defaults.baseURL}/uploads/${fileName}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[14px] font-semibold text-[#1D7AFC] hover:underline truncate block cursor-pointer"
+                                className="text-[#DD4342] hover:opacity-80 transition-opacity cursor-pointer shrink-0"
+                                title="View file"
                               >
-                                {fileName}
+                                <img src={viewIcon} alt="View" className="w-5 h-5" />
                               </a>
-                              <p className="text-[12px] text-[#1D7AFC]/70">
-                                Existing File
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const file = existingFiles[idx];
-                                setExistingFiles((prev) =>
-                                  prev.filter((_, i) => i !== idx),
-                                );
-                                setRemovedFiles((prev) => [...prev, file]);
-                              }}
-                              className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
-                            >
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const file = existingFiles[idx];
+                                  setExistingFiles((prev) =>
+                                    prev.filter((_, i) => i !== idx),
+                                  );
+                                  setRemovedFiles((prev) => [...prev, file]);
+                                }}
+                                className="text-[#616161] hover:text-[#DD4342] transition-colors cursor-pointer shrink-0"
+                                title="Remove file"
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M6 18L18 6M6 6l12 12"
-                                />
-                              </svg>
-                            </button>
+                                <img src={deleteIcon} alt="Delete" className="w-5 h-5" />
+                              </button>
+                            </div>
                           </div>
                         ))}
 
@@ -2806,54 +2766,34 @@ export default function ProjectsBC() {
                         {createFiles.map((file, idx) => (
                           <div
                             key={`new-${idx}`}
-                            className="flex items-center gap-3 p-3 bg-white border border-[#AEACAC52] rounded-[8px] group transition-all hover:border-[#DD4342]"
+                            className="flex items-center gap-3 p-3 bg-[#F2F3F4] rounded-[5px] group w-full"
                           >
-                            <div className="w-10 h-10 rounded-lg bg-[#F2F3F4] flex items-center justify-center text-[#DD4342]">
-                              <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                />
-                              </svg>
-                            </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-[14px] font-semibold text-[#333] truncate">
-                                {file.name}
-                              </p>
-                              <p className="text-[12px] text-gray-500">
-                                {(file.size / 1024).toFixed(1)} KB
-                              </p>
+                              <p className="text-[14px] font-semibold text-[#353535] truncate">{file.name}</p>
+                              <p className="text-[12px] font-medium text-[#8B8B8B]">{(file.size / 1024).toFixed(1)} KB</p>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setCreateFiles((prev) =>
-                                  prev.filter((_, i) => i !== idx),
-                                )
-                              }
-                              className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
-                            >
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                            <div className="flex items-center gap-3 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                                className="text-[#DD4342] hover:opacity-80 transition-opacity cursor-pointer shrink-0"
+                                title="View file"
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M6 18L18 6M6 6l12 12"
-                                />
-                              </svg>
-                            </button>
+                                <img src={viewIcon} alt="View" className="w-5 h-5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setCreateFiles((prev) =>
+                                    prev.filter((_, i) => i !== idx),
+                                  )
+                                }
+                                className="text-[#616161] hover:text-[#DD4342] transition-colors cursor-pointer shrink-0"
+                                title="Remove file"
+                              >
+                                <img src={deleteIcon} alt="Delete" className="w-5 h-5" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -2898,7 +2838,37 @@ export default function ProjectsBC() {
               {canCreate && (
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(true)}
+                  onClick={() => {
+                    setCreateName("");
+                    setCreateBudget("");
+                    setCreateClientName("");
+                    setCreateProjectManager("");
+                    setCreateStartDate("");
+                    setCreateEndDate("");
+                    setCreateTotalHours("");
+                    setCreatePerDay("");
+                    setCreateDepartment("");
+                    setCreateBIMLead("");
+                    setCreateBIMCoOrdinator("");
+                    setCreateDescription("");
+                    setCreateFiles([]);
+                    setExistingFiles([]);
+                    setRemovedFiles([]);
+                    setCreateResources("");
+                    setCreateRequiredResources("");
+                    setCreatePriority("");
+                    setCreateLocation("");
+                    setModuleNameTags([]);
+                    setModuleNameInput("");
+                    setEditModuleTags([]);
+                    setEditModuleInput("");
+                    setSelectedMemberIds([]);
+                    setMemberSearch("");
+                    setEditTaskTags([]);
+                    setEditTaskInput("");
+                    setCreateError("");
+                    setShowCreateModal(true);
+                  }}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
                 >
                   <img src={addBtnIcon} alt="Add" className="w-5 h-5" />

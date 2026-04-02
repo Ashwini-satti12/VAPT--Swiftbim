@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { FiGrid, FiMenu, FiX } from "react-icons/fi";
@@ -19,6 +19,23 @@ import editIcon from "../../assets/ProjectManager/consultant/editIcon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import projectViewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import projectEditIcon from "../../assets/ProjectManager/project/editIcon.svg";
+
+const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
+const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
+const showEntriesOptions: {
+  value: string;
+  label: string;
+  start: number;
+  end: number | null;
+}[] = [
+  { value: "1-50", label: "1-50", start: 0, end: 50 },
+  { value: "51-100", label: "51-100", start: 50, end: 100 },
+  { value: "101-150", label: "101-150", start: 100, end: 150 },
+  { value: "151-200", label: "151-200", start: 150, end: 200 },
+  { value: "201-250", label: "201-250", start: 200, end: 250 },
+  { value: "251-300", label: "251-300", start: 250, end: 300 },
+  { value: "all", label: "All", start: 0, end: null },
+];
 
 interface Employee {
   id: number;
@@ -103,7 +120,6 @@ const toCamelCase = (str: string): string => {
     .join(" ");
 };
 
-const SHOW_OPTIONS = ["1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
 
 const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar {
@@ -316,7 +332,10 @@ export default function ConsultantBL() {
     null,
   );
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedShow, setSelectedShow] = useState<string>("");
+  const [selectedShowEntries, setSelectedShowEntries] = useState("");
+  const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+  const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
   const [statusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
 
@@ -390,56 +409,60 @@ export default function ConsultantBL() {
     }
   }, [editParam, list, navigate, setSearchParams]);
 
-  const filteredList = useMemo(() => {
-    const q = searchParams.get("q")?.toLowerCase() || "";
-    return list.filter((emp) => {
-      if (q) {
-        const matches = [
-          emp.full_name,
-          emp.email,
-          emp.user_role,
-          emp.empid,
-          emp.phone_number,
-          emp.department,
-          emp.address,
-        ].some((f) => (f || "").toLowerCase().includes(q));
-        if (!matches) return false;
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const t = event.target as Node;
+      if (
+        showEntriesOpen &&
+        showEntriesDropdownRef.current &&
+        !showEntriesDropdownRef.current.contains(t)
+      ) {
+        setShowEntriesOpen(false);
       }
-
-      if (statusFilter === "Active") {
-        const isActive = (emp.active || "").toLowerCase() === "active";
-        if (!isActive) return false;
-      } else if (statusFilter === "Deactivate") {
-        const isActive = (emp.active || "").toLowerCase() === "active";
-        if (isActive) return false;
-      }
-
-      if (typeFilter === "Employee") {
-        const currentType = (emp.user_type || "").toLowerCase();
-        if (currentType !== "employee") return false;
-      } else if (typeFilter === "Trainee") {
-        const currentType = (emp.user_type || "").toLowerCase();
-        if (currentType !== "trainee") return false;
-      }
-
-      return true;
-    });
-  }, [list, searchParams, statusFilter, typeFilter]);
-
-  let limitStart = 0;
-  let limitEnd = Infinity;
-  if (selectedShow && selectedShow.includes("-")) {
-    const parts = selectedShow.split("-");
-    if (parts.length === 2) {
-      limitStart = parseInt(parts[0], 10) - 1;
-      limitEnd = parseInt(parts[1], 10);
+    };
+    if (showEntriesOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
     }
-  } else if (selectedShow === "All") {
-    limitStart = 0;
-    limitEnd = Infinity;
-  }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showEntriesOpen]);
 
-  const displayedList = filteredList.slice(limitStart, limitEnd);
+  useEffect(() => {
+    if (showEntriesOpen && showEntriesDropdownContentRef.current) {
+      showEntriesDropdownContentRef.current.scrollTop = 0;
+    }
+  }, [showEntriesOpen]);
+
+  const filteredList = list.filter((emp) => {
+    if (statusFilter === "Active") {
+      const isActive = (emp.active || "").toLowerCase() === "active";
+      if (!isActive) return false;
+    } else if (statusFilter === "Deactivate") {
+      const isActive = (emp.active || "").toLowerCase() === "active";
+      if (isActive) return false;
+    }
+
+    if (typeFilter === "Employee") {
+      const currentType = (emp.user_type || "").toLowerCase();
+      if (currentType !== "employee") return false;
+    } else if (typeFilter === "Trainee") {
+      const currentType = (emp.user_type || "").toLowerCase();
+      if (currentType !== "trainee") return false;
+    }
+
+    return true;
+  });
+
+  const effectiveShowEntryValue =
+    selectedShowEntries || showEntriesOptions[0].value;
+  const selectedRange =
+    showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ??
+    showEntriesOptions[0];
+  const rangeStart = selectedRange.start;
+  const rangeEnd =
+    selectedRange.end === null
+      ? filteredList.length
+      : Math.min(selectedRange.end, filteredList.length);
+  const displayedList = filteredList.slice(rangeStart, rangeEnd);
 
   function handleInvite(e: React.FormEvent) {
     e.preventDefault();
@@ -554,18 +577,111 @@ export default function ConsultantBL() {
               )}
             </div>
             <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
-              {viewMode === "table" && (
-                <CustomDropdown
-                  options={SHOW_OPTIONS}
-                  value={selectedShow}
-                  onChange={(val) => setSelectedShow(val)}
-                  placeholder="Show entries"
-                  className="w-[140px]"
-                  styleType="header"
-                  alignMenu="right"
-                  menuMaxHeightClass="max-h-[168px]"
-                />
-              )}
+              <div
+                className="relative min-w-[140px] max-w-[200px] w-[150px]"
+                ref={showEntriesDropdownRef}
+              >
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowEntriesOpen((o) => !o);
+                  }}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                >
+                  <span
+                    className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                      selectedShowEntries === ""
+                        ? "text-[#8B8B8B]"
+                        : "text-[#353535]"
+                    }`}
+                  >
+                    {selectedShowEntries === "" ? (
+                      SHOW_ENTRIES_PLACEHOLDER
+                    ) : (
+                      <>
+                        <span className="text-[14px]">
+                          {SHOW_ENTRIES_SELECTED_PREFIX}
+                        </span>{" "}
+                        <span className="font-semibold">
+                          {selectedRange.label}
+                        </span>
+                      </>
+                    )}
+                  </span>
+                  <img
+                    src={ArrowDown}
+                    alt=""
+                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                      showEntriesOpen ? "rotate-180" : ""
+                    } ${
+                      selectedShowEntries === ""
+                        ? "opacity-60 grayscale"
+                        : "opacity-90"
+                    }`}
+                    aria-hidden
+                  />
+                </button>
+                {showEntriesOpen && (
+                  <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                    <div
+                      ref={showEntriesDropdownContentRef}
+                      className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                    >
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedShowEntries("");
+                          setShowEntriesOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                      >
+                        {SHOW_ENTRIES_PLACEHOLDER}
+                      </button>
+                      {showEntriesOptions.map((opt) => {
+                        const isChosen = selectedShowEntries === opt.value;
+                        return (
+                          <button
+                            key={`${opt.value}-${opt.start}-${String(opt.end)}`}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setSelectedShowEntries(opt.value);
+                              setShowEntriesOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${
+                              isChosen
+                                ? "text-[#353535] bg-[#F2F2F2]"
+                                : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                            }`}
+                          >
+                            <span className="truncate min-w-0">{opt.label}</span>
+                            {isChosen && (
+                              <svg
+                                className="w-4 h-4 shrink-0 text-[#353535]"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                aria-hidden
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2.5}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
               <CustomDropdown
                 options={["All", "Employee", "Trainee"]}
                 value={typeFilter}
@@ -788,7 +904,7 @@ export default function ConsultantBL() {
                       </tr>
                     ) : (
                       displayedList.map((emp, idx) => {
-                        const slNo = (limitStart + idx + 1)
+                        const slNo = (rangeStart + idx + 1)
                           .toString()
                           .padStart(2, "0");
                         return (

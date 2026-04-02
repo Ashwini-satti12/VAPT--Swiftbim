@@ -1363,7 +1363,7 @@ export default function ManageLeave() {
         </div>
       )}
 
-      {/* Apply Leave Modal */}
+      {/* Apply Leave Modal — shell aligned with BimModeler ManageLeave */}
       {applyModalOpen &&
         createPortal(
           <div
@@ -1371,14 +1371,14 @@ export default function ManageLeave() {
             onClick={handleCloseModal}
           >
             <div
-              className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-[#E5E5E5]"
+              className="bg-white rounded-md shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col border border-[#E5E5E5]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="relative flex items-center justify-center px-6 py-5 flex-shrink-0 border-b border-[#EEEEEE] bg-[#FAFAFA]">
+              <div className="relative flex items-center justify-center px-6 py-2 flex-shrink-0">
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] hover:bg-[#E8E8E8] transition-colors cursor-pointer"
+                  className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] transition-colors"
                   aria-label="Close"
                 >
                   <img
@@ -1387,18 +1387,18 @@ export default function ManageLeave() {
                     className="w-5 h-5 object-contain"
                   />
                 </button>
-                <h3 className="text-xl font-medium text-[#000000] text-center">
+                <h3 className="text-[24px] font-medium text-[#000000]">
                   Apply Leave
                 </h3>
               </div>
 
               <form
                 onSubmit={handleSubmitApply}
-                className="flex flex-col flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar"
+                className="flex flex-col flex-1 overflow-y-auto px-6 py-4 space-y-2 custom-scrollbar"
               >
                 <div>
                   <label className="block text-base font-semibold text-[#000000] mb-2">
-                    Employee Name <span className="text-[#DD4342]">*</span>
+                    Employee Name
                   </label>
                   <input
                     type="text"
@@ -1411,10 +1411,10 @@ export default function ManageLeave() {
                     readOnly
                     disabled
                     placeholder="Employee name"
-                    className={`w-full px-4 py-2.5 bg-[#E5E5E5] rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none disabled:opacity-80 disabled:cursor-not-allowed ${
+                    className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none bg-[#F2F3F4] border-0 disabled:opacity-70 disabled:cursor-not-allowed placeholder-[#8B8B8B] ${
                       applyFormErrors.employeeName
-                        ? "border border-[#DD4342]"
-                        : "border-0"
+                        ? "ring-1 ring-[#DD4342]"
+                        : ""
                     }`}
                   />
                   {applyFormErrors.employeeName && (
@@ -1431,7 +1431,7 @@ export default function ManageLeave() {
                   <button
                     type="button"
                     onClick={() => setLeaveTypeOpen((o) => !o)}
-                    className={`w-full px-4 py-2.5 bg-[#F2F3F4] rounded-lg text-left flex items-center justify-between focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] min-h-[40px] text-sm transition-colors cursor-pointer ${leaveTypeOpen ? "ring-1 ring-[#D2D2D2]" : applyFormErrors.leaveType ? "border border-[#DD4342]" : "border-0"}`}
+                    className={`cursor-pointer w-full px-4 py-2.5 rounded-lg text-left text-sm flex items-center justify-between min-h-[40px] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] transition-colors border-0 bg-[#F2F3F4] ${leaveTypeOpen ? "ring-1 ring-[#D2D2D2]" : applyFormErrors.leaveType ? "ring-1 ring-[#DD4342]" : ""}`}
                   >
                     <span
                       className={
@@ -1440,7 +1440,7 @@ export default function ManageLeave() {
                           : "text-[#8B8B8B]"
                       }
                     >
-                      {leaveType || "Select leave type"}
+                      {leaveType || "Nothing selected"}
                     </span>
                     <svg
                       width="14"
@@ -1469,7 +1469,7 @@ export default function ManageLeave() {
                           setLeaveTypeId(null);
                           setLeaveTypeOpen(false);
                         }}
-                        className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer ${!leaveType ? "text-[#353535] bg-[#F0F2F7]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]"}`}
+                        className={`cursor-pointer w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${!leaveType ? "text-[#353535] bg-[#F0F2F7]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]"}`}
                       >
                         Nothing selected
                       </button>
@@ -1491,7 +1491,7 @@ export default function ManageLeave() {
                                   leaveType: "",
                                 }));
                             }}
-                            className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer ${isSelected ? "text-[#353535] bg-[#F0F2F7]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]"}`}
+                            className={`cursor-pointer w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${isSelected ? "text-[#353535] bg-[#F0F2F7]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]"}`}
                           >
                             {title}
                           </button>
@@ -1506,107 +1506,108 @@ export default function ManageLeave() {
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-base font-semibold text-[#000000] mb-2">
-                    Leave From <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      min={todayInputDate}
-                      value={leaveFrom}
-                      onChange={(e) => {
-                        setLeaveFrom(e.target.value);
-                        if (applyFormErrors.leaveFrom)
-                          setApplyFormErrors((prev) => ({
-                            ...prev,
-                            leaveFrom: "",
-                          }));
-                        if (
-                          applyFormErrors.leaveTo &&
-                          leaveTo &&
-                          e.target.value <= leaveTo
-                        )
-                          setApplyFormErrors((prev) => ({
-                            ...prev,
-                            leaveTo: "",
-                          }));
-                      }}
-                      className={`w-full px-4 py-2.5 bg-[#F2F3F4] rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveFrom ? "border border-[#DD4342]" : "border-0"}`}
-                      style={{ colorScheme: "light" }}
-                    />
-                    <svg
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <rect
-                        x="3"
-                        y="4"
-                        width="18"
-                        height="18"
-                        rx="2"
-                        ry="2"
-                        strokeWidth="1.5"
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-base font-semibold text-[#000000] mb-2">
+                      Leave From <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        min={todayInputDate}
+                        value={leaveFrom}
+                        onChange={(e) => {
+                          setLeaveFrom(e.target.value);
+                          if (applyFormErrors.leaveFrom)
+                            setApplyFormErrors((prev) => ({
+                              ...prev,
+                              leaveFrom: "",
+                            }));
+                          if (
+                            applyFormErrors.leaveTo &&
+                            leaveTo &&
+                            e.target.value <= leaveTo
+                          )
+                            setApplyFormErrors((prev) => ({
+                              ...prev,
+                              leaveTo: "",
+                            }));
+                        }}
+                        className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] border-0 bg-[#F2F3F4] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveFrom ? "ring-1 ring-[#DD4342]" : ""}`}
+                        style={{ colorScheme: "light" }}
                       />
-                      <line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" />
-                      <line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" />
-                      <line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" />
-                    </svg>
+                      <svg
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <rect
+                          x="3"
+                          y="4"
+                          width="18"
+                          height="18"
+                          rx="2"
+                          ry="2"
+                          strokeWidth="1.5"
+                        />
+                        <line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" />
+                        <line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" />
+                        <line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" />
+                      </svg>
+                    </div>
+                    {applyFormErrors.leaveFrom && (
+                      <p className="mt-1.5 text-sm text-[#DD4342]">
+                        {applyFormErrors.leaveFrom}
+                      </p>
+                    )}
                   </div>
-                  {applyFormErrors.leaveFrom && (
-                    <p className="mt-1.5 text-sm text-[#DD4342]">
-                      {applyFormErrors.leaveFrom}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-base font-semibold text-[#000000] mb-2">
-                    Leave To <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      min={todayInputDate}
-                      value={leaveTo}
-                      onChange={(e) => {
-                        setLeaveTo(e.target.value);
-                        if (applyFormErrors.leaveTo)
-                          setApplyFormErrors((prev) => ({
-                            ...prev,
-                            leaveTo: "",
-                          }));
-                      }}
-                      className={`w-full px-4 py-2.5 bg-[#F2F3F4] rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveTo ? "border border-[#DD4342]" : "border-0"}`}
-                      style={{ colorScheme: "light" }}
-                    />
-                    <svg
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <rect
-                        x="3"
-                        y="4"
-                        width="18"
-                        height="18"
-                        rx="2"
-                        ry="2"
-                        strokeWidth="1.5"
+                  <div>
+                    <label className="block text-base font-semibold text-[#000000] mb-2">
+                      Leave To <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        min={leaveFrom || todayInputDate}
+                        value={leaveTo}
+                        onChange={(e) => {
+                          setLeaveTo(e.target.value);
+                          if (applyFormErrors.leaveTo)
+                            setApplyFormErrors((prev) => ({
+                              ...prev,
+                              leaveTo: "",
+                            }));
+                        }}
+                        className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] border-0 bg-[#F2F3F4] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveTo ? "ring-1 ring-[#DD4342]" : ""}`}
+                        style={{ colorScheme: "light" }}
                       />
-                      <line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" />
-                      <line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" />
-                      <line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" />
-                    </svg>
+                      <svg
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <rect
+                          x="3"
+                          y="4"
+                          width="18"
+                          height="18"
+                          rx="2"
+                          ry="2"
+                          strokeWidth="1.5"
+                        />
+                        <line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" />
+                        <line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" />
+                        <line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" />
+                      </svg>
+                    </div>
+                    {applyFormErrors.leaveTo && (
+                      <p className="mt-1.5 text-sm text-[#DD4342]">
+                        {applyFormErrors.leaveTo}
+                      </p>
+                    )}
                   </div>
-                  {applyFormErrors.leaveTo && (
-                    <p className="mt-1.5 text-sm text-[#DD4342]">
-                      {applyFormErrors.leaveTo}
-                    </p>
-                  )}
                 </div>
 
                 <div>
@@ -1622,9 +1623,9 @@ export default function ManageLeave() {
                       if (applyFormErrors.reason)
                         setApplyFormErrors((prev) => ({ ...prev, reason: "" }));
                     }}
-                    rows={5}
+                    rows={3}
                     placeholder="Enter your reason for leave..."
-                    className={`w-full px-4 py-2.5 bg-[#F2F3F4] rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] transition-colors resize-y min-h-[120px] ${applyFormErrors.reason ? "border border-[#DD4342]" : "border-0"}`}
+                    className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] resize-none border-0 bg-[#F2F3F4] ${applyFormErrors.reason ? "ring-1 ring-[#DD4342]" : ""}`}
                   />
                   {applyFormErrors.reason && (
                     <p className="mt-1.5 text-sm text-[#DD4342]">
@@ -1633,17 +1634,17 @@ export default function ManageLeave() {
                   )}
                 </div>
 
-                <div className="pt-2 flex justify-center gap-3">
+                <div className="flex gap-3 pt-2">
                   <button
                     type="button"
                     onClick={handleCloseModal}
-                    className="px-6 py-2.5 rounded-md font-medium text-[#616161] bg-[#F2F2F2] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
+                    className="cursor-pointer flex-1 px-4 py-2.5 rounded-lg font-medium text-[#616161] bg-[#F2F2F2] hover:bg-[#E5E5E5] transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-8 py-2.5 bg-[#DD4342] text-white rounded-md font-medium  active:scale-[0.98] transition-all shadow-sm cursor-pointer"
+                    className="cursor-pointer flex-1 px-4 py-2.5 bg-[#DD4342] text-white rounded-lg font-semibold hover:bg-[#c43a39] active:scale-[0.98] transition-all shadow-sm"
                   >
                     Submit
                   </button>
@@ -1654,23 +1655,23 @@ export default function ManageLeave() {
           document.body,
         )}
 
-      {/* Edit Leave Modal */}
+      {/* Edit Leave Modal — shell aligned with BimModeler ManageLeave */}
       {editModalOpen &&
         editingLeave &&
         createPortal(
           <div
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-2 bg-black/60 backdrop-blur-sm"
             onClick={handleCloseEditModal}
           >
             <div
-              className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-[#E5E5E5]"
+              className="bg-white rounded-md shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col border border-[#E5E5E5]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="relative flex items-center justify-center px-6 py-5 flex-shrink-0 border-b border-[#EEEEEE] bg-[#FAFAFA]">
+              <div className="relative flex items-center justify-center px-6 py-2 flex-shrink-0">
                 <button
                   type="button"
                   onClick={handleCloseEditModal}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] hover:bg-[#E8E8E8] transition-colors cursor-pointer"
+                  className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] transition-colors"
                   aria-label="Close"
                 >
                   <img
@@ -1679,18 +1680,18 @@ export default function ManageLeave() {
                     className="w-5 h-5 object-contain"
                   />
                 </button>
-                <h3 className="text-xl font-medium text-[#000000] text-center">
+                <h3 className="text-[24px] font-medium text-[#000000]">
                   Edit Leave
                 </h3>
               </div>
 
               <form
                 onSubmit={handleSubmitEdit}
-                className="flex flex-col flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar"
+                className="flex flex-col flex-1 overflow-y-auto px-6 py-6 space-y-2 custom-scrollbar"
               >
                 <div>
                   <label className="block text-base font-semibold text-[#000000] mb-2">
-                    Employee Name <span className="text-[#DD4342]">*</span>
+                    Employee Name
                   </label>
                   <input
                     type="text"
@@ -1703,10 +1704,10 @@ export default function ManageLeave() {
                     readOnly
                     disabled
                     placeholder="Employee name"
-                    className={`w-full px-4 py-2.5 bg-[#E5E5E5] rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none disabled:opacity-80 disabled:cursor-not-allowed ${
+                    className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none bg-[#F2F3F4] border-0 disabled:opacity-70 disabled:cursor-not-allowed placeholder-[#8B8B8B] ${
                       applyFormErrors.employeeName
-                        ? "border border-[#DD4342]"
-                        : "border-0"
+                        ? "ring-1 ring-[#DD4342]"
+                        : ""
                     }`}
                   />
                   {applyFormErrors.employeeName && (
@@ -1723,7 +1724,7 @@ export default function ManageLeave() {
                   <button
                     type="button"
                     onClick={() => setLeaveTypeOpenEdit((o) => !o)}
-                    className={`w-full px-4 py-2.5 bg-[#F2F3F4] rounded-lg text-left flex items-center justify-between focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] min-h-[40px] text-sm transition-colors cursor-pointer ${leaveTypeOpenEdit ? "ring-1 ring-[#D2D2D2]" : applyFormErrors.leaveType ? "border border-[#DD4342]" : "border-0"}`}
+                    className={`cursor-pointer w-full px-4 py-2.5 rounded-lg text-left text-sm flex items-center justify-between min-h-[40px] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] transition-colors border-0 bg-[#F2F3F4] ${leaveTypeOpenEdit ? "ring-1 ring-[#D2D2D2]" : applyFormErrors.leaveType ? "ring-1 ring-[#DD4342]" : ""}`}
                   >
                     <span
                       className={
@@ -1732,7 +1733,7 @@ export default function ManageLeave() {
                           : "text-[#8B8B8B]"
                       }
                     >
-                      {leaveType || "Select leave type"}
+                      {leaveType || "Nothing selected"}
                     </span>
                     <svg
                       width="14"
@@ -1761,7 +1762,7 @@ export default function ManageLeave() {
                           setLeaveTypeId(null);
                           setLeaveTypeOpenEdit(false);
                         }}
-                        className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer ${!leaveType ? "text-[#353535] bg-[#F0F2F7]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]"}`}
+                        className={`cursor-pointer w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${!leaveType ? "text-[#353535] bg-[#F0F2F7]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]"}`}
                       >
                         Nothing selected
                       </button>
@@ -1783,7 +1784,7 @@ export default function ManageLeave() {
                                   leaveType: "",
                                 }));
                             }}
-                            className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer ${isSelected ? "text-[#353535] bg-[#F0F2F7]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]"}`}
+                            className={`cursor-pointer w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${isSelected ? "text-[#353535] bg-[#F0F2F7]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]"}`}
                           >
                             {title}
                           </button>
@@ -1798,107 +1799,108 @@ export default function ManageLeave() {
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-base font-semibold text-[#000000] mb-2">
-                    Leave From <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      min={todayInputDate}
-                      value={leaveFrom}
-                      onChange={(e) => {
-                        setLeaveFrom(e.target.value);
-                        if (applyFormErrors.leaveFrom)
-                          setApplyFormErrors((prev) => ({
-                            ...prev,
-                            leaveFrom: "",
-                          }));
-                        if (
-                          applyFormErrors.leaveTo &&
-                          leaveTo &&
-                          e.target.value <= leaveTo
-                        )
-                          setApplyFormErrors((prev) => ({
-                            ...prev,
-                            leaveTo: "",
-                          }));
-                      }}
-                      className={`w-full px-4 py-2.5 bg-[#F2F3F4] rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveFrom ? "border border-[#DD4342]" : "border-0"}`}
-                      style={{ colorScheme: "light" }}
-                    />
-                    <svg
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <rect
-                        x="3"
-                        y="4"
-                        width="18"
-                        height="18"
-                        rx="2"
-                        ry="2"
-                        strokeWidth="1.5"
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-base font-semibold text-[#000000] mb-2">
+                      Leave From <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        min={todayInputDate}
+                        value={leaveFrom}
+                        onChange={(e) => {
+                          setLeaveFrom(e.target.value);
+                          if (applyFormErrors.leaveFrom)
+                            setApplyFormErrors((prev) => ({
+                              ...prev,
+                              leaveFrom: "",
+                            }));
+                          if (
+                            applyFormErrors.leaveTo &&
+                            leaveTo &&
+                            e.target.value <= leaveTo
+                          )
+                            setApplyFormErrors((prev) => ({
+                              ...prev,
+                              leaveTo: "",
+                            }));
+                        }}
+                        className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] border-0 bg-[#F2F3F4] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveFrom ? "ring-1 ring-[#DD4342]" : ""}`}
+                        style={{ colorScheme: "light" }}
                       />
-                      <line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" />
-                      <line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" />
-                      <line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" />
-                    </svg>
+                      <svg
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <rect
+                          x="3"
+                          y="4"
+                          width="18"
+                          height="18"
+                          rx="2"
+                          ry="2"
+                          strokeWidth="1.5"
+                        />
+                        <line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" />
+                        <line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" />
+                        <line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" />
+                      </svg>
+                    </div>
+                    {applyFormErrors.leaveFrom && (
+                      <p className="mt-1.5 text-sm text-[#DD4342]">
+                        {applyFormErrors.leaveFrom}
+                      </p>
+                    )}
                   </div>
-                  {applyFormErrors.leaveFrom && (
-                    <p className="mt-1.5 text-sm text-[#DD4342]">
-                      {applyFormErrors.leaveFrom}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-base font-semibold text-[#000000] mb-2">
-                    Leave To <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      min={todayInputDate}
-                      value={leaveTo}
-                      onChange={(e) => {
-                        setLeaveTo(e.target.value);
-                        if (applyFormErrors.leaveTo)
-                          setApplyFormErrors((prev) => ({
-                            ...prev,
-                            leaveTo: "",
-                          }));
-                      }}
-                      className={`w-full px-4 py-2.5 bg-[#F2F3F4] rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveTo ? "border border-[#DD4342]" : "border-0"}`}
-                      style={{ colorScheme: "light" }}
-                    />
-                    <svg
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <rect
-                        x="3"
-                        y="4"
-                        width="18"
-                        height="18"
-                        rx="2"
-                        ry="2"
-                        strokeWidth="1.5"
+                  <div>
+                    <label className="block text-base font-semibold text-[#000000] mb-2">
+                      Leave To <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        min={leaveFrom || todayInputDate}
+                        value={leaveTo}
+                        onChange={(e) => {
+                          setLeaveTo(e.target.value);
+                          if (applyFormErrors.leaveTo)
+                            setApplyFormErrors((prev) => ({
+                              ...prev,
+                              leaveTo: "",
+                            }));
+                        }}
+                        className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] border-0 bg-[#F2F3F4] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveTo ? "ring-1 ring-[#DD4342]" : ""}`}
+                        style={{ colorScheme: "light" }}
                       />
-                      <line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" />
-                      <line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" />
-                      <line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" />
-                    </svg>
+                      <svg
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <rect
+                          x="3"
+                          y="4"
+                          width="18"
+                          height="18"
+                          rx="2"
+                          ry="2"
+                          strokeWidth="1.5"
+                        />
+                        <line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" />
+                        <line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" />
+                        <line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" />
+                      </svg>
+                    </div>
+                    {applyFormErrors.leaveTo && (
+                      <p className="mt-1.5 text-sm text-[#DD4342]">
+                        {applyFormErrors.leaveTo}
+                      </p>
+                    )}
                   </div>
-                  {applyFormErrors.leaveTo && (
-                    <p className="mt-1.5 text-sm text-[#DD4342]">
-                      {applyFormErrors.leaveTo}
-                    </p>
-                  )}
                 </div>
 
                 <div>
@@ -1914,9 +1916,9 @@ export default function ManageLeave() {
                       if (applyFormErrors.reason)
                         setApplyFormErrors((prev) => ({ ...prev, reason: "" }));
                     }}
-                    rows={5}
+                    rows={3}
                     placeholder="Enter your reason for leave..."
-                    className={`w-full px-4 py-2.5 bg-[#F2F3F4] rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] transition-colors resize-y min-h-[120px] ${applyFormErrors.reason ? "border border-[#DD4342]" : "border-0"}`}
+                    className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] resize-none border-0 bg-[#F2F3F4] ${applyFormErrors.reason ? "ring-1 ring-[#DD4342]" : ""}`}
                   />
                   {applyFormErrors.reason && (
                     <p className="mt-1.5 text-sm text-[#DD4342]">
@@ -1925,17 +1927,17 @@ export default function ManageLeave() {
                   )}
                 </div>
 
-                <div className="pt-2 flex justify-center gap-3">
+                <div className="flex gap-3 pt-2">
                   <button
                     type="button"
                     onClick={handleCloseEditModal}
-                    className="px-6 py-2.5 rounded-md font-medium text-[#616161] bg-[#F2F2F2]  transition-colors cursor-pointer"
+                    className="cursor-pointer flex-1 px-4 py-2.5 rounded-md font-medium text-[#616161] bg-[#F2F2F2] transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-8 py-2.5 bg-[#DD4342] text-white rounded-md font-medium  active:scale-[0.98] transition-all shadow-sm cursor-pointer"
+                    className="cursor-pointer flex-1 px-4 py-2.5 bg-[#DD4342] text-white rounded-md font-semibold active:scale-[0.98] transition-all shadow-sm"
                   >
                     Update
                   </button>
@@ -1984,7 +1986,7 @@ export default function ManageLeave() {
               <div className="px-6 py-6">
                 <div className="space-y-4">
                   <div className="flex items-start gap-2">
-                    <span className="w-[140px] shrink-0 text-sm font-gantari text-[#353535] pt-0.5">
+                    <span className="w-[140px] shrink-0 text-[14px] font-gantari text-[#020202] pt-0.5">
                       Employee Name
                     </span>
                     <span className="shrink-0 text-[#616161]">:</span>
@@ -1993,7 +1995,7 @@ export default function ManageLeave() {
                     </span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="w-[140px] shrink-0 text-sm font-gantari text-[#353535] pt-0.5">
+                    <span className="w-[140px] shrink-0 text-[14px] font-gantari text-[#020202] pt-0.5">
                       Role
                     </span>
                     <span className="shrink-0 text-[#616161]">:</span>
@@ -2002,7 +2004,7 @@ export default function ManageLeave() {
                     </span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="w-[140px] shrink-0 text-sm font-gantari text-[#353535] pt-0.5">
+                    <span className="w-[140px] shrink-0 text-[14px] font-gantari text-[#020202] pt-0.5">
                       Leave Type
                     </span>
                     <span className="shrink-0 text-[#616161]">:</span>
@@ -2011,7 +2013,7 @@ export default function ManageLeave() {
                     </span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
+                    <span className="w-[140px] shrink-0 text-[14px] font-gantari text-[#020202] pt-0.5">
                       From Date
                     </span>
                     <span className="shrink-0 text-[#616161]">:</span>
@@ -2020,7 +2022,7 @@ export default function ManageLeave() {
                     </span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
+                    <span className="w-[140px] shrink-0 text-[14px] font-gantari text-[#020202] pt-0.5">
                       To Date
                     </span>
                     <span className="shrink-0 text-[#616161]">:</span>
@@ -2029,7 +2031,7 @@ export default function ManageLeave() {
                     </span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
+                    <span className="w-[140px] shrink-0 text-[14px] font-gantari text-[#020202] pt-0.5">
                       Applied On
                     </span>
                     <span className="shrink-0 text-[#616161]">:</span>
@@ -2038,7 +2040,7 @@ export default function ManageLeave() {
                     </span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
+                    <span className="w-[140px] shrink-0 text-[14px] font-gantari text-[#020202] pt-0.5">
                       Reason
                     </span>
                     <span className="shrink-0 text-[#616161]">:</span>
@@ -2047,7 +2049,7 @@ export default function ManageLeave() {
                     </span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
+                    <span className="w-[140px] shrink-0 text-[14px] font-gantari text-[#020202] pt-0.5">
                       Current Status
                     </span>
                     <span className="shrink-0 text-[#616161]">:</span>

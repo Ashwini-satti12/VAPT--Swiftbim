@@ -5,6 +5,21 @@ import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 
 const SHOW_ENTRIES_PLACEHOLDER = "Show entries";
 
+/** Open native date picker — required on some browsers when the input is fully transparent / overlaid. */
+function openNativeDatePicker(input: HTMLInputElement | null) {
+  if (!input) return;
+  try {
+    if (typeof input.showPicker === "function") {
+      input.showPicker();
+      return;
+    }
+  } catch {
+    // showPicker can throw if not allowed; fall through
+  }
+  input.focus();
+  input.click();
+}
+
 interface TimesheetEntry {
   id: number;
   project_name?: string;
@@ -14,6 +29,7 @@ interface TimesheetEntry {
   due_date?: string; // ISO format datetime
   Actual_start_time?: string; // ISO format datetime
   assigned_name?: string;
+  assigned_by_name?: string;
   teamname?: string;
   Pause?: number; // seconds paused
   restart?: number; // seconds restarted
@@ -74,6 +90,8 @@ export default function TimesheetPM() {
   // Refs for click outside detection
   const employeeDropdownRef = useRef<HTMLDivElement>(null);
   const teamDropdownRef = useRef<HTMLDivElement>(null);
+  const startDateInputRef = useRef<HTMLInputElement>(null);
+  const endDateInputRef = useRef<HTMLInputElement>(null);
 
   const employeeOptions = useMemo(
     () => ["All", ...employees.map((e) => e.full_name)],
@@ -261,6 +279,7 @@ export default function TimesheetPM() {
       (row.project_name || "").toLowerCase().includes(searchQuery) ||
       (row.task_name || "").toLowerCase().includes(searchQuery) ||
       (row.assigned_name || "").toLowerCase().includes(searchQuery) ||
+      (row.assigned_by_name || "").toLowerCase().includes(searchQuery) ||
       (row.teamname || "").toLowerCase().includes(searchQuery)
     );
   }, [list, searchQuery]);
@@ -386,68 +405,92 @@ export default function TimesheetPM() {
 
         {/* Line 2: Filters */}
         <div className="flex flex-wrap items-center gap-3 justify-end">
-          {/* Start Date */}
-          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer group min-w-[140px]">
+          {/* Start Date — calendar icon only opens native picker */}
+          <div
+            className="relative flex min-w-[140px] items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-2 transition-all"
+          >
             <span
-              className={`text-[14px] font-gantari font-medium ${startDate ? "text-[#353535]" : "text-[#616161]"}`}
+              className={`select-none text-[14px] font-gantari font-medium ${startDate ? "text-[#353535]" : "text-[#616161]"}`}
             >
               {startDate
                 ? startDate.split("-").reverse().join("/")
                 : "Start Date"}
             </span>
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#616161"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+            <button
+              type="button"
+              aria-label="Open start date calendar"
+              onClick={() => openNativeDatePicker(startDateInputRef.current)}
+              className="shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40"
             >
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-              <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
-            </svg>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#616161"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+                <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
+              </svg>
+            </button>
             <input
+              ref={startDateInputRef}
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              tabIndex={-1}
+              className="pointer-events-none absolute inset-0 h-full min-h-[2.5rem] w-full opacity-0"
               style={{ colorScheme: "light" }}
             />
           </div>
 
-          {/* End Date */}
-          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer group min-w-[140px]">
+          {/* End Date — calendar icon only opens native picker */}
+          <div
+            className="relative flex min-w-[140px] items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-2 transition-all"
+          >
             <span
-              className={`text-[14px] font-gantari font-medium ${endDate ? "text-[#353535]" : "text-[#616161]"}`}
+              className={`select-none text-[14px] font-gantari font-medium ${endDate ? "text-[#353535]" : "text-[#616161]"}`}
             >
               {endDate ? endDate.split("-").reverse().join("/") : "End Date"}
             </span>
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#616161"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+            <button
+              type="button"
+              aria-label="Open end date calendar"
+              onClick={() => openNativeDatePicker(endDateInputRef.current)}
+              className="shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40"
             >
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-              <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
-            </svg>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#616161"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+                <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
+              </svg>
+            </button>
             <input
+              ref={endDateInputRef}
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              tabIndex={-1}
+              className="pointer-events-none absolute inset-0 h-full min-h-[2.5rem] w-full opacity-0"
               style={{ colorScheme: "light" }}
             />
           </div>
@@ -673,6 +716,12 @@ export default function TimesheetPM() {
                     Task
                   </th>
                   <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
+                    Assigned to
+                  </th>
+                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
+                    Assigned by
+                  </th>
+                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
                     Start Date
                   </th>
                   <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
@@ -687,7 +736,7 @@ export default function TimesheetPM() {
                 {displayedList.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={8}
                       className="px-6 py-12 text-center text-gray-400 font-medium"
                     >
                       No records found
@@ -723,6 +772,16 @@ export default function TimesheetPM() {
                               ? row.task_name
                               : "-"}
                           </div>
+                        </td>
+                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
+                          {row.assigned_name && row.assigned_name.trim() !== ""
+                            ? row.assigned_name
+                            : "-"}
+                        </td>
+                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
+                          {row.assigned_by_name && row.assigned_by_name.trim() !== ""
+                            ? row.assigned_by_name
+                            : "-"}
                         </td>
                         <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
                           {startDate}
