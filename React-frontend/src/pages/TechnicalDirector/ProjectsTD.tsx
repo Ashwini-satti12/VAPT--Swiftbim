@@ -30,6 +30,16 @@ const namesToIds = (names: string[], employeesList: Employee[]) => {
     .join(",");
 };
 
+/** True when description has visible text (empty string and empty HTML are treated as missing). */
+function hasProjectDescriptionContent(raw: string | undefined): boolean {
+  if (raw == null) return false;
+  const text = raw
+    .replace(/<[^>]*>?/gm, "")
+    .replace(/&nbsp;/gi, " ")
+    .trim();
+  return text.length > 0;
+}
+
 function FormSelect({
   placeholder,
   options,
@@ -949,14 +959,24 @@ export default function ProjectsTD() {
 
                   <div className="space-y-4">
                     {/* Project Description */}
-                    <div className="border border-slate-200 rounded-md md:rounded-md p-6 md:p-8 lg:p-4">
+                    <div className="min-w-0 max-w-full overflow-hidden border border-slate-200 rounded-md md:rounded-md p-6 md:p-8 lg:p-4">
                       <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">
                         Project Description
                       </h4>
-                      <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
-                        {selectedProjectForView.description ??
-                          "No description available"}
-                      </p>
+                      {hasProjectDescriptionContent(
+                        selectedProjectForView.description,
+                      ) ? (
+                        <div
+                          className="project-description-html text-[14px] font-Gantari font-medium text-[#666666] mt-4 w-full min-w-0 max-w-full leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] [&_*]:max-w-full [&_*]:whitespace-normal [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#DD4342] [&_a]:underline"
+                          dangerouslySetInnerHTML={{
+                            __html: selectedProjectForView.description ?? "",
+                          }}
+                        />
+                      ) : (
+                        <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                          No description available
+                        </p>
+                      )}
                     </div>
 
                     {/* Team Overview Section */}
