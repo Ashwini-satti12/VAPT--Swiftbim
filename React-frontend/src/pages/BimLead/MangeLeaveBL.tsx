@@ -841,7 +841,7 @@ export default function ManageLeave() {
   };
 
   return (
-    <div className="flex flex-col h-full font-gantari overflow-hidden p-4">
+    <div className="flex flex-col h-full font-gantari overflow-hidden">
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
         <div className="flex flex-col flex-1 min-h-0">
           <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">
@@ -951,7 +951,7 @@ export default function ManageLeave() {
                 )}
               </div>
               <div
-                className="relative min-w-[140px] max-w-[200px] w-[150px]"
+                className="relative min-w-[140px] max-w-[200px] w-[160px]"
                 ref={showEntriesDropdownRef}
               >
                 <button
@@ -1059,10 +1059,10 @@ export default function ManageLeave() {
           </div>
 
           <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-            <div className="overflow-auto custom-scrollbar smooth-scroll flex-1">
-              <table className="min-w-full border-collapse min-w-[1000px]">
+            <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1 pb-0">
+              <table className="min-w-full border-collapse">
                 <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                  <tr className="bg-white">
+                  <tr className=" bg-white">
                     <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
                       Sl.No
                     </th>
@@ -1108,7 +1108,7 @@ export default function ManageLeave() {
                       return (
                         <tr
                           key={row.id}
-                          className={`${index % 2 === 1 ? "bg-[#F2F2F2] hover:bg-gray-100" : "bg-white"} transition-colors`}
+                          className={`${index % 2 === 1 ? "bg-[#F2F2F2] " : "bg-[#FFFFFF]"} transition-colors`}
                         >
                           <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
                             {String(slNo).padStart(2, "0")}
