@@ -26,7 +26,7 @@ interface AcceptedBid {
 }
 
 const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
-  { value: 'show', label: 'Show', start: 0, end: 50 },
+  { value: 'show', label: 'Show Entries', start: 0, end: 50 },
   { value: '1-50', label: '1-50', start: 0, end: 50 },
   { value: '51-100', label: '51-100', start: 50, end: 100 },
   { value: '101-150', label: '101-150', start: 100, end: 150 },
@@ -141,14 +141,14 @@ export default function ProposalTD() {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
-              className="flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 w-[120px] cursor-pointer"
+              className="flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 cursor-pointer"
             >
               <div className="flex items-center gap-2 overflow-hidden">
                 {selectedShowEntries === 'show' ? (
-                  <span className="text-[14px] font-medium text-[#616161] font-gantari">Show</span>
+                  <span className="text-[14px] font-medium text-[#616161] font-gantari">Show Entries</span>
                 ) : (
                   <>
-                    <span className="text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">Show:</span>
+                    <span className="text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">Show Entries:</span>
                     <span className="text-[14px] font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
                   </>
                 )}

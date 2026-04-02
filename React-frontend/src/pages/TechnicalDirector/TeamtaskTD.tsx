@@ -109,7 +109,7 @@ function TaskDropdown({
         >
           {label.toLowerCase() === 'show' && selected && selected !== label ? (
             <>
-              <span className="text-[14px] text-[#353535]">Show:</span>{" "}
+              <span className="text-[14px] text-[#353535]">Show Entries:</span>{" "}
               <span>{selected}</span>
             </>
           ) : (
@@ -526,7 +526,7 @@ function TaskCard({
   );
 }
 
-const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
+const SHOW_OPTIONS = ["Show Entries", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
 const PERIOD_OPTIONS = [
   "Period",
   "This Week",
@@ -581,11 +581,25 @@ export default function TeamtaskTD() {
     const proj = searchParams.get("project");
     if (proj) setSelectedProject(proj);
   }, [searchParams]);
-  const [selectedShow, setSelectedShow] = useState<string | null>("Show");
+  const [selectedShow, setSelectedShow] = useState<string | null>("Show Entries");
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [deleteTask, setDeleteTask] = useState<Task | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+
+  const buildStatusLink = (nextStatus: string) => {
+    const params = new URLSearchParams(searchParams as any);
+    params.set("status", nextStatus);
+    return `${pathname}?${params.toString()}`;
+  };
+
+  // IMPORTANT:
+  // `localTasks` is persisted in localStorage to support optimistic UI updates after moving/editing.
+  // When user switches the URL status filter, server-side truth for statuses changes (Todo/InProgress/Completed).
+  // If we keep `localTasks`, it can incorrectly override server statuses and show Todo tasks under InProgress column.
+  useEffect(() => {
+    setLocalTasks([]);
+  }, [statusFilter]);
 
   const employeeOptions = useMemo(() => {
     const raw = Array.isArray(employees) ? employees : [];
@@ -854,7 +868,7 @@ export default function TeamtaskTD() {
   if (selectedShow === "All") {
     limitStart = 0;
     limitEnd = Infinity;
-  } else if (selectedShow && selectedShow !== "Show") {
+  } else if (selectedShow && selectedShow !== "Show Entries") {
     const parts = selectedShow.split("-");
     if (parts.length === 2) {
       limitStart = parseInt(parts[0], 10) - 1;
@@ -925,7 +939,7 @@ export default function TeamtaskTD() {
               searchPlaceholder="Search project..."
             />
             <TaskDropdown
-              label="Show"
+              label="Show Entries"
               options={SHOW_OPTIONS}
               selected={selectedShow}
               onSelect={setSelectedShow}
@@ -974,7 +988,7 @@ export default function TeamtaskTD() {
         {/* Status summary cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
           <Link
-            to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
+            to={statusFilter === "todo" ? pathname : buildStatusLink("todo")}
             className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
           >
             <span className="text-xl font-bold text-[#0D1829]">To Do</span>
@@ -989,7 +1003,7 @@ export default function TeamtaskTD() {
             to={
               statusFilter === "in_progress"
                 ? pathname
-                : `${pathname}?status=in_progress`
+                : buildStatusLink("in_progress")
             }
             className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
           >
@@ -1007,7 +1021,7 @@ export default function TeamtaskTD() {
             to={
               statusFilter === "completed"
                 ? pathname
-                : `${pathname}?status=completed`
+                : buildStatusLink("completed")
             }
             className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
           >

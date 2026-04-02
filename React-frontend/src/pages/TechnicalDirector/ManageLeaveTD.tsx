@@ -3,8 +3,13 @@ import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
-import viewIcon from "../../assets/BIMModeler/ManageLeave/view icon.svg";
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import closeIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+
+const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
+const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
+const EMPLOYEE_FILTER_PLACEHOLDER = "Employee";
 
 interface LeaveEntry {
   id: number;
@@ -159,7 +164,6 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-  { value: "show", label: "Show", start: 0, end: 50 },
   { value: "1-50", label: "1-50", start: 0, end: 50 },
   { value: "51-100", label: "51-100", start: 50, end: 100 },
   { value: "101-150", label: "101-150", start: 100, end: 150 },
@@ -193,25 +197,29 @@ export default function ManageLeave() {
   const [selectedLeave, setSelectedLeave] = useState<LeaveEntry | null>(null);
   const [leaves, setLeaves] = useState<LeaveEntry[]>([]);
 
-  const [selectedEmployee, setSelectedEmployee] = useState<string>("employee");
+  const [selectedEmployee, setSelectedEmployee] = useState<string>("");
   const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
   const employeeDropdownRef = useRef<HTMLDivElement>(null);
-  const [selectedShowEntries, setSelectedShowEntries] = useState(
-    showEntriesOptions[0].value,
-  );
+  const employeeDropdownContentRef = useRef<HTMLDivElement>(null);
+  const [selectedShowEntries, setSelectedShowEntries] = useState("");
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
-  const dropdownContentRef = useRef<HTMLDivElement>(null);
+  const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    if (showEntriesOpen && dropdownContentRef.current) {
-      dropdownContentRef.current.scrollTop = 0;
+    if (showEntriesOpen && showEntriesDropdownContentRef.current) {
+      showEntriesDropdownContentRef.current.scrollTop = 0;
     }
   }, [showEntriesOpen]);
 
+  useEffect(() => {
+    if (employeeDropdownOpen && employeeDropdownContentRef.current) {
+      employeeDropdownContentRef.current.scrollTop = 0;
+    }
+  }, [employeeDropdownOpen]);
+
   const employeeOptions = [
-    "employee",
     "All",
     ...Array.from(new Set(leaves.map((l) => l.employeeName))),
   ];
@@ -256,38 +264,34 @@ export default function ManageLeave() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const t = event.target as Node;
       if (
+        employeeDropdownOpen &&
         employeeDropdownRef.current &&
-        !employeeDropdownRef.current.contains(event.target as Node)
+        !employeeDropdownRef.current.contains(t)
       ) {
         setEmployeeDropdownOpen(false);
       }
-    };
-    if (employeeDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [employeeDropdownOpen]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
       if (
+        showEntriesOpen &&
         showEntriesDropdownRef.current &&
-        !showEntriesDropdownRef.current.contains(event.target as Node)
+        !showEntriesDropdownRef.current.contains(t)
       ) {
         setShowEntriesOpen(false);
       }
     };
-    if (showEntriesOpen) {
+    if (employeeDropdownOpen || showEntriesOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showEntriesOpen]);
+  }, [employeeDropdownOpen, showEntriesOpen]);
 
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const filteredList = leaves.filter((l) => {
     const matchesEmployee =
-      selectedEmployee === "All" || l.employeeName === selectedEmployee;
+      selectedEmployee === "All" ||
+      selectedEmployee === "" ||
+      l.employeeName === selectedEmployee;
     const matchesSearch =
       !searchQuery ||
       (l.employeeName || "").toLowerCase().includes(searchQuery) ||
@@ -298,8 +302,10 @@ export default function ManageLeave() {
       (l.currentStatus || "").toLowerCase().includes(searchQuery);
     return matchesEmployee && matchesSearch;
   });
+  const effectiveShowEntryValue =
+    selectedShowEntries || showEntriesOptions[0].value;
   const selectedRange =
-    showEntriesOptions.find((o) => o.value === selectedShowEntries) ??
+    showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ??
     showEntriesOptions[0];
   const rangeStart = selectedRange.start;
   const rangeEnd =
@@ -352,159 +358,243 @@ export default function ManageLeave() {
   };
 
   return (
-    <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white font-gantari">
-      <div className="flex-1 min-h-0 flex flex-col">
-        {/* Page header: heading left; Employee + Show entries right */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2 mb-8">
-          <div className="flex items-center justify-between w-full md:w-auto">
-            <h2 className="text-[24px] font-semibold text-[#000000]">
+    <div className="flex flex-col h-full font-gantari overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        <div className="flex flex-col flex-1 min-h-0">
+          <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">
+            <h1 className="text-[24px] font-gantari font-semibold">
               Manage Leaves
-            </h2>
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="relative" ref={employeeDropdownRef}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setEmployeeDropdownOpen((o) => !o);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
+            </h1>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div
+                className="relative min-w-[180px] max-w-[240px] w-[180px]"
+                ref={employeeDropdownRef}
               >
-                {selectedEmployee === "employee" ? (
-                  <span className="text-[14px] font-medium text-[#8B8B8B] font-gantari">
-                    Employee
-                  </span>
-                ) : (
-                  <>
-                    <span className="text-[14px] font-medium text-[#8B8B8B] font-gantari">
-                      Employee:
-                    </span>
-                    <span className="text-[14px] font-medium text-[#353535] font-gantari truncate max-w-[100px]">
-                      {selectedEmployee}{" "}
-                    </span>
-                  </>
-                )}
-                <img
-                  src={ArrowDown}
-                  alt="arrow"
-                  className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${employeeDropdownOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-              {employeeDropdownOpen && (
-                <div
-                  className="absolute top-full left-0 mt-1 z-50 bg-white rounded-lg shadow-xl min-w-[160px] max-h-[240px] overflow-y-auto py-1 custom-scrollbar"
-                  onMouseDown={(e) => e.preventDefault()}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEmployeeDropdownOpen((o) => !o);
+                  }}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                 >
-                  {employeeOptions.map((name) => {
-                    const isSelected = selectedEmployee === name;
-                    return (
+                  <span
+                    className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                      selectedEmployee === ""
+                        ? "text-[#8B8B8B]"
+                        : "text-[#353535]"
+                    }`}
+                  >
+                    {selectedEmployee === "" ? (
+                      EMPLOYEE_FILTER_PLACEHOLDER
+                    ) : selectedEmployee === "All" ? (
+                      <>
+                        <span className="text-[14px]">
+                          {EMPLOYEE_FILTER_PLACEHOLDER}:
+                        </span>{" "}
+                        <span className="font-semibold">All</span>
+                      </>
+                    ) : (
+                      <span className="font-semibold truncate">
+                        {selectedEmployee}
+                      </span>
+                    )}
+                  </span>
+                  <img
+                    src={ArrowDown}
+                    alt=""
+                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                      employeeDropdownOpen ? "rotate-180" : ""
+                    } ${
+                      selectedEmployee === ""
+                        ? "opacity-60 grayscale"
+                        : "opacity-90"
+                    }`}
+                    aria-hidden
+                  />
+                </button>
+                {employeeDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                    <div
+                      ref={employeeDropdownContentRef}
+                      className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                    >
                       <button
-                        key={name}
                         type="button"
-                        onClick={(e) => {
+                        onMouseDown={(e) => {
+                          e.preventDefault();
                           e.stopPropagation();
-                          setSelectedEmployee(name);
+                          setSelectedEmployee("");
                           setEmployeeDropdownOpen(false);
                         }}
-                        className={`w-full text-left px-4 py-2.5 text-[14px] font-medium font-gantari transition-colors truncate hover:text-[#353535] hover:bg-[#F2F2F2] cursor-pointer ${isSelected && name !== "employee" ? "text-[#353535]" : "text-[#8B8B8B]"}`}
+                        className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
                       >
-                        {name === "employee" ? "Employee" : name}
+                        {EMPLOYEE_FILTER_PLACEHOLDER}
                       </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            <div className="relative" ref={showEntriesDropdownRef}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowEntriesOpen((o) => !o);
-                }}
-                className="flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 w-[120px]"
+                      {employeeOptions.map((name) => (
+                        <button
+                          key={name}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedEmployee(name);
+                            setEmployeeDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer truncate hover:text-[#353535] hover:bg-[#F2F2F2] ${
+                            selectedEmployee === name
+                              ? "text-[#353535] bg-[#F2F2F2]"
+                              : "text-[#8B8B8B] bg-transparent"
+                          }`}
+                        >
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div
+                className="relative min-w-[140px] max-w-[200px] w-[160px]"
+                ref={showEntriesDropdownRef}
               >
-                <div className="flex items-center gap-2 overflow-hidden">
-                  {selectedShowEntries === "show" ? (
-                    <span className="text-[14px] font-medium text-[#616161] font-gantari">
-                      Show
-                    </span>
-                  ) : (
-                    <>
-                      <span className="text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
-                        Show:
-                      </span>
-                      <span className="text-[14px] font-medium text-[#353535] font-gantari">
-                        {selectedRange.label}
-                      </span>
-                    </>
-                  )}
-                </div>
-                <img
-                  src={ArrowDown}
-                  alt="arrow"
-                  className={`w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-              {showEntriesOpen && (
-                <div
-                  ref={dropdownContentRef}
-                  className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-full py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
-                  onMouseDown={(e) => e.preventDefault()}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowEntriesOpen((o) => !o);
+                  }}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                 >
-                  {showEntriesOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedShowEntries(opt.value);
-                        setShowEntriesOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors cursor-pointer text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
+                  <span
+                    className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                      selectedShowEntries === ""
+                        ? "text-[#8B8B8B]"
+                        : "text-[#353535]"
+                    }`}
+                  >
+                    {selectedShowEntries === "" ? (
+                      SHOW_ENTRIES_PLACEHOLDER
+                    ) : (
+                      <>
+                        <span className="text-[14px]">
+                          {SHOW_ENTRIES_SELECTED_PREFIX}
+                        </span>{" "}
+                        <span className="font-semibold">
+                          {selectedRange.label}
+                        </span>
+                      </>
+                    )}
+                  </span>
+                  <img
+                    src={ArrowDown}
+                    alt=""
+                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                      showEntriesOpen ? "rotate-180" : ""
+                    } ${
+                      selectedShowEntries === ""
+                        ? "opacity-60 grayscale"
+                        : "opacity-90"
+                    }`}
+                    aria-hidden
+                  />
+                </button>
+                {showEntriesOpen && (
+                  <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                    <div
+                      ref={showEntriesDropdownContentRef}
+                      className="max-h-[168px] overflow-y-auto custom-scrollbar"
                     >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedShowEntries("");
+                          setShowEntriesOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                      >
+                        {SHOW_ENTRIES_PLACEHOLDER}
+                      </button>
+                      {showEntriesOptions.map((opt) => {
+                        const isChosen = selectedShowEntries === opt.value;
+                        return (
+                          <button
+                            key={`${opt.value}-${opt.start}-${opt.end}`}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setSelectedShowEntries(opt.value);
+                              setShowEntriesOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${
+                              isChosen
+                                ? "text-[#353535] bg-[#F2F2F2]"
+                                : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                            }`}
+                          >
+                            <span className="truncate min-w-0">
+                              {opt.label}
+                            </span>
+                            {isChosen && (
+                              <svg
+                                className="w-4 h-4 shrink-0 text-[#353535]"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                aria-hidden
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2.5}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Table Section - standardized rounded-xl container */}
-        <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative">
-          <div className="overflow-auto custom-scrollbar smooth-scroll pb-0">
-            <table className="min-w-full border-collapse">
-              <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                <tr className="border-b border-gray-100 bg-[#FFFFFF]">
-                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">
-                    Sl.No
-                  </th>
-                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">
-                    Employee Name
-                  </th>
-                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">
-                    Role
-                  </th>
-                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">
-                    Leave Type
-                  </th>
-                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">
-                    From Date
-                  </th>
-                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">
-                    To Date
-                  </th>
-                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">
-                    Status
-                  </th>
-                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">
-                    Action
-                  </th>
-                </tr>
-              </thead>
+          <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+            <div className="overflow-auto custom-scrollbar smooth-scroll flex-1  pr-1 pb-0">
+              <table className="min-w-full border-collapse">
+                <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                  <tr className=" bg-white">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                      Sl.No
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                      Employee Name
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                      Role
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                      Leave Type
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                      From Date
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                      To Date
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                      Status
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
               <tbody className="divide-y divide-gray-50">
                 {displayedList.length === 0 ? (
                   <tr>
@@ -518,10 +608,11 @@ export default function ManageLeave() {
                 ) : (
                   displayedList.map((row, index) => {
                     const slNo = rangeStart + index + 1;
+                    const isLastRow = index === displayedList.length - 1;
                     return (
                       <tr
                         key={row.id}
-                        className={`${index % 2 === 1 ? "bg-[#F2F2F2] hover:bg-gray-100" : "bg-white"} transition-colors`}
+                        className={`${index % 2 === 1 ? "bg-[#F2F2F2] " : "bg-[#FFFFFF]"} transition-colors`}
                       >
                         <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
                           {String(slNo).padStart(2, "0")}
@@ -543,22 +634,22 @@ export default function ManageLeave() {
                         </td>
                         <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
                           <span
-                            className={`inline-flex px-4 py-1.5 rounded-lg text-[14px] font-bold font-gantari ${row.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : row.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFF8E1] text-[#F57C00]"}`}
+                            className={`inline-flex px-3 py-1 rounded-md text-[12px] font-semibold font-gantari ${row.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : row.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFEAD6] text-[#EB7200]"}`}
                           >
                             {row.currentStatus}
                           </span>
                         </td>
-                        <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                          <div className="flex items-center justify-center gap-4 flex-nowrap">
+                        <td className="px-3 py-6 text-center text-[14px] whitespace-nowrap align-middle">
+                          <div className="flex items-center justify-center gap-2 flex-nowrap">
                             <button
                               type="button"
                               onClick={() => handleView(row)}
-                              className="inline-flex items-center gap-2 mx-auto px-4 py-3 rounded-md text-xs font-bold font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 shrink-0 cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DD4242] text-white rounded-md font-medium text-[12px] cursor-pointer"
                             >
                               <img
                                 src={viewIcon}
                                 alt=""
-                                className="w-4 h-4 object-contain [filter:brightness(0)_invert(1)]"
+                                className="w-3.5 h-3.5 shrink-0 [filter:brightness(0)_invert(1)]"
                               />
                               View
                             </button>
@@ -570,7 +661,7 @@ export default function ManageLeave() {
                                     type="button"
                                     aria-label="Approve"
                                     onClick={() => handleApproveBackend(row)}
-                                    className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-lg font-medium active:scale-[0.98] transition-transform cursor-pointer"
+                                    className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
                                   >
                                     <svg
                                       className="w-4 h-4 shrink-0"
@@ -584,23 +675,36 @@ export default function ManageLeave() {
                                       <path d="M5 13l4 4L19 7" />
                                     </svg>
                                   </button>
-                                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                    <div className="relative z-10">
-                                      <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                                  {isLastRow ? (
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                      <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
+                                        <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
+                                          Approve
+                                        </span>
+                                      </div>
+                                      <div className="relative z-10 -mt-[1px]">
+                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"></div>
+                                      </div>
                                     </div>
-                                    <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                      <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
-                                        Approve
-                                      </span>
+                                  ) : (
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                      <div className="relative z-10">
+                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                                      </div>
+                                      <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
+                                        <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
+                                          Approve
+                                        </span>
+                                      </div>
                                     </div>
-                                  </div>
+                                  )}
                                 </div>
                                 <div className="relative group inline-flex shrink-0">
                                   <button
                                     type="button"
                                     aria-label="Reject"
                                     onClick={() => handleRejectBackend(row)}
-                                    className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-lg font-medium active:scale-[0.98] transition-transform cursor-pointer"
+                                    className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
                                   >
                                     <svg
                                       className="w-4 h-4 shrink-0"
@@ -614,16 +718,29 @@ export default function ManageLeave() {
                                       <path d="M18 6L6 18M6 6l12 12" />
                                     </svg>
                                   </button>
-                                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                    <div className="relative z-10">
-                                      <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                                  {isLastRow ? (
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                      <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
+                                        <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
+                                          Reject
+                                        </span>
+                                      </div>
+                                      <div className="relative z-10 -mt-[1px]">
+                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"></div>
+                                      </div>
                                     </div>
-                                    <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                      <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
-                                        Reject
-                                      </span>
+                                  ) : (
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                      <div className="relative z-10">
+                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                                      </div>
+                                      <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
+                                        <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
+                                          Reject
+                                        </span>
+                                      </div>
                                     </div>
-                                  </div>
+                                  )}
                                 </div>
                               </>
                             ) : null}
@@ -635,8 +752,10 @@ export default function ManageLeave() {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
+      </div>
 
         {/* View Leave Modal */}
         {viewModalOpen &&
@@ -653,30 +772,23 @@ export default function ManageLeave() {
                 className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E5E5E5]"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="relative flex items-center justify-center px-6 py-5 border-b border-[#EEEEEE] bg-[#FAFAFA]">
+                <div className="relative flex items-center justify-center px-6 py-5 ">
                   <button
                     type="button"
                     onClick={() => {
                       setViewModalOpen(false);
                       setSelectedLeave(null);
                     }}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#EEEEEE] hover:bg-[#E0E0E0] transition-colors text-[#353535] cursor-pointer"
+                    className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] transition-colors"
                     aria-label="Close"
                   >
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
+                    <img
+                      src={closeIcon}
+                      alt=""
+                      className="w-5 h-5 object-contain"
+                    />
                   </button>
-                  <h3 className="text-xl font-bold text-[#353535]">
+                  <h3 className="text-[24px] font-semibold text-[#000000]">
                     Leave Details
                   </h3>
                 </div>
@@ -751,7 +863,7 @@ export default function ManageLeave() {
                       </span>
                       <span className="shrink-0 text-[#616161]">:</span>
                       <span
-                        className={`inline-flex px-3 py-1 rounded-md text-xs font-semibold ${selectedLeave.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : selectedLeave.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFF8E1] text-[#F57C00]"}`}
+                        className={`inline-flex px-3 py-1 rounded-md text-xs font-semibold ${selectedLeave.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : selectedLeave.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFEAD6] text-[#EB7200]"}`}
                       >
                         {selectedLeave.currentStatus}
                       </span>
@@ -762,7 +874,6 @@ export default function ManageLeave() {
             </div>,
             document.body,
           )}
-      </div>
     </div>
   );
 }

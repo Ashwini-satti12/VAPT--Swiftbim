@@ -58,7 +58,7 @@ def _resolve_leave_type_id(cur, company_id: int, raw_leave_type):
 def list_leave_types():
     # PHP: leave types from holiday table (leave_type = '1' or '2', etc.)
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(dictionary=True)
     cur.execute(
         "SELECT id, title, leave_type, days_count, hours_per_duration, Company_id FROM holiday WHERE Company_id = %s ORDER BY title",
         (g.company_id,),
@@ -75,7 +75,7 @@ def list_applications():
     # PHP: tblleaves JOIN employee LEFT JOIN holiday; status 0=pending, 1=approved, 2=declined
     role_filter = request.args.get("role") or request.args.get("user_role")
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(dictionary=True)
     sql = """SELECT tblleaves.id AS lid, tblleaves.empid, tblleaves.leave_type, tblleaves.posting_date, tblleaves.description,
                     tblleaves.status, tblleaves.from_date, tblleaves.to_date, tblleaves.starttime, tblleaves.endtime,
                     employee.full_name, employee.id AS employee_id, employee.user_role AS role,
@@ -95,8 +95,8 @@ def list_applications():
              WHERE tblleaves.Company_id = %s"""
     params = [g.company_id]
     if role_filter:
-        sql += " AND employee.user_role = %s"
-        params.append(role_filter)
+        sql += " AND TRIM(employee.user_role) = %s"
+        params.append(role_filter.strip())
     sql += " ORDER BY tblleaves.id DESC"
     cur.execute(sql, tuple(params))
     rows = cur.fetchall()
@@ -145,10 +145,38 @@ def apply_leave():
             )
         leave_id = cur.lastrowid
         
-        # Leave Application Confirmation Email
+        # Notify Technical Director if a BIM Lead applies for leave
         try:
             cur.execute("SELECT full_name, email FROM employee WHERE id = %s", (g.user_id,))
             user = cur.fetchone() or {}
+            
+            current_role = getattr(g, "user_role", "")
+            if current_role == "BIM Lead":
+                # Find active Technical Director(s) in the same company
+                cur.execute(
+                    "SELECT id FROM employee WHERE Company_id = %s AND user_role = 'Technical Director' AND active = 'active'", 
+                    (g.company_id,)
+                )
+                tds = cur.fetchall()
+                for td in tds:
+                    td_id = td.get("id") or td[0]
+                    title = "New Leave Application"
+                    msg = f"{user.get('full_name', 'A BIM Lead')} has applied for leave."
+                    cur.execute(
+                        """
+                        INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                        """,
+                        (td_id, None, title, msg, "leave", "leave", leave_id, g.company_id),
+                    )
+        except Exception as e:
+            # Silently log/ignore notification errors so leave application itself doesn't fail
+            print(f"Leave notification error: {e}")
+            pass
+
+        # Leave Application Confirmation Email
+        try:
+            # We already fetched user above, reuse if possible
             type_name = "Leave"
             if str(leavetype).isdigit():
                 cur.execute("SELECT title FROM holiday WHERE id = %s", (leavetype,))

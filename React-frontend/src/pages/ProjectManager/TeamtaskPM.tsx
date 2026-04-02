@@ -917,6 +917,19 @@ export default function TeamtaskPM() {
         if (taskDate < quarterAgo) return false;
       }
     }
+
+    const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+    if (searchQuery) {
+      const matches = [
+        t.task_name,
+        t.project_name,
+        t.assigned_full_name,
+        t.module,
+        t.description
+      ].some(f => (f || "").toLowerCase().includes(searchQuery));
+      if (!matches) return false;
+    }
+
     return true;
   });
 

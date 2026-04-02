@@ -27,7 +27,7 @@ interface LeaveEntry {
 // Local dummy list removed; data now comes from backend /api/leave/applications
 
 const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
-    { value: 'show', label: 'Show', start: 0, end: 50 },
+    { value: 'show', label: 'Show Entries', start: 0, end: 50 },
     { value: '1-50', label: '1-50', start: 0, end: 50 },
     { value: '51-100', label: '51-100', start: 50, end: 100 },
     { value: '101-150', label: '101-150', start: 100, end: 150 },
@@ -129,6 +129,7 @@ export default function ManageLeave() {
     const [leaves, setLeaves] = useState<LeaveEntry[]>([]);
     const [leaveTypes, setLeaveTypes] = useState<{ id: number | null; title: string }[]>([]);
     const [othersValue, setOthersValue] = useState<string>('Others');
+    const [deleteLeave, setDeleteLeave] = useState<LeaveEntry | null>(null);
 
     const {
         selectedShowEntries,
@@ -530,14 +531,14 @@ export default function ManageLeave() {
                                 e.stopPropagation();
                                 setShowEntriesOpen((o) => !o);
                             }}
-                            className="flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 w-[120px]"
+                            className="flex items-center justify-between gap-2 px-5 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
                         >
                             <div className="flex items-center gap-2 overflow-hidden">
                                 {selectedShowEntries === 'show' ? (
-                                    <span className="text-[14px] font-medium text-[#616161] font-gantari">Show</span>
+                                    <span className="text-[14px] font-medium text-[#616161] font-gantari">Show Entries</span>
                                 ) : (
                                     <>
-                                        <span className="text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">Show:</span>
+                                        <span className="text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">Show Entries:</span>
                                         <span className="text-[14px] font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
                                     </>
                                 )}
@@ -574,7 +575,7 @@ export default function ManageLeave() {
                     <button
                         type="button"
                         onClick={() => setApplyModalOpen(true)}
-                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm cursor-pointer"
+                        className="flex items-center gap-2 px-5 py-2 bg-[#DD4342] text-[14px] text-white rounded-md font-gantari font-medium cursor-pointer"
                     >
                         Apply Leave
                     </button>
@@ -1175,6 +1176,49 @@ export default function ManageLeave() {
                                     </span>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+            {/* Delete Leave Confirmation Modal */}
+            {deleteLeave && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50" onClick={() => setDeleteLeave(null)}>
+                    <div
+                        className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="relative flex items-center justify-center px-6 py-4 flex-shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setDeleteLeave(null)}
+                                className="absolute left-6 top-1/2 -translate-y-1/2 p-2 rounded bg-[#F2F2F2] transition-colors text-[#353535] cursor-pointer"
+                                aria-label="Close"
+                            >
+                                <img src={closeIcon} alt="" className="w-5 h-5 object-contain" />
+                            </button>
+                            <h3 className="text-[24px] font-medium text-[#353535] text-center">Delete Leave</h3>
+                        </div>
+                        <div className="px-6 py-8 text-center">
+                            <p className="text-[16px] text-black">
+                                Are you sure, you want to Delete this Leave Application?
+                            </p>
+                        </div>
+                        <div className="flex justify-center gap-3 px-6 pb-6 pt-2">
+                            <button
+                                type="button"
+                                onClick={() => setDeleteLeave(null)}
+                                className="px-8 py-2 bg-[#F2F2F2] text-[#353535] rounded-md font-gantari font-medium transition-all shadow-sm cursor-pointer"
+                            >
+                                Discard
+                            </button>
+                            <button
+                                type="button"
+                                onClick={confirmDeleteLeave}
+                                className="px-8 py-2 bg-[#FFD9D9] text-[#E00100] rounded-md font-gantari font-medium transition-all shadow-sm hover:bg-[#FFB3B3] cursor-pointer"
+                            >
+                                Yes, Delete
+                            </button>
                         </div>
                     </div>
                 </div>,

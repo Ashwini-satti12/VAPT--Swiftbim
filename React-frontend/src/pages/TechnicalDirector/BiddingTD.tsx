@@ -26,7 +26,7 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-  { value: "show", label: "Show", start: 0, end: 50 },
+  { value: "show", label: "Show Entries", start: 0, end: 50 },
   { value: "1-50", label: "1-50", start: 0, end: 50 },
   { value: "51-100", label: "51-100", start: 50, end: 100 },
   { value: "101-150", label: "101-150", start: 100, end: 150 },
@@ -145,12 +145,12 @@ export default function BiddingTD() {
             >
               {selectedShowEntries === "show" ? (
                 <span className="text-[14px] font-medium text-[#616161] font-gantari">
-                  Show
+                  Show Entries
                 </span>
               ) : (
                 <>
                   <span className="text-[14px] font-medium text-[#353535] font-gantari">
-                    Show:
+                    Show Entries:
                   </span>
                   <span className="text-[14px] font-medium text-[#353535] font-gantari">
                     {selectedRange.label}
