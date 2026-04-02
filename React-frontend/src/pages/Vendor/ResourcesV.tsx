@@ -16,6 +16,9 @@ import editIcon from "../../assets/ProjectManager/consultant/editIcon.svg";
 import { VendorUploadPreviewModal } from "../../components/VendorUploadPreviewModal";
 import { sanitizeVendorVendorsFilename } from "../../lib/vendorUploads";
 
+const VENDOR_RESOURCE_BULK_STATUS =
+  "/api/vendors/profile/resource-profiles/bulk-status";
+
 interface Employee {
   id: number;
   full_name: string;
@@ -188,6 +191,8 @@ export default function ResourcesV() {
   const [inviteEmails, setInviteEmails] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  /** Inline success state on Invite Team view (same page, not a fixed toast). */
+  const [inviteShowSuccess, setInviteShowSuccess] = useState(false);
   const [inactiveIds, setInactiveIds] = useState<number[]>([]);
   const [inactiveSubmitting, setInactiveSubmitting] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -249,6 +254,7 @@ export default function ResourcesV() {
           software?: string;
           certifications?: string;
           projects_worked_on?: string;
+          active?: string;
         }>;
       }>("/api/vendors/profile/resource-profiles")
       .then(({ data }) => {
@@ -261,7 +267,10 @@ export default function ResourcesV() {
                 full_name: r.name || "—",
                 email: r.email || "",
                 user_role: r.login_role || "",
-                active: "active",
+                active:
+                  String(r.active ?? "active").toLowerCase() === "inactive"
+                    ? "inactive"
+                    : "active",
                 department: "Vendor",
                 user_type: "vendor",
                 profile_picture: undefined,
@@ -412,9 +421,9 @@ export default function ResourcesV() {
     api
       .post("/api/employees/invite", { emails, message: inviteMessage })
       .then(() => {
-        setActiveView("list");
         setInviteEmails("");
         setInviteMessage("");
+        setInviteShowSuccess(true);
       })
       .catch(() => {})
       .finally(() => setInviteSubmitting(false));
@@ -424,7 +433,7 @@ export default function ResourcesV() {
     if (!inactiveIds.length) return;
     setInactiveSubmitting(true);
     api
-      .post("/api/employees/bulk-status", {
+      .post(VENDOR_RESOURCE_BULK_STATUS, {
         ids: inactiveIds,
         action: "inactive",
       })
@@ -505,7 +514,7 @@ export default function ResourcesV() {
       prev.map((e) => (e.id === id ? { ...e, active: status } : e)),
     );
     api
-      .post("/api/employees/bulk-status", { ids: [id], action: status })
+      .post(VENDOR_RESOURCE_BULK_STATUS, { ids: [id], action: status })
       .catch(console.error);
   }
 
@@ -534,7 +543,10 @@ export default function ResourcesV() {
                 Add Worker
               </button>
               <button
-                onClick={() => setActiveView("invite")}
+                onClick={() => {
+                  setInviteShowSuccess(false);
+                  setActiveView("invite");
+                }}
                 className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] sm:text-base whitespace-nowrap cursor-pointer"
               >
                 <FiPlus className="w-5 h-5" />
@@ -1007,7 +1019,11 @@ export default function ResourcesV() {
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <button
-                onClick={() => setActiveView("list")}
+                type="button"
+                onClick={() => {
+                  setInviteShowSuccess(false);
+                  setActiveView("list");
+                }}
                 className="p-2 rounded-md bg-[#F2F2F2] text-[#353535] cursor-pointer"
               >
                 <img src={backIcon} alt="close" />
@@ -1297,48 +1313,98 @@ export default function ResourcesV() {
                 </div>
               </form>
             ) : activeView === "invite" ? (
-              <form onSubmit={handleInvite} className="space-y-10">
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-[16px] font-medium text-[#353535] mb-2">
-                      Email Addresses
-                    </label>
-                    <textarea
-                      value={inviteEmails}
-                      onChange={(e) => setInviteEmails(e.target.value)}
-                      rows={5}
-                      className="w-full px-5 py-4 bg-[#F2F3F4] rounded-md border-none outline-none text-sm leading-relaxed"
-                      placeholder="email1@example.com, email2@example.com"
-                      placeholder-class="text-[#353535] text-[14px] font-medium"
-                    ></textarea>
-                    <p className="text-[14px] text-[#353535] mt-2 italic px-1">
-                      * Separate multiple emails with commas.
-                    </p>
+              inviteShowSuccess ? (
+                <div
+                  className="flex flex-col items-center justify-center text-center px-6 py-16 sm:py-24 max-w-lg mx-auto"
+                  role="status"
+                >
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#E8F8EE] flex items-center justify-center mb-8">
+                    <svg
+                      className="w-10 h-10 sm:w-12 sm:h-12 text-[#22C55E]"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
                   </div>
-                  <div>
-                    <label className="block text-[16px] font-medium text-[#353535] mb-2">
-                      Message (Optional)
-                    </label>
-                    <textarea
-                      value={inviteMessage}
-                      onChange={(e) => setInviteMessage(e.target.value)}
-                      rows={3}
-                      className="w-full px-5 py-4 bg-[#F2F3F4] rounded-md border-none outline-none text-sm leading-relaxed"
-                      placeholder="Welcome to our team!"
-                      placeholder-class="text-[#353535] text-[14px] font-medium"
-                    ></textarea>
+                  <h2 className="text-[22px] sm:text-[26px] font-gantari font-bold text-[#000000] mb-4">
+                    Invitations sent successfully
+                  </h2>
+                  <p className="text-[15px] sm:text-[16px] font-gantari font-medium text-[#353535] leading-relaxed mb-10">
+                    Your invitations have been submitted. Invited users will
+                    receive an email with next steps.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto justify-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInviteShowSuccess(false);
+                        setActiveView("list");
+                      }}
+                      className="px-8 py-3 rounded-xl bg-[#F2F2F2] text-[#353535] text-[15px] font-gantari font-semibold hover:bg-[#E8E8E8] transition-colors"
+                    >
+                      Back to Resources
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInviteShowSuccess(false)}
+                      className="px-8 py-3 rounded-xl bg-[#DBE9FE] text-[#353535] text-[15px] font-gantari font-semibold hover:bg-[#C5DDF9] transition-colors"
+                    >
+                      Send more invitations
+                    </button>
                   </div>
                 </div>
-                <div className="flex justify-center pt-4">
-                  <button
-                    type="submit"
-                    disabled={inviteSubmitting}
-                    className="px-5 py-2 bg-[#DBE9FE] text-[#353535] text-[14px] font-medium rounded-md cursor-pointer"
-                  >
-                    {inviteSubmitting ? "Sending..." : "Send Invitations"}
-                  </button>
-                </div>
-              </form>
+              ) : (
+                <form onSubmit={handleInvite} className="space-y-10">
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-[16px] font-medium text-[#353535] mb-2">
+                        Email Addresses
+                      </label>
+                      <textarea
+                        value={inviteEmails}
+                        onChange={(e) => setInviteEmails(e.target.value)}
+                        rows={5}
+                        className="w-full px-5 py-4 bg-[#F2F3F4] rounded-md border-none outline-none text-sm leading-relaxed"
+                        placeholder="email1@example.com, email2@example.com"
+                        placeholder-class="text-[#353535] text-[14px] font-medium"
+                      ></textarea>
+                      <p className="text-[14px] text-[#353535] mt-2 italic px-1">
+                        * Separate multiple emails with commas.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-[16px] font-medium text-[#353535] mb-2">
+                        Message (Optional)
+                      </label>
+                      <textarea
+                        value={inviteMessage}
+                        onChange={(e) => setInviteMessage(e.target.value)}
+                        rows={3}
+                        className="w-full px-5 py-4 bg-[#F2F3F4] rounded-md border-none outline-none text-sm leading-relaxed"
+                        placeholder="Welcome to our team!"
+                        placeholder-class="text-[#353535] text-[14px] font-medium"
+                      ></textarea>
+                    </div>
+                  </div>
+                  <div className="flex justify-center pt-4">
+                    <button
+                      type="submit"
+                      disabled={inviteSubmitting}
+                      className="px-5 py-2 bg-[#DBE9FE] text-[#353535] text-[14px] font-medium rounded-md cursor-pointer"
+                    >
+                      {inviteSubmitting ? "Sending..." : "Send Invitations"}
+                    </button>
+                  </div>
+                </form>
+              )
             ) : activeView === "inactive" ? (
               <div className="space-y-8">
                 <div className="p-4 bg-[#F2F3F4] border border-[#F0F0F0] rounded-md">
