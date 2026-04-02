@@ -119,12 +119,18 @@ def create_app(config_class=Config):
         
         try:
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(dictionary=True)
+            # Try employee table first
             cur.execute("SELECT profile_picture FROM employee WHERE id = %s", (emp_id,))
             row = cur.fetchone()
             
+            # If not found or no picture, try vendor_employee table
             if not row or not row.get("profile_picture"):
-                return jsonify({"error": "No profile picture found for this employee"}), 404
+                cur.execute("SELECT profile_picture FROM vendor_employee WHERE id = %s", (emp_id,))
+                row = cur.fetchone()
+
+            if not row or not row.get("profile_picture"):
+                return jsonify({"error": "No profile picture found for this user"}), 404
                 
             profile_picture = row["profile_picture"]
             

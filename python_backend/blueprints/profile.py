@@ -1,7 +1,9 @@
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, current_app
 from db import get_db
 from auth_middleware import project_app_required
+from werkzeug.utils import secure_filename
 import hashlib
+import os
 
 bp = Blueprint("profile", __name__, url_prefix="/api/profile")
 
@@ -83,15 +85,39 @@ def get_profile():
 @bp.route("", methods=["PUT", "PATCH"])
 @project_app_required
 def update_profile():
-    data = request.get_json() or request.form
+    # Support both JSON and multipart/form-data
+    if request.is_json:
+        data = request.get_json() or {}
+    else:
+        data = request.form
+
+    # Handle file upload for profile picture
+    profile_path = None
+    file = request.files.get("profile_picture")
+    if file and file.filename:
+        upload_root = current_app.config.get("UPLOAD_FOLDER")
+        if upload_root:
+            os.makedirs(upload_root, exist_ok=True)
+            employee_dir = os.path.join(upload_root, "employee")
+            os.makedirs(employee_dir, exist_ok=True)
+            filename = secure_filename(file.filename)
+            # Add timestamp for uniqueness
+            name, ext = os.path.splitext(filename)
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{name}_{timestamp}{ext}"
+            save_path = os.path.join(employee_dir, filename)
+            file.save(save_path)
+            profile_path = filename
+
     conn = get_db()
     cur = conn.cursor()
     user_type = getattr(g, "user_type", "employee")
     
     if user_type == "vendor":
-        allowed = ("full_name", "phone_number", "email", "profile_picture")
+        allowed = ("full_name", "phone_number", "email")
     else:
-        allowed = ("full_name", "phone_number", "email", "dob", "doj", "address", "department", "profile_picture")
+        allowed = ("full_name", "phone_number", "email", "dob", "doj", "address", "department")
         
     sets = []
     params = []
@@ -99,6 +125,16 @@ def update_profile():
         if key in data and data[key] is not None:
             sets.append(f"`{key}` = %s")
             params.append(data[key])
+            
+    # Add profile picture to update if uploaded
+    if profile_path:
+        sets.append("`profile_picture` = %s")
+        params.append(profile_path)
+    elif "profile_picture" in data and data["profile_picture"] is not None:
+        # If passed as string path in JSON
+        sets.append("`profile_picture` = %s")
+        params.append(data["profile_picture"])
+
     if not sets:
         return jsonify({"success": False, "message": "No fields to update"}), 400
         
@@ -109,9 +145,10 @@ def update_profile():
         params.extend([g.user_id, g.company_id])
         cur.execute("UPDATE employee SET " + ", ".join(sets) + " WHERE id = %s AND Company_id = %s", params)
         
-    if cur.rowcount:
-        return jsonify({"success": True})
-    return jsonify({"success": False, "message": "Not found"}), 404
+    # We use cur.rowcount to check if something was actually updated,
+    # but in some cases (no changes made) it might be 0 even if the user exists.
+    # To be safe, if the query didn't raise an exception, we consider it successful.
+    return jsonify({"success": True, "profile_picture": profile_path})
 
 
 @bp.route("/change-password", methods=["POST"])
