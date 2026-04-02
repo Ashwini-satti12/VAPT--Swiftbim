@@ -2,7 +2,15 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
-import viewIcon from "../../assets/BIMModeler/ManageLeave/view icon.svg";
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
+import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
+import closeIcon from "../../assets/ProductNavbarIcons/close button.svg";
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+
+const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
+const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
+const EMPLOYEE_FILTER_PLACEHOLDER = "Employee";
 
 interface LeaveEntry {
   id: number;
@@ -161,9 +169,23 @@ const LEAVE_TYPES = [
   "Unpaid Leave",
 ];
 
-// Show entries options removed
+const showEntriesOptions: {
+  value: string;
+  label: string;
+  start: number;
+  end: number | null;
+}[] = [
+  { value: "1-50", label: "1-50", start: 0, end: 50 },
+  { value: "51-100", label: "51-100", start: 50, end: 100 },
+  { value: "101-150", label: "101-150", start: 100, end: 150 },
+  { value: "151-200", label: "151-200", start: 150, end: 200 },
+  { value: "201-250", label: "201-250", start: 200, end: 250 },
+  { value: "251-300", label: "251-300", start: 250, end: 300 },
+  { value: "all", label: "All", start: 0, end: null },
+];
 
-// Pagination configs removed
+const PER_PAGE = 10;
+const PAGINATION_VISIBLE = 4;
 
 /** Allow only letters, numbers, symbols; collapse multiple spaces to one (for Employee Name and Reason). */
 function normalizeNameAndReason(value: string): string {
@@ -267,16 +289,22 @@ export default function ManageLeave() {
 
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingLeave, setEditingLeave] = useState<LeaveEntry | null>(null);
+  const [deleteLeave, setDeleteLeave] = useState<LeaveEntry | null>(null);
   const [leaveTypeOpenEdit, setLeaveTypeOpenEdit] = useState(false);
   const leaveTypeDropdownEditRef = useRef<HTMLDivElement>(null);
 
-  const [selectedEmployee, setSelectedEmployee] = useState<string>("All");
+  const [selectedEmployee, setSelectedEmployee] = useState<string>("");
   const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
   const employeeDropdownRef = useRef<HTMLDivElement>(null);
-  // Show entries state and refs removed
+  const employeeDropdownContentRef = useRef<HTMLDivElement>(null);
+  const [selectedShowEntries, setSelectedShowEntries] = useState("");
+  const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+  const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [paginationWindowStart, setPaginationWindowStart] = useState(1);
   const [leaveTypeOpen, setLeaveTypeOpen] = useState(false);
   const leaveTypeDropdownRef = useRef<HTMLDivElement>(null);
-  // Pagination state removed
 
   const employeeOptions = [
     "All",
@@ -356,20 +384,39 @@ export default function ManageLeave() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const t = event.target as Node;
       if (
+        employeeDropdownOpen &&
         employeeDropdownRef.current &&
-        !employeeDropdownRef.current.contains(event.target as Node)
+        !employeeDropdownRef.current.contains(t)
       ) {
         setEmployeeDropdownOpen(false);
       }
+      if (
+        showEntriesOpen &&
+        showEntriesDropdownRef.current &&
+        !showEntriesDropdownRef.current.contains(t)
+      ) {
+        setShowEntriesOpen(false);
+      }
     };
-    if (employeeDropdownOpen) {
+    if (employeeDropdownOpen || showEntriesOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [employeeDropdownOpen]);
+  }, [employeeDropdownOpen, showEntriesOpen]);
 
-  // Show entries click outside handled removed
+  useEffect(() => {
+    if (showEntriesOpen && showEntriesDropdownContentRef.current) {
+      showEntriesDropdownContentRef.current.scrollTop = 0;
+    }
+  }, [showEntriesOpen]);
+
+  useEffect(() => {
+    if (employeeDropdownOpen && employeeDropdownContentRef.current) {
+      employeeDropdownContentRef.current.scrollTop = 0;
+    }
+  }, [employeeDropdownOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -402,14 +449,65 @@ export default function ManageLeave() {
   }, [leaveTypeOpenEdit]);
 
   useEffect(() => {
-    // CurrentPage reset removed
-  }, [selectedEmployee]);
+    setCurrentPage(1);
+    setPaginationWindowStart(1);
+  }, [selectedShowEntries, selectedEmployee]);
 
-  const filteredList =
-    selectedEmployee === "All"
-      ? leaves
-      : leaves.filter((l) => l.employeeName === selectedEmployee);
-  // Pagination logic removed
+  const employeeFilterShowsAll =
+    selectedEmployee === "" || selectedEmployee === "All";
+  const filteredList = employeeFilterShowsAll
+    ? leaves
+    : leaves.filter((l) => l.employeeName === selectedEmployee);
+  const effectiveShowEntryValue =
+    selectedShowEntries || showEntriesOptions[0].value;
+  const selectedRange =
+    showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ??
+    showEntriesOptions[0];
+  const rangeStart = selectedRange.start;
+  const rangeEnd =
+    selectedRange.end === null
+      ? filteredList.length
+      : Math.min(selectedRange.end, filteredList.length);
+  const listInRange = filteredList.slice(rangeStart, rangeEnd);
+  const totalInRange = listInRange.length;
+  const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const displayedList = listInRange.slice(
+    (safePage - 1) * PER_PAGE,
+    safePage * PER_PAGE,
+  );
+
+  const pageRanges: { start: number; end: number; label: string }[] = [];
+  for (let p = 1; p <= totalPages; p++) {
+    const s = rangeStart + (p - 1) * PER_PAGE;
+    const e = Math.min(rangeStart + p * PER_PAGE, rangeEnd);
+    const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
+    pageRanges.push({ start: s, end: e, label });
+  }
+  const activePage = safePage;
+  const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
+  const effectiveWindowStart = Math.min(paginationWindowStart, maxWindowStart);
+  const visiblePageRanges = pageRanges.slice(
+    effectiveWindowStart - 1,
+    effectiveWindowStart - 1 + PAGINATION_VISIBLE,
+  );
+  const canPrevWindow = paginationWindowStart > 1;
+  const canNextWindow =
+    paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
+  const goPrevWindow = () =>
+    setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
+  const goNextWindow = () =>
+    setPaginationWindowStart((s) =>
+      Math.min(s + PAGINATION_VISIBLE, maxWindowStart),
+    );
+  void [
+    activePage,
+    visiblePageRanges,
+    canPrevWindow,
+    canNextWindow,
+    goPrevWindow,
+    goNextWindow,
+  ];
 
   const handleView = (row: LeaveEntry) => {
     setSelectedLeave(row);
@@ -643,19 +741,16 @@ export default function ManageLeave() {
     }
   };
 
-  const handleDelete = async (row: LeaveEntry) => {
-    if (
-      !window.confirm(
-        `Delete leave for ${row.employeeName} (${row.leaveType}, ${row.fromDate} - ${row.toDate})?`,
-      )
-    ) {
-      return;
-    }
+  const openDeleteLeave = (row: LeaveEntry) => {
+    setDeleteLeave(row);
+  };
 
+  const confirmDeleteLeave = async () => {
+    if (deleteLeave === null) return;
+    const row = deleteLeave;
     try {
       await api.delete(`/api/leave/applications/${row.id}`);
 
-      // Reload latest leaves from backend
       const resp = await api.get<{ applications?: any[] }>(
         "/api/leave/applications",
       );
@@ -686,6 +781,7 @@ export default function ManageLeave() {
           app.status === 1 ? "Approved" : app.status === 2 ? "Rejected" : "Pending",
       }));
       setLeaves(mapped);
+      setDeleteLeave(null);
     } catch (err) {
       console.error("Failed to delete leave", err);
       alert("Delete failed. Please try again.");
@@ -745,342 +841,506 @@ export default function ManageLeave() {
   };
 
   return (
-    <div className="p-4 flex flex-col h-full font-gantari">
-      {/* Page header: heading left; Employee + Show entries + Apply Leave right */}
-      <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">
-        <h1 className="text-2xl md:text-[24px] font-medium text-[#000000] tracking-tight">
-          Manage Leaves
-        </h1>
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative" ref={employeeDropdownRef}>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setEmployeeDropdownOpen((o) => !o);
-              }}
-              className={`flex items-center gap-2 px-4 py-2.5 bg-[#E8E8E8] rounded-lg border border-[#E5E5E5] transition-all cursor-pointer font-medium text-sm min-w-[140px] justify-between ${employeeDropdownOpen ? "text-[#353535]" : "text-[#616161]"}`}
-            >
-              <span>Employee:</span>
-              <span className="truncate max-w-[100px]">{selectedEmployee}</span>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`shrink-0 transition-transform duration-200 ${employeeDropdownOpen ? "rotate-180" : ""}`}
+    <div className="flex flex-col h-full font-gantari overflow-hidden p-4">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        <div className="flex flex-col flex-1 min-h-0">
+          <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">
+            <h1 className="text-[24px] font-gantari font-semibold">
+              Manage Leave
+            </h1>
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  const displayName = user
+                    ? `${user.full_name}${user.user_role ? ` - ${user.user_role}` : ""}`
+                    : "";
+                  setEmployeeName(displayName);
+                  setApplyModalOpen(true);
+                }}
+                className="px-4 py-2 bg-[#DD4346] text-white rounded-md text-[14px] font-gantari font-medium hover:bg-[#c43a39] transition-colors cursor-pointer"
               >
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </button>
-            {employeeDropdownOpen && (
+                Apply Leave
+              </button>
               <div
-                className="absolute top-full left-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg min-w-[160px] max-h-[240px] overflow-y-auto py-1.5 custom-scrollbar"
-                onMouseDown={(e) => e.preventDefault()}
+                className="relative min-w-[180px] max-w-[240px] w-[180px]"
+                ref={employeeDropdownRef}
               >
-                {employeeOptions.map((name) => {
-                  const isSelected = selectedEmployee === name;
-                  return (
-                    <button
-                      key={name}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedEmployee(name);
-                        setEmployeeDropdownOpen(false);
-                      }}
-                       className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors truncate cursor-pointer ${isSelected ? "text-[#353535] bg-[#F0F2F7]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]"}`}
-                     >
-                      {name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-          {/* Show entries dropdown removed */}
-          <button
-            type="button"
-            onClick={() => {
-              // Pre-fill with logged-in user's name and role for display
-              const displayName = user
-                ? `${user.full_name}${user.user_role ? ` - ${user.user_role}` : ""}`
-                : "";
-              setEmployeeName(displayName);
-              setApplyModalOpen(true);
-            }}
-             className="flex items-center gap-2 px-6 py-2.5 bg-[#DD4342] text-[#F2F2F2] rounded-md font-medium text-sm active:scale-[0.98] transition-all shadow-sm cursor-pointer"
-           >
-            Apply Leave
-          </button>
-        </div>
-      </div>
-
-      {/* Single table: all leave data with Role, Reason, and Approve/Reject for Pending */}
-      <div className="bg-white rounded-lg border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
-        <div className="overflow-x-auto overflow-y-auto flex-1 ">
-          <table className="w-full min-w-[900px] border-collapse table-fixed">
-            <colgroup>
-              <col className="w-[12.5%]" />
-              <col className="w-[12.5%]" />
-              <col className="w-[12.5%]" />
-              <col className="w-[12.5%]" />
-              <col className="w-[12.5%]" />
-              <col className="w-[12.5%]" />
-              <col className="w-[12.5%]" />
-              <col className="w-[12.5%]" />
-            </colgroup>
-            <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-              <tr className="bg-[#FFFFFF]">
-                <th className="pl-4 pr-4 py-3 text-center text-[16px] font-semibold tracking-wider text-[#353535] whitespace-nowrap">
-                  Sl.No
-                </th>
-                <th className="pl-4 pr-4 py-3 text-center text-[16px] font-semibold tracking-wider text-[#353535] whitespace-nowrap">
-                  Employee Name
-                </th>
-                <th className="pl-4 pr-4 py-3 text-center text-[16px] font-semibold tracking-wider text-[#353535] whitespace-nowrap">
-                  Role
-                </th>
-                <th className="px-4 py-3 text-center text-[16px] font-semibold tracking-wider text-[#353535] whitespace-nowrap">
-                  Leave Type
-                </th>
-                <th className="px-4 py-3 text-center text-[16px] font-semibold tracking-wider text-[#353535] whitespace-nowrap">
-                  From Date
-                </th>
-                <th className="px-4 py-3 text-center text-[16px] font-semibold tracking-wider text-[#353535] whitespace-nowrap">
-                  To Date
-                </th>
-                <th className="pl-4 pr-4 py-3 text-center text-[16px] font-semibold tracking-wider text-[#353535] whitespace-nowrap">
-                  Status
-                </th>
-                <th className="pl-4 pr-4 py-3 text-center text-[16px] font-semibold tracking-wider text-[#353535] whitespace-nowrap">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#EEEEEE]">
-              {filteredList.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-6 py-16 text-center text-sm text-[#616161]"
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEmployeeDropdownOpen((o) => !o);
+                  }}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                >
+                  <span
+                    className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                      selectedEmployee === ""
+                        ? "text-[#8B8B8B]"
+                        : "text-[#353535]"
+                    }`}
                   >
-                    <div className="flex flex-col items-center gap-3">
-                      <svg
-                        className="w-12 h-12 text-[#D2D2D2]"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                        />
-                      </svg>
-                      <p className="font-medium">No leave records found</p>
-                      <p className="text-sm">
-                        Leave entries will appear here when available.
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredList.map((row, index) => {
-                  const slNo = index + 1;
-                  return (
-                    <tr
-                      key={row.id}
-                      className={index % 2 === 1 ? "bg-[#FAFAFA]" : "bg-white"}
+                    {selectedEmployee === "" ? (
+                      EMPLOYEE_FILTER_PLACEHOLDER
+                    ) : selectedEmployee === "All" ? (
+                      <>
+                        <span className="text-[14px]">
+                          {EMPLOYEE_FILTER_PLACEHOLDER}:
+                        </span>{" "}
+                        <span className="font-semibold">All</span>
+                      </>
+                    ) : (
+                      <span className="font-semibold truncate">
+                        {selectedEmployee}
+                      </span>
+                    )}
+                  </span>
+                  <img
+                    src={ArrowDown}
+                    alt=""
+                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                      employeeDropdownOpen ? "rotate-180" : ""
+                    } ${
+                      selectedEmployee === ""
+                        ? "opacity-60 grayscale"
+                        : "opacity-90"
+                    }`}
+                    aria-hidden
+                  />
+                </button>
+                {employeeDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                    <div
+                      ref={employeeDropdownContentRef}
+                      className="max-h-[168px] overflow-y-auto custom-scrollbar"
                     >
-                      <td className="pl-4 pr-4 py-6 text-center text-[14px] text-[#353535] font-medium align-middle">
-                        {String(slNo).padStart(2, "0")}
-                      </td>
-                      <td className="pl-4 pr-4 py-6 text-center text-[14px] text-[#353535] font-semibold align-middle">
-                        {row.employeeName}
-                      </td>
-                      <td className="pl-4 pr-4 py-6 text-center text-[14px] text-[#616161] align-middle">
-                        {row.role ?? "–"}
-                      </td>
-                      <td className="px-4 py-6 text-center text-[14px] text-[#616161] align-middle">
-                        {row.leaveType}
-                      </td>
-                      <td className="px-4 py-6 text-center text-[14px] text-[#616161] align-middle">
-                        {row.fromDate ?? "–"}
-                      </td>
-                      <td className="px-4 py-6 text-center text-[14px] text-[#616161] align-middle">
-                        {row.toDate ?? "–"}
-                      </td>
-                      <td className="pl-4 pr-4 py-6 text-center align-middle">
-                        <span
-                          className={`inline-flex px-3 py-1 rounded-md text-xs font-semibold ${row.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : row.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFF8E1] text-[#F57C00]"}`}
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedEmployee("");
+                          setEmployeeDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                      >
+                        {EMPLOYEE_FILTER_PLACEHOLDER}
+                      </button>
+                      {employeeOptions.map((name) => (
+                        <button
+                          key={name}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedEmployee(name);
+                            setEmployeeDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer truncate hover:text-[#353535] hover:bg-[#F2F2F2] ${
+                            selectedEmployee === name
+                              ? "text-[#353535] bg-[#F2F2F2]"
+                              : "text-[#8B8B8B] bg-transparent"
+                          }`}
                         >
-                          {row.currentStatus}
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div
+                className="relative min-w-[140px] max-w-[200px] w-[150px]"
+                ref={showEntriesDropdownRef}
+              >
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowEntriesOpen((o) => !o);
+                  }}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                >
+                  <span
+                    className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                      selectedShowEntries === ""
+                        ? "text-[#8B8B8B]"
+                        : "text-[#353535]"
+                    }`}
+                  >
+                    {selectedShowEntries === "" ? (
+                      SHOW_ENTRIES_PLACEHOLDER
+                    ) : (
+                      <>
+                        <span className="text-[14px]">
+                          {SHOW_ENTRIES_SELECTED_PREFIX}
+                        </span>{" "}
+                        <span className="font-semibold">
+                          {selectedRange.label}
                         </span>
-                      </td>
-                      <td className="pl-4 pr-4 py-6 text-center whitespace-nowrap align-middle">
-                        <div className="flex items-center justify-center gap-4 flex-nowrap">
+                      </>
+                    )}
+                  </span>
+                  <img
+                    src={ArrowDown}
+                    alt=""
+                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                      showEntriesOpen ? "rotate-180" : ""
+                    } ${
+                      selectedShowEntries === ""
+                        ? "opacity-60 grayscale"
+                        : "opacity-90"
+                    }`}
+                    aria-hidden
+                  />
+                </button>
+                {showEntriesOpen && (
+                  <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                    <div
+                      ref={showEntriesDropdownContentRef}
+                      className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                    >
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedShowEntries("");
+                          setShowEntriesOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                      >
+                        {SHOW_ENTRIES_PLACEHOLDER}
+                      </button>
+                      {showEntriesOptions.map((opt) => {
+                        const isChosen = selectedShowEntries === opt.value;
+                        return (
                           <button
+                            key={`${opt.value}-${opt.start}-${opt.end}`}
                             type="button"
-                            onClick={() => handleView(row)}
-                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#DD4346] text-white rounded-lg font-medium text-xs hover:bg-[#c43a39] active:scale-[0.98] transition-all shrink-0 cursor-pointer"
-                           >
-                            <img
-                              src={viewIcon}
-                              alt=""
-                              className="w-3.5 h-3.5 shrink-0 [filter:brightness(0)_invert(1)]"
-                            />
-                            View
-                          </button>
-                          {row.currentStatus === "Pending" &&
-                            canActOnLeave(row) && (
-                              <>
-                                <div className="relative group inline-flex shrink-0">
-                                  <button
-                                    type="button"
-                                    aria-label="Approve"
-                                    onClick={() => handleApproveBackend(row)}
-                                     className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-lg font-medium active:scale-[0.98] transition-transform cursor-pointer"
-                                   >
-                                    <svg
-                                      className="w-4 h-4 shrink-0"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                      strokeWidth="2.5"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    >
-                                      <path d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  </button>
-                                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                    <div className="relative z-10">
-                                      <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                                    </div>
-                                    <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                      <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
-                                        Approve
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="relative group inline-flex shrink-0">
-                                  <button
-                                    type="button"
-                                    aria-label="Reject"
-                                    onClick={() => handleRejectBackend(row)}
-                                     className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-lg font-medium active:scale-[0.98] transition-transform cursor-pointer"
-                                   >
-                                    <svg
-                                      className="w-4 h-4 shrink-0"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                      strokeWidth="2.5"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    >
-                                      <path d="M18 6L6 18M6 6l12 12" />
-                                    </svg>
-                                  </button>
-                                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                    <div className="relative z-10">
-                                      <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                                    </div>
-                                    <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                      <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
-                                        Reject
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </>
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setSelectedShowEntries(opt.value);
+                              setShowEntriesOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${
+                              isChosen
+                                ? "text-[#353535] bg-[#F2F2F2]"
+                                : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                            }`}
+                          >
+                            <span className="truncate min-w-0">{opt.label}</span>
+                            {isChosen && (
+                              <svg
+                                className="w-4 h-4 shrink-0 text-[#353535]"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                aria-hidden
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2.5}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
                             )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
-                          {canEditLeave(row) && (
-                            <div className="relative group inline-flex shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => handleEdit(row)}
-                                aria-label="Edit"
-                                 className="inline-flex items-center justify-center p-2 rounded-lg font-medium text-[#353535] bg-[#E8E8E8] hover:bg-[#D2D2D2] active:scale-[0.98] transition-all cursor-pointer"
-                               >
-                                <svg
-                                  className="w-4 h-4 shrink-0"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                </svg>
-                              </button>
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                                <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                  <span className="font-gantari text-xs font-medium text-[#353535] text-center block">
-                                    Edit
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {canEditLeave(row) && (
-                            <div className="relative group inline-flex shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(row)}
-                                aria-label="Delete"
-                                 className="inline-flex items-center justify-center p-2 rounded-lg font-medium text-white bg-[#C62828] hover:bg-[#B71C1C] active:scale-[0.98] transition-all cursor-pointer"
-                               >
-                                <svg
-                                  className="w-4 h-4 shrink-0"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M3 6h18" />
-                                  <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" />
-                                  <path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                                  <line x1="10" y1="11" x2="10" y2="17" />
-                                  <line x1="14" y1="11" x2="14" y2="17" />
-                                </svg>
-                              </button>
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                                <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                  <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
-                                    Delete
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
+          <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+            <div className="overflow-auto custom-scrollbar smooth-scroll flex-1">
+              <table className="min-w-full border-collapse min-w-[1000px]">
+                <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                  <tr className="bg-white">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                      Sl.No
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                      Employee Name
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                      Role
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                      Leave Type
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                      From Date
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                      To Date
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                      Status
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {displayedList.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={8}
+                        className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white"
+                      >
+                        No leave records found
                       </td>
                     </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                  ) : (
+                    displayedList.map((row, index) => {
+                      const baseIndex =
+                        rangeStart + (safePage - 1) * PER_PAGE + index;
+                      const slNo = baseIndex + 1;
+                      const isLastRow = index === displayedList.length - 1;
+                      return (
+                        <tr
+                          key={row.id}
+                          className={`${index % 2 === 1 ? "bg-[#F2F2F2] hover:bg-gray-100" : "bg-white"} transition-colors`}
+                        >
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
+                            {String(slNo).padStart(2, "0")}
+                          </td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
+                            {row.employeeName}
+                          </td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                            {row.role ?? "–"}
+                          </td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                            {row.leaveType}
+                          </td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                            {row.fromDate ?? "–"}
+                          </td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                            {row.toDate ?? "–"}
+                          </td>
+                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                            <span
+                              className={`inline-flex px-3 py-1 rounded-md text-[12px] font-semibold font-gantari ${row.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : row.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFEAD6] text-[#EB7200]"}`}
+                            >
+                              {row.currentStatus}
+                            </span>
+                          </td>
+                          <td className="px-3 py-6 text-center text-[14px] whitespace-nowrap align-middle">
+                            <div className="flex items-center justify-center gap-2 flex-nowrap">
+                              <button
+                                type="button"
+                                onClick={() => handleView(row)}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DD4242] text-white rounded-md font-medium text-[12px] cursor-pointer"
+                              >
+                                <img
+                                  src={viewIcon}
+                                  alt=""
+                                  className="w-3.5 h-3.5 shrink-0 [filter:brightness(0)_invert(1)]"
+                                />
+                                View
+                              </button>
+                              {row.currentStatus === "Pending" &&
+                                canActOnLeave(row) && (
+                                  <>
+                                    <div className="relative group inline-flex shrink-0">
+                                      <button
+                                        type="button"
+                                        aria-label="Approve"
+                                        onClick={() =>
+                                          handleApproveBackend(row)
+                                        }
+                                        className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
+                                      >
+                                        <svg
+                                          className="w-4 h-4 shrink-0"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                          strokeWidth="2.5"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        >
+                                          <path d="M5 13l4 4L19 7" />
+                                        </svg>
+                                      </button>
+                                      {isLastRow ? (
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                          <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
+                                            <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
+                                              Approve
+                                            </span>
+                                          </div>
+                                          <div className="relative z-10 -mt-[1px]">
+                                            <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"></div>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                          <div className="relative z-10">
+                                            <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                                          </div>
+                                          <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
+                                            <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
+                                              Approve
+                                            </span>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="relative group inline-flex shrink-0">
+                                      <button
+                                        type="button"
+                                        aria-label="Reject"
+                                        onClick={() =>
+                                          handleRejectBackend(row)
+                                        }
+                                        className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
+                                      >
+                                        <svg
+                                          className="w-4 h-4 shrink-0"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                          strokeWidth="2.5"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        >
+                                          <path d="M18 6L6 18M6 6l12 12" />
+                                        </svg>
+                                      </button>
+                                      {isLastRow ? (
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                          <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
+                                            <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
+                                              Reject
+                                            </span>
+                                          </div>
+                                          <div className="relative z-10 -mt-[1px]">
+                                            <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"></div>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                          <div className="relative z-10">
+                                            <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                                          </div>
+                                          <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
+                                            <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
+                                              Reject
+                                            </span>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </>
+                                )}
+                              {canEditLeave(row) && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEdit(row)}
+                                    className={`inline-flex items-center justify-center p-2 rounded-md cursor-pointer ${
+                                      index % 2 === 0
+                                        ? "bg-[#F2F2F2]"
+                                        : "bg-[#FFFFFF]"
+                                    }`}
+                                    title="Edit"
+                                  >
+                                    <img
+                                      src={editIcon}
+                                      alt=""
+                                      className="w-4 h-4"
+                                    />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => openDeleteLeave(row)}
+                                    className={`inline-flex items-center justify-center p-2 rounded-md text-[#353535] transition-colors shrink-0 cursor-pointer ${
+                                      index % 2 === 0
+                                        ? "bg-[#F2F2F2]"
+                                        : "bg-[#FFFFFF]"
+                                    }`}
+                                    title="Delete"
+                                  >
+                                    <img
+                                      src={deleteIcon}
+                                      alt=""
+                                      className="w-4 h-4"
+                                    />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Pagination removed */}
+      {deleteLeave !== null && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+            <button
+              type="button"
+              onClick={() => setDeleteLeave(null)}
+              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+              title="Close"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+            <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
+              Delete Leave
+            </h3>
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+              Are you sure, you want to Delete this?
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
+              <button
+                type="button"
+                onClick={() => setDeleteLeave(null)}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteLeave}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Apply Leave Modal */}
       {applyModalOpen &&
@@ -1097,21 +1357,14 @@ export default function ManageLeave() {
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-[#EEEEEE] transition-colors text-[#000000] cursor-pointer"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] hover:bg-[#E8E8E8] transition-colors cursor-pointer"
                   aria-label="Close"
                 >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
+                  <img
+                    src={closeIcon}
+                    alt=""
+                    className="w-5 h-5 object-contain"
+                  />
                 </button>
                 <h3 className="text-xl font-medium text-[#000000] text-center">
                   Apply Leave
@@ -1396,21 +1649,14 @@ export default function ManageLeave() {
                 <button
                   type="button"
                   onClick={handleCloseEditModal}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-[#EEEEEE] transition-colors text-[#000000] cursor-pointer"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] hover:bg-[#E8E8E8] transition-colors cursor-pointer"
                   aria-label="Close"
                 >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
+                  <img
+                    src={closeIcon}
+                    alt=""
+                    className="w-5 h-5 object-contain"
+                  />
                 </button>
                 <h3 className="text-xl font-medium text-[#000000] text-center">
                   Edit Leave
@@ -1694,30 +1940,23 @@ export default function ManageLeave() {
               className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E5E5E5]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="relative flex items-center justify-center px-6 py-5 border-b border-[#EEEEEE] bg-[#FAFAFA]">
+              <div className="relative flex items-center justify-center px-6 py-5">
                 <button
                   type="button"
                   onClick={() => {
                     setViewModalOpen(false);
                     setSelectedLeave(null);
                   }}
-                   className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] hover:bg-[#E0E0E0] transition-colors text-[#000000] cursor-pointer"
-                   aria-label="Close"
-                 >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
+                  className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] hover:bg-[#E8E8E8] transition-colors"
+                  aria-label="Close"
+                >
+                  <img
+                    src={closeIcon}
+                    alt=""
+                    className="w-5 h-5 object-contain"
+                  />
                 </button>
-                <h3 className="text-xl font-medium text-[#000000]">
+                <h3 className="text-[24px] font-medium text-[#000000]">
                   Leave Details
                 </h3>
               </div>
@@ -1792,7 +2031,7 @@ export default function ManageLeave() {
                     </span>
                     <span className="shrink-0 text-[#616161]">:</span>
                     <span
-                      className={`inline-flex px-3 py-1 rounded-md text-xs font-semibold ${selectedLeave.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : selectedLeave.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFF8E1] text-[#F57C00]"}`}
+                      className={`inline-flex px-3 py-1 rounded-md text-[12px] font-semibold font-gantari ${selectedLeave.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : selectedLeave.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFEAD6] text-[#EB7200]"}`}
                     >
                       {selectedLeave.currentStatus}
                     </span>

@@ -443,7 +443,7 @@ export default function ManageLeaveBC() {
                 Apply Leave
               </button>
               <div
-                className="relative min-w-[180px] max-w-[240px] w-[200px]"
+                className="relative min-w-[180px] max-w-[240px] w-[180px]"
                 ref={employeeDropdownRef}
               >
                 <button
@@ -463,15 +463,17 @@ export default function ManageLeaveBC() {
                   >
                     {selectedEmployee === "" ? (
                       EMPLOYEE_FILTER_PLACEHOLDER
-                    ) : (
+                    ) : selectedEmployee === "All" ? (
                       <>
                         <span className="text-[14px]">
                           {EMPLOYEE_FILTER_PLACEHOLDER}:
                         </span>{" "}
-                        <span className="font-semibold">
-                          {selectedEmployee}
-                        </span>
+                        <span className="font-semibold">All</span>
                       </>
+                    ) : (
+                      <span className="font-semibold truncate">
+                        {selectedEmployee}
+                      </span>
                     )}
                   </span>
                   <img
@@ -505,9 +507,9 @@ export default function ManageLeaveBC() {
                       >
                         {EMPLOYEE_FILTER_PLACEHOLDER}
                       </button>
-                      {employeeOptions.map((name) => (
-                        <button
-                          key={name}
+                    {employeeOptions.map((name) => (
+                      <button
+                        key={name}
                           type="button"
                           onMouseDown={(e) => {
                             e.preventDefault();
@@ -520,16 +522,16 @@ export default function ManageLeaveBC() {
                               ? "text-[#353535] bg-[#F2F2F2]"
                               : "text-[#8B8B8B] bg-transparent"
                           }`}
-                        >
-                          {name}
-                        </button>
-                      ))}
+                      >
+                        {name}
+                      </button>
+                    ))}
                     </div>
                   </div>
                 )}
               </div>
               <div
-                className="relative min-w-[140px] max-w-[200px] w-[160px]"
+                className="relative min-w-[140px] max-w-[200px] w-[150px]"
                 ref={showEntriesDropdownRef}
               >
                 <button
@@ -686,7 +688,7 @@ export default function ManageLeaveBC() {
                         >
                           <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
                             {String(slNo).padStart(2, "0")}
-                          </td>
+                        </td>
                           <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
                             {row.employeeName}
                           </td>
@@ -715,7 +717,7 @@ export default function ManageLeaveBC() {
                                   className="w-3.5 h-3.5 shrink-0 [filter:brightness(0)_invert(1)]"
                                 />
                                 View
-                              </button>
+                            </button>
                               {row.currentStatus === "Pending" && (
                                 <>
                                   <button
@@ -729,7 +731,7 @@ export default function ManageLeaveBC() {
                                     title="Edit"
                                   >
                                     <img src={editIcon} alt="" className="w-4 h-4" />
-                                  </button>
+                            </button>
                                   <button
                                     type="button"
                                     onClick={() => openDeleteLeave(row)}
@@ -744,9 +746,9 @@ export default function ManageLeaveBC() {
                                   </button>
                                 </>
                               )}
-                            </div>
-                          </td>
-                        </tr>
+                          </div>
+                        </td>
+                      </tr>
                       );
                     })
                   )}
@@ -786,11 +788,11 @@ export default function ManageLeaveBC() {
                     alt=""
                     className="w-5 h-5 object-contain"
                   />
-                </button>
+              </button>
                 <h3 className="text-[24px] font-medium text-[#000000]">
                   Leave Details
                 </h3>
-              </div>
+            </div>
               <div className="px-6 py-6">
                 <div className="space-y-4">
                   <div className="flex items-start gap-2">
@@ -801,7 +803,7 @@ export default function ManageLeaveBC() {
                     <span className="text-sm text-[#616161]">
                       {selectedLeave.employeeName}
                     </span>
-                  </div>
+              </div>
                   <div className="flex items-start gap-2">
                     <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
                       Role
@@ -868,9 +870,9 @@ export default function ManageLeaveBC() {
                     </span>
                   </div>
                 </div>
-              </div>
             </div>
-          </div>,
+          </div>
+        </div>,
           document.body,
         )}
 
@@ -896,7 +898,7 @@ export default function ManageLeaveBC() {
                 <h3 className="text-[24px] font-semibold text-[#000000]">
                   Apply Leave
                 </h3>
-              </div>
+            </div>
               <form
                 onSubmit={handleSubmitApply}
                 className="px-6 py-6 space-y-4"
@@ -923,7 +925,7 @@ export default function ManageLeaveBC() {
                     </p>
                   )}
                 </div>
-                <div className="relative" ref={leaveTypeDropdownRef}>
+               <div className="relative" ref={leaveTypeDropdownRef}>
                   <label className="block text-base font-semibold text-[#000000] mb-2">
                     Leave Type <span className="text-[#DD4342]">*</span>
                   </label>
@@ -954,8 +956,8 @@ export default function ManageLeaveBC() {
                     >
                       <path d="M6 9l6 6 6-6" />
                     </svg>
-                  </button>
-                  {leaveTypeOpen && (
+                </button>
+                {leaveTypeOpen && (
                     <div
                       className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg py-1.5"
                       onMouseDown={(e) => e.preventDefault()}
@@ -987,17 +989,17 @@ export default function ManageLeaveBC() {
                         >
                           {t}
                         </button>
-                      ))}
-                    </div>
-                  )}
+                    ))}
+                  </div>
+                )}
                   {applyFormErrors.leaveType && (
                     <p className="mt-1.5 text-sm text-[#DD4342]">
                       {applyFormErrors.leaveType}
                     </p>
                   )}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                     <label className="block text-base font-semibold text-[#000000] mb-2">
                       Leave From <span className="text-[#DD4342]">*</span>
                     </label>
@@ -1056,8 +1058,8 @@ export default function ManageLeaveBC() {
                         {applyFormErrors.leaveFrom}
                       </p>
                     )}
-                  </div>
-                  <div>
+                </div>
+                <div>
                     <label className="block text-base font-semibold text-[#000000] mb-2">
                       Leave To <span className="text-[#DD4342]">*</span>
                     </label>
@@ -1105,9 +1107,9 @@ export default function ManageLeaveBC() {
                         {applyFormErrors.leaveTo}
                       </p>
                     )}
-                  </div>
                 </div>
-                <div>
+              </div>
+              <div>
                   <label className="block text-base font-semibold text-[#000000] mb-2">
                     Describe Your Reason{" "}
                     <span className="text-[#DD4342]">*</span>
@@ -1128,8 +1130,8 @@ export default function ManageLeaveBC() {
                       {applyFormErrors.reason}
                     </p>
                   )}
-                </div>
-                <div className="flex gap-3 pt-2">
+              </div>
+              <div className="flex gap-3 pt-2">
                   <button
                     type="button"
                     onClick={handleCloseModal}
@@ -1143,10 +1145,10 @@ export default function ManageLeaveBC() {
                   >
                     Submit
                   </button>
-                </div>
-              </form>
-            </div>
-          </div>,
+              </div>
+            </form>
+          </div>
+        </div>,
           document.body,
         )}
 
@@ -1171,7 +1173,7 @@ export default function ManageLeaveBC() {
                   <img src={closeIcon} alt="" className="w-5 h-5 object-contain" />
                 </button>
                 <h3 className="text-[24px] font-medium text-[#000000]">Edit Leave</h3>
-              </div>
+            </div>
               <form onSubmit={handleSubmitEdit} className="px-6 py-6 space-y-4">
                 <div>
                   <label className="block text-base font-semibold text-[#000000] mb-2">
@@ -1195,7 +1197,7 @@ export default function ManageLeaveBC() {
                     </p>
                   )}
                 </div>
-                <div className="relative" ref={leaveTypeDropdownEditRef}>
+               <div className="relative" ref={leaveTypeDropdownEditRef}>
                   <label className="block text-base font-semibold text-[#000000] mb-2">
                     Leave Type <span className="text-[#DD4342]">*</span>
                   </label>
@@ -1226,8 +1228,8 @@ export default function ManageLeaveBC() {
                     >
                       <path d="M6 9l6 6 6-6" />
                     </svg>
-                  </button>
-                  {leaveTypeOpenEdit && (
+                </button>
+                {leaveTypeOpenEdit && (
                     <div
                       className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg py-1.5"
                       onMouseDown={(e) => e.preventDefault()}
@@ -1259,17 +1261,17 @@ export default function ManageLeaveBC() {
                         >
                           {t}
                         </button>
-                      ))}
-                    </div>
-                  )}
+                    ))}
+                  </div>
+                )}
                   {applyFormErrors.leaveType && (
                     <p className="mt-1.5 text-sm text-[#DD4342]">
                       {applyFormErrors.leaveType}
                     </p>
                   )}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                     <label className="block text-base font-semibold text-[#000000] mb-2">
                       Leave From <span className="text-[#DD4342]">*</span>
                     </label>
@@ -1328,8 +1330,8 @@ export default function ManageLeaveBC() {
                         {applyFormErrors.leaveFrom}
                       </p>
                     )}
-                  </div>
-                  <div>
+                </div>
+                <div>
                     <label className="block text-base font-semibold text-[#000000] mb-2">
                       Leave To <span className="text-[#DD4342]">*</span>
                     </label>
@@ -1377,9 +1379,9 @@ export default function ManageLeaveBC() {
                         {applyFormErrors.leaveTo}
                       </p>
                     )}
-                  </div>
                 </div>
-                <div>
+              </div>
+              <div>
                   <label className="block text-base font-semibold text-[#000000] mb-2">
                     Describe Your Reason{" "}
                     <span className="text-[#DD4342]">*</span>
@@ -1400,8 +1402,8 @@ export default function ManageLeaveBC() {
                       {applyFormErrors.reason}
                     </p>
                   )}
-                </div>
-                <div className="flex gap-3 pt-2">
+              </div>
+              <div className="flex gap-3 pt-2">
                   <button
                     type="button"
                     onClick={handleCloseEditModal}
@@ -1415,10 +1417,10 @@ export default function ManageLeaveBC() {
                   >
                     Update
                   </button>
-                </div>
-              </form>
-            </div>
-          </div>,
+              </div>
+            </form>
+          </div>
+        </div>,
           document.body,
         )}
 
