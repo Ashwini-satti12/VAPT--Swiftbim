@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import threeDotsIcon from '../../assets/ProjectManager/CreateTeam/three dots.svg';
@@ -348,6 +349,7 @@ function TeamCard({
 }
 
 export default function CreateteamBC() {
+  const [searchParams] = useSearchParams();
   const [teams, setTeams] = useState<Team[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -552,6 +554,27 @@ export default function CreateteamBC() {
     return e ? (e.full_name ?? "Unknown") : "Unknown";
   };
 
+  const filteredTeams = useMemo(() => {
+    const q = searchParams.get("q")?.toLowerCase() || "";
+    if (!q) return teams;
+    return teams.filter((t) => {
+      const name = (t.team_name || t.teamname || "").toLowerCase();
+      const leader = (t.leader_name || getEmpName(t.leader) || "").toLowerCase();
+      const proj = (t.project_name || "").toLowerCase();
+      const memberNames = (t.employee || "")
+        .split(",")
+        .map((id) => getEmpName(id.trim()).toLowerCase())
+        .join(" ");
+
+      return (
+        name.includes(q) ||
+        leader.includes(q) ||
+        proj.includes(q) ||
+        memberNames.includes(q)
+      );
+    });
+  }, [teams, searchParams, employees]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-full">
@@ -581,7 +604,7 @@ export default function CreateteamBC() {
 
       <div className="flex-1 min-h-0 overflow-y-auto pr-2 custom-scrollbar">
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {teams.length === 0 ? (
+          {filteredTeams.length === 0 ? (
             <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-[#AEACAC52] flex flex-col items-center justify-center gap-4">
               <div className="w-16 h-16 bg-[#F8FAFC] rounded-full flex items-center justify-center">
                 <PlusIcon className="w-8 h-8 text-[#94A3B8]" />
@@ -591,12 +614,12 @@ export default function CreateteamBC() {
                   No teams found
                 </h3>
                 <p className="text-[#64748B]">
-                  Click "New Team" to get started.
+                  {searchParams.get("q") ? "No results matching your search." : 'Click "New Team" to get started.'}
                 </p>
               </div>
             </div>
           ) : (
-            teams.map((team) => (
+            filteredTeams.map((team) => (
               <TeamCard
                 key={team.team_id}
                 team={team}

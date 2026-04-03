@@ -941,7 +941,18 @@ export default function MytaskBC() {
         }
     };
 
+    const searchQuery = searchParams.get("q")?.toLowerCase() || "";
     const allTasks = list.filter((t) => {
+        // Search filter
+        if (searchQuery) {
+            const matches =
+                (t.task_name || "").toLowerCase().includes(searchQuery) ||
+                (t.project_name || "").toLowerCase().includes(searchQuery) ||
+                (t.assigned_full_name || t.assign_to || "").toLowerCase().includes(searchQuery) ||
+                (t.module || "").toLowerCase().includes(searchQuery);
+            if (!matches) return false;
+        }
+
         // Employee filter
         if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
             if (t.assigned_full_name !== selectedEmployee) return false;

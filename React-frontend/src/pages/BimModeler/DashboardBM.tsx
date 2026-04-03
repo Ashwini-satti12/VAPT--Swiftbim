@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, useRef, useMemo } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 
@@ -101,6 +101,8 @@ export default function DashboardBM() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>(defaultStats);
   const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
+  const [searchParams] = useSearchParams();
+  const searchQuery = (searchParams.get("q") || "").toLowerCase();
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
   const [celebrations, setCelebrations] = useState<CelebrationEvent[]>([]);
@@ -141,6 +143,15 @@ export default function DashboardBM() {
       )
       .catch(() => setPriorityTasks([]));
   }, []);
+
+  const filteredPriorityTasks = useMemo(() => {
+    if (!searchQuery) return priorityTasks;
+    return priorityTasks.filter(
+      (t) =>
+        (t.task_name || "").toLowerCase().includes(searchQuery) ||
+        (t.project_name || "").toLowerCase().includes(searchQuery),
+    );
+  }, [priorityTasks, searchQuery]);
 
   useEffect(() => {
     const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
@@ -279,8 +290,8 @@ export default function DashboardBM() {
                         <h2 className="text-xl font-semibold text-[#353535] font-gantari">Today's Priority</h2>
                     </div>
                     <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
-                        {priorityTasks.length === 0 ? (
-                            <p className="text-[#717171] text-sm font-gantari py-4">No priority tasks for today.</p>
+                        {filteredPriorityTasks.length === 0 ? (
+                            <p className="text-[#717171] text-sm font-gantari py-4">{searchQuery ? "No matching tasks found." : "No priority tasks for today."}</p>
                         ) : (
                             <>
                                 <div className="flex items-center justify-between mb-3">
@@ -289,7 +300,7 @@ export default function DashboardBM() {
                                 </div>
                                 {(() => {
                                     const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
-                                    for (const task of priorityTasks) {
+                                    for (const task of filteredPriorityTasks) {
                                         const pid = task.projectid ?? 0;
                                         const name = task.project_name || `Project #${pid}`;
                                         if (!byProject.has(pid)) byProject.set(pid, { projectName: name, tasks: [] });
@@ -578,9 +589,11 @@ export default function DashboardBM() {
             </h2>
           </div>
           <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
-            {priorityTasks.length === 0 ? (
+            {filteredPriorityTasks.length === 0 ? (
               <p className="text-[#717171] text-[14px] font-gantari">
-                No priority tasks for today.
+                {searchQuery
+                  ? "No matching tasks found."
+                  : "No priority tasks for today."}
               </p>
             ) : (
               <>
@@ -600,7 +613,7 @@ export default function DashboardBM() {
                     number,
                     { projectName: string; tasks: PriorityTask[] }
                   >();
-                  for (const task of priorityTasks) {
+                  for (const task of filteredPriorityTasks) {
                     const pid = task.projectid ?? 0;
                     const name = task.project_name || `Project #${pid}`;
                     if (!byProject.has(pid))
