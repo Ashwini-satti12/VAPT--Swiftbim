@@ -386,12 +386,12 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
         return [
           { name: "Dashboard", path: "/vpm/dashboard", iconSrc: dashboardIcon, activeIconSrc: whiteDashboardIcon, isVisible: true },
           { name: "Projects", path: "/vpm/projects", iconSrc: projectIcon, activeIconSrc: whiteProjectIcon, isVisible: true },
-          { name: "Proposals", path: "/vpm/proposals", iconSrc: blackProposalIcon, activeIconSrc: redProposalIcon, isVisible: true },
+          // { name: "Proposals", path: "/vpm/proposals", iconSrc: blackProposalIcon, activeIconSrc: redProposalIcon, isVisible: true },
           { name: "My Task", path: "/vpm/mytasks", iconSrc: myTaskIcon, activeIconSrc: whiteMyTaskIcon, isVisible: true },
           { name: "Team Task", path: "/vpm/teamtasks", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },
           { name: "Create Team", path: "/vpm/createteam", iconSrc: createTeamIcon, activeIconSrc: whiteCreateTeamIcon, isVisible: true },
           { name: "Resources", path: "/vpm/resources", iconSrc: consultantIcon, activeIconSrc: whiteConsultantIcon, isVisible: true },
-          { name: "Bidding", path: "/vpm/opportunities", iconSrc: blackBiddingIcon, activeIconSrc: redBiddingIcon, isVisible: true },
+          // { name: "Bidding", path: "/vpm/opportunities", iconSrc: blackBiddingIcon, activeIconSrc: redBiddingIcon, isVisible: true },
           // { name: "Communication Hub", path: "/vpm/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
         ];
       }
