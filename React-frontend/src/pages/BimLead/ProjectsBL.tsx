@@ -245,9 +245,40 @@ export default function ProjectsBL() {
   const [bimLeads, setBimLeads] = useState<string[]>([]);
   const [bimCoordinators, setBimCoordinators] = useState<string[]>([]);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [vendorResourceProfiles, setVendorResourceProfiles] = useState<Employee[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [memberSearch, setMemberSearch] = useState("");
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
+  const resolveProjectMember = (id: string | number) =>
+    allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)) ||
+    vendorResourceProfiles.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id));
+  const normalizeMemberForProfile = (member: Employee): Employee => {
+    const raw = member as unknown as Record<string, unknown>;
+    return {
+      ...member,
+      employee_id:
+        member.employee_id ||
+        (typeof raw.empid === "string" ? raw.empid : undefined) ||
+        "",
+      phone:
+        member.phone ||
+        (typeof raw.phone_number === "string" ? raw.phone_number : undefined) ||
+        "",
+      user_role:
+        member.user_role ||
+        (typeof raw.role === "string"
+          ? raw.role
+          : typeof raw.designation === "string"
+            ? raw.designation
+            : undefined) ||
+        "",
+    };
+  };
+  const openMemberProfile = (member?: Employee) => {
+    if (!member) return;
+    setSelectedMember(normalizeMemberForProfile(member));
+    setShowMemberProfileModal(true);
+  };
   const [departments, setDepartments] = useState<string[]>([]);
   const [clientsList, setClientsList] = useState<
     { id: number; full_name: string }[]
@@ -259,10 +290,11 @@ export default function ProjectsBL() {
     let isMounted = true;
     const fetchEmployeesAndDepartments = async () => {
       try {
-        const [empRes, depRes, clientRes] = await Promise.all([
+        const [empRes, depRes, clientRes, vendorRes] = await Promise.all([
           api.get("/api/employees"),
           api.get("/api/departments"),
           api.get("/api/clients/from-users"),
+          api.get("/api/vendors/vendor-resource-profiles"),
         ]);
         if (!isMounted) return;
         const empData: Employee[] = empRes.data.employees || [];
@@ -287,6 +319,7 @@ export default function ProjectsBL() {
             .map((e) => e.full_name),
         );
         setAllEmployees(empData);
+        setVendorResourceProfiles(vendorRes.data.resources || []);
         setDepartments(depRes.data.departments || []);
         setClientsList(clientRes.data.clients || []);
       } catch (error) {
@@ -385,7 +418,12 @@ export default function ProjectsBL() {
     bim_co_ordinator: r.bim_coordinator_name != null ? String(r.bim_coordinator_name) : undefined,
     bim_coordinator_id: r.bim_coordinator_id != null ? String(r.bim_coordinator_id) : undefined,
     bim_coordinator_name: r.bim_coordinator_name != null ? String(r.bim_coordinator_name) : undefined,
-    member: r.members != null ? String(r.members) : undefined,
+    member:
+      r.members != null
+        ? String(r.members)
+        : r.member != null
+          ? String(r.member)
+          : undefined,
     resources: r.resources != null ? String(r.resources) : undefined,
     required_resources:
       r.required_resources != null ? String(r.required_resources) : undefined,
@@ -1012,7 +1050,7 @@ export default function ProjectsBL() {
                         <div className="flex items-center gap-3">
                           {(() => {
                             const id = memberIdsForView[0];
-                            const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
+                            const emp = resolveProjectMember(id);
                             const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
                             return (
                               <>
@@ -1020,8 +1058,8 @@ export default function ProjectsBL() {
                                   role="button"
                                   tabIndex={0}
                                   className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                  onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
-                                  onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                                  onClick={() => openMemberProfile(emp)}
+                                  onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && emp) { e.preventDefault(); openMemberProfile(emp); } }}
                                 >
                                   {url ? (
                                     <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
@@ -1039,7 +1077,7 @@ export default function ProjectsBL() {
                       ) : (
                         <div className="flex flex-wrap items-center -space-x-4">
                           {memberIdsForView.slice(0, 3).map((id, j) => {
-                            const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
+                            const emp = resolveProjectMember(id);
                             const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
                             return (
                               <div key={j} className="relative group shrink-0">
@@ -1047,8 +1085,8 @@ export default function ProjectsBL() {
                                   role="button"
                                   tabIndex={0}
                                   className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                  onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
-                                  onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                                  onClick={() => openMemberProfile(emp)}
+                                  onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && emp) { e.preventDefault(); openMemberProfile(emp); } }}
                                 >
                                   {url ? (
                                     <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
@@ -1072,7 +1110,7 @@ export default function ProjectsBL() {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   const emps = memberIdsForView
-                                    .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
+                                    .map((id) => resolveProjectMember(id))
                                     .filter(Boolean) as Employee[];
                                   setAllMembersList(emps);
                                   setShowAllMembersModal(true);
@@ -1081,7 +1119,7 @@ export default function ProjectsBL() {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
                                     const emps = memberIdsForView
-                                      .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
+                                      .map((id) => resolveProjectMember(id))
                                       .filter(Boolean) as Employee[];
                                     setAllMembersList(emps);
                                     setShowAllMembersModal(true);
@@ -1307,16 +1345,14 @@ export default function ProjectsBL() {
                         tabIndex={0}
                         className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
                         onClick={() => {
-                          setSelectedMember(m);
+                          openMemberProfile(m);
                           setShowAllMembersModal(false);
-                          setShowMemberProfileModal(true);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
-                            setSelectedMember(m);
+                            openMemberProfile(m);
                             setShowAllMembersModal(false);
-                            setShowMemberProfileModal(true);
                           }
                         }}
                       >
@@ -3275,7 +3311,7 @@ export default function ProjectsBL() {
                         <div className="flex -space-x-4">
                           {(() => {
                             const projectEmployees = memberIds
-                              .map(id => allEmployees.find(e => Number(e.id) === Number(id)))
+                              .map(id => resolveProjectMember(id))
                               .filter(Boolean) as Employee[];
 
                             const visibleMembers = projectEmployees.slice(0, 3);
