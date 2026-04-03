@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { FiGrid, FiMenu, FiChevronDown, FiX } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
@@ -313,6 +313,7 @@ function CustomDropdown({
 export default function ConsultantBC() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [list, setList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"table" | "card">("card");
@@ -422,7 +423,18 @@ export default function ConsultantBC() {
     }
   }, [showEntriesOpen]);
 
+  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+
   const filteredList = list.filter((emp) => {
+    const matchesSearch =
+      !searchQuery ||
+      (emp.full_name || "").toLowerCase().includes(searchQuery) ||
+      (emp.email || "").toLowerCase().includes(searchQuery) ||
+      (emp.user_role || "").toLowerCase().includes(searchQuery) ||
+      (emp.department || "").toLowerCase().includes(searchQuery) ||
+      (emp.phone_number || "").toLowerCase().includes(searchQuery);
+    if (!matchesSearch) return false;
+
     if (typeFilter === "Employee") {
       const currentType = (emp.user_type || "").toLowerCase();
       if (currentType !== "employee") return false;

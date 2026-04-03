@@ -432,7 +432,18 @@ export default function ConsultantBL() {
     }
   }, [showEntriesOpen]);
 
+  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+
   const filteredList = list.filter((emp) => {
+    const matchesSearch =
+      !searchQuery ||
+      (emp.full_name || "").toLowerCase().includes(searchQuery) ||
+      (emp.email || "").toLowerCase().includes(searchQuery) ||
+      (emp.user_role || "").toLowerCase().includes(searchQuery) ||
+      (emp.department || "").toLowerCase().includes(searchQuery) ||
+      (emp.phone_number || "").toLowerCase().includes(searchQuery);
+    if (!matchesSearch) return false;
+
     if (statusFilter === "Active") {
       const isActive = (emp.active || "").toLowerCase() === "active";
       if (!isActive) return false;

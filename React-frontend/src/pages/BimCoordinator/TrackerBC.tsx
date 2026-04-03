@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 
 interface AttendanceEntry {
@@ -14,6 +15,7 @@ interface AttendanceEntry {
 }
 
 export default function TrackerBC() {
+    const [searchParams] = useSearchParams();
     const [list, setList] = useState<AttendanceEntry[]>([]);
     const [loading, setLoading] = useState(true);
     // Always focus on today's attendance; stored as YYYY-MM-DD
@@ -191,34 +193,52 @@ export default function TrackerBC() {
         // CurrentPage reset removed
     }, [selectedStatus, selectedTimeRange]);
 
-    const filteredList = list.filter((item) => {
-        // Optional status filter: Available / Busy
-        if (selectedStatus && getStatus(item) !== selectedStatus) {
-            return false;
-        }
-
-        // Optional time-of-day filter based on time_in
-        if (selectedTimeRange !== 'All Time' && item.time_in) {
-            const [hRaw, mRaw] = item.time_in.split(':');
-            const h = Number(hRaw);
-            const m = Number(mRaw);
-            const minutesFromMidnight = h * 60 + m;
-
-            const rangeMap: Record<string, [number, number]> = {
-                '09:00 AM - 12:00 PM': [9 * 60, 12 * 60],
-                '12:00 PM - 04:00 PM': [12 * 60, 16 * 60],
-                '04:00 PM - 08:00 PM': [16 * 60, 20 * 60],
-            };
-
-            const range = rangeMap[selectedTimeRange];
-            if (range) {
-                const [start, end] = range;
-                if (minutesFromMidnight < start || minutesFromMidnight >= end) return false;
+    const filteredList = useMemo(() => {
+        const q = searchParams.get('q')?.toLowerCase() || '';
+        return list.filter((item) => {
+            // Optional status filter: Available / Busy
+            if (selectedStatus && getStatus(item) !== selectedStatus) {
+                return false;
             }
-        }
 
-        return true;
-    });
+            // Optional time-of-day filter based on time_in
+            if (selectedTimeRange !== 'All Time' && item.time_in) {
+                const [hRaw, mRaw] = item.time_in.split(':');
+                const h = Number(hRaw);
+                const m = Number(mRaw);
+                const minutesFromMidnight = h * 60 + m;
+
+                const rangeMap: Record<string, [number, number]> = {
+                    '09:00 AM - 12:00 PM': [9 * 60, 12 * 60],
+                    '12:00 PM - 04:00 PM': [12 * 60, 16 * 60],
+                    '04:00 PM - 08:00 PM': [16 * 60, 20 * 60],
+                };
+
+                const range = rangeMap[selectedTimeRange];
+                if (range) {
+                    const [start, end] = range;
+                    if (minutesFromMidnight < start || minutesFromMidnight >= end) return false;
+                }
+            }
+
+            // Search filter
+            if (q) {
+                const status = getStatus(item);
+                const matches = [
+                    item.full_name,
+                    item.employee_id,
+                    item.date,
+                    item.time_in,
+                    item.time_out,
+                    item.total_hours,
+                    status,
+                ].some((f) => (f || '').toLowerCase().includes(q));
+                if (!matches) return false;
+            }
+
+            return true;
+        });
+    }, [list, searchParams, selectedStatus, selectedTimeRange, busyMap]);
 
     // Pagination ranges removed
 

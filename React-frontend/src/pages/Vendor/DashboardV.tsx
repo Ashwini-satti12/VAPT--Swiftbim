@@ -299,12 +299,12 @@ export default function DashboardV() {
             <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
                 <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">Dashboard</h1>
                 {/* KPI Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     {kpiCards.map((card, i) => (
                         <Link
                             key={i}
                             to={card.to}
-                            className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-4 shadow-sm flex items-center justify-between min-h-0 transition-colors cursor-pointer"
+                            className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 transition-colors cursor-pointer"
                             title={`Open ${card.label}`}
                         >
                             <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">{card.label}</h3>
@@ -317,13 +317,9 @@ export default function DashboardV() {
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4 overflow-visible lg:overflow-hidden">
                 {/* Today's Priority */}
                 <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
-                    <div className="flex items-center justify-between mb-4 shrink-0">
-                        <h2 className="text-xl font-semibold text-[#353535] font-gantari">Today's Priority</h2>
-                        <button type="button" className="p-1 text-[#717171] hover:text-[#353535]" aria-label="Filter or options">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                        </button>
+                    <div className="mb-4 shrink-0">
+                        <h2 className="text-[20px] font-semibold text-[#353535] font-gantari">Today's Priority</h2>
                     </div>
-                    <div className="border-b border-[#AEACAC52] mb-4" aria-hidden />
 
                     <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
                         {loading ? (
@@ -337,8 +333,8 @@ export default function DashboardV() {
                                 {/* Projects List (Horizontal scroll or simple list) */}
                                 {projects.length > 0 && (
                                     <div className="mb-6">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-lg font-semibold text-[#353535] font-gantari">My Projects</h3>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h3 className="text-lg font-semibold text-[#353535] font-gantari">Projects</h3>
                                             <Link to="/v/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -435,6 +431,18 @@ export default function DashboardV() {
                                                                                             src={getGlobalProfileUrl(person.id, person.profile_picture)}
                                                                                             alt=""
                                                                                             className="w-full h-full object-cover"
+                                                                                            onError={(e) => {
+                                                                                                const target = e.target as HTMLImageElement;
+                                                                                                target.style.display = 'none';
+                                                                                                const parent = target.parentElement;
+                                                                                                if (parent) {
+                                                                                                    const initials = person.full_name?.slice(0, 2).toUpperCase() || "?";
+                                                                                                    const fallback = document.createElement('div');
+                                                                                                    fallback.className = "w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]";
+                                                                                                    fallback.innerText = initials;
+                                                                                                    parent.appendChild(fallback);
+                                                                                                }
+                                                                                            }}
                                                                                         />
                                                                                     ) : (
                                                                                         <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">
@@ -477,14 +485,14 @@ export default function DashboardV() {
 
                         {/* Month & Year navigation */}
                         <div className="flex flex-nowrap items-center justify-center gap-2 sm:gap-4 mb-3 px-2 shrink-0">
-                            <button type="button" onClick={goPrevMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors" aria-label="Previous month">
+                            <button type="button" onClick={goPrevMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors cursor-pointer" aria-label="Previous month">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                             </button>
                             <div className="relative min-w-[100px]" ref={monthDropdownRef}>
                                 <button
                                     type="button"
                                     onClick={() => setMonthDropdownOpen((o) => !o)}
-                                    className="flex items-center justify-between gap-1 w-full rounded-md py-2 pl-0 pr-6 text-left text-[13px] font-medium text-slate-800 hover:bg-slate-50 font-gantari border-none bg-transparent"
+                                    className="flex items-center justify-between gap-1 w-full rounded-md py-2 pl-0 pr-6 text-left text-[13px] font-medium text-slate-800 hover:bg-slate-50 font-gantari border-none bg-transparent cursor-pointer"
                                     aria-expanded={monthDropdownOpen}
                                     aria-haspopup="listbox"
                                     aria-label="Select month"
@@ -510,7 +518,7 @@ export default function DashboardV() {
                                                             setDisplayMonth(m);
                                                             setMonthDropdownOpen(false);
                                                         }}
-                                                        className={`block w-full px-4 py-2.5 text-left text-[13px] font-medium font-gantari transition-colors truncate ${isSelected ? 'bg-[#2563eb] text-white' : 'text-slate-800 hover:bg-slate-100'}`}
+                                                        className={`block w-full px-4 py-2.5 text-left text-[13px] font-medium font-gantari transition-colors truncate cursor-pointer ${isSelected ? 'bg-[#2563eb] text-white' : 'text-slate-800 hover:bg-slate-100'}`}
                                                     >
                                                         {name}
                                                     </button>
@@ -523,15 +531,15 @@ export default function DashboardV() {
                             <div className="flex items-center">
                                 <span className="min-w-[40px] text-[13px] font-semibold text-slate-700 font-gantari">{displayYear}</span>
                                 <div className="flex flex-col gap-0 -space-y-px">
-                                    <button type="button" onClick={() => setDisplayYear((y) => y + 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none" aria-label="Next year">
+                                    <button type="button" onClick={() => setDisplayYear((y) => y + 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none cursor-pointer" aria-label="Next year">
                                         <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z" /></svg>
                                     </button>
-                                    <button type="button" onClick={() => setDisplayYear((y) => y - 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none" aria-label="Previous year">
+                                    <button type="button" onClick={() => setDisplayYear((y) => y - 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none cursor-pointer" aria-label="Previous year">
                                         <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
                                     </button>
                                 </div>
                             </div>
-                            <button type="button" onClick={goNextMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors" aria-label="Next month">
+                            <button type="button" onClick={goNextMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors cursor-pointer" aria-label="Next month">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                             </button>
                         </div>
@@ -547,13 +555,14 @@ export default function DashboardV() {
                                         {calendarDays.map((cell, i) => {
                                             const cellDate = getCellDate(cell);
                                             const isSelected = isSameDay(cellDate, selectedDate);
+                                            const isToday = isSameDay(cellDate, today);
                                             const isOtherMonth = cell.type === 'prev' || cell.type === 'next';
                                             return (
                                                 <button
                                                     key={i}
                                                     type="button"
                                                     onClick={() => handleDateClick(cell)}
-                                                    className={`py-1 min-w-[22px] transition-colors ${isSelected ? 'text-[#E00100] font-bold' : isOtherMonth ? 'text-[#9CA3AF]' : 'text-black hover:bg-slate-50'}`}
+                                                    className={`py-1 min-w-[22px] transition-colors rounded-full cursor-pointer ${isToday ? 'bg-[#DD4346] text-[#FFFFFF]' : isSelected ? 'text-[#E00100] font-bold' : isOtherMonth ? 'text-[#9CA3AF]' : 'text-black hover:bg-slate-50'}`}
                                                 >
                                                     {cell.day}
                                                 </button>
@@ -571,7 +580,7 @@ export default function DashboardV() {
                                         setCelebrationsRequested(true);
                                         setIsCalendarExpanded(!isCalendarExpanded);
                                     }}
-                                    className="text-slate-500 hover:text-slate-700 transition-colors p-0.5"
+                                    className="text-slate-500 hover:text-slate-700 transition-colors p-0.5 cursor-pointer"
                                     aria-label={isCalendarExpanded ? 'Collapse calendar and load celebrations' : 'Expand calendar'}
                                 >
                                     <svg className={`w-5 h-4 transform transition-transform ${!isCalendarExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
