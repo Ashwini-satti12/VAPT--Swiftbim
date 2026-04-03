@@ -102,6 +102,7 @@ import MytaskBM from './pages/BimModeler/MytaskBM';
 import MytaskViewBM from './pages/BimModeler/MytaskViewBM';
 import TeamReportBM from './pages/BimModeler/TeamReportBM';
 import ManageLeave from './pages/BimModeler/ManageLeave';
+import AddTaskBM from './pages/BimModeler/AddTaskBM';
 
 
 /* Vendor */
@@ -265,6 +266,7 @@ function App() {
             {/* Bim Modeler Routes */}
             <Route path="bm/dashboard" element={<DashboardBM />} />
             <Route path="bm/mytasks" element={<MytaskBM />} />
+            <Route path="bm/mytasks/add" element={<AddTaskBM />} />
             <Route path="bm/mytasks/view/:id" element={<MytaskViewBM />} />
             <Route path="bm/teamreport" element={<TeamReportBM />} />
             <Route path="bm/manage-leave" element={<ManageLeave />} />
