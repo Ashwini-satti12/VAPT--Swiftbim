@@ -1346,7 +1346,7 @@ export default function MytaskPMV() {
                             <button
                                 type="button"
                                 onClick={resetTaskFormAndClose}
-                                className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                                className="p-1 rounded-lg text-slate-500"
                                 aria-label="Close"
                             >
                                 <svg
@@ -1908,13 +1908,13 @@ export default function MytaskPMV() {
                                 <button
                                     type="button"
                                     onClick={resetTaskFormAndClose}
-                                    className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
+                                    className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B]"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
-                                    className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] hover:bg-[#D5E6FF]"
+                                    className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827]"
                                 >
                                     Submit
                                 </button>
@@ -2452,7 +2452,7 @@ export default function MytaskPMV() {
                     {editingTaskId === null && (
                       <button
                         type="button"
-                        className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
+                        className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B]"
                       >
                         Tasklist
                       </button>
@@ -2685,7 +2685,7 @@ export default function MytaskPMV() {
                       />
                       <label
                         htmlFor="add-task-file-input"
-                        className="rounded-r-sm rounded-l-none bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer inline-flex items-center"
+                        className="rounded-r-sm rounded-l-none bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] cursor-pointer inline-flex items-center"
                       >
                         Browse File
                       </label>
@@ -2780,13 +2780,13 @@ export default function MytaskPMV() {
                 <button
                   type="button"
                   onClick={resetTaskFormAndClose}
-                  className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
+                  className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B]"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
-                  className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] hover:bg-[#D5E6FF]"
+                  className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#000000]"
                 >
                   Submit
                 </button>
