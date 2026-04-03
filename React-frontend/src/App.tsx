@@ -298,7 +298,7 @@ function App() {
             <Route path="v/resources" element={<ResourcesV />} />
 
             {/* Vendor PM Routes */}
-            <Route path="vpm/dashboard" element={<DashboardPM />} />
+            <Route path="vpm/dashboard" element={<DashboardPMV />} />
             <Route path="vpm/projects" element={<ProjectsPMV />} />
             <Route path="vpm/mytasks" element={<MytaskPMV />} />
             <Route path="/vpm/teamtasks" element={<TeamtaskPMV />} />

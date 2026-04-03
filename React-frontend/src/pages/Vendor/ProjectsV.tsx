@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
+import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import { FiUploadCloud, FiPaperclip, FiArrowRight } from "react-icons/fi";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
@@ -57,6 +58,16 @@ interface Employee {
     user_role?: string;
     profile_picture?: string;
     email?: string;
+    employee_id?: string;
+    empid?: string;
+    phone?: string;
+    phone_number?: string;
+    role?: string;
+    designation?: string;
+    department?: string;
+    address?: string;
+    dob?: string;
+    doj?: string;
 }
 
 interface Tower {
@@ -165,6 +176,10 @@ export default function ProjectsV() {
     const [milestonesProject, setMilestonesProject] = useState<Project | null>(null);
 
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
+    const [showAllMembersModal, setShowAllMembersModal] = useState(false);
+    const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
+    const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
+    const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
 
     const computedTotalHours = useMemo(() => {
         const days = countInclusiveProjectDays(createStartDate, createEndDate);
@@ -294,6 +309,16 @@ export default function ProjectsV() {
 
     const getMemberForAvatar = (id: number): Employee | undefined =>
         vendorResourceProfiles.find((r) => r.id === id) || allEmployees.find((e) => e.id === id);
+    const openMemberProfile = (member?: Employee) => {
+        if (!member) return;
+        setSelectedMember({
+            ...member,
+            employee_id: member.employee_id || member.empid,
+            phone: member.phone || member.phone_number,
+            user_role: member.user_role || member.role || member.designation,
+        });
+        setShowMemberProfileModal(true);
+    };
 
     const formatDate = (d: string | undefined) => {
         if (!d) return "—";
@@ -1320,14 +1345,14 @@ export default function ProjectsV() {
                                     </div>
 
                                     {/* Department Involved */}
-                                    <div className="space-y-4">
+                                    {/* <div className="space-y-4">
                                         <p className="text-[16px] font-bold text-[#000000]">Department Involved</p>
                                         <div className="h-10 flex items-center">
                                             <p className="text-[14px] font-bold text-[#666666] transition-all">
                                                 {selectedProject.department || "N/A"}
                                             </p>
                                         </div>
-                                    </div>
+                                    </div> */}
 
                                     {/* Members Involved */}
                                     <div className="space-y-4">
@@ -1346,20 +1371,42 @@ export default function ProjectsV() {
                                                 );
                                             }
 
-                                            const firstMember = projectMembers[0] as any;
-                                            const profileUrl = firstMember.profile_picture ? getGlobalProfileUrl(firstMember.id, firstMember.profile_picture) : null;
                                             return (
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
-                                                        {profileUrl ? (
-                                                            <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
-                                                        ) : (
-                                                            <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
-                                                        )}
-                                                    </div>
-                                                    <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
-                                                        {firstMember.full_name} {projectMembers.length > 1 ? `+${projectMembers.length - 1}` : ""}
-                                                    </p>
+                                                <div className="flex items-center -space-x-3">
+                                                    {projectMembers.slice(0, 3).map((member: any) => {
+                                                        const profileUrl = member.profile_picture ? getGlobalProfileUrl(member.id, member.profile_picture) : null;
+                                                        return (
+                                                            <div key={member.id} className="relative group shrink-0">
+                                                                <div
+                                                                    role="button"
+                                                                    tabIndex={0}
+                                                                    className="w-10 h-10 rounded-full bg-white flex items-center justify-center border-2 border-white overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                                                    onClick={() => openMemberProfile(member)}
+                                                                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openMemberProfile(member); } }}
+                                                                >
+                                                                    {profileUrl ? (
+                                                                        <img src={profileUrl} className="w-full h-full object-cover" alt={member.full_name || "Member"} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                                                    ) : (
+                                                                        <img src={ProfileIcon} className="w-full h-full object-cover p-1" alt={member.full_name || "Member"} />
+                                                                    )}
+                                                                </div>
+                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                                                    {member.full_name || "Unknown"}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {projectMembers.length > 3 && (
+                                                        <div
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                                                            onClick={() => { setAllMembersList(projectMembers as Employee[]); setShowAllMembersModal(true); }}
+                                                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAllMembersList(projectMembers as Employee[]); setShowAllMembersModal(true); } }}
+                                                        >
+                                                            +{projectMembers.length - 3}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         })()}
@@ -1665,7 +1712,13 @@ export default function ProjectsV() {
                                                                     const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
                                                                     return (
                                                                         <>
-                                                                            <div className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0 hover:ring-2 hover:ring-[#DD4342]/20 transition-all">
+                                                                            <div
+                                                                                role="button"
+                                                                                tabIndex={0}
+                                                                                className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0 hover:ring-2 hover:ring-[#DD4342]/20 transition-all cursor-pointer"
+                                                                                onClick={(e) => { e.stopPropagation(); openMemberProfile(emp); }}
+                                                                                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); openMemberProfile(emp); } }}
+                                                                            >
                                                                                 {url ? (
                                                                                     <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
                                                                                 ) : (
@@ -1688,7 +1741,13 @@ export default function ProjectsV() {
                                                                     const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
                                                                     return (
                                                                         <div key={id} className="relative group shrink-0">
-                                                                            <div className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0 hover:ring-2 hover:ring-[#DD4342]/20 transition-all">
+                                                                            <div
+                                                                                role="button"
+                                                                                tabIndex={0}
+                                                                                className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0 hover:ring-2 hover:ring-[#DD4342]/20 transition-all cursor-pointer"
+                                                                                onClick={(e) => { e.stopPropagation(); openMemberProfile(emp); }}
+                                                                                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); openMemberProfile(emp); } }}
+                                                                            >
                                                                                 {url ? (
                                                                                     <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
                                                                                 ) : (
@@ -1705,7 +1764,13 @@ export default function ProjectsV() {
                                                                 })}
                                                                 {memberIds.length > 3 && (
                                                                     <div className="relative group shrink-0">
-                                                                        <div className="relative z-10 w-9 h-9 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm shrink-0 hover:bg-slate-100 transition-colors">
+                                                                        <div
+                                                                            role="button"
+                                                                            tabIndex={0}
+                                                                            className="relative z-10 w-9 h-9 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm shrink-0 hover:bg-slate-100 transition-colors cursor-pointer"
+                                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); const emps = memberIds.map((id) => getMemberForAvatar(id)).filter(Boolean) as Employee[]; setAllMembersList(emps); setShowAllMembersModal(true); }}
+                                                                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); const emps = memberIds.map((id) => getMemberForAvatar(id)).filter(Boolean) as Employee[]; setAllMembersList(emps); setShowAllMembersModal(true); } }}
+                                                                        >
                                                                             +{memberIds.length - 3}
                                                                         </div>
                                                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
@@ -1773,6 +1838,69 @@ export default function ProjectsV() {
                                     </p>
                                 )}
                             </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showAllMembersModal && (
+                <div className="fixed inset-0 z-[220] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full max-h-[80vh] overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                            <h3 className="text-[28px] font-semibold text-[#1A1A1A] font-Gantari">All Members ({allMembersList.length})</h3>
+                            <button type="button" onClick={() => setShowAllMembersModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer" aria-label="Close">
+                                <img src={closeBtnIcon} alt="close" className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                            {allMembersList.length > 0 ? (
+                                <div className="space-y-4">
+                                    {allMembersList.map((member, index) => {
+                                        const profileUrl = member.profile_picture ? getGlobalProfileUrl(member.id, member.profile_picture) : null;
+                                        return (
+                                            <div key={member.id ?? index} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                                                <div className="w-12 h-12 rounded-full border-2 border-slate-200 overflow-hidden bg-slate-100 shrink-0">
+                                                    {profileUrl ? (
+                                                        <img src={profileUrl} alt={member.full_name || "Member"} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                                    ) : (
+                                                        <img src={ProfileIcon} alt={member.full_name || "Member"} className="w-full h-full object-cover p-1" />
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <p className="text-[16px] font-semibold text-[#1A1A1A] font-Gantari">{member.full_name || "Unknown"}</p>
+                                                    {member.email && <p className="text-[14px] text-[#8B8B8B] font-Gantari">{member.email}</p>}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <p className="text-[16px] font-Gantari">No members found</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showMemberProfileModal && selectedMember && (
+                <div className="fixed inset-0 z-[230] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-xl w-full max-h-[80vh] flex flex-col overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                            <h3 className="text-[28px] font-semibold text-[#1A1A1A] font-Gantari">View Details</h3>
+                            <button type="button" onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }} className="p-2 rounded-[5px] bg-[#F2F2F2] cursor-pointer">
+                                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="overflow-y-auto px-8 py-6 custom-scrollbar space-y-4">
+                            <p className="text-[20px] font-Gantari font-bold text-[#1A1A1A]">{selectedMember.full_name || "Not Available"}</p>
+                            {selectedMember.employee_id && <p className="text-[16px] font-Gantari"><span className="text-[#999]">Employee ID: </span>{selectedMember.employee_id}</p>}
+                            {selectedMember.email && <p className="text-[16px] font-Gantari"><span className="text-[#999]">Email: </span>{selectedMember.email}</p>}
+                            {(selectedMember.phone || selectedMember.phone_number) && <p className="text-[16px] font-Gantari"><span className="text-[#999]">Phone Number: </span>{selectedMember.phone || selectedMember.phone_number}</p>}
+                            {selectedMember.user_role && <p className="text-[16px] font-Gantari"><span className="text-[#999]">Role: </span>{selectedMember.user_role}</p>}
+                            {selectedMember.department && <p className="text-[16px] font-Gantari"><span className="text-[#999]">Department: </span>{selectedMember.department}</p>}
+                            {selectedMember.address && <p className="text-[16px] font-Gantari"><span className="text-[#999]">Address: </span>{selectedMember.address}</p>}
                         </div>
                     </div>
                 </div>

@@ -359,7 +359,7 @@ export default function MytaskViewV() {
   };
 
   return (
-    <div className="bg-white min-h-screen overflow-y-auto pb-10">
+    <div className="h-full flex flex-col overflow-y-auto custom-scrollbar pb-10">
       <div className="flex items-center justify-between px-6 py-4">
         <button
           onClick={() => navigate(-1)}
@@ -614,7 +614,7 @@ export default function MytaskViewV() {
         <div className="mt-8 space-y-6 mb-10">
           <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
             <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">Task Description</h4>
-            <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 overflow-y-auto font-Gantari min-h-[80px]">
+            <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 font-Gantari min-h-[80px]">
               {task.description && task.description.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, '').trim().length > 0 ? (
                 <div
                   className="prose prose-sm max-w-none prose-p:my-0"
@@ -628,7 +628,7 @@ export default function MytaskViewV() {
 
           <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
             <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">Checklist / Reference</h4>
-            <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 overflow-y-auto font-Gantari min-h-[80px]">
+            <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 font-Gantari min-h-[80px]">
               {task.checklist && task.checklist.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, '').trim().length > 0 ? (
                 <div
                   className="prose prose-sm max-w-none prose-p:my-0"
