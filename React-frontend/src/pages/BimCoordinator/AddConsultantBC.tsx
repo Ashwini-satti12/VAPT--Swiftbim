@@ -67,6 +67,7 @@ export default function AddConsultantBC() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [addError, setAddError] = useState('');
+  const [addSuccess, setAddSuccess] = useState('');
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [roles, setRoles] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
@@ -107,9 +108,32 @@ export default function AddConsultantBC() {
   };
 
   useEffect(() => {
+    const normalizeString = (str: string) => {
+      if (!str) return '';
+      const s = str.trim().toLowerCase().replace(/\s+/g, ' ');
+      if (s === 'hr exceutive' || s === 'hr executive') return 'HR Executive';
+      if (s === 'hr') return 'HR';
+      if (s === 'sales') return 'Sales';
+      if (s === 'admin') return 'Admin';
+      if (s === 'management') return 'Management';
+      if (s === 'hub coordinator') return 'HUB Coordinator';
+      if (s === 'inside sales') return 'Inside Sales';
+      if (s === 'it & networking') return 'IT & Networking';
+      if (s === 'ceo') return 'CEO';
+      if (s === 'cto') return 'CTO';
+      if (s === 'bim lead') return 'BIM Lead';
+      
+      // Default formatting: Capitalize each word
+      return s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    };
+
     // Fetch roles
     api.get<{ roles?: string[] }>('/api/employees/roles')
-        .then(({ data }) => setRoles(data.roles || []))
+        .then(({ data }) => {
+            const standardizedRoles = (data.roles || []).map(r => normalizeString(r));
+            const uniqueRoles = [...new Set(standardizedRoles)].filter(Boolean);
+            setRoles(uniqueRoles);
+        })
         .catch((error) => {
             console.error('Error fetching roles:', error);
             setRoles([]);
@@ -117,7 +141,11 @@ export default function AddConsultantBC() {
 
     // Fetch departments
     api.get<{ departments?: string[] }>('/api/departments')
-        .then(({ data }) => setDepartmentOptions(data.departments || []))
+        .then(({ data }) => {
+            const standardizedDepts = (data.departments || []).map(d => normalizeString(d));
+            const uniqueDepts = [...new Set(standardizedDepts)].filter(Boolean);
+            setDepartmentOptions(uniqueDepts);
+        })
         .catch((error) => {
             console.error('Error fetching departments:', error);
             setDepartmentOptions([]);
@@ -127,6 +155,7 @@ export default function AddConsultantBC() {
   function handleAddSubmit(e: React.FormEvent) {
     e.preventDefault();
     setAddError('');
+    setAddSuccess('');
     if (!form.full_name.trim() || !form.email.trim() || !form.password) {
         setAddError('Name, email and password are required.');
         return;
@@ -184,7 +213,10 @@ export default function AddConsultantBC() {
         )
         .then(({ data }) => {
             if (data.success) {
-                navigate('/bc/consultants');
+                setAddSuccess('Consultant added successfully!');
+                setTimeout(() => {
+                    navigate('/bc/consultants');
+                }, 1500);
             } else {
                 setAddError(data.message || 'Failed to add employee/trainee.');
             }
@@ -219,6 +251,15 @@ export default function AddConsultantBC() {
               <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
               <div className="flex-1">
                 <p className="mt-0.5 text-[13px] leading-snug">{addError}</p>
+              </div>
+            </div>
+          )}
+          
+          {addSuccess && (
+            <div className="mb-3 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 shadow-sm">
+              <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-green-100 text-[11px] font-bold">✓</div>
+              <div className="flex-1">
+                <p className="mt-0.5 text-[13px] leading-snug">{addSuccess}</p>
               </div>
             </div>
           )}
@@ -338,6 +379,15 @@ export default function AddConsultantBC() {
                     />
                   </label>
                 </div>
+              </div>
+              <div className="relative">
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
+                <CustomDropdown
+                  options={['Trainee', 'Employee']}
+                  value={form.type}
+                  onChange={(val) => setForm((f) => ({ ...f, type: val }))}
+                  placeholder="Select Type"
+                />
               </div>
             </div>
           </div>

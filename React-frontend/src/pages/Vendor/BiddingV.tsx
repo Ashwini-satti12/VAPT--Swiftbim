@@ -4,6 +4,7 @@ import api from "../../lib/api";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+import closeIcon from "../../assets/ProductNavbarIcons/close button.svg";
 
 type Opportunity = {
   id: number;
@@ -471,8 +472,8 @@ export default function BiddingV() {
                     <span className="text-[18px] font-bold text-[#DE3D3A] font-gantari">
                       {formatBudget(
                         parseBudgetNumeric(detailOpp.budget_ceiling) ??
-                          parseBudgetNumeric(detailOpp.outsource_budget) ??
-                          0,
+                        parseBudgetNumeric(detailOpp.outsource_budget) ??
+                        0,
                       )}
                     </span>
                   </div>
@@ -483,9 +484,9 @@ export default function BiddingV() {
                     <span className="text-[14px] font-medium text-[#353535] font-gantari">
                       {detailOpp.bid_deadline
                         ? new Date(detailOpp.bid_deadline).toLocaleDateString(
-                            "en-GB",
-                            { day: "2-digit", month: "long", year: "numeric" },
-                          )
+                          "en-GB",
+                          { day: "2-digit", month: "long", year: "numeric" },
+                        )
                         : "—"}
                     </span>
                   </div>
@@ -1024,8 +1025,8 @@ export default function BiddingV() {
                           <p className="text-[18px] font-bold text-[#353535]">
                             {formatBudget(
                               parseBudgetNumeric(opp.budget_ceiling) ??
-                                parseBudgetNumeric(opp.outsource_budget) ??
-                                0,
+                              parseBudgetNumeric(opp.outsource_budget) ??
+                              0,
                             )}
                           </p>
                           {opp.bids_count !== undefined && (
@@ -1059,7 +1060,7 @@ export default function BiddingV() {
                             <button
                               type="button"
                               onClick={() => openSubmitBidModal(opp)}
-                              className="text-[14px] font-medium text-white bg-[#DE3D3A] px-5 py-2 rounded-lg hover:bg-[#c93d3d] transition-colors shadow-sm"
+                              className="text-[14px] font-medium text-white bg-[#DD4342] px-5 py-2 rounded-md transition-colors shadow-sm"
                             >
                               Submit Bid
                             </button>
@@ -1212,16 +1213,16 @@ export default function BiddingV() {
       {/* ── SUBMISSION MODAL (Always needs a modal for UX) ── */}
       {selectedOpp && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl p-8 max-w-lg w-full shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-[#12141D]">Submit Bid</h3>
+          <div className="bg-white rounded-md p-6 sm:p-8 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="relative flex items-center justify-center mb-8">
               <button
                 type="button"
                 onClick={closeSubmitBidModal}
-                className="text-slate-500 hover:text-[#DE3D3A] text-2xl"
+                className="absolute left-0 p-2 bg-[#F2F2F2] rounded-md transition-colors cursor-pointer"
               >
-                &times;
+                <img src={closeIcon} alt="close" className="w-5 h-5" />
               </button>
+              <h3 className="text-[24px] font-gantari font-medium text-[#000000]">Submit Bid</h3>
             </div>
             <p className="text-sm font-medium text-[#353535] mb-6 bg-[#F8F8F8] p-4 rounded-xl border border-gray-100">
               Project:{" "}
@@ -1229,7 +1230,7 @@ export default function BiddingV() {
             </p>
             <div className="flex flex-col gap-4">
               <div>
-                <label className="block text-sm font-bold text-[#353535] mb-1">
+                <label className="block text-[16px] font-medium text-[#353535] mb-2 font-gantari">
                   Bid Amount (INR) <span className="text-[#DE3D3A]">*</span>
                 </label>
                 <input
@@ -1248,11 +1249,10 @@ export default function BiddingV() {
                       setBidAmountError(null);
                     }
                   }}
-                  className={`w-full rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#DE3D3A]/20 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                    bidAmountError
-                      ? "border-2 border-[#DE3D3A] bg-[#FFF8F8]"
-                      : "border border-slate-200"
-                  }`}
+                  className={`w-full rounded-md px-4 py-2.5 text-[14px] text-[#353535] bg-[#F2F3F4] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-2 focus:ring-[#AEACAC52] outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${bidAmountError
+                      ? "ring-2 ring-[#DE3D3A] bg-[#FFF8F8]"
+                      : ""
+                    }`}
                   placeholder="0.00"
                   min={0}
                   step="0.01"
@@ -1270,7 +1270,7 @@ export default function BiddingV() {
                   </p>
                 )}
                 {!bidAmountError && submitModalMaxBid != null && (
-                  <p className="mt-1.5 text-xs font-medium text-[#666666]">
+                  <p className="mt-1.5 text-[14px] font-gantari text-[#666666]">
                     Maximum bid for this opportunity:{" "}
                     {formatBudget(submitModalMaxBid)}
                   </p>
@@ -1278,7 +1278,7 @@ export default function BiddingV() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-[#353535] mb-1">
+                  <label className="block text-[16px] font-medium text-[#353535] mb-2 font-gantari">
                     Timeline
                   </label>
                   <input
@@ -1287,12 +1287,12 @@ export default function BiddingV() {
                     onChange={(e) =>
                       setBidForm((f) => ({ ...f, timeline: e.target.value }))
                     }
-                    className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#DE3D3A]/20 outline-none"
+                    className="w-full bg-[#F2F3F4] border-none rounded-md px-4 py-2.5 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-2 focus:ring-[#AEACAC52] outline-none"
                     placeholder="e.g. 2 months"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-[#353535] mb-1">
+                  <label className="block text-[16px] font-medium text-[#353535] mb-2 font-gantari">
                     Team Size
                   </label>
                   <input
@@ -1301,13 +1301,13 @@ export default function BiddingV() {
                     onChange={(e) =>
                       setBidForm((f) => ({ ...f, team_size: e.target.value }))
                     }
-                    className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#DE3D3A]/20 outline-none"
+                    className="w-full bg-[#F2F3F4] border-none rounded-md px-4 py-2.5 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-2 focus:ring-[#AEACAC52] outline-none"
                     placeholder="0"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#353535] mb-1">
+                <label className="block text-[16px] font-medium text-[#353535] mb-2 font-gantari">
                   Proposal Notes
                 </label>
                 <textarea
@@ -1316,7 +1316,7 @@ export default function BiddingV() {
                     setBidForm((f) => ({ ...f, notes: e.target.value }))
                   }
                   rows={3}
-                  className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#DE3D3A]/20 outline-none resize-none"
+                  className="w-full bg-[#F2F3F4] border-none rounded-md px-4 py-2.5 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-2 focus:ring-[#AEACAC52] outline-none resize-none"
                   placeholder="Highlight your expertise..."
                 />
               </div>
@@ -1330,7 +1330,7 @@ export default function BiddingV() {
               <button
                 type="button"
                 onClick={closeSubmitBidModal}
-                className="flex-1 py-3 bg-[#F2F2F2] text-[#353535] rounded-lg font-bold hover:bg-slate-200 transition-all"
+                className="flex-1 py-2 bg-[#F2F2F2] text-[#8B8B8B] rounded-md font-medium transition-all"
               >
                 Cancel
               </button>
@@ -1338,7 +1338,7 @@ export default function BiddingV() {
                 type="button"
                 onClick={handleBidSubmit}
                 disabled={bidSubmitting || submitBidOverMax}
-                className="flex-1 py-3 bg-[#DE3D3A] text-white rounded-lg font-bold hover:bg-[#c93d3d] transition-all disabled:opacity-50"
+                className="flex-1 py-2 bg-[#DE3D3A] text-white rounded-md font-medium transition-all disabled:opacity-50"
               >
                 {bidSubmitting ? "Processing..." : "Submit Bid"}
               </button>

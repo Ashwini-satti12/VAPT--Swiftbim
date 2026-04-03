@@ -340,6 +340,7 @@ export default function EditConsultantBC() {
                   placeholder="Select Role"
                 />
               </div>
+            
               <div className="relative">
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department <span className="text-[#DD4342]">*</span></label>
                 <CustomDropdown
@@ -381,7 +382,7 @@ export default function EditConsultantBC() {
                   className="w-full px-4 py-2.5 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                 />
               </div>
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Status</label>
                 <CustomDropdown
                   options={['Active', 'Deactivate']}
@@ -389,7 +390,7 @@ export default function EditConsultantBC() {
                   onChange={(val) => setForm((f) => ({ ...f, active: val }))}
                   placeholder="Select Status"
                 />
-              </div>
+              </div> */}
               <div className="space-y-2">
                 <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
                 <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden transition-all focus-within:ring-1 focus-within:ring-[#D1E6FF]">
@@ -406,6 +407,15 @@ export default function EditConsultantBC() {
                     />
                   </label>
                 </div>
+              </div>
+                 <div className="relative">
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
+                <CustomDropdown
+                  options={['Trainee', 'Employee']}
+                  value={form.user_type}
+                  onChange={(val) => setForm((f) => ({ ...f, user_type: val }))}
+                  placeholder="Select Type"
+                />
               </div>
             </div>
           </div>
