@@ -1291,7 +1291,7 @@ export default function MytaskPMV() {
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors"
+                                className="p-1 rounded-sm text-black bg-[#F0F0F0] transition-colors"
                                 aria-label="Close"
                             >
                                 <svg
@@ -1501,7 +1501,7 @@ export default function MytaskPMV() {
                         >
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-sm font-gantari text-[#000000] mb-1">
                                         Project Name
                                     </label>
                                     <FormDropdown
@@ -1531,7 +1531,7 @@ export default function MytaskPMV() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-sm font-gantari text-black mb-1">
                                         Select Module
                                     </label>
                                     <FormDropdown
@@ -1560,7 +1560,7 @@ export default function MytaskPMV() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-sm font-gantari text-[#000000] mb-1">
                                         Task Name
                                     </label>
                                     <div className="flex">
@@ -1590,7 +1590,7 @@ export default function MytaskPMV() {
 
                                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-sm font-gantari text-[#000000] mb-1">
                                             Type
                                         </label>
                                         <FormDropdown
@@ -1617,7 +1617,7 @@ export default function MytaskPMV() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-sm font-gantari text-[#000000] mb-1">
                                             Actual Start Date
                                         </label>
                                         <input
@@ -1643,7 +1643,7 @@ export default function MytaskPMV() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-sm font-gantari text-[#000000] mb-1">
                                             Actual End Date
                                         </label>
                                         <input
@@ -1665,7 +1665,7 @@ export default function MytaskPMV() {
                                 </div>
                                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-sm font-gantari text-[#000000] mb-1">
                                             Select Start Time
                                         </label>
                                         <input
@@ -1690,7 +1690,7 @@ export default function MytaskPMV() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-sm font-gantari text-[#000000] mb-1">
                                             Select End Time
                                         </label>
                                         <input
@@ -1712,7 +1712,7 @@ export default function MytaskPMV() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-sm font-gantari text-[#000000] mb-1">
                                             Assign To
                                         </label>
                                         <FormDropdown
@@ -1743,7 +1743,7 @@ export default function MytaskPMV() {
                                     </div>
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-sm font-gantari text-[#000000] mb-1">
                                         Description
                                     </label>
                                     <textarea
@@ -1760,7 +1760,7 @@ export default function MytaskPMV() {
                                     />
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-sm font-gantari text-[#000000] mb-1">
                                         Checklist
                                     </label>
                                     <input
@@ -1777,7 +1777,7 @@ export default function MytaskPMV() {
                                     />
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-sm font-gantari text-[#000000] mb-1">
                                         Attachments
                                     </label>
                                     <input
@@ -2163,7 +2163,7 @@ export default function MytaskPMV() {
               <button
                 type="button"
                 onClick={() => setDeleteTaskId(null)}
-                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors"
+                className="p-1 rounded-sm text-black bg-[#F0F0F0] transition-colors"
                 aria-label="Close"
               >
                 <svg
@@ -2218,7 +2218,7 @@ export default function MytaskPMV() {
               <button
                 type="button"
                 onClick={resetTaskFormAndClose}
-                className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                className="p-1 rounded-lg text-slate-500"
                 aria-label="Close"
               >
                 <svg
