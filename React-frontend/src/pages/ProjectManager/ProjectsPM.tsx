@@ -2604,7 +2604,7 @@ export default function ProjectsPM() {
                                 <img src={viewIcon} alt="view" className="w-5 h-5 transition-all grayscale group-hover:grayscale-0 group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
                                 <span className="text-[14px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">View</span>
                               </button>
-                              {(isTechnicalDirector || isManagement) && (
+                              {p.source !== "Outsource" && (isTechnicalDirector || isManagement) && (
                                 <button
                                   onClick={() => { setCurrentProject(p); setShowMilestones(true); setOpenMenuId(null); }}
                                   className="group w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left font-Gantari cursor-pointer"
@@ -2613,7 +2613,7 @@ export default function ProjectsPM() {
                                   <span className="text-[14px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">Payment Milestones</span>
                                 </button>
                               )}
-                              {canEdit && (
+                              {p.source !== "Outsource" && canEdit && (
                                 <button
                                   onClick={() => {
                                     setCurrentProject(p);
@@ -2663,7 +2663,7 @@ export default function ProjectsPM() {
                                   <span className="text-[14px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">Edit</span>
                                 </button>
                               )}
-                              {canDelete && (
+                              {p.source !== "Outsource" && canDelete && (
                                 <button
                                   onClick={() => { setDeleteProject(p); setOpenMenuId(null); }}
                                   className="group w-full flex items-center gap-4 px-6 py-2 transition-colors text-left font-Gantari cursor-pointer"

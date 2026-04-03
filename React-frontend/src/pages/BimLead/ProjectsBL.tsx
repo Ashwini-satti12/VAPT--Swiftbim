@@ -3138,7 +3138,7 @@ export default function ProjectsBL() {
                                   View
                                 </span>
                               </button>
-                              {(isTechnicalDirector || isManagement) && (
+                              {p.source !== "Outsource" && (isTechnicalDirector || isManagement) && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -3154,7 +3154,7 @@ export default function ProjectsBL() {
                                   </span>
                                 </button>
                               )}
-                              {canEdit && (
+                              {p.source !== "Outsource" && canEdit && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -3245,7 +3245,7 @@ export default function ProjectsBL() {
                                   </span>
                                 </button>
                               )}
-                              {canDelete && (
+                              {p.source !== "Outsource" && canDelete && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
