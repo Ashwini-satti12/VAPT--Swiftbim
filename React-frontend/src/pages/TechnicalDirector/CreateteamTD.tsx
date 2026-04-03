@@ -1429,19 +1429,24 @@ export default function CreateteamTD() {
 
             <div className="p-8 pt-0 flex-1 overflow-y-auto custom-scrollbar">
               <div className="space-y-6">
-                <div className="bg-[#F2F2F2] rounded-md p-6 border border-[#AEACAC52]">
-                  <h4 className="text-[18px] font-semibold text-slate-800 mb-4">
-                    Project
+                <div>
+                <h4 className="text-[18px] font-semibold text-slate-800 mb-4">
+                    Project Name
                   </h4>
+                </div>
+                <div className="bg-[#F2F2F2] rounded-md p-6 border border-[#AEACAC52]">
+                  
                   <p className="font-semibold text-slate-800">
                     {selectedTeam.project_name || "N/A"}
                   </p>
                 </div>
 
-                <div className="bg-[#F2F2F2] rounded-md p-6 border border-[#AEACAC52]">
-                  <h4 className="text-[18px] font-semibold text-slate-800 mb-4">
-                    Leadership
+                <div> <h4 className="text-[18px] font-semibold text-slate-800 mb-4">
+                    Team Lead 
                   </h4>
+                  </div>
+                <div className="bg-[#F2F2F2] rounded-md p-6 border border-[#AEACAC52]">
+                  
                   <div className="flex items-center gap-4">
                     {(() => {
                       const leaderEmp = employees.find(e => String(e.id) === String(selectedTeam.leader));
