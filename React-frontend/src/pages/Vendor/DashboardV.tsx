@@ -128,8 +128,6 @@ function taskProgressAndCountdown(
     return { progress, countdown };
 }
 
-const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 36;
-
 export default function DashboardV() {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<DashboardStats>(defaultStats);
@@ -143,9 +141,8 @@ export default function DashboardV() {
         return () => clearInterval(id);
     }, []);
 
-    // GET stats → KPI cards
+    // GET stats
     useEffect(() => {
-        // Vendor-specific stats (Bidding)
         api.get<any>('/api/vendors/dashboard/stats')
             .then(({ data }) => setStats(prev => ({
                 ...prev,
@@ -156,7 +153,6 @@ export default function DashboardV() {
             .catch(() => { })
             .finally(() => setLoading(false));
 
-        // Vendor project/task stats (vendor_projects + vendor_task for this vendor company)
         api.get<any>('/api/vendors/dashboard/project-stats')
             .then(({ data }) => setStats(prev => ({
                 ...prev,
@@ -168,7 +164,7 @@ export default function DashboardV() {
             .catch(() => { });
     }, []);
 
-    // GET /api/vendors/dashboard/priority-tasks → Today's Priority tasks
+    // GET data
     useEffect(() => {
         api.get<{ tasks: PriorityTask[] }>('/api/vendors/dashboard/priority-tasks')
             .then(({ data }) => setPriorityTasks(Array.isArray(data.tasks) ? data.tasks : []))
@@ -179,11 +175,9 @@ export default function DashboardV() {
             .catch(() => setProjects([]));
     }, []);
 
-    // Celebrations
     const [celebrations, setCelebrations] = useState<CelebrationEvent[]>([]);
     const [celebrationsRequested, setCelebrationsRequested] = useState(false);
 
-    // Calendar state
     const today = new Date();
     const [displayMonth, setDisplayMonth] = useState(today.getMonth());
     const [displayYear, setDisplayYear] = useState(today.getFullYear());
@@ -221,50 +215,38 @@ export default function DashboardV() {
     const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
     const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
-    const daysInMonth = getDaysInMonth(displayYear, displayMonth);
-    const firstDay = getFirstDayOfMonth(displayYear, displayMonth);
-    const prevMonthDays = getDaysInMonth(displayMonth === 0 ? displayYear - 1 : displayYear, displayMonth === 0 ? 11 : displayMonth - 1);
-
     const calendarDays: { day: number; type: 'prev' | 'current' | 'next' }[] = [];
-    for (let i = firstDay - 1; i >= 0; i--) {
-        calendarDays.push({ day: prevMonthDays - i, type: 'prev' });
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-        calendarDays.push({ day: i, type: 'current' });
-    }
-    const remaining = 7 - (calendarDays.length % 7);
-    if (remaining < 7) {
-        for (let i = 1; i <= remaining; i++) {
-            calendarDays.push({ day: i, type: 'next' });
-        }
-    }
+    const dim = getDaysInMonth(displayYear, displayMonth);
+    const fdi = getFirstDayOfMonth(displayYear, displayMonth);
+    const pmd = getDaysInMonth(displayMonth === 0 ? displayYear - 1 : displayYear, displayMonth === 0 ? 11 : displayMonth - 1);
+
+    for (let i = fdi - 1; i >= 0; i--) calendarDays.push({ day: pmd - i, type: 'prev' });
+    for (let i = 1; i <= dim; i++) calendarDays.push({ day: i, type: 'current' });
+    const rem = 7 - (calendarDays.length % 7);
+    if (rem < 7) for (let i = 1; i <= rem; i++) calendarDays.push({ day: i, type: 'next' });
 
     const getCellDate = (cell: { day: number; type: 'prev' | 'current' | 'next' }): Date => {
         if (cell.type === 'current') return new Date(displayYear, displayMonth, cell.day);
         if (cell.type === 'prev') {
-            const prevM = displayMonth === 0 ? 11 : displayMonth - 1;
-            const prevY = displayMonth === 0 ? displayYear - 1 : displayYear;
-            return new Date(prevY, prevM, cell.day);
+            const pm = displayMonth === 0 ? 11 : displayMonth - 1;
+            const py = displayMonth === 0 ? displayYear - 1 : displayYear;
+            return new Date(py, pm, cell.day);
         }
-        const nextM = displayMonth === 11 ? 0 : displayMonth + 1;
-        const nextY = displayMonth === 11 ? displayYear + 1 : displayYear;
-        return new Date(nextY, nextM, cell.day);
+        const nm = displayMonth === 11 ? 0 : displayMonth + 1;
+        const ny = displayMonth === 11 ? displayYear + 1 : displayYear;
+        return new Date(ny, nm, cell.day);
     };
 
     const isSameDay = (a: Date, b: Date) =>
         a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
     const goPrevMonth = () => {
-        if (displayMonth === 0) {
-            setDisplayYear((y) => y - 1);
-            setDisplayMonth(11);
-        } else setDisplayMonth((m) => m - 1);
+        if (displayMonth === 0) { setDisplayYear(y => y - 1); setDisplayMonth(11); }
+        else setDisplayMonth(m => m - 1);
     };
     const goNextMonth = () => {
-        if (displayMonth === 11) {
-            setDisplayYear((y) => y + 1);
-            setDisplayMonth(0);
-        } else setDisplayMonth((m) => m + 1);
+        if (displayMonth === 11) { setDisplayYear(y => y + 1); setDisplayMonth(0); }
+        else setDisplayMonth(m => m + 1);
     };
 
     const handleDateClick = (cell: { day: number; type: 'prev' | 'current' | 'next' }) => {
@@ -274,7 +256,6 @@ export default function DashboardV() {
         setDisplayYear(d.getFullYear());
     };
 
-    // KPI card definitions + deep links to relevant filtered pages.
     const kpiCards = [
         { label: 'Active Opportunities', value: stats.active_opportunities, to: '/v/opportunities?tab=opportunities&oppStatus=active' },
         { label: 'Total Bids Submitted', value: stats.bids_submitted, to: '/v/opportunities?tab=my-bids' },
@@ -286,358 +267,199 @@ export default function DashboardV() {
     ];
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
-            </div>
-        );
+        return <div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" /></div>;
     }
 
     return (
-        <div className="flex flex-col lg:h-full lg:overflow-hidden">
-            {/* Header and KPI Cards */}
-            <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
-                <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">Dashboard</h1>
-                {/* KPI Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    {kpiCards.map((card, i) => (
-                        <Link
-                            key={i}
-                            to={card.to}
-                            className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 transition-colors cursor-pointer"
-                            title={`Open ${card.label}`}
-                        >
-                            <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">{card.label}</h3>
-                            <p className="text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{card.value}</p>
-                        </Link>
-                    ))}
-                </div>
-            </div>
-
-            <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4 overflow-visible lg:overflow-hidden">
-                {/* Today's Priority */}
-                <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
-                    <div className="mb-4 shrink-0">
-                        <h2 className="text-[20px] font-semibold text-[#353535] font-gantari">Today's Priority</h2>
+        <div className="flex flex-col h-screen bg-[#FDFDFD] overflow-hidden">
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+                {/* Header and KPI Cards */}
+                <div className="bg-white pb-6 shrink-0">
+                    <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">Dashboard</h1>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {kpiCards.map((card, i) => (
+                            <Link
+                                key={i}
+                                to={card.to}
+                                className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between transition-colors cursor-pointer"
+                            >
+                                <h3 className="text-[17px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">{card.label}</h3>
+                                <p className="text-[19px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{card.value}</p>
+                            </Link>
+                        ))}
                     </div>
+                </div>
 
-                    <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
-                        {loading ? (
-                            <div className="flex items-center justify-center py-12">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-                            </div>
-                        ) : projects.length === 0 && priorityTasks.length === 0 ? (
-                            <p className="text-[#717171] text-sm font-gantari py-4">No projects or priority tasks for today.</p>
-                        ) : (
-                            <>
-                                {/* Projects List (Horizontal scroll or simple list) */}
-                                {projects.length > 0 && (
-                                    <div className="mb-6">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <h3 className="text-lg font-semibold text-[#353535] font-gantari">Projects</h3>
-                                            <Link to="/v/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {projects.slice(0, 4).map((project) => (
-                                                <Link
-                                                    key={project.id}
-                                                    to={`/v/projects`}
-                                                    className="bg-[#F8F9FA] p-4 rounded-xl border border-[#AEACAC52] hover:border-[#DE3D3A] transition-all group"
-                                                >
-                                                    <div className="flex flex-col gap-2">
+                {/* Main Content Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                    {/* Today's Priority */}
+                    <div className="lg:col-span-3 flex flex-col bg-white rounded-md border border-[#AEACAC52] shadow-sm pt-5 pl-5 pb-5 pr-4 min-h-[350px]">
+                        <div className="mb-6 shrink-0 px-2">
+                            <h2 className="text-[20px] font-medium text-[#353535] font-gantari">Today's Priority</h2>
+                        </div>
+
+                        <div className="flex-1 pr-2">
+                            {projects.length === 0 && priorityTasks.length === 0 ? (
+                                <p className="text-[#717171] text-lg font-gantari py-6 text-center">No projects or priority tasks for today.</p>
+                            ) : (
+                                <div className="mb-4">
+                                    <div className="flex items-center justify-between mb-3 px-2">
+                                        <h3 className="text-[14px] font-normal text-[#353535] font-gantari">Projects</h3>
+                                        <Link to="/v/projects" className="text-[14px] font-normal text-[#DE3D3A] hover:underline font-gantari">View all</Link>
+                                    </div>
+
+                                    {priorityTasks.length > 0 ? (() => {
+                                        const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
+                                        for (const task of priorityTasks) {
+                                            const pid = task.projectid ?? 0;
+                                            const name = task.project_name || `Project #${pid}`;
+                                            if (!byProject.has(pid)) byProject.set(pid, { projectName: name, tasks: [] });
+                                            byProject.get(pid)!.tasks.push(task);
+                                        }
+                                        return Array.from(byProject.entries()).slice(0, 1).map(([id, { projectName, tasks: pTasks }]) => (
+                                            <div key={id} className="px-2">
+                                                <p className="text-[16px] font-bold text-[#353535] font-gantari mb-3 truncate pr-2">
+                                                    <Link to="/v/projects" className="hover:text-[#DE3D3A] hover:underline font-gantari">{projectName}</Link>
+                                                </p>
+                                                <div className="space-y-4">
+                                                    {pTasks.slice(0, 1).map((task) => {
+                                                        const { progress, countdown } = taskProgressAndCountdown(task.due_date, task.perferstart_time, task.perferend_time, nowMs);
+                                                        const dateL = formatDateOnly(task.due_date);
+                                                        const hs = (task.perferstart_time || '').trim().length > 0;
+                                                        const he = (task.perferend_time || '').trim().length > 0;
+                                                        const sT = hs ? formatTimeStringToAMPM(task.perferstart_time) : '—';
+                                                        const eT = he ? formatTimeStringToAMPM(task.perferend_time) : '—';
+                                                        const tR = hs || he ? `${sT} — ${eT}` : '—';
+                                                        return (
+                                                            <div key={task.id} className="flex items-center gap-4 p-4 bg-[#F8F8F8] rounded-md border border-[#AEACAC52] shadow-sm relative">
+                                                                <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
+                                                                    <svg className="w-full h-full -rotate-90">
+                                                                        <circle cx="32" cy="32" r="28" stroke="#F1F5F9" strokeWidth="2" fill="#FFFFFF" />
+                                                                        <circle cx="32" cy="32" r="28" stroke="#00882E" strokeWidth="2" fill="transparent" strokeDasharray={176} strokeDashoffset={176 * (1 - progress / 100)} strokeLinecap="round" />
+                                                                    </svg>
+                                                                    <span className="absolute text-[10px] font-bold text-black font-mono tracking-tighter">{countdown}</span>
+                                                                </div>
+                                                                <div className="flex-1 min-w-0 pl-4">
+                                                                    <h3 className="text-[18px] font-bold text-black truncate mb-0.5 leading-none">{task.task_name ?? 'Task'}</h3>
+                                                                    <p className="text-[13px] text-[#6B7280] font-medium leading-tight">{dateL} — {tR}</p>
+                                                                </div>
+                                                                <div className="absolute top-4 right-4">
+                                                                    <span className="bg-[#3B82F6] text-white text-[11px] px-3 py-1 rounded-md font-medium font-gantari tracking-tight leading-none uppercase">{task.category || 'task'}</span>
+                                                                </div>
+                                                                <div className="absolute bottom-4 right-4 flex -space-x-3">
+                                                                    {(task.involved_persons || []).slice(0, 3).map((v) => (
+                                                                        <div key={v.id} className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden" title={v.full_name}>
+                                                                            {v.profile_picture ? <img src={getGlobalProfileUrl(v.id, v.profile_picture)} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[10px] font-bold text-[#353535]">{v.full_name?.slice(0, 2).toUpperCase() || '?'}</div>}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ));
+                                    })() : projects.length > 0 && (
+                                        <div className="px-2">
+                                            {projects.slice(0, 1).map((p) => (
+                                                <Link key={p.id} to="/v/projects" className="bg-[#F8F9FA] p-4 rounded-xl border border-[#AEACAC52] transition-all group relative block">
+                                                    <div className="flex flex-col gap-4">
                                                         <div className="flex justify-between items-start">
-                                                            <h4 className="font-bold text-[#353535] text-[16px] font-gantari truncate pr-2 group-hover:text-[#DE3D3A]">{project.project_name}</h4>
-                                                            <span className={`text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider ${project.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                                                                }`}>
-                                                                {project.status || 'Active'}
-                                                            </span>
+                                                            <h4 className="font-bold text-[#353535] text-[18px] font-gantari truncate pr-2 group-hover:text-[#DE3D3A]">{p.project_name}</h4>
+                                                            <span className={`text-[11px] px-3 py-1 rounded-md font-bold uppercase tracking-widest ${p.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-[#E3F2FD] text-[#1565C0]'}`}>{p.status === 'Completed' ? 'COMPLETED' : 'ACTIVE'}</span>
                                                         </div>
-                                                        <div className="flex items-center justify-between text-[12px] text-[#717171]">
-                                                            <span>Client: {project.client_name || 'N/A'}</span>
-                                                            <span>Due: {formatDateOnly(project.due_date)}</span>
+                                                        <div className="flex items-center justify-between text-[13px] text-[#717171] font-semibold">
+                                                            <span>Client: {p.client_name || 'N/A'}</span>
+                                                            <span>Due: {formatDateOnly(p.due_date)}</span>
                                                         </div>
-                                                        <div className="w-full bg-slate-200 h-1.5 rounded-full mt-1 overflow-hidden">
-                                                            <div
-                                                                className="bg-[#DE3D3A] h-full rounded-full transition-all duration-500"
-                                                                style={{ width: `${project.progress || 0}%` }}
-                                                            />
-                                                        </div>
-                                                        <div className="flex justify-end">
-                                                            <span className="text-[11px] font-bold text-[#353535]">{project.progress || 0}%</span>
+                                                        <div className="space-y-2">
+                                                            <div className="w-full bg-[#E5E7EB] h-3 rounded-full overflow-hidden">
+                                                                <div className="bg-[#DE3D3A] h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${p.progress || 0}%` }} />
+                                                            </div>
+                                                            <div className="flex justify-end"><span className="text-[14px] font-bold text-[#353535]">{p.progress || 0}%</span></div>
                                                         </div>
                                                     </div>
                                                 </Link>
                                             ))}
                                         </div>
-                                    </div>
-                                )}
-
-                                {priorityTasks.length > 0 && (
-                                    <>
-                                        <div className="flex items-center justify-between mt-8 mb-3">
-                                            <h3 className="text-lg font-semibold text-[#353535] font-gantari">Tasks Priority</h3>
-                                        </div>
-                                        {(() => {
-                                            const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
-                                            for (const task of priorityTasks) {
-                                                const pid = task.projectid ?? 0;
-                                                const name = task.project_name || `Project #${pid}`;
-                                                if (!byProject.has(pid)) byProject.set(pid, { projectName: name, tasks: [] });
-                                                byProject.get(pid)!.tasks.push(task);
-                                            }
-                                            const projectList = Array.from(byProject.entries()).map(([id, { projectName, tasks }]) => ({ id, projectName, tasks }));
-                                            return projectList.map(({ id, projectName, tasks: projectTasks }) => (
-                                                <div key={id} className="mb-6">
-                                                    <p className="text-sm font-semibold text-[#353535] font-gantari mb-3 truncate pr-2">
-                                                        <Link to="/v/projects" className="hover:text-[#DE3D3A] hover:underline" title={projectName}>{projectName}</Link>
-                                                    </p>
-                                                    <div className="space-y-4">
-                                                        {projectTasks.map((task) => {
-                                                            const { progress, countdown } = taskProgressAndCountdown(task.due_date, task.perferstart_time, task.perferend_time, nowMs);
-                                                            const strokeOffset = CIRCLE_CIRCUMFERENCE * (1 - progress / 100);
-                                                            const dateLabel = formatDateOnly(task.due_date);
-                                                            const hasStart = (task.perferstart_time || '').trim().length > 0;
-                                                            const hasEnd = (task.perferend_time || '').trim().length > 0;
-                                                            const startLabel = hasStart ? formatTimeStringToAMPM(task.perferstart_time) : '—';
-                                                            const endLabel = hasEnd ? formatTimeStringToAMPM(task.perferend_time) : '—';
-                                                            const timeRangeLabel = hasStart || hasEnd ? `${startLabel} — ${endLabel}` : '—';
-                                                            return (
-                                                                <div key={task.id} className="flex items-center gap-5 p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative">
-                                                                    <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
-                                                                        <svg className="w-full h-full -rotate-90">
-                                                                            <circle cx="40" cy="40" r="36" stroke="#E5E7EB" strokeWidth="5" fill="transparent" className="opacity-60" />
-                                                                            <circle cx="40" cy="40" r="36" stroke="#00882E" strokeWidth="5" fill="transparent" strokeDasharray={CIRCLE_CIRCUMFERENCE} strokeDashoffset={strokeOffset} strokeLinecap="round" />
-                                                                        </svg>
-                                                                        <span className="absolute text-[10px] font-bold text-black font-mono">{countdown}</span>
-                                                                    </div>
-                                                                    <div className="flex-1 min-w-0 pr-2">
-                                                                        <h3 className="text-xl font-bold text-black truncate mb-0.5">{task.task_name ?? 'Task'}</h3>
-                                                                        <p className="text-[14px] text-[#6B7280] font-medium leading-tight">{dateLabel} — {timeRangeLabel}</p>
-                                                                    </div>
-                                                                    <div className="absolute top-4 right-4">
-                                                                        <span className="bg-[#3B82F6] text-white text-[12px] px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight">{task.category || 'Task'}</span>
-                                                                    </div>
-                                                                    <div className="absolute bottom-4 right-4 flex -space-x-4">
-                                                                        {(task.involved_persons?.length ? task.involved_persons : [])
-                                                                            .slice(0, 3)
-                                                                            .map((person) => (
-                                                                                <div
-                                                                                    key={person.id}
-                                                                                    className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden"
-                                                                                    title={person.full_name}
-                                                                                >
-                                                                                    {person.profile_picture ? (
-                                                                                        <img
-                                                                                            src={getGlobalProfileUrl(person.id, person.profile_picture)}
-                                                                                            alt=""
-                                                                                            className="w-full h-full object-cover"
-                                                                                            onError={(e) => {
-                                                                                                const target = e.target as HTMLImageElement;
-                                                                                                target.style.display = 'none';
-                                                                                                const parent = target.parentElement;
-                                                                                                if (parent) {
-                                                                                                    const initials = person.full_name?.slice(0, 2).toUpperCase() || "?";
-                                                                                                    const fallback = document.createElement('div');
-                                                                                                    fallback.className = "w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]";
-                                                                                                    fallback.innerText = initials;
-                                                                                                    parent.appendChild(fallback);
-                                                                                                }
-                                                                                            }}
-                                                                                        />
-                                                                                    ) : (
-                                                                                        <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">
-                                                                                            {person.full_name?.slice(0, 2).toUpperCase() || '?'}
-                                                                                        </div>
-                                                                                    )}
-                                                                                </div>
-                                                                            ))}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            ));
-                                        })()}
-                                    </>
-                                )}
-                            </>
-                        )}
-                    </div>
-                </div>
-
-                {/* Calendar & Celebrations */}
-                <div className="lg:col-span-1 flex flex-col h-[600px] lg:h-full overflow-hidden">
-                    <div className="bg-white rounded-2xl border border-[#AEACAC52] pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full min-h-0">
-                        {/* Calendar Header */}
-                        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 pt-2 px-2">
-                            <div className="flex flex-col items-start min-w-[70px]">
-                                <span className="text-[15px] lg:text-[17px] font-semibold text-black font-gantari leading-tight">{currentMonthName}</span>
-                                <span className="text-[15px] lg:text-[17px] font-semibold text-black font-gantari leading-tight">{displayYear}</span>
-                            </div>
-                            <div className="flex flex-col items-center flex-1 min-w-0">
-                                <span className="text-[38px] lg:text-[32px] font-bold text-black leading-none tracking-tighter">{selectedDate.getDate()}</span>
-                            </div>
-                            <div className="flex flex-col items-end min-w-[75px]">
-                                <span className="text-[13px] lg:text-[16px] font-semibold text-black font-gantari tracking-wide">{currentDayName}</span>
-                            </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
+                    </div>
 
-                        {/* Month & Year navigation */}
-                        <div className="flex flex-nowrap items-center justify-center gap-2 sm:gap-4 mb-3 px-2 shrink-0">
-                            <button type="button" onClick={goPrevMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors cursor-pointer" aria-label="Previous month">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                            </button>
-                            <div className="relative min-w-[100px]" ref={monthDropdownRef}>
-                                <button
-                                    type="button"
-                                    onClick={() => setMonthDropdownOpen((o) => !o)}
-                                    className="flex items-center justify-between gap-1 w-full rounded-md py-2 pl-0 pr-6 text-left text-[13px] font-medium text-slate-800 hover:bg-slate-50 font-gantari border-none bg-transparent cursor-pointer"
-                                    aria-expanded={monthDropdownOpen}
-                                    aria-haspopup="listbox"
-                                    aria-label="Select month"
-                                >
-                                    {currentMonthName}
-                                    <svg className={`w-3.5 h-3.5 text-slate-500 absolute right-0 top-1/2 -translate-y-1/2 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                </button>
-                                {monthDropdownOpen && (
-                                    <div
-                                        className="absolute left-0 top-full z-30 mt-2 min-w-[140px] rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5 overflow-hidden"
-                                        role="listbox"
-                                    >
-                                        <div className="overflow-y-auto custom-scrollbar overscroll-contain" style={{ maxHeight: '160px' }}>
-                                            {MONTH_NAMES.map((name, m) => {
-                                                const isSelected = m === displayMonth;
+                    {/* Calendar & Celebrations */}
+                    <div className="lg:col-span-2 flex flex-col min-h-[400px]">
+                        <div className="bg-white rounded-md border border-[#AEACAC52] pt-5 pl-5 pb-5 pr-0 shadow-sm flex flex-col h-full">
+                            <div className="flex items-center justify-between gap-4 mb-6 shrink-0 pr-10">
+                                <div className="flex flex-col">
+                                    <span className="text-[14px] font-semibold text-black font-gantari leading-tight uppercase">{currentMonthName}</span>
+                                    <span className="text-[14px] font-semibold text-black font-gantari leading-tight">{displayYear}</span>
+                                </div>
+                                <span className="text-[32px] font-bold text-black leading-none">{selectedDate.getDate()}</span>
+                                <span className="text-[14px] font-semibold text-black font-gantari tracking-wide">{currentDayName}</span>
+                            </div>
+
+                            <div className="flex items-center justify-center gap-4 mb-6 px-2 shrink-0 pr-10">
+                                <button type="button" onClick={goPrevMonth} className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg></button>
+                                <div className="relative min-w-[120px]" ref={monthDropdownRef}>
+                                    <button type="button" onClick={() => setMonthDropdownOpen(!monthDropdownOpen)} className="flex items-center justify-between w-full py-2 text-[14px] font-bold text-slate-800 bg-transparent border-none cursor-pointer">
+                                        {currentMonthName}
+                                        <svg className={`w-4 h-4 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                    </button>
+                                    {monthDropdownOpen && (
+                                        <div className="absolute left-0 top-full z-30 mt-2 min-w-[140px] rounded-lg bg-white py-1 shadow-xl ring-1 ring-black/5 overflow-hidden">
+                                            <div className="overflow-y-auto custom-scrollbar max-h-[180px]">
+                                                {MONTH_NAMES.map((n, m) => (
+                                                    <button key={m} type="button" onClick={() => { setDisplayMonth(m); setMonthDropdownOpen(false); }} className={`block w-full px-4 py-2.5 text-left text-[13px] font-semibold font-gantari hover:bg-slate-50 ${m === displayMonth ? 'bg-[#2563eb] text-white' : 'text-slate-800'}`}>{n}</button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <span className="text-[14px] font-bold text-slate-800">{displayYear}</span>
+                                <button type="button" onClick={goNextMonth} className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto custom-scrollbar pr-10">
+                                {isCalendarExpanded && (
+                                    <div className="mb-6 animate-in fade-in duration-200">
+                                        <div className="grid grid-cols-7 gap-0 text-center text-[13px] font-bold text-[#717171] mb-4">
+                                            <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+                                        </div>
+                                        <div className="grid grid-cols-7 gap-y-2 text-center text-[15px] font-bold font-gantari">
+                                            {calendarDays.map((c, i) => {
+                                                const d = getCellDate(c);
+                                                const isSel = isSameDay(d, selectedDate);
+                                                const isTd = isSameDay(d, today);
+                                                const isEx = c.type !== 'current';
                                                 return (
-                                                    <button
-                                                        key={m}
-                                                        type="button"
-                                                        role="option"
-                                                        aria-selected={isSelected}
-                                                        onClick={() => {
-                                                            setDisplayMonth(m);
-                                                            setMonthDropdownOpen(false);
-                                                        }}
-                                                        className={`block w-full px-4 py-2.5 text-left text-[13px] font-medium font-gantari transition-colors truncate cursor-pointer ${isSelected ? 'bg-[#2563eb] text-white' : 'text-slate-800 hover:bg-slate-100'}`}
-                                                    >
-                                                        {name}
+                                                    <button key={i} type="button" onClick={() => handleDateClick(c)} className={`py-2 transition-all rounded-full cursor-pointer flex items-center justify-center ${isTd ? 'bg-[#DD4346] text-white' : isSel ? 'text-[#E00100] ring-1 ring-[#E00100]/10' : isEx ? 'text-[#D1D5DB]' : 'text-[#353535] hover:bg-slate-50'}`}>
+                                                        {c.day}
                                                     </button>
                                                 );
                                             })}
                                         </div>
                                     </div>
                                 )}
-                            </div>
-                            <div className="flex items-center">
-                                <span className="min-w-[40px] text-[13px] font-semibold text-slate-700 font-gantari">{displayYear}</span>
-                                <div className="flex flex-col gap-0 -space-y-px">
-                                    <button type="button" onClick={() => setDisplayYear((y) => y + 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none cursor-pointer" aria-label="Next year">
-                                        <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z" /></svg>
-                                    </button>
-                                    <button type="button" onClick={() => setDisplayYear((y) => y - 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none cursor-pointer" aria-label="Previous year">
-                                        <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
-                                    </button>
+
+                                <div className="flex justify-center mb-6">
+                                    <button type="button" onClick={() => { setCelebrationsRequested(true); setIsCalendarExpanded(!isCalendarExpanded); }} className="text-slate-400 hover:text-[#DE3D3A] transition-colors cursor-pointer p-1"><svg className={`w-6 h-6 transition-transform ${isCalendarExpanded ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg></button>
                                 </div>
-                            </div>
-                            <button type="button" onClick={goNextMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors cursor-pointer" aria-label="Next month">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                            </button>
-                        </div>
 
-                        {/* Scrollable: calendar grid + toggle + celebrations */}
-                        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar pl-2 pr-2">
-                            {isCalendarExpanded && (
-                                <div className="mb-2 py-2 animate-in fade-in duration-200">
-                                    <div className="grid grid-cols-7 gap-0 text-center text-[12px] lg:text-[13px] font-bold text-black font-gantari mb-2 [&>div]:py-0.5">
-                                        <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
-                                    </div>
-                                    <div className="grid grid-cols-7 gap-y-1 text-center text-[13px] lg:text-[14px] font-semibold font-gantari">
-                                        {calendarDays.map((cell, i) => {
-                                            const cellDate = getCellDate(cell);
-                                            const isSelected = isSameDay(cellDate, selectedDate);
-                                            const isToday = isSameDay(cellDate, today);
-                                            const isOtherMonth = cell.type === 'prev' || cell.type === 'next';
-                                            return (
-                                                <button
-                                                    key={i}
-                                                    type="button"
-                                                    onClick={() => handleDateClick(cell)}
-                                                    className={`py-1 min-w-[22px] transition-colors rounded-full cursor-pointer ${isToday ? 'bg-[#DD4346] text-[#FFFFFF]' : isSelected ? 'text-[#E00100] font-bold' : isOtherMonth ? 'text-[#9CA3AF]' : 'text-black hover:bg-slate-50'}`}
-                                                >
-                                                    {cell.day}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Toggle arrow */}
-                            <div className="flex justify-center mt-0 mb-2">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setCelebrationsRequested(true);
-                                        setIsCalendarExpanded(!isCalendarExpanded);
-                                    }}
-                                    className="text-slate-500 hover:text-slate-700 transition-colors p-0.5 cursor-pointer"
-                                    aria-label={isCalendarExpanded ? 'Collapse calendar and load celebrations' : 'Expand calendar'}
-                                >
-                                    <svg className={`w-5 h-4 transform transition-transform ${!isCalendarExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
-                                    </svg>
-                                </button>
-                            </div>
-
-                            {/* Celebrations */}
-                            <div className="space-y-4 pr-1">
-                                {!celebrationsRequested ? (
-                                    <p className="text-sm text-slate-400 font-gantari py-4 text-center">Click the up arrow above to load celebrations.</p>
-                                ) : celebrations.length === 0 ? (
-                                    <p className="text-sm text-slate-400 font-gantari py-4 text-center">No celebrations for this date.</p>
-                                ) : (
-                                    celebrations.map((event, i) => (
-                                        <div key={i} className="bg-[#F8F9FA] p-5 rounded-xl border border-transparent hover:border-slate-200 transition-all flex flex-col relative">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <h4 className="font-bold text-[#353535] text-[17px] font-gantari">{event.full_name || event.project_name || 'Employee'}</h4>
-                                                <span className={`text-[10px] px-3 py-1.5 rounded-md font-bold uppercase tracking-widest leading-none font-gantari ${event.type === 'birthday'
-                                                    ? 'bg-[#FFF3E0] text-[#E65100]'
-                                                    : event.type === 'work_anniversary'
-                                                        ? 'bg-[#E7F6EA] text-[#2D8A39]'
-                                                        : 'bg-[#E3F2FD] text-[#1565C0]'
-                                                    }`}>
-                                                    {event.type === 'birthday' ? 'BIRTHDAY' : event.type === 'work_anniversary' ? 'CELEBRATIONS' : 'PROJECT DUE'}
-                                                </span>
+                                <div className="space-y-5">
+                                    {!celebrationsRequested ? <p className="text-[14px] text-slate-400 font-gantari text-center py-4">Click arrow to load celebrations.</p> : celebrations.length === 0 ? <p className="text-[14px] text-slate-400 font-gantari text-center py-4">No celebrations.</p> : celebrations.map((e, i) => (
+                                        <div key={i} className="bg-[#F8F9FA] p-6 rounded-xl border border-transparent hover:border-slate-200 transition-all">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <h4 className="font-bold text-[#353535] text-[17px] font-gantari">{e.full_name || e.project_name}</h4>
+                                                <span className={`text-[10px] px-3 py-1.5 rounded-md font-bold uppercase tracking-wider ${e.type === 'birthday' ? 'bg-[#FFF3E0] text-[#E65100]' : e.type === 'work_anniversary' ? 'bg-[#E7F6EA] text-[#2D8A39]' : 'bg-[#E3F2FD] text-[#1565C0]'}`}>{e.type === 'birthday' ? 'BIRTHDAY' : e.type === 'work_anniversary' ? 'CELEBRATION' : 'DUE'}</span>
                                             </div>
-                                            {event.type === 'birthday' && (
-                                                <>
-                                                    <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Happy Birthday 🎂</p>
-                                                    <p className="text-sm text-slate-400 leading-relaxed font-gantari">
-                                                        Wishing you a wonderful birthday! May this year bring you happiness and success.
-                                                    </p>
-                                                </>
-                                            )}
-                                            {event.type === 'work_anniversary' && (
-                                                <>
-                                                    <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Congratulations</p>
-                                                    <p className="text-sm text-slate-400 leading-relaxed font-gantari">
-                                                        {event.working_years === 1
-                                                            ? 'Congratulations for your first anniversary! Marking a great year of excellence.'
-                                                            : `You have completed ${event.working_years} years in our company. Marking another year of excellence.`}
-                                                    </p>
-                                                </>
-                                            )}
-                                            {event.type === 'project_due' && (
-                                                <>
-                                                    <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Project Due</p>
-                                                    <p className="text-sm text-slate-400 leading-relaxed font-gantari">
-                                                        Project "{event.project_name}" is due on {event.due_date}.
-                                                    </p>
-                                                </>
-                                            )}
+                                            {e.type === 'birthday' && <p className="text-[14px] text-slate-500 font-gantari">Happy Birthday! 🎂</p>}
+                                            {e.type === 'work_anniversary' && <p className="text-[14px] text-slate-500 font-gantari">Completed {e.working_years} {e.working_years === 1 ? 'year' : 'years'}!</p>}
+                                            {e.type === 'project_due' && <p className="text-[14px] text-slate-500 font-gantari">Project due on {e.due_date}.</p>}
                                         </div>
-                                    ))
-                                )}
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>

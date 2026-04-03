@@ -3859,6 +3859,7 @@ def update_vendor_task(task_id):
         "description",
         "checklist",
         "project_id",
+        "outputfilepath",
     )
     sets = []
     params = []

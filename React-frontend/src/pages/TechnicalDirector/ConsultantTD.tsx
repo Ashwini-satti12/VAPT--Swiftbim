@@ -31,14 +31,14 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-  { value: '1-50', label: '1-50', start: 0, end: 50 },
-  { value: '51-100', label: '51-100', start: 50, end: 100 },
-  { value: '101-150', label: '101-150', start: 100, end: 150 },
-  { value: '151-200', label: '151-200', start: 150, end: 200 },
-  { value: '201-250', label: '201-250', start: 200, end: 250 },
-  { value: '251-300', label: '251-300', start: 250, end: 300 },
-  { value: 'all', label: 'All', start: 0, end: null },
-];
+    { value: '1-50', label: '1-50', start: 0, end: 50 },
+    { value: '51-100', label: '51-100', start: 50, end: 100 },
+    { value: '101-150', label: '101-150', start: 100, end: 150 },
+    { value: '151-200', label: '151-200', start: 150, end: 200 },
+    { value: '201-250', label: '201-250', start: 200, end: 250 },
+    { value: '251-300', label: '251-300', start: 250, end: 300 },
+    { value: 'all', label: 'All', start: 0, end: null },
+  ];
 
 interface Employee {
   id: number;
@@ -202,13 +202,13 @@ function CustomDropdown({
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
-      <input 
-        type="text" 
-        value={value && value !== placeholder ? value : ""} 
-        required 
-        className="absolute opacity-0 pointer-events-none" 
-        tabIndex={-1} 
-        readOnly 
+      <input
+        type="text"
+        value={value && value !== placeholder ? value : ""}
+        required
+        className="absolute opacity-0 pointer-events-none"
+        tabIndex={-1}
+        readOnly
       />
       <button
         type="button"
@@ -221,8 +221,8 @@ function CustomDropdown({
           }`}
       >
         <span className={`min-w-0 flex-1 truncate overflow-hidden text-left ${styleType === "header" || styleType === "form"
-            ? (isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535]")
-            : ""
+          ? (isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535]")
+          : ""
           }`}>
           {styleType === "header" && value && !isPlaceholder ? (
             <>
@@ -241,9 +241,8 @@ function CustomDropdown({
       </button>
       {isOpen && (
         <div
-          className={`absolute top-full mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden ${
-            alignMenu === "right" ? "right-0 left-auto" : "left-0"
-          }`}
+          className={`absolute top-full mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden ${alignMenu === "right" ? "right-0 left-auto" : "left-0"
+            }`}
         >
           {styleType === "table" ? (
             <div className="flex flex-col py-2">
@@ -283,11 +282,10 @@ function CustomDropdown({
                       setIsOpen(false);
                     }
                   }}
-                  className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${
-                    isPlaceholder && placeholder !== "Show" && placeholder !== "Show Entries"
+                  className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${isPlaceholder && placeholder !== "Show" && placeholder !== "Show Entries"
                       ? "text-[#353535] bg-[#F2F2F2]"
                       : "text-[#8B8B8B] bg-[#FFFFFF]"
-                  }`}
+                    }`}
                 >
                   {placeholder}
                 </button>
@@ -774,168 +772,164 @@ export default function ConsultantTD() {
               </h1>
               {/* Tight gap between action buttons and Show Entries / Status (inner), title spacing unchanged */}
               <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-visible">
-              {/* Scroll only the action buttons — avoids clipping dropdown panels */}
-              <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 pr-0.5 custom-scrollbar">
-                {canAdd && (
-                  <>
+                {/* Scroll only the action buttons — avoids clipping dropdown panels */}
+                <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 pr-0.5 custom-scrollbar">
+                  {canAdd && (
+                    <>
 
-<button
-                  type="button"
-                  onClick={() => setViewMode('table')}
-                  aria-label="Table view"
-                  className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
-                >
-                  <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('card')}
-                  aria-label="Card view"
-                  className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
-                >
-                  <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
-                </button>
-                    <button
-                      type="button"
-                      onClick={() => navigate('/td/consultants/add')}
-                      className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
-                    >
-                      Add Consultant
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveView('invite')}
-                      className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
-                    >
-                      Invite
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveView('deactive')}
-                      className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
-                    >
-                      Manage Deactive
-                    </button>
-                  </>
-                )}
-                
-              </div>
-              <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
-                <div
-                  className="relative min-w-[140px] max-w-[200px] w-[150px]"
-                  ref={showEntriesDropdownRef}
-                >
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowEntriesOpen((o) => !o);
-                    }}
-                    className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
-                  >
-                    <span
-                      className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-                        selectedShowEntries === ''
-                          ? 'text-[#8B8B8B]'
-                          : 'text-[#353535]'
-                      }`}
-                    >
-                      {selectedShowEntries === '' ? (
-                        SHOW_ENTRIES_PLACEHOLDER
-                      ) : (
-                        <>
-                          <span className="text-[14px]">
-                            {SHOW_ENTRIES_SELECTED_PREFIX}
-                          </span>{' '}
-                          <span className="font-semibold">
-                            {selectedRange.label}
-                          </span>
-                        </>
-                      )}
-                    </span>
-                    <img
-                      src={ArrowDown}
-                      alt=""
-                      className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                        showEntriesOpen ? 'rotate-180' : ''
-                      } ${
-                        selectedShowEntries === ''
-                          ? 'opacity-60 grayscale'
-                          : 'opacity-90'
-                      }`}
-                      aria-hidden
-                    />
-                  </button>
-                  {showEntriesOpen && (
-                    <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
-                      <div
-                        ref={showEntriesDropdownContentRef}
-                        className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('table')}
+                        aria-label="Table view"
+                        className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
                       >
-                        <button
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setSelectedShowEntries('');
-                            setShowEntriesOpen(false);
-                          }}
-                          className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
-                        >
-                          {SHOW_ENTRIES_PLACEHOLDER}
-                        </button>
-                        {showEntriesOptions.map((opt) => {
-                          const isChosen = selectedShowEntries === opt.value;
-                          return (
-                            <button
-                              key={`${opt.value}-${opt.start}-${String(opt.end)}`}
-                              type="button"
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setSelectedShowEntries(opt.value);
-                                setShowEntriesOpen(false);
-                              }}
-                              className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${
-                                isChosen
-                                  ? 'text-[#353535] bg-[#F2F2F2]'
-                                  : 'text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]'
-                              }`}
-                            >
-                              <span className="truncate min-w-0">{opt.label}</span>
-                              {isChosen && (
-                                <svg
-                                  className="w-4 h-4 shrink-0 text-[#353535]"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                  aria-hidden
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2.5}
-                                    d="M5 13l4 4L19 7"
-                                  />
-                                </svg>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                        <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('card')}
+                        aria-label="Card view"
+                        className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                      >
+                        <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/td/consultants/add')}
+                        className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                      >
+                        Add Consultant
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveView('invite')}
+                        className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                      >
+                        Invite
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveView('deactive')}
+                        className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                      >
+                        Manage Deactive
+                      </button>
+                    </>
                   )}
+
                 </div>
-                <CustomDropdown
-                  options={['All', 'Active', 'Deactivate']}
-                  value={statusFilter}
-                  onChange={(val) => setStatusFilter(val)}
-                  placeholder="Status"
-                  className="w-[100px]"
-                  styleType="header"
-                  alignMenu="right"
-                />
-              </div>
+                <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
+                  <div
+                    className="relative min-w-[140px] max-w-[200px] w-[150px]"
+                    ref={showEntriesDropdownRef}
+                  >
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowEntriesOpen((o) => !o);
+                      }}
+                      className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                    >
+                      <span
+                        className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ''
+                            ? 'text-[#8B8B8B]'
+                            : 'text-[#353535]'
+                          }`}
+                      >
+                        {selectedShowEntries === '' ? (
+                          SHOW_ENTRIES_PLACEHOLDER
+                        ) : (
+                          <>
+                            <span className="text-[14px]">
+                              {SHOW_ENTRIES_SELECTED_PREFIX}
+                            </span>{' '}
+                            <span className="font-semibold">
+                              {selectedRange.label}
+                            </span>
+                          </>
+                        )}
+                      </span>
+                      <img
+                        src={ArrowDown}
+                        alt=""
+                        className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''
+                          } ${selectedShowEntries === ''
+                            ? 'opacity-60 grayscale'
+                            : 'opacity-90'
+                          }`}
+                        aria-hidden
+                      />
+                    </button>
+                    {showEntriesOpen && (
+                      <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                        <div
+                          ref={showEntriesDropdownContentRef}
+                          className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                        >
+                          <button
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setSelectedShowEntries('');
+                              setShowEntriesOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                          >
+                            {SHOW_ENTRIES_PLACEHOLDER}
+                          </button>
+                          {showEntriesOptions.map((opt) => {
+                            const isChosen = selectedShowEntries === opt.value;
+                            return (
+                              <button
+                                key={`${opt.value}-${opt.start}-${String(opt.end)}`}
+                                type="button"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setSelectedShowEntries(opt.value);
+                                  setShowEntriesOpen(false);
+                                }}
+                                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
+                                    ? 'text-[#353535] bg-[#F2F2F2]'
+                                    : 'text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]'
+                                  }`}
+                              >
+                                <span className="truncate min-w-0">{opt.label}</span>
+                                {isChosen && (
+                                  <svg
+                                    className="w-4 h-4 shrink-0 text-[#353535]"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                    aria-hidden
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2.5}
+                                      d="M5 13l4 4L19 7"
+                                    />
+                                  </svg>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <CustomDropdown
+                    options={['All', 'Active', 'Deactivate']}
+                    value={statusFilter}
+                    onChange={(val) => setStatusFilter(val)}
+                    placeholder="Status"
+                    className="w-[100px]"
+                    styleType="header"
+                    alignMenu="right"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -1188,7 +1182,7 @@ export default function ConsultantTD() {
                                         >
                                           <img src={projectEditIcon} className="w-4 h-4" alt="" aria-hidden />
                                         </button>
-                                        
+
                                       </>
                                     )}
                                   </div>
