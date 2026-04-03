@@ -277,9 +277,9 @@ export default function VendorBimLeadDashboard() {
                 <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">Dashboard</h1>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     {kpiCards.map((card, i) => (
-                        <Link key={i} to={card.link} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-lg border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 transition-colors cursor-pointer">
-                            <h3 className="text-[18px] sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">{card.label}</h3>
-                            <p className="text-[20px] sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold leading-none">{card.value}</p>
+                        <Link key={i} to={card.link} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 transition-colors cursor-pointer">
+                            <h3 className="text-[18px] md:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">{card.label}</h3>
+                            <p className="text-[20px] md:text-[20] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{card.value}</p>
                         </Link>
                     ))}
                 </div>
@@ -288,17 +288,15 @@ export default function VendorBimLeadDashboard() {
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4 overflow-visible lg:overflow-hidden">
                 <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
                     <div className="flex items-center justify-between mb-4 shrink-0 pr-4">
-                        <h2 className="text-xl font-semibold text-[#353535] font-gantari">Today's Priority</h2>
+                        <h2 className="text-[18px] font-medium text-[#353535] font-gantari">Today's Priority</h2>
                     </div>
-                    <div className="border-b border-[#AEACAC52] mb-4" aria-hidden />
-
                     <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
                         {priorityTasks.length === 0 ? (
-                            <p className="text-[#717171] text-sm font-gantari py-4 px-4">No priority tasks for today.</p>
+                            <p className="text-[#717171] text-[16px] font-gantari px-4">No priority tasks for today.</p>
                         ) : (
                             <div className="px-4">
                                 <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-lg font-semibold text-[#353535] font-gantari">Projects</h3>
+                                    <h3 className="text-[16px] font-medium text-[#353535] font-gantari">Projects</h3>
                                     <Link to="/vendor-bim-lead/projects" className="text-sm font-medium text-[#DD4342] hover:underline font-gantari transition-colors cursor-pointer">View all</Link>
                                 </div>
                                 {(() => {
