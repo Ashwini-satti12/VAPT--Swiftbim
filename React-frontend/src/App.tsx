@@ -111,6 +111,7 @@ import ConsultantdetailsV from './pages/Vendor/ConsultantdetailsV';
 import ClientV from './pages/Vendor/ClientV';
 import ProjectsV from './pages/Vendor/ProjectsV';
 import MytaskV from './pages/Vendor/MytaskV';
+import AddTaskV from './pages/Vendor/AddTaskV';
 import TeamtaskV from './pages/Vendor/TeamtaskV';
 import CreateteamV from './pages/Vendor/CreateteamV';
 import TrackerV from './pages/Vendor/TrackerV';
@@ -279,6 +280,8 @@ function App() {
             <Route path="v/clients" element={<ClientV />} />
             <Route path="v/projects" element={<ProjectsV />} />
             <Route path="v/mytasks" element={<MytaskV />} />
+            <Route path="v/mytasks/add" element={<AddTaskV />} />
+            <Route path="v/mytasks/edit" element={<AddTaskV />} />
             <Route path="v/teamtasks" element={<TeamtaskV />} />
             <Route path="v/createteam" element={<CreateteamV />} />
             <Route path="v/tracker" element={<TrackerV />} />
