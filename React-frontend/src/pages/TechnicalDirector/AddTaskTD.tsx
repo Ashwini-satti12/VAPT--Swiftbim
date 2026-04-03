@@ -124,22 +124,23 @@ export default function AddTaskTD() {
             setList(tasksRes.data.tasks ?? []);
             setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
             
-            const p1 = (projRes1.data.projects ?? []).map(r => ({
+            const mapProj = (r: Record<string, any>, defaultSource: string) => ({
                 id: Number(r.id),
                 project_name: String(r.project_name || ""),
                 tasks: String(r.tasks || ""),
                 modules: String(r.modules || ""),
-                source: String(r.source || "In House")
-            }));
-            const p2 = (projRes2.data.projects ?? []).map(r => ({
-                id: Number(r.id),
-                project_name: String(r.project_name || ""),
-                tasks: String(r.tasks || ""),
-                modules: String(r.modules || ""),
-                source: "Outsource"
-            }));
+                source: String(r.source || defaultSource),
+                project_manager_name: String(r.project_manager_name || ""),
+                lead_name: String(r.lead_name || ""),
+                bim_coordinator_name: String(r.bim_coordinator_name || ""),
+                uploader_name: String(r.uploader_name || ""),
+                members_names: Array.isArray(r.members_names) ? r.members_names.map(String) : [],
+                members: String(r.members || "")
+            });
+            const p1 = (projRes1.data.projects ?? []).map(r => mapProj(r, "In House"));
+            const p2 = (projRes2.data.projects ?? []).map(r => mapProj(r, "Outsource"));
             
-            setProjects([...p1, ...p2] as any);
+            setProjects([...p1, ...p2]);
         });
     }, []);
 
@@ -361,35 +362,42 @@ export default function AddTaskTD() {
         if (!addTaskForm.projectName) {
             return [
                 { value: "", label: "Select Assign To" },
-                ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
+                ...employees.map((e) => ({ value: e.full_name, label: e.full_name })),
             ];
         }
         const proj = projects.find((p) => p.project_name === addTaskForm.projectName);
         if (!proj) {
             return [
                 { value: "", label: "Select Assign To" },
-                ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
+                ...employees.map((e) => ({ value: e.full_name, label: e.full_name })),
             ];
         }
         const involvedNames = new Set<string>();
-        if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
-        if (proj.lead_name) involvedNames.add(proj.lead_name);
-        if (proj.bim_coordinator_name) involvedNames.add(proj.bim_coordinator_name);
-        if (proj.uploader_name) involvedNames.add(proj.uploader_name);
+
+        const addNames = (val: string | undefined | null) => {
+            if (!val) return;
+            val.split(",").forEach(n => {
+                const trimmed = n.trim();
+                if (trimmed) involvedNames.add(trimmed);
+            });
+        };
+
+        addNames(proj.project_manager_name);
+        addNames(proj.lead_name);
+        addNames(proj.bim_coordinator_name);
+        addNames(proj.uploader_name);
+
         if (Array.isArray(proj.members_names)) {
             proj.members_names.forEach(name => {
-                if (name) involvedNames.add(name);
+                if (name) involvedNames.add(name.trim());
             });
         }
 
-        // Filter employees to only those involved in the project
-        const validEmployees = employees.filter(e => e.full_name && involvedNames.has(e.full_name) && isEmployeeActiveForProjectAssignment(e));
+        const filteredEmployees = employees.filter(e => involvedNames.has(e.full_name));
 
-        // Fallback: if somehow no one is involved, we might still want the dropdown to just show empty or all.
-        // We will strictly follow "only involved" as requested.
         return [
             { value: "", label: "Select Assign To" },
-            ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
+            ...filteredEmployees.map((e) => ({ value: e.full_name, label: e.full_name })),
         ];
     };
 
