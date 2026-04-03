@@ -111,6 +111,7 @@ export default function ManageLeavePM() {
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingLeave, setEditingLeave] = useState<LeaveEntry | null>(null);
+  const [deleteLeave, setDeleteLeave] = useState<LeaveEntry | null>(null);
   const [leaveType, setLeaveType] = useState("");
   const [leaveTypeId, setLeaveTypeId] = useState<number | null>(null);
   const [leaveFrom, setLeaveFrom] = useState("");
@@ -514,13 +515,13 @@ export default function ManageLeavePM() {
     }
   };
 
-  const handleDelete = async (row: LeaveEntry) => {
-    if (
-      !window.confirm(
-        `Delete leave for ${row.employeeName} (${row.leaveType}, ${row.fromDate} - ${row.toDate})?`,
-      )
-    )
-      return;
+  const openDeleteLeave = (row: LeaveEntry) => {
+    setDeleteLeave(row);
+  };
+
+  const confirmDeleteLeave = async () => {
+    if (deleteLeave === null) return;
+    const row = deleteLeave;
     try {
       await api.delete(`/api/leave/applications/${row.id}`);
       const resp = await api.get<{ applications?: any[] }>(
@@ -552,6 +553,7 @@ export default function ManageLeavePM() {
               : "Pending",
       }));
       setLeaves(mapped);
+      setDeleteLeave(null);
     } catch (err: any) {
       console.error("Delete leave failed", err);
       alert(err?.response?.data?.message || "Delete failed. Please try again.");
@@ -653,7 +655,7 @@ export default function ManageLeavePM() {
                   }
                   setApplyModalOpen(true);
                 }}
-                className="px-4 py-2 bg-[#DD4346] text-white rounded-md text-[14px] font-gantari font-medium hover:bg-[#c43a39] transition-colors cursor-pointer"
+                className="px-4 py-2 bg-[#DD4346] text-white rounded-md text-[14px] font-gantari font-medium transition-colors cursor-pointer"
               >
                 Apply Leave
               </button>
@@ -952,7 +954,7 @@ export default function ManageLeavePM() {
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => handleDelete(row)}
+                                    onClick={() => openDeleteLeave(row)}
                                     className={`inline-flex items-center justify-center p-2 rounded-md text-[#353535] transition-colors shrink-0 cursor-pointer ${
                                       index % 2 === 1
                                         ? "bg-[#FFFFFF]"
@@ -1101,6 +1103,56 @@ export default function ManageLeavePM() {
           </div>,
           document.body,
         )}
+
+      {/* Delete leave confirmation modal — same pattern as MytaskTD */}
+      {deleteLeave !== null && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+            <button
+              type="button"
+              onClick={() => setDeleteLeave(null)}
+              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+              title="Close"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+            <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
+              Delete Leave
+            </h3>
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+              Are you sure, you want to Delete this?
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
+              <button
+                type="button"
+                onClick={() => setDeleteLeave(null)}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteLeave}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Apply Leave Modal */}
       {applyModalOpen &&

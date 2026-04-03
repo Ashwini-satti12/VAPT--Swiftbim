@@ -1,6 +1,21 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import api from "../../lib/api";
 
+/** Open native date picker — same pattern as TeamreportPM. */
+function openNativeDatePicker(input: HTMLInputElement | null) {
+  if (!input) return;
+  try {
+    if (typeof input.showPicker === "function") {
+      input.showPicker();
+      return;
+    }
+  } catch {
+    // showPicker can throw if not allowed; fall through
+  }
+  input.focus();
+  input.click();
+}
+
 interface TimesheetEntry {
   id: number;
   project_name?: string;
@@ -43,6 +58,8 @@ export default function TeamReportBM() {
   // Refs for click outside detection
   const employeeDropdownRef = useRef<HTMLDivElement>(null);
   const teamDropdownRef = useRef<HTMLDivElement>(null);
+  const startDateInputRef = useRef<HTMLInputElement>(null);
+  const endDateInputRef = useRef<HTMLInputElement>(null);
 
   const employeeOptions = useMemo(
     () => ["All", ...employees.map((e) => e.full_name)],
@@ -377,92 +394,88 @@ export default function TeamReportBM() {
       {/* Filter Row */}
       <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 flex-shrink-0 px-2">
         <div className="flex flex-wrap items-center gap-3">
-          {/* Start Date */}
-          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer group min-w-[130px]">
+          {/* Start Date — calendar icon only opens native picker (TeamreportPM pattern) */}
+          <div className="relative flex min-w-[130px] items-center justify-between gap-3 rounded-md bg-[#F2F2F2] px-4 py-2 transition-all">
             <span
-              className={`text-[14px] font-medium ${startDate ? "text-[#353535]" : "text-[#616161]"}`}
+              className={`select-none text-[14px] font-medium ${startDate ? "text-[#353535]" : "text-[#616161]"}`}
             >
               {startDate
                 ? startDate.split("-").reverse().join("/")
                 : "Start Date"}
             </span>
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#616161"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              onClick={(e) => {
-                e.stopPropagation();
-                const input = e.currentTarget
-                  .nextElementSibling as HTMLInputElement;
-                if (input && typeof input.showPicker === "function") {
-                  try {
-                    input.showPicker();
-                  } catch (err) {
-                    input.focus();
-                  }
-                }
-              }}
+            <button
+              type="button"
+              aria-label="Open start date calendar"
+              onClick={() => openNativeDatePicker(startDateInputRef.current)}
+              className="shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40"
             >
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-              <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
-            </svg>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#616161"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+                <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
+              </svg>
+            </button>
             <input
+              ref={startDateInputRef}
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              tabIndex={-1}
+              className="pointer-events-none absolute inset-0 h-full min-h-[2.5rem] w-full opacity-0"
               style={{ colorScheme: "light" }}
             />
           </div>
 
-          {/* End Date */}
-          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer group min-w-[130px]">
+          {/* End Date — calendar icon only opens native picker */}
+          <div className="relative flex min-w-[130px] items-center justify-between gap-3 rounded-md bg-[#F2F2F2] px-4 py-2 transition-all">
             <span
-              className={`text-[14px] font-medium ${endDate ? "text-[#353535]" : "text-[#616161]"}`}
+              className={`select-none text-[14px] font-medium ${endDate ? "text-[#353535]" : "text-[#616161]"}`}
             >
               {endDate ? endDate.split("-").reverse().join("/") : "End Date"}
             </span>
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#616161"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              onClick={(e) => {
-                e.stopPropagation();
-                const input = e.currentTarget
-                  .nextElementSibling as HTMLInputElement;
-                if (input && typeof input.showPicker === "function") {
-                  try {
-                    input.showPicker();
-                  } catch (err) {
-                    input.focus();
-                  }
-                }
-              }}
+            <button
+              type="button"
+              aria-label="Open end date calendar"
+              onClick={() => openNativeDatePicker(endDateInputRef.current)}
+              className="shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40"
             >
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-              <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
-            </svg>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#616161"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+                <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
+              </svg>
+            </button>
             <input
+              ref={endDateInputRef}
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              tabIndex={-1}
+              className="pointer-events-none absolute inset-0 h-full min-h-[2.5rem] w-full opacity-0"
               style={{ colorScheme: "light" }}
             />
           </div>

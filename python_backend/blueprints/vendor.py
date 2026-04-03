@@ -1065,13 +1065,57 @@ def submit_bid(opportunity_id):
 
     # Verify the opportunity exists and is still active
     try:
-        cur.execute("SELECT id, project_name, bid_deadline FROM snh6_swiftproject.vendor_bidding WHERE id = %s AND status = 'active'",
-                    (opportunity_id,))
+        cur.execute(
+            """SELECT id, project_name, bid_deadline, outsource_budget, budget_ceiling
+               FROM snh6_swiftproject.vendor_bidding WHERE id = %s AND status = 'active'""",
+            (opportunity_id,),
+        )
         opp = cur.fetchone()
         if not opp:
             return jsonify({"success": False, "message": "Opportunity not found or already closed"}), 404
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
+    def _to_float_budget(v):
+        if v is None:
+            return None
+        if isinstance(v, (int, float)):
+            return float(v)
+        s = str(v).replace(",", "").replace("₹", "").strip()
+        if not s:
+            return None
+        try:
+            return float(s)
+        except ValueError:
+            return None
+
+    def _parse_bid_amount(val):
+        if val is None:
+            raise ValueError("missing")
+        if isinstance(val, (int, float)):
+            return float(val)
+        s = str(val).replace(",", "").replace("₹", "").strip()
+        return float(s)
+
+    try:
+        bid_val = _parse_bid_amount(bid_amount)
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "Invalid bid amount"}), 400
+
+    caps = []
+    for key in ("outsource_budget", "budget_ceiling"):
+        fv = _to_float_budget(opp.get(key))
+        if fv is not None and fv > 0:
+            caps.append(fv)
+    if caps:
+        max_bid = min(caps)
+        if bid_val > max_bid:
+            return jsonify(
+                {
+                    "success": False,
+                    "message": f"Your bid amount is too high. It cannot exceed ₹{max_bid:,.2f} for this opportunity.",
+                }
+            ), 400
 
     try:
         cur.execute(

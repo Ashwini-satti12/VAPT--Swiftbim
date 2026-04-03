@@ -153,7 +153,7 @@ export default function DashboardV() {
                 bids_submitted: Number(data?.bids_submitted) || 0,
                 proposals_awaiting: Number(data?.proposals_awaiting) || 0,
             })))
-            .catch(() => {})
+            .catch(() => { })
             .finally(() => setLoading(false));
 
         // Vendor project/task stats (vendor_projects + vendor_task for this vendor company)
@@ -165,7 +165,7 @@ export default function DashboardV() {
                 in_progress_tasks: Number(data?.inProgressTasks) || 0,
                 completed_tasks: Number(data?.completedTasks) || 0,
             })))
-            .catch(() => {});
+            .catch(() => { });
     }, []);
 
     // GET /api/vendors/dashboard/priority-tasks → Today's Priority tasks
@@ -343,17 +343,16 @@ export default function DashboardV() {
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {projects.slice(0, 4).map((project) => (
-                                                <Link 
-                                                    key={project.id} 
+                                                <Link
+                                                    key={project.id}
                                                     to={`/v/projects`}
                                                     className="bg-[#F8F9FA] p-4 rounded-xl border border-[#AEACAC52] hover:border-[#DE3D3A] transition-all group"
                                                 >
                                                     <div className="flex flex-col gap-2">
                                                         <div className="flex justify-between items-start">
                                                             <h4 className="font-bold text-[#353535] text-[16px] font-gantari truncate pr-2 group-hover:text-[#DE3D3A]">{project.project_name}</h4>
-                                                            <span className={`text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider ${
-                                                                project.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                                                            }`}>
+                                                            <span className={`text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider ${project.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                                                                }`}>
                                                                 {project.status || 'Active'}
                                                             </span>
                                                         </div>
@@ -362,8 +361,8 @@ export default function DashboardV() {
                                                             <span>Due: {formatDateOnly(project.due_date)}</span>
                                                         </div>
                                                         <div className="w-full bg-slate-200 h-1.5 rounded-full mt-1 overflow-hidden">
-                                                            <div 
-                                                                className="bg-[#DE3D3A] h-full rounded-full transition-all duration-500" 
+                                                            <div
+                                                                className="bg-[#DE3D3A] h-full rounded-full transition-all duration-500"
                                                                 style={{ width: `${project.progress || 0}%` }}
                                                             />
                                                         </div>
@@ -382,76 +381,76 @@ export default function DashboardV() {
                                         <div className="flex items-center justify-between mt-8 mb-3">
                                             <h3 className="text-lg font-semibold text-[#353535] font-gantari">Tasks Priority</h3>
                                         </div>
-                                {(() => {
-                                    const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
-                                    for (const task of priorityTasks) {
-                                        const pid = task.projectid ?? 0;
-                                        const name = task.project_name || `Project #${pid}`;
-                                        if (!byProject.has(pid)) byProject.set(pid, { projectName: name, tasks: [] });
-                                        byProject.get(pid)!.tasks.push(task);
-                                    }
-                                    const projectList = Array.from(byProject.entries()).map(([id, { projectName, tasks }]) => ({ id, projectName, tasks }));
-                                    return projectList.map(({ id, projectName, tasks: projectTasks }) => (
-                                        <div key={id} className="mb-6">
-                                            <p className="text-sm font-semibold text-[#353535] font-gantari mb-3 truncate pr-2">
-                                                <Link to="/v/projects" className="hover:text-[#DE3D3A] hover:underline" title={projectName}>{projectName}</Link>
-                                            </p>
-                                            <div className="space-y-4">
-                                                {projectTasks.map((task) => {
-                                                    const { progress, countdown } = taskProgressAndCountdown(task.due_date, task.perferstart_time, task.perferend_time, nowMs);
-                                                    const strokeOffset = CIRCLE_CIRCUMFERENCE * (1 - progress / 100);
-                                                    const dateLabel = formatDateOnly(task.due_date);
-                                                    const hasStart = (task.perferstart_time || '').trim().length > 0;
-                                                    const hasEnd = (task.perferend_time || '').trim().length > 0;
-                                                    const startLabel = hasStart ? formatTimeStringToAMPM(task.perferstart_time) : '—';
-                                                    const endLabel = hasEnd ? formatTimeStringToAMPM(task.perferend_time) : '—';
-                                                    const timeRangeLabel = hasStart || hasEnd ? `${startLabel} — ${endLabel}` : '—';
-                                                    return (
-                                                        <div key={task.id} className="flex items-center gap-5 p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative">
-                                                            <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
-                                                                <svg className="w-full h-full -rotate-90">
-                                                                    <circle cx="40" cy="40" r="36" stroke="#E5E7EB" strokeWidth="5" fill="transparent" className="opacity-60" />
-                                                                    <circle cx="40" cy="40" r="36" stroke="#00882E" strokeWidth="5" fill="transparent" strokeDasharray={CIRCLE_CIRCUMFERENCE} strokeDashoffset={strokeOffset} strokeLinecap="round" />
-                                                                </svg>
-                                                                <span className="absolute text-[10px] font-bold text-black font-mono">{countdown}</span>
-                                                            </div>
-                                                            <div className="flex-1 min-w-0 pr-2">
-                                                                <h3 className="text-xl font-bold text-black truncate mb-0.5">{task.task_name ?? 'Task'}</h3>
-                                                                <p className="text-[14px] text-[#6B7280] font-medium leading-tight">{dateLabel} — {timeRangeLabel}</p>
-                                                            </div>
-                                                            <div className="absolute top-4 right-4">
-                                                                <span className="bg-[#3B82F6] text-white text-[12px] px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight">{task.category || 'Task'}</span>
-                                                            </div>
-                                                            <div className="absolute bottom-4 right-4 flex -space-x-4">
-                                                                {(task.involved_persons?.length ? task.involved_persons : [])
-                                                                    .slice(0, 3)
-                                                                    .map((person) => (
-                                                                        <div
-                                                                            key={person.id}
-                                                                            className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden"
-                                                                            title={person.full_name}
-                                                                        >
-                                                                            {person.profile_picture ? (
-                                                                                <img
-                                                                                    src={getGlobalProfileUrl(person.id, person.profile_picture)}
-                                                                                    alt=""
-                                                                                    className="w-full h-full object-cover"
-                                                                                />
-                                                                            ) : (
-                                                                                <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">
-                                                                                    {person.full_name?.slice(0, 2).toUpperCase() || '?'}
+                                        {(() => {
+                                            const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
+                                            for (const task of priorityTasks) {
+                                                const pid = task.projectid ?? 0;
+                                                const name = task.project_name || `Project #${pid}`;
+                                                if (!byProject.has(pid)) byProject.set(pid, { projectName: name, tasks: [] });
+                                                byProject.get(pid)!.tasks.push(task);
+                                            }
+                                            const projectList = Array.from(byProject.entries()).map(([id, { projectName, tasks }]) => ({ id, projectName, tasks }));
+                                            return projectList.map(({ id, projectName, tasks: projectTasks }) => (
+                                                <div key={id} className="mb-6">
+                                                    <p className="text-sm font-semibold text-[#353535] font-gantari mb-3 truncate pr-2">
+                                                        <Link to="/v/projects" className="hover:text-[#DE3D3A] hover:underline" title={projectName}>{projectName}</Link>
+                                                    </p>
+                                                    <div className="space-y-4">
+                                                        {projectTasks.map((task) => {
+                                                            const { progress, countdown } = taskProgressAndCountdown(task.due_date, task.perferstart_time, task.perferend_time, nowMs);
+                                                            const strokeOffset = CIRCLE_CIRCUMFERENCE * (1 - progress / 100);
+                                                            const dateLabel = formatDateOnly(task.due_date);
+                                                            const hasStart = (task.perferstart_time || '').trim().length > 0;
+                                                            const hasEnd = (task.perferend_time || '').trim().length > 0;
+                                                            const startLabel = hasStart ? formatTimeStringToAMPM(task.perferstart_time) : '—';
+                                                            const endLabel = hasEnd ? formatTimeStringToAMPM(task.perferend_time) : '—';
+                                                            const timeRangeLabel = hasStart || hasEnd ? `${startLabel} — ${endLabel}` : '—';
+                                                            return (
+                                                                <div key={task.id} className="flex items-center gap-5 p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative">
+                                                                    <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
+                                                                        <svg className="w-full h-full -rotate-90">
+                                                                            <circle cx="40" cy="40" r="36" stroke="#E5E7EB" strokeWidth="5" fill="transparent" className="opacity-60" />
+                                                                            <circle cx="40" cy="40" r="36" stroke="#00882E" strokeWidth="5" fill="transparent" strokeDasharray={CIRCLE_CIRCUMFERENCE} strokeDashoffset={strokeOffset} strokeLinecap="round" />
+                                                                        </svg>
+                                                                        <span className="absolute text-[10px] font-bold text-black font-mono">{countdown}</span>
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0 pr-2">
+                                                                        <h3 className="text-xl font-bold text-black truncate mb-0.5">{task.task_name ?? 'Task'}</h3>
+                                                                        <p className="text-[14px] text-[#6B7280] font-medium leading-tight">{dateLabel} — {timeRangeLabel}</p>
+                                                                    </div>
+                                                                    <div className="absolute top-4 right-4">
+                                                                        <span className="bg-[#3B82F6] text-white text-[12px] px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight">{task.category || 'Task'}</span>
+                                                                    </div>
+                                                                    <div className="absolute bottom-4 right-4 flex -space-x-4">
+                                                                        {(task.involved_persons?.length ? task.involved_persons : [])
+                                                                            .slice(0, 3)
+                                                                            .map((person) => (
+                                                                                <div
+                                                                                    key={person.id}
+                                                                                    className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden"
+                                                                                    title={person.full_name}
+                                                                                >
+                                                                                    {person.profile_picture ? (
+                                                                                        <img
+                                                                                            src={getGlobalProfileUrl(person.id, person.profile_picture)}
+                                                                                            alt=""
+                                                                                            className="w-full h-full object-cover"
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">
+                                                                                            {person.full_name?.slice(0, 2).toUpperCase() || '?'}
+                                                                                        </div>
+                                                                                    )}
                                                                                 </div>
-                                                                            )}
-                                                                        </div>
-                                                                    ))}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    ));
-                                })()}
+                                                                            ))}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            ));
+                                        })()}
                                     </>
                                 )}
                             </>
