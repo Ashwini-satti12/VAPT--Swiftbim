@@ -335,6 +335,8 @@ export default function TimesheetPM() {
       "Sl.No",
       "Project Name",
       "Task",
+      "Assigned to",
+      "Assigned by",
       "Start Date",
       "End Date",
       "Task Duration",
@@ -351,6 +353,8 @@ export default function TimesheetPM() {
           ? row.project_name
           : "-",
         row.task_name && row.task_name.trim() !== "" ? row.task_name : "-",
+        row.assigned_name && row.assigned_name.trim() !== "" ? row.assigned_name : "-",
+        row.assigned_by_name && row.assigned_by_name.trim() !== "" ? row.assigned_by_name : "-",
         startDate,
         endDate,
         duration,
