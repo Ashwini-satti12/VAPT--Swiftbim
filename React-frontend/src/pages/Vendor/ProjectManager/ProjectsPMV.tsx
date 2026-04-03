@@ -9,6 +9,20 @@ import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
 import paymentMilestoneIcon from "../../../assets/ProjectManager/project/paymentMilestone.svg";
 import threedot from "../../../assets/ProjectManager/project/threedot.svg";
+import ProfileIcon from "../../../assets/ProductNavbarIcons/Profile.svg";
+import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
+import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
+
+const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "N/A";
+    return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+    }).split('/').join('-');
+};
 
 interface Project {
     id: number;
@@ -27,7 +41,11 @@ interface Project {
     per_day?: string;
     department?: string;
     lead_id?: string;
+    lead_name?: string;
+    project_manager_name?: string;
     bim_coordinator_id?: string;
+    bim_coordinator_name?: string;
+    department_name?: string;
     members?: string;
     no_resource?: string;
     resources?: string;
@@ -64,7 +82,9 @@ export default function ProjectsPMV() {
     // View Project
     const [showProjectView, setShowProjectView] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-    const [taskStats] = useState({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
+    const [taskStats, setTaskStats] = useState({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
+    const [towerData, setTowerData] = useState<any[]>([]);
+    const [loadingTaskStats, setLoadingTaskStats] = useState(false);
 
     const [createName, setCreateName] = useState("");
     const [createBudget, setCreateBudget] = useState("");
@@ -154,6 +174,32 @@ export default function ProjectsPMV() {
             .then(({ data }) => setClientsList(data.clients ?? []))
             .catch(() => setClientsList([]));
     }, []);
+
+    useEffect(() => {
+        if (!showProjectView || !selectedProject) return;
+        setLoadingTaskStats(true);
+        api.get(`/api/vendors/vendor-projects/${selectedProject.id}/module-progress`)
+            .then(({ data }) => {
+                if (data.success) {
+                    setTaskStats({
+                        todo: data.todo_tasks || 0,
+                        inProgress: data.in_progress_tasks || 0,
+                        paused: data.paused_tasks || 0,
+                        completed: data.completed_tasks || 0
+                    });
+                    setTowerData((data.modules || []).map((m: any) => ({
+                        id: m.id,
+                        name: m.module_name || "Unknown Module",
+                        progress: m.progress ?? 0,
+                        completedTasks: m.completed_tasks ?? 0,
+                        totalTasks: m.total_tasks ?? 0,
+                        status: m.status || "Pending",
+                    })));
+                }
+            })
+            .catch(() => { })
+            .finally(() => setLoadingTaskStats(false));
+    }, [showProjectView, selectedProject]);
 
     const getEmployeeName = (id: string | number | undefined): string => {
         if (!id) return "";
@@ -432,18 +478,18 @@ export default function ProjectsPMV() {
         <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 text-left">
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Project Name <span className="text-[#DD4342]">*</span></label>
-                    <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 placeholder-gray-400"
+                    <label className="block text-[14px] font-medium text-[#353535]">Project Name <span className="text-[#DD4342]">*</span></label>
+                    <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all  text-gray-700 placeholder-gray-400"
                         placeholder="Enter Project name" value={createName} onChange={(e) => setCreateName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Client Name <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[14px] font-medium text-[#353535]">Client Name <span className="text-[#DD4342]">*</span></label>
                     <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 placeholder-gray-400"
                         placeholder="Enter Client Name" value={createClientName} onChange={(e) => setCreateClientName(e.target.value)} />
                 </div>
                 {/* Budget hidden for PM in edit mode */}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Select Project Manager <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[14px] font-medium text-[#353535]">Select Project Manager <span className="text-[#DD4342]">*</span></label>
                     <div className="relative dropdown-container">
                         <button type="button" onClick={() => setEditDropdownOpen(o => o === "pm" ? null : "pm")}
                             className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer">
@@ -462,7 +508,7 @@ export default function ProjectsPMV() {
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Select BIM Lead <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[14px] font-medium text-[#353535]">Select BIM Lead <span className="text-[#DD4342]">*</span></label>
                     <div className="relative dropdown-container">
                         <button type="button" onClick={() => setEditDropdownOpen(o => o === "bimLead" ? null : "bimLead")}
                             className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer">
@@ -481,7 +527,7 @@ export default function ProjectsPMV() {
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Select BIM Coordinator <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[14px] font-medium text-[#353535]">Select BIM Coordinator <span className="text-[#DD4342]">*</span></label>
                     <div className="relative dropdown-container">
                         <button type="button" onClick={() => setEditDropdownOpen(o => o === "bimCoord" ? null : "bimCoord")}
                             className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer">
@@ -500,7 +546,7 @@ export default function ProjectsPMV() {
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[16px] font-medium text-[#000000]">Project Start Date <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[14px] font-medium text-[#000000]">Project Start Date <span className="text-[#DD4342]">*</span></label>
                     <input type="date" value={createStartDate}
                         onChange={e => {
                             const val = e.target.value;
@@ -514,27 +560,27 @@ export default function ProjectsPMV() {
                         className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Project End Date <span className="text-[#DD4342]">*</span></label>
-                    <input type="date" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" value={createEndDate} onChange={e => setCreateEndDate(e.target.value)} />
+                    <label className="block text-[14px] font-medium text-[#000000]">Project End Date <span className="text-[#DD4342]">*</span></label>
+                    <input type="date" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text[#8B8B8B]" value={createEndDate} onChange={e => setCreateEndDate(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Per Day <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[14px] font-medium text-[#000000]">Per Day <span className="text-[#DD4342]">*</span></label>
                     <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Hours Per Day" value={createPerDay} onChange={e => setCreatePerDay(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Total Hours <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[14px] font-medium text-[#353535]">Total Hours <span className="text-[#DD4342]">*</span></label>
                     <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Total Estimated Hours" value={createTotalHours} onChange={e => setCreateTotalHours(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Resources <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[14px] font-medium text-[#353535]">Resources <span className="text-[#DD4342]">*</span></label>
                     <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Number of Resources" value={createResources} onChange={e => setCreateResources(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Required Resources <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[14px] font-medium text-[#353535]">Required Resources <span className="text-[#DD4342]">*</span></label>
                     <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Required Resources Count" value={createRequiredResources} onChange={e => setCreateRequiredResources(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Priority <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[14px] font-medium text-[#353535]">Priority <span className="text-[#DD4342]">*</span></label>
                     <div className="relative dropdown-container">
                         <button type="button" onClick={() => setEditDropdownOpen(o => o === "priority" ? null : "priority")}
                             className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer">
@@ -552,7 +598,7 @@ export default function ProjectsPMV() {
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Location <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[14px] font-medium text-[#353535]">Location <span className="text-[#DD4342]">*</span></label>
                     <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Project Location" value={createLocation} onChange={e => setCreateLocation(e.target.value)} />
                 </div>
 
@@ -560,14 +606,14 @@ export default function ProjectsPMV() {
             <div className="space-y-6 mt-6 text-left">
                 {renderMemberSelector()}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Description <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[14px] font-medium text-[#353535]">Description <span className="text-[#DD4342]">*</span></label>
                     <textarea value={createDescription} onChange={e => setCreateDescription(e.target.value)} rows={4}
                         className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 resize-none placeholder-gray-400" placeholder="Provide a detailed project description..." />
                 </div>
 
             </div>
             <div className="md:col-span-2 space-y-2">
-                <label className="block text-[15px] font-bold text-[#353535]">Attach File <span className="text-[#DD4342]">*</span></label>
+                <label className="block text-[14px] font-medium text-[#353535]">Attach File <span className="text-[#DD4342]">*</span></label>
                 <div className="relative group">
                     <input
                         type="file"
@@ -644,7 +690,7 @@ export default function ProjectsPMV() {
                 {/* Project View (In-Page) */}
                 {showEditModal ? (
                     <div className="flex flex-col h-full bg-white">
-                        <div className="flex items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
+                        <div className="relative flex items-center justify-center px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -658,15 +704,13 @@ export default function ProjectsPMV() {
                                     setCreatePriority(""); setCreateLocation(""); setCreateDescription("");
                                     setCreateDeliverables(""); setSelectedMemberIds([]); setCreateFile(null);
                                 }}
-                                className="p-3 rounded-xl bg-[#F2F2F2] text-[#000000] hover:bg-gray-200 transition-colors"
-                                title="Close"
+                                className="absolute left-6 md:left-10 p-3 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+                                title="Back"
                             >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                                <img src={backIcon} alt="Back" className="w-5 h-5" />
                             </button>
-                            <div className="min-w-0">
-                                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A] truncate">
+                            <div className="text-center min-w-0">
+                                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#020202] truncate">
                                     Edit Project Details
                                 </h3>
                                 <p className="text-[14px] font-Gantari font-semibold text-[#999999]">Update your project information</p>
@@ -683,14 +727,14 @@ export default function ProjectsPMV() {
                                             setEditDropdownOpen(null);
                                             setEditError("");
                                         }}
-                                        className="px-12 py-3.5 rounded-xl bg-[#F1F1F1] text-[#666666] font-bold text-[16px] transition-all hover:bg-gray-200 cursor-pointer"
+                                        className="px-6 py-2 rounded-md bg-[#F1F1F1] text-[#666666] font-bold text-[14px] transition-all  cursor-pointer"
                                     >
                                         Discard
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={editSubmitting}
-                                        className="px-12 py-3.5 rounded-xl bg-[#DD4342] text-white font-bold text-[16px] transition-all hover:opacity-90 shadow-lg shadow-red-100 disabled:opacity-50 cursor-pointer"
+                                        className="px-6 py-2 rounded-md bg-[#DD4342] text-white font-bold text-[14px] transition-all shadow-lg shadow-red-100 disabled:opacity-50 cursor-pointer"
                                     >
                                         {editSubmitting ? "Updating..." : "Update Project"}
                                     </button>
@@ -705,23 +749,25 @@ export default function ProjectsPMV() {
                     </div>
                 ) : showProjectView && selectedProject ? (
                     <div className="flex flex-col h-full bg-white">
-                        <div className="flex items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
+                        <div className="relative flex items-center justify-center px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
                             <button type="button" onClick={() => setShowProjectView(false)}
-                                className="p-3 rounded-xl bg-[#F2F2F2] text-[#000000] hover:bg-gray-200 transition-colors cursor-pointer">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                                className="absolute left-6 md:left-10 p-3 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+                                title="Back">
+                                <img src={backIcon} alt="Back" className="w-5 h-5" />
                             </button>
-                            <div className="min-w-0">
-                                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A] truncate">
+                            <div className="text-center min-w-0">
+                                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] truncate">
                                     {selectedProject.project_name ?? "Untitled Project"}
                                 </h3>
-                                <p className="text-[14px] font-Gantari font-semibold text-[#999999]">Overall Progress Tracker</p>
+                                <div className="flex items-center justify-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[#353535]"></div>
+                                    <p className="text-[14px] font-Gantari font-semibold text-[#353535]">Overall Progress Tracker</p>
+                                </div>
                             </div>
                         </div>
                         <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 pt-6 md:pt-8 custom-scrollbar space-y-8">
                             {/* Task Status Cards */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-4 px-0 pt-0">
                                 {[
                                     { label: "To Do Tasks", value: taskStats.todo, status: "todo" },
                                     { label: "In Progress", value: taskStats.inProgress, status: "in_progress" },
@@ -732,12 +778,176 @@ export default function ProjectsPMV() {
                                         key={i}
                                         type="button"
                                         onClick={() => navigate('/vpm/teamtasks?status=' + stat.status + (selectedProject?.project_name ? `&project=${encodeURIComponent(selectedProject.project_name)}` : ''))}
-                                        className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] hover:bg-[#DD4342] focus:outline-none cursor-pointer transition-colors group"
+                                        className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] hover:bg-[#DD4342] focus:outline-none cursor-pointer transition-colors group border border-slate-200"
                                     >
-                                        <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold">{stat.label}</p>
-                                        <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center">{stat.value}</p>
+                                        <p className="text-[#353535] group-hover:text-white text-[16px] font-Gantari font-semibold leading-tight">{stat.label}</p>
+                                        <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none mt-auto self-end pr-2">{stat.value}</p>
                                     </button>
                                 ))}
+                            </div>
+
+                            {/* Tower Data (Modules) Card Section */}
+                            <div className="border border-slate-200 rounded-md p-6 lg:p-4">
+                                <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 px-1">
+                                        {loadingTaskStats ? (
+                                            <div className="col-span-full text-center py-8 text-gray-500">
+                                                Loading modules data...
+                                            </div>
+                                        ) : towerData.length > 0 ? (
+                                            towerData.map((tower) => {
+                                                const statusColor = tower.status === "Review" ? "#E00100" : tower.status === "Pending" ? "#EB7200" : "#008F22";
+                                                const statusBg = tower.status === "Review" ? "bg-[#FFD9D9]" : tower.status === "Pending" ? "bg-[#FFEAD6]" : "bg-[#E0FFE8]";
+
+                                                return (
+                                                    <div
+                                                        key={tower.id}
+                                                        className="bg-white border border-slate-200 rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[120px]"
+                                                    >
+                                                        <div className="flex justify-between items-start">
+                                                            <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
+                                                                {tower.name}
+                                                            </h5>
+                                                            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0 ${statusBg}`}>
+                                                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }}></span>
+                                                                <span className="text-[12px] font-bold font-gantari" style={{ color: statusColor }}>
+                                                                    {tower.status}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center justify-between mt-2">
+                                                            <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
+                                                                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
+                                                                    <circle cx="32" cy="32" r="26" stroke="#F2F3F5" strokeWidth="5" fill="transparent" />
+                                                                    <circle
+                                                                        cx="32" cy="32" r="26"
+                                                                        stroke={statusColor} strokeWidth="5" fill="transparent"
+                                                                        strokeDasharray={163.36}
+                                                                        strokeDashoffset={163.36 - (tower.progress / 100) * 163.36}
+                                                                        strokeLinecap="round"
+                                                                        style={{ transition: "stroke-dashoffset 1s ease-in-out" }}
+                                                                    />
+                                                                </svg>
+                                                                <span className="absolute text-[13px] font-bold text-[#8B8B8B] font-Gantari">
+                                                                    {tower.progress}%
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="flex flex-col items-end">
+                                                                <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1">
+                                                                    Tasks Done
+                                                                </p>
+                                                                <div className="flex items-baseline border-t border-slate-100 pt-1">
+                                                                    <p className="text-[18px] font-bold text-[#353535] font-Gantari">
+                                                                        {tower.completedTasks}
+                                                                    </p>
+                                                                    <p className="text-[14px] font-bold text-[#8B8B8B] font-Gantari">
+                                                                        /{tower.totalTasks}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="col-span-full text-center py-8 text-gray-500">
+                                                Currently, no modules have been added.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Project Description */}
+                            <div className="border border-slate-200 rounded-[10px] p-6 md:p-8 lg:p-4 overflow-hidden">
+                                <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">
+                                    Project Description
+                                </h4>
+                                {selectedProject.description ? (
+                                    <div
+                                        className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 w-full min-w-0 max-w-full leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] [&_*]:max-w-full [&_*]:whitespace-normal [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#DD4342] [&_a]:underline"
+                                        dangerouslySetInnerHTML={{ __html: selectedProject.description }}
+                                    />
+                                ) : (
+                                    <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                                        No description available
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Team Roles Section */}
+                            <div className="border border-slate-200 rounded-[10px] p-6 md:p-8 lg:p-4 space-y-6">
+                                <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-8">
+                                    Team Overview
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                    {[
+                                        { label: "Project Manager", id: selectedProject.project_manager_id },
+                                        { label: "BIM Lead", id: selectedProject.lead_id },
+                                        // { label: "BIM Coordinator", id: selectedProject.bim_coordinator_id },
+                                    ].map((role) => (
+                                        <div key={role.label} className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200 overflow-hidden shadow-sm relative z-0">
+                                                {(() => {
+                                                    const emp = allEmployees.find(e => e.id === Number(role.id));
+                                                    const initials = role.label.split(' ').map(n => n[0]).join('').toUpperCase();
+                                                    return emp?.profile_picture ? (
+                                                        <img
+                                                            src={getGlobalProfileUrl(emp.id, emp.profile_picture)}
+                                                            alt={role.label}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => (e.currentTarget.src = ProfileIcon)}
+                                                        />
+                                                    ) : (
+                                                        <span className="text-slate-600 text-[14px] font-bold">
+                                                            {initials}
+                                                        </span>
+                                                    );
+                                                })()}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-[14px] font-Gantari font-semibold text-[#000000]">
+                                                    {role.label}
+                                                </p>
+                                                <p className="text-[14px] font-Gantari font-medium text-[#616161] truncate">
+                                                    {getEmployeeName(role.id) || "Not assigned"}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="pt-6 border-t border-slate-100">
+                                    <p className="text-[14px] font-Gantari font-semibold text-[#000000] mb-4">
+                                        Team Members
+                                    </p>
+                                    <div className="flex flex-wrap gap-4">
+                                        {(selectedProject.members || "").split(",").filter(Boolean).map(id => {
+                                            const emp = allEmployees.find(e => e.id === Number(id));
+                                            return emp ? (
+                                                <div key={id} className="flex items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                                                    <div className="w-8 h-8 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-xs font-bold overflow-hidden">
+                                                        <img
+                                                            src={emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : ProfileIcon}
+                                                            alt="Member"
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => (e.currentTarget.src = ProfileIcon)}
+                                                        />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-[14px] font-Gantari font-medium text-[#1E293B] truncate max-w-[120px]">{emp.full_name}</p>
+                                                        <p className="text-[10px] text-[#616161] font-medium">{emp.user_role || "Member"}</p>
+                                                    </div>
+                                                </div>
+                                            ) : null;
+                                        })}
+                                        {!(selectedProject.members || "").split(",").filter(Boolean).length && (
+                                            <p className="text-[#999] text-sm italic">No team members assigned</p>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Project Details */}
@@ -825,88 +1035,25 @@ export default function ProjectsPMV() {
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Description */}
-                            <div className="border border-slate-200 rounded-[10px] p-6 md:p-8">
-                                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#000000]">Project Description</h4>
-                                <p className="text-[16px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
-                                    {selectedProject.description ?? "No description available"}
-                                </p>
-                            </div>
-
-                            {/* Team Roles Section */}
-                            <div className="border border-slate-200 rounded-[10px] p-6 md:p-8 space-y-6">
-                                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#000000]">Team Overview</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                                    {[
-                                        { label: "Project Manager", id: selectedProject.project_manager_id },
-                                        { label: "BIM Lead", id: selectedProject.lead_id },
-                                        { label: "BIM Coordinator", id: selectedProject.bim_coordinator_id },
-                                    ].map((role) => (
-                                        <div key={role.label} className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
-                                                <span className="text-slate-400 font-bold text-sm">
-                                                    {getEmployeeName(role.id) ? getEmployeeName(role.id).charAt(0).toUpperCase() : "??"}
-                                                </span>
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-xs font-bold text-[#999999] uppercase tracking-wider">
-                                                    {role.label}
-                                                </p>
-                                                <p className="text-[15px] font-bold text-[#353535] truncate">
-                                                    {getEmployeeName(role.id) || "Not assigned"}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="pt-6 border-t border-slate-100">
-                                    <p className="text-xs font-bold text-[#999999] uppercase tracking-wider mb-4">
-                                        Team Members
-                                    </p>
-                                    <div className="flex flex-wrap gap-4">
-                                        {(selectedProject.members || "").split(",").filter(Boolean).map(id => {
-                                            const emp = allEmployees.find(e => e.id === Number(id));
-                                            return emp ? (
-                                                <div key={id} className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
-                                                    <div className="w-8 h-8 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-xs font-bold">
-                                                        {(emp.full_name || "?")[0]}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <p className="text-sm font-bold text-[#1E293B] truncate max-w-[120px]">{emp.full_name}</p>
-                                                        <p className="text-[10px] text-[#999] font-medium">{emp.user_role || "Member"}</p>
-                                                    </div>
-                                                </div>
-                                            ) : null;
-                                        })}
-                                        {!(selectedProject.members || "").split(",").filter(Boolean).length && (
-                                            <p className="text-[#999] text-sm italic">No team members assigned</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 ) : showMilestones && milestonesProject ? (
                     /* Milestones View */
                     <div className="flex flex-col h-full bg-white">
-                        <div className="flex items-center justify-between px-10 py-8">
-                            <div className="flex items-center gap-6">
-                                <button type="button" onClick={() => setShowMilestones(false)} className="p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 transition-colors cursor-pointer">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                                <div>
-                                    <h3 className="text-[26px] font-bold">Payment Milestones</h3>
-                                    <p className="text-[16px] font-bold text-[#999999]">{milestonesProject.project_name}</p>
-                                </div>
+                        <div className="relative flex items-center justify-center px-10 py-8 border-b border-slate-50">
+                            <button type="button" onClick={() => setShowMilestones(false)}
+                                className="absolute left-10 p-3 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+                                title="Back">
+                                <img src={backIcon} alt="Back" className="w-5 h-5" />
+                            </button>
+                            <div className="text-center">
+                                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">Payment Milestones</h3>
+                                <p className="text-[14px] font-Gantari font-bold text-[#999999] mt-0.5">{milestonesProject.project_name}</p>
                             </div>
                         </div>
                         <div className="flex-1 flex flex-col items-center justify-center text-center p-10">
-                            <h4 className="text-[22px] font-bold text-[#353535] mb-2">No Payment Milestones Found</h4>
-                            <p className="text-[15px] font-bold text-[#999999] mb-10">Add your first payment to get started with payment tracking</p>
+                            <h4 className="text-[20px] font-Gantari font-bold text-[#353535] mb-2">No Payment Milestones Found</h4>
+                            <p className="text-[16px] font-Gantari font-medium text-[#666666] mb-10">Add your first payment to get started with payment tracking</p>
                         </div>
                     </div>
                 ) : (
@@ -921,15 +1068,16 @@ export default function ProjectsPMV() {
                             </button>
                         </div>
                         <div className="flex-1 overflow-y-auto pt-4 pb-4 px-4 space-y-8 custom-scrollbar">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {list.length === 0 ? (
                                     <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
                                         No projects found. Create your first project or accept a proposal.
                                     </div>
                                 ) : (
-                                    list.map(p => {                                        const progress = Math.round(Number(p.progress) || 0);
+                                    list.map(p => {
+                                        const progress = Math.round(Number(p.progress) || 0);
                                         const memberIds = p.members ? p.members.split(",").filter(Boolean).map(Number) : [];
-                                        const radius = 28;
+                                        const radius = 22;
                                         const circumference = 2 * Math.PI * radius;
                                         const strokeOffset = circumference - (progress / 100) * circumference;
                                         const isHighPri = (p.priority || "").toLowerCase() === "high" || (p.priority || "").toLowerCase() === "urgent";
@@ -939,20 +1087,20 @@ export default function ProjectsPMV() {
                                                 key={p.id}
                                                 onClick={() => {
                                                     setSelectedProject(p);
-                                                    setShowProjectView(true);
+                                                    // setShowProjectView(true);
                                                 }}
-                                                className="bg-white rounded-2xl border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                                                className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                                             >
                                                 <div className="flex items-start justify-between mb-2">
-                                                    <div className="relative flex items-center justify-center shrink-0 mt-3 ml-2">
-                                                        <svg className="w-20 h-20 transform -rotate-90">
-                                                            <circle cx="40" cy="40" r={radius} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
+                                                    <div className="relative flex items-center justify-center shrink-0 mt-2 ml-2">
+                                                        <svg className="w-12 h-12 md:w-16 md:h-16 transform -rotate-90">
+                                                            <circle cx="50%" cy="50%" r={radius} stroke="#f1f5f9" strokeWidth="4" fill="transparent" />
                                                             <circle
-                                                                cx="40"
-                                                                cy="40"
+                                                                cx="50%"
+                                                                cy="50%"
                                                                 r={radius}
                                                                 stroke="#0a9344"
-                                                                strokeWidth="6"
+                                                                strokeWidth="4"
                                                                 fill="transparent"
                                                                 strokeDasharray={circumference}
                                                                 strokeDashoffset={strokeOffset}
@@ -960,7 +1108,7 @@ export default function ProjectsPMV() {
                                                                 style={{ transition: "stroke-dashoffset 0.8s ease-in-out" }}
                                                             />
                                                         </svg>
-                                                        <span className="absolute text-[16px] font-Gantari font-bold text-[#353535]">
+                                                        <span className="absolute text-[12px] font-Gantari font-bold text-[#353535]">
                                                             {progress}%
                                                         </span>
                                                     </div>
@@ -982,43 +1130,43 @@ export default function ProjectsPMV() {
                                                         </button>
 
                                                         {openMenuProjectId === p.id && (
-                                                            <div className="absolute right-0 mt-3 w-60 bg-white rounded-xl border border-slate-100 shadow-2xl z-[150] py-3 animate-in fade-in zoom-in duration-200 origin-top-right">
+                                                            <div className="absolute right-0 mt-3 w-56 bg-white/20 backdrop-blur-md rounded-md border border-[#595959]/50 shadow-xl z-[150] transition-all animate-in fade-in zoom-in duration-200 origin-top-right">
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(null); setSelectedProject(p); setShowProjectView(true); }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                                    className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                                                                 >
                                                                     <img
                                                                         src={viewIcon}
                                                                         alt="view"
                                                                         className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                                                     />
-                                                                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                                                        View Details
+                                                                    <span className="text-[14px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                                                        View
                                                                     </span>
                                                                 </button>
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(null); openEdit(p); }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                                    className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                                                                 >
                                                                     <img
                                                                         src={editIcon}
                                                                         alt="edit"
                                                                         className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                                                     />
-                                                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                                                    <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                                                         Edit
                                                                     </span>
                                                                 </button>
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(null); setMilestonesProject(p); setShowMilestones(true); }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                                    className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                                                                 >
                                                                     <img
                                                                         src={paymentMilestoneIcon}
                                                                         alt="milestones"
                                                                         className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                                                     />
-                                                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                                                    <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                                                         Payment Milestones
                                                                     </span>
                                                                 </button>
@@ -1040,13 +1188,13 @@ export default function ProjectsPMV() {
                                                     </div>
                                                 </div>
 
-                                                <div className="mb-4 ml-6 -mt-2">
-                                                    <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                                                <div className="mb-2 ml-6 -mt-2 min-h-[45px] flex flex-col justify-center">
+                                                    <h3 className="text-[18px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
                                                         {p.project_name ?? "Untitled Project"}
                                                     </h3>
                                                 </div>
 
-                                                <div className="border-t border-[#F1F1F1] pt-4 mt-auto flex items-center justify-between">
+                                                <div className="border-t border-[#E8E8E8] pt-4 mt-auto flex items-center justify-between">
                                                     <div className="flex items-center min-w-0">
                                                         {memberIds.length === 0 ? (
                                                             <div className="flex items-center -space-x-3">
@@ -1064,7 +1212,7 @@ export default function ProjectsPMV() {
                                                                 </span>
                                                             </div>
                                                         ) : (
-                                                            <div className="flex items-center -space-x-3 pr-2">
+                                                            <div className="flex items-center -space-x-4 pr-2">
                                                                 {memberIds.slice(0, 3).map((id, idx) => (
                                                                     <div key={id} className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center shadow-sm shrink-0 font-bold text-gray-500 overflow-hidden relative border" style={{ zIndex: 10 - idx }}>
                                                                         {(getEmployeeName(id) || "?")[0]}
@@ -1079,7 +1227,7 @@ export default function ProjectsPMV() {
                                                         )}
                                                     </div>
 
-                                                    <div className={`px-4 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wider ${isHighPri ? "bg-[#FFEDED] text-[#DD4342]" : "bg-[#E6F3FB] text-[#0077B6]"}`}>
+                                                    <div className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${isHighPri ? "bg-[#DD4342]" : "bg-[#94D6F2]"}`}>
                                                         {p.priority || "Normal"}
                                                     </div>
                                                 </div>

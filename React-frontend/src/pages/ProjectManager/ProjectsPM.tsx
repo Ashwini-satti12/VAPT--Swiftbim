@@ -457,6 +457,7 @@ export default function ProjectsPM() {
         const userName = user?.full_name ?? '';
         const filtered = userId
           ? allProjects.filter((p) => {
+            if (p.source === "Outsource") return true;
             return (
                 csvIncludes(p.project_manager_id, userId) ||
                 csvIncludes(p.lead_id, userId) ||
@@ -649,52 +650,6 @@ export default function ProjectsPM() {
           <div className="flex-1 flex flex-col overflow-hidden mt-4">
             {/* Task Status Cards - Static at top */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-6 mb-4 shrink-0">
-              {/* Total Tasks */}
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(
-                    "/pm/teamtasks" +
-                      (selectedProjectForView?.project_name
-                        ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                        : ""),
-                  )
-                }
-                className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
-              >
-                <div className="flex items-center justify-left mb-2">
-                  <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                    Total Tasks
-                  </p>
-                </div>
-                <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                  {selectedProjectForView.total_tasks ?? 0}
-                </p>
-              </button>
-
-              {/* Completed Tasks */}
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(
-                    "/pm/teamtasks?status=completed" +
-                      (selectedProjectForView?.project_name
-                        ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                        : ""),
-                  )
-                }
-                className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                    Completed Tasks
-                  </p>
-                </div>
-                <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                  {selectedProjectForView.completed_tasks ?? 0}
-                </p>
-              </button>
-
               {/* To Do Tasks */}
               <button
                 type="button"
@@ -738,6 +693,52 @@ export default function ProjectsPM() {
                 </div>
                 <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                   {pmTaskStatsLoading ? "..." : pmTaskStats.inProgress}
+                </p>
+              </button>
+
+              {/* Paused Tasks */}
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    "/pm/teamtasks?status=paused" +
+                      (selectedProjectForView?.project_name
+                        ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                        : ""),
+                  )
+                }
+                className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                    Paused Tasks
+                  </p>
+                </div>
+                <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                  {pmTaskStatsLoading ? "..." : pmTaskStats.paused}
+                </p>
+              </button>
+
+              {/* Completed Tasks */}
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    "/pm/teamtasks?status=completed" +
+                      (selectedProjectForView?.project_name
+                        ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                        : ""),
+                  )
+                }
+                className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                    Completed Tasks
+                  </p>
+                </div>
+                <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                  {pmTaskStatsLoading ? "..." : pmTaskStats.completed}
                 </p>
               </button>
             </div>
@@ -983,10 +984,12 @@ export default function ProjectsPM() {
                 })()}
 
                 {/* Department Involved */}
-                <div className="flex flex-col gap-3">
-                  <p className="text-md font-Gantari font-semibold text-[#000000]">Department Involved</p>
-                  <p className="text-sm font-Gantari text-[#616161] truncate">{selectedProjectForView.department || 'N/A'}</p>
-                </div>
+                {selectedProjectForView?.source !== "Outsource" && (
+                  <div className="flex flex-col gap-3">
+                    <p className="text-md font-Gantari font-semibold text-[#000000]">Department Involved</p>
+                    <p className="text-sm font-Gantari text-[#616161] truncate">{selectedProjectForView.department || 'N/A'}</p>
+                  </div>
+                )}
 
                 {/* Members Involved */}
                 <div className="flex flex-col gap-3">
@@ -1143,7 +1146,52 @@ export default function ProjectsPM() {
                       {selectedProjectForView.resources || "N/A"}
                     </span>
                   </div>
+
+                </div>
+                <div className="space-y-4 md:space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                      Location
+                    </span>
+                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                      {selectedProjectForView.location || "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                      Actual End Date
+                    </span>
+                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                      {selectedProjectForView.end_date
+                        ? new Date(selectedProjectForView.end_date).toLocaleDateString(
+                            "en-GB",
+                            { day: "2-digit", month: "2-digit", year: "numeric" }
+                          )
+                        : "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                      Hours/Day
+                    </span>
+                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                      {selectedProjectForView.per_day
+                        ? `${selectedProjectForView.per_day}hrs`
+                        : "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                      Required Resources
+                    </span>
+                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                      {selectedProjectForView.required_resources || "N/A"}
+                    </span>
+                  </div>                  <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
                       Project Document
                     </span>
@@ -1190,51 +1238,6 @@ export default function ProjectsPM() {
                         </span>
                       )}
                     </div>
-                  </div>
-                </div>
-                <div className="space-y-4 md:space-y-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
-                      Location
-                    </span>
-                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
-                      {selectedProjectForView.location || "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
-                      Actual End Date
-                    </span>
-                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
-                      {selectedProjectForView.end_date
-                        ? new Date(selectedProjectForView.end_date).toLocaleDateString(
-                            "en-GB",
-                            { day: "2-digit", month: "2-digit", year: "numeric" }
-                          )
-                        : "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
-                      Hours/Day
-                    </span>
-                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
-                      {selectedProjectForView.per_day
-                        ? `${selectedProjectForView.per_day}hrs`
-                        : "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
-                      Required Resources
-                    </span>
-                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
-                      {selectedProjectForView.required_resources || "N/A"}
-                    </span>
                   </div>
                   </div>
                 </div>
@@ -2601,7 +2604,7 @@ export default function ProjectsPM() {
                                 <img src={viewIcon} alt="view" className="w-5 h-5 transition-all grayscale group-hover:grayscale-0 group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
                                 <span className="text-[14px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">View</span>
                               </button>
-                              {(isTechnicalDirector || isManagement) && (
+                              {p.source !== "Outsource" && (isTechnicalDirector || isManagement) && (
                                 <button
                                   onClick={() => { setCurrentProject(p); setShowMilestones(true); setOpenMenuId(null); }}
                                   className="group w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left font-Gantari cursor-pointer"
@@ -2610,7 +2613,7 @@ export default function ProjectsPM() {
                                   <span className="text-[14px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">Payment Milestones</span>
                                 </button>
                               )}
-                              {canEdit && (
+                              {p.source !== "Outsource" && canEdit && (
                                 <button
                                   onClick={() => {
                                     setCurrentProject(p);
@@ -2660,7 +2663,7 @@ export default function ProjectsPM() {
                                   <span className="text-[14px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">Edit</span>
                                 </button>
                               )}
-                              {canDelete && (
+                              {p.source !== "Outsource" && canDelete && (
                                 <button
                                   onClick={() => { setDeleteProject(p); setOpenMenuId(null); }}
                                   className="group w-full flex items-center gap-4 px-6 py-2 transition-colors text-left font-Gantari cursor-pointer"

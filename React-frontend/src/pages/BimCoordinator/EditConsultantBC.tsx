@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FiChevronDown } from 'react-icons/fi';
+import { FiChevronDown, FiCheck } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
@@ -84,6 +84,7 @@ export default function EditConsultantBC() {
   const { id } = useParams();
   const { user } = useAuth();
   const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState(false);
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<string[]>([]);
@@ -232,7 +233,8 @@ export default function EditConsultantBC() {
     })
       .then(({ data }) => {
         if (data.success) {
-          navigate('/bc/consultants');
+          setEditSuccess(true);
+          setTimeout(() => navigate('/bc/consultants'), 2000);
         } else {
           setEditError(data.message || 'Failed to update consultant.');
         }
@@ -282,6 +284,17 @@ export default function EditConsultantBC() {
               </div>
             </div>
           )}
+          {editSuccess && (
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all">
+              <div className="bg-white rounded-[15px] p-8 max-w-[350px] w-full text-center shadow-2xl scale-100">
+                <div className="w-16 h-16 bg-[#E8F5E9] text-[#2E7D32] rounded-full flex items-center justify-center mx-auto mb-5 shadow-sm">
+                  <FiCheck className="w-8 h-8" strokeWidth={3} />
+                </div>
+                <h3 className="text-[20px] font-bold text-[#000000] font-Gantari mb-2">Updated Successfully!</h3>
+                <p className="text-[14px] text-[#616161] font-Gantari">Redirecting to consultants list...</p>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
             <div className="space-y-5">
@@ -322,13 +335,12 @@ export default function EditConsultantBC() {
                 </div>
               </div>
               <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari text-gray-500">Password (Leave blank to keep current)</label>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari text-gray-500">Password</label>
                 <input
                   type="password"
-                  placeholder="Enter New Password"
-                  value={form.password}
-                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                  className="w-full px-4 py-2.5 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                  value="********"
+                  disabled
+                  className="w-full px-4 py-2.5 text-[14px] text-[#8B8B8B] bg-[#E8E8E8] border border-transparent rounded-[5px] font-Gantari transition-all outline-none cursor-not-allowed"
                 />
               </div>
               <div className="relative">
@@ -340,6 +352,7 @@ export default function EditConsultantBC() {
                   placeholder="Select Role"
                 />
               </div>
+            
               <div className="relative">
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department <span className="text-[#DD4342]">*</span></label>
                 <CustomDropdown
@@ -381,7 +394,7 @@ export default function EditConsultantBC() {
                   className="w-full px-4 py-2.5 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                 />
               </div>
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Status</label>
                 <CustomDropdown
                   options={['Active', 'Deactivate']}
@@ -389,7 +402,7 @@ export default function EditConsultantBC() {
                   onChange={(val) => setForm((f) => ({ ...f, active: val }))}
                   placeholder="Select Status"
                 />
-              </div>
+              </div> */}
               <div className="space-y-2">
                 <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
                 <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden transition-all focus-within:ring-1 focus-within:ring-[#D1E6FF]">
@@ -406,6 +419,15 @@ export default function EditConsultantBC() {
                     />
                   </label>
                 </div>
+              </div>
+                 <div className="relative">
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
+                <CustomDropdown
+                  options={['Trainee', 'Employee']}
+                  value={form.user_type}
+                  onChange={(val) => setForm((f) => ({ ...f, user_type: val }))}
+                  placeholder="Select Type"
+                />
               </div>
             </div>
           </div>

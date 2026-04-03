@@ -497,6 +497,7 @@ export default function ProjectsBL() {
       const userId = user?.id;
       const filtered = userId
         ? allProjects.filter((p: any) => {
+          if (p.source === "Outsource") return true;
           if (!p.lead_id) return false;
           return String(p.lead_id).split(',').map((s: string) => s.trim()).includes(String(userId));
         })
@@ -988,10 +989,12 @@ export default function ProjectsBL() {
                   })()}
 
                   {/* Department Involved */}
-                  <div className="flex flex-col gap-3">
-                    <p className="text-md font-Gantari font-semibold text-[#000000]">Department Involved</p>
-                    <p className="text-sm font-Gantari text-[#616161] truncate">{selectedProjectForView.department || 'N/A'}</p>
-                  </div>
+                  {selectedProjectForView?.source !== "Outsource" && (
+                    <div className="flex flex-col gap-3">
+                      <p className="text-md font-Gantari font-semibold text-[#000000]">Department Involved</p>
+                      <p className="text-sm font-Gantari text-[#616161] truncate">{selectedProjectForView.department || 'N/A'}</p>
+                    </div>
+                  )}
 
                   {/* Members Involved */}
                   <div className="flex flex-col gap-3">
@@ -3135,7 +3138,7 @@ export default function ProjectsBL() {
                                   View
                                 </span>
                               </button>
-                              {(isTechnicalDirector || isManagement) && (
+                              {p.source !== "Outsource" && (isTechnicalDirector || isManagement) && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -3151,7 +3154,7 @@ export default function ProjectsBL() {
                                   </span>
                                 </button>
                               )}
-                              {canEdit && (
+                              {p.source !== "Outsource" && canEdit && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -3242,7 +3245,7 @@ export default function ProjectsBL() {
                                   </span>
                                 </button>
                               )}
-                              {canDelete && (
+                              {p.source !== "Outsource" && canDelete && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
