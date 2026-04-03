@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 
 /** Open native date picker — same pattern as TeamreportPM. */
@@ -43,6 +44,7 @@ interface Team {
 }
 
 export default function TeamReportBC() {
+    const [searchParams] = useSearchParams();
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [employee, setEmployee] = useState('All');
@@ -240,7 +242,8 @@ export default function TeamReportBC() {
     // Backend filtering uses due_date when present, but the UI shows "Start Date" from start_time.
     // To make the date filter match what the user sees, we filter by the displayed Start Date client-side.
     const filteredList = useMemo(() => {
-        if (!startDate && !endDate) return list;
+        const q = searchParams.get('q')?.toLowerCase() || "";
+        let base = list;
 
         // If user picks only one date, treat as single-day filter.
         let effectiveStart = startDate || endDate;
@@ -249,15 +252,33 @@ export default function TeamReportBC() {
             [effectiveStart, effectiveEnd] = [effectiveEnd, effectiveStart];
         }
 
-        return list.filter((row) => {
-            const startKey = toYmd(row.start_time || row.Actual_start_time);
-            if (!startKey) return false;
+        if (effectiveStart || effectiveEnd) {
+            base = base.filter((row) => {
+                const startKey = toYmd(row.start_time || row.Actual_start_time);
+                if (!startKey) return false;
+                if (effectiveStart && startKey < effectiveStart) return false;
+                if (effectiveEnd && startKey > effectiveEnd) return false;
+                return true;
+            });
+        }
 
-            if (effectiveStart && startKey < effectiveStart) return false;
-            if (effectiveEnd && startKey > effectiveEnd) return false;
-            return true;
+        if (!q) return base;
+
+        return base.filter((row) => {
+            const start = formatDate(row.start_time || row.Actual_start_time);
+            const end = formatDate(row.end_time || row.due_date);
+            const duration = calculateDuration(row);
+            return [
+                row.project_name,
+                row.task_name,
+                row.assigned_name,
+                row.teamname,
+                start,
+                end,
+                duration
+            ].some((f) => (f || '').toLowerCase().includes(q));
         });
-    }, [list, startDate, endDate]);
+    }, [list, startDate, endDate, searchParams]);
 
     // Sort by id then start_time so serial numbers are in stable order
     const sortedList = useMemo(() => {
@@ -319,7 +340,7 @@ export default function TeamReportBC() {
     }
 
     return (
-        <div className="px-0 pt-2 pb-6 space-y-8 flex flex-col h-full bg-white">
+        <div className="px-0 pt-2 pb-6 space-y-8 flex flex-col bg-white h-full">
             {/* Header & Filter Section */}
             <div className="flex flex-col gap-4 flex-shrink-0 px-2">
                 {/* Line 1: Heading and Download */}
@@ -340,7 +361,7 @@ export default function TeamReportBC() {
                 {/* Line 2: Filters */}
                 <div className="flex flex-wrap items-center gap-3 justify-end">
                     {/* Start Date — calendar icon only opens native picker (TeamreportPM pattern) */}
-                    <div className="relative flex min-w-[130px] items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-2 transition-all">
+                    <div className="relative flex min-w-[130px] items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-2 transition-all h-full">
                         <span className={`select-none text-sm font-medium ${startDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
                             {startDate ? startDate.split('-').reverse().join('/') : 'Start Date'}
                         </span>

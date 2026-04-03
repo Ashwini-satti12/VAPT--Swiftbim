@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
@@ -119,6 +120,7 @@ function useShowEntriesDropdownState() {
 }
 
 export default function ManageLeave() {
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const todayStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD format
 
@@ -276,9 +278,26 @@ export default function ManageLeave() {
 
     const employeeFilterShowsAll =
         selectedEmployee === '' || selectedEmployee === 'All';
-    const filteredList = employeeFilterShowsAll
-        ? leaves
-        : leaves.filter((l) => l.employeeName === selectedEmployee);
+
+    const filteredList = useMemo(() => {
+        const q = searchParams.get('q')?.toLowerCase() || '';
+        let base = leaves;
+        if (!employeeFilterShowsAll) {
+            base = base.filter((l) => l.employeeName === selectedEmployee);
+        }
+        if (!q) return base;
+        return base.filter((l) => {
+            return [
+                l.employeeName,
+                l.leaveType,
+                l.fromDate,
+                l.toDate,
+                l.description,
+                l.currentStatus,
+                l.role,
+            ].some((f) => (f || '').toLowerCase().includes(q));
+        });
+    }, [leaves, selectedEmployee, employeeFilterShowsAll, searchParams]);
     const effectiveShowEntryValue =
       selectedShowEntries || showEntriesOptions[0].value;
     const selectedRange =
