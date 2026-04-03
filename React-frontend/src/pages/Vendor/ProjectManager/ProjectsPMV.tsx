@@ -886,7 +886,7 @@ export default function ProjectsPMV() {
                                     {[
                                         { label: "Project Manager", id: selectedProject.project_manager_id },
                                         { label: "BIM Lead", id: selectedProject.lead_id },
-                                        { label: "BIM Coordinator", id: selectedProject.bim_coordinator_id },
+                                        // { label: "BIM Coordinator", id: selectedProject.bim_coordinator_id },
                                     ].map((role) => (
                                         <div key={role.label} className="flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200 overflow-hidden shadow-sm relative z-0">
