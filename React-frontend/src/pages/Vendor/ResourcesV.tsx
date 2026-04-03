@@ -1,13 +1,12 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from "react-icons/fi";
+import { FiGrid, FiMenu, FiX } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
 import { COUNTRY_CODES, getPhoneLength } from "../../utils/countryCodes";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import pmprofilebg from "../../assets/ProjectManager/consultant/pmprofilebg.jpg";
-import exportIcon from "../../assets/ProjectManager/consultant/exportIcon.svg";
 import mailIcon from "../../assets/ProjectManager/consultant/mailIcon.svg";
 import messageIcon from "../../assets/ProjectManager/consultant/messageIcon.svg";
 import callIcon from "../../assets/ProjectManager/consultant/callIcon.svg";
@@ -15,6 +14,9 @@ import eyeIcon from "../../assets/ProjectManager/consultant/eyeIcon.svg";
 import editIcon from "../../assets/ProjectManager/consultant/editIcon.svg";
 import { VendorUploadPreviewModal } from "../../components/VendorUploadPreviewModal";
 import { sanitizeVendorVendorsFilename } from "../../lib/vendorUploads";
+import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
+
+const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
 
 const VENDOR_RESOURCE_BULK_STATUS =
   "/api/vendors/profile/resource-profiles/bulk-status";
@@ -82,6 +84,8 @@ function CustomDropdown({
   placeholder,
   className = "",
   styleType = "form",
+  alignMenu = "left",
+  menuMaxHeightClass = "max-h-[220px]",
 }: {
   options: string[];
   value: string;
@@ -89,6 +93,8 @@ function CustomDropdown({
   placeholder: string;
   className?: string;
   styleType?: "form" | "header" | "table";
+  alignMenu?: "left" | "right";
+  menuMaxHeightClass?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -106,27 +112,57 @@ function CustomDropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const isPlaceholder = !value || value === placeholder;
+
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${
+        className={`w-full flex items-center justify-between gap-2 transition-all outline-none font-Gantari min-w-0 ${
           styleType === "header"
-            ? "px-4 py-1.5 bg-[#F2F2F2] rounded-[10px] text-[#616161] text-[14px] font-semibold"
+            ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
             : styleType === "table"
-              ? `px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] ${value === "Active" ? "bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]" : "bg-[#FFEEEE] border-[#FECACA] text-[#E00100]"}`
-              : "px-4 py-3 bg-[#F4F4F4] rounded-[5px] text-[15px] text-[#353535]"
+              ? `px-4 py-2 min-w-[140px] rounded-md border font-Gantari font-medium text-[14px] ${value === "Active" ? "bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]" : "bg-[#FFE5E5] border-[#FECACA] text-[#E00100]"}`
+              : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
         }`}
       >
-        <span>{value || placeholder}</span>
-        <FiChevronDown
-          className={`w-5 h-5 transition-transform duration-200 ${isOpen ? "rotate-180" : ""} ${styleType === "table" ? "opacity-70" : "text-slate-500"}`}
+        <span className={`min-w-0 flex-1 truncate overflow-hidden text-left ${styleType === "header" || styleType === "form"
+          ? (isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535]")
+          : ""
+          }`}>
+          {styleType === "header" && value && !isPlaceholder ? (
+            <>
+              <span className="text-[14px]">
+                {placeholder === "Show" ? SHOW_ENTRIES_PLACEHOLDER : placeholder}:
+              </span>{" "}
+              <span className="font-semibold">{value}</span>
+            </>
+          ) : (
+            value || (placeholder === "Show" ? SHOW_ENTRIES_PLACEHOLDER : placeholder)
+          )}
+        </span>
+        <img
+          src={ArrowDown}
+          alt="arrow"
+          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : (isPlaceholder ? "opacity-60 grayscale" : "opacity-90")}`}
         />
       </button>
       {isOpen && (
-        <div className="absolute top-full left-0 w-full mt-1 bg-white border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden">
-          <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+        <div className={`absolute top-full mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden ${alignMenu === "right" ? "right-0 left-auto" : "left-0"}`}>
+          <div className={`${menuMaxHeightClass} overflow-y-auto custom-scrollbar`}>
+            {(styleType === "header" || styleType === "form") && (
+              <button
+                type="button"
+                onClick={() => {
+                  onChange("");
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-Gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${isPlaceholder ? "text-[#353535] bg-[#F2F2F2]" : "text-[#8B8B8B] bg-[#FFFFFF]"}`}
+              >
+                {placeholder}
+              </button>
+            )}
             {options.map((option) => (
               <button
                 key={option}
@@ -135,7 +171,7 @@ function CustomDropdown({
                   onChange(option);
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-4 py-2.5 text-[15px] text-[#353535] font-Gantari hover:bg-[#F4F4F4] transition-colors"
+                className={`w-full text-left px-4 py-2 text-[14px] font-Gantari font-normal transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${value === option ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] bg-transparent'}`}
               >
                 {option}
               </button>
@@ -387,29 +423,6 @@ export default function ResourcesV() {
     );
   }
 
-  function exportCsv() {
-    const headers = ["Name", "Email", "Role", "Status", "Phone", "Department"];
-    const rows = list.map((e) =>
-      [
-        e.full_name,
-        e.email,
-        e.user_role || "",
-        e.active || "",
-        e.phone_number || "",
-        e.department || "",
-      ]
-        .map((c) => `"${String(c).replace(/"/g, '""')}"`)
-        .join(","),
-    );
-    const csv = [headers.join(","), ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "resources.csv";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
   function handleInvite(e: React.FormEvent) {
     e.preventDefault();
     const emails = inviteEmails
@@ -528,86 +541,82 @@ export default function ResourcesV() {
 
   const renderList = () => (
     <>
-      <div className="sticky z-50 bg-white mt-4 mb-4">
-        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-          <h2 className="text-[24px] font-Gantari font-medium text-[#000000]">
+      <div className="sticky z-50 bg-white mb-4 mt-2 overflow-visible">
+        <div className="flex w-full min-h-[44px] flex-nowrap items-center gap-2 sm:gap-3 overflow-visible">
+          <h2 className="text-[24px] font-medium text-[#000000] font-Gantari shrink-0 pr-1">
             Resources
           </h2>
-          {canAdd && (
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-              <button
-                onClick={() => setActiveView("add")}
-                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] sm:text-base whitespace-nowrap cursor-pointer"
-              >
-                <FiPlus className="w-5 h-5" />
-                Add Worker
-              </button>
-              <button
-                onClick={() => {
-                  setInviteShowSuccess(false);
-                  setActiveView("invite");
-                }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] sm:text-base whitespace-nowrap cursor-pointer"
-              >
-                <FiPlus className="w-5 h-5" />
-                Invite
-              </button>
-              <button
-                onClick={exportCsv}
-                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] sm:text-base whitespace-nowrap cursor-pointer"
-              >
-                <img src={exportIcon} className="w-5 h-5" />
-                CSV
-              </button>
-              <button
-                onClick={() => setActiveView("inactive")}
-                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] sm:text-base whitespace-nowrap cursor-pointer"
-              >
-                Manage Inactive
-              </button>
+          <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-visible">
+            <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 pr-0.5 custom-scrollbar">
+              {canAdd && (
+                <>
+                  <button
+                    onClick={() => setViewMode("table")}
+                    className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === "table" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
+                  >
+                    <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("card")}
+                    className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === "card" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
+                  >
+                    <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </button>
+                  <button
+                    onClick={() => setActiveView("add")}
+                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                  >
+                    Add Worker
+                  </button>
+                  <button
+                    onClick={() => {
+                      setInviteShowSuccess(false);
+                      setActiveView("invite");
+                    }}
+                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                  >
+                    Invite
+                  </button>
+                  <button
+                    onClick={() => setActiveView("inactive")}
+                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                  >
+                    Manage Inactive
+                  </button>
+                </>
+              )}
             </div>
-          )}
-        </div>
-        <div className="flex flex-col sm:flex-row justify-between sm:justify-end items-start sm:items-center gap-4 mt-6 sm:mt-8 mb-2">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setViewMode("table")}
-              className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === "table" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
-            >
-              <FiMenu className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setViewMode("card")}
-              className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === "card" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
-            >
-              <FiGrid className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto rounded-md">
-            {viewMode === "table" && (
+            <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
+              {viewMode === "table" && (
+                <CustomDropdown
+                  options={["10", "20", "30", "40"]}
+                  value={itemsPerPage.toString()}
+                  placeholder="Show"
+                  onChange={(val) => {
+                    if (val) {
+                      setItemsPerPage(parseInt(val, 10));
+                      setCurrentPage(1);
+                    }
+                  }}
+                  className="w-[110px] sm:w-[130px]"
+                  styleType="header"
+                  alignMenu="right"
+                />
+              )}
               <CustomDropdown
-                options={["10", "20", "30", "40"]}
-                value={`Show: ${itemsPerPage}`}
+                options={["All", "Online", "Offline"]}
+                value={statusFilter === "All" ? "" : (statusFilter === "Active" ? "Online" : statusFilter === "Inactive" ? "Offline" : "")}
                 onChange={(val) => {
-                  setItemsPerPage(parseInt(val, 10));
+                  const mapped = val === "Online" ? "Active" : val === "Offline" ? "Inactive" : "All";
+                  setStatusFilter(mapped);
                   setCurrentPage(1);
                 }}
-                placeholder="Show Entries"
-                className="flex-1 sm:min-w-[120px] rounded-md"
+                placeholder="Type"
+                className="w-[110px] sm:w-[130px]"
                 styleType="header"
+                alignMenu="right"
               />
-            )}
-            <CustomDropdown
-              options={["All", "Active", "Inactive"]}
-              value={statusFilter === "All" ? "Status" : statusFilter}
-              onChange={(val) => {
-                setStatusFilter(val);
-                setCurrentPage(1);
-              }}
-              placeholder="Status"
-              className="flex-1 sm:min-w-[120px] rounded-md"
-              styleType="header"
-            />
+            </div>
           </div>
         </div>
       </div>
@@ -763,62 +772,64 @@ export default function ResourcesV() {
             )}
           </div>
         ) : (
-          <div className="border border-[#F0F0F0] rounded-[15px] overflow-hidden bg-white mx-4">
-            <table className="min-w-full">
-              <thead className="bg-[#F9F9F9]">
-                <tr>
-                  <th className="px-6 py-4 text-left text-[16px] font-medium text-[#353535]">
-                    ID
-                  </th>
-                  <th className="px-6 py-4 text-left text-[16px] font-medium text-[#353535]">
-                    Name
-                  </th>
-                  <th className="px-6 py-4 text-left text-[16px] font-medium text-[#353535]">
-                    Email
-                  </th>
-                  <th className="px-6 py-4 text-left text-[16px] font-medium text-[#353535]">
-                    Contact
-                  </th>
-                  <th className="px-6 py-4 text-left text-[16px] font-medium text-[#353535]">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F0F0F0]">
-                {paginatedList.map((emp, idx) => (
-                  <tr
-                    key={emp.id}
-                    className={idx % 2 === 1 ? "bg-[#FCFCFC]" : "bg-white"}
-                  >
-                    <td className="px-6 py-4 text-[14px] font-medium text-[#353535]">
-                      {emp.empid ||
-                        `EMP-${(emp.id + 150).toString().padStart(4, "0")}`}
-                    </td>
-                    <td className="px-6 py-4 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                        {emp.profile_picture ? (
-                          <img
-                            src={getGlobalProfileUrl(
-                              emp.id,
-                              emp.profile_picture,
+          <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mx-4">
+            <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-220px)]">
+              <table className="min-w-full border-collapse">
+                <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                  <tr className="border-b border-gray-100 bg-white">
+                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                      Sl.No
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                      Name
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                      Email
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                      Contact
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {paginatedList.map((emp, idx) => (
+                    <tr
+                      key={emp.id}
+                      className={idx % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}
+                    >
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle">
+                        {(idx + 1).toString().padStart(2, "0")}
+                      </td>
+                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle lg:min-w-[200px]">
+                        <div className="flex items-center justify-center gap-3">
+                          <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                            {emp.profile_picture ? (
+                              <img
+                                src={getGlobalProfileUrl(
+                                  emp.id,
+                                  emp.profile_picture,
+                                )}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[14px] font-medium">
+                                ?
+                              </div>
                             )}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[14px] font-medium">
-                            ?
                           </div>
-                        )}
-                      </div>
-                      <span className="text-[14px] font-medium text-[#353535]">
-                        {toCamelCase(emp.full_name)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-[14px] font-medium text-[#353535]">
-                      {emp.email}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
+                          <span className="text-[14px] font-medium text-[#353535]">
+                            {toCamelCase(emp.full_name)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle">
+                        {emp.email}
+                      </td>
+                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                        <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => window.open(`mailto:${emp.email}`)}
                           className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"

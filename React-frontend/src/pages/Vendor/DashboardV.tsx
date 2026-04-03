@@ -291,14 +291,14 @@ export default function DashboardV() {
                 </div>
 
                 {/* Main Content Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Today's Priority */}
-                    <div className="lg:col-span-3 flex flex-col bg-white rounded-md border border-[#AEACAC52] shadow-sm pt-5 pl-5 pb-5 pr-4 min-h-[350px]">
+                    <div className="lg:col-span-2 flex flex-col bg-white rounded-md border border-[#AEACAC52] shadow-sm pt-5 pl-5 pb-5 pr-4 h-[520px]">
                         <div className="mb-6 shrink-0 px-2">
                             <h2 className="text-[20px] font-medium text-[#353535] font-gantari">Today's Priority</h2>
                         </div>
 
-                        <div className="flex-1 pr-2">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
                             {projects.length === 0 && priorityTasks.length === 0 ? (
                                 <p className="text-[#717171] text-lg font-gantari py-6 text-center">No projects or priority tasks for today.</p>
                             ) : (
@@ -389,52 +389,89 @@ export default function DashboardV() {
                     </div>
 
                     {/* Calendar & Celebrations */}
-                    <div className="lg:col-span-2 flex flex-col min-h-[400px]">
-                        <div className="bg-white rounded-md border border-[#AEACAC52] pt-5 pl-5 pb-5 pr-0 shadow-sm flex flex-col h-full">
-                            <div className="flex items-center justify-between gap-4 mb-6 shrink-0 pr-10">
-                                <div className="flex flex-col">
-                                    <span className="text-[14px] font-semibold text-black font-gantari leading-tight uppercase">{currentMonthName}</span>
-                                    <span className="text-[14px] font-semibold text-black font-gantari leading-tight">{displayYear}</span>
+                    <div className="lg:col-span-1 flex flex-col h-[520px]">
+                        <div className="bg-white rounded-md border border-[#AEACAC52] pt-4 pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full min-h-0">
+                            {/* Calendar Header — exact match: left = Month/Year stacked; center = large day; right = full day name */}
+                            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 pt-2 px-4">
+                                <div className="flex flex-col items-start min-w-[70px]">
+                                    <span className="text-[15px] lg:text-[17px] font-semibold text-black font-Gantari leading-tight">{currentMonthName}</span>
+                                    <span className="text-[15px] lg:text-[17px] font-semibold text-black font-Gantari leading-tight">{displayYear}</span>
                                 </div>
-                                <span className="text-[32px] font-bold text-black leading-none">{selectedDate.getDate()}</span>
-                                <span className="text-[14px] font-semibold text-black font-gantari tracking-wide">{currentDayName}</span>
+                                <div className="flex flex-col items-center flex-1 min-w-0">
+                                    <span className="text-[32px] lg:text-[38px] font-bold text-black leading-none tracking-tighter">{selectedDate.getDate()}</span>
+                                </div>
+                                <div className="flex flex-col items-end min-w-[75px]">
+                                    <span className="text-[14px] lg:text-[16px] font-semibold text-black font-Gantari tracking-wide pr-2">{currentDayName}</span>
+                                </div>
                             </div>
 
-                            <div className="flex items-center justify-center gap-4 mb-6 px-2 shrink-0 pr-10">
-                                <button type="button" onClick={goPrevMonth} className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg></button>
-                                <div className="relative min-w-[120px]" ref={monthDropdownRef}>
-                                    <button type="button" onClick={() => setMonthDropdownOpen(!monthDropdownOpen)} className="flex items-center justify-between w-full py-2 text-[14px] font-bold text-slate-800 bg-transparent border-none cursor-pointer">
+                            <div className="flex items-center justify-center gap-2 sm:gap-4 mb-4 px-2 shrink-0 pr-10">
+                                <button type="button" onClick={goPrevMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors" aria-label="Previous month">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                                </button>
+                                <div className="relative min-w-[100px]" ref={monthDropdownRef}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setMonthDropdownOpen((o) => !o)}
+                                        className="flex items-center justify-between gap-1 w-full rounded-md py-2 pl-0 pr-6 text-left text-[13px] font-medium text-slate-800 hover:bg-slate-50 font-Gantari border-none bg-transparent cursor-pointer"
+                                        aria-expanded={monthDropdownOpen}
+                                    >
                                         {currentMonthName}
-                                        <svg className={`w-4 h-4 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                        <svg className={`w-3.5 h-3.5 text-slate-500 absolute right-0 top-1/2 -translate-y-1/2 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                     </button>
                                     {monthDropdownOpen && (
-                                        <div className="absolute left-0 top-full z-30 mt-2 min-w-[140px] rounded-lg bg-white py-1 shadow-xl ring-1 ring-black/5 overflow-hidden">
-                                            <div className="overflow-y-auto custom-scrollbar max-h-[180px]">
-                                                {MONTH_NAMES.map((n, m) => (
-                                                    <button key={m} type="button" onClick={() => { setDisplayMonth(m); setMonthDropdownOpen(false); }} className={`block w-full px-4 py-2.5 text-left text-[13px] font-semibold font-gantari hover:bg-slate-50 ${m === displayMonth ? 'bg-[#2563eb] text-white' : 'text-slate-800'}`}>{n}</button>
-                                                ))}
+                                        <div className="absolute left-0 top-full z-30 mt-2 min-w-[140px] rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5 overflow-hidden">
+                                            <div className="overflow-y-auto custom-scrollbar overscroll-contain" style={{ maxHeight: '160px' }}>
+                                                {MONTH_NAMES.map((name, m) => {
+                                                    const isSelected = m === displayMonth;
+                                                    return (
+                                                        <button
+                                                            key={m}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setDisplayMonth(m);
+                                                                setMonthDropdownOpen(false);
+                                                            }}
+                                                            className={`block w-full px-4 py-2.5 text-left text-[13px] font-medium font-Gantari transition-colors truncate cursor-pointer ${isSelected ? 'bg-[#2563eb] text-white' : 'text-slate-800 hover:bg-slate-100'}`}
+                                                        >
+                                                            {name}
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     )}
                                 </div>
-                                <span className="text-[14px] font-bold text-slate-800">{displayYear}</span>
-                                <button type="button" onClick={goNextMonth} className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></button>
+                                <div className="flex items-center">
+                                    <span className="min-w-[40px] text-[13px] font-semibold text-slate-700 font-Gantari">{displayYear}</span>
+                                    <div className="flex flex-col gap-0 -space-y-px">
+                                        <button type="button" onClick={() => setDisplayYear((y) => y + 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none cursor-pointer" aria-label="Next year">
+                                            <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z" /></svg>
+                                        </button>
+                                        <button type="button" onClick={() => setDisplayYear((y) => y - 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none cursor-pointer" aria-label="Previous year">
+                                            <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="button" onClick={goNextMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors" aria-label="Next month">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                </button>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto custom-scrollbar pr-10">
+                            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
                                 {isCalendarExpanded && (
-                                    <div className="mb-6 animate-in fade-in duration-200">
-                                        <div className="grid grid-cols-7 gap-0 text-center text-[13px] font-bold text-[#717171] mb-4">
+                                    <div className="mb-2 py-2 animate-in fade-in duration-200">
+                                        <div className="grid grid-cols-7 gap-0 text-center text-[12px] lg:text-[13px] font-bold text-black font-Gantari mb-2 [&>div]:py-0.5">
                                             <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
                                         </div>
-                                        <div className="grid grid-cols-7 gap-y-2 text-center text-[15px] font-bold font-gantari">
+                                        <div className="grid grid-cols-7 gap-y-1 text-center text-[13px] lg:text-[14px] font-semibold font-Gantari px-1">
                                             {calendarDays.map((c, i) => {
                                                 const d = getCellDate(c);
                                                 const isSel = isSameDay(d, selectedDate);
                                                 const isTd = isSameDay(d, today);
                                                 const isEx = c.type !== 'current';
                                                 return (
-                                                    <button key={i} type="button" onClick={() => handleDateClick(c)} className={`py-2 transition-all rounded-full cursor-pointer flex items-center justify-center ${isTd ? 'bg-[#DD4346] text-white' : isSel ? 'text-[#E00100] ring-1 ring-[#E00100]/10' : isEx ? 'text-[#D1D5DB]' : 'text-[#353535] hover:bg-slate-50'}`}>
+                                                    <button key={i} type="button" onClick={() => handleDateClick(c)} className={`py-1.5 min-w-[24px] transition-all rounded-full cursor-pointer flex items-center justify-center ${isTd ? 'bg-[#DD4346] text-white' : isSel ? 'text-[#E00100] font-bold ring-1 ring-[#DE3D3A]/20' : isEx ? 'text-[#9CA3AF]' : 'text-black hover:bg-slate-50'}`}>
                                                         {c.day}
                                                     </button>
                                                 );
