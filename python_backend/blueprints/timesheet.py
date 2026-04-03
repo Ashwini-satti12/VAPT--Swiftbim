@@ -44,7 +44,7 @@ def completed_tasks():
 
     if isinstance(employee_id, list):
         employee_id = ",".join(str(x) for x in employee_id)
-    
+
     # Build WHERE clause for employee filter
     emp_where = ""
     emp_params = []
@@ -54,14 +54,40 @@ def completed_tasks():
             placeholders = ",".join(["%s"] * len(emp_list))
             emp_where = f"tasks.assigned_to IN ({placeholders})"
             emp_params = emp_list
-    
+
     # Build full WHERE clause
     where_parts = ["tasks.Company_id = %s"]
     where_params = [g.company_id]
-    
+
     if emp_where:
         where_parts.append(emp_where)
         where_params.extend(emp_params)
+
+    # Project involvement filter – matches projects.py list_projects logic
+    user_role = (getattr(g, "user_role", None) or "").strip()
+    # Management roles that see all company tasks for reporting
+    SEE_ALL_ROLES = ("Technical Director", "CEO", "Admin", "Super Admin")
+
+    if user_role not in SEE_ALL_ROLES:
+        if user_role == "Project Manager":
+            where_parts.append("FIND_IN_SET(%s, REPLACE(IFNULL(projects.project_manager_id, ''), ' ', '')) > 0")
+            where_params.append(g.user_id)
+        elif user_role == "BIM Lead":
+            where_parts.append("FIND_IN_SET(%s, REPLACE(IFNULL(projects.lead_id, ''), ' ', '')) > 0")
+            where_params.append(g.user_id)
+        elif user_role == "BIM Coordinator":
+            where_parts.append("FIND_IN_SET(%s, REPLACE(IFNULL(projects.bim_coordinator_id, ''), ' ', '')) > 0")
+            where_params.append(g.user_id)
+        else:
+            # Default for modellers etc. - involved in any capacity on the project
+            where_parts.append("""(
+                tasks.uploaderid = %s
+                OR FIND_IN_SET(%s, REPLACE(IFNULL(projects.members, ''), ' ', '')) > 0
+                OR FIND_IN_SET(%s, REPLACE(IFNULL(projects.project_manager_id, ''), ' ', '')) > 0
+                OR FIND_IN_SET(%s, REPLACE(IFNULL(projects.lead_id, ''), ' ', '')) > 0
+                OR FIND_IN_SET(%s, REPLACE(IFNULL(projects.bim_coordinator_id, ''), ' ', '')) > 0
+            )""")
+            where_params.extend([g.user_id, g.user_id, g.user_id, g.user_id, g.user_id])
     
     # Filter by task start date range (prefer start_time, then Actual_start_time, then due_date as a last fallback)
     where_parts.append(
@@ -87,7 +113,7 @@ def completed_tasks():
                   END AS project_name,
                   t.teamname AS teamname
            FROM tasks
-           JOIN employee e_assignee ON tasks.assigned_to = e_assignee.id
+           LEFT JOIN employee e_assignee ON tasks.assigned_to = e_assignee.id
            LEFT JOIN employee e_uploader ON tasks.uploaderid = e_uploader.id
            LEFT JOIN projects ON tasks.projectid = projects.id AND projects.Company_id = %s
            LEFT JOIN team t ON FIND_IN_SET(e_assignee.id, REPLACE(CONCAT(',', t.employee, ','), ' ', '')) > 0 

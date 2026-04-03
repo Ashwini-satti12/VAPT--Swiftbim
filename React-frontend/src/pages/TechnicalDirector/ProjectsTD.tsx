@@ -1227,14 +1227,16 @@ export default function ProjectsTD() {
                         })()}
 
                         {/* Department Involved */}
-                        <div className="min-w-0">
-                          <p className="text-md font-Gantari font-semibold text-[#000000]">
-                            Department Involved
-                          </p>
-                          <p className="text-sm font-Gantari text-[#616161] truncate">
-                            {selectedProjectForView.department || "N/A"}
-                          </p>
-                        </div>
+                        {selectedProjectForView?.source !== "Outsource" && (
+                          <div className="min-w-0">
+                            <p className="text-md font-Gantari font-semibold text-[#000000]">
+                              Department Involved
+                            </p>
+                            <p className="text-sm font-Gantari text-[#616161] truncate">
+                              {selectedProjectForView.department || "N/A"}
+                            </p>
+                          </div>
+                        )}
 
                         {/* Members Involved */}
                         <div>
