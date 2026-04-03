@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 
 /** Open native date picker — same pattern as TeamreportPM. */
@@ -47,6 +48,8 @@ export default function TeamReportBM() {
   const [endDate, setEndDate] = useState("");
   const [employee, setEmployee] = useState("All");
   const [team, setTeam] = useState("All");
+  const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get("q") || "";
   const [list, setList] = useState<TimesheetEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [employeeOpen, setEmployeeOpen] = useState(false);
@@ -285,20 +288,42 @@ export default function TeamReportBM() {
   // The backend filtering is date-range based, but "today" can fail due to timezone/format differences.
   // We filter by comparing the extracted YYYY-MM-DD dates (same extraction used for display).
   const filteredList = useMemo(() => {
+    let result = list;
     const effectiveStart = startDate || endDate;
     const effectiveEnd = endDate || startDate;
-    if (!effectiveStart || !effectiveEnd) return list;
 
-    let s = effectiveStart;
-    let e = effectiveEnd;
-    if (s > e) [s, e] = [e, s];
+    if (effectiveStart && effectiveEnd) {
+      let s = effectiveStart;
+      let e = effectiveEnd;
+      if (s > e) [s, e] = [e, s];
 
-    return list.filter((row) => {
-      const ymd = getTaskDateYmd(row);
-      if (!ymd) return false;
-      return ymd >= s && ymd <= e;
-    });
-  }, [list, startDate, endDate]);
+      result = result.filter((row) => {
+        const ymd = getTaskDateYmd(row);
+        if (!ymd) return false;
+        return ymd >= s && ymd <= e;
+      });
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((row) => {
+        const start = formatDate(row.start_time || row.Actual_start_time);
+        const end = formatDate(row.end_time || row.due_date);
+        const duration = calculateDuration(row);
+        return (
+          (row.project_name || "").toLowerCase().includes(q) ||
+          (row.task_name || "").toLowerCase().includes(q) ||
+          (row.assigned_name || "").toLowerCase().includes(q) ||
+          (row.teamname || "").toLowerCase().includes(q) ||
+          start.toLowerCase().includes(q) ||
+          end.toLowerCase().includes(q) ||
+          duration.toLowerCase().includes(q)
+        );
+      });
+    }
+
+    return result;
+  }, [list, startDate, endDate, searchQuery]);
 
   const selectedRange = useMemo(
     () =>

@@ -526,10 +526,14 @@ export default function CreateteamTD() {
     return e ? e.full_name : "Unknown";
   };
 
+  const selectableEmployees = employees.filter(
+    isEmployeeActiveForProjectAssignment,
+  );
+
   const getProjectEmployees = (projectId: string | number) => {
-    if (!projectId) return employees;
+    if (!projectId) return selectableEmployees;
     const proj = projects.find((p) => String(p.id) === String(projectId));
-    if (!proj) return employees;
+    if (!proj) return selectableEmployees;
 
     const involvedNames = new Set<string>();
     if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
@@ -542,8 +546,10 @@ export default function CreateteamTD() {
       });
     }
 
-    const filtered = employees.filter(e => e.full_name && involvedNames.has(e.full_name) && isEmployeeActiveForProjectAssignment(e));
-    return filtered.length > 0 ? filtered : employees.filter(isEmployeeActiveForProjectAssignment);
+    const filtered = selectableEmployees.filter(
+      (e) => e.full_name && involvedNames.has(e.full_name),
+    );
+    return filtered.length > 0 ? filtered : selectableEmployees;
   };
 
   if (loading) {
@@ -747,7 +753,7 @@ export default function CreateteamTD() {
       </div>
 
       {showAddModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
           <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-visible my-auto">
             <button
               onClick={() => setShowAddModal(false)}
@@ -1423,19 +1429,24 @@ export default function CreateteamTD() {
 
             <div className="p-8 pt-0 flex-1 overflow-y-auto custom-scrollbar">
               <div className="space-y-6">
-                <div className="bg-[#F2F2F2] rounded-md p-6 border border-[#AEACAC52]">
-                  <h4 className="text-[18px] font-semibold text-slate-800 mb-4">
-                    Project
+                <div>
+                <h4 className="text-[18px] font-semibold text-slate-800 mb-4">
+                    Project Name
                   </h4>
+                </div>
+                <div className="bg-[#F2F2F2] rounded-md p-6 border border-[#AEACAC52]">
+                  
                   <p className="font-semibold text-slate-800">
                     {selectedTeam.project_name || "N/A"}
                   </p>
                 </div>
 
-                <div className="bg-[#F2F2F2] rounded-md p-6 border border-[#AEACAC52]">
-                  <h4 className="text-[18px] font-semibold text-slate-800 mb-4">
-                    Leadership
+                <div> <h4 className="text-[18px] font-semibold text-slate-800 mb-4">
+                    Team Lead 
                   </h4>
+                  </div>
+                <div className="bg-[#F2F2F2] rounded-md p-6 border border-[#AEACAC52]">
+                  
                   <div className="flex items-center gap-4">
                     {(() => {
                       const leaderEmp = employees.find(e => String(e.id) === String(selectedTeam.leader));

@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
@@ -108,6 +109,7 @@ const PER_PAGE = 10;
 const PAGINATION_VISIBLE = 4;
 
 export default function ManageLeaveBC() {
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState<LeaveEntry | null>(null);
@@ -361,9 +363,27 @@ export default function ManageLeaveBC() {
 
   const employeeFilterShowsAll =
     selectedEmployee === "" || selectedEmployee === "All";
-  const filteredList = employeeFilterShowsAll
-    ? leaves
-    : leaves.filter((l) => l.employeeName === selectedEmployee);
+  
+  const filteredList = useMemo(() => {
+    const q = searchParams.get("q")?.toLowerCase() || "";
+    let base = leaves;
+    if (!employeeFilterShowsAll) {
+      base = base.filter((l) => l.employeeName === selectedEmployee);
+    }
+    if (!q) return base;
+    return base.filter((l) => {
+      return [
+        l.employeeName,
+        l.leaveType,
+        l.fromDate,
+        l.toDate,
+        l.description,
+        l.currentStatus,
+        l.role,
+      ].some((f) => (f || "").toLowerCase().includes(q));
+    });
+  }, [leaves, selectedEmployee, employeeFilterShowsAll, searchParams]);
+
   const effectiveShowEntryValue =
     selectedShowEntries || showEntriesOptions[0].value;
   const selectedRange =

@@ -292,7 +292,7 @@ export default function ProposalTD() {
                             view
                           </button>
 
-                          <button
+                          {/* <button
                             onClick={() =>
                               bid.proposal_exists && navigate("/td/edit-proposal", {
                                 state: {
@@ -303,15 +303,15 @@ export default function ProposalTD() {
                             }
                             disabled={!bid.proposal_exists}
                             title="Edit Proposal"
-                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${
+                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#F2F2F2] text-[#353535] shadow-sm shadow-red-100 cursor-pointer ${
                                 !bid.proposal_exists 
                                 ? 'cursor-not-allowed opacity-50' 
                                 : ''
                             }`}
                           >
-                            <img src={editIcon} alt="Edit" className="w-4 h-4 object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
-                            Edit
-                          </button>
+                            <img src={editIcon} alt="Edit" className="w-4 h-4 object-contain" />
+                            
+                          </button> */}
                         </div>
                       </td>
                     </tr>

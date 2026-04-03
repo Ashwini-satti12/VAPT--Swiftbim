@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
@@ -219,21 +219,35 @@ export default function ConsultantBM() {
         }
     }, [editParam, list]);
 
-    const filteredList = list.filter((emp: Employee) => {
-        if (statusFilter !== 'All') {
-            const currentStatus = (emp.active || '').toLowerCase();
-            if (statusFilter === 'Active' && currentStatus !== 'active') return false;
-            if (statusFilter === 'Deactive' && currentStatus === 'active') return false;
-        }
+    const filteredList = useMemo(() => {
+        const q = searchParams.get("q")?.toLowerCase() || "";
+        return list.filter((emp: Employee) => {
+            if (statusFilter !== 'All') {
+                const currentStatus = (emp.active || '').toLowerCase();
+                if (statusFilter === 'Active' && currentStatus !== 'active') return false;
+                if (statusFilter === 'Deactive' && currentStatus === 'active') return false;
+            }
 
-        if (typeFilter !== 'All') {
-            const currentType = (emp.user_type || '').toLowerCase();
-            if (typeFilter === 'Employee' && currentType !== 'employee') return false;
-            if (typeFilter === 'Trainee' && currentType !== 'trainee') return false;
-        }
+            if (typeFilter !== 'All') {
+                const currentType = (emp.user_type || '').toLowerCase();
+                if (typeFilter === 'Employee' && currentType !== 'employee') return false;
+                if (typeFilter === 'Trainee' && currentType !== 'trainee') return false;
+            }
 
-        return true;
-    });
+            if (q) {
+                const matches = [
+                    emp.full_name,
+                    emp.email,
+                    emp.user_role,
+                    emp.department,
+                    emp.phone_number,
+                ].some((f) => (f || "").toLowerCase().includes(q));
+                if (!matches) return false;
+            }
+
+            return true;
+        });
+    }, [list, statusFilter, typeFilter, searchParams]);
 
     let limitStart = 0;
     let limitEnd = Infinity;
