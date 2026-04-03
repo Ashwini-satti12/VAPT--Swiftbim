@@ -118,6 +118,7 @@ export default function DashboardPMV() {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<DashboardStats>(defaultStats);
     const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
+    const [projects, setProjects] = useState<any[]>([]); // To handle Math.max fallback
     const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
     const [nowMs, setNowMs] = useState(() => Date.now());
 
@@ -126,39 +127,22 @@ export default function DashboardPMV() {
         return () => clearInterval(id);
     }, []);
 
-    // Read project/task KPIs directly from vendor tables.
+    // GET stats → KPI cards
     useEffect(() => {
-        Promise.all([
-            api.get<{ projects?: any[] }>('/api/vendors/vendor-projects'),
-            api.get<{ tasks?: any[] }>('/api/vendors/vendor-tasks', { params: { condition: '1' } }),
-        ])
-            .then(([projectsRes, tasksRes]) => {
-                const projects = Array.isArray(projectsRes.data?.projects) ? projectsRes.data.projects : [];
-                const tasks = Array.isArray(tasksRes.data?.tasks) ? tasksRes.data.tasks : [];
+        // Vendor project/task stats (vendor_projects + vendor_task for this vendor company)
+        api.get<any>('/api/vendors/dashboard/project-stats')
+            .then(({ data }) => setStats(prev => ({
+                ...prev,
+                total_projects: Number(data?.totalProjects) || 0,
+                completed_projects: Number(data?.completedProjects) || 0,
+                in_progress_tasks: Number(data?.inProgressTasks) || 0,
+                completed_tasks: Number(data?.completedTasks) || 0,
+            })))
+            .catch(() => {});
 
-                const completedProjects = projects.filter((p: any) => {
-                    const progressNum = Number(p?.progress);
-                    return Number.isFinite(progressNum) && progressNum >= 100;
-                }).length;
-
-                const inProgressTasks = tasks.filter((t: any) => {
-                    const s = String(t?.status || '').toLowerCase().replace(/\s+/g, '');
-                    return s === 'inprogress' || s === 'in_progress';
-                }).length;
-
-                const completedTasks = tasks.filter((t: any) => {
-                    const s = String(t?.status || '').toLowerCase().replace(/\s+/g, '');
-                    return s === 'completed';
-                }).length;
-
-                setStats({
-                    total_projects: projects.length,
-                    completed_projects: completedProjects,
-                    in_progress_tasks: inProgressTasks,
-                    completed_tasks: completedTasks,
-                });
-            })
-            .catch(() => setStats(defaultStats))
+        api.get<{ projects?: any[] }>('/api/vendors/vendor-projects')
+            .then(({ data }) => setProjects(Array.isArray(data.projects) ? data.projects : []))
+            .catch(() => setProjects([]))
             .finally(() => setLoading(false));
     }, []);
 
@@ -264,40 +248,12 @@ export default function DashboardPMV() {
         setDisplayYear(d.getFullYear());
     };
 
-    // KPI card definitions — based on vendor_projects + vendor_task.status
+    // KPI card definitions + deep links
     const kpiCards = [
-        {
-            title: 'Total\nProjects',
-            value: stats.total_projects,
-            barColor: '#DE3D3A',
-            label: 'Total Projects',
-            percent: 75,
-            link: '/vpm/projects'
-        },
-        {
-            title: 'Completed\nProjects',
-            value: stats.completed_projects,
-            barColor: '#3B82F6',
-            label: 'Completed Projects',
-            percent: 50,
-            link: '/vpm/projects?status=completed'
-        },
-        {
-            title: 'In Progress\nTasks',
-            value: stats.in_progress_tasks,
-            barColor: '#E47E00',
-            label: 'In Progress Tasks',
-            percent: 30,
-            link: '/vpm/mytasks?status=in_progress'
-        },
-        {
-            title: 'Completed\nTasks',
-            value: stats.completed_tasks,
-            barColor: '#00882E',
-            label: 'Completed Tasks',
-            percent: 20,
-            link: '/vpm/mytasks?status=completed'
-        },
+        { label: 'Total Projects', value: Math.max(stats.total_projects, projects.length), link: '/vpm/projects' },
+        { label: 'Completed Projects', value: stats.completed_projects || 0, link: '/vpm/projects?status=completed' },
+        { label: 'Inprogress Tasks', value: stats.in_progress_tasks || 0, link: '/vpm/teamtasks?status=in_progress' },
+        { label: 'Completed Tasks', value: stats.completed_tasks || 0, link: '/vpm/teamtasks?status=completed' },
     ];
 
     if (loading) {

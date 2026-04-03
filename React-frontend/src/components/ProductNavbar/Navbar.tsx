@@ -93,7 +93,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
           setProfileData(updated);
           setEditData(updated);
           if (data.profile_picture) {
-            const url = getGlobalProfileUrl(data.id || user?.id, data.profile_picture);
+            const url = getGlobalProfileUrl(data.id || user?.id, data.profile_picture, user?.user_type);
             setProfilePicture(url);
             localStorage.setItem("userProfilePicture", url);
           } else {
@@ -353,13 +353,16 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
       return;
     }
 
-    // Basic password validation before hitting API
-    if (currentPassword || newPassword) {
-      if (!currentPassword || !newPassword) {
-        setPasswordError("Please enter both current and new password.");
+    // Only validate password if the user is trying to change it
+    const curPass = (currentPassword || "").trim();
+    const newPass = (newPassword || "").trim();
+    
+    if (curPass || newPass) {
+      if (!curPass || !newPass) {
+        setPasswordError("Please enter both current and new password to change it.");
         return;
       }
-      if (newPassword.length < 6) {
+      if (newPass.length < 6) {
         setPasswordError("New password must be at least 6 characters.");
         return;
       }
@@ -374,6 +377,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
       formData.append("full_name", editData.name);
       formData.append("phone_number", editData.phone);
       formData.append("address", editData.address);
+      formData.append("role", editData.designation);
       if (selectedFile) {
         formData.append("profile_picture", selectedFile);
       }
@@ -382,10 +386,10 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
       const { data } = await api.put("/api/profile", formData);
 
       // Update password if provided
-      if (currentPassword && newPassword) {
+      if (curPass && newPass) {
         await api.post("/api/profile/change-password", {
-          current_password: currentPassword,
-          new_password: newPassword,
+          current_password: curPass,
+          new_password: newPass,
         });
         setCurrentPassword("");
         setNewPassword("");
@@ -396,7 +400,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
       // If a new profile picture was uploaded, the backend returns the filename
       const empId = editData.id || user?.id;
       if (data && data.profile_picture && empId) {
-        const url = getGlobalProfileUrl(empId, data.profile_picture);
+        const url = getGlobalProfileUrl(empId, data.profile_picture, user?.user_type);
         setProfilePicture(url);
         localStorage.setItem("userProfilePicture", url);
       }
