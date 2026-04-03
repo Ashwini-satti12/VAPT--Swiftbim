@@ -13,6 +13,7 @@ import threedot from "../../assets/ProjectManager/project/threedot.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
+import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 
 interface Employee {
   id: number;
@@ -1202,11 +1203,28 @@ export default function ProjectsBL() {
                       <div className="flex flex-wrap gap-2">
                         {selectedProjectForView.document_attachment ? (
                           selectedProjectForView.document_attachment.split(",").map((file) => file.trim()).filter(Boolean).map((fileName, idx) => {
-                            const url = `${api.defaults.baseURL}uploads/${fileName}`;
+                            const isOutsource = selectedProjectForView.source === "Outsource";
+                            const url = isOutsource
+                                ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
+                                : `${api.defaults.baseURL}uploads/${fileName}`;
+
                             return (
-                              <div key={idx} className="flex items-center gap-3">
-                                <a href={url} target="_blank" rel="noopener noreferrer" className="text-[16px] font-Gantari font-medium text-blue-600 hover:underline">{fileName}</a>
-                              </div>
+                                <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-2 rounded-xl border border-slate-200 w-full md:max-w-xs mt-1">
+                                  <div className="p-1.5 bg-white rounded-lg shadow-sm">
+                                    <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                                  </div>
+                                  <span className="text-[13px] font-bold text-[#353535] line-clamp-1 flex-1">
+                                    {fileName.split('_').pop() || "Document"}
+                                  </span>
+                                  <div className="flex gap-1">
+                                    <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-white rounded" title="View">
+                                      <img src={viewIcon} alt="View" className="w-[16px] h-[16px] opacity-70 hover:opacity-100" />
+                                    </a>
+                                    <a href={url} download className="p-1 hover:bg-white rounded" title="Download">
+                                      <FiUploadCloud className="w-[16px] h-[16px] rotate-180 text-slate-500 hover:text-[#DD4342]" />
+                                    </a>
+                                  </div>
+                                </div>
                             );
                           })
                         ) : (
@@ -2236,52 +2254,32 @@ export default function ProjectsBL() {
                 </div>
 
                 {/* ── Attach File (full width) ── */}
-                <div className="md:col-span-2 space-y-2">
+                <div className="md:col-span-2 space-y-4 pt-4">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Attach File <span className="text-[#DD4342]">*</span>
                   </label>
-                  <div className="flex items-center bg-[#F2F3F4] rounded-md overflow-hidden">
-                    <div className="flex-1 px-4 py-2 text-[16px] text-[#8B8B8B] truncate">
-                      {createFiles.length > 0
-                        ? `${createFiles.length} file(s) selected`
-                        : "Choose Files"}
-                    </div>
-                    <label className="px-6 py-2 bg-[#E8E8E8] text-[#353535] text-[16px] cursor-pointer transition-colors whitespace-nowrap cursor-pointer">
-                      Browse File
-                      <input
-                        type="file"
-                        className="hidden"
-                        multiple
-                        onChange={(e) => {
-                          const files = Array.from(e.target.files || []);
-                          setCreateFiles((prev) => [...prev, ...files]);
-                        }}
-                      />
-                    </label>
-                  </div>
+                  
+                  {/* File Gallery */}
                   {createFiles.length > 0 && (
-                    <div className="grid grid-cols-1 gap-2">
+                    <div className="flex flex-wrap gap-3 mb-4">
                       {createFiles.map((file, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-3 p-3 bg-[#F2F3F4] rounded-[5px] group w-full"
-                        >
+                        <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
+                          <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-[14px] font-semibold text-[#353535] truncate">
-                              {file.name}
+                            <p className="text-[13px] font-bold text-[#353535] truncate">
+                                {file.name}
                             </p>
-                            <p className="text-[12px] font-medium text-[#8B8B8B]">
-                              {(file.size / 1024).toFixed(1)} KB
+                            <p className="text-[11px] text-slate-500">
+                                {(file.size / 1024).toFixed(1)} KB
                             </p>
                           </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => window.open(URL.createObjectURL(file), '_blank')}
-                              className="text-[#DD4342] hover:opacity-80 transition-opacity cursor-pointer shrink-0"
-                              title="View file"
+                          <div className="flex gap-1.5">
+                            <button 
+                                type="button"
+                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                                className="p-1 hover:bg-slate-50 rounded transition-colors"
                             >
-                               <img src={viewIcon} alt="View" className="w-5 h-5" />
+                                <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
                             </button>
                             <button
                               type="button"
@@ -2290,18 +2288,44 @@ export default function ProjectsBL() {
                                   prev.filter((_, i) => i !== idx),
                                 )
                               }
-                              className="text-[#616161] hover:text-[#DD4342] transition-colors cursor-pointer shrink-0"
-                              title="Remove file"
+                              className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
                             >
-                              <img src={deleteIcon} alt="Delete" className="w-5 h-5" />
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
                             </button>
-
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
+
+                  <div className="relative group">
+                    <input
+                      type="file"
+                      id="file-upload-create"
+                      className="hidden"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        setCreateFiles((prev) => [...prev, ...files]);
+                      }}
+                    />
+                    <label
+                      htmlFor="file-upload-create"
+                      className="flex flex-col items-center justify-center w-full h-32 px-4 transition bg-[#F8FAFC] border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 hover:border-[#DD4342]/40 group"
+                    >
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <FiUploadCloud className="w-8 h-8 mb-3 text-slate-400 group-hover:text-[#DD4342] transition-colors" />
+                        <p className="mb-1 text-sm text-slate-500 group-hover:text-slate-600">
+                          <span className="font-bold">Add new files</span> or drag and drop
+                        </p>
+                        <p className="text-xs text-slate-400">PDF, DOCX, ZIP or Images (Max 10MB)</p>
+                      </div>
+                    </label>
+                  </div>
                 </div>
+
               </div>
 
               {/* Footer Buttons */}
@@ -2920,87 +2944,73 @@ export default function ProjectsBL() {
                 </div>
 
                 {/* Attach File */}
-                <div className="md:col-span-2 space-y-2">
+                <div className="md:col-span-2 space-y-4 pt-4">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Attach File <span className="text-[#DD4342]">*</span>
                   </label>
-                  <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
-                    <div className="flex-1 px-4 py-3 text-[16px] text-gray-400 font-medium truncate">
-                      {createFiles.length + existingFiles.length > 0
-                        ? `${createFiles.length + existingFiles.length} file(s) total`
-                        : "Choose Files"}
-                    </div>
-                    <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[16px] cursor-pointer transition-colors whitespace-nowrap">
-                      Browse File
-                      <input
-                        type="file"
-                        className="hidden"
-                        multiple
-                        onChange={(e) => {
-                          const files = Array.from(e.target.files || []);
-                          setCreateFiles((prev) => [...prev, ...files]);
-                        }}
-                      />
-                    </label>
-                  </div>
+                  
+                  {/* File Gallery */}
                   {(existingFiles.length > 0 || createFiles.length > 0) && (
-                    <div className="grid grid-cols-1 gap-2">
+                    <div className="flex flex-wrap gap-3 mb-4">
                       {/* Existing Files */}
-                      {existingFiles.map((fileName, idx) => (
-                        <div
-                          key={`exist-${idx}`}
-                          className="flex items-center gap-3 p-3 bg-[#F2F3F4] rounded-[5px] group w-full"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[14px] font-semibold text-[#353535] truncate">{fileName}</p>
-                            <p className="text-[12px] font-medium text-[#8B8B8B]">Existing File</p>
-                          </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            <a
-                              href={`${api.defaults.baseURL}/uploads/${fileName}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[#DD4342] hover:opacity-80 transition-opacity cursor-pointer shrink-0"
-                              title="View file"
-                            >
-                              <img src={viewIcon} alt="View" className="w-5 h-5" />
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const file = existingFiles[idx];
-                                setExistingFiles((prev) =>
-                                  prev.filter((_, i) => i !== idx),
-                                );
-                                setRemovedFiles((prev) => [...prev, file]);
-                              }}
-                              className="text-[#616161] hover:text-[#DD4342] transition-colors cursor-pointer shrink-0"
-                              title="Remove file"
-                            >
-                              <img src={deleteIcon} alt="Delete" className="w-5 h-5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                      {existingFiles.map((fileName, idx) => {
+                        const isOutsource = selectedProjectForEdit?.source === "Outsource";
+                        const url = isOutsource
+                          ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
+                          : `${api.defaults.baseURL}uploads/${fileName}`;
 
-                      {/* Newly Selected Files */}
-                      {createFiles.map((file, idx) => (
-                        <div
-                          key={`new-${idx}`}
-                          className="flex items-center gap-3 p-3 bg-[#F2F3F4] rounded-[5px] group w-full"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[14px] font-semibold text-[#353535] truncate">{file.name}</p>
-                            <p className="text-[12px] font-medium text-[#8B8B8B]">{(file.size / 1024).toFixed(1)} KB</p>
+                        return (
+                          <div key={`exist-${idx}`} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
+                            <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[13px] font-bold text-[#353535] truncate">
+                                {fileName}
+                              </p>
+                              <p className="text-[11px] text-slate-500">Existing File</p>
+                            </div>
+                            <div className="flex gap-1.5">
+                              <button 
+                                type="button"
+                                onClick={() => window.open(url, '_blank')}
+                                className="p-1 hover:bg-slate-50 rounded transition-colors"
+                              >
+                                <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const file = existingFiles[idx];
+                                  setExistingFiles((prev) => prev.filter((_, i) => i !== idx));
+                                  setRemovedFiles((prev) => [...prev, file]);
+                                }}
+                                className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => window.open(URL.createObjectURL(file), '_blank')}
-                              className="text-[#DD4342] hover:opacity-80 transition-opacity cursor-pointer shrink-0"
-                              title="View file"
+                        );
+                      })}
+
+                      {/* New Files */}
+                      {createFiles.map((file, idx) => (
+                        <div key={`new-${idx}`} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-blue-100 shadow-sm min-w-[200px] border-dashed">
+                          <FiPaperclip className="w-4 h-4 text-blue-500" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[13px] font-bold text-[#353535] truncate">
+                                {file.name}
+                            </p>
+                            <p className="text-[11px] text-blue-400">New Upload</p>
+                          </div>
+                          <div className="flex gap-1.5">
+                            <button 
+                                type="button"
+                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                                className="p-1 hover:bg-slate-50 rounded transition-colors"
                             >
-                              <img src={viewIcon} alt="View" className="w-5 h-5" />
+                                <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
                             </button>
                             <button
                               type="button"
@@ -3009,17 +3019,44 @@ export default function ProjectsBL() {
                                   prev.filter((_, i) => i !== idx),
                                 )
                               }
-                              className="text-[#616161] hover:text-[#DD4342] transition-colors cursor-pointer shrink-0"
-                              title="Remove file"
+                              className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
                             >
-                              <img src={deleteIcon} alt="Delete" className="w-5 h-5" />
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
                             </button>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
+
+                  <div className="relative group">
+                    <input
+                      type="file"
+                      id="file-upload-edit"
+                      className="hidden"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        setCreateFiles((prev) => [...prev, ...files]);
+                      }}
+                    />
+                    <label
+                      htmlFor="file-upload-edit"
+                      className="flex flex-col items-center justify-center w-full h-32 px-4 transition bg-[#F8FAFC] border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 hover:border-[#DD4342]/40 group"
+                    >
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <FiUploadCloud className="w-8 h-8 mb-3 text-slate-400 group-hover:text-[#DD4342] transition-colors" />
+                        <p className="mb-1 text-sm text-slate-500 group-hover:text-slate-600">
+                          <span className="font-bold">Add more files</span> or drag and drop
+                        </p>
+                        <p className="text-xs text-slate-400">PDF, DOCX, ZIP or Images (Max 10MB)</p>
+                      </div>
+                    </label>
+                  </div>
                 </div>
+
               </div>
 
               {/* Footer Buttons */}

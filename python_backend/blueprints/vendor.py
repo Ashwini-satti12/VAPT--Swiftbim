@@ -1580,21 +1580,50 @@ def respond_to_proposal(proposal_id):
             main_cur.execute("SELECT id FROM vendor_projects WHERE proposal_id = %s", (proposal_id,))
             existing = main_cur.fetchone()
             if not existing:
+                technologies = proposal_data.get("technologies_used")
+                if technologies:
+                    try:
+                        # If it's a JSON string, parse it first
+                        if isinstance(technologies, str):
+                            import json
+                            parsed = json.loads(technologies)
+                            if isinstance(parsed, list):
+                                modules_str = ", ".join(map(str, parsed))
+                            else:
+                                modules_str = str(technologies)
+                        elif isinstance(technologies, list):
+                            modules_str = ", ".join(map(str, technologies))
+                        else:
+                            modules_str = str(technologies)
+                    except Exception:
+                        modules_str = str(technologies)
+                else:
+                    modules_str = ""
+
+                # Also copy document_attachment from main projects table if exists
+                main_cur.execute(
+                    "SELECT document_attachment FROM snh6_swiftproject.projects WHERE project_name = %s LIMIT 1",
+                    (proposal_data.get("project_name"),)
+                )
+                source_proj = main_cur.fetchone()
+                doc_attachment = source_proj.get("document_attachment") if source_proj else None
+
                 main_cur.execute("""
                     INSERT INTO vendor_projects (
                         proposal_id, opportunity_id, vendor_id, project_name, 
-                        description, modules, deliverables, budget
+                        description, modules, deliverables, budget, document_attachment
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     proposal_id,
                     proposal_data.get("opportunity_id"),
                     proposal_data.get("vendor_id"),
                     proposal_data.get("project_name"),
                     proposal_data.get("scope_of_work"),
-                    proposal_data.get("technologies_used"),
+                    modules_str,
                     proposal_data.get("deliverables"),
-                    "0"
+                    "0",
+                    doc_attachment
                 ))
                 project_id = main_cur.lastrowid
                 main_conn.commit()
@@ -4786,20 +4815,64 @@ def create_vendor_project():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
-@bp.route("/vendor-projects/<int:project_id>", methods=["PATCH"])
+@bp.route("/vendor-projects/<int:project_id>", methods=["PUT", "PATCH"])
 @login_required
 def update_vendor_project(project_id):
     """
-    PATCH /api/vendors/vendor-projects/<id>
-    Update a vendor project.
+    PUT/PATCH /api/vendors/vendor-projects/<id>
+    Update a vendor project with multi-file support.
     """
-    data = request.get_json(silent=True) or {}
-    conn = get_db()
-    cur = conn.cursor()
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+    else:
+        data = request.form.to_dict()
 
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    # 1. Check existence
+    cur.execute("SELECT document_attachment FROM snh6_swiftproject.vendor_projects WHERE id = %s", (project_id,))
+    row = cur.fetchone()
+    if not row:
+        return jsonify({"success": False, "message": "Project not found"}), 404
+
+    # 2. Handle Document Attachments (Multi-file logic)
+    existing_file_str = row.get("document_attachment") or ""
+    existing_files = [f.strip() for f in existing_file_str.split(",") if f.strip()] if existing_file_str else []
+
+    # Filter out removed files
+    removed_files = data.get("removed_files", "")
+    if removed_files:
+        if isinstance(removed_files, str):
+            removed_list = [f.strip() for f in removed_files.split(",") if f.strip()]
+        else:
+            removed_list = removed_files
+        existing_files = [f for f in existing_files if f not in removed_list]
+
+    # Handle new uploads
+    uploaded_files = request.files.getlist("files")
+    new_file_paths = []
+    if uploaded_files:
+        upload_folder = current_app.config.get("UPLOAD_FOLDER", "uploads")
+        vendor_docs_dir = os.path.join(upload_folder, "vendor_docs")
+        if not os.path.exists(vendor_docs_dir):
+            os.makedirs(vendor_docs_dir)
+        
+        for file in uploaded_files:
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                unique_filename = f"{uuid.uuid4().hex}_{filename}"
+                file.save(os.path.join(vendor_docs_dir, unique_filename))
+                new_file_paths.append(unique_filename)
+
+    # Combine and update data
+    all_files = list(set(existing_files + new_file_paths))
+    data["document_attachment"] = ",".join(all_files)
+
+    # 3. Update database
     allowed = [
         "project_name", "client_id", "description", "category", "due_date",
-        "department", "progress", "priority", "start_date", "members",
+        "end_date", "department", "progress", "priority", "start_date", "members",
         "budget", "budget_ceiling", "bidding_end_date", "location", "modules",
         "no_resource", "no_resources_required", "lead_id",
         "project_manager_id", "totalhours", "perday", "bim_coordinator_id",
@@ -4808,7 +4881,7 @@ def update_vendor_project(project_id):
     fields = []
     values = []
     for col in allowed:
-        if col in data:
+        if col in data and data[col] is not None:
             fields.append(f"{col} = %s")
             values.append(data[col])
 
@@ -4824,6 +4897,70 @@ def update_vendor_project(project_id):
     except Exception as e:
         conn.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
+
+
+import os
+import uuid
+from werkzeug.utils import secure_filename
+
+@bp.route("/vendor-projects/<int:project_id>/upload-document", methods=["POST"])
+@login_required
+def upload_vendor_project_document(project_id):
+    """
+    POST /api/vendors/vendor-projects/<id>/upload-document
+    Uploads a document for an outsourced project and stores it in vendor_projects.
+    """
+    if 'file' not in request.files:
+        return jsonify({"success": False, "message": "No file part"}), 400
+        
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"success": False, "message": "No selected file"}), 400
+        
+    if file:
+        filename = secure_filename(file.filename)
+        unique_filename = f"{uuid.uuid4().hex}_{filename}"
+        
+        upload_folder = current_app.config.get("UPLOAD_FOLDER", "uploads")
+        vendor_docs_dir = os.path.join(upload_folder, "vendor_docs")
+        
+        if not os.path.exists(vendor_docs_dir):
+            os.makedirs(vendor_docs_dir)
+            
+        file_path = os.path.join(vendor_docs_dir, unique_filename)
+        file.save(file_path)
+        
+        # Save to database (append for multi-file support)
+        conn = get_db()
+        cur = conn.cursor()
+        try:
+            # First fetch existing attachments
+            cur.execute("SELECT document_attachment FROM snh6_swiftproject.vendor_projects WHERE id = %s", (project_id,))
+            row = cur.fetchone()
+            existing = row[0] if row and row[0] else ""
+            
+            # Append new filename
+            new_value = f"{existing}, {unique_filename}" if existing else unique_filename
+            
+            cur.execute(
+                "UPDATE snh6_swiftproject.vendor_projects SET document_attachment = %s WHERE id = %s",
+                (new_value, project_id)
+            )
+            conn.commit()
+            return jsonify({
+                "success": True, 
+                "filename": unique_filename,
+                "url": f"/static/uploads/vendor_docs/{unique_filename}"
+            })
+        except Exception as e:
+            conn.rollback()
+            # If DB update fails, attempt to delete the uploaded file
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass
+            return jsonify({"success": False, "message": str(e)}), 500
+
 
 
 # ---------------------------------------------------------------------------

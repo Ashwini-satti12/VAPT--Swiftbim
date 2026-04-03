@@ -50,6 +50,8 @@ interface Project {
     proposal_id?: number;
     opportunity_id?: number;
     deliverables?: string;
+    document_attachment?: string;
+    source?: string;
 }
 
 interface Employee {
@@ -146,6 +148,7 @@ export default function ProjectsV() {
     const [createBudget, setCreateBudget] = useState("");
     const [createModuleName, setCreateModuleName] = useState("");
     const [createFile, setCreateFile] = useState<File | null>(null);
+    const [currentAttachments, setCurrentAttachments] = useState<string>("");
     const [createClientName, setCreateClientName] = useState("");
     const [createProjectManager, setCreateProjectManager] = useState("");
     const [createStartDate, setCreateStartDate] = useState("");
@@ -401,8 +404,17 @@ export default function ProjectsV() {
             description: createDescription,
             deliverables: createDeliverables,
         })
-            .then(({ data }) => {
+            .then(async ({ data }) => {
                 if (data.success) {
+                    const projectId = data.project_id;
+                    if (createFile && projectId) {
+                        const formData = new FormData();
+                        formData.append("file", createFile);
+                        await api.post(`/api/vendors/vendor-projects/${projectId}/upload-document`, formData, {
+                            headers: { "Content-Type": "multipart/form-data" }
+                        });
+                    }
+
                     setShowCreateModal(false);
                     // Reset fields
                     setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
@@ -415,9 +427,13 @@ export default function ProjectsV() {
                     setSuccessMsg("Project created!");
                     setTimeout(() => setSuccessMsg(null), 3000);
                     fetchProjects();
+                } else {
+                    setCreateError(data.message || "Failed to create project.");
                 }
             })
-            .catch(() => { })
+            .catch((err) => {
+                setCreateError(err.response?.data?.message || "Error occurred.");
+            })
             .finally(() => setCreateSubmitting(false));
     };
 
@@ -440,7 +456,10 @@ export default function ProjectsV() {
             idToName(p.project_manager_id, allEmployees) ||
             ""
         );
-        setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
+        // Improvement: check both start_date and potentially other date fields if missing
+        const rawStartDate = p.start_date || "";
+        setCreateStartDate(rawStartDate ? rawStartDate.split("T")[0] : "");
+
         setCreateEndDate(
             (p.end_date || p.due_date || "").split("T")[0] || "",
         );
@@ -457,6 +476,8 @@ export default function ProjectsV() {
         setCreateRequiredResources(p.required_resources || p.no_resources_required || "");
         setCreatePriority(p.priority || "");
         setCreateLocation(p.location || "");
+        setCurrentAttachments(p.document_attachment || "");
+        setCreateDeliverables(p.deliverables || "");
         // Strip HTML tags / entities so the textarea shows clean text
         setCreateDescription(htmlToPlainText(p.description));
         setCreateDeliverables(p.deliverables || "");
@@ -503,9 +524,18 @@ export default function ProjectsV() {
             location: createLocation,
             description: createDescription,
             deliverables: createDeliverables,
+            document_attachment: currentAttachments, // Send updated string of existing attachments
         })
-            .then(({ data }) => {
+            .then(async ({ data }) => {
                 if (data.success) {
+                    if (createFile) {
+                        const formData = new FormData();
+                        formData.append("file", createFile);
+                        await api.post(`/api/vendors/vendor-projects/${editId}/upload-document`, formData, {
+                            headers: { "Content-Type": "multipart/form-data" }
+                        });
+                    }
+
                     setShowEditModal(false);
                     // Reset fields
                     setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
@@ -514,13 +544,18 @@ export default function ProjectsV() {
                     setCreateBIMCoOrdinator(""); setSelectedMemberIds([]); setCreateResources("");
                     setCreateRequiredResources(""); setCreatePriority(""); setCreateLocation("");
                     setCreateDescription(""); setCreateDeliverables(""); setCreateFile(null);
+                    setCurrentAttachments("");
 
                     setSuccessMsg("Project updated!");
                     setTimeout(() => setSuccessMsg(null), 3000);
                     fetchProjects();
+                } else {
+                    setEditError(data.message || "Failed to edit project.");
                 }
             })
-            .catch(() => { })
+            .catch((err) => {
+                setEditError(err.response?.data?.message || "Error occurred.");
+            })
             .finally(() => setEditSubmitting(false));
     };
 
@@ -613,34 +648,20 @@ export default function ProjectsV() {
         return () => { cancelled = true; };
     }, [showProjectView, selectedProject?.id]);
 
+
+
     const renderMemberSelector = () => (
-        <div className="space-y-2">
-            <label className="block text-[16px] font-medium text-[#000000]">Team Members</label>
-            <div className="relative dropdown-container">
+        <div className="space-y-4">
+            <label className="block text-[16px] font-bold text-[#000000]">Team Members</label>
+            <div className="relative">
                 <button
                     type="button"
-                    onClick={() => setEditDropdownOpen(o => o === "members" ? null : "members")}
-                    className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer"
+                    onClick={(o) => { o.stopPropagation(); setEditDropdownOpen(editDropdownOpen === "members" ? null : "members"); }}
+                    className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F2F3F4] rounded-[5px] text-[#353535] font-semibold transition-all group hover:bg-[#E8EAEC]"
                 >
-                    <div className="flex flex-wrap gap-2 pr-4">
-                        {selectedMemberIds.length > 0 ? (
-                            selectedMemberIds.map(id => {
-                                const resource = vendorResourceProfiles.find(r => r.id === id);
-                                return (
-                                    <span key={id} className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#DD4342]/20 text-[#DD4342] text-xs font-bold rounded-lg shadow-sm">
-                                        {resource?.full_name || `ID: ${id}`}
-                                        <div onClick={(e) => { e.stopPropagation(); toggleMember(id); }} className="hover:text-red-600 cursor-pointer">
-                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </div>
-                                    </span>
-                                );
-                            })
-                        ) : (
-                            <span className="text-gray-400">Select Team Members</span>
-                        )}
-                    </div>
+                    <span className={selectedMemberIds.length > 0 ? "text-[#353535]" : "text-gray-400"}>
+                        {selectedMemberIds.length > 0 ? `${selectedMemberIds.length} members selected` : "Select members"}
+                    </span>
                     <svg
                         className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${editDropdownOpen === "members" ? "rotate-180" : ""}`}
                         fill="none"
@@ -1035,8 +1056,46 @@ export default function ProjectsV() {
                         className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 resize-none" placeholder="Provide a detailed project description..." />
                 </div>
             </div>
-            <div className="md:col-span-2 space-y-2">
-                <label className="block text-[16px] font-medium text-[#000000]">Attach File <span className="text-[#DD4342]">*</span></label>
+            <div className="md:col-span-2 space-y-4 pt-6">
+                <label className="block text-[16px] font-medium text-[#000000]">Project Documents</label>
+
+                {/* Existing Documents */}
+                {currentAttachments && (
+                    <div className="flex flex-wrap gap-3 mb-4">
+                        {currentAttachments.split(",").map(file => file.trim()).filter(Boolean).map((fileName, idx) => {
+                            const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
+                            return (
+                                <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
+                                    <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                                    <span className="text-[13px] font-medium text-[#353535] line-clamp-1 flex-1">
+                                        {fileName.split("_").pop()}
+                                    </span>
+                                    <div className="flex gap-1.5">
+                                        <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-slate-50 rounded transition-colors">
+                                            <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
+                                        </a>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const remaining = currentAttachments.split(",")
+                                                    .map(f => f.trim())
+                                                    .filter(f => f !== fileName)
+                                                    .join(",");
+                                                setCurrentAttachments(remaining);
+                                            }}
+                                            className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
                 <div className="relative group">
                     <input
                         type="file"
@@ -1052,7 +1111,7 @@ export default function ProjectsV() {
                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                 <FiUploadCloud className="w-8 h-8 mb-3 text-slate-400 group-hover:text-[#DD4342] transition-colors" />
                                 <p className="mb-1 text-sm text-slate-500 group-hover:text-slate-600">
-                                    <span className="font-bold">Click to upload</span> or drag and drop
+                                    <span className="font-bold">Add new file</span> or drag and drop
                                 </p>
                                 <p className="text-xs text-slate-400">PDF, DOCX, ZIP or Images (Max 10MB)</p>
                             </div>
@@ -1500,6 +1559,64 @@ export default function ProjectsV() {
                                             <span className="text-[16px] font-gantari font-medium text-[#616161]">
                                                 {selectedProject.required_resources || selectedProject.no_resources_required || "N/A"}
                                             </span>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row sm:items-center">
+                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                                Project Document
+                                            </span>
+                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                            <div className="flex flex-wrap gap-2">
+                                                {selectedProject.document_attachment ? (
+                                                    selectedProject.document_attachment
+                                                        .split(",")
+                                                        .map((file) => file.trim())
+                                                        .filter(Boolean)
+                                                        .map((fileName, idx) => {
+                                                            const isOutsource = selectedProject.source === "Outsource";
+                                                            const url = isOutsource
+                                                                ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
+                                                                : `${api.defaults.baseURL}uploads/${fileName}`;
+
+                                                            return (
+                                                                <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-2 rounded-xl border border-slate-200 w-full md:max-w-xs mt-1">
+                                                                    <div className="p-1.5 bg-white rounded-lg shadow-sm">
+                                                                        <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                                                                    </div>
+                                                                    <span className="text-[13px] font-bold text-[#353535] line-clamp-1 flex-1">
+                                                                        {fileName.split("_").pop() || "Document"}
+                                                                    </span>
+                                                                    <div className="flex gap-1">
+                                                                        <a
+                                                                            href={url}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="p-1 hover:bg-white rounded"
+                                                                            title="View"
+                                                                        >
+                                                                            <img
+                                                                                src={viewIcon}
+                                                                                alt="View"
+                                                                                className="w-[16px] h-[16px] opacity-70 hover:opacity-100"
+                                                                            />
+                                                                        </a>
+                                                                        <a
+                                                                            href={url}
+                                                                            download
+                                                                            className="p-1 hover:bg-white rounded"
+                                                                            title="Download"
+                                                                        >
+                                                                            <FiUploadCloud className="w-[16px] h-[16px] rotate-180 text-slate-500 hover:text-[#DD4342]" />
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })
+                                                ) : (
+                                                    <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                        No Document Available
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

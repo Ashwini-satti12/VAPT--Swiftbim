@@ -13,6 +13,7 @@ import threedot from "../../assets/ProjectManager/project/threedot.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
+import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 
 const nameToId = (name: string, employeesList: Employee[]) => {
   if (!name || name === "Nothing Selected" || name === "Other")
@@ -197,6 +198,7 @@ interface Project {
   budget_ceiling?: string;
   bidding_end_date?: string;
   source?: string;
+  document_attachment?: string;
 }
 
 interface Milestone {
@@ -269,6 +271,8 @@ export default function ProjectsTD() {
 
   const [createError, setCreateError] = useState("");
   const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createFiles, setCreateFiles] = useState<File[]>([]);
+  const [removedFiles, setRemovedFiles] = useState<string[]>([]);
   const [deleteProject, setDeleteProject] = useState<Project | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
@@ -446,6 +450,7 @@ export default function ProjectsTD() {
       location: str(r.location),
       description: str(r.description),
       source: str(r.source),
+      document_attachment: str(r.document_attachment),
     };
   };
 
@@ -1600,10 +1605,57 @@ export default function ProjectsTD() {
                             <span className="hidden sm:inline text-[#616161] mr-4">
                               :
                             </span>
-                            <div className="flex items-center gap-3">
-                              <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                No Document Available
-                              </span>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedProjectForView.document_attachment ? (
+                                selectedProjectForView.document_attachment
+                                  .split(",")
+                                  .map((file) => file.trim())
+                                  .filter(Boolean)
+                                  .map((fileName, idx) => {
+                                    const isOutsource = selectedProjectForView.source === "Outsource";
+                                    const url = isOutsource
+                                      ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
+                                      : `${api.defaults.baseURL}uploads/${fileName}`;
+
+                                    return (
+                                      <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-2 rounded-xl border border-slate-200 w-full md:max-w-xs mt-1">
+                                        <div className="p-1.5 bg-white rounded-lg shadow-sm">
+                                          <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                                        </div>
+                                        <span className="text-[13px] font-bold text-[#353535] line-clamp-1 flex-1">
+                                          {fileName.split("_").pop() || "Document"}
+                                        </span>
+                                        <div className="flex gap-1">
+                                          <a
+                                            href={url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-1 hover:bg-white rounded"
+                                            title="View"
+                                          >
+                                            <img
+                                              src={viewIcon}
+                                              alt="View"
+                                              className="w-[16px] h-[16px] opacity-70 hover:opacity-100"
+                                            />
+                                          </a>
+                                          <a
+                                            href={url}
+                                            download
+                                            className="p-1 hover:bg-white rounded"
+                                            title="Download"
+                                          >
+                                            <FiUploadCloud className="w-[16px] h-[16px] rotate-180 text-slate-500 hover:text-[#DD4342]" />
+                                          </a>
+                                        </div>
+                                      </div>
+                                    );
+                                  })
+                              ) : (
+                                <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                  No Document Available
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -2269,77 +2321,56 @@ export default function ProjectsTD() {
                   setCreateError("");
                   setCreateSubmitting(true);
                   const endpoint = createDepartment === "Submission Deadline" ? "/api/vendors/vendor-projects" : "/api/projects";
+
+                  const formData = new FormData();
+                  formData.append("project_name", createName.trim());
+                  if (createBudget) formData.append("budget", createBudget);
+                  if (createModuleName) formData.append("modules", createModuleName);
+
+                  const clientId = (() => {
+                    if (showOtherClient && otherClientValue) return otherClientValue;
+                    if (!createClientName) return undefined;
+                    const byName = clientsList.find((c) => (c.fullName ?? c.full_name) === createClientName);
+                    if (byName) return byName.id;
+                    if (/^\d+$/.test(createClientName)) return Number(createClientName);
+                    return undefined;
+                  })();
+                  if (clientId !== undefined) formData.append("client_id", String(clientId));
+
+                  const pmIds = namesToIds([...createProjectManager, ...(showOtherPM && otherPMValue ? [otherPMValue] : [])], projectManagers);
+                  if (pmIds) formData.append("project_manager_id", pmIds);
+
+                  const leadIds = namesToIds([...createBIMLead, ...(showOtherBIMLead && otherBIMLeadValue ? [otherBIMLeadValue] : [])], bimLeads);
+                  if (leadIds) formData.append("lead_id", leadIds);
+
+                  const coordIds = namesToIds([...createBIMCoOrdinator, ...(showOtherBIMCoord && otherBIMCoordValue ? [otherBIMCoordValue] : [])], bimCoordinators);
+                  if (coordIds) formData.append("bim_coordinator_id", coordIds);
+
+                  const members = selectedMemberIds.join(",") || createMember;
+                  if (members) formData.append("members", members);
+
+                  if (createDepartment) formData.append("department", createDepartment);
+                  if (createDepartment === "Submission Deadline") {
+                    if (createBudgetCeiling) formData.append("budget_ceiling", createBudgetCeiling);
+                    if (createBiddingEndDate) formData.append("bidding_end_date", createBiddingEndDate);
+                  }
+
+                  if (createEndDate) formData.append("due_date", createEndDate);
+                  if (createStartDate) formData.append("start_date", createStartDate);
+                  if (createTotalHours) formData.append("totalhours", createTotalHours);
+                  if (createPerDay) formData.append("perday", createPerDay);
+                  if (createResources) formData.append("resources", createResources);
+                  if (createRequiredResources) formData.append("required_resources", createRequiredResources);
+                  if (createPriority) formData.append("priority", createPriority);
+                  if (createLocation) formData.append("location", createLocation);
+                  if (createDescription) formData.append("description", createDescription);
+
+                  createFiles.forEach((file) => formData.append("files", file));
+
                   api
-                    .post<{ success?: boolean; project_id?: number }>(
-                      endpoint,
-                      {
-                        project_name: createName.trim(),
-                        budget: createBudget || undefined,
-                        modules: createModuleName || undefined,
-                        client_id: (() => {
-                          if (showOtherClient && otherClientValue)
-                            return otherClientValue;
-                          if (!createClientName) return undefined;
-                          const byName = clientsList.find(
-                            (c) =>
-                              (c.fullName ?? c.full_name) === createClientName,
-                          );
-                          if (byName) return byName.id;
-                          if (/^\d+$/.test(createClientName))
-                            return Number(createClientName);
-                          return undefined;
-                        })(),
-                        project_manager_id: namesToIds(
-                          [
-                            ...createProjectManager,
-                            ...(showOtherPM && otherPMValue
-                              ? [otherPMValue]
-                              : []),
-                          ],
-                          projectManagers,
-                        ),
-                        lead_id: namesToIds(
-                          [
-                            ...createBIMLead,
-                            ...(showOtherBIMLead && otherBIMLeadValue
-                              ? [otherBIMLeadValue]
-                              : []),
-                          ],
-                          bimLeads,
-                        ),
-                        bim_coordinator_id: namesToIds(
-                          [
-                            ...createBIMCoOrdinator,
-                            ...(showOtherBIMCoord && otherBIMCoordValue
-                              ? [otherBIMCoordValue]
-                              : []),
-                          ],
-                          bimCoordinators,
-                        ),
-                        members:
-                          selectedMemberIds.join(",") ||
-                          createMember ||
-                          undefined,
-                        department: createDepartment || undefined,
-                        ...(createDepartment === "Submission Deadline"
-                          ? {
-                            budget_ceiling: createBudgetCeiling || undefined,
-                            bidding_end_date:
-                              createBiddingEndDate || undefined,
-                          }
-                          : {}),
-                        due_date: createEndDate || undefined,
-                        start_date: createStartDate || undefined,
-                        totalhours: createTotalHours || undefined,
-                        perday: createPerDay || undefined,
-                        resources: createResources || undefined,
-                        required_resources:
-                          createRequiredResources || undefined,
-                        priority: createPriority || undefined,
-                        location: createLocation || undefined,
-                        description: createDescription || undefined,
-                      },
-                    )
+                    .post<{ success?: boolean; project_id?: number }>(endpoint, formData, {
+                      headers: { "Content-Type": "multipart/form-data" },
+                    })
                     .then(({ data }) => {
                       if (data.success) {
                         setShowCreateModal(false);
@@ -2370,6 +2401,8 @@ export default function ProjectsTD() {
                         setCreatePriority("");
                         setCreateLocation("");
                         setCreateDescription("");
+                        setCreateFiles([]);
+                        setRemovedFiles([]);
                         Promise.all([
                           api.get<{ projects?: Record<string, unknown>[] }>("/api/projects"),
                           api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects")
@@ -2693,6 +2726,85 @@ export default function ProjectsTD() {
                     </>
                   )}
                 </div>
+
+                {/* Description & File Attachment Section */}
+                <div className="space-y-6 pt-4 border-t border-gray-100">
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
+                      Project Description
+                    </label>
+                    <textarea
+                      value={createDescription}
+                      onChange={(e) => setCreateDescription(e.target.value)}
+                      className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[10px] transition-all focus:outline-none focus:border-[#AEACAC52] min-h-[100px] resize-none font-Gantari"
+                      placeholder="Enter Project Description..."
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
+                        Project Documents
+                      </label>
+                      <label className="flex items-center gap-2 px-4 py-2 bg-[#F2F3F4] hover:bg-[#E8E9EA] text-[#353535] rounded-lg cursor-pointer transition-all border border-transparent hover:border-[#AEACAC52]">
+                        <FiUploadCloud className="w-5 h-5 text-[#1D7AFC]" />
+                        <span className="text-[14px] font-medium">Upload Files</span>
+                        <input
+                          type="file"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files) {
+                              setCreateFiles((prev) => [
+                                ...prev,
+                                ...Array.from(e.target.files!),
+                              ]);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Multi-file Gallery UI */}
+                    {createFiles.length > 0 && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                        {createFiles.map((file, idx) => (
+                          <div
+                            key={`new-${idx}`}
+                            className="relative group bg-[#F0FDF4] border border-[#DCFCE7] rounded-xl p-3 flex items-center gap-3 hover:border-[#22C55E] transition-all"
+                          >
+                            <div className="w-10 h-10 bg-[#DCFCE7] rounded-lg flex items-center justify-center">
+                              <FiUploadCloud className="w-5 h-5 text-[#22C55E]" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[13px] font-medium text-[#166534] truncate">
+                                {file.name}
+                              </p>
+                              <p className="text-[11px] text-[#166534]/60">
+                                New File
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCreateFiles((prev) =>
+                                  prev.filter((_, i) => i !== idx),
+                                )
+                              }
+                              className="p-1.5 hover:bg-[#FEE2E2] rounded-md text-[#166534]/40 hover:text-[#EF4444] opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Remove"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex justify-center gap-4 pt-4 ">
                   <button
                     type="button"
@@ -2981,69 +3093,55 @@ export default function ProjectsTD() {
                   const id = selectedProjectForEdit.id;
                   setIsEditSubmitting(true);
                   const endpoint = selectedProjectForEdit.source === "Outsource" ? `/api/vendors/vendor-projects/${id}` : `/api/projects/${id}`;
-                  api
-                    .patch(endpoint, {
-                      project_name: createName.trim(),
-                      budget: createBudget || undefined,
-                      modules: createModuleName || undefined,
-                      client_id: (() => {
-                        if (showOtherClient && otherClientValue)
-                          return otherClientValue;
-                        if (!createClientName) return undefined;
-                        const byName = clientsList.find(
-                          (c) =>
-                            (c.fullName ?? c.full_name) === createClientName,
-                        );
-                        if (byName) return byName.id;
-                        if (/^\d+$/.test(createClientName))
-                          return Number(createClientName);
-                        return undefined;
-                      })(),
-                      project_manager_id: namesToIds(
-                        [
-                          ...createProjectManager,
-                          ...(showOtherPM && otherPMValue
-                            ? [otherPMValue]
-                            : []),
-                        ],
-                        projectManagers,
-                      ),
-                      lead_id: namesToIds(
-                        [
-                          ...createBIMLead,
-                          ...(showOtherBIMLead && otherBIMLeadValue
-                            ? [otherBIMLeadValue]
-                            : []),
-                        ],
-                        bimLeads,
-                      ),
-                      bim_coordinator_id: namesToIds(
-                        [
-                          ...createBIMCoOrdinator,
-                          ...(showOtherBIMCoord && otherBIMCoordValue
-                            ? [otherBIMCoordValue]
-                            : []),
-                        ],
-                        bimCoordinators,
-                      ),
-                      members: createMember || undefined,
 
-                      department: createDepartment || undefined,
-                      ...(isEditSourceOutsource
-                        ? {
-                          budget_ceiling: createBudgetCeiling || undefined,
-                          bidding_end_date: createBiddingEndDate || undefined,
-                        }
-                        : {}),
-                      due_date: createEndDate || undefined,
-                      start_date: createStartDate || undefined,
-                      totalhours: createTotalHours || undefined,
-                      perday: createPerDay || undefined,
-                      resources: createResources || undefined,
-                      required_resources: createRequiredResources || undefined,
-                      priority: createPriority || undefined,
-                      location: createLocation || undefined,
-                      description: createDescription || undefined,
+                  const formData = new FormData();
+                  formData.append("project_name", createName.trim());
+                  if (createBudget) formData.append("budget", createBudget);
+                  if (createModuleName) formData.append("modules", createModuleName);
+
+                  const clientId = (() => {
+                    if (showOtherClient && otherClientValue) return otherClientValue;
+                    if (!createClientName) return undefined;
+                    const byName = clientsList.find((c) => (c.fullName ?? c.full_name) === createClientName);
+                    if (byName) return byName.id;
+                    if (/^\d+$/.test(createClientName)) return Number(createClientName);
+                    return undefined;
+                  })();
+                  if (clientId !== undefined) formData.append("client_id", String(clientId));
+
+                  const pmIds = namesToIds([...createProjectManager, ...(showOtherPM && otherPMValue ? [otherPMValue] : [])], projectManagers);
+                  if (pmIds) formData.append("project_manager_id", pmIds);
+
+                  const leadIds = namesToIds([...createBIMLead, ...(showOtherBIMLead && otherBIMLeadValue ? [otherBIMLeadValue] : [])], bimLeads);
+                  if (leadIds) formData.append("lead_id", leadIds);
+
+                  const coordIds = namesToIds([...createBIMCoOrdinator, ...(showOtherBIMCoord && otherBIMCoordValue ? [otherBIMCoordValue] : [])], bimCoordinators);
+                  if (coordIds) formData.append("bim_coordinator_id", coordIds);
+
+                  if (createMember) formData.append("members", createMember);
+
+                  if (createDepartment) formData.append("department", createDepartment);
+                  if (isEditSourceOutsource) {
+                    if (createBudgetCeiling) formData.append("budget_ceiling", createBudgetCeiling);
+                    if (createBiddingEndDate) formData.append("bidding_end_date", createBiddingEndDate);
+                  }
+
+                  if (createEndDate) formData.append("due_date", createEndDate);
+                  if (createStartDate) formData.append("start_date", createStartDate);
+                  if (createTotalHours) formData.append("totalhours", createTotalHours);
+                  if (createPerDay) formData.append("perday", createPerDay);
+                  if (createResources) formData.append("resources", createResources);
+                  if (createRequiredResources) formData.append("required_resources", createRequiredResources);
+                  if (createPriority) formData.append("priority", createPriority);
+                  if (createLocation) formData.append("location", createLocation);
+                  if (createDescription) formData.append("description", createDescription);
+
+                  createFiles.forEach((file) => formData.append("files", file));
+                  removedFiles.forEach((file) => formData.append("removed_files", file));
+
+                  api
+                    .put(endpoint, formData, {
+                      headers: { "Content-Type": "multipart/form-data" },
                     })
                     .then(({ data }) => {
                       if ((data as { success?: boolean }).success) {
@@ -3344,6 +3442,138 @@ export default function ProjectsTD() {
                       </div>
                     </>
                   )}
+                </div>
+
+                {/* Description & File Attachment Section */}
+                <div className="space-y-6 pt-4 border-t border-gray-100">
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
+                      Project Description
+                    </label>
+                    <textarea
+                      value={createDescription}
+                      onChange={(e) => setCreateDescription(e.target.value)}
+                      className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[10px] transition-all focus:outline-none focus:border-[#AEACAC52] min-h-[100px] resize-none font-Gantari"
+                      placeholder="Enter Project Description..."
+                    />
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
+                        Project Documents
+                      </label>
+                      <label className="flex items-center gap-2 px-4 py-2 bg-[#F2F3F4] hover:bg-[#E8E9EA] text-[#353535] rounded-lg cursor-pointer transition-all border border-transparent hover:border-[#AEACAC52]">
+                        <FiUploadCloud className="w-5 h-5 text-[#1D7AFC]" />
+                        <span className="text-[14px] font-medium">Upload Files</span>
+                        <input
+                          type="file"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files) {
+                              setCreateFiles((prev) => [
+                                ...prev,
+                                ...Array.from(e.target.files!),
+                              ]);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Multi-file Gallery UI */}
+                    {(createFiles.length > 0 || removedFiles.length > 0 || (selectedProjectForEdit?.document_attachment)) && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                        {/* Existing Files */}
+                        {selectedProjectForEdit?.document_attachment
+                          ?.split(",")
+                          .filter((f) => f && !removedFiles.includes(f))
+                          .map((file, idx) => (
+                            <div
+                              key={`existing-${idx}`}
+                              className="relative group bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex items-center gap-3 hover:border-[#1D7AFC] transition-all"
+                            >
+                              <div className="w-10 h-10 bg-[#EFF6FF] rounded-lg flex items-center justify-center">
+                                <FiPaperclip className="w-5 h-5 text-[#1D7AFC]" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[13px] font-medium text-[#1E293B] truncate">
+                                  {file}
+                                </p>
+                                <p className="text-[11px] text-[#64748B]">
+                                  Existing File
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    window.open(
+                                      selectedProjectForEdit.source === "Outsource"
+                                        ? `/static/uploads/vendor_docs/${file}`
+                                        : `/uploads/${file}`,
+                                      "_blank",
+                                    )
+                                  }
+                                  className="p-1.5 hover:bg-[#E2E8F0] rounded-md text-[#64748B] hover:text-[#1D7AFC]"
+                                  title="View"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setRemovedFiles((prev) => [...prev, file])}
+                                  className="p-1.5 hover:bg-[#FEE2E2] rounded-md text-[#64748B] hover:text-[#EF4444]"
+                                  title="Remove"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+
+                        {/* New Files */}
+                        {createFiles.map((file, idx) => (
+                          <div
+                            key={`new-${idx}`}
+                            className="relative group bg-[#F0FDF4] border border-[#DCFCE7] rounded-xl p-3 flex items-center gap-3 hover:border-[#22C55E] transition-all"
+                          >
+                            <div className="w-10 h-10 bg-[#DCFCE7] rounded-lg flex items-center justify-center">
+                              <FiUploadCloud className="w-5 h-5 text-[#22C55E]" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[13px] font-medium text-[#166534] truncate">
+                                {file.name}
+                              </p>
+                              <p className="text-[11px] text-[#166534]/60">
+                                New File
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCreateFiles((prev) =>
+                                  prev.filter((_, i) => i !== idx),
+                                )
+                              }
+                              className="p-1.5 hover:bg-[#FEE2E2] rounded-md text-[#166534]/40 hover:text-[#EF4444] opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Remove"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Footer Buttons */}

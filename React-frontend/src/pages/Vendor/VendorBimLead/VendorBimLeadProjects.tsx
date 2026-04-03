@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import api from "../../../lib/api";
 import { useNavigate } from "react-router-dom";
 import { RiDeleteBin5Fill } from "react-icons/ri";
@@ -45,6 +45,7 @@ interface Project {
   end_date?: string;
   proposal_id?: number;
   opportunity_id?: number;
+  document_attachment?: string;
 }
 
 interface Employee {
@@ -91,7 +92,10 @@ export default function VendorBimLeadProjects() {
   const [createName, setCreateName] = useState("");
   const [createBudget, setCreateBudget] = useState("");
   const [createModuleName, setCreateModuleName] = useState("");
+  const [moduleInput, setModuleInput] = useState("");
+
   const [createFile, setCreateFile] = useState<File | null>(null);
+  const [existingDoc, setExistingDoc] = useState<string | null>(null);
   const [createClientName, setCreateClientName] = useState("");
   const [createProjectManager, setCreateProjectManager] = useState("");
   const [createStartDate, setCreateStartDate] = useState("");
@@ -281,6 +285,7 @@ export default function VendorBimLeadProjects() {
     setCreateDeliverables(p.deliverables || "");
     setCreateDepartment(p.department || "");
     setCreateTaskName(p.deliverables || "");
+    setExistingDoc(p.document_attachment || null);
     setShowEditModal(true);
   };
 
@@ -323,8 +328,20 @@ export default function VendorBimLeadProjects() {
         deliverables: createTaskName,
         department: createDepartment,
       })
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         if (data.success) {
+          if (createFile) {
+            const formData = new FormData();
+            formData.append("file", createFile);
+            try {
+              await api.post(`/api/vendors/vendor-projects/${editId}/upload-document`, formData, {
+                  headers: { "Content-Type": "multipart/form-data" },
+              });
+            } catch (err) {
+                console.error("Failed to upload document", err);
+            }
+          }
+
           setShowEditModal(false);
           // Reset fields
           setCreateName("");
@@ -345,7 +362,8 @@ export default function VendorBimLeadProjects() {
           setCreateLocation("");
           setCreateDescription("");
           setCreateDeliverables("");
-          setCreateDeliverables("");
+          setCreateFile(null);
+          setExistingDoc(null);
           setCreateDepartment("");
           setCreateTaskName("");
           setCreateFile(null);
@@ -384,6 +402,36 @@ export default function VendorBimLeadProjects() {
     setSelectedMemberIds((prev) =>
       prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id],
     );
+  };
+
+  const modulesList = useMemo(() => {
+    if (!createModuleName) return [];
+    const raw = createModuleName.trim();
+    if (raw.startsWith("[") && raw.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.map((m: any) => String(m).trim()).filter(Boolean);
+        }
+      } catch (e) {
+        // Not valid JSON or not an array, fall through
+      }
+    }
+    return raw.split(",").map((m: string) => m.trim()).filter(Boolean);
+  }, [createModuleName]);
+
+  const addModule = (name: string) => {
+    const trimmed = name.trim().replace(/,$/, "");
+    if (trimmed && !modulesList.includes(trimmed)) {
+      const newModules = [...modulesList, trimmed];
+      setCreateModuleName(newModules.join(", "));
+    }
+    setModuleInput("");
+  };
+
+  const removeModule = (name: string) => {
+    const newModules = modulesList.filter((m: string) => m !== name);
+    setCreateModuleName(newModules.join(", "));
   };
 
   const renderMemberSelector = () => (
@@ -506,6 +554,54 @@ export default function VendorBimLeadProjects() {
             value={createClientName}
             onChange={(e) => setCreateClientName(e.target.value)}
           />
+        </div>
+
+        <div className="md:col-span-2 space-y-3">
+          <label className="block text-[16px] font-medium text-[#020202]">
+            Modules Name <span className="text-[#DD4342]">*</span>
+          </label>
+          <div className="relative group">
+            <input
+              type="text"
+              className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[10px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+              placeholder="Enter Modules Name"
+              value={moduleInput}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val.endsWith(",")) {
+                  addModule(val);
+                } else {
+                  setModuleInput(val);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addModule(moduleInput);
+                }
+              }}
+            />
+          </div>
+          <p className="flex items-center gap-2 text-[#666666] text-[12px] font-medium">
+            <span className="w-4 h-4 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-[10px] font-bold">i</span>
+            Please enter names, separated by commas, and then press enter
+          </p>
+          <div className="flex flex-wrap gap-3 mt-4">
+            {modulesList.map((mod: string, idx: number) => (
+              <div key={idx} className="flex items-center gap-2 px-4 py-2 bg-[#F2F2F2] rounded-full border border-slate-100 group hover:border-[#DD4342]/20 transition-all">
+                <span className="text-[13px] font-bold text-[#353535]">{mod}</span>
+                <button
+                  type="button"
+                  onClick={() => removeModule(mod)}
+                  className="p-0.5 text-gray-400 hover:text-[#DD4342] transition-colors cursor-pointer"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
         {/* Budget hidden for VBL in edit mode */}
         <div className="space-y-2">
@@ -731,7 +827,42 @@ export default function VendorBimLeadProjects() {
             className="hidden"
             onChange={(e) => setCreateFile(e.target.files?.[0] || null)}
           />
-          {!createFile ? (
+          {existingDoc && !createFile ? (
+            <div className="flex items-center justify-between p-4 bg-[#F8FAFC] border border-[#DD4342]/20 rounded-2xl animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-white rounded-xl shadow-sm">
+                        <FiPaperclip className="w-5 h-5 text-[#DD4342]" />
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-sm font-bold text-[#1E293B] truncate max-w-[200px] md:max-w-md">
+                            {existingDoc.split('_').pop() || "Document"}
+                        </p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <a
+                        href={`${api.defaults.baseURL}static/uploads/vendor_docs/${existingDoc}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 text-slate-400 hover:text-[#DD4342] hover:bg-red-50 rounded-lg transition-all"
+                        title="View document"
+                    >
+                        <img src={viewIcon} alt="View" className="w-5 h-5" />
+                    </a>
+                    <a
+                        href={`${api.defaults.baseURL}static/uploads/vendor_docs/${existingDoc}`}
+                        download
+                        className="p-2 text-slate-400 hover:text-[#DD4342] hover:bg-red-50 rounded-lg transition-all"
+                        title="Download document"
+                    >
+                        <FiUploadCloud className="w-5 h-5 rotate-180" />
+                    </a>
+                    <label htmlFor="edit-file-upload" className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all cursor-pointer" title="Replace file">
+                        <img src={editIcon} alt="Replace" className="w-5 h-5" />
+                    </label>
+                </div>
+            </div>
+        ) : !createFile ? (
             <label
               htmlFor="edit-file-upload"
               className="flex flex-col items-center justify-center w-full h-32 bg-[#F2F3F4] border-2 border-dashed border-slate-200 rounded-md cursor-pointer hover:border-[#DD4342]/20 transition-all"
@@ -752,7 +883,7 @@ export default function VendorBimLeadProjects() {
               <button
                 type="button"
                 onClick={() => setCreateFile(null)}
-                className="text-slate-400 hover:text-red-500"
+                className="text-slate-400 hover:text-red-500 cursor-pointer"
               >
                 <svg
                   className="w-5 h-5"
@@ -1059,6 +1190,53 @@ export default function VendorBimLeadProjects() {
                       </span>
                     </div>
                   </div>
+                </div>
+
+                {/* Document Attachment display */}
+                <div className="mt-8 border-t border-slate-100 pt-6">
+                    <p className="text-[16px] font-bold text-[#353535] mb-4 tracking-wide uppercase">Project Document</p>
+                    {selectedProject.document_attachment ? (
+                        <div className="flex flex-wrap gap-3">
+                            {selectedProject.document_attachment
+                                .split(",")
+                                .map((file) => file.trim())
+                                .filter(Boolean)
+                                .map((fileName, idx) => {
+                                    const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
+                                    return (
+                                        <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-slate-200 md:max-w-md w-full">
+                                            <div className="p-2 bg-white rounded-lg shadow-sm">
+                                                <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                                            </div>
+                                            <span className="text-[14px] font-bold text-[#353535] line-clamp-1 flex-1">
+                                                {fileName.split("_").pop() || "Document"}
+                                            </span>
+                                            <div className="flex gap-2">
+                                                <a
+                                                    href={url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
+                                                    title="View Details"
+                                                >
+                                                    <img src={viewIcon} alt="View" className="w-[18px] h-[18px] object-contain opacity-70 hover:opacity-100" />
+                                                </a>
+                                                <a
+                                                    href={url}
+                                                    download
+                                                    className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
+                                                    title="Download File"
+                                                >
+                                                    <FiUploadCloud className="w-[18px] h-[18px] rotate-180 object-contain text-slate-500 hover:text-[#DD4342]" />
+                                                </a>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                        </div>
+                    ) : (
+                        <span className="text-[16px] font-medium text-[#616161]">No Document Available</span>
+                    )}
                 </div>
               </div>
 
