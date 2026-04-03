@@ -578,7 +578,13 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
     const openedFromTeamTask = fromState === "teamtask" || fromState === "teamtasks";
     const fromTeamTaskView =
       openedFromTeamTask &&
-      (normalizedCurrent === "/tasks/taskview" || normalizedCurrent.endsWith("/mytasks/view"));
+      (normalizedCurrent === "/tasks/taskview" ||
+        normalizedCurrent.includes("/mytasks/view") ||
+        normalizedCurrent.includes("/mytasks/add") ||
+        normalizedCurrent.includes("/mytasks/edit") ||
+        normalizedCurrent.includes("/teamtasks/view") ||
+        normalizedCurrent.includes("/teamtasks/add") ||
+        normalizedCurrent.includes("/teamtasks/edit"));
 
     if (fromTeamTaskView) {
       if (name === "Team Task" && (normalizedTarget === "/teamtask" || normalizedTarget.endsWith("/teamtasks"))) return true;
