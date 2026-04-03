@@ -1400,6 +1400,31 @@ export default function ConsultantBC() {
                         </label>
                       </div>
                     </div>
+
+                    <div className="relative">
+                      <label className="block text-[14px] font-medium text-[#000000] mb-1.5 font-Gantari">
+                        Type
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={form.type || ""}
+                          onChange={(e) =>
+                            setForm((f: any) => ({
+                              ...f,
+                              type: e.target.value,
+                            }))
+                          }
+                          className="w-full px-4 py-2.5 bg-[#F2F3F4] border-none rounded-md text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
+                        >
+                          <option value="" disabled>
+                            Select Type
+                          </option>
+                          <option value="Trainee">Trainee</option>
+                          <option value="Employee">Employee</option>
+                        </select>
+                        <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#353535] pointer-events-none" />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1698,7 +1723,7 @@ export default function ConsultantBC() {
                     value: selectedEmployee.phone_number,
                   },
                   { label: "Email ID", value: selectedEmployee.email },
-                  { label: "User Type", value: selectedEmployee.user_type },
+                  { label: "Type", value: selectedEmployee.user_type },
                   { label: "User Role", value: selectedEmployee.user_role },
                   { label: "Address", value: selectedEmployee.address },
                   { label: "Joined Date", value: selectedEmployee.doj },
