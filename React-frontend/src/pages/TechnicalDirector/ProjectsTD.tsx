@@ -2155,8 +2155,8 @@ export default function ProjectsTD() {
                             {p.priority && (
                               <div
                                 className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
-                                    ? "bg-[#DD4342]"
-                                    : "bg-[#94D6F2]"
+                                  ? "bg-[#DD4342]"
+                                  : "bg-[#94D6F2]"
                                   }`}
                               >
                                 {p.priority}
@@ -3094,8 +3094,8 @@ export default function ProjectsTD() {
                               setEditDropdownOpen(null);
                             }}
                             className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${!createDepartment
-                                ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                                : "text-gray-700"
+                              ? "bg-[#E2EEFF] text-[#1D7AFC]"
+                              : "text-gray-700"
                               }`}
                           >
                             Select Source
@@ -3107,8 +3107,8 @@ export default function ProjectsTD() {
                               setEditDropdownOpen(null);
                             }}
                             className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${createDepartment === "Budget Ceiling"
-                                ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                                : "text-gray-700"
+                              ? "bg-[#E2EEFF] text-[#1D7AFC]"
+                              : "text-gray-700"
                               }`}
                           >
                             In House
@@ -3120,8 +3120,8 @@ export default function ProjectsTD() {
                               setEditDropdownOpen(null);
                             }}
                             className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${createDepartment === "Submission Deadline"
-                                ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                                : "text-gray-700"
+                              ? "bg-[#E2EEFF] text-[#1D7AFC]"
+                              : "text-gray-700"
                               }`}
                           >
                             Outsource

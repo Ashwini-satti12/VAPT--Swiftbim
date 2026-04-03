@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
@@ -94,6 +94,7 @@ function countInclusiveProjectDays(startYmd: string, endYmd: string): number | n
 export default function ProjectsV() {
     const { user: authUser } = useAuth();
     const userRole = authUser?.user_role || "";
+    const navigate = useNavigate();
 
     const [list, setList] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
@@ -1165,12 +1166,12 @@ export default function ProjectsV() {
                             {/* Task Status Cards */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
                                 {[
-                                    { label: "To Do Tasks", value: taskStats.todo },
-                                    { label: "In Progress", value: taskStats.inProgress },
-                                    { label: "Paused", value: taskStats.paused },
-                                    { label: "Completed", value: taskStats.completed },
+                                    { label: "To Do Tasks", value: taskStats.todo, status: "todo" },
+                                    { label: "In Progress", value: taskStats.inProgress, status: "in_progress" },
+                                    { label: "Paused", value: taskStats.paused, status: "" },
+                                    { label: "Completed", value: taskStats.completed, status: "completed" },
                                 ].map((stat, i) => (
-                                    <div key={i} className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors group border border-slate-200">
+                                    <div key={i} onClick={() => stat.status && navigate(`/v/teamtasks?project=${encodeURIComponent(selectedProject?.project_name || "")}&status=${stat.status}`)} className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors group border border-slate-200">
                                         <div className="flex items-center justify-left mb-2">
                                             <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold">{stat.label}</p>
                                         </div>

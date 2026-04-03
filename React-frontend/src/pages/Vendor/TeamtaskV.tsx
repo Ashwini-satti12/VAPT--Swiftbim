@@ -730,7 +730,7 @@ export default function TeamtaskV() {
 
     const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
-    const [selectedProject, setSelectedProject] = useState<string | null>(null);
+    const [selectedProject, setSelectedProject] = useState<string | null>(searchParams.get("project") || null);
     const [selectedShow, setSelectedShow] = useState<string | null>("Show Entries");
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
     const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
