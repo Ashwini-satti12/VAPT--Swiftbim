@@ -74,6 +74,12 @@ interface Project {
   project_name: string;
   tasks?: string;
   source?: string;
+  project_manager_name?: string;
+  lead_name?: string;
+  bim_coordinator_name?: string;
+  uploader_name?: string;
+  members_names?: string[];
+  members?: string;
 }
 
 function taskToFormValues(task: Task | Record<string, unknown>): {
@@ -179,18 +185,20 @@ export default function AddTaskPM() {
     ]).then(([empRes, projRes1, projRes2]) => {
       setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
       
-      const p1 = (projRes1.data.projects ?? []).map(r => ({
+      const mapProj = (r: Record<string, any>, defaultSource: string) => ({
         id: Number(r.id),
         project_name: String(r.project_name || ""),
         tasks: String(r.tasks || ""),
-        source: String(r.source || "In House")
-      }));
-      const p2 = (projRes2.data.projects ?? []).map(r => ({
-        id: Number(r.id),
-        project_name: String(r.project_name || ""),
-        tasks: String(r.tasks || ""),
-        source: "Outsource"
-      }));
+        source: String(r.source || defaultSource),
+        project_manager_name: String(r.project_manager_name || ""),
+        lead_name: String(r.lead_name || ""),
+        bim_coordinator_name: String(r.bim_coordinator_name || ""),
+        uploader_name: String(r.uploader_name || ""),
+        members_names: Array.isArray(r.members_names) ? r.members_names.map(String) : [],
+        members: String(r.members || "")
+      });
+      const p1 = (projRes1.data.projects ?? []).map(r => mapProj(r, "In House"));
+      const p2 = (projRes2.data.projects ?? []).map(r => mapProj(r, "Outsource"));
       
       setProjects([...p1, ...p2]);
     });
@@ -406,38 +414,42 @@ export default function AddTaskPM() {
     if (!addTaskForm.projectName) {
       return [
         { value: "", label: "Select Assign To" },
-        ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
+        ...employees.map((e) => ({ value: e.full_name, label: e.full_name })),
       ];
     }
     const proj = projects.find((p) => p.project_name === addTaskForm.projectName);
     if (!proj) {
       return [
         { value: "", label: "Select Assign To" },
-        ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
+        ...employees.map((e) => ({ value: e.full_name, label: e.full_name })),
       ];
     }
     const involvedNames = new Set<string>();
-    // @ts-ignore - these fields might be added dynamically from backend
-    if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
-    // @ts-ignore
-    if (proj.lead_name) involvedNames.add(proj.lead_name);
-    // @ts-ignore
-    if (proj.bim_coordinator_name) involvedNames.add(proj.bim_coordinator_name);
-    // @ts-ignore
-    if (proj.uploader_name) involvedNames.add(proj.uploader_name);
-    // @ts-ignore
+    
+    const addNames = (val: string | undefined | null) => {
+      if (!val) return;
+      val.split(",").forEach(n => {
+        const trimmed = n.trim();
+        if (trimmed) involvedNames.add(trimmed);
+      });
+    };
+
+    addNames(proj.project_manager_name);
+    addNames(proj.lead_name);
+    addNames(proj.bim_coordinator_name);
+    addNames(proj.uploader_name);
+
     if (Array.isArray(proj.members_names)) {
-      // @ts-ignore
-      proj.members_names.forEach((name: string) => {
-        if (name) involvedNames.add(name);
+      proj.members_names.forEach((name) => {
+        if (name) involvedNames.add(name.trim());
       });
     }
 
-    const validEmployees = employees.filter(e => e.full_name && involvedNames.has(e.full_name) && isEmployeeActiveForProjectAssignment(e));
+    const filteredEmployees = employees.filter(e => involvedNames.has(e.full_name));
 
     return [
       { value: "", label: "Select Assign To" },
-      ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
+      ...filteredEmployees.map((e) => ({ value: e.full_name, label: e.full_name })),
     ];
   };
 
