@@ -6,7 +6,7 @@ import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 import threedot from "../../../assets/ProjectManager/project/threedot.svg";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import paymentMilestoneIcon from "../../../assets/ProjectManager/project/paymentMilestone.svg";
-// import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
+import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
 import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
 import ProfileIcon from "../../../assets/ProductNavbarIcons/Profile.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
@@ -95,6 +95,8 @@ export default function VendorBimLeadProjects() {
   const [createLocation, setCreateLocation] = useState("");
   const [createDescription, setCreateDescription] = useState("");
   const [createDeliverables, setCreateDeliverables] = useState("");
+  const [createDepartment, setCreateDepartment] = useState("");
+  const [createTaskName, setCreateTaskName] = useState("");
 
   // const [createSubmitting, setCreateSubmitting] = useState(false);
   const [editSubmitting, setEditSubmitting] = useState(false);
@@ -191,7 +193,7 @@ export default function VendorBimLeadProjects() {
     return found?.fullName || found?.full_name || "";
   };
 
-  const handleEditClick = (p: Project) => {
+  const openEdit = (p: Project) => {
     setEditId(p.id);
     setCreateName(p.project_name || "");
     setCreateBudget(p.budget || "");
@@ -205,7 +207,9 @@ export default function VendorBimLeadProjects() {
     setCreateBIMLead(idToName(p.lead_id, allEmployees));
     setCreateBIMCoOrdinator(idToName(p.bim_coordinator_id, allEmployees));
     setCreateResources(p.resources || p.no_resource || "");
-    setCreateRequiredResources(p.required_resources || p.no_resources_required || "");
+    setCreateRequiredResources(
+      p.required_resources || p.no_resources_required || "",
+    );
     setSelectedMemberIds(
       p.members ? p.members.split(",").filter(Boolean).map(Number) : [],
     );
@@ -213,6 +217,8 @@ export default function VendorBimLeadProjects() {
     setCreateLocation(p.location || "");
     setCreateDescription(p.description || "");
     setCreateDeliverables(p.deliverables || "");
+    setCreateDepartment(p.department || "");
+    setCreateTaskName(p.deliverables || "");
     setShowEditModal(true);
   };
 
@@ -252,7 +258,8 @@ export default function VendorBimLeadProjects() {
         priority: createPriority,
         location: createLocation,
         description: createDescription,
-        deliverables: createDeliverables,
+        deliverables: createTaskName,
+        department: createDepartment,
       })
       .then(({ data }) => {
         if (data.success) {
@@ -276,6 +283,9 @@ export default function VendorBimLeadProjects() {
           setCreateLocation("");
           setCreateDescription("");
           setCreateDeliverables("");
+          setCreateDeliverables("");
+          setCreateDepartment("");
+          setCreateTaskName("");
           setCreateFile(null);
 
           setSuccessMsg("Project updated!");
@@ -283,7 +293,7 @@ export default function VendorBimLeadProjects() {
           fetchProjects();
         }
       })
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => setEditSubmitting(false));
   };
 
@@ -302,10 +312,10 @@ export default function VendorBimLeadProjects() {
   const formatDate = (d: any) =>
     d
       ? new Date(d).toLocaleDateString("en-US", {
-        month: "short",
-        day: "2-digit",
-        year: "numeric",
-      })
+          month: "short",
+          day: "2-digit",
+          year: "numeric",
+        })
       : "—";
 
   const toggleMember = (id: number) => {
@@ -412,24 +422,24 @@ export default function VendorBimLeadProjects() {
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
         <div className="space-y-2">
-          <label className="block text-[15px] font-bold text-[#353535]">
+          <label className="block text-[16px] font-medium text-[#353535]">
             Project Name <span className="text-[#DD4342]">*</span>
           </label>
           <input
             type="text"
-            className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-[#353535] placeholder-gray-400"
-            placeholder="Enter Project name"
+            className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+            placeholder="Enter Project Name"
             value={createName}
             onChange={(e) => setCreateName(e.target.value)}
           />
         </div>
         <div className="space-y-2">
-          <label className="block text-[15px] font-bold text-[#353535]">
+          <label className="block text-[16px] font-medium text-[#353535]">
             Client Name <span className="text-[#DD4342]">*</span>
           </label>
           <input
             type="text"
-            className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-[#353535] placeholder-gray-400"
+            className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
             placeholder="Enter Client Name"
             value={createClientName}
             onChange={(e) => setCreateClientName(e.target.value)}
@@ -437,7 +447,7 @@ export default function VendorBimLeadProjects() {
         </div>
         {/* Budget hidden for VBL in edit mode */}
         <div className="space-y-2">
-          <label className="block text-[15px] font-bold text-[#353535]">
+          <label className="block text-[16px] font-medium text-[#353535]">
             Select Project Manager <span className="text-[#DD4342]">*</span>
           </label>
           <div className="relative">
@@ -446,9 +456,13 @@ export default function VendorBimLeadProjects() {
               onClick={() =>
                 setEditDropdownOpen((prev) => (prev === "pm" ? null : "pm"))
               }
-              className="w-full flex items-center justify-between px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-left"
+              className="w-full flex items-center justify-between px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
             >
-              <span className={createProjectManager ? "text-[#353535]" : "text-gray-400"}>
+              <span
+                className={
+                  createProjectManager ? "text-[#353535]" : "text-gray-400"
+                }
+              >
                 {createProjectManager || "Select Project Manager"}
               </span>
               <svg
@@ -457,7 +471,12 @@ export default function VendorBimLeadProjects() {
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
             {editDropdownOpen === "pm" && (
@@ -468,7 +487,7 @@ export default function VendorBimLeadProjects() {
                     setCreateProjectManager("");
                     setEditDropdownOpen(null);
                   }}
-                  className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-[#F2F2F2]"
+                  className="block w-full text-left px-4 py-2 text-[14px] text-gray-700 hover:bg-[#F2F2F2]"
                 >
                   Select Project Manager
                 </button>
@@ -480,7 +499,7 @@ export default function VendorBimLeadProjects() {
                       setCreateProjectManager(pm.full_name || "");
                       setEditDropdownOpen(null);
                     }}
-                    className={`block w-full text-left px-4 py-3 text-sm hover:bg-[#F2F2F2] ${createProjectManager === pm.full_name ? "bg-[#FFF1F1] text-[#DD4342]" : "text-[#353535]"}`}
+                    className={`block w-full text-left px-4 py-2 text-[14px] text-gray-700 hover:bg-[#F2F2F2] ${createProjectManager === pm.full_name ? "bg-[#FFF1F1] text-[#DD4342]" : "text-[#353535]"}`}
                   >
                     {pm.full_name}
                   </button>
@@ -490,18 +509,22 @@ export default function VendorBimLeadProjects() {
           </div>
         </div>
         <div className="space-y-2">
-          <label className="block text-[15px] font-bold text-[#353535]">
+          <label className="block text-[16px] font-medium text-[#353535]">
             Select BIM Lead <span className="text-[#DD4342]">*</span>
           </label>
           <div className="relative">
             <button
               type="button"
               onClick={() =>
-                setEditDropdownOpen((prev) => (prev === "bimLead" ? null : "bimLead"))
+                setEditDropdownOpen((prev) =>
+                  prev === "bimLead" ? null : "bimLead",
+                )
               }
-              className="w-full flex items-center justify-between px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-left"
+              className="w-full flex items-center justify-between px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
             >
-              <span className={createBIMLead ? "text-[#353535]" : "text-gray-400"}>
+              <span
+                className={createBIMLead ? "text-[#353535]" : "text-gray-400"}
+              >
                 {createBIMLead || "Select BIM Lead"}
               </span>
               <svg
@@ -510,11 +533,16 @@ export default function VendorBimLeadProjects() {
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
             {editDropdownOpen === "bimLead" && (
-              <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded-xl shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+              <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded-md py-1 max-h-48 overflow-y-auto custom-scrollbar">
                 {bimLeads.map((lead) => (
                   <button
                     key={lead.id}
@@ -533,41 +561,70 @@ export default function VendorBimLeadProjects() {
           </div>
         </div>
         <div className="space-y-2">
-          <label className="block text-[16px] font-medium text-[#000000]">Project Start Date <span className="text-[#DD4342]">*</span></label>
-          <input type="date" value={createStartDate} 
-              onChange={e => {
-                  const val = e.target.value;
-                  setCreateStartDate(val);
-                  if (val && (!createEndDate || createEndDate === "")) {
-                      const d = new Date(val);
-                      d.setMonth(d.getMonth() + 6);
-                      setCreateEndDate(d.toISOString().split('T')[0]);
-                  }
-              }}
-              className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" />
+          <label className="block text-[16px] font-medium text-[#000000]">
+            Project Start Date <span className="text-[#DD4342]">*</span>
+          </label>
+          <input
+            type="date"
+            value={createStartDate}
+            onChange={(e) => {
+              const val = e.target.value;
+              setCreateStartDate(val);
+              if (val && (!createEndDate || createEndDate === "")) {
+                const d = new Date(val);
+                d.setMonth(d.getMonth() + 6);
+                setCreateEndDate(d.toISOString().split("T")[0]);
+              }
+            }}
+            className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+          />
         </div>
         <div className="space-y-2">
-          <label className="block text-[15px] font-bold text-[#353535]">Project End Date <span className="text-[#DD4342]">*</span></label>
-          <input type="date" value={createEndDate} onChange={e => setCreateEndDate(e.target.value)}
-            className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-[#353535]" />
+          <label className="block text-[16px] font-medium text-[#353535]">
+            Project End Date <span className="text-[#DD4342]">*</span>
+          </label>
+          <input
+            type="date"
+            value={createEndDate}
+            onChange={(e) => setCreateEndDate(e.target.value)}
+            className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+          />
         </div>
         <div className="space-y-2">
-          <label className="block text-[15px] font-bold text-[#353535]">Priority <span className="text-[#DD4342]">*</span></label>
+          <label className="block text-[16px] font-medium text-[#353535]">
+            Priority <span className="text-[#DD4342]">*</span>
+          </label>
           <div className="relative">
             <button
               type="button"
-              onClick={() => setEditDropdownOpen((o) => (o === "priority" ? null : "priority")) }
-              className="w-full flex items-center justify-between px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-left"
+              onClick={() =>
+                setEditDropdownOpen((o) =>
+                  o === "priority" ? null : "priority",
+                )
+              }
+              className="w-full flex items-center justify-between px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
             >
-              <span className={createPriority ? "text-[#353535]" : "text-gray-400"}>
+              <span
+                className={createPriority ? "text-[#353535]" : "text-gray-400"}
+              >
                 {createPriority || "Select Priority"}
               </span>
-              <svg className={`w-5 h-5 text-gray-400 transition-transform ${editDropdownOpen === "priority" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <svg
+                className={`w-5 h-5 text-gray-400 transition-transform ${editDropdownOpen === "priority" ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
             {editDropdownOpen === "priority" && (
-              <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded-xl shadow-lg py-1">
+              <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded-md py-1">
                 {["High", "Medium", "Low"].map((p) => (
                   <button
                     key={p}
@@ -576,7 +633,7 @@ export default function VendorBimLeadProjects() {
                       setCreatePriority(p);
                       setEditDropdownOpen(null);
                     }}
-                    className={`block w-full text-left px-12 py-3 text-sm hover:bg-[#F2F2F2] ${createPriority === p ? "bg-[#FFF1F1] text-[#DD4342]" : "text-[#353535]"}`}
+                    className={`block w-full text-left px-4 py-2 text-[14px] text-gray-700 hover:bg-[#F2F2F2] ${createPriority === p ? "bg-[#FFF1F1] text-[#DD4342]" : "text-[#353535]"}`}
                   >
                     {p}
                   </button>
@@ -589,13 +646,22 @@ export default function VendorBimLeadProjects() {
       <div className="space-y-6 mt-6">
         {renderMemberSelector()}
         <div className="space-y-2">
-          <label className="block text-[15px] font-bold text-[#353535]">Description <span className="text-[#DD4342]">*</span></label>
-          <textarea value={createDescription} onChange={e => setCreateDescription(e.target.value)} rows={4}
-            className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-[#353535] resize-none" placeholder="Provide a detailed project description..." />
+          <label className="block text-[16px] font-medium text-[#353535]">
+            Description <span className="text-[#DD4342]">*</span>
+          </label>
+          <textarea
+            value={createDescription}
+            onChange={(e) => setCreateDescription(e.target.value)}
+            rows={4}
+            className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] resize-none"
+            placeholder="Provide a detailed project description..."
+          />
         </div>
       </div>
       <div className="space-y-2 mt-6">
-        <label className="block text-[15px] font-bold text-[#353535]">Attach File</label>
+        <label className="block text-[16px] font-medium text-[#353535]">
+          Attach File
+        </label>
         <div className="relative">
           <input
             type="file"
@@ -606,20 +672,38 @@ export default function VendorBimLeadProjects() {
           {!createFile ? (
             <label
               htmlFor="edit-file-upload"
-              className="flex flex-col items-center justify-center w-full h-32 bg-[#F8FAFC] border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer hover:border-[#DD4342]/20 transition-all"
+              className="flex flex-col items-center justify-center w-full h-32 bg-[#F2F3F4] border-2 border-dashed border-slate-200 rounded-md cursor-pointer hover:border-[#DD4342]/20 transition-all"
             >
               <FiUploadCloud className="w-8 h-8 mb-2 text-slate-400" />
-              <p className="text-sm text-slate-500">Click or drag and drop to upload</p>
+              <p className="text-sm text-slate-500">
+                Click or drag and drop to upload
+              </p>
             </label>
           ) : (
             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-[#DD4342]/10">
               <div className="flex items-center gap-3">
                 <FiPaperclip className="text-[#DD4342]" />
-                <span className="text-sm font-bold text-[#353535]">{createFile.name}</span>
+                <span className="text-sm font-bold text-[#353535]">
+                  {createFile.name}
+                </span>
               </div>
-              <button type="button" onClick={() => setCreateFile(null)} className="text-slate-400 hover:text-red-500">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <button
+                type="button"
+                onClick={() => setCreateFile(null)}
+                className="text-slate-400 hover:text-red-500"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -690,7 +774,7 @@ export default function VendorBimLeadProjects() {
                   setSelectedMemberIds([]);
                   setCreateFile(null);
                 }}
-                className="p-3 rounded-lg bg-[#F2F2F2] text-[#000000] hover:bg-gray-200 transition-colors cursor-pointer"
+                className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-colors cursor-pointer"
                 title="Back"
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
@@ -718,14 +802,14 @@ export default function VendorBimLeadProjects() {
                       setEditDropdownOpen(null);
                       setEditError("");
                     }}
-                    className="px-12 py-3.5 rounded-xl bg-[#F1F1F1] text-[#666666] font-bold text-[16px] transition-all hover:bg-gray-200"
+                    className="px-5 py-2 rounded-md bg-[#F2F2F2] text-[#666666] font-medium text-[16px]"
                   >
                     Discard
                   </button>
                   <button
                     type="submit"
                     disabled={editSubmitting}
-                    className="px-12 py-3.5 rounded-xl bg-[#DD4342] text-white font-bold text-[16px] transition-all hover:opacity-90 shadow-lg shadow-red-100 disabled:opacity-50"
+                    className="px-5 py-2 rounded-md bg-[#DD4342] text-white font-medium text-[16px]"
                   >
                     {editSubmitting ? "Updating..." : "Update Project"}
                   </button>
@@ -744,20 +828,20 @@ export default function VendorBimLeadProjects() {
               <button
                 type="button"
                 onClick={() => setShowProjectView(false)}
-                className="p-3 rounded-lg bg-[#F2F2F2] text-[#000000] transition-colors hover:bg-[#EAEAEA]"
+                className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-colors"
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
               <div className="min-w-0">
-                <h3 className="text-[20px] md:text-[24px] font-semibold text-[#1A1A1A] truncate">
+                <h3 className="text-[20px] md:text-[24px] font-medium text-[#000000]">
                   {selectedProject.project_name ?? "Untitled Project"}
                 </h3>
-                <p className="text-[14px] font-semibold text-[#999999]">
+                <p className="text-[14px] font-medium text-[#999999]">
                   Overall Progress Tracker
                 </p>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 pt-6 md:pt-8 custom-scrollbar space-y-8">
+            <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-10 pt-6 md:pt-8 custom-scrollbar space-y-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
                 {[
                   {
@@ -787,110 +871,136 @@ export default function VendorBimLeadProjects() {
                     onClick={() =>
                       navigate(
                         "/vendor-bim-lead/teamtasks?status=" +
-                        stat.status +
-                        (selectedProject?.project_name
-                          ? `&project=${encodeURIComponent(selectedProject.project_name)}`
-                          : ""),
+                          stat.status +
+                          (selectedProject?.project_name
+                            ? `&project=${encodeURIComponent(selectedProject.project_name)}`
+                            : ""),
                       )
                     }
-                    className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] shadow-sm flex flex-col h-[100px] md:h-[140px] hover:bg-[#DD4342] focus:outline-none cursor-pointer transition-all group"
+                    className="text-left bg-[#F2F2F2] p-4 rounded-md flex flex-col h-[80px] md:h-[100px] hover:bg-[#DD4342] focus:outline-none cursor-pointer transition-all group"
                   >
-                    <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[20px] font-semibold">
+                    <p className="text-[#353535] group-hover:text-white text-[16px] md:text-[18px] font-medium">
                       {stat.label}
                     </p>
-                    <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-bold leading-none mt-auto self-center">
+                    <p className="text-[#353535] group-hover:text-white text-[20px] md:text-[24px] font-bold leading-none mt-auto self-center">
                       {stat.value}
                     </p>
                   </button>
                 ))}
               </div>
-              <div className="border border-slate-200 rounded-[10px] p-6 md:p-8">
-                <h4 className="text-[20px] font-Gantari font-semibold text-[#1A1A1A] mb-6">
-                    Project Details
+              <div className="border border-slate-200 rounded-lg p-4 md:p-6">
+                <h4 className="text-[20px] font-Gantari font-medium text-[#000000] mb-4">
+                  Project Details
                 </h4>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
-                    <div className="space-y-4 md:space-y-5">
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                Actual Start Date
-                            </span>
-                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                {formatDate(selectedProject.start_date)}
-                            </span>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                Total Project Hours
-                            </span>
-                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                {selectedProject.totalhours ? `${selectedProject.totalhours}hrs` : "N/A"}
-                            </span>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                Outsourcing Budget
-                            </span>
-                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                {selectedProject.budget_ceiling || "N/A"}
-                            </span>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                Total Resources Available
-                            </span>
-                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                {selectedProject.resources || selectedProject.no_resource || "N/A"}
-                            </span>
-                        </div>
+                  <div className="space-y-4 md:space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                        Actual Start Date
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
+                      <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                        {formatDate(selectedProject.start_date)}
+                      </span>
                     </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                        Total Project Hours
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
+                      <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                        {selectedProject.totalhours
+                          ? `${selectedProject.totalhours}hrs`
+                          : "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                        Outsourcing Budget
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
+                      <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                        {selectedProject.budget_ceiling || "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                        Total Resources Available
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
+                      <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                        {selectedProject.resources ||
+                          selectedProject.no_resource ||
+                          "N/A"}
+                      </span>
+                    </div>
+                  </div>
 
-                    <div className="space-y-4 md:space-y-5">
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                Location
-                            </span>
-                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                {selectedProject.location || "N/A"}
-                            </span>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                Actual End Date
-                            </span>
-                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                {formatDate(selectedProject.end_date || selectedProject.due_date)}
-                            </span>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                Hours/Day
-                            </span>
-                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                {selectedProject.per_day || selectedProject.perday ? `${selectedProject.per_day || selectedProject.perday}hrs` : "N/A"}
-                            </span>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                Required Resources
-                            </span>
-                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                {selectedProject.required_resources || selectedProject.no_resources_required || "N/A"}
-                            </span>
-                        </div>
+                  <div className="space-y-4 md:space-y-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                        Location
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
+                      <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                        {selectedProject.location || "N/A"}
+                      </span>
                     </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                        Actual End Date
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
+                      <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                        {formatDate(
+                          selectedProject.end_date || selectedProject.due_date,
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                        Hours/Day
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
+                      <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                        {selectedProject.per_day || selectedProject.perday
+                          ? `${selectedProject.per_day || selectedProject.perday}hrs`
+                          : "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                        Required Resources
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
+                      <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                        {selectedProject.required_resources ||
+                          selectedProject.no_resources_required ||
+                          "N/A"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div className="border border-slate-200 rounded-[10px] p-6 md:p-8">
-                <h4 className="text-[18px] md:text-[22px] font-bold text-[#000000]">
+                <h4 className="text-[18px] md:text-[20px] font-semibold text-[#000000]">
                   Project Description
                 </h4>
                 <p className="text-[16px] font-medium text-[#666666] mt-4 leading-relaxed">
@@ -900,7 +1010,7 @@ export default function VendorBimLeadProjects() {
 
               {/* Team Roles Section */}
               <div className="border border-slate-200 rounded-[10px] p-6 md:p-8 space-y-6">
-                <h4 className="text-[18px] md:text-[22px] font-bold text-[#000000]">
+                <h4 className="text-[18px] md:text-[20px] font-semibold text-[#000000]">
                   Team Overview
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -917,7 +1027,7 @@ export default function VendorBimLeadProjects() {
                   ].map((role) => (
                     <div key={role.label} className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
-                        <span className="text-slate-400 font-bold text-sm">
+                        <span className="text-slate-400 font-semibold text-[16px]">
                           {getEmployeeName(role.id)
                             ? getEmployeeName(role.id).charAt(0).toUpperCase()
                             : "??"}
@@ -936,7 +1046,7 @@ export default function VendorBimLeadProjects() {
                 </div>
 
                 <div className="pt-6 border-t border-slate-100">
-                  <p className="text-xs font-bold text-[#999999] uppercase tracking-wider mb-4">
+                  <p className="text-[16px] font-medium text-[#353535] mb-4">
                     Team Members
                   </p>
                   <div className="flex flex-wrap gap-4">
@@ -952,23 +1062,22 @@ export default function VendorBimLeadProjects() {
                             key={id}
                             className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100"
                           >
-                            <div className="w-8 h-8 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-xs font-bold">
+                            <div className="w-8 h-8 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-[16px] font-medium">
                               {(emp.full_name || "?")[0]}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-bold text-[#1E293B] truncate max-w-[120px]">
+                              <p className="text-[16px] font-medium text-[#1E293B] truncate">
                                 {emp.full_name}
                               </p>
-                              <p className="text-[10px] text-[#999] font-medium">
+                              <p className="text-[16px] text-[#999] font-medium">
                                 {emp.user_role || "Member"}
                               </p>
                             </div>
                           </div>
                         ) : null;
                       })}
-                    {!(selectedProject.members || "")
-                      .split(",")
-                      .filter(Boolean).length && (
+                    {!(selectedProject.members || "").split(",").filter(Boolean)
+                      .length && (
                       <p className="text-[#999] text-sm italic">
                         No team members assigned
                       </p>
@@ -1109,7 +1218,7 @@ export default function VendorBimLeadProjects() {
                                     className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                   />
                                   <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342] ">
-                                    View Details
+                                    View
                                   </span>
                                 </button>
                                 <button
@@ -1147,13 +1256,12 @@ export default function VendorBimLeadProjects() {
                                     Edit
                                   </span>
                                 </button>
-                                
                               </div>
                             </div>
                           </div>
 
-                          <div className="mb-4 ml-6 -mt-2">
-                            <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                          <div className="mb-4 ml-4 -mt-4">
+                            <h3 className="text-[18px] md:text-[20px] font-Gantari font-medium text-[#000000]">
                               {p.project_name ?? "Untitled Project"}
                             </h3>
                           </div>
@@ -1192,7 +1300,7 @@ export default function VendorBimLeadProjects() {
                                     return (
                                       <div
                                         key={emp.id}
-                                        className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                        className="w-9 h-9 rounded-full border border-white bg-slate-100 overflow-hidden cursor-pointer hover:ring-2 hover:ring-[#F2F2F2]"
                                         title={emp.full_name}
                                       >
                                         {profileUrl ? (
@@ -1207,7 +1315,7 @@ export default function VendorBimLeadProjects() {
                                             }}
                                           />
                                         ) : (
-                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
+                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[12px] font-medium text-slate-600">
                                             {(emp.full_name || "U")
                                               .charAt(0)
                                               .toUpperCase()}
@@ -1227,7 +1335,7 @@ export default function VendorBimLeadProjects() {
                           </div>
                           {p.priority && (
                             <span
-                              className={`px-2.5 py-1 rounded-full text-[10px] font-Gantari font-bold uppercase tracking-wider ${p.priority === "High" || p.priority === "Urgent" ? "bg-red-50 text-red-600 border border-red-100" : p.priority === "Medium" ? "bg-orange-50 text-orange-600 border border-orange-100" : "bg-green-50 text-green-600 border border-green-100"}`}
+                              className={`px-2.5 py-1 rounded-md text-[12px] font-Gantari font-semibold tracking-wider ${p.priority === "High" || p.priority === "Urgent" ? "bg-red-200 text-red-600 border border-red-100" : p.priority === "Medium" ? "bg-orange-200 text-orange-600 border border-orange-100" : "bg-green-200 text-green-600 border border-green-100"}`}
                             >
                               {p.priority}
                             </span>
