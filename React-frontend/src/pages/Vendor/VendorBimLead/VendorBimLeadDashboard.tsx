@@ -277,7 +277,7 @@ export default function VendorBimLeadDashboard() {
                 <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">Dashboard</h1>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     {kpiCards.map((card, i) => (
-                        <Link key={i} to={card.link} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 transition-colors cursor-pointer">
+                        <Link key={i} to={card.link} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-3 flex items-center justify-between min-h-0 transition-colors cursor-pointer">
                             <h3 className="text-[18px] md:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">{card.label}</h3>
                             <p className="text-[20px] md:text-[20] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{card.value}</p>
                         </Link>

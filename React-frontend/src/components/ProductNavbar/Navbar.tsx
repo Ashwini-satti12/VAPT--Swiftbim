@@ -335,7 +335,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
       alert("Image must be under 5MB.");
       return;
     }
-    
+
     setSelectedFile(file); // Store the file for upload
 
     const reader = new FileReader();
@@ -356,7 +356,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     // Only validate password if the user is trying to change it
     const curPass = (currentPassword || "").trim();
     const newPass = (newPassword || "").trim();
-    
+
     if (curPass || newPass) {
       if (!curPass || !newPass) {
         setPasswordError("Please enter both current and new password to change it.");
@@ -396,7 +396,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
       }
 
       setProfileData({ ...editData });
-      
+
       // If a new profile picture was uploaded, the backend returns the filename
       const empId = editData.id || user?.id;
       if (data && data.profile_picture && empId) {
@@ -404,7 +404,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
         setProfilePicture(url);
         localStorage.setItem("userProfilePicture", url);
       }
-      
+
       setSelectedFile(null);
       setIsEditingActual(false);
     } catch (err) {
@@ -846,37 +846,43 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
       {/* ── Logout Confirm (inline) ── */}
       {showLogoutConfirm && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
           onClick={() => setShowLogoutConfirm(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative"
+            className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* X Close Button - top left */}
+            {/* Close Button */}
             <button
               onClick={() => setShowLogoutConfirm(false)}
-              className="absolute top-5 left-5 w-9 h-9 flex items-center justify-center bg-[#F2F2F2] rounded-lg cursor-pointer transition-colors"
+              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+              title="Close"
             >
-              <img src={CloseIcon} alt="Close" className="w-4 h-4" />
+              <img src={CloseIcon} alt="Close" className="w-5 h-5" />
             </button>
 
+            {/* Heading */}
+            <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
+              Log Out
+            </h3>
+
             {/* Centered message */}
-            <p className="text-center text-[17px] font-bold text-[#1A1A1A] font-gantari mt-6 mb-10">
+            <p className="text-center text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10">
               Are you sure you want to log out?
             </p>
 
-            {/* Centered buttons */}
-            <div className="flex justify-center gap-4">
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
-                className="px-8 py-2.5 text-[15px] text-[#353535] rounded-lg font-semibold bg-[#F0F0F0] transition-colors min-w-[110px] cursor-pointer"
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleLogout}
-                className="px-8 py-2.5 text-[15px] bg-[#FFE5E5] text-[#E00100] rounded-lg font-semibold transition-colors min-w-[110px] cursor-pointer"
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
                 Log Out
               </button>

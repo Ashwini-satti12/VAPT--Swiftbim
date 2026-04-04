@@ -312,7 +312,7 @@ export default function DashboardBC() {
 
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4 overflow-visible lg:overflow-hidden">
         {/* Today's Priority — projects with today's tasks (same as DashboardTD) */}
-        <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
+        <div className="lg:col-span-2 flex flex-col bg-white rounded-md border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
           <div className="mb-4 shrink-0">
             <h2 className="text-[18px] font-semibold text-[#353535] font-gantari">
               Today's Priority

@@ -207,16 +207,16 @@ export function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? (label === "Period" ? "min-w-[100px]" : "min-w-[150px]") : "min-w-[160px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
-                <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
-                    {label.toLowerCase() === 'show' && selected && selected !== label ? (
+                <span className={`truncate font-Gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
+                    {(label.toLowerCase() === "show entries" || label.toLowerCase() === "show") && selected && selected !== label ? (
                         <>
-                            <span className="text-[14px] text-[#353535]">Show Entries:</span>{" "}
-                            <span>{selected}</span>
+                            <span className="text-[14px]">Show:</span>{" "}
+                            <span className="font-semibold">{selected}</span>
                         </>
                     ) : (
                         selected ?? label
@@ -263,7 +263,7 @@ export function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                className={`block w-full px-4 py-2 text-left text-[14px] font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
+                                className={`block w-full px-4 py-2 text-left text-[14px] font-Gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535] font-semibold" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
                             >
                                 {opt}
                             </button>
@@ -793,23 +793,23 @@ export default function MytaskBC() {
     const employeeOptions = useMemo(() => {
         const raw = Array.isArray(employees) ? employees : [];
         const baseOptions = ["Select Employee", "Show All"];
-        
+
         if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
             return [...baseOptions, ...raw.map((e) => e.full_name)];
         }
-        
+
         const proj = projects.find((p) => p.project_name === selectedProject);
         if (!proj) {
             return [...baseOptions, ...raw.map((e) => e.full_name)];
         }
-        
+
         const memberTokens = (proj.members || "").split(",").map(s => s.trim()).filter(Boolean);
         const filtered = raw.filter(emp => {
             const name = (emp.full_name || "").trim();
             const idStr = String(emp.id);
             return memberTokens.some(t => t === idStr || t.toLowerCase() === name.toLowerCase());
         });
-        
+
         return [...baseOptions, ...filtered.map(e => e.full_name)];
     }, [employees, projects, selectedProject]);
     const projectOptions = ["Select Projects", ...projects.map(p => p.project_name)];
@@ -837,7 +837,7 @@ export default function MytaskBC() {
 
             const task = list.find(t => t.id === taskId);
             const projectId = (task as any)?.projectid ?? (task as any)?.project_id;
-            
+
             const isOutsource = task?.source === "Outsource";
             const endpoint = isOutsource
                 ? `/api/vendors/vendor-tasks/${taskId}/status`
@@ -891,7 +891,7 @@ export default function MytaskBC() {
 
     useEffect(() => {
         api.get<{ employees: Employee[] }>("/api/employees").then(res => setEmployees((res.data.employees || []).filter(isEmployeeActiveForProjectAssignment)));
-        
+
         Promise.all([
             api.get<{ projects: Project[] }>("/api/projects"),
             api.get<{ projects: Project[] }>("/api/vendors/vendor-projects")
@@ -909,9 +909,9 @@ export default function MytaskBC() {
             params.condition = "1";
             params.employeeid = "all";
         }
-        
+
         const taskParams: Record<string, string> = { ...params };
-        
+
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/tasks", { params: taskParams }),
             api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: taskParams })

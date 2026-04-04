@@ -30,14 +30,14 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-  { value: '1-50', label: '1-50', start: 0, end: 50 },
-  { value: '51-100', label: '51-100', start: 50, end: 100 },
-  { value: '101-150', label: '101-150', start: 100, end: 150 },
-  { value: '151-200', label: '151-200', start: 150, end: 200 },
-  { value: '201-250', label: '201-250', start: 200, end: 250 },
-  { value: '251-300', label: '251-300', start: 250, end: 300 },
-  { value: 'all', label: 'All', start: 0, end: null },
-];
+    { value: '1-50', label: '1-50', start: 0, end: 50 },
+    { value: '51-100', label: '51-100', start: 50, end: 100 },
+    { value: '101-150', label: '101-150', start: 100, end: 150 },
+    { value: '151-200', label: '151-200', start: 150, end: 200 },
+    { value: '201-250', label: '201-250', start: 200, end: 250 },
+    { value: '251-300', label: '251-300', start: 250, end: 300 },
+    { value: 'all', label: 'All', start: 0, end: null },
+  ];
 const PER_PAGE = 10;
 interface Employee {
   id: number;
@@ -103,7 +103,7 @@ const getProfileUrl = (path: string | undefined): string => {
 
 const toCamelCase = (str: string): string => {
   if (!str) return str;
-  return str.toLowerCase().split(' ').map(word => 
+  return str.toLowerCase().split(' ').map(word =>
     word.charAt(0).toUpperCase() + word.slice(1)
   ).join(' ');
 };
@@ -113,7 +113,7 @@ const nameExceedsThreeWords = (displayName: string): boolean =>
   displayName.trim().split(/\s+/).filter(Boolean).length > 3;
 // Fallback options; will be replaced by values loaded from backend department.name
 const Departments_options = [
-  'Technical','Sales','Operations','Human Resources','Accounts','Designing'
+  'Technical', 'Sales', 'Operations', 'Human Resources', 'Accounts', 'Designing'
 ];
 const ROLE_OPTIONS = [
   'Consultant',
@@ -136,7 +136,7 @@ const ROLE_OPTIONS = [
 ];
 
 const PANEL_ACCESS_OPTIONS = [
-  'Management', 'Accounts', 'Technical Director','Admin', 'Project Manager','Client', 'Sales', 'BIM Lead','Employee','All'
+  'Management', 'Accounts', 'Technical Director', 'Admin', 'Project Manager', 'Client', 'Sales', 'BIM Lead', 'Employee', 'All'
 ];
 
 const SCROLLBAR_STYLE = `
@@ -208,10 +208,7 @@ function CustomDropdown({
           : ""
           }`}>
           {styleType === "header" && value && !isPlaceholder ? (
-            <>
-              <span className="text-[14px]">{placeholder}:</span>{" "}
-              <span className="font-semibold">{toCamelCase(value)}</span>
-            </>
+            <span className="font-semibold">{toCamelCase(value)}</span>
           ) : (
             value || placeholder
           )}
@@ -462,20 +459,20 @@ export default function EmployeesPM() {
   }, [selectedShowEntries, typeFilter, statusFilter, searchQueryKey]);
 
   const filteredList = list.filter((emp: Employee) => {
-    if (statusFilter === 'Active') {
-      const currentStatus = (emp.active || '').toLowerCase();
-      if (currentStatus !== 'active') return false;
-    } else if (statusFilter === 'Inactive') {
-      const currentStatus = (emp.active || '').toLowerCase();
-      if (currentStatus === 'active') return false;
-    }
-
     if (typeFilter === 'Employee') {
       const currentType = (emp.user_type || '').toLowerCase();
       if (currentType !== 'employee') return false;
     } else if (typeFilter === 'Trainee') {
       const currentType = (emp.user_type || '').toLowerCase();
       if (currentType !== 'trainee') return false;
+    }
+
+    if (statusFilter === 'Active') {
+      const currentStatus = (emp.active || '').toLowerCase();
+      if (currentStatus !== 'active') return false;
+    } else if (statusFilter === 'Deactivate') {
+      const currentStatus = (emp.active || '').toLowerCase();
+      if (currentStatus === 'active') return false;
     }
 
     const searchQuery = searchQueryKey.toLowerCase();
@@ -757,9 +754,11 @@ export default function EmployeesPM() {
           <div className="sticky z-50 bg-white mb-4 mt-2 overflow-visible">
             <div className="flex w-full min-h-[44px] flex-nowrap items-center gap-2 sm:gap-3 overflow-visible">
               <h1 className="text-[24px] font-medium text-[#000000] font-Gantari shrink-0 pr-1">
-                Consultant
+                Consultants
               </h1>
+              {/* Tight gap between action buttons and Show Entries / Status (inner), title spacing unchanged */}
               <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-visible">
+                {/* Scroll only the action buttons — avoids clipping dropdown panels */}
                 <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 pr-0.5 custom-scrollbar">
                   <button
                     type="button"
@@ -804,7 +803,8 @@ export default function EmployeesPM() {
                   )}
                 </div>
                 <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
-                  <div
+                  {viewMode === 'table' && (
+                    <div
                       className="relative min-w-[140px] max-w-[200px] w-[150px]"
                       ref={showEntriesDropdownRef}
                     >
@@ -817,11 +817,10 @@ export default function EmployeesPM() {
                         className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                       >
                         <span
-                          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-                            selectedShowEntries === ''
-                              ? 'text-[#8B8B8B]'
-                              : 'text-[#353535]'
-                          }`}
+                          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ''
+                            ? 'text-[#8B8B8B]'
+                            : 'text-[#353535]'
+                            }`}
                         >
                           {selectedShowEntries === '' ? (
                             SHOW_ENTRIES_PLACEHOLDER
@@ -839,13 +838,11 @@ export default function EmployeesPM() {
                         <img
                           src={ArrowDown}
                           alt=""
-                          className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                            showEntriesOpen ? 'rotate-180' : ''
-                          } ${
-                            selectedShowEntries === ''
+                          className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''
+                            } ${selectedShowEntries === ''
                               ? 'opacity-60 grayscale'
                               : 'opacity-90'
-                          }`}
+                            }`}
                           aria-hidden
                         />
                       </button>
@@ -879,11 +876,10 @@ export default function EmployeesPM() {
                                     setSelectedShowEntries(opt.value);
                                     setShowEntriesOpen(false);
                                   }}
-                                  className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${
-                                    isChosen
-                                      ? 'text-[#353535] bg-[#F2F2F2]'
-                                      : 'text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]'
-                                  }`}
+                                  className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
+                                    ? 'text-[#353535] bg-[#F2F2F2]'
+                                    : 'text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]'
+                                    }`}
                                 >
                                   <span className="truncate min-w-0">{opt.label}</span>
                                   {isChosen && (
@@ -909,15 +905,28 @@ export default function EmployeesPM() {
                         </div>
                       )}
                     </div>
-                  <CustomDropdown
-                    options={['All', 'Employee', 'Trainee']}
-                    value={typeFilter}
-                    onChange={(val) => setTypeFilter(val)}
-                    placeholder="Type"
-                    className="w-[140px]"
-                    styleType="header"
-                    alignMenu="right"
-                  />
+                  )}
+                  {viewMode === 'card' ? (
+                    <CustomDropdown
+                      options={['All', 'Employee', 'Trainee']}
+                      value={typeFilter}
+                      onChange={(val) => setTypeFilter(val)}
+                      placeholder="Type"
+                      className="w-[100px]"
+                      styleType="header"
+                      alignMenu="right"
+                    />
+                  ) : (
+                    <CustomDropdown
+                      options={['All', 'Active', 'Deactivate']}
+                      value={statusFilter}
+                      onChange={(val) => setStatusFilter(val)}
+                      placeholder="Status"
+                      className="w-[100px]"
+                      styleType="header"
+                      alignMenu="right"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -925,307 +934,305 @@ export default function EmployeesPM() {
 
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-        {viewMode === 'card' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-2">
-            {displayedListCard.length === 0 ? (
-              <div className="col-span-full bg-white rounded-[10px] border border-slate-200 p-8 sm:p-12 text-center text-slate-500 shadow-sm">
-                No consultants found.
-              </div>
-            ) : (
-              displayedListCard.map((emp: Employee) => (
-                <div key={emp.id} className="bg-white rounded-[10px] overflow-hidden border-1 border-slate-200 transition-all">
-                  {/* Image Section */}
-                  <div className="relative h-[128px] overflow-hidden group">
-                    <div className="absolute inset-0 z-0">
-                      <img
-                        src={pmprofilebg}
-                        alt="Background"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/30" />
-                    </div>
-
-                    {/* Top Status - Pill Shape */}
-                    <div className="absolute top-3 right-3 z-10">
-                      <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === 'active' ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
-                        <span className={`w-2 h-2 rounded-full ${emp.active === 'active' ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
-                        <span className={`text-[11px] font-semibold ${emp.active === 'active' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
-                          {emp.active === 'active' ? 'Active' : 'Deactive'}
-                        </span>
-                      </div>
-                    </div>
-                    {/* User info on image: show uploaded photo if available, otherwise initials */}
-                    <div className="absolute inset-x-0 bottom-0 px-3 py-3 sm:px-3 sm:py-4 flex items-center gap-4 z-10">
-                      <div className="w-14 h-14 sm:w-15 sm:h-15 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white shadow-sm">
-                        {emp.profile_picture && emp.profile_picture.trim() ? (
+            {viewMode === 'card' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-2">
+                {displayedListCard.length === 0 ? (
+                  <div className="col-span-full bg-white rounded-[10px] border border-slate-200 p-8 sm:p-12 text-center text-slate-500 shadow-sm">
+                    No consultants found.
+                  </div>
+                ) : (
+                  displayedListCard.map((emp: Employee) => (
+                    <div key={emp.id} className="bg-white rounded-[10px] overflow-hidden border-1 border-slate-200 transition-all">
+                      {/* Image Section */}
+                      <div className="relative h-[128px] overflow-hidden group">
+                        <div className="absolute inset-0 z-0">
                           <img
-                            src={getProfileUrl(emp.profile_picture)}
-                            alt={emp.full_name}
+                            src={pmprofilebg}
+                            alt="Background"
                             className="w-full h-full object-cover"
-                            onError={(e) => {
-                              // If the photo fails, fall back to initials
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
                           />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <span className="text-[20px] font-semibold text-[#1A1A1A]">
-                              {toCamelCase(emp.full_name).charAt(0) || 'U'}
+                          <div className="absolute inset-0 bg-black/30" />
+                        </div>
+
+                        {/* Top Status - Pill Shape */}
+                        <div className="absolute top-3 right-3 z-10">
+                          <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === 'active' ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
+                            <span className={`w-2 h-2 rounded-full ${emp.active === 'active' ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
+                            <span className={`text-[14px] font-semibold ${emp.active === 'active' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
+                              {emp.active === 'active' ? 'Active' : 'Deactive'}
                             </span>
                           </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3
-                          className={`text-[18px] sm:text-[22px] font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight min-w-0 ${
-                            nameExceedsThreeWords(toCamelCase(emp.full_name))
-                              ? 'line-clamp-2 break-words'
-                              : 'whitespace-nowrap truncate'
-                          }`}
-                        >
-                          {toCamelCase(emp.full_name)}
-                        </h3>
-                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">
-                          {emp.user_role || 'Consultant'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Content Area */}
-                  <div className="px-2.5 py-4 sm:px-3 sm:py-5 space-y-4 sm:space-y-5">
-                    {/* Contact Buttons */}
-                    <div className="flex flex-wrap items-center gap-3">
-                      <button 
-                        onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari cursor-pointer"
-                      >
-                        <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
-                      </button>
-                      <button 
-                        onClick={() => navigate('/chat')}
-                        className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari cursor-pointer"
-                      >
-                        <img src={messageIcon} alt="Message" className="w-4 h-4" /> Message
-                      </button>
-                      <button 
-                        onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari cursor-pointer"
-                      >
-                        <img src={callIcon} alt="Call" className="w-4 h-4" /> Call
-                      </button>
-                    </div>
-
-                    <hr className="border-slate-200" />
-
-                    {/* Actions Grid */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
-                        className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-[5px] text-[13px] sm:text-[14px] font-Gantari cursor-pointer"
-                      >
-                        <img src={eyeIcon} alt="View" className="w-4 h-4 sm:w-5 sm:h-5" /> View
-                      </button>
-                      {canAdd && (
-                        <button
-                          type="button"
-                          onClick={() => openEditModel(emp)}
-                          className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[13px] sm:text-[14px] font-Gantari cursor-pointer"
-                        >
-                          <img src={editIcon} alt="Edit" className="w-4 h-4 sm:w-5 sm:h-5" /> Edit
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        ) : (
-          <div className=" sticky top-0 z-40 border border-[#AEACAC52] rounded-md overflow-hidden bg-white">
-              <div className="overflow-x-auto custom-scrollbar">
-              <table className="min-w-full border-separate border-spacing-0">
-                <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                  <tr className="bg-white">
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535]">
-                      Sl.No
-                    </th>
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Contact Info</th>
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Status</th>
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {displayedListTable.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-Gantari">
-                        No consultants found.
-                      </td>
-                    </tr>
-                  ) : (
-                    displayedListTable.map((emp, idx) => {
-                      const baseIndex =
-                        rangeStart + (safePage - 1) * PER_PAGE + idx;
-                      const slNo = baseIndex + 1;
-                      const slNoDisplay = String(slNo).padStart(2, '0');
-                      return (
-                      <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
-                        <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#6B6B6B]">
-                          {slNoDisplay}
-                        </td>
-
-
-                        <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#6B6B6B] whitespace-nowrap">
-                          {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
-                        </td>
-
-                        <td className="px-6 py-5">
-                          <div className="flex items-center justify-center gap-4 min-w-0">
-                            <div className="relative shrink-0">
-                              <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
-                                {emp.profile_picture && emp.profile_picture.trim() ? (
-                                  <img
-                                    src={getProfileUrl(emp.profile_picture)}
-                                    alt={emp.full_name}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      // Hide broken image; the status dot + name still show
-                                      (e.target as HTMLImageElement).style.display = 'none';
-                                    }}
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    <span className="text-[14px] font-Gantari text-[#1A1A1A]">
-                                      {toCamelCase(emp.full_name).charAt(0) || 'U'}
-                                    </span>
-                                  </div>
-                                )}
+                        </div>
+                        {/* User info on image: show uploaded photo if available, otherwise initials */}
+                        <div className="absolute inset-x-0 bottom-0 px-3 py-3 sm:px-3 sm:py-4 flex items-center gap-4 z-10">
+                          <div className="w-14 h-14 sm:w-15 sm:h-15 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white shadow-sm">
+                            {emp.profile_picture && emp.profile_picture.trim() ? (
+                              <img
+                                src={getProfileUrl(emp.profile_picture)}
+                                alt={emp.full_name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  // If the photo fails, fall back to initials
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <span className="text-[20px] font-semibold text-[#1A1A1A]">
+                                  {toCamelCase(emp.full_name).charAt(0) || 'U'}
+                                </span>
                               </div>
-                              <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
-                            </div>
-                            <span
-                              className={`text-[14px] font-semibold font-Gantari text-[#353535] min-w-0 ${
-                                nameExceedsThreeWords(toCamelCase(emp.full_name))
-                                  ? 'line-clamp-2 break-words'
-                                  : 'whitespace-nowrap'
-                              }`}
-                            >
-                              {toCamelCase(emp.full_name)}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#353535]">{emp.email}</td>
-                        <td className="px-6 py-5 text-center">
-                          <div className="flex items-center justify-center gap-3">
-                            <button 
-                              onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
-                            >
-                              <img src={mailIcon} className="w-5 h-5" alt="Mail" />
-                            </button>
-                            <button 
-                              onClick={() => navigate('/chat')}
-                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
-                            >
-                              <img src={messageIcon} className="w-5 h-5" alt="Message" />
-                            </button>
-                            <button 
-                              onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
-                            >
-                              <img src={callIcon} className="w-5 h-5" alt="Call" />
-                            </button>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5 text-center">
-                          <div className="inline-block min-w-[140px]">
-                            <CustomDropdown
-                              options={['Active', 'Deactivate']}
-                              className="cursor-pointer"
-                              value={emp.active === 'active' ? 'Active' : 'Deactivate'}
-                              onChange={(val) => handleStatusToggle(emp.id, val)}
-                              placeholder="Status"
-                              styleType="table"
-                            />
-                          </div>
-                        </td>
-                        <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
-                          <div className="flex items-center justify-center gap-3">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedEmployee(emp);
-                                setShowDetailsModal(true);
-                              }}
-                              aria-label="View consultant"
-                              className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#DD4342] text-white rounded-md transition-all cursor-pointer"
-                            >
-                              <img src={projectViewIcon} className="w-4 h-4 brightness-0 invert" alt="" aria-hidden />
-                            </button>
-                            {canAdd && (
-                              <button
-                                type="button"
-                                onClick={() => openEditModel(emp)}
-                                aria-label="Edit consultant"
-                                className={`flex py-2 px-2 shrink-0 items-center justify-center rounded-md transition-all cursor-pointer ${idx % 2 === 1 ? "bg-[#FFFFFF]" : "bg-[#F2F2F2]"}`}
-                              >
-                                <img src={projectEditIcon} className="w-4 h-4" alt="" aria-hidden />
-                              </button>
                             )}
                           </div>
-                        </td>
-                      </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-auto pt-4 bg-white sticky bottom-0 border-t border-slate-100">
-                <div className="text-[14px] font-semibold text-[#353535] font-Gantari">
-                  Showing{' '}
-                  {totalInRange === 0
-                    ? 0
-                    : (safePage - 1) * PER_PAGE + 1}{' '}
-                  to {Math.min(safePage * PER_PAGE, totalInRange)} of{' '}
-                  {totalInRange} entries
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={safePage === 1}
-                    className="p-2.5 rounded-[5px] border border-[#E0E0E0] disabled:opacity-50 hover:bg-slate-50 transition-colors cursor-pointer"
-                  >
-                    <FiChevronDown className="w-5 h-5 rotate-90" />
-                  </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`w-10 h-10 rounded-[5px] border font-semibold font-Gantari transition-all cursor-pointer ${safePage === page ? 'bg-[#DD4342] border-[#DD4342] text-white' : 'border-[#E0E0E0] text-[#353535] hover:bg-slate-50'}`}
-                    >
-                      {String(page).padStart(2, '0')}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={safePage === totalPages}
-                    className="p-2.5 rounded-[5px] border border-[#E0E0E0] disabled:opacity-50 hover:bg-slate-50 transition-colors cursor-pointer"
-                  >
-                    <FiChevronDown className="w-5 h-5 -rotate-90" />
-                  </button>
-                </div>
+                          <div className="min-w-0 flex-1">
+                            <h3
+                              className={`text-[18px] sm:text-[22px] font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight min-w-0 ${nameExceedsThreeWords(toCamelCase(emp.full_name))
+                                ? 'line-clamp-2 break-words'
+                                : 'whitespace-nowrap truncate'
+                                }`}
+                            >
+                              {toCamelCase(emp.full_name)}
+                            </h3>
+                            <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">
+                              {emp.user_role || 'Consultant'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Content Area */}
+                      <div className="px-2.5 py-4 sm:px-3 sm:py-5 space-y-4 sm:space-y-5">
+                        {/* Contact Buttons */}
+                        <div className="flex flex-wrap items-center gap-3">
+                          <button
+                            onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                            className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
+                          >
+                            <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
+                          </button>
+                          <button
+                            onClick={() => navigate('/chat')}
+                            className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
+                          >
+                            <img src={messageIcon} alt="Message" className="w-4 h-4" /> Message
+                          </button>
+                          <button
+                            onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
+                            className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
+                          >
+                            <img src={callIcon} alt="Call" className="w-4 h-4" /> Call
+                          </button>
+                        </div>
+
+                        <hr className="border-slate-200" />
+
+                        {/* Actions Grid */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
+                            className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-md text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
+                          >
+                            <img src={eyeIcon} alt="View" className="w-4 h-4 sm:w-5 sm:h-5" /> View
+                          </button>
+                          {canAdd && (
+                            <button
+                              type="button"
+                              onClick={() => openEditModel(emp)}
+                              className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-md text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
+                            >
+                              <img src={editIcon} alt="Edit" className="w-4 h-4 sm:w-5 sm:h-5" /> Edit
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
+            ) : (
+              <div className=" sticky top-0 z-40 border border-[#AEACAC52] rounded-md overflow-hidden bg-white">
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="min-w-full border-separate border-spacing-0">
+                    <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                      <tr className="bg-white">
+                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535]">
+                          Sl.No
+                        </th>
+                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
+                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
+                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
+                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Contact Info</th>
+                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Status</th>
+                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {displayedListTable.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-Gantari">
+                            No consultants found.
+                          </td>
+                        </tr>
+                      ) : (
+                        displayedListTable.map((emp, idx) => {
+                          const baseIndex =
+                            rangeStart + (safePage - 1) * PER_PAGE + idx;
+                          const slNo = baseIndex + 1;
+                          const slNoDisplay = String(slNo).padStart(2, '0');
+                          return (
+                            <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
+                              <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#6B6B6B]">
+                                {slNoDisplay}
+                              </td>
+
+
+                              <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#6B6B6B] whitespace-nowrap">
+                                {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
+                              </td>
+
+                              <td className="px-6 py-5">
+                                <div className="flex items-center justify-center gap-4 min-w-0">
+                                  <div className="relative shrink-0">
+                                    <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
+                                      {emp.profile_picture && emp.profile_picture.trim() ? (
+                                        <img
+                                          src={getProfileUrl(emp.profile_picture)}
+                                          alt={emp.full_name}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            // Hide broken image; the status dot + name still show
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                          }}
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                          <span className="text-[14px] font-Gantari text-[#1A1A1A]">
+                                            {toCamelCase(emp.full_name).charAt(0) || 'U'}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
+                                  </div>
+                                  <span
+                                    className={`text-[14px] font-semibold font-Gantari text-[#353535] min-w-0 ${nameExceedsThreeWords(toCamelCase(emp.full_name))
+                                      ? 'line-clamp-2 break-words'
+                                      : 'whitespace-nowrap'
+                                      }`}
+                                  >
+                                    {toCamelCase(emp.full_name)}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#353535]">{emp.email}</td>
+                              <td className="px-6 py-5 text-center">
+                                <div className="flex items-center justify-center gap-3">
+                                  <button
+                                    onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
+                                  >
+                                    <img src={mailIcon} className="w-5 h-5" alt="Mail" />
+                                  </button>
+                                  <button
+                                    onClick={() => navigate('/chat')}
+                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
+                                  >
+                                    <img src={messageIcon} className="w-5 h-5" alt="Message" />
+                                  </button>
+                                  <button
+                                    onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
+                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
+                                  >
+                                    <img src={callIcon} className="w-5 h-5" alt="Call" />
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="px-6 py-5 text-center">
+                                <div className="inline-block min-w-[140px]">
+                                  <CustomDropdown
+                                    options={['Active', 'Deactivate']}
+                                    className="cursor-pointer"
+                                    value={emp.active === 'active' ? 'Active' : 'Deactivate'}
+                                    onChange={(val) => handleStatusToggle(emp.id, val)}
+                                    placeholder="Status"
+                                    styleType="table"
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
+                                <div className="flex items-center justify-center gap-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedEmployee(emp);
+                                      setShowDetailsModal(true);
+                                    }}
+                                    aria-label="View consultant"
+                                    className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#DD4342] text-white rounded-md transition-all cursor-pointer"
+                                  >
+                                    <img src={projectViewIcon} className="w-4 h-4 brightness-0 invert" alt="" aria-hidden />
+                                  </button>
+                                  {canAdd && (
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditModel(emp)}
+                                      aria-label="Edit consultant"
+                                      className={`flex py-2 px-2 shrink-0 items-center justify-center rounded-md transition-all cursor-pointer ${idx % 2 === 1 ? "bg-[#FFFFFF]" : "bg-[#F2F2F2]"}`}
+                                    >
+                                      <img src={projectEditIcon} className="w-4 h-4" alt="" aria-hidden />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-auto pt-4 bg-white sticky bottom-0 border-t border-slate-100">
+                    <div className="text-[14px] font-semibold text-[#353535] font-Gantari">
+                      Showing{' '}
+                      {totalInRange === 0
+                        ? 0
+                        : (safePage - 1) * PER_PAGE + 1}{' '}
+                      to {Math.min(safePage * PER_PAGE, totalInRange)} of{' '}
+                      {totalInRange} entries
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={safePage === 1}
+                        className="p-2.5 rounded-[5px] border border-[#E0E0E0] disabled:opacity-50 hover:bg-slate-50 transition-colors cursor-pointer"
+                      >
+                        <FiChevronDown className="w-5 h-5 rotate-90" />
+                      </button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`w-10 h-10 rounded-[5px] border font-semibold font-Gantari transition-all cursor-pointer ${safePage === page ? 'bg-[#DD4342] border-[#DD4342] text-white' : 'border-[#E0E0E0] text-[#353535] hover:bg-slate-50'}`}
+                        >
+                          {String(page).padStart(2, '0')}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={safePage === totalPages}
+                        className="p-2.5 rounded-[5px] border border-[#E0E0E0] disabled:opacity-50 hover:bg-slate-50 transition-colors cursor-pointer"
+                      >
+                        <FiChevronDown className="w-5 h-5 -rotate-90" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
             )}
           </div>
-
-        )}
-      </div>
 
 
         </>
@@ -1249,7 +1256,7 @@ export default function EmployeesPM() {
 
             <form onSubmit={handleAddSubmit} className="space-y-6">
               {addError && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">{addError}</p>}
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                 {/* Column 1 */}
                 <div className="space-y-5">
@@ -1429,54 +1436,54 @@ export default function EmployeesPM() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                 {/* Column 1 */}
                 <div className="space-y-5">
-                <div>
+                  <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Employee Name</label>
-                  <input
-                    type="text"
+                    <input
+                      type="text"
                       placeholder="Enter Employee Name"
-                    value={editForm.full_name}
-                    onChange={(e) => setEditForm((f: any) => ({ ...f, full_name: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
-                    required
-                    disabled
-                  />
-                </div>
-                <div>
+                      value={editForm.full_name}
+                      onChange={(e) => setEditForm((f: any) => ({ ...f, full_name: e.target.value }))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
+                      required
+                      disabled
+                    />
+                  </div>
+                  <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
-                  <div className="flex items-end gap-3">
-                    <div className="flex-1">
-                      <CustomDropdown
-                        options={COUNTRY_CODES}
-                        value={editForm.country_code}
-                        onChange={(val) => setEditForm((f: any) => ({ ...f, country_code: val }))}
-                        placeholder="Select Code"
-                      />
-                    </div>
-                    <div className="flex-[2]">
-                      <input
-                        type="text"
-                        placeholder="Enter Phone Number"
-                        value={editForm.phone_number}
-                        onChange={(e) =>
-                          setEditForm((f: any) => ({
-                            ...f,
-                            phone_number: e.target.value.replace(/\D/g, '').slice(0, getPhoneLength(f.country_code)),
-                          }))
-                        }
-                        className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                      />
+                    <div className="flex items-end gap-3">
+                      <div className="flex-1">
+                        <CustomDropdown
+                          options={COUNTRY_CODES}
+                          value={editForm.country_code}
+                          onChange={(val) => setEditForm((f: any) => ({ ...f, country_code: val }))}
+                          placeholder="Select Code"
+                        />
+                      </div>
+                      <div className="flex-[2]">
+                        <input
+                          type="text"
+                          placeholder="Enter Phone Number"
+                          value={editForm.phone_number}
+                          onChange={(e) =>
+                            setEditForm((f: any) => ({
+                              ...f,
+                              phone_number: e.target.value.replace(/\D/g, '').slice(0, getPhoneLength(f.country_code)),
+                            }))
+                          }
+                          className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div>
+                  <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
                     <input
                       type="password"
                       placeholder="******** (password hidden)"
                       value={editForm.password}
                       onChange={(e) => setEditForm((f: any) => ({ ...f, password: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
-                    disabled
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
+                      disabled
                     />
                   </div>
                   <div className="relative">
@@ -1501,19 +1508,19 @@ export default function EmployeesPM() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number</label>
-                  <input
-                    type="text"
+                    <input
+                      type="text"
                       placeholder="Enter Account Number"
                       value={editForm.accountnumber}
                       onChange={(e) => setEditForm((f: any) => ({ ...f, accountnumber: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                  />
-                </div>
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    />
+                  </div>
                 </div>
 
                 {/* Column 2 */}
                 <div className="space-y-5">
-                <div>
+                  <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth</label>
                     <input
                       type="date"
@@ -1525,50 +1532,50 @@ export default function EmployeesPM() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID</label>
-                  <input
-                    type="email"
-                    placeholder="Enter Email"
-                    value={editForm.email}
-                    onChange={(e) => setEditForm((f: any) => ({ ...f, email: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
-                    required
-                    disabled
-                  />
-                </div>
-                <div>
+                    <input
+                      type="email"
+                      placeholder="Enter Email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm((f: any) => ({ ...f, email: e.target.value }))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
+                      required
+                      disabled
+                    />
+                  </div>
+                  <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining</label>
-                  <input
-                    type="date"
-                    value={editForm.doj}
-                    onChange={(e) => setEditForm((f: any) => ({ ...f, doj: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                  />
-                </div>
-                <div>
+                    <input
+                      type="date"
+                      value={editForm.doj}
+                      onChange={(e) => setEditForm((f: any) => ({ ...f, doj: e.target.value }))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Salary</label>
-                  <input
-                    type="text"
-                    placeholder="0000$"
-                    value={editForm.salary}
-                    onChange={(e) => setEditForm((f: any) => ({ ...f, salary: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                  />
-                </div>
-                <div className="space-y-2">
+                    <input
+                      type="text"
+                      placeholder="0000$"
+                      value={editForm.salary}
+                      onChange={(e) => setEditForm((f: any) => ({ ...f, salary: e.target.value }))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
-                  <div className="flex items-center bg-[#F4F4F4] rounded-md overflow-hidden">
-                    <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
-                      {editForm.profile_picture ? editForm.profile_picture.name : 'Choose file (JPEG or JPG only)'}
-                    </div>
-                    <label className="px-5 py-3 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
-                      Browse File
-                      <input
-                        type="file"
-                        className="hidden cursor-pointer"
-                        accept=".jpg,.jpeg"
-                        onChange={(e) => setEditForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
-                      />
-                    </label>
+                    <div className="flex items-center bg-[#F4F4F4] rounded-md overflow-hidden">
+                      <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
+                        {editForm.profile_picture ? editForm.profile_picture.name : 'Choose file (JPEG or JPG only)'}
+                      </div>
+                      <label className="px-5 py-3 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
+                        Browse File
+                        <input
+                          type="file"
+                          className="hidden cursor-pointer"
+                          accept=".jpg,.jpeg"
+                          onChange={(e) => setEditForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                        />
+                      </label>
                     </div>
                   </div>
                 </div>
@@ -1599,9 +1606,8 @@ export default function EmployeesPM() {
                             : [...editForm.roles, role];
                           setEditForm({ ...editForm, roles: newRoles });
                         }}
-                        className={`w-6 h-6 rounded-[4px] border-2 flex items-center justify-center cursor-pointer transition-all ${
-                          editForm.roles.includes(role) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#E0E0E0]'
-                        }`}
+                        className={`w-6 h-6 rounded-[4px] border-2 flex items-center justify-center cursor-pointer transition-all ${editForm.roles.includes(role) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#E0E0E0]'
+                          }`}
                       >
                         {editForm.roles.includes(role) && (
                           <svg width="14" height="11" viewBox="0 0 14 11" fill="none">
@@ -1785,45 +1791,47 @@ export default function EmployeesPM() {
 
       {showDetailsModal && selectedEmployee && createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/10 backdrop-blur-[3px]">
-          <div className="bg-white rounded-[15px] max-w-[620px] w-full max-h-[90vh] overflow-hidden px-4 py-4 relative shadow-2xl flex flex-col gap-3 font-Gantari">
+          <div className="bg-white rounded-lg max-w-[520px] w-full overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
             {/* Header */}
             <div className="flex items-center justify-center relative shrink-0">
               <button
                 type="button"
                 onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
-                className="absolute left-0 p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer"
+                className="absolute left-0 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
-              <h1 className="text-[24px] font-semibold text-[#020202]">View Details</h1>
+              <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">View Details</h3>
             </div>
 
-            {/* Profile Section: show uploaded photo if available, otherwise initials */}
-            <div className="flex items-center justify-start gap-8 px-20">
-              <div className="w-[90px] h-[90px] rounded-full bg-[#F4F4F4] shrink-0 overflow-hidden flex items-center justify-center">
+            {/* Profile Section */}
+            <div className="flex items-center gap-4 px-4 ">
+              <div className="w-[38px] h-[38px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0">
                 {selectedEmployee.profile_picture && selectedEmployee.profile_picture.trim() ? (
                   <img
                     src={getProfileUrl(selectedEmployee.profile_picture)}
                     alt={selectedEmployee.full_name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      // Hide broken image and let initials show
-                      (e.target as HTMLImageElement).style.display = 'none';
+                      const target = e.target as HTMLImageElement;
+                      const parent = target.parentElement;
+                      if (parent && !parent.querySelector('.error-placeholder')) {
+                        parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-sm">No Photo</span></div>';
+                      }
                     }}
                   />
                 ) : (
-                  <span className="text-[35px] font-semibold text-[#000000]">
-                    {toCamelCase(selectedEmployee.full_name).charAt(0) || 'U'}
-                  </span>
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-400 text-sm">No Photo</span>
+                  </div>
                 )}
               </div>
-              <div className="flex flex-col">
-                <h4 className="text-[28px] font-medium text-[#000000] font-Gantari">{toCamelCase(selectedEmployee.full_name)}</h4>
-                <p className="text-[16px] font-semibold text-[#353535] font-Gantari">{selectedEmployee.empid || `EMP-${String(selectedEmployee.id).padStart(4, '0')}`}</p>
+              <div className="flex flex-col gap-0.5">
+                <h4 className="text-[18px] font-bold text-[#000000] font-Gantari">{toCamelCase(selectedEmployee.full_name)}</h4>
+                <p className="text-[14px] font-semibold text-[#353535] font-Gantari">{selectedEmployee.empid || `EMP-${String(selectedEmployee.id).padStart(4, '0')}`}</p>
               </div>
             </div>
 
-            {/* Details Table */}
             <div className="px-4 sm:px-8 space-y-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
               {[
                 { label: 'Date of Birth', value: selectedEmployee.dob },
@@ -1835,12 +1843,15 @@ export default function EmployeesPM() {
                 { label: 'Joined Date', value: selectedEmployee.doj },
                 { label: 'Salary', value: selectedEmployee.salary },
                 { label: 'Department', value: selectedEmployee.department },
-                { label: 'Account Number', value: selectedEmployee.accountnumber }, 
+                { label: 'Account Number', value: selectedEmployee.accountnumber },
               ].map((item, idx) => (
-                <div key={idx} className="flex flex-col sm:grid sm:grid-cols-[140px_20px_1fr] text-[15px] gap-2 sm:gap-15 pb-2 sm:pb-0 border-b sm:border-none border-[#F0F0F0] last:border-none">
-                  <span className="text-[14px] font-semibold font-Gantari text-[#000000]">{item.label}</span>
-                  <span className="hidden sm:inline text-[14px] font-Gantari text-[#000000] text-center">:</span>
-                  <span className="text-[14px] text-[#616161] font-Gantari font-medium break-words">{item.value || 'N/A'}</span>
+                <div
+                  key={idx}
+                  className="flex flex-col sm:grid sm:grid-cols-[140px_20px_1fr] text-[14px] gap-2 sm:gap-15 pb-2 sm:pb-0 border-b sm:border-none border-[#F0F0F0] last:border-none"
+                >
+                  <span className="text-[14px] font-Gantari text-[#020202]">{item.label}</span>
+                  <span className="hidden sm:inline text-[14px] font-Gantari text-[#020202] text-center">:</span>
+                  <span className="text-[14px] text-[#616161] font-Gantari break-words">{item.value || 'N/A'}</span>
                 </div>
               ))}
             </div>

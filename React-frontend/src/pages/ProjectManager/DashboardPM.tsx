@@ -237,7 +237,7 @@ export default function DashboardPM() {
           {/* Total Projects */}
           <Link 
             to="/projects"
-            className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline"
+            className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline"
           >
             <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Total Projects</h3>
             <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
@@ -245,7 +245,7 @@ export default function DashboardPM() {
           {/* Completed Projects */}
           <Link 
             to="/projects?status=Completed"
-            className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline"
+            className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline"
           >
             <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Projects</h3>
             <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
@@ -253,7 +253,7 @@ export default function DashboardPM() {
           {/* In-Progress Tasks */}
           <Link 
             to="/teamtask?status=in_progress"
-            className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline"
+            className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline"
           >
             <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">In Progress Tasks</h3>
             <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
@@ -261,7 +261,7 @@ export default function DashboardPM() {
           {/* Completed Tasks */}
           <Link 
             to="/teamtask?status=completed"
-            className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline"
+            className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline"
           >
             <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Tasks</h3>
             <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
@@ -274,7 +274,7 @@ export default function DashboardPM() {
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 py-4 overflow-visible lg:overflow-hidden">
 
         {/* Today's Priority — projects with today's tasks (same as DashboardTD) */}
-        <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[400px] sm:h-[480px] lg:h-full overflow-hidden">
+        <div className="lg:col-span-2 flex flex-col bg-white rounded-md border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[400px] sm:h-[480px] lg:h-full overflow-hidden">
           <div className="mb-4 shrink-0">
             <h2 className="text-base sm:text-xl font-semibold text-[#353535] font-gantari">Today's Priority</h2>
           </div>
@@ -376,7 +376,7 @@ export default function DashboardPM() {
 
         {/* Calendar & Celebrations */}
         <div className="lg:col-span-1 flex flex-col h-[500px] sm:h-[560px] lg:h-full overflow-hidden">
-          <div className="bg-white rounded-2xl border border-[#AEACAC52] pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full min-h-0">
+          <div className="bg-white rounded-md border border-[#AEACAC52] pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full min-h-0">
 
             {/* Calendar Header — same as DashboardTD */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 pt-2 px-2">

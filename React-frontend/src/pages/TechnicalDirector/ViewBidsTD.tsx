@@ -35,14 +35,14 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-  { value: "show", label: "Show", start: 0, end: 50 },
-  { value: "1-50", label: "1-50", start: 0, end: 50 },
-  { value: "51-100", label: "51-100", start: 50, end: 100 },
-  { value: "101-150", label: "101-150", start: 100, end: 150 },
-  { value: "151-200", label: "151-200", start: 150, end: 200 },
-  { value: "201-250", label: "201-250", start: 200, end: 250 },
-  { value: "all", label: "All", start: 0, end: null },
-];
+    { value: "show", label: "Show", start: 0, end: 50 },
+    { value: "1-50", label: "1-50", start: 0, end: 50 },
+    { value: "51-100", label: "51-100", start: 50, end: 100 },
+    { value: "101-150", label: "101-150", start: 100, end: 150 },
+    { value: "151-200", label: "151-200", start: 150, end: 200 },
+    { value: "201-250", label: "201-250", start: 200, end: 250 },
+    { value: "all", label: "All", start: 0, end: null },
+  ];
 
 /** Recomputes ranks: rejected bids go to bottom, rest renumber 1,2,3… */
 function rerank(bids: VendorBid[]): VendorBid[] {
@@ -447,8 +447,8 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
               <p className="font-semibold text-[#616161] text-base font-gantari text-center">
                 {formatCurrency(
                   opportunity.budget_ceiling ||
-                    opportunity.outsource_budget ||
-                    0,
+                  opportunity.outsource_budget ||
+                  0,
                 )}
               </p>
             </div>
@@ -477,64 +477,64 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
             projectSector ||
             bimServices ||
             scopeOfWorkHtml) && (
-            <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md px-8 py-4">
-              <p className="text-lg font-bold text-[#353535] mb-1 font-gantari">
-                Project Description
-              </p>
-              {!scopeOfWorkHtml && (
-                <p className="font-semibold text-[#616161] text-base font-gantari">
-                  {opportunity.description}
+              <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md px-8 py-4">
+                <p className="text-lg font-bold text-[#353535] mb-1 font-gantari">
+                  Project Description
                 </p>
-              )}
+                {!scopeOfWorkHtml && (
+                  <p className="font-semibold text-[#616161] text-base font-gantari">
+                    {opportunity.description}
+                  </p>
+                )}
 
-              {(scopeLoading ||
-                projectSector ||
-                bimServices ||
-                scopeOfWorkHtml) && (
-                <div className="mt-4 space-y-3">
-                  {(projectSector || bimServices) && (
-                    <div className="bg-[#F9F9F9] border border-[#AEACAC52] rounded-md p-6 space-y-4">
-                      {projectSector && (
-                        <div className="flex items-start gap-4">
-                          <span className="font-bold text-[#353535] min-w-[220px]">
-                            Project Sector:
-                          </span>
-                          <span className="text-[#616161] font-medium">
-                            {projectSector}
-                          </span>
+                {(scopeLoading ||
+                  projectSector ||
+                  bimServices ||
+                  scopeOfWorkHtml) && (
+                    <div className="mt-4 space-y-3">
+                      {(projectSector || bimServices) && (
+                        <div className="bg-[#F9F9F9] border border-[#AEACAC52] rounded-md p-6 space-y-4">
+                          {projectSector && (
+                            <div className="flex items-start gap-4">
+                              <span className="font-bold text-[#353535] min-w-[220px]">
+                                Project Sector:
+                              </span>
+                              <span className="text-[#616161] font-medium">
+                                {projectSector}
+                              </span>
+                            </div>
+                          )}
+                          {bimServices && (
+                            <div className="flex items-start gap-4">
+                              <span className="font-bold text-[#353535] min-w-[220px]">
+                                BIM Services Required:
+                              </span>
+                              <span className="text-[#616161] font-medium">
+                                {bimServices}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
-                      {bimServices && (
-                        <div className="flex items-start gap-4">
-                          <span className="font-bold text-[#353535] min-w-[220px]">
-                            BIM Services Required:
-                          </span>
-                          <span className="text-[#616161] font-medium">
-                            {bimServices}
-                          </span>
-                        </div>
+
+                      {scopeOfWorkHtml && (
+                        <div
+                          className="bg-[#F9FAFB] rounded-md px-5 py-4 text-[15px] text-[#353535] font-gantari leading-relaxed [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-sm [&_h3]:font-bold [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                          dangerouslySetInnerHTML={{ __html: scopeOfWorkHtml }}
+                        />
                       )}
+
+                      {scopeLoading &&
+                        !scopeOfWorkHtml &&
+                        !(projectSector || bimServices) && (
+                          <div className="py-6 text-sm text-[#616161] font-gantari">
+                            Loading scope...
+                          </div>
+                        )}
                     </div>
                   )}
-
-                  {scopeOfWorkHtml && (
-                    <div
-                      className="bg-[#F9FAFB] rounded-md px-5 py-4 text-[15px] text-[#353535] font-gantari leading-relaxed [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-sm [&_h3]:font-bold [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
-                      dangerouslySetInnerHTML={{ __html: scopeOfWorkHtml }}
-                    />
-                  )}
-
-                  {scopeLoading &&
-                    !scopeOfWorkHtml &&
-                    !(projectSector || bimServices) && (
-                      <div className="py-6 text-sm text-[#616161] font-gantari">
-                        Loading scope...
-                      </div>
-                    )}
-                </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
         </div>
 
         {/* ── Vendor Bids Table ── */}
@@ -622,11 +622,11 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                       )?.end === null
                         ? bids.length
                         : Math.min(
-                            showEntriesOptions.find(
-                              (o) => o.value === selectedShowEntries,
-                            )?.end ?? bids.length,
-                            bids.length,
-                          ),
+                          showEntriesOptions.find(
+                            (o) => o.value === selectedShowEntries,
+                          )?.end ?? bids.length,
+                          bids.length,
+                        ),
                     )
                     .map((bid, index) => {
                       const isRejected = bid.status === "lost";

@@ -130,7 +130,7 @@ export function TaskDropdown({
             const isPlaceholderOption = (o: string) =>
                 o === first && (first === "Select Employee" || first === "Select Projects");
             return options.filter((opt) => {
-                if (isPlaceholderOption(opt)) return false; 
+                if (isPlaceholderOption(opt)) return false;
                 const name = String(opt ?? "").trim().toLowerCase();
                 return name.includes(q);
             });
@@ -147,21 +147,21 @@ export function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? (label === "Period" ? "min-w-[100px]" : "min-w-[150px]") : "min-w-[160px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
                 <span
-                    className={`truncate font-gantari ${selected && selected !== label && !["Show Entries", "Period", "Select Employee", "Select Projects"].includes(selected) ? "text-[#353535]" : "text-[#8B8B8B]"}`}
+                    className={`truncate font-Gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}
                 >
-                    {label.toLowerCase() === "show" && selected && selected !== label ? (
+                    {(label.toLowerCase() === "show entries" || label.toLowerCase() === "show") && selected && selected !== label ? (
                         <>
-                            <span className="text-[14px] text-[#353535]">Show:</span>{" "}
-                            <span>{selected}</span>
+                            <span className="text-[14px]">Show:</span>{" "}
+                            <span className="font-semibold">{selected}</span>
                         </>
                     ) : (
-                        (selected ?? label)
+                        selected || label
                     )}
                 </span>
                 <img
@@ -174,7 +174,7 @@ export function TaskDropdown({
                 <div
                     ref={dropdownRef}
                     role="listbox"
-                    className={`absolute top-full z-10 mt-1 rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 min-w-[110px]" : "left-0 w-full min-w-[160px]"}`}
+                    className={`absolute top-full z-10 mt-1 rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 min-w-[110px]" : "left-0 min-w-[160px]"}`}
                 >
                     {searchable && (
                         <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
@@ -205,7 +205,7 @@ export function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                className={`block w-full px-4 py-2 text-left text-[14px] font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
+                                className={`block w-full px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
                             >
                                 {opt}
                             </button>
@@ -474,7 +474,7 @@ function TaskCard({
                     </button>
                     {menuOpen && (
                         <div
-                            className={`absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/80 backdrop-blur-md rounded-md border border-slate-200 shadow-xl transition-all duration-200 ease-out origin-top-right
+                            className={`absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right
                                 ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
                             role="menu"
                         >
@@ -559,13 +559,13 @@ function TaskCard({
                     </span>
                 </div>
             </div>
-            <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-xs text-[#8B8B8B]">Progress</span>
-                <span className="text-xs font-medium text-[#8B8B8B]">{progress}%</span>
+            <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="text-xs text-slate-600">Progress</span>
+                <span className="text-xs font-medium text-slate-700">{progress}%</span>
             </div>
-            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
+            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
                 <div
-                    className="h-full rounded-full bg-[#8B8B8B]"
+                    className="h-full rounded-full bg-slate-500"
                     style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                 />
             </div>
@@ -841,9 +841,9 @@ export default function MytaskBM() {
         <div className="h-full min-h-0 flex flex-col overflow-hidden px-4 md:px-8 py-4 bg-white">
             <div className="flex-shrink-0 mb-6">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                    <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
-                        {ismy ? "my Task" : "My Task"}
-                    </h2>
+                    <h1 className="text-[24px] font-semibold text-[#000000] font-Gantari">
+                        {ismy ? "Team Task" : "My Task"}
+                    </h1>
                     <div ref={dropdownsContainerRef} className="flex flex-wrap items-center gap-2">
                         <TaskDropdown
                             label="Select Employee"
@@ -907,35 +907,35 @@ export default function MytaskBM() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <Link
                         to={statusFilter === "todo" ? pathname : `${pathname}?status=todo${ismy ? "&condition=1" : ""}`}
-                        className={`flex items-center justify-between p-5 rounded-xl border py-6 transition-all ${statusFilter === "todo" ? "bg-orange-50 border-orange-200 ring-2 ring-orange-100" : "bg-white border-slate-100 hover:border-orange-100 hover:shadow-md"}`}
+                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
                     >
-                        <div className="flex items-center gap-4">
-                            <span className="text-xl font-bold text-slate-800">To Do</span>
-                            <span className="text-xl font-bold text-slate-400">({counts.todo})</span>
+                        <span className="text-xl font-bold text-[#0D1829]">To Do</span>
+                        <span className="text-xl font-bold text-[#0D1829]">({counts.todo})</span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group1} alt="Group1" className="w-8 h-8" />
                         </div>
-                        <img src={Group1} alt="Todo" className="w-10 h-10" />
                     </Link>
 
                     <Link
                         to={statusFilter === "in_progress" ? pathname : `${pathname}?status=in_progress${ismy ? "&condition=1" : ""}`}
-                        className={`flex items-center justify-between p-5 rounded-xl border py-6 transition-all ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-200 ring-2 ring-sky-100" : "bg-white border-slate-100 hover:border-sky-100 hover:shadow-md"}`}
+                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
                     >
-                        <div className="flex items-center gap-4">
-                            <span className="text-xl font-bold text-slate-800">In Progress</span>
-                            <span className="text-xl font-bold text-slate-400">({counts.in_progress})</span>
+                        <span className="text-xl font-bold text-[#0D1829]">In Progress</span>
+                        <span className="text-xl font-bold text-[#0D1829]">({counts.in_progress})</span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group2} alt="Group2" className="w-8 h-8" />
                         </div>
-                        <img src={Group2} alt="Progress" className="w-10 h-10" />
                     </Link>
 
                     <Link
                         to={statusFilter === "completed" ? pathname : `${pathname}?status=completed${ismy ? "&condition=1" : ""}`}
-                        className={`flex items-center justify-between p-5 rounded-xl border py-6 transition-all ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-200 ring-2 ring-emerald-100" : "bg-white border-slate-100 hover:border-emerald-100 hover:shadow-md"}`}
+                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
                     >
-                        <div className="flex items-center gap-4">
-                            <span className="text-xl font-bold text-slate-800">Completed</span>
-                            <span className="text-xl font-bold text-slate-400">({counts.completed})</span>
+                        <span className="text-xl font-bold text-[#0D1829]">Completed</span>
+                        <span className="text-xl font-bold text-[#0D1829]">({counts.completed})</span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group3} alt="Group3" className="w-8 h-8" />
                         </div>
-                        <img src={Group3} alt="Completed" className="w-10 h-10" />
                     </Link>
                 </div>
             </div>
@@ -1006,31 +1006,38 @@ export default function MytaskBM() {
             </div>
 
             {deleteTaskId !== null && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-8 text-center text-black">
-                            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <img src={deleteIcon} alt="Delete" className="w-8 h-8 brightness-0" />
-                            </div>
-                            <h3 className="text-2xl font-bold text-slate-800 mb-2">Delete Task</h3>
-                            <p className="text-slate-500">
-                                Are you sure you want to delete this task? This action cannot be undone.
-                            </p>
-                        </div>
-                        <div className="flex gap-3 p-6 bg-slate-50">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+                        <button
+                            type="button"
+                            onClick={() => setDeleteTaskId(null)}
+                            className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+                            title="Close"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                        <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
+                            Delete Task
+                        </h3>
+                        <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+                            Are you sure, you want to Delete this?
+                        </p>
+                        <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="flex-1 rounded-xl bg-white border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
                             >
-                                Cancel
+                                Discard
                             </button>
                             <button
                                 type="button"
                                 onClick={confirmDeleteTask}
-                                className="flex-1 rounded-xl bg-[#DD4342] px-5 py-3 text-sm font-semibold text-white hover:bg-[#c13a3a] transition-colors cursor-pointer"
+                                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
                             >
-                                Delete
+                                Yes, Delete
                             </button>
                         </div>
                     </div>

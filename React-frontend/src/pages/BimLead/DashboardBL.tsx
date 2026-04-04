@@ -322,7 +322,7 @@ export default function DashboardBL() {
 
                 {/* Calendar & Celebrations — same design as DashboardTD */}
                 <div className="lg:col-span-1 flex flex-col h-[600px] lg:h-full overflow-hidden">
-                    <div className="bg-white rounded-2xl border border-[#AEACAC52] pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full min-h-0">
+                    <div className="bg-white rounded-md border border-[#AEACAC52] pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full min-h-0">
                         <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 pt-2 px-2">
                             <div className="flex flex-col items-start min-w-[70px]">
                                 <span className="text-[15px] lg:text-[17px] font-semibold text-black font-gantari leading-tight">{currentMonthName}</span>

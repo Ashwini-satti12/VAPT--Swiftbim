@@ -99,21 +99,21 @@ function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
       >
         <span
-          className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}
+          className={`truncate font-Gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}
         >
           {label.toLowerCase() === 'show' && selected && selected !== label ? (
             <>
-              <span className="text-[14px] text-[#353535]">Show Entries:</span>{" "}
-              <span>{selected}</span>
+              <span className="text-[14px]">{label}:</span>{" "}
+              <span className="font-semibold">{selected}</span>
             </>
           ) : (
-            selected ?? label
+            selected || label
           )}
         </span>
         <img
@@ -157,7 +157,7 @@ function TaskDropdown({
                   onSelect(opt);
                   onClose();
                 }}
-                className={`block w-full px-4 py-2 text-left text-[14px] font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
+                className={`block w-full px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
               >
                 {opt}
               </button>
@@ -534,14 +534,14 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-  { value: "1-50", label: "1-50", start: 0, end: 50 },
-  { value: "51-100", label: "51-100", start: 50, end: 100 },
-  { value: "101-150", label: "101-150", start: 100, end: 150 },
-  { value: "151-200", label: "151-200", start: 150, end: 200 },
-  { value: "201-250", label: "201-250", start: 200, end: 250 },
-  { value: "251-300", label: "251-300", start: 250, end: 300 },
-  { value: "all", label: "All", start: 0, end: null },
-];
+    { value: "1-50", label: "1-50", start: 0, end: 50 },
+    { value: "51-100", label: "51-100", start: 50, end: 100 },
+    { value: "101-150", label: "101-150", start: 100, end: 150 },
+    { value: "151-200", label: "151-200", start: 150, end: 200 },
+    { value: "201-250", label: "201-250", start: 200, end: 250 },
+    { value: "251-300", label: "251-300", start: 250, end: 300 },
+    { value: "all", label: "All", start: 0, end: null },
+  ];
 const PERIOD_OPTIONS = [
   "Period",
   "This Week",
@@ -694,7 +694,7 @@ export default function TeamtaskTD() {
     }
     return true;
   });
- 
+
   const statusToLabel = (s: "todo" | "in_progress" | "completed"): string => {
     return s === "todo"
       ? "To Do"
@@ -734,8 +734,8 @@ export default function TeamtaskTD() {
 
     // Backend update
     const isOutsourceProjectTask = taskObj.source === "Outsource";
-    const endpoint = isOutsourceProjectTask 
-      ? `/api/vendors/vendor-tasks/${taskId}/status` 
+    const endpoint = isOutsourceProjectTask
+      ? `/api/vendors/vendor-tasks/${taskId}/status`
       : `/api/tasks/${taskId}/status`;
 
     api.patch(endpoint, {
@@ -779,8 +779,8 @@ export default function TeamtaskTD() {
   const confirmDeleteTask = () => {
     if (deleteTask !== null) {
       const isOutsource = deleteTask.source === "Outsource";
-      const endpoint = isOutsource 
-        ? `/api/vendors/vendor-tasks/${deleteTask.id}` 
+      const endpoint = isOutsource
+        ? `/api/vendors/vendor-tasks/${deleteTask.id}`
         : `/api/tasks/${deleteTask.id}`;
 
       api.delete(endpoint)
@@ -869,7 +869,7 @@ export default function TeamtaskTD() {
     if (isTeam) {
       params.condition = "1";
       params.employeeid = "all";
-    }    Promise.all([
+    } Promise.all([
       api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
       api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params }),
       api.get<{ employees?: Employee[] }>("/api/employees"),
@@ -995,11 +995,10 @@ export default function TeamtaskTD() {
                 className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
               >
                 <span
-                  className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-                    selectedShowEntries === ""
-                      ? "text-[#8B8B8B]"
-                      : "text-[#353535]"
-                  }`}
+                  className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
+                    ? "text-[#8B8B8B]"
+                    : "text-[#353535]"
+                    }`}
                 >
                   {selectedShowEntries === "" ? (
                     SHOW_ENTRIES_PLACEHOLDER
@@ -1017,13 +1016,11 @@ export default function TeamtaskTD() {
                 <img
                   src={ArrowDown}
                   alt=""
-                  className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                    showEntriesOpen ? "rotate-180" : ""
-                  } ${
-                    selectedShowEntries === ""
+                  className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                    } ${selectedShowEntries === ""
                       ? "opacity-60 grayscale"
                       : "opacity-90"
-                  }`}
+                    }`}
                   aria-hidden
                 />
               </button>
@@ -1057,11 +1054,10 @@ export default function TeamtaskTD() {
                             setSelectedShowEntries(opt.value);
                             setShowEntriesOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${
-                            isChosen
-                              ? "text-[#353535] bg-[#F2F2F2]"
-                              : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
-                          }`}
+                          className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
+                            ? "text-[#353535] bg-[#F2F2F2]"
+                            : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                            }`}
                         >
                           <span className="truncate min-w-0">{opt.label}</span>
                           {isChosen && (

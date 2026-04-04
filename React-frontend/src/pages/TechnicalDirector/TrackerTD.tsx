@@ -337,7 +337,7 @@ export default function TrackerTD() {
             matchesStatus = status === selectedStatus;
         }
 
-        const matchesSearch = !searchQuery || 
+        const matchesSearch = !searchQuery ||
             (item.full_name || "").toLowerCase().includes(searchQuery) ||
             (item.date || "").toLowerCase().includes(searchQuery) ||
             (item.date_iso || "").toLowerCase().includes(searchQuery) ||
@@ -422,21 +422,21 @@ export default function TrackerTD() {
                                 timeInputRef.current?.showPicker?.();
                                 timeInputRef.current?.focus();
                             }}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 group"
+                            className="flex items-center gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 group"
                         >
-                            <span className="text-sm font-medium text-[#353535] font-gantari">
+                            <span className={`text-sm ${selectedTime ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
                                 {formatTime12(selectedTime)}
                             </span>
-                            <svg 
-                                width="18" 
-                                height="18" 
-                                viewBox="0 0 24 24" 
-                                fill="none" 
-                                stroke="#616161" 
-                                strokeWidth="1.7" 
-                                strokeLinecap="round" 
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="#616161"
+                                strokeWidth="1.7"
+                                strokeLinecap="round"
                                 strokeLinejoin="round"
-                                className="shrink-0 transition-colors group-hover:stroke-[#353535]"
+                                className={`shrink-0 transition-all duration-200 ${selectedTime ? 'opacity-90' : 'opacity-60 grayscale'}`}
                             >
                                 <circle cx="12" cy="12" r="9"></circle>
                                 <path d="M12 7v5l3 2"></path>
@@ -459,36 +459,38 @@ export default function TrackerTD() {
                                 e.stopPropagation();
                                 setStatusOpen(o => !o);
                             }}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
+                            className="flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                         >
-                            <span className={`text-sm font-medium font-gantari ${selectedStatus ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
+                            <span className={`min-w-0 flex-1 truncate text-left text-sm ${selectedStatus ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
                                 {selectedStatus || 'Status'}
                             </span>
                             <img
                                 src={ArrowDown}
                                 alt="arrow"
-                                className={`w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${statusOpen ? "rotate-180" : ""}`}
+                                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${statusOpen ? 'rotate-180' : ''} ${selectedStatus === '' ? 'opacity-60 grayscale' : 'opacity-90'}`}
                             />
                         </button>
                         {statusOpen && (
                             <div
-                                className="absolute top-full left-0 mt-1 z-50 bg-white rounded-md shadow-xl min-w-[130px] py-1"
+                                className="absolute top-full left-0 mt-1 z-[200] bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] min-w-[130px] overflow-hidden"
                                 onMouseDown={(e) => e.preventDefault()}
                             >
-                                {statusOptions.map(opt => (
-                                    <button
-                                        key={opt}
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedStatus(opt);
-                                            setStatusOpen(false);
-                                        }}
-                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors cursor-pointer ${selectedStatus === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]'}`}
-                                    >
-                                        {opt === '' ? 'All Status' : opt}
-                                    </button>
-                                ))}
+                                <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                    {statusOptions.map(opt => (
+                                        <button
+                                            key={opt}
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedStatus(opt);
+                                                setStatusOpen(false);
+                                            }}
+                                            className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${selectedStatus === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] bg-transparent'}`}
+                                        >
+                                            {opt === '' ? 'Status' : opt}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -634,7 +636,7 @@ export default function TrackerTD() {
 
 
 
-           
+
         </div>
     );
 }

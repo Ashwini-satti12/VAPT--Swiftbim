@@ -127,25 +127,25 @@ function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? (label === "Period" ? "min-w-[100px]" : "min-w-[150px]") : "min-w-[160px]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
       >
-        <span className={`font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>
-          {label.toLowerCase() === "show" && selected && selected !== label ? (
+        <span className={`truncate font-Gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
+          {(label.toLowerCase() === "show entries" || label.toLowerCase() === "show") && selected && selected !== label ? (
             <>
-              <span className="text-sm text-[#353535]">Show:</span>{" "}
-              <span>{selected}</span>
+              <span className="text-[14px]">Show:</span>{" "}
+              <span className="font-semibold">{selected}</span>
             </>
           ) : (
-            selected ?? label
+            selected || label
           )}
         </span>
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
       {isOpen && (
@@ -183,7 +183,7 @@ function TaskDropdown({
                   onSelect(opt);
                   onClose();
                 }}
-                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
+                className={`block w-full px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
               >
                 {opt}
               </button>
@@ -314,72 +314,72 @@ function TaskCard({
           >
             <img src={Dot} alt="Dot" className="w-5 h-5 object-contain" />
           </button>
-            {menuOpen && (
-              <div
-                className={`absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right
+          {menuOpen && (
+            <div
+              className={`absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right
                                 ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
-                role="menu"
+              role="menu"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onViewTask?.(task);
+                }}
               >
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onViewTask?.(task);
-                  }}
-                >
-                  <img
-                    src={viewIcon}
-                    alt="view"
-                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                  />
-                  <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                    View
-                  </span>
-                </button>
-                {!isCompleted && (
-                  <>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        onEditTask?.(task);
-                      }}
-                    >
-                      <img
-                        src={editIcon}
-                        alt="edit"
-                        className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                      />
-                      <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                        Edit
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        onDeleteTask?.(task);
-                      }}
-                    >
-                      <img
-                        src={deleteIcon}
-                        alt="delete"
-                        className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                      />
-                      <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                        Delete
-                      </span>
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
+                <img
+                  src={viewIcon}
+                  alt="view"
+                  className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                />
+                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                  View
+                </span>
+              </button>
+              {!isCompleted && (
+                <>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onEditTask?.(task);
+                    }}
+                  >
+                    <img
+                      src={editIcon}
+                      alt="edit"
+                      className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                    />
+                    <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                      Edit
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onDeleteTask?.(task);
+                    }}
+                  >
+                    <img
+                      src={deleteIcon}
+                      alt="delete"
+                      className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                    />
+                    <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                      Delete
+                    </span>
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
       <div className="flex items-start justify-between gap-2 mb-2">
@@ -485,7 +485,7 @@ function TaskCard({
   );
 }
 
-const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
+const SHOW_OPTIONS = ["Show Entries", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
 const PERIOD_OPTIONS = [
   "Period",
   "This Week",
@@ -516,7 +516,7 @@ export default function MyTasksPM() {
         in_progress: "InProgress",
         completed: "Completed"
       };
-      
+
       const task = list.find(t => t.id === taskId);
       const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
 
@@ -539,7 +539,7 @@ export default function MyTasksPM() {
   const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
-  const [selectedShow, setSelectedShow] = useState<string | null>("Show");
+  const [selectedShow, setSelectedShow] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [deleteTask, setDeleteTask] = useState<Task | null>(null);
   const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
@@ -615,9 +615,9 @@ export default function MyTasksPM() {
       params.condition = "1";
       params.employeeid = "all";
     }
-    
+
     const taskParams: Record<string, string> = { ...params };
-    
+
     Promise.all([
       api.get<{ tasks?: Task[] }>("/api/tasks", { params: taskParams }),
       api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: taskParams })
@@ -634,23 +634,23 @@ export default function MyTasksPM() {
   const employeeOptions = useMemo(() => {
     const raw = Array.isArray(employees) ? employees : [];
     const baseOptions = ["Select Employee", "Show All"];
-    
+
     if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
       return [...baseOptions, ...raw.map((e) => e.full_name)];
     }
-    
+
     const proj = projects.find((p) => p.project_name === selectedProject);
     if (!proj) {
       return [...baseOptions, ...raw.map((e) => e.full_name)];
     }
-    
+
     const memberTokens = (proj.members || "").split(",").map(s => s.trim()).filter(Boolean);
     const filtered = raw.filter(emp => {
       const name = (emp.full_name || "").trim();
       const idStr = String(emp.id);
       return memberTokens.some(t => t === idStr || t.toLowerCase() === name.toLowerCase());
     });
-    
+
     return [...baseOptions, ...filtered.map(e => e.full_name)];
   }, [employees, projects, selectedProject]);
   const projectOptions = ["Select Projects", ...projects.map(p => p.project_name)];
@@ -722,7 +722,7 @@ export default function MyTasksPM() {
 
   let limitStart = 0;
   let limitEnd = 50;
-  if (selectedShow === "All" || !selectedShow || selectedShow === "Show") {
+  if (selectedShow === "All" || !selectedShow || selectedShow === "Show" || selectedShow === "Show Entries") {
     limitStart = 0;
     limitEnd = Infinity;
   } else if (selectedShow && selectedShow.includes("-")) {
@@ -792,7 +792,7 @@ export default function MyTasksPM() {
               maxVisibleItems={4}
             />
             <TaskDropdown
-              label="Show"
+              label="Show Entries"
               options={SHOW_OPTIONS}
               selected={selectedShow}
               onSelect={setSelectedShow}
@@ -880,97 +880,97 @@ export default function MyTasksPM() {
       {/* Task columns scrollable area - match MytaskTD */}
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
-        <div
-          className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "move";
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const raw =
-              e.dataTransfer.getData("taskId") ||
-              e.dataTransfer.getData("text/plain");
-            const taskId = Number(raw);
-            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
-          }}
-        >
-          {displayedTasksByStatus.todo.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              status={normalizeStatus(task.status, task.Approval)}
-              employees={employees}
-              onViewTask={openViewTask}
-              onEditTask={openEditTask}
-              onDeleteTask={openDeleteTask}
-              onOpenMemberProfile={(emp) => { setSelectedMember(emp); setShowMemberProfileModal(true); }}
-              onOpenInvolvedList={(list) => { setInvolvedList(list); setShowInvolvedModal(true); }}
-            />
-          ))}
-        </div>
-        <div
-          className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "move";
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const raw =
-              e.dataTransfer.getData("taskId") ||
-              e.dataTransfer.getData("text/plain");
-            const taskId = Number(raw);
-            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
-          }}
-        >
-          {displayedTasksByStatus.in_progress.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              status={normalizeStatus(task.status, task.Approval)}
-              employees={employees}
-              onViewTask={openViewTask}
-              onEditTask={openEditTask}
-              onDeleteTask={openDeleteTask}
-              onOpenMemberProfile={(emp) => { setSelectedMember(emp); setShowMemberProfileModal(true); }}
-              onOpenInvolvedList={(list) => { setInvolvedList(list); setShowInvolvedModal(true); }}
-            />
-          ))}
-        </div>
-        <div
-          className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "move";
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const raw =
-              e.dataTransfer.getData("taskId") ||
-              e.dataTransfer.getData("text/plain");
-            const taskId = Number(raw);
-            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
-          }}
-        >
-          {displayedTasksByStatus.completed.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              status={normalizeStatus(task.status, task.Approval)}
-              employees={employees}
-              onViewTask={openViewTask}
-              onEditTask={openEditTask}
-              onDeleteTask={openDeleteTask}
-              onOpenMemberProfile={(emp) => { setSelectedMember(emp); setShowMemberProfileModal(true); }}
-            />
-          ))}
+          <div
+            className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const raw =
+                e.dataTransfer.getData("taskId") ||
+                e.dataTransfer.getData("text/plain");
+              const taskId = Number(raw);
+              if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
+            }}
+          >
+            {displayedTasksByStatus.todo.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                status={normalizeStatus(task.status, task.Approval)}
+                employees={employees}
+                onViewTask={openViewTask}
+                onEditTask={openEditTask}
+                onDeleteTask={openDeleteTask}
+                onOpenMemberProfile={(emp) => { setSelectedMember(emp); setShowMemberProfileModal(true); }}
+                onOpenInvolvedList={(list) => { setInvolvedList(list); setShowInvolvedModal(true); }}
+              />
+            ))}
+          </div>
+          <div
+            className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const raw =
+                e.dataTransfer.getData("taskId") ||
+                e.dataTransfer.getData("text/plain");
+              const taskId = Number(raw);
+              if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
+            }}
+          >
+            {displayedTasksByStatus.in_progress.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                status={normalizeStatus(task.status, task.Approval)}
+                employees={employees}
+                onViewTask={openViewTask}
+                onEditTask={openEditTask}
+                onDeleteTask={openDeleteTask}
+                onOpenMemberProfile={(emp) => { setSelectedMember(emp); setShowMemberProfileModal(true); }}
+                onOpenInvolvedList={(list) => { setInvolvedList(list); setShowInvolvedModal(true); }}
+              />
+            ))}
+          </div>
+          <div
+            className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const raw =
+                e.dataTransfer.getData("taskId") ||
+                e.dataTransfer.getData("text/plain");
+              const taskId = Number(raw);
+              if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
+            }}
+          >
+            {displayedTasksByStatus.completed.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                status={normalizeStatus(task.status, task.Approval)}
+                employees={employees}
+                onViewTask={openViewTask}
+                onEditTask={openEditTask}
+                onDeleteTask={openDeleteTask}
+                onOpenMemberProfile={(emp) => { setSelectedMember(emp); setShowMemberProfileModal(true); }}
+              />
+            ))}
+          </div>
         </div>
       </div>
-    </div>
 
       {/* Delete Task confirmation modal */}
       {deleteTask !== null && (

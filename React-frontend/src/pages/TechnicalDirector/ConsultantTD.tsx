@@ -19,7 +19,6 @@ import editIcon from '../../assets/ProjectManager/consultant/editIcon.svg';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
-import projectViewIcon from '../../assets/ProjectManager/project/viewIcon.svg';
 import projectEditIcon from '../../assets/ProjectManager/project/editIcon.svg';
 import deleteIcon from '../../assets/ProjectManager/project/deleteIcon.svg';
 
@@ -225,10 +224,7 @@ function CustomDropdown({
           : ""
           }`}>
           {styleType === "header" && value && !isPlaceholder ? (
-            <>
-              <span className="text-[14px]">{placeholder}:</span>{" "}
-              <span className="font-semibold">{toCamelCase(value)}</span>
-            </>
+            <span className="font-semibold">{toCamelCase(value)}</span>
           ) : (
             value || placeholder
           )}
@@ -283,8 +279,8 @@ function CustomDropdown({
                     }
                   }}
                   className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${isPlaceholder && placeholder !== "Show" && placeholder !== "Show Entries"
-                      ? "text-[#353535] bg-[#F2F2F2]"
-                      : "text-[#8B8B8B] bg-[#FFFFFF]"
+                    ? "text-[#353535] bg-[#F2F2F2]"
+                    : "text-[#8B8B8B] bg-[#FFFFFF]"
                     }`}
                 >
                   {placeholder}
@@ -353,6 +349,7 @@ export default function ConsultantTD() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedShowEntries, setSelectedShowEntries] = useState('');
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
@@ -496,6 +493,12 @@ export default function ConsultantTD() {
       (emp.department || "").toLowerCase().includes(searchQuery) ||
       (emp.phone_number || "").toLowerCase().includes(searchQuery);
     if (!matchesSearch) return false;
+
+    if (typeFilter === 'Employee') {
+      if ((emp.user_type || '').toLowerCase() !== 'employee') return false;
+    } else if (typeFilter === 'Trainee') {
+      if ((emp.user_type || '').toLowerCase() !== 'trainee') return false;
+    }
 
     if (statusFilter === 'Active') {
       if (emp.active !== 'active') return false;
@@ -819,116 +822,130 @@ export default function ConsultantTD() {
 
                 </div>
                 <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
-                  <div
-                    className="relative min-w-[140px] max-w-[200px] w-[150px]"
-                    ref={showEntriesDropdownRef}
-                  >
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowEntriesOpen((o) => !o);
-                      }}
-                      className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                  {viewMode === 'table' && (
+                    <div
+                      className="relative min-w-[140px] max-w-[200px] w-[150px]"
+                      ref={showEntriesDropdownRef}
                     >
-                      <span
-                        className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ''
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowEntriesOpen((o) => !o);
+                        }}
+                        className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                      >
+                        <span
+                          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ''
                             ? 'text-[#8B8B8B]'
                             : 'text-[#353535]'
-                          }`}
-                      >
-                        {selectedShowEntries === '' ? (
-                          SHOW_ENTRIES_PLACEHOLDER
-                        ) : (
-                          <>
-                            <span className="text-[14px]">
-                              {SHOW_ENTRIES_SELECTED_PREFIX}
-                            </span>{' '}
-                            <span className="font-semibold">
-                              {selectedRange.label}
-                            </span>
-                          </>
-                        )}
-                      </span>
-                      <img
-                        src={ArrowDown}
-                        alt=""
-                        className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''
-                          } ${selectedShowEntries === ''
-                            ? 'opacity-60 grayscale'
-                            : 'opacity-90'
-                          }`}
-                        aria-hidden
-                      />
-                    </button>
-                    {showEntriesOpen && (
-                      <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
-                        <div
-                          ref={showEntriesDropdownContentRef}
-                          className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                            }`}
                         >
-                          <button
-                            type="button"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setSelectedShowEntries('');
-                              setShowEntriesOpen(false);
-                            }}
-                            className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                          {selectedShowEntries === '' ? (
+                            SHOW_ENTRIES_PLACEHOLDER
+                          ) : (
+                            <>
+                              <span className="text-[14px]">
+                                {SHOW_ENTRIES_SELECTED_PREFIX}
+                              </span>{' '}
+                              <span className="font-semibold">
+                                {selectedRange.label}
+                              </span>
+                            </>
+                          )}
+                        </span>
+                        <img
+                          src={ArrowDown}
+                          alt=""
+                          className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''
+                            } ${selectedShowEntries === ''
+                              ? 'opacity-60 grayscale'
+                              : 'opacity-90'
+                            }`}
+                          aria-hidden
+                        />
+                      </button>
+                      {showEntriesOpen && (
+                        <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                          <div
+                            ref={showEntriesDropdownContentRef}
+                            className="max-h-[168px] overflow-y-auto custom-scrollbar"
                           >
-                            {SHOW_ENTRIES_PLACEHOLDER}
-                          </button>
-                          {showEntriesOptions.map((opt) => {
-                            const isChosen = selectedShowEntries === opt.value;
-                            return (
-                              <button
-                                key={`${opt.value}-${opt.start}-${String(opt.end)}`}
-                                type="button"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setSelectedShowEntries(opt.value);
-                                  setShowEntriesOpen(false);
-                                }}
-                                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
+                            <button
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setSelectedShowEntries('');
+                                setShowEntriesOpen(false);
+                              }}
+                              className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                            >
+                              {SHOW_ENTRIES_PLACEHOLDER}
+                            </button>
+                            {showEntriesOptions.map((opt) => {
+                              const isChosen = selectedShowEntries === opt.value;
+                              return (
+                                <button
+                                  key={`${opt.value}-${opt.start}-${String(opt.end)}`}
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setSelectedShowEntries(opt.value);
+                                    setShowEntriesOpen(false);
+                                  }}
+                                  className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
                                     ? 'text-[#353535] bg-[#F2F2F2]'
                                     : 'text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]'
-                                  }`}
-                              >
-                                <span className="truncate min-w-0">{opt.label}</span>
-                                {isChosen && (
-                                  <svg
-                                    className="w-4 h-4 shrink-0 text-[#353535]"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                    aria-hidden
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2.5}
-                                      d="M5 13l4 4L19 7"
-                                    />
-                                  </svg>
-                                )}
-                              </button>
-                            );
-                          })}
+                                    }`}
+                                >
+                                  <span className="truncate min-w-0">{opt.label}</span>
+                                  {isChosen && (
+                                    <svg
+                                      className="w-4 h-4 shrink-0 text-[#353535]"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                      aria-hidden
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2.5}
+                                        d="M5 13l4 4L19 7"
+                                      />
+                                    </svg>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                  <CustomDropdown
-                    options={['All', 'Active', 'Deactivate']}
-                    value={statusFilter}
-                    onChange={(val) => setStatusFilter(val)}
-                    placeholder="Status"
-                    className="w-[100px]"
-                    styleType="header"
-                    alignMenu="right"
-                  />
+                      )}
+                    </div>
+                  )}
+                  {viewMode === 'card' ? (
+                    <CustomDropdown
+                      options={['All', 'Employee', 'Trainee']}
+                      value={typeFilter}
+                      onChange={(val) => setTypeFilter(val)}
+                      placeholder="Type"
+                      className="w-[100px]"
+                      styleType="header"
+                      alignMenu="right"
+                    />
+                  ) : (
+                    <CustomDropdown
+                      options={['All', 'Active', 'Deactivate']}
+                      value={statusFilter}
+                      onChange={(val) => setStatusFilter(val)}
+                      placeholder="Status"
+                      className="w-[100px]"
+                      styleType="header"
+                      alignMenu="right"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -1119,7 +1136,7 @@ export default function ConsultantTD() {
                                     </div>
                                     <span
                                       className="text-[14px] font-normal font-Gantari text-[#353535] cursor-pointer hover:text-[#DD4342]"
-                                      onClick={() => navigate(`/td/consultants/${emp.id}`)}
+                                      onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
                                     >
                                       {toCamelCase(emp.full_name || '-')}
                                     </span>
@@ -1166,11 +1183,11 @@ export default function ConsultantTD() {
                                   <div className="flex items-center justify-center gap-3">
                                     <button
                                       type="button"
-                                      onClick={() => navigate(`/td/consultants/${emp.id}`)}
+                                      onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
                                       aria-label="View consultant"
                                       className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#DD4342] text-white rounded-md transition-all cursor-pointer"
                                     >
-                                      <img src={projectViewIcon} className="w-4 h-4 brightness-0 invert" alt="" aria-hidden />
+                                      <img src={eyeIcon} className="w-4 h-4 brightness-0 invert" alt="" aria-hidden />
                                     </button>
                                     {canAdd && (
                                       <>
@@ -1604,22 +1621,22 @@ export default function ConsultantTD() {
 
       {showDetailsModal && selectedEmployee && createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/10 backdrop-blur-[3px]">
-          <div className="bg-white rounded-lg max-w-[520px] w-full overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
+          <div className="bg-white rounded-[15px] max-w-[550px] w-full overflow-hidden px-[20px] py-[30px] relative shadow-2xl flex flex-col gap-8 font-Gantari">
             {/* Header */}
             <div className="flex items-center justify-center relative shrink-0">
               <button
                 type="button"
                 onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
-                className="absolute left-0 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
+                className="absolute left-0 p-2.5 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
-              <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">View Details</h3>
+              <h3 className="text-[28px] font-medium text-[#000000] font-Gantari">View Details</h3>
             </div>
 
             {/* Profile Section */}
-            <div className="flex items-center gap-4 px-4 ">
-              <div className="w-[38px] h-[38px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0">
+            <div className="flex items-center gap-6 px-10">
+              <div className="w-[66px] h-[66px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0 border border-slate-200">
                 {selectedEmployee.profile_picture && selectedEmployee.profile_picture.trim() ? (
                   <img
                     key={`modal-${selectedEmployee.id}-${selectedEmployee.profile_picture}`}
@@ -1628,35 +1645,26 @@ export default function ConsultantTD() {
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      console.error(`❌ Failed to load image for ${selectedEmployee.full_name}:`, {
-                        attemptedUrl: target.src,
-                        generatedUrl: getProfileUrl(selectedEmployee.profile_picture),
-                        dbValue: selectedEmployee.profile_picture
-                      });
-                      // Replace with placeholder on error
                       const parent = target.parentElement;
                       if (parent && !parent.querySelector('.error-placeholder')) {
-                        parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-sm">No Photo</span></div>';
+                        parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-[10px]">No Photo</span></div>';
                       }
-                    }}
-                    onLoad={() => {
-                      console.log(`✅ Successfully loaded image for ${selectedEmployee.full_name}:`, getProfileUrl(selectedEmployee.profile_picture));
                     }}
                   />
                 ) : (
                   <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-400 text-sm">No Photo</span>
+                    <span className="text-gray-400 text-[10px]">No Photo</span>
                   </div>
                 )}
               </div>
               <div className="flex flex-col gap-0.5">
-                <h4 className="text-[18px] font-bold text-[#000000] font-Gantari">{toCamelCase(selectedEmployee.full_name)}</h4>
-                <p className="text-[14px] font-semibold text-[#353535] font-Gantari">{selectedEmployee.empid || `EMP-${String(selectedEmployee.id).padStart(4, '0')}`}</p>
+                <h4 className="text-[22px] font-bold text-[#000000] font-Gantari leading-tight">{toCamelCase(selectedEmployee.full_name)}</h4>
+                <p className="text-[16px] font-medium text-[#353535] font-Gantari">{selectedEmployee.empid || `EMP-${(selectedEmployee.id + 150).toString().padStart(4, '0')}`}</p>
               </div>
             </div>
 
             {/* Details Table */}
-            <div className="px-4 sm:px-8 space-y-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
+            <div className="px-10 space-y-3 overflow-y-auto max-h-[60vh] custom-scrollbar">
               {[
                 { label: 'Date of Birth', value: selectedEmployee.dob },
                 { label: 'Phone Number', value: selectedEmployee.phone_number },
@@ -1671,11 +1679,11 @@ export default function ConsultantTD() {
               ].map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex flex-col sm:grid sm:grid-cols-[140px_20px_1fr] text-[14px] gap-2 sm:gap-15 pb-2 sm:pb-0 border-b sm:border-none border-[#F0F0F0] last:border-none"
+                  className="grid grid-cols-[140px_30px_1fr] text-[15px] items-center"
                 >
-                  <span className="text-[14px] font-Gantari text-[#020202]">{item.label}</span>
-                  <span className="hidden sm:inline text-[14px] font-Gantari text-[#020202] text-center">:</span>
-                  <span className="text-[14px] text-[#616161] font-Gantari break-words">{item.value || 'N/A'}</span>
+                  <span className="text-[#616161] font-Gantari font-medium">{item.label}</span>
+                  <span className="text-[#616161] font-Gantari font-medium text-center">:</span>
+                  <span className="text-[#353535] font-Gantari font-medium break-words">{item.value || '0'}</span>
                 </div>
               ))}
             </div>

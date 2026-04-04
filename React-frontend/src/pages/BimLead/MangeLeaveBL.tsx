@@ -176,14 +176,14 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-  { value: "1-50", label: "1-50", start: 0, end: 50 },
-  { value: "51-100", label: "51-100", start: 50, end: 100 },
-  { value: "101-150", label: "101-150", start: 100, end: 150 },
-  { value: "151-200", label: "151-200", start: 150, end: 200 },
-  { value: "201-250", label: "201-250", start: 200, end: 250 },
-  { value: "251-300", label: "251-300", start: 250, end: 300 },
-  { value: "all", label: "All", start: 0, end: null },
-];
+    { value: "1-50", label: "1-50", start: 0, end: 50 },
+    { value: "51-100", label: "51-100", start: 50, end: 100 },
+    { value: "101-150", label: "101-150", start: 100, end: 150 },
+    { value: "151-200", label: "151-200", start: 150, end: 200 },
+    { value: "201-250", label: "201-250", start: 200, end: 250 },
+    { value: "251-300", label: "251-300", start: 250, end: 300 },
+    { value: "all", label: "All", start: 0, end: null },
+  ];
 
 const PER_PAGE = 10;
 const PAGINATION_VISIBLE = 4;
@@ -291,6 +291,8 @@ export default function ManageLeave() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingLeave, setEditingLeave] = useState<LeaveEntry | null>(null);
   const [deleteLeave, setDeleteLeave] = useState<LeaveEntry | null>(null);
+  const [approveLeave, setApproveLeave] = useState<LeaveEntry | null>(null);
+  const [rejectLeave, setRejectLeave] = useState<LeaveEntry | null>(null);
   const [leaveTypeOpenEdit, setLeaveTypeOpenEdit] = useState(false);
   const leaveTypeDropdownEditRef = useRef<HTMLDivElement>(null);
 
@@ -637,7 +639,7 @@ export default function ManageLeave() {
       console.error("Apply leave failed", err);
       alert(
         err?.response?.data?.message ||
-          "Failed to apply leave. Please try again.",
+        "Failed to apply leave. Please try again.",
       );
     }
   };
@@ -757,7 +759,7 @@ export default function ManageLeave() {
       console.error("Update leave failed", err);
       alert(
         err?.response?.data?.message ||
-          "Failed to update leave. Please try again.",
+        "Failed to update leave. Please try again.",
       );
     }
   };
@@ -818,20 +820,24 @@ export default function ManageLeave() {
     );
   };
 
-  const handleApproveBackend = async (row: LeaveEntry) => {
+  const confirmApproveLeave = async () => {
+    if (approveLeave === null) return;
     try {
-      await api.post(`/api/leave/applications/${row.id}/approve`);
-      updateLeaveStatus(row.id, "Approved");
+      await api.post(`/api/leave/applications/${approveLeave.id}/approve`);
+      updateLeaveStatus(approveLeave.id, "Approved");
+      setApproveLeave(null);
     } catch (err) {
       console.error("Failed to approve leave", err);
       alert("Failed to approve leave. Please try again.");
     }
   };
 
-  const handleRejectBackend = async (row: LeaveEntry) => {
+  const confirmRejectLeave = async () => {
+    if (rejectLeave === null) return;
     try {
-      await api.post(`/api/leave/applications/${row.id}/reject`);
-      updateLeaveStatus(row.id, "Rejected");
+      await api.post(`/api/leave/applications/${rejectLeave.id}/reject`);
+      updateLeaveStatus(rejectLeave.id, "Rejected");
+      setRejectLeave(null);
     } catch (err) {
       console.error("Failed to reject leave", err);
       alert("Failed to reject leave. Please try again.");
@@ -896,11 +902,10 @@ export default function ManageLeave() {
                   className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                 >
                   <span
-                    className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-                      selectedEmployee === ""
+                    className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedEmployee === ""
                         ? "text-[#8B8B8B]"
                         : "text-[#353535]"
-                    }`}
+                      }`}
                   >
                     {selectedEmployee === "" ? (
                       EMPLOYEE_FILTER_PLACEHOLDER
@@ -920,13 +925,11 @@ export default function ManageLeave() {
                   <img
                     src={ArrowDown}
                     alt=""
-                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                      employeeDropdownOpen ? "rotate-180" : ""
-                    } ${
-                      selectedEmployee === ""
+                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${employeeDropdownOpen ? "rotate-180" : ""
+                      } ${selectedEmployee === ""
                         ? "opacity-60 grayscale"
                         : "opacity-90"
-                    }`}
+                      }`}
                     aria-hidden
                   />
                 </button>
@@ -958,11 +961,10 @@ export default function ManageLeave() {
                             setSelectedEmployee(name);
                             setEmployeeDropdownOpen(false);
                           }}
-                          className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer truncate hover:text-[#353535] hover:bg-[#F2F2F2] ${
-                            selectedEmployee === name
+                          className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer truncate hover:text-[#353535] hover:bg-[#F2F2F2] ${selectedEmployee === name
                               ? "text-[#353535] bg-[#F2F2F2]"
                               : "text-[#8B8B8B] bg-transparent"
-                          }`}
+                            }`}
                         >
                           {name}
                         </button>
@@ -984,11 +986,10 @@ export default function ManageLeave() {
                   className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                 >
                   <span
-                    className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-                      selectedShowEntries === ""
+                    className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
                         ? "text-[#8B8B8B]"
                         : "text-[#353535]"
-                    }`}
+                      }`}
                   >
                     {selectedShowEntries === "" ? (
                       SHOW_ENTRIES_PLACEHOLDER
@@ -1006,13 +1007,11 @@ export default function ManageLeave() {
                   <img
                     src={ArrowDown}
                     alt=""
-                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                      showEntriesOpen ? "rotate-180" : ""
-                    } ${
-                      selectedShowEntries === ""
+                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                      } ${selectedShowEntries === ""
                         ? "opacity-60 grayscale"
                         : "opacity-90"
-                    }`}
+                      }`}
                     aria-hidden
                   />
                 </button>
@@ -1046,11 +1045,10 @@ export default function ManageLeave() {
                               setSelectedShowEntries(opt.value);
                               setShowEntriesOpen(false);
                             }}
-                            className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${
-                              isChosen
+                            className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
                                 ? "text-[#353535] bg-[#F2F2F2]"
                                 : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
-                            }`}
+                              }`}
                           >
                             <span className="truncate min-w-0">{opt.label}</span>
                             {isChosen && (
@@ -1178,7 +1176,7 @@ export default function ManageLeave() {
                                         type="button"
                                         aria-label="Approve"
                                         onClick={() =>
-                                          handleApproveBackend(row)
+                                          setApproveLeave(row)
                                         }
                                         className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
                                       >
@@ -1223,7 +1221,7 @@ export default function ManageLeave() {
                                         type="button"
                                         aria-label="Reject"
                                         onClick={() =>
-                                          handleRejectBackend(row)
+                                          setRejectLeave(row)
                                         }
                                         className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
                                       >
@@ -1270,11 +1268,10 @@ export default function ManageLeave() {
                                   <button
                                     type="button"
                                     onClick={() => handleEdit(row)}
-                                    className={`inline-flex items-center justify-center p-2 rounded-md cursor-pointer ${
-                                      index % 2 === 0
+                                    className={`inline-flex items-center justify-center p-2 rounded-md cursor-pointer ${index % 2 === 0
                                         ? "bg-[#F2F2F2]"
                                         : "bg-[#FFFFFF]"
-                                    }`}
+                                      }`}
                                     title="Edit"
                                   >
                                     <img
@@ -1286,11 +1283,10 @@ export default function ManageLeave() {
                                   <button
                                     type="button"
                                     onClick={() => openDeleteLeave(row)}
-                                    className={`inline-flex items-center justify-center p-2 rounded-md text-[#353535] transition-colors shrink-0 cursor-pointer ${
-                                      index % 2 === 0
+                                    className={`inline-flex items-center justify-center p-2 rounded-md text-[#353535] transition-colors shrink-0 cursor-pointer ${index % 2 === 0
                                         ? "bg-[#F2F2F2]"
                                         : "bg-[#FFFFFF]"
-                                    }`}
+                                      }`}
                                     title="Delete"
                                   >
                                     <img
@@ -1363,6 +1359,104 @@ export default function ManageLeave() {
         </div>
       )}
 
+      {approveLeave !== null && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+            <button
+              type="button"
+              onClick={() => setApproveLeave(null)}
+              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+              title="Close"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+            <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
+              Approve Leave
+            </h3>
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+              Are you sure, you want to Approve this?
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
+              <button
+                type="button"
+                onClick={() => setApproveLeave(null)}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={confirmApproveLeave}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E1F6EB] text-[#008F22] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Yes, Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rejectLeave !== null && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+            <button
+              type="button"
+              onClick={() => setRejectLeave(null)}
+              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+              title="Close"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+            <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
+              Reject Leave
+            </h3>
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+              Are you sure, you want to Reject this?
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
+              <button
+                type="button"
+                onClick={() => setRejectLeave(null)}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={confirmRejectLeave}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Yes, Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Apply Leave Modal — shell aligned with BimModeler ManageLeave */}
       {applyModalOpen &&
         createPortal(
@@ -1411,11 +1505,10 @@ export default function ManageLeave() {
                     readOnly
                     disabled
                     placeholder="Employee name"
-                    className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none bg-[#F2F3F4] border-0 disabled:opacity-70 disabled:cursor-not-allowed placeholder-[#8B8B8B] ${
-                      applyFormErrors.employeeName
+                    className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none bg-[#F2F3F4] border-0 disabled:opacity-70 disabled:cursor-not-allowed placeholder-[#8B8B8B] ${applyFormErrors.employeeName
                         ? "ring-1 ring-[#DD4342]"
                         : ""
-                    }`}
+                      }`}
                   />
                   {applyFormErrors.employeeName && (
                     <p className="mt-1.5 text-sm text-[#DD4342]">
@@ -1704,11 +1797,10 @@ export default function ManageLeave() {
                     readOnly
                     disabled
                     placeholder="Employee name"
-                    className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none bg-[#F2F3F4] border-0 disabled:opacity-70 disabled:cursor-not-allowed placeholder-[#8B8B8B] ${
-                      applyFormErrors.employeeName
+                    className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none bg-[#F2F3F4] border-0 disabled:opacity-70 disabled:cursor-not-allowed placeholder-[#8B8B8B] ${applyFormErrors.employeeName
                         ? "ring-1 ring-[#DD4342]"
                         : ""
-                    }`}
+                      }`}
                   />
                   {applyFormErrors.employeeName && (
                     <p className="mt-1.5 text-sm text-[#DD4342]">

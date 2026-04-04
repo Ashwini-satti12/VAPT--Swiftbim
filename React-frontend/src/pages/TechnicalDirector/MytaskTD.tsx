@@ -132,10 +132,10 @@ export function FormDropdown({
   const filteredOptions =
     searchable && isOpen && q
       ? options.filter(
-          (opt) =>
-            opt.label.toLowerCase().includes(q) ||
-            String(opt.value).toLowerCase().includes(q),
-        )
+        (opt) =>
+          opt.label.toLowerCase().includes(q) ||
+          String(opt.value).toLowerCase().includes(q),
+      )
       : options;
 
   const listMaxHeightPx = Math.max(120, maxVisibleRows * 40 + 8);
@@ -153,7 +153,7 @@ export function FormDropdown({
   };
 
   const fieldShellClass =
-    "flex w-full items-center gap-2 rounded-md border border-transparent bg-[#F2F3F4] px-3 py-2 text-left text-[14px] font-Gantari transition-colors focus-within:border-[#AEACAC52]";
+    "flex w-full items-center gap-2 rounded-md border border-transparent bg-[#E8E8E8] px-3 py-2 text-left text-[14px] font-semibold font-Gantari transition-colors focus-within:border-[#AEACAC52]";
 
   return (
     <div ref={setRootRef} className="relative w-full">
@@ -374,9 +374,9 @@ export function TaskDropdown({
   const triggerButtonClass =
     triggerVariant === "compositeEnd"
       ? "inline-flex h-full min-h-[40px] w-auto shrink-0 items-center justify-between gap-2 border-0 border-l border-[#E0E0E0] bg-[#E2E2E2] px-4 py-2 text-[14px] font-Gantari text-[#8B8B8B] cursor-pointer outline-none transition-colors hover:bg-[#dadada] focus-visible:bg-[#dadada]"
-      : `inline-flex items-center justify-between rounded-md border border-transparent bg-[#E8E8E8] px-4 py-2 text-[14px] cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`;
+      : `inline-flex items-center justify-between rounded-md border border-transparent bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`;
 
-  const triggerTextClass = `truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`;
+  const triggerTextClass = `truncate font-Gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`;
 
   const menuContent = (
     <>
@@ -406,7 +406,7 @@ export function TaskDropdown({
               onSelect(opt);
               onClose();
             }}
-            className={`block w-full px-4 py-2 text-left text-[14px] font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
+            className={`block w-full px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
           >
             {opt}
           </button>
@@ -438,11 +438,11 @@ export function TaskDropdown({
         <span className={triggerTextClass}>
           {label.toLowerCase() === "show" && selected && selected !== label ? (
             <>
-              <span className="text-[14px] text-[#353535]">Show Entries:</span>{" "}
-              <span>{selected}</span>
+              <span className="text-[14px]">{label}:</span>{" "}
+              <span className="font-semibold">{selected}</span>
             </>
           ) : (
-            (selected ?? label)
+            (selected || label)
           )}
         </span>
         <img
@@ -454,34 +454,34 @@ export function TaskDropdown({
       {isOpen &&
         (menuUseFixedLayer
           ? fixedPlacement &&
-            createPortal(
-              <div
-                ref={dropdownRef}
-                role="listbox"
-                className={`${menuShellClass} fixed z-[9999]`}
-                style={{
-                  top: fixedPlacement.top,
-                  ...(fixedPlacement.right !== undefined
-                    ? { right: fixedPlacement.right }
-                    : { left: fixedPlacement.left }),
-                  minWidth: fixedPlacement.minW,
-                  maxWidth: fixedPlacement.maxW,
-                  maxHeight: fixedPlacement.maxH,
-                }}
-              >
-                {menuContent}
-              </div>,
-              document.body,
-            )
+          createPortal(
+            <div
+              ref={dropdownRef}
+              role="listbox"
+              className={`${menuShellClass} fixed z-[9999]`}
+              style={{
+                top: fixedPlacement.top,
+                ...(fixedPlacement.right !== undefined
+                  ? { right: fixedPlacement.right }
+                  : { left: fixedPlacement.left }),
+                minWidth: fixedPlacement.minW,
+                maxWidth: fixedPlacement.maxW,
+                maxHeight: fixedPlacement.maxH,
+              }}
+            >
+              {menuContent}
+            </div>,
+            document.body,
+          )
           : (
-              <div
-                ref={dropdownRef}
-                role="listbox"
-                className={`absolute top-full z-50 mt-1 flex max-h-[min(18rem,calc(100vh-7rem))] ${menuShellClass} ${positionClass}`}
-              >
-                {menuContent}
-              </div>
-            ))}
+            <div
+              ref={dropdownRef}
+              role="listbox"
+              className={`absolute top-full z-50 mt-1 flex max-h-[min(18rem,calc(100vh-7rem))] ${menuShellClass} ${positionClass}`}
+            >
+              {menuContent}
+            </div>
+          ))}
     </div>
   );
 }
@@ -937,14 +937,14 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-  { value: "1-50", label: "1-50", start: 0, end: 50 },
-  { value: "51-100", label: "51-100", start: 50, end: 100 },
-  { value: "101-150", label: "101-150", start: 100, end: 150 },
-  { value: "151-200", label: "151-200", start: 150, end: 200 },
-  { value: "201-250", label: "201-250", start: 200, end: 250 },
-  { value: "251-300", label: "251-300", start: 250, end: 300 },
-  { value: "all", label: "All", start: 0, end: null },
-];
+    { value: "1-50", label: "1-50", start: 0, end: 50 },
+    { value: "51-100", label: "51-100", start: 50, end: 100 },
+    { value: "101-150", label: "101-150", start: 100, end: 150 },
+    { value: "151-200", label: "151-200", start: 150, end: 200 },
+    { value: "201-250", label: "201-250", start: 200, end: 250 },
+    { value: "251-300", label: "251-300", start: 250, end: 300 },
+    { value: "all", label: "All", start: 0, end: null },
+  ];
 const PERIOD_OPTIONS = [
   "Period",
   "This Week",
@@ -1409,11 +1409,10 @@ export default function MytaskTD() {
                 className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-Gantari transition-all cursor-pointer border-0 min-w-0"
               >
                 <span
-                  className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-                    selectedShowEntries === ""
-                      ? "text-[#8B8B8B]"
-                      : "text-[#353535]"
-                  }`}
+                  className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
+                    ? "text-[#8B8B8B]"
+                    : "text-[#353535]"
+                    }`}
                 >
                   {selectedShowEntries === "" ? (
                     SHOW_ENTRIES_PLACEHOLDER
@@ -1431,13 +1430,11 @@ export default function MytaskTD() {
                 <img
                   src={ArrowDown}
                   alt=""
-                  className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                    showEntriesOpen ? "rotate-180" : ""
-                  } ${
-                    selectedShowEntries === ""
+                  className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                    } ${selectedShowEntries === ""
                       ? "opacity-60 grayscale"
                       : "opacity-90"
-                  }`}
+                    }`}
                   aria-hidden
                 />
               </button>
@@ -1471,11 +1468,10 @@ export default function MytaskTD() {
                             setSelectedShowEntries(opt.value);
                             setShowEntriesOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${
-                            isChosen
-                              ? "text-[#353535] bg-[#F2F2F2]"
-                              : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
-                          }`}
+                          className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${isChosen
+                            ? "text-[#353535] bg-[#F2F2F2]"
+                            : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                            }`}
                         >
                           <span className="truncate min-w-0">{opt.label}</span>
                           {isChosen && (

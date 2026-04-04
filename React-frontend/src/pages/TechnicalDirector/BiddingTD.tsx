@@ -28,14 +28,14 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-  { value: "1-50", label: "1-50", start: 0, end: 50 },
-  { value: "51-100", label: "51-100", start: 50, end: 100 },
-  { value: "101-150", label: "101-150", start: 100, end: 150 },
-  { value: "151-200", label: "151-200", start: 150, end: 200 },
-  { value: "201-250", label: "201-250", start: 200, end: 250 },
-  { value: "251-300", label: "251-300", start: 250, end: 300 },
-  { value: "all", label: "All", start: 0, end: null },
-];
+    { value: "1-50", label: "1-50", start: 0, end: 50 },
+    { value: "51-100", label: "51-100", start: 50, end: 100 },
+    { value: "101-150", label: "101-150", start: 100, end: 150 },
+    { value: "151-200", label: "151-200", start: 150, end: 200 },
+    { value: "201-250", label: "201-250", start: 200, end: 250 },
+    { value: "251-300", label: "251-300", start: 250, end: 300 },
+    { value: "all", label: "All", start: 0, end: null },
+  ];
 
 export default function BiddingTD() {
   const [loading, setLoading] = useState(true);
@@ -150,11 +150,10 @@ export default function BiddingTD() {
               className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
             >
               <span
-                className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-                  selectedShowEntries === ""
+                className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
                     ? "text-[#8B8B8B]"
                     : "text-[#353535]"
-                }`}
+                  }`}
               >
                 {selectedShowEntries === "" ? (
                   SHOW_ENTRIES_PLACEHOLDER
@@ -170,13 +169,11 @@ export default function BiddingTD() {
               <img
                 src={ArrowDown}
                 alt=""
-                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                  showEntriesOpen ? "rotate-180" : ""
-                } ${
-                  selectedShowEntries === ""
+                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                  } ${selectedShowEntries === ""
                     ? "opacity-60 grayscale"
                     : "opacity-90"
-                }`}
+                  }`}
                 aria-hidden
               />
             </button>
@@ -210,11 +207,10 @@ export default function BiddingTD() {
                           setSelectedShowEntries(opt.value);
                           setShowEntriesOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${
-                          isChosen
+                        className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
                             ? "text-[#353535] bg-[#F2F2F2]"
                             : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
-                        }`}
+                          }`}
                       >
                         <span className="truncate min-w-0">{opt.label}</span>
                         {isChosen && (
@@ -325,13 +321,13 @@ export default function BiddingTD() {
                       <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                         {project.bid_deadline
                           ? new Date(project.bid_deadline).toLocaleDateString(
-                              "en-US",
-                              {
-                                month: "short",
-                                day: "2-digit",
-                                year: "numeric",
-                              },
-                            )
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "2-digit",
+                              year: "numeric",
+                            },
+                          )
                           : "—"}
                       </td>
                       <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
@@ -350,11 +346,10 @@ export default function BiddingTD() {
                       </td>
                       <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
                         <button
-                          className={`flex items-center justify-center gap-2 mx-auto px-4 py-3 rounded-md text-xs font-bold font-gantari transition-all cursor-pointer ${
-                            isOpen && project.total_bids === 0
+                          className={`flex items-center justify-center gap-2 mx-auto px-4 py-3 rounded-md text-xs font-bold font-gantari transition-all cursor-pointer ${isOpen && project.total_bids === 0
                               ? "bg-[#F2F2F2] text-[#616161] cursor-not-allowed opacity-60"
                               : "bg-[#DD4342] text-white shadow-sm shadow-red-100"
-                          }`}
+                            }`}
                           onClick={() => setSelectedProject(project)}
                           disabled={isOpen && project.total_bids === 0}
                         >

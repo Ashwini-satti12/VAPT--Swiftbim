@@ -28,14 +28,14 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-  { value: "1-50", label: "1-50", start: 0, end: 50 },
-  { value: "51-100", label: "51-100", start: 50, end: 100 },
-  { value: "101-150", label: "101-150", start: 100, end: 150 },
-  { value: "151-200", label: "151-200", start: 150, end: 200 },
-  { value: "201-250", label: "201-250", start: 200, end: 250 },
-  { value: "251-300", label: "251-300", start: 250, end: 300 },
-  { value: "all", label: "All", start: 0, end: null },
-];
+    { value: "1-50", label: "1-50", start: 0, end: 50 },
+    { value: "51-100", label: "51-100", start: 50, end: 100 },
+    { value: "101-150", label: "101-150", start: 100, end: 150 },
+    { value: "151-200", label: "151-200", start: 150, end: 200 },
+    { value: "201-250", label: "201-250", start: 200, end: 250 },
+    { value: "251-300", label: "251-300", start: 250, end: 300 },
+    { value: "all", label: "All", start: 0, end: null },
+  ];
 
 interface Employee {
   id: number;
@@ -194,28 +194,23 @@ function CustomDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between gap-2 transition-all outline-none font-gantari min-w-0 cursor-pointer ${
-          styleType === "header"
-            ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
-            : styleType === "table"
-              ? `px-4 py-2 min-w-[140px] rounded-md border font-gantari font-medium text-[14px] ${value === "Active" ? "bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]" : "bg-[#FFE5E5] border-[#FECACA] text-[#E00100]"}`
-              : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
-        }`}
+        className={`w-full flex items-center justify-between gap-2 transition-all outline-none font-gantari min-w-0 cursor-pointer ${styleType === "header"
+          ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
+          : styleType === "table"
+            ? `px-4 py-2 min-w-[140px] rounded-md border font-gantari font-medium text-[14px] ${value === "Active" ? "bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]" : "bg-[#FFE5E5] border-[#FECACA] text-[#E00100]"}`
+            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+          }`}
       >
         <span
-          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-            styleType === "header" || styleType === "form"
-              ? isPlaceholder
-                ? "text-[#8B8B8B]"
-                : "text-[#353535]"
-              : ""
-          }`}
+          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${styleType === "header" || styleType === "form"
+            ? isPlaceholder
+              ? "text-[#8B8B8B]"
+              : "text-[#353535]"
+            : ""
+            }`}
         >
           {styleType === "header" && value && !isPlaceholder ? (
-            <>
-              <span className="text-[14px]">{placeholder}:</span>{" "}
-              <span className="font-semibold">{toCamelCase(value)}</span>
-            </>
+            <span className="font-semibold">{toCamelCase(value)}</span>
           ) : (
             value || placeholder
           )}
@@ -229,9 +224,8 @@ function CustomDropdown({
       </button>
       {isOpen && (
         <div
-          className={`absolute top-full mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden ${
-            alignMenu === "right" ? "right-0 left-auto" : "left-0"
-          }`}
+          className={`absolute top-full mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden ${alignMenu === "right" ? "right-0 left-auto" : "left-0"
+            }`}
         >
           {styleType === "table" ? (
             <div className="flex flex-col py-2">
@@ -271,13 +265,12 @@ function CustomDropdown({
                       setIsOpen(false);
                     }
                   }}
-                  className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${
-                    isPlaceholder &&
+                  className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${isPlaceholder &&
                     placeholder !== "Show" &&
                     placeholder !== "Show entries"
-                      ? "text-[#353535] bg-[#F2F2F2]"
-                      : "text-[#8B8B8B] bg-[#FFFFFF]"
-                  }`}
+                    ? "text-[#353535] bg-[#F2F2F2]"
+                    : "text-[#8B8B8B] bg-[#FFFFFF]"
+                    }`}
                 >
                   {placeholder}
                 </button>
@@ -336,7 +329,7 @@ export default function ConsultantBL() {
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
   const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
-  const [statusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
 
   const canAdd = user?.panel_type === 1;
@@ -444,20 +437,16 @@ export default function ConsultantBL() {
       (emp.phone_number || "").toLowerCase().includes(searchQuery);
     if (!matchesSearch) return false;
 
-    if (statusFilter === "Active") {
-      const isActive = (emp.active || "").toLowerCase() === "active";
-      if (!isActive) return false;
-    } else if (statusFilter === "Deactivate") {
-      const isActive = (emp.active || "").toLowerCase() === "active";
-      if (isActive) return false;
+    if (typeFilter === "Employee") {
+      if ((emp.user_type || "").toLowerCase() !== "employee") return false;
+    } else if (typeFilter === "Trainee") {
+      if ((emp.user_type || "").toLowerCase() !== "trainee") return false;
     }
 
-    if (typeFilter === "Employee") {
-      const currentType = (emp.user_type || "").toLowerCase();
-      if (currentType !== "employee") return false;
-    } else if (typeFilter === "Trainee") {
-      const currentType = (emp.user_type || "").toLowerCase();
-      if (currentType !== "trainee") return false;
+    if (statusFilter === "Active") {
+      if (emp.active !== "active") return false;
+    } else if (statusFilter === "Deactivate") {
+      if (emp.active !== "deactive" && emp.active !== "inactive") return false;
     }
 
     return true;
@@ -490,7 +479,7 @@ export default function ConsultantBL() {
         setInviteEmails("");
         setInviteMessage("");
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setInviteSubmitting(false));
   }
 
@@ -511,7 +500,7 @@ export default function ConsultantBL() {
         setShowInactiveModal(false);
         setInactiveIds([]);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setInactiveSubmitting(false));
   }
 
@@ -590,120 +579,118 @@ export default function ConsultantBL() {
             <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
               {viewMode === "table" && (
                 <div
-                className="relative min-w-[140px] max-w-[200px] w-[150px]"
-                ref={showEntriesDropdownRef}
-              >
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowEntriesOpen((o) => !o);
-                  }}
-                  className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                  className="relative min-w-[140px] max-w-[200px] w-[150px]"
+                  ref={showEntriesDropdownRef}
                 >
-                  <span
-                    className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-                      selectedShowEntries === ""
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowEntriesOpen((o) => !o);
+                    }}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                  >
+                    <span
+                      className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
                         ? "text-[#8B8B8B]"
                         : "text-[#353535]"
-                    }`}
-                  >
-                    {selectedShowEntries === "" ? (
-                      SHOW_ENTRIES_PLACEHOLDER
-                    ) : (
-                      <>
-                        <span className="text-[14px]">
-                          {SHOW_ENTRIES_SELECTED_PREFIX}
-                        </span>{" "}
-                        <span className="font-semibold">
-                          {selectedRange.label}
-                        </span>
-                      </>
-                    )}
-                  </span>
-                  <img
-                    src={ArrowDown}
-                    alt=""
-                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                      showEntriesOpen ? "rotate-180" : ""
-                    } ${
-                      selectedShowEntries === ""
-                        ? "opacity-60 grayscale"
-                        : "opacity-90"
-                    }`}
-                    aria-hidden
-                  />
-                </button>
-                {showEntriesOpen && (
-                  <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
-                    <div
-                      ref={showEntriesDropdownContentRef}
-                      className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                        }`}
                     >
-                      <button
-                        type="button"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setSelectedShowEntries("");
-                          setShowEntriesOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                      {selectedShowEntries === "" ? (
+                        SHOW_ENTRIES_PLACEHOLDER
+                      ) : (
+                        <>
+                          <span className="text-[14px]">
+                            {SHOW_ENTRIES_SELECTED_PREFIX}
+                          </span>{" "}
+                          <span className="font-semibold">
+                            {selectedRange.label}
+                          </span>
+                        </>
+                      )}
+                    </span>
+                    <img
+                      src={ArrowDown}
+                      alt=""
+                      className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                        } ${selectedShowEntries === ""
+                          ? "opacity-60 grayscale"
+                          : "opacity-90"
+                        }`}
+                      aria-hidden
+                    />
+                  </button>
+                  {showEntriesOpen && (
+                    <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                      <div
+                        ref={showEntriesDropdownContentRef}
+                        className="max-h-[168px] overflow-y-auto custom-scrollbar"
                       >
-                        {SHOW_ENTRIES_PLACEHOLDER}
-                      </button>
-                      {showEntriesOptions.map((opt) => {
-                        const isChosen = selectedShowEntries === opt.value;
-                        return (
-                          <button
-                            key={`${opt.value}-${opt.start}-${String(opt.end)}`}
-                            type="button"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setSelectedShowEntries(opt.value);
-                              setShowEntriesOpen(false);
-                            }}
-                            className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${
-                              isChosen
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedShowEntries("");
+                            setShowEntriesOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                        >
+                          {SHOW_ENTRIES_PLACEHOLDER}
+                        </button>
+                        {showEntriesOptions.map((opt) => {
+                          const isChosen = selectedShowEntries === opt.value;
+                          return (
+                            <button
+                              key={`${opt.value}-${opt.start}-${String(opt.end)}`}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setSelectedShowEntries(opt.value);
+                                setShowEntriesOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
                                 ? "text-[#353535] bg-[#F2F2F2]"
                                 : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
-                            }`}
-                          >
-                            <span className="truncate min-w-0">{opt.label}</span>
-                            {isChosen && (
-                              <svg
-                                className="w-4 h-4 shrink-0 text-[#353535]"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                aria-hidden
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2.5}
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                            )}
-                          </button>
-                        );
-                      })}
+                                }`}
+                            >
+                              <span className="truncate min-w-0">{opt.label}</span>
+                              {isChosen && (
+                                <svg
+                                  className="w-4 h-4 shrink-0 text-[#353535]"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                  aria-hidden
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2.5}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
               )}
-              <CustomDropdown
-                options={["All", "Employee", "Trainee"]}
-                value={typeFilter}
-                onChange={(val) => setTypeFilter(val)}
-                placeholder="Type"
-                className="w-[120px]"
-                styleType="header"
-                alignMenu="right"
-              />
+              {viewMode === "table" && (
+                <CustomDropdown
+                  options={["All", "Active", "Deactivate"]}
+                  value={statusFilter}
+                  onChange={(val) => setStatusFilter(val)}
+                  placeholder="Status"
+                  className="w-[110px]"
+                  styleType="header"
+                  alignMenu="right"
+                />
+              )}
             </div>
           </div>
         </div>
@@ -941,7 +928,7 @@ export default function ConsultantBL() {
                                 <div className="relative shrink-0">
                                   <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
                                     {emp.profile_picture &&
-                                    emp.profile_picture.trim() ? (
+                                      emp.profile_picture.trim() ? (
                                       <img
                                         src={getProfileUrl(emp.profile_picture)}
                                         alt={emp.full_name}
@@ -1254,10 +1241,10 @@ export default function ConsultantBL() {
                             </div>
                             {(emp.active === "inactive" ||
                               emp.active === "deactive") && (
-                              <span className="px-4 py-1.5 bg-[#FFE6E6] text-[#E00100] text-[12px] font-semibold rounded-[5px] shrink-0">
-                                Currently In-Active
-                              </span>
-                            )}
+                                <span className="px-4 py-1.5 bg-[#FFE6E6] text-[#E00100] text-[12px] font-semibold rounded-[5px] shrink-0">
+                                  Currently In-Active
+                                </span>
+                              )}
                           </div>
                         ))}
                       </div>
