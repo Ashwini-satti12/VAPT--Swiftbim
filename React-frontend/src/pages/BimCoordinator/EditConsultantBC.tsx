@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FiChevronDown } from 'react-icons/fi';
+import { FiChevronDown, FiCheck } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
@@ -84,6 +84,7 @@ export default function EditConsultantBC() {
   const { id } = useParams();
   const { user } = useAuth();
   const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState(false);
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<string[]>([]);
@@ -232,7 +233,8 @@ export default function EditConsultantBC() {
     })
       .then(({ data }) => {
         if (data.success) {
-          navigate('/bc/consultants');
+          setEditSuccess(true);
+          setTimeout(() => navigate('/bc/consultants'), 2000);
         } else {
           setEditError(data.message || 'Failed to update consultant.');
         }
@@ -282,6 +284,17 @@ export default function EditConsultantBC() {
               </div>
             </div>
           )}
+          {editSuccess && (
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all">
+              <div className="bg-white rounded-[15px] p-8 max-w-[350px] w-full text-center shadow-2xl scale-100">
+                <div className="w-16 h-16 bg-[#E8F5E9] text-[#2E7D32] rounded-full flex items-center justify-center mx-auto mb-5 shadow-sm">
+                  <FiCheck className="w-8 h-8" strokeWidth={3} />
+                </div>
+                <h3 className="text-[20px] font-bold text-[#000000] font-Gantari mb-2">Updated Successfully!</h3>
+                <p className="text-[14px] text-[#616161] font-Gantari">Redirecting to consultants list...</p>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
             <div className="space-y-5">
@@ -322,13 +335,12 @@ export default function EditConsultantBC() {
                 </div>
               </div>
               <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari text-gray-500">Password (Leave blank to keep current)</label>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari text-gray-500">Password</label>
                 <input
                   type="password"
-                  placeholder="Enter New Password"
-                  value={form.password}
-                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                  className="w-full px-4 py-2.5 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                  value="********"
+                  disabled
+                  className="w-full px-4 py-2.5 text-[14px] text-[#8B8B8B] bg-[#E8E8E8] border border-transparent rounded-[5px] font-Gantari transition-all outline-none cursor-not-allowed"
                 />
               </div>
               <div className="relative">

@@ -588,7 +588,8 @@ export default function ConsultantBL() {
               )}
             </div>
             <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
-              <div
+              {viewMode === "table" && (
+                <div
                 className="relative min-w-[140px] max-w-[200px] w-[150px]"
                 ref={showEntriesDropdownRef}
               >
@@ -693,6 +694,7 @@ export default function ConsultantBL() {
                   </div>
                 )}
               </div>
+              )}
               <CustomDropdown
                 options={["All", "Employee", "Trainee"]}
                 value={typeFilter}

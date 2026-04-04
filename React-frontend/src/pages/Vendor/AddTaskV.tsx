@@ -39,6 +39,7 @@ export default function AddTaskV() {
   const navigate = useNavigate();
   const location = useLocation();
   const editingTask = location.state?.task as Task | undefined;
+  const fromState = location.state?.from;
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [addError, setAddError] = useState("");
   const [addSubmitting, setAddSubmitting] = useState(false);
@@ -261,6 +262,7 @@ export default function AddTaskV() {
     }
 
     setAddSubmitting(true);
+    const targetRedirect = fromState === "teamtasks" || fromState === "teamtask" ? "/v/teamtasks" : "/v/mytasks";
     const projectId = projects.find((p) => p.project_name === addTaskForm.projectName)?.id;
     const assigneeId = employees.find((e) => e.full_name === addTaskForm.assignTo)?.id;
     const assignedToVal = assigneeId ?? addTaskForm.assignTo;
@@ -301,7 +303,7 @@ export default function AddTaskV() {
           });
         }
         toast.success("Task updated");
-        navigate("/v/mytasks");
+        navigate(targetRedirect);
       }).catch((err) => {
         setAddError(err.response?.data?.message || "Failed to update task");
       }).finally(() => setAddSubmitting(false));
@@ -316,7 +318,7 @@ export default function AddTaskV() {
             });
           }
           toast.success("Task created");
-          navigate("/v/mytasks");
+          navigate(targetRedirect);
         }
       }).catch((err) => {
         setAddError(err.response?.data?.message || "Failed to create task");
@@ -344,7 +346,7 @@ export default function AddTaskV() {
         <div className="flex items-center justify-between mb-10 flex-shrink-0">
           <button
             type="button"
-            onClick={() => navigate("/v/mytasks")}
+            onClick={() => navigate(-1)}
             className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
             title="Back"
           >

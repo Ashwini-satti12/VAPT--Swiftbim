@@ -106,19 +106,18 @@ export default function MilestonesV() {
 
     return (
         <div className="h-full flex flex-col">
-            <h1 className="text-xl font-medium font-gantari text-slate-800 mb-5 shrink-0">Payments & Milestones</h1>
+            <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-5 shrink-0">Payments & Milestones</h1>
 
-            {/* KPI strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5 shrink-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 shrink-0">
                 {[
-                    { label: 'Total Milestones', value: milestones.length, color: '#353535' },
-                    { label: 'Total Amount', value: formatAmount(totalAmount), color: '#353535' },
-                    { label: 'Paid', value: formatAmount(paidAmount), color: '#16A34A' },
-                    { label: 'Pending', value: `${pendingCount} milestone${pendingCount !== 1 ? 's' : ''}`, color: '#E65100' },
+                    { label: 'Total Milestones', value: milestones.length },
+                    { label: 'Total Amount', value: formatAmount(totalAmount) },
+                    { label: 'Paid', value: formatAmount(paidAmount) },
+                    { label: 'Pending', value: pendingCount },
                 ].map((k, i) => (
-                    <div key={i} className="bg-white border border-[#EBEBEB] rounded-xl px-4 py-3">
-                        <p className="text-[11px] text-[#717171] font-gantari font-medium mb-1">{k.label}</p>
-                        <p className="text-lg font-bold font-gantari" style={{ color: k.color }}>{k.value}</p>
+                    <div key={i} className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 transition-colors cursor-default">
+                        <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-Gantari line-clamp-1">{k.label}</h3>
+                        <p className="text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none font-Gantari">{k.value}</p>
                     </div>
                 ))}
             </div>
@@ -129,8 +128,8 @@ export default function MilestonesV() {
             <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {milestones.length === 0 ? (
                     <div className="bg-white rounded-2xl p-16 text-center border border-[#EBEBEB]">
-                        <p className="text-lg font-semibold font-gantari text-[#353535] mb-2">No milestones yet</p>
-                        <p className="text-sm font-gantari text-[#717171]">Milestones will appear here once assigned to your projects.</p>
+                        <p className="text-[18px] font-semibold font-gantari text-[#000000] mb-2">No milestones yet</p>
+                        <p className="text-[14px] font-gantari text-[#353535]">Milestones will appear here once assigned to your projects.</p>
                     </div>
                 ) : (
                     <div className="space-y-5">

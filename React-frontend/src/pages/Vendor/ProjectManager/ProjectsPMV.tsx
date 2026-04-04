@@ -1,15 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../../lib/api";
 import { useNavigate } from "react-router-dom";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
+import { RiDeleteBin5Fill } from "react-icons/ri";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
 import paymentMilestoneIcon from "../../../assets/ProjectManager/project/paymentMilestone.svg";
 import threedot from "../../../assets/ProjectManager/project/threedot.svg";
 import ProfileIcon from "../../../assets/ProductNavbarIcons/Profile.svg";
+import closeBtnIcon from "../../../assets/ProductNavbarIcons/close button.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 
@@ -60,6 +62,7 @@ interface Project {
     end_date?: string;
     proposal_id?: number;
     opportunity_id?: number;
+    document_attachment?: string;
 }
 
 interface Employee {
@@ -68,6 +71,14 @@ interface Employee {
     user_role?: string;
     profile_picture?: string;
     email?: string;
+    employee_id?: string;
+    empid?: string;
+    phone?: string;
+    phone_number?: string;
+    role?: string;
+    designation?: string;
+    department?: string;
+    address?: string;
 }
 
 export default function ProjectsPMV() {
@@ -76,6 +87,7 @@ export default function ProjectsPMV() {
     const [loading, setLoading] = useState(true);
     const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(null);
     const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+    const [vendorResourceProfiles, setVendorResourceProfiles] = useState<Employee[]>([]);
     const [deleteId, setDeleteId] = useState<number | null>(null);
     const [clientsList, setClientsList] = useState<Array<{ id: number; fullName?: string; full_name?: string }>>([]);
 
@@ -89,7 +101,13 @@ export default function ProjectsPMV() {
     const [createName, setCreateName] = useState("");
     const [createBudget, setCreateBudget] = useState("");
     const [createModuleName, setCreateModuleName] = useState("");
+    const [moduleInput, setModuleInput] = useState("");
+
+    // File & Document State
     const [createFile, setCreateFile] = useState<File | null>(null);
+    const [existingDoc, setExistingDoc] = useState<string | null>(null);
+    const [currentAttachments, setCurrentAttachments] = useState<string>("");
+
     const [createClientName, setCreateClientName] = useState("");
     const [createProjectManager, setCreateProjectManager] = useState("");
     const [createStartDate, setCreateStartDate] = useState("");
@@ -123,6 +141,10 @@ export default function ProjectsPMV() {
 
     // Success message
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
+    const [showAllMembersModal, setShowAllMembersModal] = useState(false);
+    const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
+    const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
+    const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -168,6 +190,9 @@ export default function ProjectsPMV() {
                 setBimLeads([]);
                 setBimCoordinators([]);
             });
+        api.get<{ resources?: Employee[] }>("/api/vendors/vendor-resource-profiles")
+            .then(({ data }) => setVendorResourceProfiles(data.resources ?? []))
+            .catch(() => setVendorResourceProfiles([]));
 
         // Fetch clients
         api.get<{ clients?: any[] }>("/api/clients")
@@ -178,24 +203,51 @@ export default function ProjectsPMV() {
     useEffect(() => {
         if (!showProjectView || !selectedProject) return;
         setLoadingTaskStats(true);
-        api.get(`/api/vendors/vendor-projects/${selectedProject.id}/module-progress`)
+        api.get<{
+            success?: boolean;
+            status_counts?: {
+                todo?: number;
+                inprogress?: number;
+                paused?: number;
+                completed?: number;
+            };
+            completed_tasks?: number;
+            modules?: Array<{
+                module_name?: string;
+                total_tasks?: number;
+                completed_tasks?: number;
+                completion_percentage?: number;
+            }>;
+        }>(`/api/vendors/vendor-projects/${selectedProject.id}/module-progress`)
             .then(({ data }) => {
-                if (data.success) {
-                    setTaskStats({
-                        todo: data.todo_tasks || 0,
-                        inProgress: data.in_progress_tasks || 0,
-                        paused: data.paused_tasks || 0,
-                        completed: data.completed_tasks || 0
-                    });
-                    setTowerData((data.modules || []).map((m: any) => ({
-                        id: m.id,
-                        name: m.module_name || "Unknown Module",
-                        progress: m.progress ?? 0,
-                        completedTasks: m.completed_tasks ?? 0,
-                        totalTasks: m.total_tasks ?? 0,
-                        status: m.status || "Pending",
-                    })));
-                }
+                if (!data) return;
+                const c = data.status_counts ?? {};
+                setTaskStats({
+                    todo: Number(c.todo ?? 0),
+                    inProgress: Number(c.inprogress ?? 0),
+                    paused: Number(c.paused ?? 0),
+                    completed: Number(
+                        c.completed ?? data.completed_tasks ?? 0,
+                    ),
+                });
+                const mods = data.modules ?? [];
+                setTowerData(
+                    mods.map((m, idx) => {
+                        const pct = Number(m.completion_percentage ?? 0);
+                        let status: "Approved" | "Pending" | "Review";
+                        if (pct >= 80) status = "Approved";
+                        else if (pct >= 50) status = "Pending";
+                        else status = "Review";
+                        return {
+                            id: idx + 1,
+                            name: String(m.module_name ?? `Module ${idx + 1}`),
+                            progress: Math.round(pct),
+                            completedTasks: Number(m.completed_tasks ?? 0),
+                            totalTasks: Number(m.total_tasks ?? 0),
+                            status,
+                        };
+                    }),
+                );
             })
             .catch(() => { })
             .finally(() => setLoadingTaskStats(false));
@@ -203,8 +255,20 @@ export default function ProjectsPMV() {
 
     const getEmployeeName = (id: string | number | undefined): string => {
         if (!id) return "";
-        const emp = allEmployees.find(e => e.id === Number(id));
+        const emp =
+            vendorResourceProfiles.find((e) => Number(e.id) === Number(id)) ||
+            allEmployees.find(e => e.id === Number(id));
         return emp?.full_name || "";
+    };
+    const openMemberProfile = (member?: Employee) => {
+        if (!member) return;
+        setSelectedMember({
+            ...member,
+            employee_id: member.employee_id || member.empid,
+            phone: member.phone || member.phone_number,
+            user_role: member.user_role || member.role || member.designation,
+        });
+        setShowMemberProfileModal(true);
     };
 
     const formatDate = (d: string | undefined) => {
@@ -282,8 +346,21 @@ export default function ProjectsPMV() {
             description: createDescription,
             deliverables: createDeliverables,
         })
-            .then(({ data }) => {
+            .then(async ({ data }) => {
                 if (data.success) {
+                    const newProjectId = data.project_id;
+                    if (createFile && newProjectId) {
+                        const formData = new FormData();
+                        formData.append("file", createFile);
+                        try {
+                            await api.post(`/api/vendors/vendor-projects/${newProjectId}/upload-document`, formData, {
+                                headers: { "Content-Type": "multipart/form-data" },
+                            });
+                        } catch (err) {
+                            console.error("Failed to upload document during creation", err);
+                        }
+                    }
+
                     setShowCreateModal(false);
                     setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
                     setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate(""); setCreateTotalHours("");
@@ -321,6 +398,8 @@ export default function ProjectsPMV() {
         setCreateLocation(p.location || "");
         setCreateDescription(p.description || "");
         setCreateDeliverables(p.deliverables || "");
+        setExistingDoc(p.document_attachment || null);
+        setCurrentAttachments(p.document_attachment || "");
         setShowEditModal(true);
     };
 
@@ -371,9 +450,22 @@ export default function ProjectsPMV() {
             location: createLocation,
             description: createDescription,
             deliverables: createDeliverables,
+            document_attachment: currentAttachments,
         })
-            .then(({ data }) => {
+            .then(async ({ data }) => {
                 if (data.success) {
+                    if (createFile) {
+                        const formData = new FormData();
+                        formData.append("file", createFile);
+                        try {
+                            await api.post(`/api/vendors/vendor-projects/${editId}/upload-document`, formData, {
+                                headers: { "Content-Type": "multipart/form-data" },
+                            });
+                        } catch (err) {
+                            console.error("Failed to upload document", err);
+                        }
+                    }
+
                     setShowEditModal(false);
                     // Reset fields
                     setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
@@ -381,7 +473,7 @@ export default function ProjectsPMV() {
                     setCreateTotalHours(""); setCreatePerDay(""); setCreateBIMLead("");
                     setCreateBIMCoOrdinator(""); setSelectedMemberIds([]); setCreateResources("");
                     setCreateRequiredResources(""); setCreatePriority(""); setCreateLocation("");
-                    setCreateDescription(""); setCreateDeliverables(""); setCreateFile(null);
+                    setCreateDescription(""); setCreateDeliverables(""); setCreateFile(null); setExistingDoc(null);
 
                     setSuccessMsg("Project updated!");
                     setTimeout(() => setSuccessMsg(null), 3000);
@@ -407,6 +499,36 @@ export default function ProjectsPMV() {
         setSelectedMemberIds(prev =>
             prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
         );
+    };
+
+    const modulesList = useMemo(() => {
+        if (!createModuleName) return [];
+        const raw = createModuleName.trim();
+        if (raw.startsWith("[") && raw.endsWith("]")) {
+            try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                    return parsed.map((m: any) => String(m).trim()).filter(Boolean);
+                }
+            } catch (e) {
+                // Not valid JSON or not an array, fall through
+            }
+        }
+        return raw.split(",").map((m: string) => m.trim()).filter(Boolean);
+    }, [createModuleName]);
+
+    const addModule = (name: string) => {
+        const trimmed = name.trim().replace(/,$/, "");
+        if (trimmed && !modulesList.includes(trimmed)) {
+            const newModules = [...modulesList, trimmed];
+            setCreateModuleName(newModules.join(", "));
+        }
+        setModuleInput("");
+    };
+
+    const removeModule = (name: string) => {
+        const newModules = modulesList.filter(m => m !== name);
+        setCreateModuleName(newModules.join(", "));
     };
 
     const renderMemberSelector = () => (
@@ -486,6 +608,54 @@ export default function ProjectsPMV() {
                     <label className="block text-[14px] font-medium text-[#353535]">Client Name <span className="text-[#DD4342]">*</span></label>
                     <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 placeholder-gray-400"
                         placeholder="Enter Client Name" value={createClientName} onChange={(e) => setCreateClientName(e.target.value)} />
+                </div>
+
+                <div className="md:col-span-2 space-y-3">
+                    <label className="block text-[14px] font-medium text-[#020202]">
+                        Modules Name <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <div className="relative group">
+                        <input
+                            type="text"
+                            className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[10px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-[#353535] placeholder-gray-400"
+                            placeholder="Enter Modules Name"
+                            value={moduleInput}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (val.endsWith(",")) {
+                                    addModule(val);
+                                } else {
+                                    setModuleInput(val);
+                                }
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    addModule(moduleInput);
+                                }
+                            }}
+                        />
+                    </div>
+                    <p className="flex items-center gap-2 text-[#666666] text-[12px] font-medium">
+                        <span className="w-4 h-4 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-[10px] font-bold">i</span>
+                        Please enter names, separated by commas, and then press enter
+                    </p>
+                    <div className="flex flex-wrap gap-3 mt-4">
+                        {modulesList.map((mod: string, idx: number) => (
+                            <div key={idx} className="flex items-center gap-2 px-4 py-2 bg-[#F2F2F2] rounded-full border border-slate-100 group hover:border-[#DD4342]/20 transition-all">
+                                <span className="text-[13px] font-bold text-[#353535]">{mod}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => removeModule(mod)}
+                                    className="p-0.5 text-gray-400 hover:text-[#DD4342] transition-colors cursor-pointer"
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        ))}
+                    </div>
                 </div>
                 {/* Budget hidden for PM in edit mode */}
                 <div className="space-y-2">
@@ -612,8 +782,46 @@ export default function ProjectsPMV() {
                 </div>
 
             </div>
-            <div className="md:col-span-2 space-y-2">
-                <label className="block text-[14px] font-medium text-[#353535]">Attach File <span className="text-[#DD4342]">*</span></label>
+            <div className="md:col-span-2 space-y-4 pt-4">
+                <label className="block text-[14px] font-medium text-[#353535]">Project Documents</label>
+                
+                {/* Existing Documents */}
+                {currentAttachments && (
+                    <div className="flex flex-wrap gap-3 mb-4">
+                        {currentAttachments.split(",").map(file => file.trim()).filter(Boolean).map((fileName, idx) => {
+                             const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
+                             return (
+                                 <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
+                                     <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                                     <span className="text-[13px] font-medium text-[#353535] line-clamp-1 flex-1">
+                                         {fileName.split("_").pop()}
+                                     </span>
+                                     <div className="flex gap-1.5">
+                                         <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-slate-50 rounded transition-colors">
+                                              <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
+                                         </a>
+                                         <button 
+                                            type="button"
+                                            onClick={() => {
+                                                const remaining = currentAttachments.split(",")
+                                                    .map(f => f.trim())
+                                                    .filter(f => f !== fileName)
+                                                    .join(",");
+                                                setCurrentAttachments(remaining);
+                                            }}
+                                            className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
+                                         >
+                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                             </svg>
+                                         </button>
+                                     </div>
+                                 </div>
+                             );
+                        })}
+                    </div>
+                )}
+
                 <div className="relative group">
                     <input
                         type="file"
@@ -629,7 +837,7 @@ export default function ProjectsPMV() {
                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                 <FiUploadCloud className="w-8 h-8 mb-3 text-slate-400 group-hover:text-[#DD4342] transition-colors" />
                                 <p className="mb-1 text-sm text-slate-500 group-hover:text-slate-600">
-                                    <span className="font-bold">Click to upload</span> or drag and drop
+                                    <span className="font-bold">Add new file</span> or drag and drop
                                 </p>
                                 <p className="text-xs text-slate-400">PDF, DOCX, ZIP or Images (Max 10MB)</p>
                             </div>
@@ -652,7 +860,7 @@ export default function ProjectsPMV() {
                             <button
                                 type="button"
                                 onClick={() => setCreateFile(null)}
-                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                                 title="Remove file"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -663,6 +871,7 @@ export default function ProjectsPMV() {
                     )}
                 </div>
             </div>
+
         </>
     );
 
@@ -877,7 +1086,7 @@ export default function ProjectsPMV() {
                                 )}
                             </div>
 
-                            {/* Team Roles Section */}
+                            {/* Team Roles Section - aligned with Vendor overview style */}
                             <div className="border border-slate-200 rounded-[10px] p-6 md:p-8 lg:p-4 space-y-6">
                                 <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-8">
                                     Team Overview
@@ -886,66 +1095,98 @@ export default function ProjectsPMV() {
                                     {[
                                         { label: "Project Manager", id: selectedProject.project_manager_id },
                                         { label: "BIM Lead", id: selectedProject.lead_id },
-                                        { label: "BIM Coordinator", id: selectedProject.bim_coordinator_id },
                                     ].map((role) => (
-                                        <div key={role.label} className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200 overflow-hidden shadow-sm relative z-0">
+                                        <div key={role.label} className="space-y-3">
+                                            <p className="text-[16px] font-bold text-[#000000]">{role.label}</p>
+                                            <div className="flex items-center gap-4">
                                                 {(() => {
-                                                    const emp = allEmployees.find(e => e.id === Number(role.id));
-                                                    const initials = role.label.split(' ').map(n => n[0]).join('').toUpperCase();
-                                                    return emp?.profile_picture ? (
-                                                        <img
-                                                            src={getGlobalProfileUrl(emp.id, emp.profile_picture)}
-                                                            alt={role.label}
-                                                            className="w-full h-full object-cover"
-                                                            onError={(e) => (e.currentTarget.src = ProfileIcon)}
-                                                        />
-                                                    ) : (
-                                                        <span className="text-slate-600 text-[14px] font-bold">
-                                                            {initials}
-                                                        </span>
+                                                    const emp = vendorResourceProfiles.find(e => e.id === Number(role.id)) || allEmployees.find(e => e.id === Number(role.id));
+                                                    const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                    return (
+                                                        <>
+                                                            <div
+                                                                role="button"
+                                                                tabIndex={0}
+                                                                className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                                                onClick={() => openMemberProfile(emp)}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === "Enter" || e.key === " ") {
+                                                                        e.preventDefault();
+                                                                        openMemberProfile(emp);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                {profileUrl ? (
+                                                                    <img src={profileUrl} alt={role.label} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = ProfileIcon)} />
+                                                                ) : (
+                                                                    <img src={ProfileIcon} alt={role.label} className="w-full h-full object-cover p-1" />
+                                                                )}
+                                                            </div>
+                                                            <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                                                                {getEmployeeName(role.id) || "Not assigned"}
+                                                            </p>
+                                                        </>
                                                     );
                                                 })()}
                                             </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-[14px] font-Gantari font-semibold text-[#000000]">
-                                                    {role.label}
-                                                </p>
-                                                <p className="text-[14px] font-Gantari font-medium text-[#616161] truncate">
-                                                    {getEmployeeName(role.id) || "Not assigned"}
-                                                </p>
-                                            </div>
                                         </div>
                                     ))}
-                                </div>
-
-                                <div className="pt-6 border-t border-slate-100">
-                                    <p className="text-[14px] font-Gantari font-semibold text-[#000000] mb-4">
-                                        Team Members
-                                    </p>
-                                    <div className="flex flex-wrap gap-4">
-                                        {(selectedProject.members || "").split(",").filter(Boolean).map(id => {
-                                            const emp = allEmployees.find(e => e.id === Number(id));
-                                            return emp ? (
-                                                <div key={id} className="flex items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-                                                    <div className="w-8 h-8 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-xs font-bold overflow-hidden">
-                                                        <img
-                                                            src={emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : ProfileIcon}
-                                                            alt="Member"
-                                                            className="w-full h-full object-cover"
-                                                            onError={(e) => (e.currentTarget.src = ProfileIcon)}
-                                                        />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <p className="text-[14px] font-Gantari font-medium text-[#1E293B] truncate max-w-[120px]">{emp.full_name}</p>
-                                                        <p className="text-[10px] text-[#616161] font-medium">{emp.user_role || "Member"}</p>
-                                                    </div>
+                                    <div className="space-y-3">
+                                        <p className="text-[16px] font-bold text-[#000000]">Members Involved</p>
+                                        {(() => {
+                                            const memberIds = (selectedProject.members || "").split(",").filter(Boolean).map((id) => Number(id));
+                                            const projectMembers = memberIds
+                                                .map((id) => vendorResourceProfiles.find((e) => e.id === id) || allEmployees.find((e) => e.id === id))
+                                                .filter(Boolean) as Employee[];
+                                            if (!projectMembers.length) {
+                                                return <div className="h-10 flex items-center text-[14px] font-bold text-[#666666]">N/A</div>;
+                                            }
+                                            const visibleMembers = projectMembers.slice(0, 3);
+                                            const remainingCount = Math.max(0, projectMembers.length - 3);
+                                            return (
+                                                <div className="flex items-center -space-x-3">
+                                                    {visibleMembers.map((emp) => {
+                                                        const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                        return (
+                                                            <div key={emp.id} className="relative group shrink-0">
+                                                                <div
+                                                                    role="button"
+                                                                    tabIndex={0}
+                                                                    className="w-10 h-10 rounded-full bg-white flex items-center justify-center border-2 border-white overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                                                    onClick={() => openMemberProfile(emp)}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === "Enter" || e.key === " ") {
+                                                                            e.preventDefault();
+                                                                            openMemberProfile(emp);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    {profileUrl ? (
+                                                                        <img src={profileUrl} className="w-full h-full object-cover" alt={emp.full_name || "Member"} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                                                    ) : (
+                                                                        <img src={ProfileIcon} className="w-full h-full object-cover p-1" alt={emp.full_name || "Member"} />
+                                                                    )}
+                                                                </div>
+                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                                                    {emp.full_name || "Unknown"}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {remainingCount > 0 && (
+                                                        <div
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                                                            onClick={() => { setAllMembersList(projectMembers); setShowAllMembersModal(true); }}
+                                                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAllMembersList(projectMembers); setShowAllMembersModal(true); } }}
+                                                        >
+                                                            +{remainingCount}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            ) : null;
-                                        })}
-                                        {!(selectedProject.members || "").split(",").filter(Boolean).length && (
-                                            <p className="text-[#999] text-sm italic">No team members assigned</p>
-                                        )}
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             </div>
@@ -972,7 +1213,9 @@ export default function ProjectsPMV() {
                                             </span>
                                             <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                                             <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                                {selectedProject.totalhours ? `${selectedProject.totalhours}hrs` : "N/A"}
+                                                {selectedProject.totalhours || (selectedProject as any).total_hours
+                                                    ? `${selectedProject.totalhours || (selectedProject as any).total_hours}hrs`
+                                                    : "N/A"}
                                             </span>
                                         </div>
                                         <div className="flex flex-col sm:flex-row sm:items-center">
@@ -990,7 +1233,7 @@ export default function ProjectsPMV() {
                                             </span>
                                             <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                                             <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                                {selectedProject.resources || "N/A"}
+                                                {selectedProject.resources || selectedProject.no_resource || "N/A"}
                                             </span>
                                         </div>
                                     </div>
@@ -1029,10 +1272,57 @@ export default function ProjectsPMV() {
                                             </span>
                                             <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                                             <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                                {selectedProject.required_resources || "N/A"}
+                                                {selectedProject.required_resources || selectedProject.no_resources_required || "N/A"}
                                             </span>
                                         </div>
                                     </div>
+                                </div>
+
+                                {/* Document Attachment display */}
+                                <div className="mt-8 border-t border-slate-100 pt-6">
+                                    <p className="text-[16px] font-bold text-[#353535] mb-4 tracking-wide uppercase">Project Document</p>
+                                    {selectedProject.document_attachment ? (
+                                        <div className="flex flex-wrap gap-3">
+                                            {selectedProject.document_attachment
+                                                .split(",")
+                                                .map((file) => file.trim())
+                                                .filter(Boolean)
+                                                .map((fileName, idx) => {
+                                                    const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
+                                                    return (
+                                                        <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-slate-200 md:max-w-md w-full">
+                                                            <div className="p-2 bg-white rounded-lg shadow-sm">
+                                                                 <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                                                            </div>
+                                                            <span className="text-[14px] font-bold text-[#353535] line-clamp-1 flex-1">
+                                                                {fileName.split("_").pop() || "Document"}
+                                                            </span>
+                                                            <div className="flex gap-2">
+                                                                <a
+                                                                    href={url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
+                                                                    title="View Details"
+                                                                >
+                                                                    <img src={viewIcon} alt="View" className="w-[18px] h-[18px] object-contain opacity-70 hover:opacity-100" />
+                                                                </a>
+                                                                <a
+                                                                    href={url}
+                                                                    download
+                                                                    className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
+                                                                    title="Download File"
+                                                                >
+                                                                    <FiUploadCloud className="w-[18px] h-[18px] rotate-180 object-contain text-slate-500 hover:text-[#DD4342]" />
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                        </div>
+                                    ) : (
+                                        <span className="text-[16px] font-medium text-[#616161]">No Document Available</span>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -1204,7 +1494,13 @@ export default function ProjectsPMV() {
                                                             </div>
                                                         ) : memberIds.length === 1 ? (
                                                             <div className="flex items-center gap-3">
-                                                                <div className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center font-bold text-gray-500 border overflow-hidden shadow-sm shrink-0">
+                                                                <div
+                                                                    role="button"
+                                                                    tabIndex={0}
+                                                                    className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center font-bold text-gray-500 border overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                                                    onClick={(e) => { e.stopPropagation(); const m = vendorResourceProfiles.find((emp) => Number(emp.id) === Number(memberIds[0])) || allEmployees.find((emp) => Number(emp.id) === Number(memberIds[0])); openMemberProfile(m); }}
+                                                                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); const m = vendorResourceProfiles.find((emp) => Number(emp.id) === Number(memberIds[0])) || allEmployees.find((emp) => Number(emp.id) === Number(memberIds[0])); openMemberProfile(m); } }}
+                                                                >
                                                                     {(getEmployeeName(memberIds[0]) || "?")[0]}
                                                                 </div>
                                                                 <span className="text-[14px] font-Gantari font-medium text-[#616161] truncate">
@@ -1214,12 +1510,40 @@ export default function ProjectsPMV() {
                                                         ) : (
                                                             <div className="flex items-center -space-x-4 pr-2">
                                                                 {memberIds.slice(0, 3).map((id, idx) => (
-                                                                    <div key={id} className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center shadow-sm shrink-0 font-bold text-gray-500 overflow-hidden relative border" style={{ zIndex: 10 - idx }}>
+                                                                    <div
+                                                                        key={id}
+                                                                        role="button"
+                                                                        tabIndex={0}
+                                                                        className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center shadow-sm shrink-0 font-bold text-gray-500 overflow-hidden relative border cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                                                        style={{ zIndex: 10 - idx }}
+                                                                        onClick={(e) => { e.stopPropagation(); const m = vendorResourceProfiles.find((emp) => Number(emp.id) === Number(id)) || allEmployees.find((emp) => Number(emp.id) === Number(id)); openMemberProfile(m); }}
+                                                                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); const m = vendorResourceProfiles.find((emp) => Number(emp.id) === Number(id)) || allEmployees.find((emp) => Number(emp.id) === Number(id)); openMemberProfile(m); } }}
+                                                                    >
                                                                         {(getEmployeeName(id) || "?")[0]}
                                                                     </div>
                                                                 ))}
                                                                 {memberIds.length > 3 && (
-                                                                    <div className="w-9 h-9 rounded-full border-2 border-white bg-[#AEACAC] text-white text-[10px] font-bold flex items-center justify-center shadow-sm shrink-0 relative z-0">
+                                                                    <div
+                                                                        role="button"
+                                                                        tabIndex={0}
+                                                                        className="w-9 h-9 rounded-full border-2 border-white bg-[#AEACAC] text-white text-[10px] font-bold flex items-center justify-center shadow-sm shrink-0 relative z-0 cursor-pointer"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            e.stopPropagation();
+                                                                            const emps = memberIds.map((id) => vendorResourceProfiles.find((emp) => Number(emp.id) === Number(id)) || allEmployees.find((emp) => Number(emp.id) === Number(id))).filter(Boolean) as Employee[];
+                                                                            setAllMembersList(emps);
+                                                                            setShowAllMembersModal(true);
+                                                                        }}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === "Enter" || e.key === " ") {
+                                                                                e.preventDefault();
+                                                                                e.stopPropagation();
+                                                                                const emps = memberIds.map((id) => vendorResourceProfiles.find((emp) => Number(emp.id) === Number(id)) || allEmployees.find((emp) => Number(emp.id) === Number(id))).filter(Boolean) as Employee[];
+                                                                                setAllMembersList(emps);
+                                                                                setShowAllMembersModal(true);
+                                                                            }
+                                                                        }}
+                                                                    >
                                                                         +{memberIds.length - 3}
                                                                     </div>
                                                                 )}
@@ -1281,6 +1605,69 @@ export default function ProjectsPMV() {
                 </div>
             )}
 
+
+            {showAllMembersModal && (
+                <div className="fixed inset-0 z-[220] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full max-h-[80vh] overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                            <h3 className="text-[28px] font-semibold text-[#1A1A1A] font-Gantari">All Members ({allMembersList.length})</h3>
+                            <button type="button" onClick={() => setShowAllMembersModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer" aria-label="Close">
+                                <img src={closeBtnIcon} alt="close" className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                            {allMembersList.length > 0 ? (
+                                <div className="space-y-4">
+                                    {allMembersList.map((member, index) => (
+                                        <div
+                                            key={member.id ?? index}
+                                            role="button"
+                                            tabIndex={0}
+                                            className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                                            onClick={() => { openMemberProfile(member); setShowAllMembersModal(false); }}
+                                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openMemberProfile(member); setShowAllMembersModal(false); } }}
+                                        >
+                                            <div className="w-12 h-12 rounded-full border-2 border-slate-200 overflow-hidden bg-slate-100 shrink-0">
+                                                <img src={ProfileIcon} alt={member.full_name || "Member"} className="w-full h-full object-cover p-1" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[16px] font-semibold text-[#1A1A1A] font-Gantari">{member.full_name || "Unknown"}</p>
+                                                {member.email && <p className="text-[14px] text-[#8B8B8B] font-Gantari">{member.email}</p>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <p className="text-[16px] font-Gantari">No members found</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showMemberProfileModal && selectedMember && (
+                <div className="fixed inset-0 z-[230] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-xl w-full max-h-[80vh] flex flex-col overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                            <h3 className="text-[28px] font-semibold text-[#1A1A1A] font-Gantari">View Details</h3>
+                            <button type="button" onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }} className="p-2 rounded-[5px] bg-[#F2F2F2] cursor-pointer">
+                                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="overflow-y-auto px-8 py-6 custom-scrollbar space-y-4">
+                            <p className="text-[20px] font-Gantari font-bold text-[#1A1A1A]">{selectedMember.full_name || "Not Available"}</p>
+                            {selectedMember.employee_id && <p className="text-[16px] font-Gantari"><span className="text-[#999]">Employee ID: </span>{selectedMember.employee_id}</p>}
+                            {selectedMember.email && <p className="text-[16px] font-Gantari"><span className="text-[#999]">Email: </span>{selectedMember.email}</p>}
+                            {(selectedMember.phone || selectedMember.phone_number) && <p className="text-[16px] font-Gantari"><span className="text-[#999]">Phone Number: </span>{selectedMember.phone || selectedMember.phone_number}</p>}
+                            {selectedMember.user_role && <p className="text-[16px] font-Gantari"><span className="text-[#999]">Role: </span>{selectedMember.user_role}</p>}
+                            {selectedMember.department && <p className="text-[16px] font-Gantari"><span className="text-[#999]">Department: </span>{selectedMember.department}</p>}
+                            {selectedMember.address && <p className="text-[16px] font-Gantari"><span className="text-[#999]">Address: </span>{selectedMember.address}</p>}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Delete Confirmation */}
             {deleteId !== null && (

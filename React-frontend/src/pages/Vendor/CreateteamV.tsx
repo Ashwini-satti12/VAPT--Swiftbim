@@ -1,9 +1,33 @@
 import { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
-import { PlusIcon, XMarkIcon, PencilSquareIcon, TrashIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { PlusIcon } from '@heroicons/react/24/outline';
 import threeDotsIcon from '../../assets/ProjectManager/CreateTeam/three dots.svg';
-import eyeIcon from '../../assets/ProjectManager/consultant/eyeIcon.svg';
+import editIcon from '../../assets/ProjectManager/project/editIcon.svg';
+import deleteIcon from '../../assets/ProjectManager/project/deleteIcon.svg';
+import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
+import upArrow from '../../assets/TechnicalDirector/upArrow.svg';
+import ProfileIcon from '../../assets/ProductNavbarIcons/Profile.svg';
+import CloseIcon from '../../assets/ProductNavbarIcons/close button.svg';
+import viewIcon from '../../assets/ProjectManager/project/viewIcon.svg';
+
+const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
+const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
+const showEntriesOptions: {
+    value: string;
+    label: string;
+    start: number;
+    end: number | null;
+}[] = [
+        { value: "1-50", label: "1-50", start: 0, end: 50 },
+        { value: "51-100", label: "51-100", start: 50, end: 100 },
+        { value: "101-150", label: "101-150", start: 100, end: 150 },
+        { value: "151-200", label: "151-200", start: 150, end: 200 },
+        { value: "201-250", label: "201-250", start: 200, end: 250 },
+        { value: "251-300", label: "251-300", start: 250, end: 300 },
+        { value: "all", label: "All", start: 0, end: null },
+    ];
 
 interface Employee {
     id: number;
@@ -37,18 +61,19 @@ function TeamCard({
     onEdit,
     onDelete,
     onViewDetails,
-    projects,
 }: {
     team: Team;
     getEmp: (id: number | string) => Employee | undefined;
     onEdit: (team: Team) => void;
     onDelete: (team: Team) => void;
     onViewDetails: (team: Team) => void;
-    projects: Project[];
 }) {
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
-    const memberIds = team.employee.split(',').filter(Boolean);
+    const memberIds = (team.employee ?? "")
+        .split(",")
+        .filter(Boolean)
+        .map((id) => id.trim());
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -56,128 +81,170 @@ function TeamCard({
                 setShowMenu(false);
             }
         };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     return (
-        <div className="bg-white rounded-lg p-6 border border-[#E2E8F0] w-full min-h-[220px] flex flex-col transition-all hover:shadow-md group relative font-inter">
-            {/* Header: Title and Options */}
-            <div className="flex justify-between items-start mb-6">
-                <h3 className="text-[17px] font-bold text-[#1E293B] font-sora truncate pr-8">
-                    {team.team_name ||
-                        team.teamname ||
-                        team.leader_name ||
-                        getEmp(team.leader)?.full_name ||
-                        'Unnamed Team'}
-                </h3>
-                <div className="absolute top-6 right-6" ref={menuRef}>
-                    <button
-                        onClick={() => setShowMenu(!showMenu)}
-                        className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity"
-                    >
-                        <img src={threeDotsIcon} alt="Options" className="w-[18px] h-auto object-contain" />
-                    </button>
-
-                    {showMenu && (
-                        <div className="absolute right-[-70px] mt-3 w-[158px] bg-white/20 backdrop-blur rounded-[15px] border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right">
-                            <button
-                                onClick={() => {
-                                    onViewDetails(team);
-                                    setShowMenu(false);
-                                }}
-                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
-                            >
-                                <img src={eyeIcon} alt="View" className="w-5 h-5 [filter:brightness(0)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
-                                <span className="text-[16px] font-medium text-[#353535] group-hover/item:text-[#DD4342]">View</span>
-                            </button>
-                            <button
-                                onClick={() => {
-                                    onEdit(team);
-                                    setShowMenu(false);
-                                }}
-                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
-                            >
-                                <PencilSquareIcon className="w-5 h-5 text-[#353535] group-hover/item:text-[#DD4342]" />
-                                <span className="text-[16px] font-medium text-[#353535] group-hover/item:text-[#DD4342]">Edit</span>
-                            </button>
-                            <button
-                                onClick={() => {
-                                    onDelete(team);
-                                    setShowMenu(false);
-                                }}
-                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
-                            >
-                                <TrashIcon className="w-5 h-5 text-[#353535] group-hover/item:text-[#DD4342]" />
-                                <span className="text-[16px] font-medium text-[#353535] group-hover/item:text-[#DD4342]">Delete</span>
-                            </button>
-                        </div>
-                    )}
-                </div>
+        <div className="bg-white rounded-md p-3.5 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative font-Gantari">
+            {/* Team Name */}
+            <div className="flex flex-col mb-3 pt-1">
+                <span className="text-[14px] font-medium text-[#8B8B8B] mb-1.5">
+                    Team Name
+                </span>
+                <span className="text-[18px] font-semibold text-[#353535] pr-8 truncate">
+                    {team.team_name || team.teamname || "Untitled Team"}
+                </span>
             </div>
 
-            {/* Project */}
-            {(team.project_name || team.project_id != null) && (
-                <div className="flex flex-col mb-4">
-                    <span className="text-[13px] text-[#64748B] mb-1 font-medium">Project</span>
-                    <span className="text-[14px] font-semibold text-[#334155] truncate">
-                        {team.project_name ||
-                            (team.project_id != null
-                                ? projects.find((p) => p.id === Number(team.project_id))
-                                      ?.project_name ?? `Project #${team.project_id}`
-                                : "—")}
-                    </span>
-                </div>
-            )}
+            <div className="absolute top-6 right-6" ref={menuRef}>
+                <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+                >
+                    <img
+                        src={threeDotsIcon}
+                        alt="Options"
+                        className="w-5 h-5 object-contain"
+                    />
+                </button>
+
+                {showMenu && (
+                    <div className="absolute right-0 mt-3 w-[158px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
+                        <button
+                            onClick={() => {
+                                onViewDetails(team);
+                                setShowMenu(false);
+                            }}
+                            className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
+                        >
+                            <img
+                                src={viewIcon}
+                                alt="View"
+                                className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                            />
+                            <span className="text-[14px] font-medium text-[#8B8B8B] group-hover/item:text-[#DD4342]">
+                                View
+                            </span>
+                        </button>
+                        <button
+                            onClick={() => {
+                                onEdit(team);
+                                setShowMenu(false);
+                            }}
+                            className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
+                        >
+                            <img
+                                src={editIcon}
+                                alt="Edit"
+                                className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                            />
+                            <span className="text-[14px] font-medium text-[#8B8B8B] group-hover/item:text-[#DD4342]">
+                                Edit
+                            </span>
+                        </button>
+                        <button
+                            onClick={() => {
+                                onDelete(team);
+                                setShowMenu(false);
+                            }}
+                            className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
+                        >
+                            <img
+                                src={deleteIcon}
+                                alt="Delete"
+                                className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                            />
+                            <span className="text-[14px] font-medium text-[#8B8B8B] group-hover/item:text-[#DD4342]">
+                                Delete
+                            </span>
+                        </button>
+                    </div>
+                )}
+            </div>
+
 
             {/* Team Leader */}
-            <div className="flex flex-col mb-5">
-                <span className="text-[13px] text-[#64748B] mb-1 font-medium">Team Leader</span>
-                <span className="text-[15px] font-bold text-[#334155]">
+            <div className="flex flex-col mb-4">
+                <span className="text-[14px] font-medium text-[#8B8B8B] mb-1.5">
+                    Team Leader
+                </span>
+                <span className="text-[18px] font-semibold text-[#353535] truncate flex items-center gap-2">
                     {team.leader_name || getEmp(team.leader)?.full_name || 'N/A'}
                 </span>
             </div>
 
-            {/* Members */}
-            <div className="mt-2 mb-6 flex-1">
-                <span className="text-[12px] text-[#64748B] mb-2 block font-medium">Members ({memberIds.length})</span>
-                <div className="flex -space-x-1.5">
-                    {memberIds.slice(0, 5).map((eid) => {
-                        const emp = getEmp(eid);
-                        const name = emp?.full_name || 'N/A';
-                        const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture) : '';
+            <div className="h-[1px] w-full bg-[#E5E7EB] mb-4"></div>
+
+            {/* Members & Details */}
+            <div className="mt-auto flex items-center justify-between">
+                <div className="flex -space-x-3">
+                    {(() => {
+                        const visibleMembers = memberIds.slice(0, 3);
+                        const remainingCount = Math.max(0, memberIds.length - 3);
 
                         return (
-                            <div
-                                key={eid}
-                                className="w-8 h-8 rounded-full border border-white bg-[#F8FAFC] flex items-center justify-center text-[11px] font-bold text-[#475569] shadow-sm uppercase overflow-hidden"
-                                title={name}
-                            >
-                                {avatarUrl ? (
-                                    <img
-                                        src={avatarUrl}
-                                        alt={name}
-                                        className="w-full h-full object-cover"
-                                    />
-                                ) : (
-                                    <span>{name[0]}</span>
-                                )}
-                            </div>
-                        );
-                    })}
-                    {memberIds.length > 5 && (
-                        <div className="w-8 h-8 rounded-full border border-white bg-[#F8FAFC] flex items-center justify-center text-[10px] font-bold text-[#64748B] shadow-sm">
-                            +{memberIds.length - 5}
-                        </div>
-                    )}
-                </div>
-            </div>
+                            <>
+                                {visibleMembers.map((eid) => {
+                                    const emp = getEmp(eid);
+                                    const name = emp?.full_name || 'N/A';
+                                    const profileUrl = emp?.profile_picture
+                                        ? getGlobalProfileUrl(emp.id, emp.profile_picture)
+                                        : null;
 
+                                    return (
+                                        <div
+                                            key={eid}
+                                            className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all font-Gantari"
+                                            title={name}
+                                        >
+                                            {profileUrl ? (
+                                                <img
+                                                    src={profileUrl}
+                                                    alt={name}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).src = ProfileIcon;
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
+                                                    {(name || "U").charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                                {remainingCount > 0 && (
+                                    <div
+                                        className="w-9 h-9 rounded-full border-1 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors font-Gantari"
+                                    >
+                                        +{remainingCount}
+                                    </div>
+                                )}
+                            </>
+                        );
+                    })()}
+                </div>
+                <button
+                    onClick={() => onViewDetails(team)}
+                    className="flex items-center gap-2 text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] transition-colors pr-2 cursor-pointer group/details font-Gantari"
+                >
+                    Details
+                    <img src={upArrow} alt="Up" className="w-5 h-5 object-contain transition-all duration-200 group-hover/details:brightness-0 group-hover/details:invert-[20%]" />
+                </button>
+            </div>
         </div>
     );
 }
 
 export default function CreateteamV() {
+    const [searchParams] = useSearchParams();
+    const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+    const [showEntriesDropdown, setShowEntriesDropdown] = useState(false);
+    const [showEntries, setShowEntries] = useState("");
+    const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+
     const [teams, setTeams] = useState<Team[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
@@ -185,17 +252,37 @@ export default function CreateteamV() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+    const [showLeaderDropdown, setShowLeaderDropdown] = useState(false);
+    const [leaderDropdownUpward, setLeaderDropdownUpward] = useState(false);
+    const [memberDropdownUpward, setMemberDropdownUpward] = useState(false);
+    const [leaderSearchQuery, setLeaderSearchQuery] = useState("");
+    const [memberSearchQuery, setMemberSearchQuery] = useState("");
+    const [projectSearchQuery, setProjectSearchQuery] = useState("");
+    const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+    const [projectDropdownUpward, setProjectDropdownUpward] = useState(false);
+    const projectDropdownRef = useRef<HTMLDivElement>(null);
+
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [teamPendingDelete, setTeamPendingDelete] = useState<Team | null>(null);
     const [deleteSubmitting, setDeleteSubmitting] = useState(false);
     const memberDropdownRef = useRef<HTMLDivElement>(null);
+    const leaderDropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (memberDropdownRef.current && !memberDropdownRef.current.contains(event.target as Node)) {
                 setShowMemberDropdown(false);
+            }
+            if (leaderDropdownRef.current && !leaderDropdownRef.current.contains(event.target as Node)) {
+                setShowLeaderDropdown(false);
+            }
+            if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) {
+                setShowProjectDropdown(false);
+            }
+            if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
+                setShowEntriesDropdown(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -293,9 +380,9 @@ export default function CreateteamV() {
                 ? String(pid)
                 : team.project_name
                     ? String(
-                          projects.find((p) => p.project_name === team.project_name)
-                              ?.id ?? '',
-                      )
+                        projects.find((p) => p.project_name === team.project_name)
+                            ?.id ?? '',
+                    )
                     : '';
         setSelectedTeam(team);
         setEditForm({
@@ -360,89 +447,168 @@ export default function CreateteamV() {
                 setTeams((prev) => prev.filter((t) => t.team_id !== id));
                 setTeamPendingDelete(null);
             })
-            .catch(() => {})
+            .catch(() => { })
             .finally(() => setDeleteSubmitting(false));
     };
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#DD4342]"></div>
+            <div className="flex justify-center items-center h-full min-h-[400px]">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DD4342]" />
             </div>
         );
     }
 
+    const displayTeams = teams
+        .filter((t) => {
+            if (!searchQuery) return true;
+            const name = (t.team_name || t.teamname || "").toLowerCase();
+            const project = (t.project_name || "").toLowerCase();
+            const leaderObj = getEmp(t.leader);
+            const leaderName = (leaderObj?.full_name || "").toLowerCase();
+            return name.includes(searchQuery.toLowerCase()) || project.includes(searchQuery.toLowerCase()) || leaderName.includes(searchQuery.toLowerCase());
+        })
+        .slice(
+            showEntriesOptions.find((o) => o.value === showEntries)?.start || 0,
+            showEntriesOptions.find((o) => o.value === showEntries)?.end || teams.length
+        );
+
     return (
-        <div className="min-h-screen bg-[#FFFFFF] font-inter">
-            {/* Header section */}
-            <div className="flex justify-between items-center mb-10">
-                <h1 className="text-[24px] font-bold text-[#1E293B] font-sora">Create Team</h1>
-                <button
-                    onClick={() => setShowAddModal(true)}
-                    className="flex items-center gap-2 bg-[#DD4342] text-white px-5 py-2.5 rounded-lg hover:opacity-90 transition-all font-semibold shadow-sm"
-                >
-                    <PlusIcon className="w-5 h-5 stroke-[2.5]" />
-                    <span>Create Team</span>
-                </button>
+        <div className="h-full flex flex-col p-2 font-Gantari">
+            <div className="flex items-center justify-between mb-8">
+                <h2 className="text-[24px] font-semibold text-[#000000]">
+                    Team Workspace
+                </h2>
+                <div className="flex items-center gap-3">
+                    <div className="relative min-w-[140px] max-w-[200px] w-[150px]" ref={showEntriesDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowEntriesDropdown(!showEntriesDropdown);
+                            }}
+                            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-Gantari transition-all cursor-pointer border-0 min-w-0"
+                        >
+                            <span className={`min-w-0 flex-1 truncate overflow-hidden text-left ${!showEntries ? "text-[#8B8B8B]" : "text-[#353535]"}`}>
+                                {!showEntries ? (
+                                    SHOW_ENTRIES_PLACEHOLDER
+                                ) : (
+                                    <>
+                                        <span className="text-[14px]">{SHOW_ENTRIES_SELECTED_PREFIX}</span>{" "}
+                                        <span className="font-semibold">{showEntriesOptions.find((o) => o.value === showEntries)?.label}</span>
+                                    </>
+                                )}
+                            </span>
+                            <img
+                                src={ArrowDown}
+                                alt=""
+                                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesDropdown ? "rotate-180" : ""} ${!showEntries ? "opacity-60 grayscale" : "opacity-90"}`}
+                            />
+                        </button>
+
+                        {showEntriesDropdown && (
+                            <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                                <div className="max-h-[168px] overflow-y-auto custom-scrollbar">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowEntries("");
+                                            setShowEntriesDropdown(false);
+                                        }}
+                                        className="w-full px-4 py-2.5 text-left text-sm text-[#8B8B8B] hover:bg-slate-50 transition-colors"
+                                    >
+                                        {SHOW_ENTRIES_PLACEHOLDER}
+                                    </button>
+                                    {showEntriesOptions.map((option) => (
+                                        <button
+                                            key={option.value}
+                                            onClick={() => {
+                                                setShowEntries(option.value);
+                                                setShowEntriesDropdown(false);
+                                            }}
+                                            className={`w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-slate-50 flex items-center justify-between ${showEntries === option.value ? "text-[#DD4342] font-semibold bg-[#DD4342]/5" : "text-[#353535]"}`}
+                                        >
+                                            {option.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <button
+                        onClick={() => {
+                            setShowMemberDropdown(false);
+                            setShowAddModal(true);
+                        }}
+                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-[#F2F2F2] rounded-md transition-all font-bold text-[14px] shadow-sm cursor-pointer"
+                    >
+                        <PlusIcon className="w-5 h-5 stroke-[2.5]" />
+                        New Team
+                    </button>
+                </div>
             </div>
 
-            {/* Teams Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {teams.length === 0 ? (
-                    <div className="col-span-full py-20 text-center bg-[#F8FAFC] rounded-2xl border-2 border-dashed border-[#E2E8F0]">
-                        <p className="text-[#64748B] text-[17px] font-medium font-sora">No teams created yet.</p>
-                        <button
-                            onClick={() => setShowAddModal(true)}
-                            className="mt-4 text-[#DD4342] font-bold hover:underline"
-                        >
-                            Create your first team
-                        </button>
-                    </div>
-                ) : (
-                    teams.map((team) => (
-                        <TeamCard
-                            key={team.team_id}
-                            team={team}
-                            projects={projects}
-                            getEmp={getEmp}
-                            onEdit={handleEditClick}
-                            onDelete={handleDeleteRequest}
-                            onViewDetails={(t) => {
-                                setSelectedTeam(t);
-                                setShowDetailsModal(true);
-                            }}
-                        />
-                    ))
-                )}
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {displayTeams.length === 0 ? (
+                        <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-[#AEACAC52] flex flex-col items-center justify-center gap-4">
+                            <div className="w-16 h-16 bg-[#F8FAFC] rounded-full flex items-center justify-center">
+                                <PlusIcon className="w-8 h-8 text-[#94A3B8]" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-[#1E293B]">
+                                    No teams found
+                                </h3>
+                                <p className="text-[#64748B]">
+                                    Click "New Team" to get started.
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        displayTeams.map((team) => (
+                            <TeamCard
+                                key={team.team_id}
+                                team={team}
+                                getEmp={getEmp}
+                                onEdit={handleEditClick}
+                                onDelete={handleDeleteRequest}
+                                onViewDetails={(t) => {
+                                    setSelectedTeam(t);
+                                    setShowDetailsModal(true);
+                                }}
+                            />
+                        ))
+                    )}
+                </div>
             </div>
 
             {/* Delete team confirmation */}
             {teamPendingDelete && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[160] flex items-center justify-center p-4">
-                    <div
-                        className="bg-white rounded-2xl w-full max-w-[600px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 relative pt-14 pb-8 px-8"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="delete-team-title"
-                    >
+                <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 relative pt-14 pb-8 px-8 font-Gantari">
                         <button
                             type="button"
                             onClick={() => !deleteSubmitting && setTeamPendingDelete(null)}
-                            className="absolute top-4 left-4 p-2 bg-[#F2F2F2] hover:bg-[#E8EAED] rounded-lg transition-colors text-[#1E293B]"
+                            className="absolute top-6 left-6 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
                             aria-label="Close"
                         >
-                            <XMarkIcon className="w-5 h-5 stroke-[2.5]" />
+                            <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
                         </button>
-                        <p id="delete-team-title" className="text-center text-[16px] font-medium text-[#1E293B] leading-relaxed px-2">
-                            Are you sure you want to delete{' '}
-                            <span className="font-bold">{getTeamDisplayName(teamPendingDelete)}</span>?
-                        </p>
-                        <div className="flex gap-3 mt-8">
+
+                        <div className="text-center mb-8">
+                            <p className="text-[17px] font-medium text-slate-800 leading-relaxed px-2">
+                                Are you sure, you want to delete{" "}
+                                <span className="font-bold">{getTeamDisplayName(teamPendingDelete)}</span>?
+                            </p>
+                        </div>
+
+                        <div className="flex justify-center gap-3">
                             <button
                                 type="button"
                                 disabled={deleteSubmitting}
                                 onClick={() => setTeamPendingDelete(null)}
-                                className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#334155] rounded-lg font-bold hover:bg-[#E8EAED] transition-colors disabled:opacity-50"
+                                className="rounded-lg bg-[#F2F2F2] px-8 py-2.5 text-sm font-bold text-[#353535] hover:bg-[#E5E7EB] cursor-pointer"
                             >
                                 Discard
                             </button>
@@ -450,352 +616,639 @@ export default function CreateteamV() {
                                 type="button"
                                 disabled={deleteSubmitting}
                                 onClick={handleConfirmDelete}
-                                className="flex-1 px-4 py-3 bg-[#FEE2E2] text-[#DD4342] rounded-lg font-bold hover:bg-[#FECACA] transition-colors disabled:opacity-50"
+                                className="rounded-lg bg-[#DD4342] px-8 py-2.5 text-sm font-bold text-white hover:opacity-95 disabled:opacity-50 cursor-pointer shadow-sm"
                             >
-                                {deleteSubmitting ? 'Deleting…' : 'Yes, Delete'}
+                                {deleteSubmitting ? "Deleting..." : "Yes, Delete"}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Add Modal */}
             {showAddModal && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-[500px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-8">
-                            <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">New Team</h3>
-                                <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors bg-[#F2F2F2] text-black">
-                                    <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
-                                </button>
+                <div className="fixed inset-0 z-100 flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-4 animate-in zoom-in-95 duration-200 relative overflow-visible my-auto font-Gantari">
+                        <button
+                            onClick={() => setShowAddModal(false)}
+                            className="absolute top-6 left-8 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
+                        >
+                            <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
+                        </button>
+
+                        <div className="text-center mb-10">
+                            <h3 className="text-[24px] font-semibold text-[#000000]">
+                                Create New Team
+                            </h3>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-[14px] font-medium text-[#353535] mb-3 font-Gantari">
+                                    Team Name <span className="text-[#DD4342]">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Enter Team Name"
+                                    className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-[14px] text-[#353535] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                                    value={form.team_name}
+                                    onChange={(e) =>
+                                        setForm({ ...form, team_name: e.target.value })
+                                    }
+                                    required
+                                />
                             </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Team Name</label>
-                                    <input
-                                        type="text"
-                                        value={form.team_name}
-                                        onChange={(e) => setForm({ ...form, team_name: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium"
-                                        placeholder="Enter team name"
-                                        required
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Project</label>
-                                    <div className="relative">
-                                        <select
-                                            value={form.project_id}
-                                            onChange={(e) => setForm({ ...form, project_id: e.target.value })}
-                                            className="w-full pl-4 pr-10 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
-                                            required
-                                        >
-                                            <option value="">Select Project</option>
-                                            {projects.map((p) => (
-                                                <option key={p.id} value={p.id}>
-                                                    {p.project_name ?? `Project ${p.id}`}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" aria-hidden />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Team Leader</label>
-                                    <div className="relative">
-                                        <select
-                                            value={form.leader}
-                                            onChange={(e) => setForm({ ...form, leader: e.target.value })}
-                                            className="w-full pl-4 pr-10 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
-                                            required
-                                        >
-                                            <option value="">Select Leader</option>
-                                            {employees.map(emp => (
-                                                <option key={emp.id} value={emp.id}>{emp.full_name}</option>
-                                            ))}
-                                        </select>
-                                        <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" aria-hidden />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2 relative" ref={memberDropdownRef}>
-                                    <label className="text-[14px] font-bold text-[#475569] block">Add Members</label>
-                                    <div
-                                        onClick={() => setShowMemberDropdown(!showMemberDropdown)}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg min-h-[48px] cursor-pointer flex gap-2 items-center"
+                            <div>
+                                <label className="block text-[16px] font-medium text-[#8B8B8B] mb-3">
+                                    Select Project
+                                </label>
+                                <div className="relative" ref={projectDropdownRef}>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const el = projectDropdownRef.current;
+                                            if (el) {
+                                                const rect = el.getBoundingClientRect();
+                                                setProjectDropdownUpward(window.innerHeight - rect.bottom < 220);
+                                            }
+                                            setShowProjectDropdown(!showProjectDropdown);
+                                        }}
+                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer"
                                     >
-                                        <div className="flex flex-wrap gap-2 items-center flex-1 min-w-0">
-                                            {form.employee.length === 0 ? (
-                                                <span className="text-gray-400 font-medium">Select teammates</span>
-                                            ) : (
-                                                form.employee.map(eid => {
-                                                    const emp = getEmp(eid);
-                                                    return (
-                                                    <span key={eid} className="bg-white px-2.5 py-1 rounded-md text-[13px] font-bold text-[#1E293B] shadow-sm flex items-center gap-1.5 border border-[#E2E8F0]">
-                                                        {emp?.full_name || 'N/A'}
-                                                        <XMarkIcon
-                                                            onClick={(e) => { e.stopPropagation(); handleMemberToggle(eid); }}
-                                                            className="w-3.5 h-3.5 cursor-pointer hover:text-red-500"
-                                                        />
+                                        <span className={form.project_id ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                                            {form.project_id
+                                                ? projects.find((p) => String(p.id) === String(form.project_id))?.project_name ?? "Selected Project"
+                                                : "Select Project"}
+                                        </span>
+                                        <img
+                                            src={ArrowDown}
+                                            alt=""
+                                            className={`w-4 h-4 transition-transform duration-200 ${showProjectDropdown ? "rotate-180" : ""}`}
+                                        />
+                                    </button>
+
+                                    {showProjectDropdown && (
+                                        <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${projectDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
+                                            <div className="p-2 border-b border-[#E5E7EB]">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search project..."
+                                                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
+                                                    value={projectSearchQuery}
+                                                    onChange={(e) => setProjectSearchQuery(e.target.value)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                            </div>
+                                            <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setForm({ ...form, project_id: "" });
+                                                        setShowProjectDropdown(false);
+                                                        setProjectSearchQuery("");
+                                                    }}
+                                                    className="w-full px-4 py-2 text-left text-sm text-[#8B8B8B] hover:bg-slate-50 transition-colors"
+                                                >
+                                                    Select Project
+                                                </button>
+                                                {projects
+                                                    .filter((p) => (p.project_name || "").toLowerCase().includes(projectSearchQuery.toLowerCase()))
+                                                    .map((project) => (
+                                                        <button
+                                                            key={project.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setForm({ ...form, project_id: String(project.id) });
+                                                                setShowProjectDropdown(false);
+                                                                setProjectSearchQuery("");
+                                                            }}
+                                                            className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${String(form.project_id) === String(project.id) ? "text-[#DD4342] font-semibold bg-[#DD4342]/5" : "text-[#353535]"}`}
+                                                        >
+                                                            {project.project_name}
+                                                        </button>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-3 font-Gantari">
+                                    Team Leader <span className="text-[#DD4342]">*</span>
+                                </label>
+                                <div className="relative" ref={leaderDropdownRef}>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const el = leaderDropdownRef.current;
+                                            if (el) {
+                                                const rect = el.getBoundingClientRect();
+                                                setLeaderDropdownUpward(window.innerHeight - rect.bottom < 220);
+                                            }
+                                            setShowLeaderDropdown(!showLeaderDropdown);
+                                        }}
+                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer font-Gantari"
+                                    >
+                                        <span className={form.leader ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                                            {form.leader
+                                                ? employees.find((e) => String(e.id) === String(form.leader))?.full_name ?? "Selected Leader"
+                                                : "Select Leader"}
+                                        </span>
+                                        <img
+                                            src={ArrowDown}
+                                            alt=""
+                                            className={`w-4 h-4 transition-transform duration-200 ${showLeaderDropdown ? "rotate-180" : ""}`}
+                                        />
+                                    </button>
+
+                                    {showLeaderDropdown && (
+                                        <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${leaderDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
+                                            <div className="p-2 border-b border-[#E5E7EB]">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search employee..."
+                                                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
+                                                    value={leaderSearchQuery}
+                                                    onChange={(e) => setLeaderSearchQuery(e.target.value)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                            </div>
+                                            <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                                {employees
+                                                    .filter((e) => (e.full_name || "").toLowerCase().includes(leaderSearchQuery.toLowerCase()))
+                                                    .map((emp) => (
+                                                        <button
+                                                            key={emp.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setForm({ ...form, leader: String(emp.id) });
+                                                                setShowLeaderDropdown(false);
+                                                                setLeaderSearchQuery("");
+                                                            }}
+                                                            className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${String(form.leader) === String(emp.id) ? "text-[#DD4342] font-semibold bg-[#DD4342]/5" : "text-[#353535]"}`}
+                                                        >
+                                                            {emp.full_name}
+                                                        </button>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-3 font-Gantari">
+                                    Add Members ({form.employee.length})
+                                </label>
+                                <div className="relative" ref={memberDropdownRef}>
+                                    <div
+                                        onClick={() => {
+                                            const el = memberDropdownRef.current;
+                                            if (el) {
+                                                const rect = el.getBoundingClientRect();
+                                                setMemberDropdownUpward(window.innerHeight - rect.bottom < 220);
+                                            }
+                                            setShowMemberDropdown(!showMemberDropdown);
+                                        }}
+                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer min-h-[44px] font-Gantari"
+                                    >
+                                        <div className="flex flex-wrap gap-1.5 flex-1 pr-4">
+                                            {form.employee.length > 0 ? (
+                                                form.employee.map((eid) => (
+                                                    <span
+                                                        key={eid}
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#E5E7EB] rounded-md text-xs font-semibold text-[#353535] shadow-sm animate-in zoom-in-95 duration-150"
+                                                    >
+                                                        {employees.find((e) => String(e.id) === String(eid))?.full_name || eid}
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleMemberToggle(eid);
+                                                            }}
+                                                            className="hover:text-red-500 transition-colors"
+                                                        >
+                                                            <PlusIcon className="w-3 h-3 rotate-45 stroke-[3]" />
+                                                        </button>
                                                     </span>
-                                                )})
+                                                ))
+                                            ) : (
+                                                <span className="text-[#8B8B8B]">Select teammates</span>
                                             )}
                                         </div>
-                                        <ChevronDownIcon
-                                            className={`w-5 h-5 text-[#64748B] shrink-0 transition-transform ${showMemberDropdown ? 'rotate-180' : ''}`}
-                                            aria-hidden
+                                        <img
+                                            src={ArrowDown}
+                                            alt=""
+                                            className={`w-4 h-4 transition-transform duration-200 ${showMemberDropdown ? "rotate-180" : ""}`}
                                         />
                                     </div>
 
                                     {showMemberDropdown && (
-                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-[#E2E8F0] p-3 z-50 max-h-[220px] overflow-y-auto custom-scrollbar">
-                                            {employees.filter(emp => String(emp.id) !== form.leader).map(emp => (
-                                                <div
-                                                    key={emp.id}
-                                                    onClick={() => handleMemberToggle(String(emp.id))}
-                                                    className="flex items-center gap-3 p-2.5 hover:bg-[#F8FAFC] rounded-lg cursor-pointer transition-colors"
-                                                >
-                                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${form.employee.includes(String(emp.id)) ? 'bg-[#DD4342] border-[#DD4342]' : 'border-[#CBD5E1]'}`}>
-                                                        {form.employee.includes(String(emp.id)) && <PlusIcon className="w-3.5 h-3.5 text-white rotate-45 stroke-[3]" />}
-                                                    </div>
-                                                    <span className="text-[15px] font-medium text-[#334155]">{emp.full_name}</span>
-                                                </div>
-                                            ))}
+                                        <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${memberDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
+                                            <div className="p-2 border-b border-[#E5E7EB]">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search member..."
+                                                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
+                                                    value={memberSearchQuery}
+                                                    onChange={(e) => setMemberSearchQuery(e.target.value)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                            </div>
+                                            <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                                {employees
+                                                    .filter((e) => String(e.id) !== String(form.leader))
+                                                    .filter((e) => (e.full_name || "").toLowerCase().includes(memberSearchQuery.toLowerCase()))
+                                                    .map((emp) => {
+                                                        const isSelected = form.employee.includes(String(emp.id));
+                                                        return (
+                                                            <button
+                                                                key={emp.id}
+                                                                type="button"
+                                                                onClick={() => handleMemberToggle(String(emp.id))}
+                                                                className={`w-full px-4 py-2.5 text-left text-sm flex items-center justify-between transition-all hover:bg-slate-50 ${isSelected ? "bg-[#DD4342]/5 text-[#DD4342] font-semibold" : "text-[#353535]"}`}
+                                                            >
+                                                                <span>{emp.full_name}</span>
+                                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${isSelected ? "bg-[#DD4342] border-[#DD4342]" : "border-[#AEACAC52]"}`}>
+                                                                    {isSelected && <PlusIcon className="w-3 h-3 text-white stroke-[3] rotate-45" />}
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
+                            </div>
 
-                                <div className="flex gap-4 pt-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowAddModal(false)}
-                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-[#E2E8F0] transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={submitting}
-                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity flex items-center justify-center disabled:opacity-50"
-                                    >
-                                        {submitting ? 'Creating...' : 'Create Team'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+                            <div className="flex justify-center gap-6 pt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAddModal(false)}
+                                    className="px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] text-[14px] font-medium transition-all active:scale-[0.98] cursor-pointer shadow-sm"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="px-12 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-medium transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                                >
+                                    {submitting ? "Creating..." : "Create Team"}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
-
             {/* Edit Modal */}
             {showEditModal && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-[500px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-8">
-                            <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">Edit Team</h3>
-                                <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors bg-[#F2F2F2] text-black">
-                                    <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
-                                </button>
+                <div className="fixed inset-0 z-100 flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-4 animate-in zoom-in-95 duration-200 relative overflow-visible my-auto font-Gantari">
+                        <button
+                            onClick={() => setShowEditModal(false)}
+                            className="absolute top-6 left-4 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
+                        >
+                            <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
+                        </button>
+
+                        <div className="text-center mb-10">
+                            <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">
+                                Edit Team Details
+                            </h3>
+                        </div>
+
+                        <form onSubmit={handleUpdate} className="space-y-4">
+                            <div>
+                                <label className="block text-[14px] font-medium text-[#353535] mb-3 font-Gantari">
+                                    Team Name <span className="text-[#DD4342]">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Enter Team Name"
+                                    className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-[14px] text-[#353535] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
+                                    value={editForm.team_name}
+                                    onChange={(e) =>
+                                        setEditForm({ ...editForm, team_name: e.target.value })
+                                    }
+                                    required
+                                />
                             </div>
 
-                            <form onSubmit={handleUpdate} className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Team Name</label>
-                                    <input
-                                        type="text"
-                                        value={editForm.team_name}
-                                        onChange={(e) => setEditForm({ ...editForm, team_name: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium"
-                                        required
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Project</label>
-                                    <div className="relative">
-                                        <select
-                                            value={editForm.project_id}
-                                            onChange={(e) => setEditForm({ ...editForm, project_id: e.target.value })}
-                                            className="w-full pl-4 pr-10 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
-                                            required
-                                        >
-                                            <option value="">Select Project</option>
-                                            {projects.map((p) => (
-                                                <option key={p.id} value={p.id}>
-                                                    {p.project_name ?? `Project ${p.id}`}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" aria-hidden />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Team Leader</label>
-                                    <div className="relative">
-                                        <select
-                                            value={editForm.leader}
-                                            onChange={(e) => setEditForm({ ...editForm, leader: e.target.value })}
-                                            className="w-full pl-4 pr-10 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
-                                            required
-                                        >
-                                            {employees.map(emp => (
-                                                <option key={emp.id} value={emp.id}>{emp.full_name}</option>
-                                            ))}
-                                        </select>
-                                        <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" aria-hidden />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2 relative" ref={memberDropdownRef}>
-                                    <label className="text-[14px] font-bold text-[#475569] block">Members</label>
-                                    <div
-                                        onClick={() => setShowMemberDropdown(!showMemberDropdown)}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg min-h-[48px] cursor-pointer flex gap-2 items-center"
+                            <div>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-3 font-Gantari">
+                                    Select Project
+                                </label>
+                                <div className="relative" ref={projectDropdownRef}>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const el = projectDropdownRef.current;
+                                            if (el) {
+                                                const rect = el.getBoundingClientRect();
+                                                setProjectDropdownUpward(window.innerHeight - rect.bottom < 220);
+                                            }
+                                            setShowProjectDropdown(!showProjectDropdown);
+                                        }}
+                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer font-Gantari"
                                     >
-                                        <div className="flex flex-wrap gap-2 items-center flex-1 min-w-0">
-                                            {editForm.employee.map(eid => {
-                                                const emp = getEmp(eid);
-                                                return (
-                                                <span key={eid} className="bg-white px-2.5 py-1 rounded-md text-[13px] font-bold text-[#1E293B] shadow-sm flex items-center gap-1.5 border border-[#E2E8F0]">
-                                                    {emp?.full_name || 'N/A'}
-                                                    <XMarkIcon
-                                                        onClick={(e) => { e.stopPropagation(); handleMemberToggle(eid, true); }}
-                                                        className="w-3.5 h-3.5 cursor-pointer hover:text-red-500"
-                                                    />
-                                                </span>
-                                            )})}
+                                        <span className={editForm.project_id ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                                            {editForm.project_id
+                                                ? projects.find((p) => String(p.id) === String(editForm.project_id))?.project_name ?? "Selected Project"
+                                                : "Select Project"}
+                                        </span>
+                                        <img
+                                            src={ArrowDown}
+                                            alt=""
+                                            className={`w-4 h-4 transition-transform duration-200 ${showProjectDropdown ? "rotate-180" : ""}`}
+                                        />
+                                    </button>
+
+                                    {showProjectDropdown && (
+                                        <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${projectDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
+                                            <div className="p-2 border-b border-[#E5E7EB]">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search project..."
+                                                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
+                                                    value={projectSearchQuery}
+                                                    onChange={(e) => setProjectSearchQuery(e.target.value)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                            </div>
+                                            <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                                {projects
+                                                    .filter((p) => (p.project_name || "").toLowerCase().includes(projectSearchQuery.toLowerCase()))
+                                                    .map((project) => (
+                                                        <button
+                                                            key={project.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setEditForm({ ...editForm, project_id: String(project.id) });
+                                                                setShowProjectDropdown(false);
+                                                                setProjectSearchQuery("");
+                                                            }}
+                                                            className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${String(editForm.project_id) === String(project.id) ? "text-[#DD4342] font-semibold bg-[#DD4342]/5" : "text-[#353535]"}`}
+                                                        >
+                                                            {project.project_name}
+                                                        </button>
+                                                    ))}
+                                            </div>
                                         </div>
-                                        <ChevronDownIcon
-                                            className={`w-5 h-5 text-[#64748B] shrink-0 transition-transform ${showMemberDropdown ? 'rotate-180' : ''}`}
-                                            aria-hidden
+                                    )}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-3 font-Gantari">
+                                    Team Leader <span className="text-[#DD4342]">*</span>
+                                </label>
+                                <div className="relative" ref={leaderDropdownRef}>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const el = leaderDropdownRef.current;
+                                            if (el) {
+                                                const rect = el.getBoundingClientRect();
+                                                setLeaderDropdownUpward(window.innerHeight - rect.bottom < 220);
+                                            }
+                                            setShowLeaderDropdown(!showLeaderDropdown);
+                                        }}
+                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer font-Gantari"
+                                    >
+                                        <span className={editForm.leader ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                                            {editForm.leader
+                                                ? employees.find((e) => String(e.id) === String(editForm.leader))?.full_name ?? "Selected Leader"
+                                                : "Select Leader"}
+                                        </span>
+                                        <img
+                                            src={ArrowDown}
+                                            alt=""
+                                            className={`w-4 h-4 transition-transform duration-200 ${showLeaderDropdown ? "rotate-180" : ""}`}
+                                        />
+                                    </button>
+
+                                    {showLeaderDropdown && (
+                                        <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${leaderDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
+                                            <div className="p-2 border-b border-[#E5E7EB]">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search employee..."
+                                                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
+                                                    value={leaderSearchQuery}
+                                                    onChange={(e) => setLeaderSearchQuery(e.target.value)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                            </div>
+                                            <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                                {employees
+                                                    .filter((e) => (e.full_name || "").toLowerCase().includes(leaderSearchQuery.toLowerCase()))
+                                                    .map((emp) => (
+                                                        <button
+                                                            key={emp.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setEditForm({ ...editForm, leader: String(emp.id) });
+                                                                setShowLeaderDropdown(false);
+                                                                setLeaderSearchQuery("");
+                                                            }}
+                                                            className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${String(editForm.leader) === String(emp.id) ? "text-[#DD4342] font-semibold bg-[#DD4342]/5" : "text-[#353535]"}`}
+                                                        >
+                                                            {emp.full_name}
+                                                        </button>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-3 font-Gantari">
+                                    Members ({editForm.employee.length})
+                                </label>
+                                <div className="relative" ref={memberDropdownRef}>
+                                    <div
+                                        onClick={() => {
+                                            const el = memberDropdownRef.current;
+                                            if (el) {
+                                                const rect = el.getBoundingClientRect();
+                                                setMemberDropdownUpward(window.innerHeight - rect.bottom < 220);
+                                            }
+                                            setShowMemberDropdown(!showMemberDropdown);
+                                        }}
+                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer min-h-[44px] font-Gantari"
+                                    >
+                                        <div className="flex flex-wrap gap-1.5 flex-1 pr-4">
+                                            {editForm.employee.length > 0 ? (
+                                                editForm.employee.map((eid) => (
+                                                    <span
+                                                        key={eid}
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#E5E7EB] rounded-md text-xs font-semibold text-[#353535] shadow-sm animate-in zoom-in-95 duration-150"
+                                                    >
+                                                        {employees.find((e) => String(e.id) === String(eid))?.full_name || eid}
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleMemberToggle(eid, true);
+                                                            }}
+                                                            className="hover:text-red-500 transition-colors"
+                                                        >
+                                                            <PlusIcon className="w-3 h-3 rotate-45 stroke-[3]" />
+                                                        </button>
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="text-[#8B8B8B]">Select teammates</span>
+                                            )}
+                                        </div>
+                                        <img
+                                            src={ArrowDown}
+                                            alt=""
+                                            className={`w-4 h-4 transition-transform duration-200 ${showMemberDropdown ? "rotate-180" : ""}`}
                                         />
                                     </div>
 
                                     {showMemberDropdown && (
-                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-[#E2E8F0] p-3 z-50 max-h-[220px] overflow-y-auto custom-scrollbar">
-                                            {employees.filter(emp => String(emp.id) !== editForm.leader).map(emp => (
-                                                <div
-                                                    key={emp.id}
-                                                    onClick={() => handleMemberToggle(String(emp.id), true)}
-                                                    className="flex items-center gap-3 p-2.5 hover:bg-[#F8FAFC] rounded-lg cursor-pointer transition-colors"
-                                                >
-                                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${editForm.employee.includes(String(emp.id)) ? 'bg-[#DD4342] border-[#DD4342]' : 'border-[#CBD5E1]'}`}>
-                                                        {editForm.employee.includes(String(emp.id)) && <PlusIcon className="w-3.5 h-3.5 text-white rotate-45 stroke-[3]" />}
-                                                    </div>
-                                                    <span className="text-[15px] font-medium text-[#334155]">{emp.full_name}</span>
-                                                </div>
-                                            ))}
+                                        <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${memberDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
+                                            <div className="p-2 border-b border-[#E5E7EB]">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search member..."
+                                                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
+                                                    value={memberSearchQuery}
+                                                    onChange={(e) => setMemberSearchQuery(e.target.value)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                            </div>
+                                            <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                                {employees
+                                                    .filter((e) => String(e.id) !== String(editForm.leader))
+                                                    .filter((e) => (e.full_name || "").toLowerCase().includes(memberSearchQuery.toLowerCase()))
+                                                    .map((emp) => {
+                                                        const isSelected = editForm.employee.includes(String(emp.id));
+                                                        return (
+                                                            <button
+                                                                key={emp.id}
+                                                                type="button"
+                                                                onClick={() => handleMemberToggle(String(emp.id), true)}
+                                                                className={`w-full px-4 py-2.5 text-left text-sm flex items-center justify-between transition-all hover:bg-slate-50 ${isSelected ? "bg-[#DD4342]/5 text-[#DD4342] font-semibold" : "text-[#353535]"}`}
+                                                            >
+                                                                <span>{emp.full_name}</span>
+                                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${isSelected ? "bg-[#DD4342] border-[#DD4342]" : "border-[#AEACAC52]"}`}>
+                                                                    {isSelected && <PlusIcon className="w-3 h-3 text-white stroke-[3] rotate-45" />}
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
+                            </div>
 
-                                <div className="flex gap-4 pt-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowEditModal(false)}
-                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-[#E2E8F0] transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={submitting}
-                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity flex items-center justify-center disabled:opacity-50"
-                                    >
-                                        {submitting ? 'Updating...' : 'Save Changes'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+                            <div className="flex justify-center gap-6 pt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEditModal(false)}
+                                    className="px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] text-[14px] font-medium transition-all active:scale-[0.98] cursor-pointer shadow-sm"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="px-12 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-medium transition-all disabled:opacity-50 cursor-pointer shadow-sm font-Gantari"
+                                >
+                                    {submitting ? "Updating..." : "Save Changes"}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
 
             {/* Details Modal */}
             {showDetailsModal && selectedTeam && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-[500px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-8">
-                            <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">Team Details</h3>
-                                <button onClick={() => setShowDetailsModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors bg-[#F2F2F2] text-black">
-                                    <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
-                                </button>
+                <div className="fixed inset-0 z-100 flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-visible my-auto font-Gantari">
+                        <button
+                            onClick={() => setShowDetailsModal(false)}
+                            className="absolute top-8 left-5 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
+                        >
+                            <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
+                        </button>
+
+                        <div className="text-center mb-10">
+                            <h3 className="text-[24px] font-semibold text-[#000000]">
+                                Team Details
+                            </h3>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-[14px] font-medium text-[#8B8B8B] mb-1.5">Team Name</label>
+                                <div className="text-[18px] font-semibold text-[#353535]">{selectedTeam.team_name || selectedTeam.teamname || 'Unnamed Team'}</div>
                             </div>
 
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="text-[13px] text-[#64748B] block mb-1 font-medium">Team Name</label>
-                                    <div className="text-[18px] font-bold text-[#1E293B]">{selectedTeam.team_name || selectedTeam.teamname || 'Unnamed Team'}</div>
-                                </div>
 
-                                <div>
-                                    <label className="text-[13px] text-[#64748B] block mb-1 font-medium">Project</label>
-                                    <div className="text-[16px] font-bold text-[#334155]">{selectedTeam.project_name || 'N/A'}</div>
-                                </div>
-
-                                <div>
-                                    <label className="text-[13px] text-[#64748B] block mb-1 font-medium">Team Leader</label>
-                                    <div className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-[#E2E8F0]">
-                                        {(() => {
-                                            const emp = getEmp(selectedTeam.leader);
-                                            const name = emp?.full_name || 'N/A';
-                                            const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture) : '';
-                                            return (
-                                                <>
-                                                    <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center font-bold overflow-hidden">
-                                                        {avatarUrl ? (
-                                                            <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <span>{name[0]}</span>
-                                                        )}
-                                                    </div>
-                                                    <div className="font-bold text-[#334155]">{name}</div>
-                                                </>
-                                            );
-                                        })()}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="text-[13px] text-[#64748B] block mb-2 font-medium">Members ({selectedTeam.employee.split(',').filter(Boolean).length})</label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {selectedTeam.employee.split(',').filter(Boolean).map(eid => {
-                                            const emp = getEmp(eid);
-                                            const name = emp?.full_name || 'N/A';
-                                            const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture) : '';
-                                            return (
-                                                <div key={eid} className="flex items-center gap-2.5 p-2.5 bg-[#F8FAFC] rounded-lg border border-[#F1F5F9]">
-                                                    <div className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-[11px] font-bold text-slate-600 overflow-hidden">
-                                                        {avatarUrl ? (
-                                                            <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <span>{name[0]}</span>
-                                                        )}
-                                                    </div>
-                                                    <div className="text-[14px] font-bold text-[#475569]">{name}</div>
+                            <div>
+                                <label className="block text-[14px] font-medium text-[#8B8B8B] mb-1.5">Team Leader</label>
+                                <div className="flex items-center gap-4 bg-[#F2F3F4] p-4 rounded-xl border border-[#E5E7EB]">
+                                    {(() => {
+                                        const emp = getEmp(selectedTeam.leader);
+                                        const name = emp?.full_name || 'N/A';
+                                        const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture) : '';
+                                        return (
+                                            <>
+                                                <div className="w-12 h-12 rounded-full bg-[#DD4342] text-white flex items-center justify-center font-bold overflow-hidden shadow-sm">
+                                                    {avatarUrl ? (
+                                                        <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span className="text-xl">{name[0]}</span>
+                                                    )}
                                                 </div>
-                                            );
-                                        })}
-                                    </div>
+                                                <div className="text-lg font-semibold text-[#353535]">{name}</div>
+                                            </>
+                                        );
+                                    })()}
                                 </div>
                             </div>
 
-                            <div className="mt-10">
-                                <button
-                                    onClick={() => setShowDetailsModal(false)}
-                                    className="w-full py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity"
-                                >
-                                    Close
-                                </button>
+                            <div>
+                                <label className="block text-[14px] font-medium text-[#8B8B8B] mb-3">Members ({selectedTeam.employee.split(',').filter(Boolean).length})</label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {selectedTeam.employee.split(',').filter(Boolean).map(eid => {
+                                        const emp = getEmp(eid);
+                                        const name = emp?.full_name || 'N/A';
+                                        const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture) : '';
+                                        return (
+                                            <div key={eid} className="flex items-center gap-3 p-3 bg-[#F2F3F4] rounded-lg border border-[#E5E7EB] transition-colors hover:bg-white">
+                                                <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-[12px] font-bold text-slate-600 overflow-hidden shadow-sm">
+                                                    {avatarUrl ? (
+                                                        <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span>{name[0]}</span>
+                                                    )}
+                                                </div>
+                                                <div className="text-[15px] font-medium text-[#353535]">{name}</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
+
+                        {/* <div className="mt-10">
+                            <button
+                                onClick={() => setShowDetailsModal(false)}
+                                className="w-full py-3.5 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-95 transition-all shadow-md active:scale-[0.98] cursor-pointer"
+                            >
+                                Close
+                            </button>
+                        </div> */}
                     </div>
                 </div>
             )}

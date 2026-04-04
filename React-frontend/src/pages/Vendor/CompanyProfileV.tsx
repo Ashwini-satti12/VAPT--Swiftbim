@@ -263,49 +263,51 @@ export default function CompanyProfileV() {
     }
 
     return (
-        <div className="h-full flex flex-col overflow-hidden font-inter">
-            {/* Header: title, completeness, verified, Edit Profile */}
-            <div className="shrink-0 mb-5">
-                <div className="flex items-start justify-between">
-                    <div>
-                        <h1 className="text-xl font-medium font-gantari text-slate-800">Company Profile</h1>
-                        <p className="text-sm text-[#717171] font-gantari mt-0.5 mb-6">Manage your company details, documents, and visibility</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <span className={`flex items-center gap-1.5 text-[12px] font-bold px-3 py-1.5 rounded-full ${verified ? 'bg-[#E8F9E8] text-[#16A34A]' : 'bg-[#FFF3E0] text-[#E65100]'}`}>
-                            <span className={`w-2 h-2 rounded-full ${verified ? 'bg-[#16A34A]' : 'bg-[#E65100]'}`} />
-                            {verified ? 'Verified' : 'Unverified'}
-                        </span>
-                        {!editMode ? (
+        <div className="h-full bg-white font-Gantari flex flex-col overflow-hidden p-2">
+            <div className="flex items-center justify-between mb-10 shrink-0">
+                {/* Left: Title */}
+                <h3 className="text-[24px] font-semibold font-Gantari text-[#12141D] whitespace-nowrap">
+                    Company Profile
+                </h3>
+
+                {/* Right: Actions */}
+                <div className="flex items-center gap-4">
+                    <span className={`inline-flex items-center gap-1.5 text-[12px] font-bold px-3 py-1.5 rounded-full ${verified ? 'bg-[#E8F9E8] text-[#16A34A]' : 'bg-[#FFF3E0] text-[#E65100]'}`}>
+                        <span className={`w-2 h-2 rounded-full ${verified ? 'bg-[#16A34A]' : 'bg-[#E65100]'}`} />
+                        {verified ? 'Verified' : 'Unverified'}
+                    </span>
+                    
+                    {!editMode ? (
+                        <button
+                            onClick={() => { setEditMode(true); setSaveMsg(null); }}
+                            className="px-6 py-2 bg-[#DD4342] text-[#F2F2F2] rounded-md transition-all font-bold text-[14px] shadow-sm cursor-pointer shadow-red-100"
+                        >
+                            Edit Profile
+                        </button>
+                    ) : (
+                        <div className="flex items-center gap-2">
                             <button
-                                onClick={() => { setEditMode(true); setSaveMsg(null); }}
-                                className="px-4 py-2 text-sm font-semibold font-gantari bg-[#DE3D3A] text-white rounded-lg hover:bg-[#c93d3d] transition-colors"
+                                onClick={handleCancel}
+                                disabled={saving}
+                                className="px-4 py-2 text-sm font-semibold font-Gantari bg-white border border-gray-200 text-[#353535] rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60 cursor-pointer"
                             >
-                                Edit Profile
+                                Cancel
                             </button>
-                        ) : (
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={handleCancel}
-                                    disabled={saving}
-                                    className="px-4 py-2 text-sm font-semibold font-gantari bg-white border border-gray-200 text-[#353535] rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleSave}
-                                    disabled={saving}
-                                    className="px-4 py-2 text-sm font-semibold font-gantari bg-[#DE3D3A] text-white rounded-lg hover:bg-[#c93d3d] transition-colors disabled:opacity-60"
-                                >
-                                    {saving ? 'Saving…' : 'Save'}
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                            <button
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="px-6 py-2 bg-[#DD4342] text-[#F2F2F2] rounded-md transition-all font-bold text-[14px] shadow-sm cursor-pointer shadow-red-100 disabled:opacity-60"
+                            >
+                                {saving ? 'Saving…' : 'Save'}
+                            </button>
+                        </div>
+                    )}
                 </div>
+            </div>
+
 
                 {saveMsg && (
-                    <div className={`mt-3 text-sm font-gantari ${saveMsg.includes('Failed') ? 'text-[#DE3D3A]' : 'text-green-600'}`}>
+                    <div className={`mt-3 text-sm font-Gantari text-center ${saveMsg.includes('Failed') ? 'text-[#DD4342]' : 'text-green-600'}`}>
                         {saveMsg}
                     </div>
                 )}
@@ -325,14 +327,13 @@ export default function CompanyProfileV() {
                         Complete your profile to get <span className="text-[#353535] font-semibold">more opportunities</span>
                     </div>
                 </div> */}
-            </div>
 
             {/* TD-style layout: sidebar + content */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar flex gap-8 min-h-0">
-                <div className="w-1/4 min-w-[180px] flex-shrink-0">
+            <div className="flex-1 flex gap-8 min-h-0 overflow-hidden">
+                <div className="w-1/4 min-w-[200px] max-w-[240px] flex-shrink-0">
                     <PartnerSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
                 </div>
-                <div className="flex-1 bg-white rounded-lg min-h-[400px]">
+                <div className="flex-1 bg-white rounded-lg min-h-0 overflow-y-auto custom-scrollbar pr-2">
                     {renderContent()}
                 </div>
             </div>
