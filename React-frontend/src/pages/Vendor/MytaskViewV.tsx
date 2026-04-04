@@ -359,14 +359,14 @@ export default function MytaskViewV() {
   };
 
   return (
-    <div className="bg-white min-h-screen overflow-y-auto pb-10">
+    <div className="bg-white h-full min-h-0 overflow-y-auto custom-scrollbar pb-10">
       <div className="flex items-center justify-between px-6 py-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-1 rounded-lg text-black hover:bg-slate-100 cursor-pointer"
+          className="p-2 rounded-md bg-[#F2F2F2] text-black cursor-pointer"
           aria-label="Close"
         >
-          <FiX className="w-5 h-5 text-black rounded-sm bg-[#E8E8E8]" />
+          <FiX className="w-5 h-5 text-black" />
         </button>
         <h1 className="flex-1 text-center text-2xl font-semibold text-black">
           {task.project_name || task.task_name || "Task Name"}
@@ -392,7 +392,7 @@ export default function MytaskViewV() {
               type="button"
               disabled={updatingStatus}
               onClick={() => setStatusDropdownOpen((prev) => !prev)}
-              className="rounded bg-[#E8E8E8] px-3 py-2 text-xs text-black flex items-center gap-1 hover:bg-[#DDDDDD] disabled:opacity-50"
+              className="rounded bg-[#E8E8E8] px-3 py-2 text-xs text-black flex items-center gap-1 disabled:opacity-50"
               aria-expanded={statusDropdownOpen}
               aria-haspopup="listbox"
             >
@@ -401,7 +401,7 @@ export default function MytaskViewV() {
             </button>
             {statusDropdownOpen && !updatingStatus && (
               <div
-                className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200"
+                className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-md bg-white py-1 border border-slate-200"
                 role="listbox"
               >
                 {STATUS_OPTIONS.filter((opt) =>
@@ -413,8 +413,8 @@ export default function MytaskViewV() {
                     role="option"
                     aria-selected={statusDisplay === opt.value}
                     onClick={() => handleStatusUpdate(opt.value)}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 ${statusDisplay === opt.value
-                        ? "bg-slate-50 font-medium"
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-[#F2F2F2] ${statusDisplay === opt.value
+                        ? "bg-[#F2F2F2] font-medium"
                         : ""
                       }`}
                   >

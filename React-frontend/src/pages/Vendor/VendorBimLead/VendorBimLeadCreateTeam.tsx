@@ -12,6 +12,7 @@ import CloseIcon from "../../../assets/ProductNavbarIcons/close button.svg";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 import { useRef } from "react";
+import { FiX } from "react-icons/fi";
 
 
 interface Team {
@@ -76,6 +77,8 @@ export default function VendorBimLeadCreateTeam() {
     // Edit and Details Modal State
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [teamToDelete, setTeamToDelete] = useState<number | null>(null);
     const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
     const [editForm, setEditForm] = useState({
         team_name: "", project_id: "", leader_id: "", employee: [] as string[]
@@ -174,9 +177,18 @@ export default function VendorBimLeadCreateTeam() {
     };
 
     const handleDelete = (id: number) => {
-        if (!confirm("Are you sure you want to delete this team?")) return;
-        api.delete(`/api/vendors/vendor-teams/${id}`)
-            .then(() => fetchData());
+        setTeamToDelete(id);
+        setShowDeleteModal(true);
+    };
+
+    const handleDeleteConfirm = () => {
+        if (!teamToDelete) return;
+        api.delete(`/api/vendors/vendor-teams/${teamToDelete}`)
+            .then(() => {
+                setShowDeleteModal(false);
+                setTeamToDelete(null);
+                fetchData();
+            });
     };
 
     const handleEditClick = (team: Team) => {
@@ -404,12 +416,12 @@ export default function VendorBimLeadCreateTeam() {
                     <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full max-h-[90vh] overflow-y-auto custom-scrollbar p-6 animate-in zoom-in-95 duration-200 relative">
                         <button
                             onClick={() => setShowCreateModal(false)}
-                            className="absolute top-6 left-6 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10 hover:bg-gray-200"
+                            className="absolute top-6 left-6 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
                         >
                             <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
                         </button>
                         <div className="text-center mb-10 pt-4">
-                            <h3 className="text-[24px] font-semibold text-[#000000]">Create New Team</h3>
+                            <h3 className="text-[24px] font-medium font-Gantari text-[#000000]">Create New Team</h3>
                         </div>
                         <form onSubmit={handleCreate} className="space-y-6">
                             <div>
@@ -528,14 +540,14 @@ export default function VendorBimLeadCreateTeam() {
                                 <button
                                     type="button"
                                     onClick={() => setShowCreateModal(false)}
-                                    className="px-12 py-2 bg-[#F2F2F2] text-[#616161] rounded-md text-[14px] font-medium transition-all hover:bg-gray-200 cursor-pointer font-Gantari"
+                                    className="px-5 py-2 bg-[#F2F2F2] text-[#353535] rounded-md text-[14px] font-medium transition-all cursor-pointer font-Gantari"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={createSubmitting}
-                                    className="px-12 py-2 bg-[#DD4342] text-white rounded-md text-[14px] font-medium transition-all shadow-sm hover:opacity-90 disabled:opacity-50 cursor-pointer font-Gantari"
+                                    className="px-5 py-2 bg-[#DD4342] text-white rounded-md text-[14px] font-medium transition-all cursor-pointer font-Gantari"
                                 >
                                     {createSubmitting ? "Submitting..." : "Submit"}
                                 </button>
@@ -551,17 +563,17 @@ export default function VendorBimLeadCreateTeam() {
                     <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full max-h-[90vh] overflow-y-auto custom-scrollbar p-6 animate-in zoom-in-95 duration-200 relative">
                         <button
                             onClick={() => setShowEditModal(false)}
-                            className="absolute top-6 left-6 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10 hover:bg-gray-200"
+                            className="absolute top-6 left-6 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
                         >
                             <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
                         </button>
                         <div className="text-center mb-10 pt-4">
-                            <h3 className="text-[24px] font-semibold text-[#000000]">Edit Team</h3>
+                            <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">Edit Team</h3>
                         </div>
                         <form onSubmit={handleUpdate} className="space-y-6">
                             {/* Team Name */}
                             <div>
-                                <label className="block text-[14px] font-medium text-[#353535] mb-3">Team Name</label>
+                                <label className="block text-[16px] font-medium text-[#353535] mb-3">Team Name</label>
                                 <input
                                     type="text"
                                     className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#353535] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] outline-none transition-all"
@@ -573,17 +585,17 @@ export default function VendorBimLeadCreateTeam() {
 
                             {/* Project Selector */}
                             <div className="relative" ref={editProjectDropdownRef}>
-                                <label className="block text-[14px] font-medium text-[#353535] mb-3">Select Project</label>
+                                <label className="block text-[16px] font-medium text-[#353535] mb-3">Select Project</label>
                                 <button
                                     type="button"
                                     onClick={() => setShowEditProjectDropdown(!showEditProjectDropdown)}
-                                    className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] flex items-center justify-between outline-none transition-all cursor-pointer font-Gantari"
+                                    className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-[5px] text-[14px] text-[#353535] flex items-center justify-between outline-none transition-all cursor-pointer font-Gantari"
                                 >
                                     <span>{projects.find(p => String(p.id) === editForm.project_id)?.project_name || "Select Project"}</span>
                                     <img src={ArrowDown} alt="arrow" className={`h-4 w-4 opacity-60 transition-transform ${showEditProjectDropdown ? "rotate-180" : ""}`} />
                                 </button>
                                 {showEditProjectDropdown && (
-                                    <div className="absolute top-full left-0 right-0 z-[110] mt-1 bg-white border border-[#AEACAC52] rounded-[10px] shadow-lg py-2 max-h-36 overflow-y-scroll custom-scrollbar">
+                                    <div className="absolute top-full left-0 right-0 z-[110] mt-1 bg-white border border-[#AEACAC52] rounded-md py-2 max-h-36 overflow-y-scroll custom-scrollbar">
                                         {projects.map(p => (
                                             <button
                                                 key={p.id}
@@ -592,7 +604,7 @@ export default function VendorBimLeadCreateTeam() {
                                                     setEditForm({ ...editForm, project_id: String(p.id) });
                                                     setShowEditProjectDropdown(false);
                                                 }}
-                                                className="w-full px-5 py-2 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors"
+                                                className="w-full px-5 py-2 text-left text-[14px] text-[#000000] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors"
                                             >
                                                 {p.project_name}
                                             </button>
@@ -603,7 +615,7 @@ export default function VendorBimLeadCreateTeam() {
 
                             {/* Leader Searchable Dropdown */}
                             <div className="relative" ref={editLeaderDropdownRef}>
-                                <label className="block text-[14px] font-medium text-[#353535] mb-3">Select Team Leader</label>
+                                <label className="block text-[16px] font-medium text-[#353535] mb-3">Select Team Leader</label>
                                 <div className="relative">
                                     <input
                                         type="text"
@@ -622,7 +634,7 @@ export default function VendorBimLeadCreateTeam() {
                                     <img src={ArrowDown} alt="arrow" className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-60 pointer-events-none" />
                                 </div>
                                 {showEditLeaderDropdown && (
-                                    <div className="absolute top-full left-0 right-0 z-[110] mt-1 bg-white border border-[#AEACAC52] rounded-[10px] shadow-lg py-2 max-h-36 overflow-y-scroll custom-scrollbar">
+                                    <div className="absolute top-full left-0 right-0 z-[110] mt-1 bg-white border border-[#AEACAC52] rounded-[10px] py-2 max-h-36 overflow-y-scroll custom-scrollbar">
                                         {employees.filter(e => !leaderSearchQuery || e.full_name.toLowerCase().includes(leaderSearchQuery.toLowerCase())).map(e => (
                                             <button
                                                 key={e.id}
@@ -631,7 +643,7 @@ export default function VendorBimLeadCreateTeam() {
                                                     setEditForm({ ...editForm, leader_id: String(e.id) });
                                                     setShowEditLeaderDropdown(false);
                                                 }}
-                                                className="w-full px-5 py-2 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors"
+                                                className="w-full px-5 py-2 text-left text-[16px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors"
                                             >
                                                 {e.full_name}
                                             </button>
@@ -642,7 +654,7 @@ export default function VendorBimLeadCreateTeam() {
 
                             {/* Member Searchable Checkbox Dropdown */}
                             <div className="relative" ref={editMemberDropdownRef}>
-                                <label className="block text-[14px] font-medium text-[#353535] mb-3">Select Member</label>
+                                <label className="block text-[16px] font-medium text-[#353535] mb-3">Select Member</label>
                                 <div className="relative">
                                     <input
                                         type="text"
@@ -678,14 +690,14 @@ export default function VendorBimLeadCreateTeam() {
                                 <button
                                     type="button"
                                     onClick={() => setShowEditModal(false)}
-                                    className="px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] text-[14px] font-medium transition-all hover:bg-gray-200 cursor-pointer"
+                                    className="px-5 py-2 rounded-md bg-[#F2F2F2] text-[#353535] text-[14px] font-medium cursor-pointer"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={createSubmitting}
-                                    className="px-12 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-medium transition-all disabled:opacity-50 cursor-pointer shadow-sm hover:opacity-90"
+                                    className="px-5 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-medium transition-all disabled:opacity-50 cursor-pointer shadow-sm hover:opacity-90"
                                 >
                                     {createSubmitting ? "Updating..." : "Update"}
                                 </button>
@@ -766,6 +778,50 @@ export default function VendorBimLeadCreateTeam() {
                         </div>
 
                         <div className="pb-8"></div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Team Confirmation Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 font-Gantari">
+                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+                        <div className="mb-2 flex w-full">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setTeamToDelete(null);
+                                }}
+                                className="flex items-center justify-center rounded-md bg-[#F2F2F2] p-2 text-black transition cursor-pointer"
+                            >
+                                <FiX className="h-5 w-5 text-black" />
+                            </button>
+                        </div>
+                        <div className="flex flex-col items-center">
+                            <h3 className="-mt-8 mb-6 text-[24px] font-medium text-black">
+                                Delete Team
+                            </h3>
+                            <p className="mb-8 text-center text-[#353535] text-[16px]">
+                                Are you sure, you want to Delete this?
+                            </p>
+                            <div className="flex w-full justify-center gap-4">
+                                <button
+                                    onClick={() => {
+                                        setShowDeleteModal(false);
+                                        setTeamToDelete(null);
+                                    }}
+                                    className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[14px] font-medium text-[#353535] cursor-pointer"
+                                >
+                                    Discard
+                                </button>
+                                <button
+                                    onClick={handleDeleteConfirm}
+                                    className="rounded-md bg-[#FFECEC] px-5 py-2 text-[14px] font-semibold text-[#FF4A4A] cursor-pointer"
+                                >
+                                    Yes, Delete
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

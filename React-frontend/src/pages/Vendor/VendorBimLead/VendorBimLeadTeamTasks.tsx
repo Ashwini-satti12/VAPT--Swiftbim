@@ -184,6 +184,8 @@ export default function VendorBimLeadTeamTasks() {
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
     // Full-featured form (matching TeamtaskPMV)
@@ -474,11 +476,18 @@ export default function VendorBimLeadTeamTasks() {
     };
 
     const handleDelete = (taskId: number) => {
-        if (!window.confirm("Are you sure you want to delete this task?")) return;
-        api.delete(`/api/vendors/vendor-tasks/${taskId}`)
+        setTaskToDelete(taskId);
+        setShowDeleteModal(true);
+    };
+
+    const handleDeleteConfirm = () => {
+        if (!taskToDelete) return;
+        api.delete(`/api/vendors/vendor-tasks/${taskToDelete}`)
             .then(() => {
-                setTasks((prev) => prev.filter((t) => t.id !== taskId));
+                setTasks((prev) => prev.filter((t) => t.id !== taskToDelete));
                 toast.success("Task deleted");
+                setShowDeleteModal(false);
+                setTaskToDelete(null);
             })
             .catch(() => toast.error("Failed to delete task"));
     };
@@ -716,9 +725,9 @@ export default function VendorBimLeadTeamTasks() {
 
     return (
         <div className="h-full min-h-0 flex flex-col overflow-hidden bg-white font-gantari">
-            <div className="bg-white pb-3 flex-shrink-0 px-6 pt-6">
+            <div className="bg-white pb-3 flex-shrink-0 px-4">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-                    <h2 className="text-[24px] font-semibold text-slate-800">
+                    <h2 className="text-[24px] font-medium text-[#000000]">
                         Team Tasks
                     </h2>
                     <div className="flex items-center gap-3">
@@ -728,7 +737,7 @@ export default function VendorBimLeadTeamTasks() {
                                 onChange={(e) =>
                                     setSelectedEmployeeFilter(e.target.value)
                                 }
-                                className="appearance-none rounded-md bg-[#E8E8E8] px-4 py-2 pr-8 text-sm text-[#353535] cursor-pointer"
+                                className="appearance-none rounded-md bg-[#F2F2F2]  focus:border-[#AEAEAE] min-w-[140px] px-4 py-2 pr-8 text-[14px] text-[#353535] cursor-pointer"
                             >
                                 {outlineEmployeeFilters.map((e) => (
                                     <option key={e} value={e}>
@@ -813,12 +822,12 @@ export default function VendorBimLeadTeamTasks() {
                             <button
                                 type="button"
                                 onClick={() => setShowEditModal(false)}
-                                className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+                                className="p-2 rounded-md text-[#000000] bg-[#F2F2F2] cursor-pointer"
                                 aria-label="Close"
                             >
                                 <FiX className="w-5 h-5" />
                             </button>
-                            <h3 className="text-lg font-semibold text-black">
+                            <h3 className="text-[24px] font-semibold text-black">
                                 Edit Task
                             </h3>
                             <div className="w-9" />
@@ -832,7 +841,7 @@ export default function VendorBimLeadTeamTasks() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {/* Project */}
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#3535335] mb-1">
                                         Project
                                     </label>
                                     <FormDropdown
@@ -863,7 +872,7 @@ export default function VendorBimLeadTeamTasks() {
 
                                 {/* Team/Department */}
                                 <div>
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#3535335] mb-1">
                                         Team/Department
                                     </label>
                                     <FormDropdown
@@ -890,8 +899,8 @@ export default function VendorBimLeadTeamTasks() {
 
                                 {/* Task Name */}
                                 <div>
-                                    <label className="block text-sm font-medium text-black mb-1">
-                                        Task Name *
+                                    <label className="block text-[16px] font-medium text-[#3535335] mb-1">
+                                        Task Name<span className="text-red-500">*</span>
                                     </label>
                                     <div className="flex">
                                         <input
@@ -905,11 +914,11 @@ export default function VendorBimLeadTeamTasks() {
                                                 }))
                                             }
                                             placeholder="Enter task name"
-                                            className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="flex-1 rounded-l-md rounded-r-none bg-[#F2F3F4] px-3 py-2 text-[14px] text-black focus:outline-none"
                                         />
                                         <button
                                             type="button"
-                                            className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer"
+                                            className="rounded-l-none rounded-r-md bg-[#E2E2E2] px-4 py-2 text-[14px] font-medium text-[#8B8B8B]cursor-pointer"
                                         >
                                             Tasklist
                                         </button>
@@ -919,7 +928,7 @@ export default function VendorBimLeadTeamTasks() {
                                 {/* Priority | Actual Start Date | Actual End Date */}
                                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#3535335] mb-1">
                                             Priority
                                         </label>
                                         <FormDropdown
@@ -950,7 +959,7 @@ export default function VendorBimLeadTeamTasks() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#3535335] mb-1">
                                             Actual Start Date
                                         </label>
                                         <input
@@ -962,11 +971,11 @@ export default function VendorBimLeadTeamTasks() {
                                                     actualStartDate: e.target.value,
                                                 }))
                                             }
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="w-full rounded-md bg-[#F2F3F4] px-3 py-2 text-[14px] text-black focus:outline-none"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#3535335] mb-1">
                                             Actual End Date
                                         </label>
                                         <input
@@ -978,7 +987,7 @@ export default function VendorBimLeadTeamTasks() {
                                                     actualEndDate: e.target.value,
                                                 }))
                                             }
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="w-full rounded-md bg-[#F2F3F4] px-3 py-2 text-[14px] text-black focus:outline-none"
                                         />
                                     </div>
                                 </div>
@@ -986,7 +995,7 @@ export default function VendorBimLeadTeamTasks() {
                                 {/* Select Start Time | Select Due Time | Assign To */}
                                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#3535335] mb-1">
                                             Select Start Time
                                         </label>
                                         <input
@@ -995,11 +1004,11 @@ export default function VendorBimLeadTeamTasks() {
                                             onChange={(e) =>
                                                 setEditForm((f) => ({ ...f, startTime: e.target.value }))
                                             }
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="w-full rounded-md bg-[#F2F3F4] px-3 py-2 text-[14px] text-black focus:outline-none"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#3535335] mb-1">
                                             Select Due Time
                                         </label>
                                         <input
@@ -1008,11 +1017,11 @@ export default function VendorBimLeadTeamTasks() {
                                             onChange={(e) =>
                                                 setEditForm((f) => ({ ...f, dueTime: e.target.value }))
                                             }
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="w-full rounded-md bg-[#F2F3F4] px-3 py-2 text-[14px] text-black focus:outline-none"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#3535335] mb-1">
                                             Assign To
                                         </label>
                                         <FormDropdown
@@ -1043,7 +1052,7 @@ export default function VendorBimLeadTeamTasks() {
 
                                 {/* Description */}
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#3535335] mb-1">
                                         Description
                                     </label>
                                     <textarea
@@ -1056,13 +1065,13 @@ export default function VendorBimLeadTeamTasks() {
                                         }
                                         placeholder="Enter Description..."
                                         rows={3}
-                                        className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                        className="w-full rounded-md bg-[#F2F3F4] px-3 py-2 text-[14px] text-black focus:outline-none"
                                     />
                                 </div>
 
                                 {/* Checklist */}
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#3535335] mb-1">
                                         Checklist
                                     </label>
                                     <input
@@ -1081,7 +1090,7 @@ export default function VendorBimLeadTeamTasks() {
 
                                 {/* Attachments */}
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#3535335] mb-1">
                                         Attachments
                                     </label>
                                     <input
@@ -1102,11 +1111,11 @@ export default function VendorBimLeadTeamTasks() {
                                                     : ""
                                             }
                                             placeholder="Upload Files"
-                                            className="flex-1 rounded-l-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827] focus:outline-none placeholder:text-[#8B8B8B]"
+                                            className="flex-1 rounded-l-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827] focus:outline-none placeholder:text-[#8B8B8B]"
                                         />
                                         <label
                                             htmlFor="edit-task-attachments"
-                                            className="rounded-r-sm bg-[#E2E2E2] px-6 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer"
+                                            className="rounded-r-sm bg-[#E2E2E2] px-6 py-2 text-[14px] font-medium text-[#353535] cursor-pointer"
                                         >
                                             Browse File
                                         </label>
@@ -1116,7 +1125,7 @@ export default function VendorBimLeadTeamTasks() {
                                             {editAttachmentFiles.map((f, i) => (
                                                 <li
                                                     key={`${f.name}-${i}`}
-                                                    className="flex items-center justify-between rounded bg-[#F2F3F4] px-3 py-2 text-xs text-black"
+                                                    className="flex items-center justify-between rounded-md bg-[#F2F3F4] px-5 py-2 text-[14px] text-black"
                                                 >
                                                     <span className="truncate max-w-[200px]">
                                                         {f.name}
@@ -1141,14 +1150,14 @@ export default function VendorBimLeadTeamTasks() {
                                 <button
                                     type="button"
                                     onClick={() => setShowEditModal(false)}
-                                    className="rounded-lg bg-[#F2F2F2] px-10 py-2 text-sm font-bold text-[#8B8B8B] hover:bg-slate-50 cursor-pointer"
+                                    className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[14px] font-medium text-[#353535]  cursor-pointer"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={editSubmitting}
-                                    className="rounded-lg bg-[#DBE9FE] px-10 py-2 text-sm font-bold text-[#101827] hover:bg-[#D5E6FF] disabled:opacity-50 cursor-pointer"
+                                    className="rounded-md px-5 py-2 text-[14px] font-medium text-[#101827] bg-[#DBE9FE] disabled:opacity-50 cursor-pointer"
                                 >
                                     {editSubmitting ? "Updating..." : "Update Task"}
                                 </button>
@@ -1167,12 +1176,12 @@ export default function VendorBimLeadTeamTasks() {
                             <button
                                 type="button"
                                 onClick={resetAndClose}
-                                className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+                                className="p-2 rounded-md text-[#000000] bg-[#F2F2F2] cursor-pointer"
                                 aria-label="Close"
                             >
                                 <FiX className="w-5 h-5" />
                             </button>
-                            <h3 className="text-lg font-semibold text-black">
+                            <h3 className="text-[24px] font-medium text-black">
                                 Add New Task
                             </h3>
                             <div className="w-9" />
@@ -1186,7 +1195,7 @@ export default function VendorBimLeadTeamTasks() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {/* Project – full width */}
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-black mb-1">
                                         Project
                                     </label>
                                     <FormDropdown
@@ -1217,7 +1226,7 @@ export default function VendorBimLeadTeamTasks() {
 
                                 {/* Team/Department */}
                                 <div>
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-black mb-1">
                                         Team/Department
                                     </label>
                                     <FormDropdown
@@ -1244,8 +1253,9 @@ export default function VendorBimLeadTeamTasks() {
 
                                 {/* Task Name */}
                                 <div>
-                                    <label className="block text-sm font-medium text-black mb-1">
-                                        Task Name *
+                                    <label className="block text-[16px] font-medium text-[#353535] mb-1">
+                                        Task Name
+                                        <span className="text-[#FF0000]">*</span>
                                     </label>
                                     <div className="flex">
                                         <input
@@ -1259,11 +1269,11 @@ export default function VendorBimLeadTeamTasks() {
                                                 }))
                                             }
                                             placeholder="Enter task name"
-                                            className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="flex-1 rounded-l-md rounded-r-none bg-[#F2F3F4] px-3 py-2 text-[14px] text-black focus:outline-none"
                                         />
                                         <button
                                             type="button"
-                                            className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer"
+                                            className="rounded-l-none rounded-r-md bg-[#E2E2E2] px-4 py-2 text-[14px] font-medium text-[#8B8B8B] cursor-pointer"
                                         >
                                             Tasklist
                                         </button>
@@ -1273,7 +1283,7 @@ export default function VendorBimLeadTeamTasks() {
                                 {/* Priority | Actual Start Date | Actual End Date */}
                                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                             Priority
                                         </label>
                                         <FormDropdown
@@ -1304,7 +1314,7 @@ export default function VendorBimLeadTeamTasks() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                             Actual Start Date
                                         </label>
                                         <input
@@ -1329,11 +1339,11 @@ export default function VendorBimLeadTeamTasks() {
                                                 });
                                             }}
                                             placeholder="dd/mm/yyyy"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="w-full rounded-md bg-[#F2F3F4] px-3 py-2 text-[14px] text-black focus:outline-none"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                             Actual End Date
                                         </label>
                                         <input
@@ -1350,7 +1360,7 @@ export default function VendorBimLeadTeamTasks() {
                                                 }))
                                             }
                                             placeholder="dd/mm/yyyy"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="w-full rounded-md bg-[#F2F3F4] px-3 py-2 text-[14px] text-black focus:outline-none"
                                         />
                                     </div>
                                 </div>
@@ -1358,7 +1368,7 @@ export default function VendorBimLeadTeamTasks() {
                                 {/* Select Start Time | Select Due Time | Assign To */}
                                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                             Select Start Time
                                         </label>
                                         <input
@@ -1385,11 +1395,11 @@ export default function VendorBimLeadTeamTasks() {
                                                 });
                                             }}
                                             placeholder="hh:mm"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="w-full rounded-md bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                             Select Due Time
                                         </label>
                                         <input
@@ -1407,11 +1417,11 @@ export default function VendorBimLeadTeamTasks() {
                                                 }))
                                             }
                                             placeholder="hh:mm"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="w-full rounded-md bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                             Assign To
                                         </label>
                                         <FormDropdown
@@ -1447,7 +1457,7 @@ export default function VendorBimLeadTeamTasks() {
 
                                 {/* Description */}
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                         Description
                                     </label>
                                     <textarea
@@ -1460,13 +1470,13 @@ export default function VendorBimLeadTeamTasks() {
                                         }
                                         placeholder="Enter Description..."
                                         rows={3}
-                                        className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                        className="w-full rounded-md bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
                                     />
                                 </div>
 
                                 {/* Checklist */}
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                         Checklist
                                     </label>
                                     <input
@@ -1479,13 +1489,13 @@ export default function VendorBimLeadTeamTasks() {
                                             }))
                                         }
                                         placeholder="Enter Reference Link"
-                                        className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                        className="w-full rounded-md bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
                                     />
                                 </div>
 
                                 {/* Attachments */}
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                         Attachments
                                     </label>
                                     <input
@@ -1508,7 +1518,7 @@ export default function VendorBimLeadTeamTasks() {
                                                         : ""
                                                 }
                                                 placeholder="Upload Files"
-                                                className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827] placeholder:text-[#8B8B8B] focus:outline-none truncate"
+                                                className="flex-1 rounded-l-md rounded-r-none bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] focus:outline-none truncate"
                                                 title={
                                                     attachmentFiles.length > 0
                                                         ? attachmentFiles
@@ -1519,7 +1529,7 @@ export default function VendorBimLeadTeamTasks() {
                                             />
                                             <label
                                                 htmlFor="bl-add-task-file-input"
-                                                className="rounded-r-sm rounded-l-none bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer inline-flex items-center"
+                                                className="rounded-r-md rounded-l-none bg-[#E2E2E2] px-4 py-2 text-[14px] font-medium text-[#8B8B8B] cursor-pointer inline-flex items-center"
                                             >
                                                 Browse File
                                             </label>
@@ -1530,7 +1540,7 @@ export default function VendorBimLeadTeamTasks() {
                                             {attachmentFiles.map((file, index) => (
                                                 <li
                                                     key={`${file.name}-${index}`}
-                                                    className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827]"
+                                                    className="flex items-center justify-between rounded-md bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535]"
                                                 >
                                                     <span
                                                         className="truncate min-w-0"
@@ -1543,7 +1553,7 @@ export default function VendorBimLeadTeamTasks() {
                                                         onClick={() =>
                                                             removeAttachment(index)
                                                         }
-                                                        className="ml-2 shrink-0 p-0.5 rounded text-black hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
+                                                        className="ml-2 shrink-0 p-0.5 rounded text-black cursor-pointer"
                                                         aria-label={`Remove ${file.name}`}
                                                     >
                                                         <FiX className="w-4 h-4" />
@@ -1560,19 +1570,63 @@ export default function VendorBimLeadTeamTasks() {
                                 <button
                                     type="button"
                                     onClick={resetAndClose}
-                                    className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B] cursor-pointer"
+                                    className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[14px] font-medium text-[#353535] cursor-pointer"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={createSubmitting}
-                                    className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] disabled:opacity-50 cursor-pointer"
+                                    className="rounded-md bg-[#DBE9FE] px-5 py-2 text-[14px] font-medium text-[#101827] disabled:opacity-50 cursor-pointer"
                                 >
                                     Submit
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Task Confirmation Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 font-Gantari">
+                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+                        <div className="mb-2 flex w-full">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setTaskToDelete(null);
+                                }}
+                                className="flex items-center justify-center rounded-md bg-[#F2F2F2] p-2 text-black transition cursor-pointer"
+                            >
+                                <FiX className="h-5 w-5 text-black" />
+                            </button>
+                        </div>
+                        <div className="flex flex-col items-center">
+                            <h3 className="-mt-8 mb-6 text-[24px] font-medium text-black">
+                                Delete Task
+                            </h3>
+                            <p className="mb-8 text-center text-[#353535] text-[16px]">
+                                Are you sure, you want to Delete this?
+                            </p>
+                            <div className="flex w-full justify-center gap-4">
+                                <button
+                                    onClick={() => {
+                                        setShowDeleteModal(false);
+                                        setTaskToDelete(null);
+                                    }}
+                                    className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[14px] font-medium text-[#353535] cursor-pointer"
+                                >
+                                    Discard
+                                </button>
+                                <button
+                                    onClick={handleDeleteConfirm}
+                                    className="rounded-md bg-[#FFECEC] px-5 py-2 text-[14px] font-semibold text-[#FF4A4A] cursor-pointer"
+                                >
+                                    Yes, Delete
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
