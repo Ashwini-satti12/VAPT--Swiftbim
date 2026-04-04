@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../../lib/api";
+import { useAuth } from "../../contexts/AuthContext";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
@@ -81,6 +82,7 @@ type PendingAttachmentDelete =
 export default function AddTaskTD() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
     const editingTask = location.state?.task as Task | undefined;
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
     const [addError, setAddError] = useState("");
@@ -395,9 +397,27 @@ export default function AddTaskTD() {
 
         const filteredEmployees = employees.filter(e => involvedNames.has(e.full_name));
 
+        const selfById =
+            user?.id != null
+                ? employees.find((e) => e.id === user.id)
+                : undefined;
+        const selfEmp =
+            selfById ??
+            (user?.full_name
+                ? employees.find(
+                      (e) =>
+                          (e.full_name || "").trim().toLowerCase() ===
+                          user.full_name.trim().toLowerCase(),
+                  )
+                : undefined);
+        const withSelf =
+            selfEmp && !filteredEmployees.some((e) => e.id === selfEmp.id)
+                ? [...filteredEmployees, selfEmp]
+                : filteredEmployees;
+
         return [
             { value: "", label: "Select Assign To" },
-            ...filteredEmployees.map((e) => ({ value: e.full_name, label: e.full_name })),
+            ...withSelf.map((e) => ({ value: e.full_name, label: e.full_name })),
         ];
     };
 

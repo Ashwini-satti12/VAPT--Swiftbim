@@ -25,6 +25,7 @@ import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
+import { useAuth } from "../../contexts/AuthContext";
 
 type DropdownId = "employee" | "projects" | "period" | null;
 export type FormDropdownId =
@@ -956,6 +957,7 @@ const PERIOD_OPTIONS = [
 export default function MytaskTD() {
   const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
+  const { user } = useAuth();
   const isTeam =
     searchParams.get("condition") === "1" || pathname.endsWith("/team");
   const statusFilter =
@@ -1300,8 +1302,24 @@ export default function MytaskTD() {
       );
     });
 
-    return [...baseOptions, ...filtered.map((e) => e.full_name)];
-  }, [employees, projects, selectedProject]);
+    const selfById =
+      user?.id != null ? raw.find((e) => e.id === user.id) : undefined;
+    const selfEmp =
+      selfById ??
+      (user?.full_name
+        ? raw.find(
+            (e) =>
+              (e.full_name || "").trim().toLowerCase() ===
+              user.full_name.trim().toLowerCase(),
+          )
+        : undefined);
+    const withSelf =
+      selfEmp && !filtered.some((e) => e.id === selfEmp.id)
+        ? [...filtered, selfEmp]
+        : filtered;
+
+    return [...baseOptions, ...withSelf.map((e) => e.full_name)];
+  }, [employees, projects, selectedProject, user]);
 
   const projectOptions = [
     "Select Projects",
