@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import api from "../../lib/api";
 import Upload from "../../assets/ProjectManager/MyTask/Upload.svg";
 import ImageIcon from "../../assets/ProjectManager/MyTask/image.svg";
+import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 
 interface Task {
   id: number;
@@ -324,14 +325,9 @@ export default function MytaskViewV() {
 
   if (!task) {
     return (
-      <div className="bg-white min-h-screen p-6">
-        <p className="text-slate-600 mb-4">No task selected.</p>
-        <button
-          onClick={() => navigate(-1)}
-          className="text-[#3d3399] hover:underline font-medium cursor-pointer"
-        >
-          ← Back to Tasks
-        </button>
+      <div className="bg-white min-h-screen flex flex-col items-center justify-center p-6 space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3d3399]" />
+        <p className="text-slate-600 font-medium">Loading task details...</p>
       </div>
     );
   }

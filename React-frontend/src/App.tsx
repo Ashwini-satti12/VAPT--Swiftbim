@@ -102,7 +102,6 @@ import MytaskBM from './pages/BimModeler/MytaskBM';
 import MytaskViewBM from './pages/BimModeler/MytaskViewBM';
 import TeamReportBM from './pages/BimModeler/TeamReportBM';
 import ManageLeave from './pages/BimModeler/ManageLeave';
-import AddTaskBM from './pages/BimModeler/AddTaskBM';
 
 
 /* Vendor */
@@ -132,10 +131,12 @@ import PerformanceV from './pages/Vendor/PerformanceV';
 import DashboardPMV from './pages/Vendor/ProjectManager/DashboardPMV';
 import ProjectsPMV from './pages/Vendor/ProjectManager/ProjectsPMV';
 import MytaskPMV from './pages/Vendor/ProjectManager/MytaskPMV';
-import CreateteamPMV from './pages/Vendor/ProjectManager/CreateteamPMV';
+import AddEditTaskPMV from './pages/Vendor/ProjectManager/AddEditTaskPMV';
 import TeamtaskPMV from './pages/Vendor/ProjectManager/TeamtaskPMV';
+import CreateteamPMV from './pages/Vendor/ProjectManager/CreateteamPMV';
 import ChatPMV from './pages/Vendor/ProjectManager/ChatPMV';
 import ProposalsPMV from './pages/Vendor/ProjectManager/ProposalsPMV';
+
 
 
 /* Vendor Employee */
@@ -266,7 +267,6 @@ function App() {
             {/* Bim Modeler Routes */}
             <Route path="bm/dashboard" element={<DashboardBM />} />
             <Route path="bm/mytasks" element={<MytaskBM />} />
-            <Route path="bm/mytasks/add" element={<AddTaskBM />} />
             <Route path="bm/mytasks/view/:id" element={<MytaskViewBM />} />
             <Route path="bm/teamreport" element={<TeamReportBM />} />
             <Route path="bm/manage-leave" element={<ManageLeave />} />
@@ -298,10 +298,16 @@ function App() {
             <Route path="v/resources" element={<ResourcesV />} />
 
             {/* Vendor PM Routes */}
-            <Route path="vpm/dashboard" element={<DashboardPMV />} />
+            <Route path="vpm/dashboard" element={<DashboardPM />} />
             <Route path="vpm/projects" element={<ProjectsPMV />} />
             <Route path="vpm/mytasks" element={<MytaskPMV />} />
+            <Route path="vpm/mytasks/view/:id" element={<MytaskViewV />} />
+            <Route path="/vpm/mytasks/add" element={<AddEditTaskPMV />} />
+            <Route path="/vpm/mytasks/edit" element={<AddEditTaskPMV />} />
             <Route path="/vpm/teamtasks" element={<TeamtaskPMV />} />
+            <Route path="vpm/teamtasks/view/:id" element={<MytaskViewV />} />
+            <Route path="vpm/teamtasks/add" element={<AddEditTaskPMV />} />
+            <Route path="vpm/teamtasks/edit" element={<AddEditTaskPMV />} />
             <Route path="vpm/opportunities" element={<BiddingV />} />
             <Route path="vpm/proposals" element={<ProposalsPMV />} />
             <Route path="vpm/createteam" element={<CreateteamPMV />} />

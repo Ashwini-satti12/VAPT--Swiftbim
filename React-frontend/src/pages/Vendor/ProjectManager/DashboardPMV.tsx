@@ -138,7 +138,7 @@ export default function DashboardPMV() {
                 in_progress_tasks: Number(data?.inProgressTasks) || 0,
                 completed_tasks: Number(data?.completedTasks) || 0,
             })))
-            .catch(() => {});
+            .catch(() => { });
 
         api.get<{ projects?: any[] }>('/api/vendors/vendor-projects')
             .then(({ data }) => setProjects(Array.isArray(data.projects) ? data.projects : []))
@@ -265,22 +265,23 @@ export default function DashboardPMV() {
     }
 
     return (
-        <div className="flex flex-col lg:h-full lg:overflow-hidden">
-            {/* Header and KPI Cards */}
-            <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
-                <h1 className="text-xl font-medium font-gantari text-slate-800 mb-6">Dashboard</h1>
-                {/* KPI Grid — same style as DashboardTD */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    {kpiCards.map((card, i) => (
-                        <Link key={i} to={card.link || '#'} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 no-underline cursor-pointer">
-                            <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">{card.label}</h3>
-                            <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{card.value}</p>
-                        </Link>
-                    ))}
+        <div className="flex flex-col h-full bg-[#FDFDFD] overflow-hidden">
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                {/* Header and KPI Cards */}
+                <div className="bg-white pb-6 shrink-0">
+                    <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">Dashboard</h1>
+                    {/* KPI Grid — same style as DashboardV */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {kpiCards.map((card, i) => (
+                            <Link key={i} to={card.link || '#'} className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between transition-colors cursor-pointer">
+                                <h3 className="text-[17px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">{card.label}</h3>
+                                <p className="text-[19px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{card.value}</p>
+                            </Link>
+                        ))}
+                    </div>
                 </div>
-            </div>
 
-            <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4 overflow-visible lg:overflow-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Today's Priority */}
                 <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
                     <div className="flex items-center justify-between mb-4 shrink-0">
@@ -546,11 +547,12 @@ export default function DashboardPMV() {
                                         </div>
                                     ))
                                 )}
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+</div>
     );
 }
