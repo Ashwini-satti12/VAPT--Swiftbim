@@ -64,17 +64,17 @@ export default function TimesheetPM() {
     start: number;
     end: number | null;
   }[] = [
-    { value: "1-50", label: "1-50", start: 0, end: 50 },
-    { value: "51-100", label: "51-100", start: 50, end: 100 },
-    { value: "101-150", label: "101-150", start: 100, end: 150 },
-    { value: "151-200", label: "151-200", start: 150, end: 200 },
-    { value: "201-250", label: "201-250", start: 200, end: 250 },
-    { value: "251-300", label: "251-300", start: 250, end: 300 },
-    { value: "101-200", label: "101-200", start: 100, end: 200 },
-    { value: "201-300", label: "201-300", start: 200, end: 300 },
-    { value: "301-400", label: "301-400", start: 300, end: 400 },
-    { value: "all", label: "All", start: 0, end: null },
-  ];
+      { value: "1-50", label: "1-50", start: 0, end: 50 },
+      { value: "51-100", label: "51-100", start: 50, end: 100 },
+      { value: "101-150", label: "101-150", start: 100, end: 150 },
+      { value: "151-200", label: "151-200", start: 150, end: 200 },
+      { value: "201-250", label: "201-250", start: 200, end: 250 },
+      { value: "251-300", label: "251-300", start: 250, end: 300 },
+      { value: "101-200", label: "101-200", start: 100, end: 200 },
+      { value: "201-300", label: "201-300", start: 200, end: 300 },
+      { value: "301-400", label: "301-400", start: 300, end: 400 },
+      { value: "all", label: "All", start: 0, end: null },
+    ];
   const [selectedShowEntries, setSelectedShowEntries] = useState("");
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
@@ -275,7 +275,7 @@ export default function TimesheetPM() {
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const filteredList = useMemo(() => {
     if (!searchQuery) return list;
-    return list.filter(row => 
+    return list.filter(row =>
       (row.project_name || "").toLowerCase().includes(searchQuery) ||
       (row.task_name || "").toLowerCase().includes(searchQuery) ||
       (row.assigned_name || "").toLowerCase().includes(searchQuery) ||
@@ -407,10 +407,10 @@ export default function TimesheetPM() {
         <div className="flex flex-wrap items-center gap-3 justify-end">
           {/* Start Date — calendar icon only opens native picker */}
           <div
-            className="relative flex min-w-[140px] items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-2 transition-all"
+            className="relative flex min-w-[140px] items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-2 transition-all font-semibold"
           >
             <span
-              className={`select-none text-[14px] font-gantari font-medium ${startDate ? "text-[#353535]" : "text-[#616161]"}`}
+              className={`select-none text-[14px] font-gantari font-semibold ${startDate ? "text-[#353535]" : "text-[#8B8B8B]"}`}
             >
               {startDate
                 ? startDate.split("-").reverse().join("/")
@@ -420,7 +420,7 @@ export default function TimesheetPM() {
               type="button"
               aria-label="Open start date calendar"
               onClick={() => openNativeDatePicker(startDateInputRef.current)}
-              className="shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40"
+              className={`shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40 ${startDate ? "opacity-90" : "opacity-60 grayscale"}`}
             >
               <svg
                 width="18"
@@ -453,10 +453,10 @@ export default function TimesheetPM() {
 
           {/* End Date — calendar icon only opens native picker */}
           <div
-            className="relative flex min-w-[140px] items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-2 transition-all"
+            className="relative flex min-w-[140px] items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-2 transition-all font-semibold"
           >
             <span
-              className={`select-none text-[14px] font-gantari font-medium ${endDate ? "text-[#353535]" : "text-[#616161]"}`}
+              className={`select-none text-[14px] font-gantari font-semibold ${endDate ? "text-[#353535]" : "text-[#8B8B8B]"}`}
             >
               {endDate ? endDate.split("-").reverse().join("/") : "End Date"}
             </span>
@@ -464,7 +464,7 @@ export default function TimesheetPM() {
               type="button"
               aria-label="Open end date calendar"
               onClick={() => openNativeDatePicker(endDateInputRef.current)}
-              className="shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40"
+              className={`shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40 ${endDate ? "opacity-90" : "opacity-60 grayscale"}`}
             >
               <svg
                 width="18"
@@ -504,10 +504,10 @@ export default function TimesheetPM() {
                 setEmployeeOpen((o) => !o);
                 setTeamOpen(false);
               }}
-              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer"
+              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer font-semibold"
             >
               <span
-                className={`text-[14px] font-gantari font-medium ${employee !== "All" ? "text-[#353535]" : "text-[#616161]"}`}
+                className={`text-[14px] font-gantari ${employee !== "All" ? "text-[#353535]" : "text-[#8B8B8B]"}`}
               >
                 {employee === "All" ? "Employee" : employee}
               </span>
@@ -520,10 +520,7 @@ export default function TimesheetPM() {
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                style={{
-                  transform: employeeOpen ? "rotate(180deg)" : "rotate(0deg)",
-                  transition: "transform 0.2s",
-                }}
+                className={`transition-transform duration-200 ${employeeOpen ? "rotate-180" : "rotate-0"} ${employee === "All" ? "opacity-60 grayscale" : "opacity-90"}`}
               >
                 <path d="M6 9l6 6 6-6" />
               </svg>
@@ -539,11 +536,10 @@ export default function TimesheetPM() {
                       setEmployee(opt);
                       setEmployeeOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer ${
-                      employee === opt
-                        ? "text-[#8B8B8B] bg-[#F2F2F2]"
-                        : "text-[#8B8B8B] hover:text-[#000000] hover:bg-[#F2F2F2]"
-                    }`}
+                    className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer ${employee === opt
+                      ? "text-[#353535] bg-[#F2F2F2]"
+                      : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                      }`}
                   >
                     {opt === "All" ? "Employee" : opt}
                   </button>
@@ -561,10 +557,10 @@ export default function TimesheetPM() {
                 setTeamOpen((o) => !o);
                 setEmployeeOpen(false);
               }}
-              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer"
+              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer font-semibold"
             >
               <span
-                className={`text-[14px] font-gantari ${team !== "All" ? "text-[#353535]" : "text-[#000000]"}`}
+                className={`text-[14px] font-gantari ${team !== "All" ? "text-[#353535]" : "text-[#8B8B8B]"}`}
               >
                 {team === "All" ? "Team" : team}
               </span>
@@ -577,10 +573,7 @@ export default function TimesheetPM() {
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                style={{
-                  transform: teamOpen ? "rotate(180deg)" : "rotate(0deg)",
-                  transition: "transform 0.2s",
-                }}
+                className={`transition-transform duration-200 ${teamOpen ? "rotate-180" : "rotate-0"} ${team === "All" ? "opacity-60 grayscale" : "opacity-90"}`}
               >
                 <path d="M6 9l6 6 6-6" />
               </svg>
@@ -596,11 +589,10 @@ export default function TimesheetPM() {
                       setTeam(opt);
                       setTeamOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer ${
-                      team === opt
-                        ? "text-[#353535] bg-[#F2F2F2]"
-                        : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"
-                    }`}
+                    className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer ${team === opt
+                      ? "text-[#353535] bg-[#F2F2F2]"
+                      : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                      }`}
                   >
                     {opt === "All" ? "Team" : opt}
                   </button>
@@ -620,17 +612,16 @@ export default function TimesheetPM() {
               className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
             >
               <span
-                className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-                  selectedShowEntries === ""
-                    ? "text-[#8B8B8B]"
-                    : "text-[#353535]"
-                }`}
+                className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
+                  ? "text-[#8B8B8B]"
+                  : "text-[#353535]"
+                  }`}
               >
                 {selectedShowEntries === "" ? (
                   SHOW_ENTRIES_PLACEHOLDER
                 ) : (
                   <>
-                    <span className="text-[14px]">{SHOW_ENTRIES_PLACEHOLDER}:</span>{" "}
+                    <span className="text-[14px]">Show:</span>{" "}
                     <span className="font-semibold">{selectedRange.label}</span>
                   </>
                 )}
@@ -638,13 +629,11 @@ export default function TimesheetPM() {
               <img
                 src={ArrowDown}
                 alt=""
-                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                  showEntriesOpen ? "rotate-180" : ""
-                } ${
-                  selectedShowEntries === ""
+                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                  } ${selectedShowEntries === ""
                     ? "opacity-60 grayscale"
                     : "opacity-90"
-                }`}
+                  }`}
                 aria-hidden
               />
             </button>
@@ -676,11 +665,10 @@ export default function TimesheetPM() {
                         setSelectedShowEntries(opt.value);
                         setShowEntriesOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${
-                        selectedShowEntries === opt.value
-                          ? "text-[#353535] bg-[#F2F2F2]"
-                          : "text-[#8B8B8B] bg-transparent"
-                      }`}
+                      className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${selectedShowEntries === opt.value
+                        ? "text-[#353535] bg-[#F2F2F2]"
+                        : "text-[#8B8B8B] bg-transparent"
+                        }`}
                     >
                       {opt.label}
                     </button>
@@ -700,10 +688,10 @@ export default function TimesheetPM() {
         ) : (
           <div
             className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1"
-        
+
           >
             <table className="min-w-full border-collapse table-fixed">
-      
+
               <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                 <tr className="bg-white">
                   <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">

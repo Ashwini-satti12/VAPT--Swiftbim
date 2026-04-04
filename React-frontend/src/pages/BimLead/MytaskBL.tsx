@@ -1,4 +1,4 @@
- import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import api from "../../lib/api";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
@@ -16,26 +16,26 @@ import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive
 
 const getApiBaseUrl = () => import.meta.env.VITE_API_URL || "";
 const getProfileUrl = (path: string | undefined): string => {
-  if (!path || path.trim() === "") return "";
-  if (path.startsWith("http")) return path;
-  let normalizedPath = path.replace(/\\/g, "/").trim().replace(/^\d+\s+/, "").replace(/^\/+/, "");
-  const apiBaseUrl = getApiBaseUrl();
-  let urlPath = "";
-  if (normalizedPath.startsWith("employee/")) {
-    const parts = normalizedPath.split("/");
-    const encodedParts = parts.map((part, index) => index === 0 ? part : encodeURIComponent(part));
-    urlPath = `/uploads/${encodedParts.join("/")}`;
-  } else if (normalizedPath.startsWith("profiles/")) {
-    const filename = normalizedPath.replace("profiles/", "");
-    urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
-  } else if (!normalizedPath.includes("/")) {
-    urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
-  } else {
-    const parts = normalizedPath.split("/");
-    const encodedParts = parts.map((part, index) => index === 0 ? part : encodeURIComponent(part));
-    urlPath = `/uploads/${encodedParts.join("/")}`;
-  }
-  return `${apiBaseUrl}${urlPath}`;
+    if (!path || path.trim() === "") return "";
+    if (path.startsWith("http")) return path;
+    let normalizedPath = path.replace(/\\/g, "/").trim().replace(/^\d+\s+/, "").replace(/^\/+/, "");
+    const apiBaseUrl = getApiBaseUrl();
+    let urlPath = "";
+    if (normalizedPath.startsWith("employee/")) {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) => index === 0 ? part : encodeURIComponent(part));
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    } else if (normalizedPath.startsWith("profiles/")) {
+        const filename = normalizedPath.replace("profiles/", "");
+        urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+    } else if (!normalizedPath.includes("/")) {
+        urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+    } else {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) => index === 0 ? part : encodeURIComponent(part));
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    }
+    return `${apiBaseUrl}${urlPath}`;
 };
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
@@ -117,16 +117,16 @@ function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? (label === "Period" ? "min-w-[100px]" : "min-w-[150px]") : "min-w-[160px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
-                <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>
-                    {label.toLowerCase() === 'show' && selected && selected !== label ? (
+                <span className={`truncate font-Gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
+                    {(label.toLowerCase() === 'show' || label.toLowerCase() === "show entries") && selected && selected !== label ? (
                         <>
-                            <span className="text-sm text-[#353535]">Show:</span>{" "}
-                            <span>{selected}</span>
+                            <span className="text-[14px]">Show:</span>{" "}
+                            <span className="font-semibold">{selected}</span>
                         </>
                     ) : (
                         selected ?? label
@@ -135,14 +135,14 @@ function TaskDropdown({
                 <img
                     src={ArrowDown}
                     alt="arrow"
-                    className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                    className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
                 />
             </button>
             {isOpen && (
                 <div
                     ref={dropdownRef}
                     role="listbox"
-                    className={`absolute top-full left-0 z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg ${narrow ? "min-w-[110px]" : "min-w-[160px]"}`}
+                    className={`absolute top-full z-10 mt-1 rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 min-w-[110px]" : "left-0 min-w-[160px]"}`}
                 >
                     {searchable && (
                         <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
@@ -154,7 +154,7 @@ function TaskDropdown({
                                 onClick={(e) => e.stopPropagation()}
                                 onKeyDown={(e) => e.stopPropagation()}
                                 placeholder={searchPlaceholder}
-                                className="w-full rounded border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400"
+                                className="w-full rounded border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none"
                                 aria-label={searchPlaceholder}
                             />
                         </div>
@@ -173,7 +173,7 @@ function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
+                                className={`block w-full px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
                             >
                                 {opt}
                             </button>
@@ -271,13 +271,13 @@ function TaskCard({
         <div
             draggable={!isCompleted}
             onDragStart={handleDragStart}
-            className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+            className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
             <div className="flex items-center justify-between gap-2 mb-2">
-                <h4 className="font-semibold text-slate-900 text-xl truncate">
+                <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[20px] truncate">
                     {task.task_name || "Task Name"}
                 </h4>
-                <div className="relative" ref={menuRef}>
+                <div className="relative shrink-0" ref={menuRef}>
                     <button
                         type="button"
                         draggable={false}
@@ -285,15 +285,15 @@ function TaskCard({
                             e.stopPropagation();
                             setMenuOpen((prev) => !prev);
                         }}
-                        className="p-0.5 rounded hover:bg-slate-100 cursor-pointer"
+                        className="p-0.5 rounded cursor-pointer"
                         aria-label="More options"
                         aria-expanded={menuOpen}
                     >
-                        <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+                        <img src={Dot} alt="Dot" className="w-5 h-5 object-contain" />
                     </button>
                     {menuOpen && (
                         <div
-                            className={`absolute top-full mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
+                            className={`absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right
                                 ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
                             role="menu"
                         >
@@ -311,7 +311,7 @@ function TaskCard({
                                     alt="view"
                                     className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                 />
-                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                                     View
                                 </span>
                             </button>
@@ -327,9 +327,9 @@ function TaskCard({
                                 <img
                                     src={editIcon}
                                     alt="edit"
-                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                 />
-                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                                     Edit
                                 </span>
                             </button>
@@ -345,9 +345,9 @@ function TaskCard({
                                 <img
                                     src={deleteIcon}
                                     alt="delete"
-                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                 />
-                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                                     Delete
                                 </span>
                             </button>
@@ -355,10 +355,20 @@ function TaskCard({
                     )}
                 </div>
             </div>
-            <div className="flex items-center justify-between gap-2 mb-3 text-[13px] font-medium text-[#0A2E65]">
-                <span>{(task.start_date || task.Actual_start_time) ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, '0')}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}` : "—"}</span>
+            <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex flex-col ">
+                    <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
+                    <span className="text-[14px] font-medium text-[#8B8B8B]">
+                        {(task.start_date || task.Actual_start_time) ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, '0')}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}` : "—"}
+                    </span>
+                </div>
 
-                <span>{task.due_date ? `${new Date(task.due_date).getDate().toString().padStart(2, '0')}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.due_date).getFullYear()}` : ""}</span>
+                <div className="flex flex-col items-end gap-1">
+                    <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+                    <span className="text-[14px] font-medium text-[#8B8B8B]">
+                        {task.due_date ? `${new Date(task.due_date).getDate().toString().padStart(2, '0')}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.due_date).getFullYear()}` : ""}
+                    </span>
+                </div>
             </div>
             <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="text-xs text-slate-600">Progress</span>
@@ -391,7 +401,7 @@ function TaskCard({
                                     .toUpperCase();
                                 return (
                                     <div
-                                        className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                                        className="w-7 h-7 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                                         title={`Assigned To: ${task.assigned_full_name}`}
                                     >
                                         {src ? (
@@ -420,7 +430,7 @@ function TaskCard({
                                     .toUpperCase();
                                 return (
                                     <div
-                                        className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                                        className="w-7 h-7 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                                         title={`Assigned By: ${task.uploader_full_name}`}
                                     >
                                         {src ? (
@@ -433,20 +443,25 @@ function TaskCard({
                             })()}
                     </div>
                 </div>
-                <Link
-                    to={`/tasks/${task.id}`}
+                <button
+                    type="button"
                     draggable={false}
-                    className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2 cursor-pointer"
+                    onClick={() => onViewTask?.(task)}
+                    className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer"
                 >
                     Details
-                    <img src={Arrow} alt="Arrow" className="w-2 h-2" />
-                </Link>
+                    <img
+                        src={Arrow}
+                        alt="Arrow"
+                        className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
+                    />
+                </button>
             </div>
         </div>
     );
 }
 
-const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200","201-250","251-300","All"];
+const SHOW_OPTIONS = ["Show Entries", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
@@ -515,7 +530,7 @@ export default function MytaskBL() {
         newStatus: "todo" | "in_progress" | "completed" | "approved" | "rejected"
     ) => {
         const label = statusToLabel(newStatus);
-        
+
         // Find task to get projectId if possible
         const task = list.find(t => t.id === taskId);
         const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
@@ -727,9 +742,9 @@ export default function MytaskBL() {
             <div className="bg-white pb-3 flex-shrink-0">
                 {/* Top row: title + dropdowns + Add task */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-                    <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
+                    <h1 className="text-[24px] font-semibold text-[#000000] font-Gantari">
                         {isTeam ? "Team Task" : "My Task"}
-                    </h2>
+                    </h1>
                     <div
                         ref={dropdownsContainerRef}
                         className="flex flex-wrap items-center gap-2 w-fit"
@@ -767,7 +782,7 @@ export default function MytaskBL() {
                             maxVisibleItems={4}
                         />
                         <TaskDropdown
-                            label="Show"
+                            label="Show Entries"
                             options={SHOW_OPTIONS}
                             selected={selectedShow}
                             onSelect={setSelectedShow}
@@ -861,132 +876,132 @@ export default function MytaskBL() {
             {/* Task columns scrollable area */}
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
-                <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
-                    }}
-                >
-                    {displayedTasksByStatus.todo.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            status={normalizeStatus(task.status, task.Approval)}
-                            onViewTask={openViewTask}
-                            onEditTask={openEditTask}
-                            onDeleteTask={openDeleteTask}
-                        />
-                    ))}
-                </div>
-                <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
-                    }}
-                >
-                    {displayedTasksByStatus.in_progress.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            status={normalizeStatus(task.status, task.Approval)}
-                            onViewTask={openViewTask}
-                            onEditTask={openEditTask}
-                            onDeleteTask={openDeleteTask}
-                        />
-                    ))}
-                </div>
-                <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
-                    }}
-                >
-                    {displayedTasksByStatus.completed.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            status={normalizeStatus(task.status, task.Approval)}
-                            onViewTask={openViewTask}
-                            onEditTask={openEditTask}
-                            onDeleteTask={openDeleteTask}
-                        />
-                    ))}
-                </div>
-            </div>
-
-            {/* Delete Task confirmation modal */}
-            {deleteTask !== null && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-                        <div className="flex items-center justify-between px-6 py-4">
-                            <button
-                                type="button"
-                                onClick={() => setDeleteTask(null)}
-                                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
-                                aria-label="Close"
-                            >
-                                <svg
-                                    className="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                            <h3 className="flex-1 text-center text-lg font-semibold text-[#353535]">
-                                Delete Task
-                            </h3>
-                            <div className="w-9" />
-                        </div>
-                        <div className="px-6 py-5">
-                            <p className="text-black text-center">
-                                Are you sure, you want to Delete this Task?
-                            </p>
-                        </div>
-                        <div className="flex justify-center gap-3 px-6 py-4 bg-slate-50/50">
-                            <button
-                                type="button"
-                                onClick={() => setDeleteTask(null)}
-                                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0] cursor-pointer"
-                            >
-                                Discard
-                            </button>
-                            <button
-                                type="button"
-                                onClick={confirmDeleteTask}
-                                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3] cursor-pointer"
-                            >
-                                Yes, Delete
-                            </button>
-                        </div>
+                    <div
+                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const taskId = Number(e.dataTransfer.getData("taskId"));
+                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
+                        }}
+                    >
+                        {displayedTasksByStatus.todo.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                status={normalizeStatus(task.status, task.Approval)}
+                                onViewTask={openViewTask}
+                                onEditTask={openEditTask}
+                                onDeleteTask={openDeleteTask}
+                            />
+                        ))}
+                    </div>
+                    <div
+                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const taskId = Number(e.dataTransfer.getData("taskId"));
+                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
+                        }}
+                    >
+                        {displayedTasksByStatus.in_progress.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                status={normalizeStatus(task.status, task.Approval)}
+                                onViewTask={openViewTask}
+                                onEditTask={openEditTask}
+                                onDeleteTask={openDeleteTask}
+                            />
+                        ))}
+                    </div>
+                    <div
+                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const taskId = Number(e.dataTransfer.getData("taskId"));
+                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
+                        }}
+                    >
+                        {displayedTasksByStatus.completed.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                status={normalizeStatus(task.status, task.Approval)}
+                                onViewTask={openViewTask}
+                                onEditTask={openEditTask}
+                                onDeleteTask={openDeleteTask}
+                            />
+                        ))}
                     </div>
                 </div>
-            )}
+
+                {/* Delete Task confirmation modal */}
+                {deleteTask !== null && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                        <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
+                            <div className="flex items-center justify-between px-6 py-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setDeleteTask(null)}
+                                    className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
+                                    aria-label="Close"
+                                >
+                                    <svg
+                                        className="w-5 h-5"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M6 18L18 6M6 6l12 12"
+                                        />
+                                    </svg>
+                                </button>
+                                <h3 className="flex-1 text-center text-lg font-semibold text-[#353535]">
+                                    Delete Task
+                                </h3>
+                                <div className="w-9" />
+                            </div>
+                            <div className="px-6 py-5">
+                                <p className="text-black text-center">
+                                    Are you sure, you want to Delete this Task?
+                                </p>
+                            </div>
+                            <div className="flex justify-center gap-3 px-6 py-4 bg-slate-50/50">
+                                <button
+                                    type="button"
+                                    onClick={() => setDeleteTask(null)}
+                                    className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0] cursor-pointer"
+                                >
+                                    Discard
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={confirmDeleteTask}
+                                    className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3] cursor-pointer"
+                                >
+                                    Yes, Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
-    </div>
-);
+    );
 }

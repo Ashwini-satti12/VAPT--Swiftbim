@@ -164,14 +164,14 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-  { value: "1-50", label: "1-50", start: 0, end: 50 },
-  { value: "51-100", label: "51-100", start: 50, end: 100 },
-  { value: "101-150", label: "101-150", start: 100, end: 150 },
-  { value: "151-200", label: "151-200", start: 150, end: 200 },
-  { value: "201-250", label: "201-250", start: 200, end: 250 },
-  { value: "251-300", label: "251-300", start: 250, end: 300 },
-  { value: "all", label: "All", start: 0, end: null },
-];
+    { value: "1-50", label: "1-50", start: 0, end: 50 },
+    { value: "51-100", label: "51-100", start: 50, end: 100 },
+    { value: "101-150", label: "101-150", start: 100, end: 150 },
+    { value: "151-200", label: "151-200", start: 150, end: 200 },
+    { value: "201-250", label: "201-250", start: 200, end: 250 },
+    { value: "251-300", label: "251-300", start: 250, end: 300 },
+    { value: "all", label: "All", start: 0, end: null },
+  ];
 
 /** Format ISO date (or plain YYYY-MM-DD) to DD/MM/YYYY for table display. */
 function formatApiDate(value: string | undefined | null): string {
@@ -195,6 +195,8 @@ export default function ManageLeave() {
   const { user } = useAuth();
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState<LeaveEntry | null>(null);
+  const [approveLeave, setApproveLeave] = useState<LeaveEntry | null>(null);
+  const [rejectLeave, setRejectLeave] = useState<LeaveEntry | null>(null);
   const [leaves, setLeaves] = useState<LeaveEntry[]>([]);
 
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
@@ -379,11 +381,10 @@ export default function ManageLeave() {
                   className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                 >
                   <span
-                    className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-                      selectedEmployee === ""
-                        ? "text-[#8B8B8B]"
-                        : "text-[#353535]"
-                    }`}
+                    className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedEmployee === ""
+                      ? "text-[#8B8B8B]"
+                      : "text-[#353535]"
+                      }`}
                   >
                     {selectedEmployee === "" ? (
                       EMPLOYEE_FILTER_PLACEHOLDER
@@ -403,13 +404,11 @@ export default function ManageLeave() {
                   <img
                     src={ArrowDown}
                     alt=""
-                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                      employeeDropdownOpen ? "rotate-180" : ""
-                    } ${
-                      selectedEmployee === ""
+                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${employeeDropdownOpen ? "rotate-180" : ""
+                      } ${selectedEmployee === ""
                         ? "opacity-60 grayscale"
                         : "opacity-90"
-                    }`}
+                      }`}
                     aria-hidden
                   />
                 </button>
@@ -441,11 +440,10 @@ export default function ManageLeave() {
                             setSelectedEmployee(name);
                             setEmployeeDropdownOpen(false);
                           }}
-                          className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer truncate hover:text-[#353535] hover:bg-[#F2F2F2] ${
-                            selectedEmployee === name
-                              ? "text-[#353535] bg-[#F2F2F2]"
-                              : "text-[#8B8B8B] bg-transparent"
-                          }`}
+                          className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer truncate hover:text-[#353535] hover:bg-[#F2F2F2] ${selectedEmployee === name
+                            ? "text-[#353535] bg-[#F2F2F2]"
+                            : "text-[#8B8B8B] bg-transparent"
+                            }`}
                         >
                           {name}
                         </button>
@@ -467,11 +465,10 @@ export default function ManageLeave() {
                   className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                 >
                   <span
-                    className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-                      selectedShowEntries === ""
-                        ? "text-[#8B8B8B]"
-                        : "text-[#353535]"
-                    }`}
+                    className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
+                      ? "text-[#8B8B8B]"
+                      : "text-[#353535]"
+                      }`}
                   >
                     {selectedShowEntries === "" ? (
                       SHOW_ENTRIES_PLACEHOLDER
@@ -489,13 +486,11 @@ export default function ManageLeave() {
                   <img
                     src={ArrowDown}
                     alt=""
-                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                      showEntriesOpen ? "rotate-180" : ""
-                    } ${
-                      selectedShowEntries === ""
+                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                      } ${selectedShowEntries === ""
                         ? "opacity-60 grayscale"
                         : "opacity-90"
-                    }`}
+                      }`}
                     aria-hidden
                   />
                 </button>
@@ -529,11 +524,10 @@ export default function ManageLeave() {
                               setSelectedShowEntries(opt.value);
                               setShowEntriesOpen(false);
                             }}
-                            className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${
-                              isChosen
-                                ? "text-[#353535] bg-[#F2F2F2]"
-                                : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
-                            }`}
+                            className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
+                              ? "text-[#353535] bg-[#F2F2F2]"
+                              : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                              }`}
                           >
                             <span className="truncate min-w-0">
                               {opt.label}
@@ -595,285 +589,394 @@ export default function ManageLeave() {
                     </th>
                   </tr>
                 </thead>
-              <tbody className="divide-y divide-gray-50">
-                {displayedList.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white"
-                    >
-                      No leave records found
-                    </td>
-                  </tr>
-                ) : (
-                  displayedList.map((row, index) => {
-                    const slNo = rangeStart + index + 1;
-                    const isLastRow = index === displayedList.length - 1;
-                    return (
-                      <tr
-                        key={row.id}
-                        className={`${index % 2 === 1 ? "bg-[#F2F2F2] " : "bg-[#FFFFFF]"} transition-colors`}
+                <tbody className="divide-y divide-gray-50">
+                  {displayedList.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={8}
+                        className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white"
                       >
-                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
-                          {String(slNo).padStart(2, "0")}
-                        </td>
-                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                          {row.employeeName}
-                        </td>
-                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                          {row.role ?? "–"}
-                        </td>
-                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                          {row.leaveType}
-                        </td>
-                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                          {row.fromDate ?? "–"}
-                        </td>
-                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                          {row.toDate ?? "–"}
-                        </td>
-                        <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                          <span
-                            className={`inline-flex px-3 py-1 rounded-md text-[12px] font-semibold font-gantari ${row.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : row.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFEAD6] text-[#EB7200]"}`}
-                          >
-                            {row.currentStatus}
-                          </span>
-                        </td>
-                        <td className="px-3 py-6 text-center text-[14px] whitespace-nowrap align-middle">
-                          <div className="flex items-center justify-center gap-2 flex-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => handleView(row)}
-                              className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DD4242] text-white rounded-md font-medium text-[12px] cursor-pointer"
+                        No leave records found
+                      </td>
+                    </tr>
+                  ) : (
+                    displayedList.map((row, index) => {
+                      const slNo = rangeStart + index + 1;
+                      const isLastRow = index === displayedList.length - 1;
+                      return (
+                        <tr
+                          key={row.id}
+                          className={`${index % 2 === 1 ? "bg-[#F2F2F2] " : "bg-[#FFFFFF]"} transition-colors`}
+                        >
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
+                            {String(slNo).padStart(2, "0")}
+                          </td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                            {row.employeeName}
+                          </td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                            {row.role ?? "–"}
+                          </td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                            {row.leaveType}
+                          </td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                            {row.fromDate ?? "–"}
+                          </td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                            {row.toDate ?? "–"}
+                          </td>
+                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                            <span
+                              className={`inline-flex px-3 py-1 rounded-md text-[12px] font-semibold font-gantari ${row.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : row.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFEAD6] text-[#EB7200]"}`}
                             >
-                              <img
-                                src={viewIcon}
-                                alt=""
-                                className="w-3.5 h-3.5 shrink-0 [filter:brightness(0)_invert(1)]"
-                              />
-                              View
-                            </button>
-                            {row.currentStatus === "Pending" &&
-                            canActOnLeave(row) ? (
-                              <>
-                                <div className="relative group inline-flex shrink-0">
-                                  <button
-                                    type="button"
-                                    aria-label="Approve"
-                                    onClick={() => handleApproveBackend(row)}
-                                    className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
-                                  >
-                                    <svg
-                                      className="w-4 h-4 shrink-0"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                      strokeWidth="2.5"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
+                              {row.currentStatus}
+                            </span>
+                          </td>
+                          <td className="px-3 py-6 text-center text-[14px] whitespace-nowrap align-middle">
+                            <div className="flex items-center justify-center gap-2 flex-nowrap">
+                              <button
+                                type="button"
+                                onClick={() => handleView(row)}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DD4242] text-white rounded-md font-medium text-[12px] cursor-pointer"
+                              >
+                                <img
+                                  src={viewIcon}
+                                  alt=""
+                                  className="w-3.5 h-3.5 shrink-0 [filter:brightness(0)_invert(1)]"
+                                />
+                                View
+                              </button>
+                              {row.currentStatus === "Pending" &&
+                                canActOnLeave(row) ? (
+                                <>
+                                  <div className="relative group inline-flex shrink-0">
+                                    <button
+                                      type="button"
+                                      aria-label="Approve"
+                                      onClick={() => setApproveLeave(row)}
+                                      className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
                                     >
-                                      <path d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  </button>
-                                  {isLastRow ? (
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                      <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
-                                        <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
-                                          Approve
-                                        </span>
+                                      <svg
+                                        className="w-4 h-4 shrink-0"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                        strokeWidth="2.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      >
+                                        <path d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    </button>
+                                    {isLastRow ? (
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                        <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
+                                          <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
+                                            Approve
+                                          </span>
+                                        </div>
+                                        <div className="relative z-10 -mt-[1px]">
+                                          <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"></div>
+                                        </div>
                                       </div>
-                                      <div className="relative z-10 -mt-[1px]">
-                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"></div>
+                                    ) : (
+                                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                        <div className="relative z-10">
+                                          <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                                        </div>
+                                        <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
+                                          <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
+                                            Approve
+                                          </span>
+                                        </div>
                                       </div>
-                                    </div>
-                                  ) : (
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                      <div className="relative z-10">
-                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                                      </div>
-                                      <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                        <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
-                                          Approve
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="relative group inline-flex shrink-0">
-                                  <button
-                                    type="button"
-                                    aria-label="Reject"
-                                    onClick={() => handleRejectBackend(row)}
-                                    className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
-                                  >
-                                    <svg
-                                      className="w-4 h-4 shrink-0"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                      strokeWidth="2.5"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
+                                    )}
+                                  </div>
+                                  <div className="relative group inline-flex shrink-0">
+                                    <button
+                                      type="button"
+                                      aria-label="Reject"
+                                      onClick={() => setRejectLeave(row)}
+                                      className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
                                     >
-                                      <path d="M18 6L6 18M6 6l12 12" />
-                                    </svg>
-                                  </button>
-                                  {isLastRow ? (
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                      <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
-                                        <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
-                                          Reject
-                                        </span>
+                                      <svg
+                                        className="w-4 h-4 shrink-0"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                        strokeWidth="2.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      >
+                                        <path d="M18 6L6 18M6 6l12 12" />
+                                      </svg>
+                                    </button>
+                                    {isLastRow ? (
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                        <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
+                                          <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
+                                            Reject
+                                          </span>
+                                        </div>
+                                        <div className="relative z-10 -mt-[1px]">
+                                          <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"></div>
+                                        </div>
                                       </div>
-                                      <div className="relative z-10 -mt-[1px]">
-                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"></div>
+                                    ) : (
+                                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                        <div className="relative z-10">
+                                          <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                                        </div>
+                                        <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
+                                          <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
+                                            Reject
+                                          </span>
+                                        </div>
                                       </div>
-                                    </div>
-                                  ) : (
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                      <div className="relative z-10">
-                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                                      </div>
-                                      <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                        <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
-                                          Reject
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </>
-                            ) : null}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                                    )}
+                                  </div>
+                                </>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       </div>
 
-        {/* View Leave Modal */}
-        {viewModalOpen &&
-          selectedLeave &&
-          createPortal(
+      {/* View Leave Modal */}
+      {
+        viewModalOpen &&
+        selectedLeave &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => {
+              setViewModalOpen(false);
+              setSelectedLeave(null);
+            }}
+          >
             <div
-              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-              onClick={() => {
-                setViewModalOpen(false);
-                setSelectedLeave(null);
-              }}
+              className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E5E5E5]"
+              onClick={(e) => e.stopPropagation()}
             >
-              <div
-                className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E5E5E5]"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="relative flex items-center justify-center px-6 py-5 ">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setViewModalOpen(false);
-                      setSelectedLeave(null);
-                    }}
-                    className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] transition-colors"
-                    aria-label="Close"
-                  >
-                    <img
-                      src={closeIcon}
-                      alt=""
-                      className="w-5 h-5 object-contain"
-                    />
-                  </button>
-                  <h3 className="text-[24px] font-semibold text-[#000000]">
-                    Leave Details
-                  </h3>
-                </div>
-                <div className="px-6 py-6">
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-2">
-                      <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
-                        Employee Name
-                      </span>
-                      <span className="shrink-0 text-[#616161]">:</span>
-                      <span className="text-sm text-[#616161]">
-                        {selectedLeave.employeeName}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
-                        Role
-                      </span>
-                      <span className="shrink-0 text-[#616161]">:</span>
-                      <span className="text-sm text-[#616161]">
-                        {selectedLeave.role ?? "–"}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
-                        Leave Type
-                      </span>
-                      <span className="shrink-0 text-[#616161]">:</span>
-                      <span className="text-sm text-[#616161]">
-                        {selectedLeave.leaveType}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
-                        From Date
-                      </span>
-                      <span className="shrink-0 text-[#616161]">:</span>
-                      <span className="text-sm text-[#616161]">
-                        {selectedLeave.fromDate ?? "–"}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
-                        To Date
-                      </span>
-                      <span className="shrink-0 text-[#616161]">:</span>
-                      <span className="text-sm text-[#616161]">
-                        {selectedLeave.toDate ?? "–"}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
-                        Applied On
-                      </span>
-                      <span className="shrink-0 text-[#616161]">:</span>
-                      <span className="text-sm text-[#616161]">
-                        {selectedLeave.appliedOn}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
-                        Reason
-                      </span>
-                      <span className="shrink-0 text-[#616161]">:</span>
-                      <span className="text-sm text-[#616161]">
-                        {selectedLeave.description ?? "–"}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
-                        Current Status
-                      </span>
-                      <span className="shrink-0 text-[#616161]">:</span>
-                      <span
-                        className={`inline-flex px-3 py-1 rounded-md text-xs font-semibold ${selectedLeave.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : selectedLeave.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFEAD6] text-[#EB7200]"}`}
-                      >
-                        {selectedLeave.currentStatus}
-                      </span>
-                    </div>
+              <div className="relative flex items-center justify-center px-6 py-5 ">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewModalOpen(false);
+                    setSelectedLeave(null);
+                  }}
+                  className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] transition-colors"
+                  aria-label="Close"
+                >
+                  <img
+                    src={closeIcon}
+                    alt=""
+                    className="w-5 h-5 object-contain"
+                  />
+                </button>
+                <h3 className="text-[24px] font-semibold text-[#000000]">
+                  Leave Details
+                </h3>
+              </div>
+              <div className="px-6 py-6">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-2">
+                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
+                      Employee Name
+                    </span>
+                    <span className="shrink-0 text-[#616161]">:</span>
+                    <span className="text-sm text-[#616161]">
+                      {selectedLeave.employeeName}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
+                      Role
+                    </span>
+                    <span className="shrink-0 text-[#616161]">:</span>
+                    <span className="text-sm text-[#616161]">
+                      {selectedLeave.role ?? "–"}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
+                      Leave Type
+                    </span>
+                    <span className="shrink-0 text-[#616161]">:</span>
+                    <span className="text-sm text-[#616161]">
+                      {selectedLeave.leaveType}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
+                      From Date
+                    </span>
+                    <span className="shrink-0 text-[#616161]">:</span>
+                    <span className="text-sm text-[#616161]">
+                      {selectedLeave.fromDate ?? "–"}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
+                      To Date
+                    </span>
+                    <span className="shrink-0 text-[#616161]">:</span>
+                    <span className="text-sm text-[#616161]">
+                      {selectedLeave.toDate ?? "–"}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
+                      Applied On
+                    </span>
+                    <span className="shrink-0 text-[#616161]">:</span>
+                    <span className="text-sm text-[#616161]">
+                      {selectedLeave.appliedOn}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
+                      Reason
+                    </span>
+                    <span className="shrink-0 text-[#616161]">:</span>
+                    <span className="text-sm text-[#616161]">
+                      {selectedLeave.description ?? "–"}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
+                      Current Status
+                    </span>
+                    <span className="shrink-0 text-[#616161]">:</span>
+                    <span
+                      className={`inline-flex px-3 py-1 rounded-md text-xs font-semibold ${selectedLeave.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : selectedLeave.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFEAD6] text-[#EB7200]"}`}
+                    >
+                      {selectedLeave.currentStatus}
+                    </span>
                   </div>
                 </div>
               </div>
-            </div>,
-            document.body,
-          )}
+            </div>
+          </div>,
+          document.body,
+        )
+      }
+      {/* Approval confirmation modal - match MytaskTD style */}
+      {
+        approveLeave !== null && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+              {/* Close */}
+              <button
+                type="button"
+                onClick={() => setApproveLeave(null)}
+                className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+                title="Close"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+              <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
+                Approve Leave
+              </h3>
+              <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+                Are you sure, you want to Approve this?
+              </p>
+              <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
+                <button
+                  type="button"
+                  onClick={() => setApproveLeave(null)}
+                  className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+                >
+                  Discard
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (approveLeave) handleApproveBackend(approveLeave);
+                    setApproveLeave(null);
+                  }}
+                  className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#D9FFE1] text-[#008F22] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+                >
+                  Yes, Approve
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+      {/* Reject confirmation modal */}
+      {rejectLeave !== null && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+            <button
+              type="button"
+              onClick={() => setRejectLeave(null)}
+              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+              title="Close"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+            <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
+              Reject Leave
+            </h3>
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+              Are you sure, you want to Reject this?
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
+              <button
+                type="button"
+                onClick={() => setRejectLeave(null)}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (rejectLeave) handleRejectBackend(rejectLeave);
+                  setRejectLeave(null);
+                }}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Yes, Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

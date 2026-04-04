@@ -205,7 +205,7 @@ function TaskDropdown({
             });
         })()
         : options;
-    const listMaxHeight =  `${maxVisibleItems * 40}px`
+    const listMaxHeight = `${maxVisibleItems * 40}px`
 
     return (
         <div className="relative">
@@ -216,16 +216,16 @@ function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? (label === "Period" ? "min-w-[100px]" : "min-w-[150px]") : "min-w-[160px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
-                <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
-                    {label.toLowerCase() === 'show' && selected && selected !== label ? (
+                <span className={`truncate font-Gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
+                    {(label.toLowerCase() === "show entries" || label.toLowerCase() === "show ") && selected && selected !== label ? (
                         <>
-                            <span className="text-[14px] text-[#353535]">Show:</span>{" "}
-                            <span>{selected}</span>
+                            <span className="text-[14px]">Show:</span>{" "}
+                            <span className="font-semibold">{selected}</span>
                         </>
                     ) : (
                         selected ?? label
@@ -272,7 +272,7 @@ function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                className={`block w-full px-4 py-2 text-left text-[14px] font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
+                                className={`block w-full px-4 py-2 text-left text-[14px] font-Gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535] font-semibold" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
                             >
                                 {opt}
                             </button>
@@ -648,7 +648,7 @@ function TaskCard({
     );
 }
 
-const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150","151-200","201-250","251-300", "All"];
+const SHOW_OPTIONS = ["Show Entries", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
@@ -917,8 +917,8 @@ export default function TeamtaskBL() {
 
         // Backend update
         const isOutsource = task?.source === ("Outsource" as any);
-        const endpoint = isOutsource 
-            ? `/api/vendors/vendor-tasks/${taskId}/status` 
+        const endpoint = isOutsource
+            ? `/api/vendors/vendor-tasks/${taskId}/status`
             : `/api/tasks/${taskId}/status`;
 
         api.patch(endpoint, {
@@ -964,8 +964,8 @@ export default function TeamtaskBL() {
     const confirmDeleteTask = () => {
         if (deleteTask !== null) {
             const isOutsource = deleteTask.source === "Outsource";
-            const endpoint = isOutsource 
-                ? `/api/vendors/vendor-tasks/${deleteTask.id}` 
+            const endpoint = isOutsource
+                ? `/api/vendors/vendor-tasks/${deleteTask.id}`
                 : `/api/tasks/${deleteTask.id}`;
 
             api.delete(endpoint).then(() => {
@@ -973,7 +973,7 @@ export default function TeamtaskBL() {
                     condition: isTeam ? "1" : "0",
                     employeeid: "all"
                 };
-                
+
                 Promise.all([
                     api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
                     api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params })
@@ -1105,7 +1105,7 @@ export default function TeamtaskBL() {
                 setList([...internalTasks, ...vendorTasks] as Task[]);
 
                 setEmployees((resEmployees.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
-                
+
                 const internalProjs = (resProjects.data.projects ?? []).map(p => ({ ...p, source: "In House" }));
                 const vendorProjs = (resVendorProjects.data.projects ?? []).map(p => ({ ...p, source: "Outsource" }));
                 setProjects([...internalProjs, ...vendorProjs] as Project[]);

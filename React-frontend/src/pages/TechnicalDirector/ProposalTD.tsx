@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
-import viewIcon from '../../assets/ProjectManager/Client/whiteviewicon.svg';
+import viewIcon from '../../assets/ProjectManager/project/viewIcon.svg';
 import editIcon from '../../assets/ProjectManager/project/editIcon.svg';
 import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
@@ -261,16 +261,15 @@ export default function ProposalTD() {
                               })
                             }
                             disabled={!!bid.proposal_exists}
-                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${
-                                bid.proposal_exists 
-                                ? 'cursor-not-allowed opacity-50' 
-                                : ' '
-                            }`}
+                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${bid.proposal_exists
+                              ? 'cursor-not-allowed opacity-50'
+                              : ' '
+                              }`}
                           >
                             <img src={viewIcon} alt="" className="w-4 h-4 object-contain" />
                             Create
                           </button>
-                          
+
                           <button
                             onClick={() =>
                               bid.proposal_exists && navigate("/td/view-proposal", {
@@ -282,14 +281,13 @@ export default function ProposalTD() {
                             }
                             disabled={!bid.proposal_exists}
                             title="View Proposal"
-                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${
-                                !bid.proposal_exists 
-                                ? 'cursor-not-allowed opacity-50' 
-                                : ''
-                            }`}
+                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${!bid.proposal_exists
+                              ? 'cursor-not-allowed opacity-50'
+                              : ''
+                              }`}
                           >
-                            <img src={viewIcon} alt="View" className="w-4 h-4 object-contain" />
-                            view
+                            <img src={viewIcon} alt="View" className="w-4 h-4 object-contain brightness-0 invert" />
+                            View
                           </button>
 
                           {/* <button

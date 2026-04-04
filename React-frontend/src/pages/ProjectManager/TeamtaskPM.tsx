@@ -146,7 +146,7 @@ function FormDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-[14px] transition-all border border-transparent focus:outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52]  cursor-pointer${value ? "text-[#353535]" : "text-[#8B8B8B]"}`}
+        className={`flex w-full items-center justify-between rounded-md bg-[#E8E8E8] px-3 py-2 text-left text-[14px] font-semibold font-gantari transition-all border border-transparent focus:outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52] cursor-pointer ${value ? "text-[#353535]" : "text-[#8B8B8B]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
@@ -268,27 +268,25 @@ function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? (label === "Period" ? "min-w-[100px]" : "min-w-[150px]") : "min-w-[160px]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
       >
-        <span
-          className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}
-        >
-          {label.toLowerCase() === "show" && selected && selected !== label ? (
+        <span className={`truncate font-Gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
+          {(label.toLowerCase() === "show entries" || label.toLowerCase() === "show") && selected && selected !== label ? (
             <>
-              <span className="text-sm text-[#353535]">Show:</span>{" "}
-              <span>{selected}</span>
+              <span className="text-[14px]">Show:</span>{" "}
+              <span className="font-semibold">{selected}</span>
             </>
           ) : (
-            (selected ?? label)
+            selected || label
           )}
         </span>
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
       {isOpen && (
@@ -326,7 +324,7 @@ function TaskDropdown({
                   onSelect(opt);
                   onClose();
                 }}
-                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors cursor-pointer${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
+                className={`block w-full px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
               >
                 {opt}
               </button>
@@ -621,15 +619,21 @@ function TaskCard({
 
   return (
     <div
-      draggable={!isCompleted}
+      draggable={!isCompleted && task.source !== "Outsource"}
       onDragStart={handleDragStart}
-      className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+      onClick={(e) => {
+        // Only trigger if not clicking on the menu or buttons
+        if (!(e.target as HTMLElement).closest('button') && !(e.target as HTMLElement).closest('a')) {
+          onViewTask?.(task);
+        }
+      }}
+      className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted || task.source === "Outsource" ? "cursor-default opacity-90" : "cursor-grab active:cursor-grabbing hover:border-slate-300 transition-colors cursor-pointer"}`}
     >
       <div className="flex items-center justify-between gap-2 mb-2">
-        <h4 className="font-semibold text-slate-900 text-xl truncate">
+        <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[20px] truncate">
           {task.task_name || "Task Name"}
         </h4>
-        <div className="relative" ref={menuRef}>
+        <div className="relative shrink-0" ref={menuRef}>
           <button
             type="button"
             draggable={false}
@@ -637,11 +641,11 @@ function TaskCard({
               e.stopPropagation();
               setMenuOpen((prev) => !prev);
             }}
-            className="p-0.5 rounded cursor-pointer"
+            className="p-1 rounded cursor-pointer leading-none"
             aria-label="More options"
             aria-expanded={menuOpen}
           >
-            <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+            <img src={Dot} alt="Dot" className="w-5 h-5 object-contain" />
           </button>
           {menuOpen && (
             <div
@@ -663,11 +667,11 @@ function TaskCard({
                   alt="view"
                   className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                 />
-                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                   View
                 </span>
               </button>
-              {(!isCompleted && task.source !== "Outsource") && (
+              {!isCompleted && task.source !== "Outsource" && (
                 <>
                   <button
                     type="button"
@@ -683,7 +687,7 @@ function TaskCard({
                       alt="edit"
                       className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                     />
-                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                    <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                       Edit
                     </span>
                   </button>
@@ -701,7 +705,7 @@ function TaskCard({
                       alt="delete"
                       className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                     />
-                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                    <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                       Delete
                     </span>
                   </button>
@@ -711,17 +715,30 @@ function TaskCard({
           )}
         </div>
       </div>
-      <div className="flex items-center justify-between gap-2 mb-3 text-[13px] font-medium text-[#0A2E65]">
-        <span>{startStr}</span>
-        <span>{endStr}</span>
+
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex flex-col">
+          <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
+          <span className="text-[14px] font-medium text-[#8B8B8B]">
+            {startStr}
+          </span>
+        </div>
+
+        <div className="flex flex-col items-end">
+          <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+          <span className="text-[14px] font-medium text-[#8B8B8B]">
+            {endStr}
+          </span>
+        </div>
       </div>
-      <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="text-xs text-slate-600">Progress</span>
-        <span className="text-xs font-medium text-slate-700">{progress}%</span>
+
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="text-xs text-[#8B8B8B]">Progress</span>
+        <span className="text-xs font-medium text-[#8B8B8B]">{progress}%</span>
       </div>
-      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
         <div
-          className="h-full rounded-full bg-slate-500"
+          className="h-full rounded-full bg-[#8B8B8B]"
           style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
         />
       </div>
@@ -746,7 +763,7 @@ function TaskCard({
                   .toUpperCase();
                 return (
                   <div
-                    className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    className="w-7 h-7 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                     title={`Assigned To: ${task.assigned_full_name}`}
                   >
                     {src ? (
@@ -775,7 +792,7 @@ function TaskCard({
                   .toUpperCase();
                 return (
                   <div
-                    className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    className="w-7 h-7 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                     title={`Assigned By: ${task.uploader_full_name}`}
                   >
                     {src ? (
@@ -788,21 +805,29 @@ function TaskCard({
               })()}
           </div>
         </div>
-        <Link
-          to={`/tasks/${task.id}`}
+        <button
+          type="button"
           draggable={false}
-          className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewTask?.(task);
+          }}
+          className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer"
         >
           Details
-          <img src={Arrow} alt="Arrow" className="w-2 h-2" />
-        </Link>
+          <img
+            src={Arrow}
+            alt="Arrow"
+            className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
+          />
+        </button>
       </div>
     </div>
   );
 }
 
 const SHOW_OPTIONS = [
-  "Show",
+  "Show Entries",
   "1-50",
   "51-100",
   "101-150",
@@ -865,7 +890,7 @@ export default function TeamtaskPM() {
     const proj = searchParams.get("project");
     if (proj) setSelectedProject(proj);
   }, [searchParams]);
-  const [selectedShow, setSelectedShow] = useState<string | null>("Show");
+  const [selectedShow, setSelectedShow] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
@@ -971,8 +996,8 @@ export default function TeamtaskPM() {
 
     // Backend update
     const isOutsource = task?.source === ("Outsource" as any);
-    const endpoint = isOutsource 
-      ? `/api/vendors/vendor-tasks/${taskId}/status` 
+    const endpoint = isOutsource
+      ? `/api/vendors/vendor-tasks/${taskId}/status`
       : `/api/tasks/${taskId}/status`;
 
     api.patch(endpoint, {
@@ -1032,8 +1057,8 @@ export default function TeamtaskPM() {
   const confirmDeleteTask = () => {
     if (deleteTask !== null) {
       const isOutsource = deleteTask.source === "Outsource";
-      const endpoint = isOutsource 
-        ? `/api/vendors/vendor-tasks/${deleteTask.id}` 
+      const endpoint = isOutsource
+        ? `/api/vendors/vendor-tasks/${deleteTask.id}`
         : `/api/tasks/${deleteTask.id}`;
 
       api.delete(endpoint)
@@ -1042,7 +1067,7 @@ export default function TeamtaskPM() {
             condition: isTeam ? "1" : "0",
             employeeid: "all"
           };
-          
+
           Promise.all([
             api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
             api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params })
@@ -1263,9 +1288,9 @@ export default function TeamtaskPM() {
   const modalAssignOptions = employeesForAssignDropdown
     .filter(isEmployeeActiveForProjectAssignment)
     .map((e) => ({
-    value: e.full_name,
-    label: e.full_name,
-  }));
+      value: e.full_name,
+      label: e.full_name,
+    }));
 
   const counts = {
     todo: allTasks.filter(
@@ -1293,7 +1318,7 @@ export default function TeamtaskPM() {
 
   let limitStart = 0;
   let limitEnd = 50;
-  if (selectedShow === "All" || !selectedShow || selectedShow === "Show") {
+  if (selectedShow === "All" || !selectedShow || selectedShow === "Show" || selectedShow === "Show Entries") {
     limitStart = 0;
     limitEnd = Infinity;
   } else if (selectedShow && selectedShow.includes("-")) {
@@ -1319,7 +1344,7 @@ export default function TeamtaskPM() {
   }
 
   return (
-    <div className="h-full min-h-0 flex flex-col overflow-hidden">
+    <div className="flex flex-col h-full bg-white px-2 py-2 overflow-hidden font-Gantari">
       <div className="bg-white pb-3 flex-shrink-0">
         {/* Top row: title + dropdowns + Add task - match MytaskTD */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
@@ -1363,7 +1388,7 @@ export default function TeamtaskPM() {
               maxVisibleItems={4}
             />
             <TaskDropdown
-              label="Show"
+              label="Show Entries"
               options={SHOW_OPTIONS}
               selected={selectedShow}
               onSelect={setSelectedShow}
@@ -1396,7 +1421,7 @@ export default function TeamtaskPM() {
               type="button"
               disabled={isOutsourceProjectSelected}
               onClick={() => navigate("/tasks/add")}
-              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium shadow-sm cursor-pointer ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-white"}`}
+              className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-[14px] font-medium shadow-sm transition-all cursor-pointer ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-white"}`}
               title={isOutsourceProjectSelected ? "Cannot add tasks to Outsource projects" : "Add task"}
             >
               <img src={AddBtn} alt="Add" className="h-5 w-5" />
@@ -1406,7 +1431,7 @@ export default function TeamtaskPM() {
         </div>
 
         {/* Status summary cards - match MytaskTD */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
           <Link
             to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
             className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
