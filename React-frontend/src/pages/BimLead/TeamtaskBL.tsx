@@ -5,6 +5,7 @@ import {
     useLocation,
     useNavigate,
 } from "react-router-dom";
+import toast from "react-hot-toast";
 import api from "../../lib/api";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
@@ -898,6 +899,17 @@ export default function TeamtaskBL() {
         if (task?.source === "Outsource") {
             console.warn("Bim Lead cannot update status of an Outsource task.");
             return;
+        }
+        if (task) {
+            const current = normalizeStatus(task.status, task.Approval);
+            if (current === "todo" && newStatus === "completed") {
+                toast.error("Move the task to In Progress before marking it completed.");
+                return;
+            }
+            if (current === "completed" && newStatus === "in_progress") {
+                toast.error("Completed tasks cannot be moved back to In Progress here.");
+                return;
+            }
         }
         const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
 

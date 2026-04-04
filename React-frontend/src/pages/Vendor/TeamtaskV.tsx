@@ -156,6 +156,7 @@ export interface Task {
     id: number;
     task_name?: string;
     status?: string;
+    Approval?: string;
     due_date?: string;
     project_name?: string;
     start_date?: string;
@@ -221,7 +222,10 @@ export interface Project {
 
 function normalizeStatus(
     s: string | undefined,
+    approval?: string,
 ): "todo" | "in_progress" | "completed" {
+    if (approval?.toLowerCase() === "approved" || approval?.toLowerCase() === "rejected")
+        return "completed";
     if (!s) return "todo";
     const lower = s.toLowerCase().replace(/\s+/g, "_");
     if (lower.includes("progress") || lower === "in_progress")
@@ -545,6 +549,19 @@ export default function TeamtaskV() {
         taskId: number,
         newStatus: "todo" | "in_progress" | "completed",
     ) => {
+        const taskRow = list.find((t) => t.id === taskId);
+        if (taskRow) {
+            const current = normalizeStatus(taskRow.status, taskRow.Approval);
+            if (current === "todo" && newStatus === "completed") {
+                toast.error("Move the task to In Progress before marking it completed.");
+                return;
+            }
+            if (current === "completed" && newStatus === "in_progress") {
+                toast.error("Completed tasks cannot be moved back to In Progress here.");
+                return;
+            }
+        }
+
         const statusMap: Record<"todo" | "in_progress" | "completed", string> = {
             todo: "Todo",
             in_progress: "InProgress",
@@ -667,25 +684,25 @@ export default function TeamtaskV() {
 
     const counts = {
         todo: allTasks.filter(
-            (t: Task) => normalizeStatus(t.status) === "todo",
+            (t: Task) => normalizeStatus(t.status, t.Approval) === "todo",
         ).length,
         in_progress: allTasks.filter(
-            (t: Task) => normalizeStatus(t.status) === "in_progress",
+            (t: Task) => normalizeStatus(t.status, t.Approval) === "in_progress",
         ).length,
         completed: allTasks.filter(
-            (t: Task) => normalizeStatus(t.status) === "completed",
+            (t: Task) => normalizeStatus(t.status, t.Approval) === "completed",
         ).length,
     };
 
     const tasksByStatus = {
         todo: allTasks.filter(
-            (t: Task) => normalizeStatus(t.status) === "todo",
+            (t: Task) => normalizeStatus(t.status, t.Approval) === "todo",
         ),
         in_progress: allTasks.filter(
-            (t: Task) => normalizeStatus(t.status) === "in_progress",
+            (t: Task) => normalizeStatus(t.status, t.Approval) === "in_progress",
         ),
         completed: allTasks.filter(
-            (t: Task) => normalizeStatus(t.status) === "completed",
+            (t: Task) => normalizeStatus(t.status, t.Approval) === "completed",
         ),
     };
 

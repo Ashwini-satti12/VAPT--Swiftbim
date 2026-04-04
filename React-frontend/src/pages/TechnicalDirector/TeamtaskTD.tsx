@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import api from "../../lib/api";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
@@ -717,6 +718,16 @@ export default function TeamtaskTD() {
 
     if (taskObj.source === "Outsource") {
       console.warn("Outsource tasks cannot be moved by TD/PM/MB.");
+      return;
+    }
+
+    const current = normalizeStatus(taskObj.status, taskObj.Approval);
+    if (current === "todo" && newStatus === "completed") {
+      toast.error("Move the task to In Progress before marking it completed.");
+      return;
+    }
+    if (current === "completed" && newStatus === "in_progress") {
+      toast.error("Completed tasks cannot be moved back to In Progress here.");
       return;
     }
 

@@ -128,10 +128,27 @@ const STATUS_STYLE: Record<
   },
 };
 
-const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
+const STATUS_OPTIONS: { value: "todo" | "in_progress" | "completed"; label: string }[] = [
+  { value: "todo", label: "To Do" },
   { value: "in_progress", label: "Inprogress" },
   { value: "completed", label: "Completed" },
 ];
+
+function shouldHideInProgressInDropdown(status: StatusKey): boolean {
+  return (
+    status === "completed" ||
+    status === "approved" ||
+    status === "rejected"
+  );
+}
+
+function isStatusOptionDisabled(
+  current: StatusKey,
+  option: "todo" | "in_progress" | "completed",
+): boolean {
+  if (current === "todo" && option === "completed") return true;
+  return false;
+}
 
 export default function MytaskViewV() {
   const { id } = useParams<{ id: string }>();
@@ -204,18 +221,33 @@ export default function MytaskViewV() {
     }
   };
 
-  const handleStatusUpdate = async (newStatus: StatusKey) => {
+  const handleStatusUpdate = async (
+    newStatus: "todo" | "in_progress" | "completed",
+  ) => {
     if (!task || updatingStatus) return;
+    if (isStatusOptionDisabled(statusDisplay, newStatus)) return;
     setUpdatingStatus(true);
-    const backendStatus = newStatus === "completed" ? "Completed" : "InProgress";
+    const backendStatus =
+      newStatus === "completed"
+        ? "Completed"
+        : newStatus === "todo"
+          ? "Todo"
+          : "InProgress";
 
     try {
       await api.patch(`/api/vendors/vendor-tasks/${task.id}/status`, {
         status: backendStatus,
       });
       setStatusDisplay(newStatus);
+      setTask((prev) =>
+        prev ? { ...prev, status: backendStatus } : prev,
+      );
       toast.success(
-        `Task marked as ${newStatus === "in_progress" ? "In Progress" : "Completed"}`,
+        newStatus === "completed"
+          ? "Task marked as completed"
+          : newStatus === "todo"
+            ? "Task marked as to do"
+            : "Task marked as in progress",
       );
     } catch (error) {
       console.error("Error updating status:", error);
@@ -400,16 +432,30 @@ export default function MytaskViewV() {
                 className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-md bg-white py-1 border border-slate-200"
                 role="listbox"
               >
-                {STATUS_OPTIONS.filter((opt) =>
-                    statusDisplay === "completed" ? opt.value === "completed" : true
-                  ).map((opt) => (
+                {STATUS_OPTIONS.filter(
+                  (opt) =>
+                    !(
+                      shouldHideInProgressInDropdown(statusDisplay) &&
+                      opt.value === "in_progress"
+                    ),
+                ).map((opt) => {
+                  const disabled = isStatusOptionDisabled(
+                    statusDisplay,
+                    opt.value,
+                  );
+                  return (
                   <button
                     key={opt.value}
                     type="button"
                     role="option"
+                    aria-disabled={disabled}
+                    disabled={disabled}
                     aria-selected={statusDisplay === opt.value}
                     onClick={() => handleStatusUpdate(opt.value)}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-[#F2F2F2] ${statusDisplay === opt.value
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 ${disabled
+                        ? "text-slate-300 cursor-not-allowed opacity-60"
+                        : "hover:bg-[#F2F2F2]"
+                      } ${statusDisplay === opt.value && !disabled
                         ? "bg-[#F2F2F2] font-medium"
                         : ""
                       }`}
@@ -419,7 +465,8 @@ export default function MytaskViewV() {
                     />
                     {opt.label}
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

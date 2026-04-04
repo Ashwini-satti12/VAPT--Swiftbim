@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import api from "../../lib/api";
 import Group1 from "../../assets/ProjectManager/MyTask/Group1.svg";
 import Group2 from "../../assets/ProjectManager/MyTask/Group2.svg";
@@ -117,6 +118,17 @@ export default function TeamtaskBC() {
 
         // Find task to get projectId if possible
         const task = merged.find(t => t.id === taskId);
+        if (task) {
+            const current = getEffectiveStatus(task);
+            if (current === "todo" && newStatus === "completed") {
+                toast.error("Move the task to In Progress before marking it completed.");
+                return;
+            }
+            if (current === "completed" && newStatus === "in_progress") {
+                toast.error("Completed tasks cannot be moved back to In Progress here.");
+                return;
+            }
+        }
         const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
 
         // Visual update immediately

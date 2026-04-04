@@ -401,9 +401,9 @@ export default function TeamtaskPMV() {
     }, [list, selectedEmployee, selectedProject, selectedPeriod]);
 
     const tasksByStatus = {
-        todo: filteredTasks.filter(t => normalizeStatus(t.status) === "todo"),
-        in_progress: filteredTasks.filter(t => normalizeStatus(t.status) === "in_progress"),
-        completed: filteredTasks.filter(t => normalizeStatus(t.status) === "completed"),
+        todo: filteredTasks.filter(t => normalizeStatus(t.status, t.Approval) === "todo"),
+        in_progress: filteredTasks.filter(t => normalizeStatus(t.status, t.Approval) === "in_progress"),
+        completed: filteredTasks.filter(t => normalizeStatus(t.status, t.Approval) === "completed"),
     };
 
     const displayTasks = {
@@ -413,6 +413,19 @@ export default function TeamtaskPMV() {
     };
 
     const handleMoveTask = (id: number, status: string) => {
+        const next = status as "todo" | "in_progress" | "completed";
+        const taskRow = list.find((t) => t.id === id);
+        if (taskRow) {
+            const current = normalizeStatus(taskRow.status, taskRow.Approval);
+            if (current === "todo" && next === "completed") {
+                toast.error("Move the task to In Progress before marking it completed.");
+                return;
+            }
+            if (current === "completed" && next === "in_progress") {
+                toast.error("Completed tasks cannot be moved back to In Progress here.");
+                return;
+            }
+        }
         const sMap = { todo: "Todo", in_progress: "InProgress", completed: "Completed" };
         api.patch(`/api/vendors/vendor-tasks/${id}/status`, { status: (sMap as any)[status] })
             .then(() => api.get("/api/vendors/vendor-tasks").then(res => setList(res.data.tasks ?? [])))
@@ -428,7 +441,9 @@ export default function TeamtaskPMV() {
         }).catch(() => toast.error("Failed to delete task"));
     };
 
-    function normalizeStatus(s?: string) {
+    function normalizeStatus(s?: string, approval?: string) {
+        if (approval?.toLowerCase() === "approved" || approval?.toLowerCase() === "rejected")
+            return "completed";
         const l = (s || "").toLowerCase();
         if (l.includes("progress")) return "in_progress";
         if (l.includes("complete") || l === "done") return "completed";
