@@ -176,6 +176,8 @@ export default function VendorBimLeadTeamTasks() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const projectFilter = searchParams.get("project");
+    const statusFilter =
+        searchParams.get("status") || searchParams.get("taskstatus");
     const [tasks, setTasks] = useState<Task[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -224,13 +226,22 @@ export default function VendorBimLeadTeamTasks() {
     const formAssignMenuRef = useRef<HTMLDivElement>(null);
 
 
-    // Status/filter state
-    const [activeTab] = useState("All");
+    const normalizeStatus = (
+        s: string | undefined,
+    ): "todo" | "in_progress" | "completed" => {
+        if (!s) return "todo";
+        const lower = s.toLowerCase().replace(/\s+/g, "_");
+        if (lower.includes("progress") || lower === "in_progress") return "in_progress";
+        if (lower.includes("complete") || lower === "done") return "completed";
+        return "todo";
+    };
 
     const fetchData = () => {
         setLoading(true);
+        const taskParams: Record<string, string> = { condition: "1" };
+        if (statusFilter) taskParams.status = statusFilter;
         Promise.all([
-            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks?condition=1"),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: taskParams }),
             api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
             api.get<{ employees?: Employee[] }>("/api/employees"),
             api.get<{ teams?: Team[] }>("/api/vendors/vendor-teams"),
@@ -259,7 +270,7 @@ export default function VendorBimLeadTeamTasks() {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [statusFilter]);
 
     // Click-outside for form dropdowns
     useEffect(() => {
@@ -501,7 +512,7 @@ export default function VendorBimLeadTeamTasks() {
     );
 
     const filteredTasks = tasks.filter((t) => {
-        const matchesStatus = activeTab === "All" || t.status === activeTab;
+        const matchesStatus = !statusFilter || normalizeStatus(t.status) === normalizeStatus(statusFilter);
         const matchesEmployee =
             selectedEmployeeFilter === "All Employees" ||
             t.assigned_to_name === selectedEmployeeFilter;
@@ -516,17 +527,6 @@ export default function VendorBimLeadTeamTasks() {
         const matchesProject = !projectFilter || t.project_name === projectFilter;
         return matchesEmployee && matchesProject;
     });
-
-
-    const normalizeStatus = (
-        s: string | undefined,
-    ): "todo" | "in_progress" | "completed" => {
-        if (!s) return "todo";
-        const lower = s.toLowerCase().replace(/\s+/g, "_");
-        if (lower.includes("progress") || lower === "in_progress") return "in_progress";
-        if (lower.includes("complete") || lower === "done") return "completed";
-        return "todo";
-    };
 
     const counts = {
         todo: baseFilteredTasks.filter(

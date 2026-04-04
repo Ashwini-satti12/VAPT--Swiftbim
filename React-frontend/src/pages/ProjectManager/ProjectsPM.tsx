@@ -12,6 +12,7 @@ import { isEmployeeActiveForProjectAssignment } from '../../utils/employeeActive
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg"
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
+import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 
 interface Employee {
@@ -216,9 +217,40 @@ export default function ProjectsPM() {
   const [bimLeads, setBimLeads] = useState<string[]>([]);
   const [bimCoordinators, setBimCoordinators] = useState<string[]>([]);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [vendorResourceProfiles, setVendorResourceProfiles] = useState<Employee[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [memberSearch, setMemberSearch] = useState('');
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
+  const resolveProjectMember = (id: string | number) =>
+    allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)) ||
+    vendorResourceProfiles.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id));
+  const normalizeMemberForProfile = (member: Employee): Employee => {
+    const raw = member as unknown as Record<string, unknown>;
+    return {
+      ...member,
+      employee_id:
+        member.employee_id ||
+        (typeof raw.empid === 'string' ? raw.empid : undefined) ||
+        '',
+      phone:
+        member.phone ||
+        (typeof raw.phone_number === 'string' ? raw.phone_number : undefined) ||
+        '',
+      user_role:
+        member.user_role ||
+        (typeof raw.role === 'string'
+          ? raw.role
+          : typeof raw.designation === 'string'
+            ? raw.designation
+            : undefined) ||
+        '',
+    };
+  };
+  const openMemberProfile = (member?: Employee) => {
+    if (!member) return;
+    setSelectedMember(normalizeMemberForProfile(member));
+    setShowMemberProfileModal(true);
+  };
   const [departments, setDepartments] = useState<string[]>([]);
   const [clientsList, setClientsList] = useState<{ id: number; full_name: string }[]>([]);
   const priorityOptions = ['High', 'Normal', 'Low'];
@@ -256,10 +288,11 @@ export default function ProjectsPM() {
     let isMounted = true;
     const fetchEmployeesAndDepartments = async () => {
       try {
-        const [empRes, depRes, clientRes] = await Promise.all([
+        const [empRes, depRes, clientRes, vendorRes] = await Promise.all([
           api.get('/api/employees'),
           api.get('/api/departments'),
           api.get('/api/clients/from-users'),
+          api.get('/api/vendors/vendor-resource-profiles'),
         ]);
         if (isMounted) {
           const empData: Employee[] = empRes.data.employees || [];
@@ -290,6 +323,7 @@ export default function ProjectsPM() {
               .map((e) => e.full_name),
           );
           setAllEmployees(empData);
+          setVendorResourceProfiles(vendorRes.data.resources || []);
           setDepartments(depRes.data.departments || []);
           setClientsList(clientRes.data.clients || []);
         }
@@ -524,7 +558,12 @@ export default function ProjectsPM() {
     bim_co_ordinator: r.bim_coordinator_id != null ? String(r.bim_coordinator_id) : undefined,
     bim_coordinator_id: r.bim_coordinator_id != null ? String(r.bim_coordinator_id) : undefined,
     bim_coordinator_name: r.bim_coordinator_name != null ? String(r.bim_coordinator_name) : undefined,
-    member: r.members != null ? String(r.members) : undefined,
+    member:
+      r.members != null
+        ? String(r.members)
+        : r.member != null
+          ? String(r.member)
+          : undefined,
     resources: r.resources != null ? String(r.resources) : undefined,
     required_resources: r.required_resources != null ? String(r.required_resources) : undefined,
     location: r.location != null ? String(r.location) : undefined,
@@ -1007,7 +1046,7 @@ export default function ProjectsPM() {
                       <div className="flex items-center gap-3">
                         {(() => {
                           const id = memberIdsForView[0];
-                          const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
+                          const emp = resolveProjectMember(id);
                           const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
                           return (
                             <>
@@ -1015,8 +1054,8 @@ export default function ProjectsPM() {
                                 role="button"
                                 tabIndex={0}
                                 className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
-                                onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                                onClick={() => openMemberProfile(emp)}
+                                onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && emp) { e.preventDefault(); openMemberProfile(emp); } }}
                               >
                                 {url ? (
                                   <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
@@ -1034,7 +1073,7 @@ export default function ProjectsPM() {
                     ) : (
                       <div className="flex flex-wrap items-center -space-x-4">
                         {memberIdsForView.slice(0, 3).map((id, j) => {
-                          const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
+                          const emp = resolveProjectMember(id);
                           const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
                           return (
                             <div key={j} className="relative group shrink-0">
@@ -1042,8 +1081,8 @@ export default function ProjectsPM() {
                                 role="button"
                                 tabIndex={0}
                                 className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
-                                onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                                onClick={() => openMemberProfile(emp)}
+                                onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && emp) { e.preventDefault(); openMemberProfile(emp); } }}
                               >
                                 {url ? (
                                   <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
@@ -1067,7 +1106,7 @@ export default function ProjectsPM() {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 const emps = memberIdsForView
-                                  .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
+                                  .map((id) => resolveProjectMember(id))
                                   .filter(Boolean) as Employee[];
                                 setAllMembersList(emps);
                                 setShowAllMembersModal(true);
@@ -1076,7 +1115,7 @@ export default function ProjectsPM() {
                                 if (e.key === 'Enter' || e.key === ' ') {
                                   e.preventDefault();
                                   const emps = memberIdsForView
-                                    .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
+                                    .map((id) => resolveProjectMember(id))
                                     .filter(Boolean) as Employee[];
                                   setAllMembersList(emps);
                                   setShowAllMembersModal(true);
@@ -1203,33 +1242,28 @@ export default function ProjectsPM() {
                           .map((file) => file.trim())
                           .filter(Boolean)
                           .map((fileName, idx) => {
-                            const url = `${api.defaults.baseURL}uploads/${fileName}`;
+                            const isOutsource = selectedProjectForView.source === "Outsource";
+                            const url = isOutsource 
+                                ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}` 
+                                : `${api.defaults.baseURL}uploads/${fileName}`;
+                                
                             return (
-                              <div key={idx} className="flex items-center gap-3">
-                                <a
-                                  href={url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-[16px] font-Gantari font-medium text-blue-600 hover:underline"
-                                >
-                                  {truncateFileName ? truncateFileName(fileName) : fileName}
-                                </a>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const link = document.createElement("a");
-                                    link.href = url;
-                                    link.download = fileName;
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                  }}
-                                  className="p-1 hover:bg-slate-100 rounded transition-colors"
-                                  title="Download"
-                                >
-                                  ⬇️
-                                </button>
-                              </div>
+                                <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-2 rounded-xl border border-slate-200 w-full md:max-w-xs mt-1">
+                                  <div className="p-1.5 bg-white rounded-lg shadow-sm">
+                                    <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                                  </div>
+                                  <span className="text-[13px] font-bold text-[#353535] line-clamp-1 flex-1">
+                                    {fileName.split('_').pop() || "Document"}
+                                  </span>
+                                  <div className="flex gap-1">
+                                    <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-white rounded" title="View">
+                                      <img src={viewIcon} alt="View" className="w-[16px] h-[16px] opacity-70 hover:opacity-100" />
+                                    </a>
+                                    <a href={url} download className="p-1 hover:bg-white rounded" title="Download">
+                                      <FiUploadCloud className="w-[16px] h-[16px] rotate-180 text-slate-500 hover:text-[#DD4342]" />
+                                    </a>
+                                  </div>
+                                </div>
                             );
                           })
                       ) : (
@@ -1839,63 +1873,79 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* ── Attach File with Preview ── */}
-                <div className="md:col-span-2 space-y-4">
-                  <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Attach File <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
-                      <div className="flex-1 px-4 py-2 text-[14px] text-[#8B8B8B] font-Gantari truncate">
-                        {createFiles.length > 0 ? `${createFiles.length} file(s) selected` : 'Choose Files'}
-                      </div>
-                      <label className="px-6 py-2 bg-[#E8E8E8] text-[#616161] font-semibold text-[16px] font-Gantari cursor-pointer">
-                        Browse Files
-                        <input
-                          type="file"
-                          multiple
-                          className="hidden"
-                          onChange={(e) => {
-                            const newFiles = Array.from(e.target.files || []);
-                            setCreateFiles(prev => [...prev, ...newFiles]);
-                          }}
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* File Previews */}
+                {/* ── Attach File (full width) ── */}
+                <div className="md:col-span-2 space-y-4 pt-4">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Attach File <span className="text-[#DD4342]">*</span>
+                  </label>
+                  
+                  {/* File Gallery */}
                   {createFiles.length > 0 && (
-                    <div className="grid grid-cols-1 gap-2">
+                    <div className="flex flex-wrap gap-3 mb-4">
                       {createFiles.map((file, idx) => (
-                        <div key={idx} className="flex items-center gap-3 p-3 bg-[#F2F3F4] rounded-[5px] group w-full">
+                        <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
+                          <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-[14px] font-semibold text-[#353535] truncate">{file.name}</p>
-                            <p className="text-[12px] font-medium text-[#8B8B8B]">{(file.size / 1024).toFixed(1)} KB</p>
+                            <p className="text-[13px] font-bold text-[#353535] truncate">
+                                {file.name}
+                            </p>
+                            <p className="text-[11px] text-slate-500">
+                                {(file.size / 1024).toFixed(1)} KB
+                            </p>
                           </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => window.open(URL.createObjectURL(file), '_blank')}
-                              className="text-[#DD4342] hover:opacity-80 transition-opacity cursor-pointer shrink-0"
-                              title="View file"
+                          <div className="flex gap-1.5">
+                            <button 
+                                type="button"
+                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                                className="p-1 hover:bg-slate-50 rounded transition-colors"
                             >
-                              <img src={viewIcon} alt="View" className="w-5 h-5" />
+                                <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
                             </button>
                             <button
                               type="button"
-                              onClick={() => setCreateFiles(prev => prev.filter((_, i) => i !== idx))}
-                              className="text-[#616161] hover:text-[#DD4342] transition-colors cursor-pointer shrink-0"
-                              title="Remove file"
+                              onClick={() =>
+                                setCreateFiles((prev) =>
+                                  prev.filter((_, i) => i !== idx),
+                                )
+                              }
+                              className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
                             >
-                              <img src={deleteIcon} alt="Delete" className="w-5 h-5" />
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
                             </button>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
+
+                  <div className="relative group">
+                    <input
+                      type="file"
+                      id="file-upload-create"
+                      className="hidden"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        setCreateFiles((prev) => [...prev, ...files]);
+                      }}
+                    />
+                    <label
+                      htmlFor="file-upload-create"
+                      className="flex flex-col items-center justify-center w-full h-32 px-4 transition bg-[#F8FAFC] border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 hover:border-[#DD4342]/40 group"
+                    >
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <FiUploadCloud className="w-8 h-8 mb-3 text-slate-400 group-hover:text-[#DD4342] transition-colors" />
+                        <p className="mb-1 text-sm text-slate-500 group-hover:text-slate-600">
+                          <span className="font-bold">Add new files</span> or drag and drop
+                        </p>
+                        <p className="text-xs text-slate-400">PDF, DOCX, ZIP or Images (Max 10MB)</p>
+                      </div>
+                    </label>
+                  </div>
                 </div>
+
               </div>
 
               {/* Footer Buttons - AddConsultantTD style */}
@@ -2410,98 +2460,110 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* ── Attach File with Preview (Edit) ── */}
-                <div className="md:col-span-2 space-y-4">
-                  <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari cursor-pointer ">
-                      Attach File <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
-                      <div className="flex-1 px-4 py-2 text-[14px] text-[#8B8B8B] font-Gantari truncate">
-                        {(createFiles.length + existingFiles.length) > 0
-                          ? `${createFiles.length + existingFiles.length} file(s) total`
-                          : 'Choose Files'}
-                      </div>
-                      <label className="px-6 py-2 bg-[#E8E8E8] text-[#616161] font-semibold text-[14px] font-Gantari cursor-pointer transition-colors whitespace-nowrap cursor-pointer">
-                        Browse Files
-                        <input
-                          type="file"
-                          multiple
-                          className="hidden"
-                          onChange={(e) => {
-                            const newFiles = Array.from(e.target.files || []);
-                            setCreateFiles(prev => [...prev, ...newFiles]);
-                          }}
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Combined File Previews (Existing + New) */}
+                {/* ── Attach File (full width) ── */}
+                <div className="md:col-span-2 space-y-4 pt-4 pb-8">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Attach File <span className="text-[#DD4342]">*</span>
+                  </label>
+                  
+                  {/* File Gallery */}
                   {(existingFiles.length > 0 || createFiles.length > 0) && (
-                    <div className="grid grid-cols-1 gap-2">
+                    <div className="flex flex-wrap gap-3 mb-4">
                       {/* Existing Files */}
-                      {existingFiles.map((fileName, idx) => (
-                        <div key={`exist-${idx}`} className="flex items-center gap-3 p-3 bg-[#F2F3F4] rounded-[5px] group w-full">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[14px] font-semibold text-[#353535] truncate">{fileName}</p>
-                            <p className="text-[12px] font-medium text-[#8B8B8B]">Existing File</p>
-                          </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            <a
-                              href={`${api.defaults.baseURL}/uploads/${fileName}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[#DD4342] hover:opacity-80 transition-opacity cursor-pointer shrink-0"
-                              title="View file"
-                            >
-                              <img src={viewIcon} alt="View" className="w-5 h-5" />
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setRemovedFiles(prev => [...prev, fileName]);
-                                setExistingFiles(prev => prev.filter(f => f !== fileName));
-                              }}
-                              className="text-[#616161] hover:text-[#DD4342] transition-colors cursor-pointer shrink-0"
-                              title="Remove file"
-                            >
-                              <img src={deleteIcon} alt="Delete" className="w-5 h-5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                      {existingFiles.map((fileName, idx) => {
+                         const isOutsource = selectedProjectForEdit?.source === "Outsource";
+                         const url = isOutsource 
+                            ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}` 
+                            : `${api.defaults.baseURL}uploads/${fileName}`;
+                         return (
+                            <div key={`existing-${idx}`} className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
+                              <FiPaperclip className="w-4 h-4 text-blue-500" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[13px] font-bold text-[#353535] truncate">{fileName}</p>
+                                <p className="text-[11px] text-blue-600 font-medium tracking-wide uppercase">Existing</p>
+                              </div>
+                              <div className="flex gap-1.5">
+                                <button 
+                                    type="button"
+                                    onClick={() => window.open(url, '_blank')}
+                                    className="p-1 hover:bg-white rounded transition-colors"
+                                >
+                                    <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRemovedFiles(prev => [...prev, fileName]);
+                                    setExistingFiles(prev => prev.filter(f => f !== fileName));
+                                  }}
+                                  className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                              </div>
+                            </div>
+                         );
+                      })}
 
                       {/* Newly Selected Files */}
                       {createFiles.map((file, idx) => (
-                        <div key={`new-${idx}`} className="flex items-center gap-3 p-3 bg-[#F2F3F4] rounded-[5px] group w-full">
+                        <div key={`new-${idx}`} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
+                          <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-[14px] font-semibold text-[#353535] truncate">{file.name}</p>
-                            <p className="text-[12px] font-medium text-[#8B8B8B]">{(file.size / 1024).toFixed(1)} KB</p>
+                            <p className="text-[13px] font-bold text-[#353535] truncate">{file.name}</p>
+                            <p className="text-[11px] text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
                           </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => window.open(URL.createObjectURL(file), '_blank')}
-                              className="text-[#DD4342] hover:opacity-80 transition-opacity cursor-pointer shrink-0"
-                              title="View file"
+                          <div className="flex gap-1.5">
+                            <button 
+                                type="button"
+                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                                className="p-1 hover:bg-slate-50 rounded transition-colors"
                             >
-                              <img src={viewIcon} alt="View" className="w-5 h-5" />
+                                <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
                             </button>
                             <button
                               type="button"
                               onClick={() => setCreateFiles(prev => prev.filter((_, i) => i !== idx))}
-                              className="text-[#616161] hover:text-[#DD4342] transition-colors cursor-pointer shrink-0"
-                              title="Remove file"
+                              className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
                             >
-                              <img src={deleteIcon} alt="Delete" className="w-5 h-5" />
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
                             </button>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
+
+                  <div className="relative group">
+                    <input
+                      type="file"
+                      id="file-upload-edit"
+                      className="hidden"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        setCreateFiles((prev) => [...prev, ...files]);
+                      }}
+                    />
+                    <label
+                      htmlFor="file-upload-edit"
+                      className="flex flex-col items-center justify-center w-full h-32 px-4 transition bg-[#F8FAFC] border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 hover:border-[#DD4342]/40 group"
+                    >
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <FiUploadCloud className="w-8 h-8 mb-3 text-slate-400 group-hover:text-[#DD4342] transition-colors" />
+                        <p className="mb-1 text-sm text-slate-500 group-hover:text-slate-600">
+                          <span className="font-bold">Add new files</span> or drag and drop
+                        </p>
+                        <p className="text-xs text-slate-400">PDF, DOCX, ZIP or Images (Max 10MB)</p>
+                      </div>
+                    </label>
+                  </div>
                 </div>
+
               </div>
 
               {/* Footer Buttons - AddConsultantTD style */}
@@ -2604,7 +2666,7 @@ export default function ProjectsPM() {
                                 <img src={viewIcon} alt="view" className="w-5 h-5 transition-all grayscale group-hover:grayscale-0 group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
                                 <span className="text-[14px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">View</span>
                               </button>
-                              {(isTechnicalDirector || isManagement) && (
+                              {p.source !== "Outsource" && (isTechnicalDirector || isManagement) && (
                                 <button
                                   onClick={() => { setCurrentProject(p); setShowMilestones(true); setOpenMenuId(null); }}
                                   className="group w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left font-Gantari cursor-pointer"
@@ -2613,7 +2675,7 @@ export default function ProjectsPM() {
                                   <span className="text-[14px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">Payment Milestones</span>
                                 </button>
                               )}
-                              {canEdit && (
+                              {p.source !== "Outsource" && canEdit && (
                                 <button
                                   onClick={() => {
                                     setCurrentProject(p);
@@ -2663,7 +2725,7 @@ export default function ProjectsPM() {
                                   <span className="text-[14px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">Edit</span>
                                 </button>
                               )}
-                              {canDelete && (
+                              {p.source !== "Outsource" && canDelete && (
                                 <button
                                   onClick={() => { setDeleteProject(p); setOpenMenuId(null); }}
                                   className="group w-full flex items-center gap-4 px-6 py-2 transition-colors text-left font-Gantari cursor-pointer"
@@ -2693,7 +2755,7 @@ export default function ProjectsPM() {
                           {(() => {
                             const rawIds = p.member ? p.member.split(',').map(m => m.trim()).filter(Boolean) : [];
                             const memberIds_card = rawIds.map((m) => { const n = Number(m); return Number.isNaN(n) ? m : n; });
-                            const projectEmployees = memberIds_card.map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)) ).filter(Boolean) as Employee[];
+                            const projectEmployees = memberIds_card.map((id) => resolveProjectMember(id)).filter(Boolean) as Employee[];
                             const visibleMembers = projectEmployees.slice(0, 3);
                             const remainingCount = Math.max(0, projectEmployees.length - 3);
                             return (
@@ -2707,7 +2769,7 @@ export default function ProjectsPM() {
                                       tabIndex={0}
                                       className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
                                       title={emp.full_name}
-                                      onClick={(e) => { e.stopPropagation(); setSelectedMember(emp); setShowMemberProfileModal(true); }}
+                                      onClick={(e) => { e.stopPropagation(); openMemberProfile(emp); }}
                                     >
                                       {profileUrl ? (
                                         <img src={profileUrl} alt={emp.full_name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
@@ -3009,9 +3071,8 @@ export default function ProjectsPM() {
                         key={m.id}
                         className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
                         onClick={() => {
-                          setSelectedMember(m);
+                          openMemberProfile(m);
                           setShowAllMembersModal(false);
-                          setShowMemberProfileModal(true);
                         }}
                       >
                         {profileUrl ? (
