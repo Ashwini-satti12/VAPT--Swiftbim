@@ -223,6 +223,7 @@ export default function CreateteamBL() {
     const [submitting, setSubmitting] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [teamToDelete, setTeamToDelete] = useState<number | null>(null);
+    const [deleteSuccess, setDeleteSuccess] = useState(false);
     const memberDropdownRef = useRef<HTMLDivElement>(null);
     const leaderDropdownRef = useRef<HTMLDivElement>(null);
     const [searchParams] = useSearchParams();
@@ -364,6 +365,8 @@ export default function CreateteamBL() {
                     setTeams(teams.filter(t => t.team_id !== teamToDelete));
                     setShowDeleteModal(false);
                     setTeamToDelete(null);
+                    setDeleteSuccess(true);
+                    setTimeout(() => setDeleteSuccess(false), 2000);
                 }
             })
             .catch(console.error)
@@ -407,7 +410,7 @@ export default function CreateteamBL() {
 
     return (
         <div className="h-full flex flex-col p-2">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-4">
                 <h2 className="text-[24px] font-semibold text-[#000000] font-Gantari">Team Workspace</h2>
                 <button
                     onClick={() => { setShowLeaderDropdown(false); setShowMemberDropdown(false); setShowAddModal(true); }}
@@ -417,6 +420,15 @@ export default function CreateteamBL() {
                     New Team
                 </button>
             </div>
+
+            {deleteSuccess && (
+                <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm transition-all duration-300">
+                    <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold shrink-0">✓</div>
+                    <div className="flex-1">
+                        <p className="mt-0.5 text-[14px] leading-snug font-medium font-Gantari">Deleted successfully!</p>
+                    </div>
+                </div>
+            )}
 
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
