@@ -43,6 +43,14 @@ def _serialize_row(d):
 # Roles that see all company projects and tasks
 MANAGEMENT_ROLES = ("Technical Director", "CEO")
 
+# Match tasks.list_tasks: do not count `tasks` rows for main projects tied to vendor_projects
+# (those are shown as vendor_task / outsource on Team Task).
+_TD_TASKS_EXCLUDE_OUTSOURCE_SQL = """NOT EXISTS (
+    SELECT 1 FROM snh6_swiftproject.vendor_projects vp
+    INNER JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
+    WHERE mp.id = t.projectid AND mp.Company_id = t.Company_id
+)"""
+
 
 @bp.route("/stats", methods=["GET"])
 @project_app_required
@@ -118,7 +126,8 @@ def stats():
             cur.execute(
                 f"""SELECT COUNT(*) AS total_tasks FROM tasks t
                     INNER JOIN projects p ON t.projectid = p.id AND {_involved_where}
-                    WHERE {status_clause}{modeler_filter}""",
+                    WHERE {status_clause}{modeler_filter}
+                    AND {_TD_TASKS_EXCLUDE_OUTSOURCE_SQL}""",
                 t_params,
             )
             row = cur.fetchone()
@@ -214,6 +223,11 @@ def stats():
     completed_tasks = get_tasks_in_my_projects(user_id, "Completed")
     new_tasks = get_tasks_in_my_projects(user_id, "Todo")
 
+    # Team Task PM merges /api/vendors/vendor-tasks (company outsource); include those counts here.
+    if user_role == "Project Manager":
+        in_progress_tasks += _count_vendor_tasks_td(cur, company_id, "InProgress")
+        completed_tasks += _count_vendor_tasks_td(cur, company_id, "Completed")
+
     return jsonify({
         "totalProjects": total_projects,
         "completedProjects": completed_projects,
@@ -224,11 +238,31 @@ def stats():
     })
 
 
+def _count_vendor_tasks_td(cur, company_id: int, status: str) -> int:
+    """Count vendor_task rows for outsource work linked to main projects in this company (Team Task TD scope)."""
+    try:
+        cur.execute(
+            """SELECT COUNT(*) AS total FROM snh6_swiftproject.vendor_task vt
+               WHERE vt.status = %s
+                 AND EXISTS (
+                   SELECT 1 FROM snh6_swiftproject.vendor_projects vp2
+                   LEFT JOIN snh6_swiftproject.projects mp
+                     ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci
+                   WHERE vp2.id = vt.project_id AND mp.Company_id = %s
+                 )""",
+            (status, company_id),
+        )
+        row = cur.fetchone()
+        return int((row or {}).get("total") or 0)
+    except Exception:
+        return 0
+
+
 @bp.route("/td-stats", methods=["GET"])
 @project_app_required
 def td_stats():
-    """Special KPI stats for Technical Director: counts all company projects and all tasks 
-    (independent of project joining) to match the Team Task view counts."""
+    """KPI stats for Technical Director: company projects plus task counts that match Team Task TD
+    (internal `tasks` + outsource `vendor_task` linked via vendor_projects → projects by name)."""
     company_id = g.company_id
     conn = get_db()
     cur = conn.cursor(dictionary=True)
@@ -237,26 +271,38 @@ def td_stats():
     cur.execute("SELECT COUNT(*) AS total FROM projects WHERE Company_id = %s", (company_id,))
     total_projects = cur.fetchone()["total"] or 0
 
-    # 2. Completed Projects
-    cur.execute("SELECT COUNT(*) AS total FROM projects WHERE Company_id = %s AND progress = 100", (company_id,))
+    # 2. Completed Projects (same completion rule as GET /api/projects?status=Completed)
+    cur.execute(
+        """SELECT COUNT(*) AS total FROM projects
+           WHERE Company_id = %s AND (
+             (progress REGEXP '^[0-9]+(\\.[0-9]+)?$' AND CAST(progress AS DECIMAL(10,2)) >= 100)
+             OR CAST(progress AS UNSIGNED) = 100
+           )""",
+        (company_id,),
+    )
     completed_projects = cur.fetchone()["total"] or 0
 
-    # 3. In Progress Tasks (matching Team Task view logic)
+    # 3. In Progress Tasks: internal tasks + vendor_task (same filters as TeamtaskTD merged list)
     cur.execute(
-        """SELECT COUNT(*) AS total FROM tasks 
-           WHERE Company_id = %s AND status = 'InProgress' 
-           AND (Approval IS NULL OR Approval NOT IN ('Approved', 'Rejected'))""",
-        (company_id,)
+        f"""SELECT COUNT(*) AS total FROM tasks t
+           WHERE t.Company_id = %s AND t.status IN ('InProgress', 'Started')
+           AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))
+           AND {_TD_TASKS_EXCLUDE_OUTSOURCE_SQL}""",
+        (company_id,),
     )
-    in_progress_tasks = cur.fetchone()["total"] or 0
+    in_progress_tasks = (cur.fetchone() or {}).get("total") or 0
+    in_progress_tasks += _count_vendor_tasks_td(cur, company_id, "InProgress")
 
-    # 4. Completed Tasks (matching Team Task view logic)
+    # 4. Completed Tasks: internal + vendor_task
     cur.execute(
-        """SELECT COUNT(*) AS total FROM tasks 
-           WHERE Company_id = %s AND (status = 'Completed' OR Approval IN ('Approved', 'Rejected'))""",
-        (company_id,)
+        f"""SELECT COUNT(*) AS total FROM tasks t
+           WHERE t.Company_id = %s
+           AND (t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))
+           AND {_TD_TASKS_EXCLUDE_OUTSOURCE_SQL}""",
+        (company_id,),
     )
-    completed_tasks = cur.fetchone()["total"] or 0
+    completed_tasks = (cur.fetchone() or {}).get("total") or 0
+    completed_tasks += _count_vendor_tasks_td(cur, company_id, "Completed")
 
     return jsonify({
         "totalProjects": total_projects,

@@ -129,8 +129,14 @@ def list_tasks():
             elif user_role == "BIM Modeler":
                 where.append("FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0")
                 params.append(g.user_id)
+            elif user_role == "Project Manager":
+                # Match projects.py and dashboard /stats: only projects where user is Project Manager
+                where.append(
+                    "FIND_IN_SET(%s, REPLACE(IFNULL(p.project_manager_id, ''), ' ', '')) > 0"
+                )
+                params.append(g.user_id)
             else:
-                # Other roles (like Project Manager): client_id, PM, lead, bim_coordinator_id, uploaderid, members
+                # Consultant and other roles: any project involvement
                 where.append("""(
                         p.client_id = %s OR p.project_manager_id = %s OR p.lead_id = %s OR p.bim_coordinator_id = %s OR p.uploaderid = %s
                         OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
@@ -145,7 +151,9 @@ def list_tasks():
         if status == 'todo':
             where.append("t.status = 'Todo'")
         elif status == 'in_progress':
-            where.append("t.status = 'InProgress' AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))")
+            where.append(
+                "(t.status IN ('InProgress', 'Started')) AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))"
+            )
         elif status == 'completed':
             where.append("(t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))")
         else:

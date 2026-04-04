@@ -39,6 +39,54 @@ const defaultStats: DashboardStats = {
   completedTasks: 0,
 };
 
+/** Same as TeamtaskBC.tsx — board columns use this, not MytaskBC normalizeStatus. */
+const BC_TEAMTASK_STORAGE_KEY = "bc_teamTask_localTasks";
+const BC_TEAMTASK_DELETED_IDS_KEY = "bc_teamTask_deletedIds";
+
+type BcTeamTaskRow = {
+  id: number;
+  status?: string;
+  Approval?: string;
+};
+
+function bcTeamTaskEffectiveStatus(task: BcTeamTaskRow): "todo" | "in_progress" | "completed" {
+  if (!task.status) return "todo";
+  const lower = task.status.toLowerCase().replace(/\s+/g, "_");
+  if (lower.includes("progress") || lower === "in_progress") return "in_progress";
+  if (
+    lower.includes("complete") ||
+    lower === "done" ||
+    task.Approval === "Approved"
+  )
+    return "completed";
+  return "todo";
+}
+
+function bcLoadDeletedIds(): number[] {
+  try {
+    const raw = localStorage.getItem(BC_TEAMTASK_DELETED_IDS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed)
+      ? parsed.map(Number).filter((n) => !Number.isNaN(n))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function bcMergeTeamTasksForKpi(
+  serverList: BcTeamTaskRow[],
+  localTasks: BcTeamTaskRow[],
+  deletedIds: number[],
+): BcTeamTaskRow[] {
+  const merged = [
+    ...localTasks,
+    ...serverList.filter((t) => !localTasks.some((l) => l.id === t.id)),
+  ];
+  return merged.filter((t) => !deletedIds.includes(t.id));
+}
+
 function formatDateOnly(isoOrDate: string | null | undefined): string {
   if (!isoOrDate) return "—";
   const d = new Date(isoOrDate);
@@ -113,20 +161,79 @@ export default function DashboardBC() {
   const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
   const monthDropdownRef = useRef<HTMLDivElement>(null);
 
-  // KPI cards: projects the BIM coordinator is involved in + tasks (in-progress/completed) for those projects
+  // Project KPIs from dashboard API; task counts match TeamtaskBC (team board + outsource + local overlay).
   useEffect(() => {
-    api
-      .get<DashboardStats>("/api/dashboard/stats")
-      .then(({ data }) =>
-        setStats({
-          totalProjects: data.totalProjects ?? 0,
-          completedProjects: data.completedProjects ?? 0,
-          inProgressTasks: data.inProgressTasks ?? 0,
-          completedTasks: data.completedTasks ?? 0,
-        }),
-      )
-      .catch(() => setStats(defaultStats))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    (async () => {
+      try {
+        let totalProjects = 0;
+        let completedProjects = 0;
+        try {
+          const statsRes = await api.get<DashboardStats>("/api/dashboard/stats");
+          totalProjects = statsRes.data.totalProjects ?? 0;
+          completedProjects = statsRes.data.completedProjects ?? 0;
+        } catch {
+          /* keep zeros */
+        }
+
+        const teamParams = { condition: "1", employeeid: "all" } as const;
+        const [tasksRes, vendorRes] = await Promise.all([
+          api
+            .get<{ tasks?: BcTeamTaskRow[] }>("/api/tasks", { params: teamParams })
+            .catch(() => ({ data: { tasks: [] as BcTeamTaskRow[] } })),
+          api
+            .get<{ tasks?: BcTeamTaskRow[] }>("/api/vendors/vendor-tasks", {
+              params: teamParams,
+            })
+            .catch(() => ({ data: { tasks: [] as BcTeamTaskRow[] } })),
+        ]);
+        if (cancelled) return;
+
+        const serverList: BcTeamTaskRow[] = [
+          ...(tasksRes.data.tasks ?? []),
+          ...(vendorRes.data.tasks ?? []),
+        ];
+
+        let localTasks: BcTeamTaskRow[] = [];
+        try {
+          const raw = localStorage.getItem(BC_TEAMTASK_STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw) as unknown;
+            localTasks = Array.isArray(parsed) ? (parsed as BcTeamTaskRow[]) : [];
+          }
+        } catch {
+          localTasks = [];
+        }
+
+        const merged = bcMergeTeamTasksForKpi(
+          serverList,
+          localTasks,
+          bcLoadDeletedIds(),
+        );
+        const inProgressTasks = merged.filter(
+          (t) => bcTeamTaskEffectiveStatus(t) === "in_progress",
+        ).length;
+        const completedTasks = merged.filter(
+          (t) => bcTeamTaskEffectiveStatus(t) === "completed",
+        ).length;
+
+        if (!cancelled) {
+          setStats({
+            totalProjects,
+            completedProjects,
+            inProgressTasks,
+            completedTasks,
+          });
+        }
+      } catch {
+        if (!cancelled) setStats(defaultStats);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

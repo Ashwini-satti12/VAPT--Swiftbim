@@ -21,6 +21,54 @@ const defaultStats: DashboardStats = {
     completedTasks: 0,
 };
 
+/** Same keys and rules as TeamtaskBL.tsx so KPIs match the Team Task board. */
+const BL_TEAMTASK_STORAGE_KEY = 'bl_teamTask_localTasks';
+const BL_TEAMTASK_DELETED_IDS_KEY = 'bl_teamTask_deletedIds';
+
+type TeamTaskRow = {
+    id: number;
+    status?: string;
+    Approval?: string;
+};
+
+function blNormalizeStatus(
+    s: string | undefined,
+    approval?: string
+): 'todo' | 'in_progress' | 'completed' {
+    if (approval?.toLowerCase() === 'approved') return 'completed';
+    if (approval?.toLowerCase() === 'rejected') return 'todo';
+    if (!s) return 'todo';
+    const lower = s.toLowerCase().replace(/\s+/g, '_');
+    if (lower.includes('progress') || lower === 'in_progress') return 'in_progress';
+    if (lower.includes('complete') || lower === 'done') return 'completed';
+    return 'todo';
+}
+
+function blLoadDeletedIds(): number[] {
+    try {
+        const raw = localStorage.getItem(BL_TEAMTASK_DELETED_IDS_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw) as unknown;
+        return Array.isArray(parsed)
+            ? parsed.map(Number).filter((n) => !Number.isNaN(n))
+            : [];
+    } catch {
+        return [];
+    }
+}
+
+function blMergeTeamTasksForKpi(
+    serverList: TeamTaskRow[],
+    localTasks: TeamTaskRow[],
+    deletedIds: number[]
+): TeamTaskRow[] {
+    const merged = [
+        ...localTasks,
+        ...serverList.filter((t) => !localTasks.some((l) => l.id === t.id)),
+    ];
+    return merged.filter((t) => !deletedIds.includes(t.id));
+}
+
 type InvolvedPerson = { id: number; full_name: string; profile_picture: string | null };
 type PriorityTask = {
     id: number;
@@ -103,17 +151,75 @@ export default function DashboardBL() {
         );
     }, [priorityTasks, searchParams]);
 
-    // KPI cards: fetch from dashboard API (same as TD, BC, PM)
+    // KPI cards: project counts from dashboard API; in-progress / completed match TeamtaskBL
+    // (internal + vendor tasks, same localStorage overlay as the team board).
     useEffect(() => {
-        api.get<DashboardStats>('/api/dashboard/stats')
-            .then(({ data }) => setStats({
-                totalProjects: Number(data?.totalProjects) || 0,
-                completedProjects: Number(data?.completedProjects) || 0,
-                inProgressTasks: Number(data?.inProgressTasks) || 0,
-                completedTasks: Number(data?.completedTasks) || 0,
-            }))
-            .catch(() => setStats(defaultStats))
-            .finally(() => setLoading(false));
+        let cancelled = false;
+        (async () => {
+            try {
+                let totalProjects = 0;
+                let completedProjects = 0;
+                try {
+                    const statsRes = await api.get<DashboardStats>('/api/dashboard/stats');
+                    totalProjects = Number(statsRes.data?.totalProjects) || 0;
+                    completedProjects = Number(statsRes.data?.completedProjects) || 0;
+                } catch {
+                    /* keep zeros */
+                }
+
+                const [tasksRes, vendorRes] = await Promise.all([
+                    api
+                        .get<{ tasks?: TeamTaskRow[] }>('/api/tasks', {
+                            params: { condition: '1', employeeid: 'all' },
+                        })
+                        .catch(() => ({ data: { tasks: [] as TeamTaskRow[] } })),
+                    api
+                        .get<{ tasks?: TeamTaskRow[] }>('/api/vendors/vendor-tasks', {
+                            params: { condition: '1' },
+                        })
+                        .catch(() => ({ data: { tasks: [] as TeamTaskRow[] } })),
+                ]);
+                if (cancelled) return;
+
+                const internal = (tasksRes.data.tasks ?? []).map((t) => ({ ...t }));
+                const vendor = (vendorRes.data.tasks ?? []).map((t) => ({ ...t }));
+                const serverList: TeamTaskRow[] = [...internal, ...vendor];
+
+                let localTasks: TeamTaskRow[] = [];
+                try {
+                    const raw = localStorage.getItem(BL_TEAMTASK_STORAGE_KEY);
+                    if (raw) {
+                        const parsed = JSON.parse(raw) as unknown;
+                        localTasks = Array.isArray(parsed) ? (parsed as TeamTaskRow[]) : [];
+                    }
+                } catch {
+                    localTasks = [];
+                }
+                const merged = blMergeTeamTasksForKpi(serverList, localTasks, blLoadDeletedIds());
+                const inProgressTasks = merged.filter(
+                    (t) => blNormalizeStatus(t.status, t.Approval) === 'in_progress'
+                ).length;
+                const completedTasks = merged.filter(
+                    (t) => blNormalizeStatus(t.status, t.Approval) === 'completed'
+                ).length;
+
+                if (!cancelled) {
+                    setStats({
+                        totalProjects,
+                        completedProjects,
+                        inProgressTasks,
+                        completedTasks,
+                    });
+                }
+            } catch {
+                if (!cancelled) setStats(defaultStats);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     useEffect(() => { const id = setInterval(() => setNowMs(Date.now()), 1000); return () => clearInterval(id); }, []);

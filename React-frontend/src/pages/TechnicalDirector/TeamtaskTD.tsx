@@ -274,7 +274,12 @@ function normalizeStatus(
   if (approval?.toLowerCase() === "rejected") return "completed";
   if (!s) return "todo";
   const lower = s.toLowerCase().replace(/\s+/g, "_");
-  if (lower.includes("progress") || lower === "in_progress")
+  // Align with /api/tasks + /api/dashboard/td-stats in-progress rules
+  if (
+    lower === "started" ||
+    lower.includes("progress") ||
+    lower === "in_progress"
+  )
     return "in_progress";
   if (lower.includes("complete") || lower === "done") return "completed";
   return "todo";
@@ -732,13 +737,8 @@ export default function TeamtaskTD() {
       return prev;
     });
 
-    // Backend update
-    const isOutsourceProjectTask = taskObj.source === "Outsource";
-    const endpoint = isOutsourceProjectTask
-      ? `/api/vendors/vendor-tasks/${taskId}/status`
-      : `/api/tasks/${taskId}/status`;
-
-    api.patch(endpoint, {
+    // Backend update (vendor / outsource tasks return early above)
+    api.patch(`/api/tasks/${taskId}/status`, {
       status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
       projectId
     }).catch(err => {
@@ -863,33 +863,48 @@ export default function TeamtaskTD() {
 
 
 
+  // Always load full task lists from `tasks` + `vendor_task` (no `status` query param).
+  // URL `status` only drives summary-card highlight; filtering the API made To Do / Completed
+  // counts show as 0 and disagreed with the TD dashboard KPIs.
   useEffect(() => {
     const params: Record<string, string> = {};
-    if (statusFilter) params.status = statusFilter;
     if (isTeam) {
       params.condition = "1";
       params.employeeid = "all";
-    } Promise.all([
+    }
+    Promise.all([
       api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
       api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params }),
       api.get<{ employees?: Employee[] }>("/api/employees"),
       api.get<{ projects?: Project[] }>("/api/projects"),
-      api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects")
+      api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
     ])
       .then(([resTasks, resVendorTasks, resEmployees, resProjects, resVendorProjects]) => {
-        const internalTasks = (resTasks.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
-        const vendorTasks = (resVendorTasks.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
+        const internalTasks = (resTasks.data.tasks ?? []).map((t) => ({
+          ...t,
+          source: "In House" as const,
+        }));
+        const vendorTasks = (resVendorTasks.data.tasks ?? []).map((t) => ({
+          ...t,
+          source: "Outsource" as const,
+        }));
         setList([...internalTasks, ...vendorTasks] as Task[]);
 
         setEmployees(resEmployees.data.employees ?? []);
 
-        const internalProjs = (resProjects.data.projects ?? []).map(p => ({ ...p, source: "In House" }));
-        const vendorProjs = (resVendorProjects.data.projects ?? []).map(p => ({ ...p, source: "Outsource" }));
+        const internalProjs = (resProjects.data.projects ?? []).map((p) => ({
+          ...p,
+          source: "In House" as const,
+        }));
+        const vendorProjs = (resVendorProjects.data.projects ?? []).map((p) => ({
+          ...p,
+          source: "Outsource" as const,
+        }));
         setProjects([...internalProjs, ...vendorProjs] as Project[]);
       })
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => setLoading(false));
-  }, [isTeam, statusFilter]);
+  }, [isTeam]);
 
 
 
@@ -1182,7 +1197,7 @@ export default function TeamtaskTD() {
           >
             {displayedTasksByStatus.todo.map((task) => (
               <TaskCard
-                key={task.id}
+                key={`${task.source ?? "in"}-${task.id}`}
                 task={task}
                 status="todo"
                 onViewTask={openViewTask}
@@ -1205,7 +1220,7 @@ export default function TeamtaskTD() {
           >
             {displayedTasksByStatus.in_progress.map((task) => (
               <TaskCard
-                key={task.id}
+                key={`${task.source ?? "in"}-${task.id}`}
                 task={task}
                 status="in_progress"
                 onViewTask={openViewTask}
@@ -1228,7 +1243,7 @@ export default function TeamtaskTD() {
           >
             {displayedTasksByStatus.completed.map((task) => (
               <TaskCard
-                key={task.id}
+                key={`${task.source ?? "in"}-${task.id}`}
                 task={task}
                 status="completed"
                 onViewTask={openViewTask}

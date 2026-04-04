@@ -39,6 +39,22 @@ const defaultStats: DashboardStats = {
   completedTasks: 0,
 };
 
+/** Match MytaskBM.tsx: personal list is assigned_to OR uploaderid; stats API only counts assigned_to. */
+type MyTaskRow = { id: number; status?: string; Approval?: string };
+
+function bmMyTaskNormalizeStatus(
+  s: string | undefined,
+  approval?: string,
+): "todo" | "in_progress" | "completed" {
+  if (approval?.toLowerCase() === "approved") return "completed";
+  if (approval?.toLowerCase() === "rejected") return "todo";
+  if (!s) return "todo";
+  const lower = s.toLowerCase().replace(/\s+/g, "_");
+  if (lower.includes("progress") || lower === "in_progress") return "in_progress";
+  if (lower.includes("complete") || lower === "done") return "completed";
+  return "todo";
+}
+
 function formatDateOnly(isoOrDate: string | null | undefined): string {
   if (!isoOrDate) return "—";
   const d = new Date(isoOrDate);
@@ -115,20 +131,62 @@ export default function DashboardBM() {
   const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
   const monthDropdownRef = useRef<HTMLDivElement>(null);
 
-  // KPI: projects the BIM modeler is involved in (members) + tasks for those projects
+  // Project KPIs from dashboard API; task counts from same merge as MytaskBM (default /bm/mytasks view).
   useEffect(() => {
-    api
-      .get<DashboardStats>("/api/dashboard/stats")
-      .then(({ data }) =>
-        setStats({
-          totalProjects: data.totalProjects ?? 0,
-          completedProjects: data.completedProjects ?? 0,
-          inProgressTasks: data.inProgressTasks ?? 0,
-          completedTasks: data.completedTasks ?? 0,
-        }),
-      )
-      .catch(() => setStats(defaultStats))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    (async () => {
+      try {
+        let totalProjects = 0;
+        let completedProjects = 0;
+        try {
+          const statsRes = await api.get<DashboardStats>("/api/dashboard/stats");
+          totalProjects = statsRes.data.totalProjects ?? 0;
+          completedProjects = statsRes.data.completedProjects ?? 0;
+        } catch {
+          /* keep zeros */
+        }
+
+        const myTaskParams = { view: "tasks" } as const;
+        const [tasksRes, vendorRes] = await Promise.all([
+          api
+            .get<{ tasks?: MyTaskRow[] }>("/api/tasks", { params: myTaskParams })
+            .catch(() => ({ data: { tasks: [] as MyTaskRow[] } })),
+          api
+            .get<{ tasks?: MyTaskRow[] }>("/api/vendors/vendor-tasks", {
+              params: myTaskParams,
+            })
+            .catch(() => ({ data: { tasks: [] as MyTaskRow[] } })),
+        ]);
+        if (cancelled) return;
+
+        const merged: MyTaskRow[] = [
+          ...(tasksRes.data.tasks ?? []),
+          ...(vendorRes.data.tasks ?? []),
+        ];
+        const inProgressTasks = merged.filter(
+          (t) => bmMyTaskNormalizeStatus(t.status, t.Approval) === "in_progress",
+        ).length;
+        const completedTasks = merged.filter(
+          (t) => bmMyTaskNormalizeStatus(t.status, t.Approval) === "completed",
+        ).length;
+
+        if (!cancelled) {
+          setStats({
+            totalProjects,
+            completedProjects,
+            inProgressTasks,
+            completedTasks,
+          });
+        }
+      } catch {
+        if (!cancelled) setStats(defaultStats);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
