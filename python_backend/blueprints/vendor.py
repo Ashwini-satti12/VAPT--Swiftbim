@@ -3647,6 +3647,36 @@ def _vendor_can_access_vendor_task(cur, task_id, user_id):
     return None
 
 
+def _resolve_assignee_from_main_employee(cur, assignee_id, company_id=None):
+    """
+    vendor_task.assigned_to may reference main app employee.id (TD/PM assign from
+    /api/employees), not vendor_employee.id — resolve full_name from employee table.
+    """
+    if assignee_id is None:
+        return None
+    try:
+        aid = int(assignee_id)
+    except (TypeError, ValueError):
+        return None
+    try:
+        if company_id is not None:
+            cur.execute(
+                "SELECT full_name FROM employee WHERE id = %s AND Company_id = %s LIMIT 1",
+                (aid, company_id),
+            )
+        else:
+            cur.execute(
+                "SELECT full_name FROM employee WHERE id = %s LIMIT 1",
+                (aid,),
+            )
+        row = cur.fetchone()
+        if row and row.get("full_name"):
+            return str(row["full_name"]).strip() or None
+    except Exception:
+        pass
+    return None
+
+
 @bp.route("/vendor-tasks", methods=["GET"])
 @login_required
 def list_vendor_tasks():
@@ -3754,6 +3784,12 @@ def list_vendor_tasks():
         assignee_id = d.get("assigned_to")
         if (not d.get("assigned_full_name")) and assignee_id in name_map:
             d["assigned_full_name"] = name_map[assignee_id]
+        if not d.get("assigned_full_name") and assignee_id is not None:
+            nm = _resolve_assignee_from_main_employee(
+                cur, assignee_id, task_company_id
+            )
+            if nm:
+                d["assigned_full_name"] = nm
         # For frontend compatibility
         d["projectid"] = d.get("project_id")
         d["due_date"] = d.get("due_date")
@@ -3958,6 +3994,16 @@ def get_vendor_task(task_id):
                     d["assigned_full_name"] = vr["name"]
     except Exception:
         pass
+
+    assignee_id = d.get("assigned_to")
+    if not d.get("assigned_full_name") and assignee_id is not None:
+        nm = _resolve_assignee_from_main_employee(
+            cur,
+            assignee_id,
+            getattr(g, "company_id", None),
+        )
+        if nm:
+            d["assigned_full_name"] = nm
 
     # For frontend compatibility
     d["projectid"] = d.get("project_id")

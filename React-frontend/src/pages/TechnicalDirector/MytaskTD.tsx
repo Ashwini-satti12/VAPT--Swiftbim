@@ -637,7 +637,7 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
   };
   return {
     projectName: str(t.project_name ?? t.projectName ?? ""),
-    module: str(t.module ?? t.modules_name ?? ""),
+    module: str(t.module ?? t.modules_name ?? t.modules ?? ""),
     taskName: str(t.task_name ?? t.taskName ?? ""),
     type: str(t.type ?? t.category ?? ""),
     actualStartDate: dateOnly(
@@ -648,9 +648,16 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
       t.perferstart_time ?? t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
     ),
     dueTime: timeOnly(t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? ""),
-    assignTo: str(
-      t.assigned_full_name ?? t.assign_to ?? t.assignTo ?? t.assigned_to ?? "",
-    ),
+    // Prefer human-readable assignee; never show raw employee id as the dropdown value.
+    assignTo: (() => {
+      const fromName = str(
+        t.assigned_full_name ?? t.assign_to ?? t.assignTo ?? "",
+      ).trim();
+      if (fromName) return fromName;
+      const idStr = str(t.assigned_to ?? "").trim();
+      if (idStr && !/^\d+$/.test(idStr)) return idStr;
+      return "";
+    })(),
     description: str(t.description ?? ""),
     checklist: str(t.checklist ?? ""),
   };
