@@ -150,10 +150,10 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
                 <button
                     type="button"
                     onClick={() => onViewDetails(team)}
-                    className="flex items-center gap-1.5 text-sm font-semibold hover:text-[#353535] pr-1 cursor-pointer  transition-colors"
+                    className="flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] hover:text-[#353535] pr-1 cursor-pointer transition-all duration-200"
                 >
                     Details
-                    <img src={upArrow} alt="Up" className="w-5 h-5 object-contain rotate-5" />
+                    <img src={upArrow} alt="Up" className="w-5 h-5 object-contain opacity-70 group-hover:opacity-100 transition-opacity" />
                 </button>
             </div>
         </div>

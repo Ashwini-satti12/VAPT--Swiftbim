@@ -1,5 +1,4 @@
-import { useEffect, useState, useRef, useMemo, useLayoutEffect } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useState, useRef } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import api from "../../../lib/api";
 import toast from "react-hot-toast";
@@ -14,8 +13,6 @@ import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
-import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
-import { formatTimeForDisplay } from "../../TechnicalDirector/MytaskTD";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 export type FormDropdownId =
@@ -37,7 +34,6 @@ export interface Project {
   id: number;
   project_name: string;
   modules?: string;
-  /** Comma-separated resource ids or names involved in this project */
   members?: string;
   members_names?: string[];
   project_manager_name?: string | null;
@@ -45,6 +41,43 @@ export interface Project {
   bim_coordinator_name?: string | null;
   uploader_name?: string | null;
 }
+
+const getApiBaseUrl = () => {
+  return import.meta.env.VITE_API_URL || "";
+};
+
+const getProfileUrl = (path: string | undefined): string => {
+  if (!path || path.trim() === "") return "";
+  if (path.startsWith("http")) return path;
+
+  let normalizedPath = path.replace(/\\/g, "/").trim();
+  normalizedPath = normalizedPath.replace(/^\d+\s+/, "");
+  normalizedPath = normalizedPath.replace(/^\/+/, "");
+
+  const apiBaseUrl = getApiBaseUrl();
+  let urlPath = "";
+
+  if (normalizedPath.startsWith("employee/")) {
+    const parts = normalizedPath.split("/");
+    const encodedParts = parts.map((part, index) =>
+      index === 0 ? part : encodeURIComponent(part),
+    );
+    urlPath = `/uploads/${encodedParts.join("/")}`;
+  } else if (normalizedPath.startsWith("profiles/")) {
+    const filename = normalizedPath.replace("profiles/", "");
+    urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+  } else if (!normalizedPath.includes("/")) {
+    urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+  } else {
+    const parts = normalizedPath.split("/");
+    const encodedParts = parts.map((part, index) =>
+      index === 0 ? part : encodeURIComponent(part),
+    );
+    urlPath = `/uploads/${encodedParts.join("/")}`;
+  }
+
+  return `${apiBaseUrl}${urlPath}`;
+};
 
 export interface Task {
   id: number;
@@ -72,50 +105,9 @@ export interface Task {
   created_at?: string;
   Approval?: string;
   Actual_start_time?: string;
-  perferstart_time?: string;
-  perferend_time?: string;
-  /** Comma-separated filenames under `uploads/task/` */
   outputfilepath?: string;
 }
 
-const getApiBaseUrl = () => {
-    return import.meta.env.VITE_API_URL || "";
-};
-
-const getProfileUrl = (path: string | undefined): string => {
-    if (!path || path.trim() === "") return "";
-    if (path.startsWith("http")) return path;
-
-    let normalizedPath = path.replace(/\\/g, "/").trim();
-    normalizedPath = normalizedPath.replace(/^\d+\s+/, "");
-    normalizedPath = normalizedPath.replace(/^\/+/, "");
-
-    const apiBaseUrl = getApiBaseUrl();
-    let urlPath = "";
-
-    if (normalizedPath.startsWith("employee/")) {
-        const parts = normalizedPath.split("/");
-        const encodedParts = parts.map((part, index) =>
-            index === 0 ? part : encodeURIComponent(part),
-        );
-        urlPath = `/uploads/${encodedParts.join("/")}`;
-    } else if (normalizedPath.startsWith("profiles/")) {
-        const filename = normalizedPath.replace("profiles/", "");
-        urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
-    } else if (!normalizedPath.includes("/")) {
-        urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
-    } else {
-        const parts = normalizedPath.split("/");
-        const encodedParts = parts.map((part, index) =>
-            index === 0 ? part : encodeURIComponent(part),
-        );
-        urlPath = `/uploads/${encodedParts.join("/")}`;
-    }
-
-    return `${apiBaseUrl}${urlPath}`;
-};
-
-/** Normalize various date strings to yyyy-mm-dd for <input type="date" />. */
 export function toInputDate(v: unknown): string {
   if (v == null || v === "") return "";
   const s = String(v).trim();
@@ -145,28 +137,101 @@ export function getTodayInputDate(): string {
   return `${y}-${m}-${day}`;
 }
 
-export function normalizeStatus(
-  status: string | undefined,
+export function isEndTimeBeforeStartOnSameDay(
+  startDate: string,
+  endDate: string,
+  startTime: string,
+  endTime: string,
+): boolean {
+  if (!startTime || !endTime) return false;
+  if (startDate && endDate && startDate !== endDate) return false;
+  return endTime < startTime;
+}
+
+function taskToFormValues(task: Task | Record<string, unknown>): {
+  projectName: string;
+  module: string;
+  taskName: string;
+  type: string;
+  actualStartDate: string;
+  actualEndDate: string;
+  startTime: string;
+  dueTime: string;
+  assignTo: string;
+  description: string;
+  checklist: string;
+} {
+  const t = task as Record<string, unknown>;
+  const str = (v: unknown) => (v != null ? String(v) : "");
+  const timeOnly = (v: unknown) => {
+    if (v == null) return "";
+    const s = str(v);
+    const match = s.match(/(\d{1,2}):(\d{2})/);
+    return match ? `${match[1].padStart(2, "0")}:${match[2]}` : s.slice(0, 5);
+  };
+  return {
+    projectName: str(t.project_name ?? t.projectName ?? ""),
+    module: str(t.module ?? t.modules_name ?? t.modules ?? ""),
+    taskName: str(t.task_name ?? t.taskName ?? ""),
+    type: str(t.type ?? t.category ?? ""),
+    actualStartDate: toInputDate(
+      t.start_date ?? t.startDate ?? t.Actual_start_time ?? "",
+    ),
+    actualEndDate: toInputDate(t.due_date ?? t.dueDate ?? ""),
+    startTime: timeOnly(
+      t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
+    ),
+    dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
+    assignTo: str(
+      t.assign_to ?? t.assignTo ?? t.assigned_to ?? t.assigned_full_name ?? "",
+    ),
+    description: str(t.description ?? ""),
+    checklist: str(t.checklist ?? ""),
+  };
+}
+
+export function buildFormFromTask(task: Task, employeeList: Employee[]) {
+  const base = taskToFormValues(task);
+  let assignTo = base.assignTo;
+
+  if (task.assigned_full_name && task.assigned_full_name.trim() !== "") {
+    assignTo = task.assigned_full_name;
+  } else {
+    const rawId =
+      (task.assign_to as string | undefined) ??
+      (task.assigned_to as number | undefined) ??
+      base.assignTo;
+    const idNum = typeof rawId === "number" ? rawId : Number(rawId || NaN);
+    if (!Number.isNaN(idNum) && employeeList.length > 0) {
+      const emp = employeeList.find((e) => e.id === idNum);
+      if (emp?.full_name) assignTo = emp.full_name;
+    }
+  }
+
+  return { ...base, assignTo };
+}
+
+function normalizeStatus(
+  s: string | undefined,
 ): "todo" | "in_progress" | "completed" {
-  if (!status) return "todo";
-  const s = status.toLowerCase();
-  if (s.includes("in") && s.includes("progress")) return "in_progress";
-  if (s.includes("complete")) return "completed";
+  if (!s) return "todo";
+  const lower = s.toLowerCase().replace(/\s+/g, "_");
+  if (lower.includes("progress") || lower === "in_progress")
+    return "in_progress";
+  if (lower.includes("complete") || lower === "done") return "completed";
   return "todo";
 }
 
-/** Dropdown used for filters. */
-interface FormDropdownProps {
+export interface FormDropdownProps {
   label: string;
   options: { value: string; label: string }[];
   value: string;
-  onChange: (v: string) => void;
+  onChange: (value: string) => void;
   isOpen: boolean;
   onToggle: () => void;
   onClose: () => void;
   triggerRef: React.RefObject<HTMLButtonElement | null>;
   dropdownRef: React.RefObject<HTMLDivElement | null>;
-  searchable?: boolean;
 }
 
 export function FormDropdown({
@@ -179,106 +244,50 @@ export function FormDropdown({
   onClose,
   triggerRef,
   dropdownRef,
-  searchable = false,
 }: FormDropdownProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const filteredOptions = searchable
-    ? options.filter((o) =>
-        o.label.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    : options;
-
-  const displayLabel =
-    options.find((o) => o.value === value)?.label || label;
-
-  const fieldShellClass =
-    "flex h-[40px] w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-4 py-2 transition-all duration-200 border border-transparent";
-
+  const displayLabel = value
+    ? (options.find((o) => o.value === value)?.label ?? value)
+    : label;
   return (
     <div className="relative w-full">
-      {searchable && isOpen ? (
-        <div className={`${fieldShellClass} border-[#AEACAC52]`}>
-          <input
-            autoFocus
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              e.stopPropagation();
-              if (e.key === "Escape") onClose();
-            }}
-            placeholder={label}
-            className="min-w-0 flex-1 border-0 bg-transparent text-[14px] text-[#353535] outline-none placeholder-[#8B8B8B]"
-            aria-expanded={isOpen}
-            aria-label={label}
-            role="combobox"
-            aria-autocomplete="list"
-          />
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle();
-            }}
-            className="shrink-0 cursor-pointer rounded p-0.5 outline-none"
-            aria-label="Close list"
-          >
-            <img
-              src={ArrowDown}
-              alt=""
-              className="h-3 w-3 rotate-180 transition-transform"
-            />
-          </button>
-        </div>
-      ) : (
-        <button
-          ref={triggerRef}
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggle();
-          }}
-          className={`${fieldShellClass} cursor-pointer outline-none focus-visible:border-[#AEACAC52]`}
-          aria-expanded={isOpen}
-          aria-haspopup="listbox"
-          aria-label={label}
-        >
-          <span
-            className={`min-w-0 flex-1 truncate text-left ${value ? "text-[#353535]" : "text-[#8B8B8B]"}`}
-          >
-            {displayLabel}
-          </span>
-          <img
-            src={ArrowDown}
-            alt=""
-            className={`ml-auto h-3 w-3 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
-          />
-        </button>
-      )}
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle();
+        }}
+        className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm cursor-pointer shadow-none border-0"
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-label={label}
+      >
+        <span className={value ? "text-[#353535]" : "text-[#616161]"}>
+          {displayLabel}
+        </span>
+        <img
+          src={ArrowDown}
+          alt="arrow"
+          className={`ml-2 h-4 w-4 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+        />
+      </button>
       {isOpen && (
         <div
           ref={dropdownRef}
           role="listbox"
-          className="absolute top-full left-0 z-50 mt-0.5 w-full overflow-hidden rounded-md border border-[#E0E0E0] bg-white shadow-lg"
+          className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
         >
-          <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
-            {filteredOptions.length === 0 && (
-              <div className="px-4 py-2 text-sm text-[#8B8B8B]">No results</div>
-            )}
-            {filteredOptions.map((opt) => (
+          <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar font-Gantari">
+            {options.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
                 role="option"
-                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   onChange(opt.value);
-                  if (searchable) setSearchQuery("");
                   onClose();
                 }}
-                className="block w-full px-4 py-2 text-left text-[14px] font-Gantari text-[#8B8B8B] transition-colors hover:bg-[#F2F2F2] hover:text-[#353535] cursor-pointer"
+                className="block w-full px-3 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg cursor-pointer border-0 shadow-none"
               >
                 {opt.label}
               </button>
@@ -304,9 +313,6 @@ export interface TaskDropdownProps {
   searchable?: boolean;
   searchPlaceholder?: string;
   maxVisibleItems?: number;
-  menuAlign?: "left" | "right";
-  menuUseFixedLayer?: boolean;
-  triggerVariant?: "default" | "compositeEnd";
 }
 
 export function TaskDropdown({
@@ -322,127 +328,31 @@ export function TaskDropdown({
   narrow = false,
   searchable = false,
   searchPlaceholder = "Search...",
-  maxVisibleItems = 5,
-  menuAlign = "left",
-  menuUseFixedLayer = false,
-  triggerVariant = "default",
+  maxVisibleItems = 4,
 }: TaskDropdownProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [fixedPlacement, setFixedPlacement] = useState<{
-    top: number;
-    right?: number;
-    left?: number;
-    maxH: number;
-    maxW: number;
-    minW: number;
-  } | null>(null);
-
   const q = (searchQuery || "").trim().toLowerCase();
   const filteredOptions = searchable
     ? (() => {
-        if (!q) return options;
-        const first = options[0];
-        const isPlaceholderOption = (o: string) =>
-          o === first &&
-          (first === "Select Employee" || first === "Select Projects");
-        return options.filter((opt) => {
-          if (isPlaceholderOption(opt)) return false;
-          const name = String(opt ?? "").trim().toLowerCase();
-          return name.includes(q);
-        });
-      })()
+      if (!q) return options;
+      const first = options[0];
+      const isPlaceholderOption = (o: string) =>
+        o === first &&
+        (first === "Select Employee" || first === "Select Projects");
+      return options.filter((opt) => {
+        if (isPlaceholderOption(opt)) return false;
+        const name = String(opt ?? "")
+          .trim()
+          .toLowerCase();
+        return name.includes(q);
+      });
+    })()
     : options;
 
-  useLayoutEffect(() => {
-    if (!isOpen || !menuUseFixedLayer || !triggerRef.current) {
-      setFixedPlacement(null);
-      return;
-    }
-    const el = triggerRef.current;
-    const update = () => {
-      const r = el.getBoundingClientRect();
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const gap = 4;
-      const minW = narrow ? 110 : 200;
-      const maxW = 320;
-      const searchH = searchable ? 56 : 0;
-      const listCap = maxVisibleItems * 40 + 16;
-      const maxH = Math.min(
-        listCap + searchH,
-        Math.max(120, vh - r.bottom - gap - 12),
-        320,
-      );
-      if (narrow || menuAlign === "right") {
-        setFixedPlacement({
-          top: r.bottom + gap,
-          right: vw - r.right,
-          maxH,
-          maxW,
-          minW,
-        });
-      } else {
-        setFixedPlacement({
-          top: r.bottom + gap,
-          left: Math.max(8, Math.min(r.left, vw - maxW - 8)),
-          maxH,
-          maxW,
-          minW,
-        });
-      }
-    };
-    update();
-    window.addEventListener("scroll", update, true);
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("scroll", update, true);
-      window.removeEventListener("resize", update);
-    };
-  }, [isOpen, menuUseFixedLayer, menuAlign, narrow, maxVisibleItems, searchable, triggerRef]);
-
-  const triggerButtonClass =
-    triggerVariant === "compositeEnd"
-      ? "inline-flex h-full min-h-[40px] w-auto shrink-0 items-center justify-between gap-2 border-0 border-l border-[#E0E0E0] bg-[#E2E2E2] px-4 py-2 text-[14px] font-Gantari text-[#8B8B8B] cursor-pointer outline-none transition-colors hover:bg-[#dadada]"
-      : `inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`;
-
-  const menuContent = (
-    <>
-      {searchable && (
-        <div className="shrink-0 border-b border-slate-100 bg-white p-2">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-            placeholder={searchPlaceholder}
-            className="w-full rounded-md border border-transparent bg-[#F2F3F4] px-3 py-2 text-sm font-Gantari text-[#353535] outline-none transition-colors focus:border-[#AEACAC52]"
-          />
-        </div>
-      )}
-      <div className="min-h-0 flex-1 overflow-y-auto py-1 custom-scrollbar font-Gantari">
-        {filteredOptions.map((opt, idx) => (
-          <button
-            key={`${opt}-${idx}`}
-            type="button"
-            role="option"
-            onClick={() => {
-              if (searchable) setSearchQuery("");
-              onSelect(opt);
-              onClose();
-            }}
-            className={`block w-full px-4 py-2 text-left text-[14px] font-Gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
-          >
-            {opt}
-          </button>
-        ))}
-      </div>
-    </>
-  );
+  const listMaxHeight = `${maxVisibleItems * 40}px`;
 
   return (
-    <div className={triggerVariant === "compositeEnd" ? "relative flex h-full min-h-0 shrink-0 self-stretch" : "relative"}>
+    <div className="relative">
       <button
         ref={triggerRef}
         type="button"
@@ -450,13 +360,17 @@ export function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={triggerButtonClass}
+        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm cursor-pointer shadow-none border-0 ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
         aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-label={label}
       >
-        <span className={`truncate font-Gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>
+        <span
+          className={`truncate font-Gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}
+        >
           {label.toLowerCase() === "show" && selected && selected !== label ? (
             <>
-              <span className="text-[14px] text-[#353535]">Show:</span>{" "}
+              <span className="text-sm text-[#353535]">Show:</span>{" "}
               <span>{selected}</span>
             </>
           ) : (
@@ -465,43 +379,53 @@ export function TaskDropdown({
         </span>
         <img
           src={ArrowDown}
-          alt=""
-          className={`ml-2 h-3 w-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          alt="arrow"
+          className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
-      {isOpen &&
-        (menuUseFixedLayer
-          ? fixedPlacement &&
-            createPortal(
-              <div
-                ref={dropdownRef}
-                role="listbox"
-                className="fixed z-[9999] overflow-hidden rounded-md border border-[#E0E0E0] bg-white shadow-xl"
-                style={{
-                  top: fixedPlacement.top,
-                  right: fixedPlacement.right,
-                  left: fixedPlacement.left,
-                  maxHeight: fixedPlacement.maxH,
-                  width: "100%",
-                  maxWidth: fixedPlacement.maxW,
-                  minWidth: fixedPlacement.minW,
-                  display: "flex",
-                  flexDirection: "column",
+      {isOpen && (
+        <div
+          ref={dropdownRef}
+          role="listbox"
+          className={`absolute top-full z-10 mt-1 rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 min-w-[110px]" : "left-0 min-w-[160px]"}`}
+        >
+          {searchable && (
+            <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg font-Gantari">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+                placeholder={searchPlaceholder}
+                className="w-full rounded border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none"
+                aria-label={searchPlaceholder}
+              />
+            </div>
+          )}
+          <div
+            className="overflow-y-auto py-1 custom-scrollbar font-Gantari"
+            style={{ maxHeight: listMaxHeight }}
+          >
+            {filteredOptions.map((opt, idx) => (
+              <button
+                key={`${opt}-${idx}`}
+                type="button"
+                role="option"
+                onClick={() => {
+                  if (searchable) setSearchQuery("");
+                  onSelect(opt);
+                  onClose();
                 }}
+                className={`block w-full px-4 py-2 text-left text-sm font-Gantari transition-colors cursor-pointer border-0 shadow-none ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
               >
-                {menuContent}
-              </div>,
-              document.body,
-            )
-          : (
-              <div
-                ref={dropdownRef}
-                role="listbox"
-                className={`absolute top-full z-50 mt-1 flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 min-w-[110px]" : "left-0 min-w-[160px]"}`}
-              >
-                {menuContent}
-              </div>
+                {opt}
+              </button>
             ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -520,15 +444,15 @@ function TaskCard({
   onDeleteTask?: (task: Task) => void;
 }) {
   const progress =
-    normalizeStatus(task.status) === "todo"
-      ? 0
-      : normalizeStatus(task.status) === "in_progress"
-        ? 50
-        : 100;
-
+    typeof task.progress === "number"
+      ? task.progress
+      : status === "todo"
+        ? 0
+        : status === "in_progress"
+          ? 50
+          : 100;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (!menuOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
@@ -539,26 +463,20 @@ function TaskCard({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen]);
-
   const handleDragStart = (e: React.DragEvent) => {
-    if (status === "completed") {
-      e.preventDefault();
-      return;
-    }
     e.dataTransfer.setData("taskId", String(task.id));
     e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", task.task_name || "Task");
   };
-
   const isCompleted = status === "completed";
-
   return (
     <div
-      draggable={!isCompleted}
+      draggable
       onDragStart={handleDragStart}
-      className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative font-gantari ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+      className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
-      <div className="flex justify-between items-start mb-2">
-        <h4 className="font-semibold text-[#353535] text-[20px] truncate leading-tight font-Gantari">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <h4 className="font-semibold text-[#353535] text-[20px] truncate font-Gantari">
           {task.task_name || "Task Name"}
         </h4>
         <div className="relative" ref={menuRef}>
@@ -569,49 +487,72 @@ function TaskCard({
               e.stopPropagation();
               setMenuOpen((prev) => !prev);
             }}
-            className="p-1 px-2 rounded cursor-pointer leading-none hover:bg-gray-100 transition-colors"
+            className="p-0.5 rounded cursor-pointer border-0 bg-transparent shadow-none"
+            aria-label="More options"
+            aria-expanded={menuOpen}
           >
-            <img src={Dot} alt="Dot" className="w-5 h-5 object-contain" />
+            <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
           </button>
           {menuOpen && (
             <div
-              className="absolute top-full mt-1 right-0 z-50 min-w-[170px] bg-white/40 backdrop-blur-xl rounded-[15px] border border-[#59595980] shadow-2xl py-2.5 transition-all duration-200 ease-out font-Gantari origin-top-right"
+              className={`absolute top-full mt-1 z-50 min-w-[170px] bg-white rounded-lg border border-[#AEACAC52] shadow-xl transition-all duration-200 ease-out font-Gantari ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}`}
               role="menu"
             >
               <button
                 type="button"
-                className="flex w-full items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer text-[#353535] hover:bg-white/40"
+                role="menuitem"
+                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer border-0 bg-transparent shadow-none"
                 onClick={() => {
                   setMenuOpen(false);
                   onViewTask?.(task);
                 }}
               >
-                <img src={viewIcon} alt="view" className="w-5 h-5" />
-                <span className="text-[15px] font-medium group-hover:text-[#DD4342]">View</span>
+                <img
+                  src={viewIcon}
+                  alt="view"
+                  className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                />
+                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                  View
+                </span>
               </button>
               {!isCompleted && (
                 <>
                   <button
                     type="button"
-                    className="flex w-full items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer text-[#353535] hover:bg-white/40"
+                    role="menuitem"
+                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer border-0 bg-transparent shadow-none"
                     onClick={() => {
                       setMenuOpen(false);
                       onEditTask?.(task);
                     }}
                   >
-                    <img src={editIcon} alt="edit" className="w-5 h-5" />
-                    <span className="text-[15px] font-medium group-hover:text-[#DD4342]">Edit</span>
+                    <img
+                      src={editIcon}
+                      alt="edit"
+                      className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                    />
+                    <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                      Edit
+                    </span>
                   </button>
                   <button
                     type="button"
-                    className="flex w-full items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer text-[#353535] hover:bg-white/40"
+                    role="menuitem"
+                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer border-0 bg-transparent shadow-none"
                     onClick={() => {
                       setMenuOpen(false);
                       onDeleteTask?.(task);
                     }}
                   >
-                    <img src={deleteIcon} alt="delete" className="w-5 h-5" />
-                    <span className="text-[15px] font-medium group-hover:text-[#DD4342]">Delete</span>
+                    <img
+                      src={deleteIcon}
+                      alt="delete"
+                      className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                    />
+                    <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                      Delete
+                    </span>
                   </button>
                 </>
               )}
@@ -619,42 +560,122 @@ function TaskCard({
           )}
         </div>
       </div>
-      <div className="flex items-start justify-between gap-2 mb-2 font-Gantari">
-        <div className="flex flex-col">
-            <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
-            <span className="text-[14px] font-medium text-[#8B8B8B]">
+      <div className="flex items-center justify-between gap-2 mb-3 font-Gantari">
+        <div className="flex flex-col text-left">
+          <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
+          <span className="text-[14px] font-medium text-[#8B8B8B]">
             {task.start_date || task.Actual_start_time
-                ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}`
-                : "—"}
-            </span>
+              ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}`
+              : "—"}
+          </span>
         </div>
-        <div className="flex flex-col items-end">
-            <span className="text-[14px] font-medium text-[#000000]">End Date</span>
-            <span className="text-[14px] font-medium text-[#8B8B8B]">
+
+        <div className="flex flex-col items-end text-right">
+          <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+          <span className="text-[14px] font-medium text-[#8B8B8B]">
             {task.due_date
-                ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
-                : "—"}
-            </span>
+              ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
+              : "—"}
+          </span>
         </div>
       </div>
-      <div className="flex items-center justify-between gap-2 mb-2">
+      <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-xs text-[#8B8B8B] font-Gantari">Progress</span>
         <span className="text-xs font-medium text-[#8B8B8B] font-Gantari">{progress}%</span>
       </div>
-      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
+      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
         <div
           className="h-full rounded-full bg-[#8B8B8B]"
           style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
         />
       </div>
       <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1">
+          <div className="flex -space-x-2">
+            {task.assigned_full_name &&
+              (() => {
+                const src =
+                  task.assigned_to != null && task.assigned_profile_picture
+                    ? getGlobalProfileUrl(
+                      task.assigned_to,
+                      task.assigned_profile_picture,
+                    )
+                    : task.assigned_profile_picture
+                      ? getProfileUrl(task.assigned_profile_picture)
+                      : "";
+                const initials = task.assigned_full_name
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((p) => p[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <div
+                    className="w-7 h-7 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    title={`Assigned To: ${task.assigned_full_name}`}
+                  >
+                    {src ? (
+                      <img
+                        src={src}
+                        alt={task.assigned_full_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{initials}</span>
+                    )}
+                  </div>
+                );
+              })()}
+            {task.uploader_full_name &&
+              (() => {
+                const src =
+                  task.uploaderid != null && task.uploader_profile_picture
+                    ? getGlobalProfileUrl(
+                      task.uploaderid,
+                      task.uploader_profile_picture,
+                    )
+                    : task.uploader_profile_picture
+                      ? getProfileUrl(task.uploader_profile_picture)
+                      : "";
+                const initials = task.uploader_full_name
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((p) => p[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <div
+                    className="w-7 h-7 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    title={`Assigned By: ${task.uploader_full_name}`}
+                  >
+                    {src ? (
+                      <img
+                        src={src}
+                        alt={task.uploader_full_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{initials}</span>
+                    )}
+                  </div>
+                );
+              })()}
+          </div>
+        </div>
         <button
           type="button"
+          draggable={false}
           onClick={() => onViewTask?.(task)}
-          className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 transition-colors cursor-pointer font-Gantari"
+          className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 transition-colors cursor-pointer font-Gantari border-0 shadow-none bg-transparent"
         >
           Details
-          <img src={Arrow} alt="Arrow" className="w-2.5 h-2.5" />
+          <img
+            src={Arrow}
+            alt="Arrow"
+            className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
+          />
         </button>
       </div>
     </div>
@@ -662,27 +683,37 @@ function TaskCard({
 }
 
 const SHOW_OPTIONS = ["Show Entries", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "301-350", "351-400", "401-450", "All"];
-const PERIOD_OPTIONS = ["Period", "This Week", "This Month", "This Quarter"];
+const PERIOD_OPTIONS = [
+  "Period",
+  "This Week",
+  "This Month",
+  "This Quarter",
+];
 
 export default function MytaskPMV() {
   const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
-  const isTeam = pathname.includes("/teamtask");
-  const statusFilter = searchParams.get("status") || searchParams.get("taskstatus");
-  
+  const navigate = useNavigate();
+
+  const isTeam =
+    searchParams.get("condition") === "1" ||
+    pathname.endsWith("/team") ||
+    pathname.includes("/teamtask");
+  const statusFilter =
+    searchParams.get("status") || searchParams.get("taskstatus");
+
   const [list, setList] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+
   const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
-  
-  const [selectedEmployee, setSelectedEmployee] = useState<string | null>("Select Employee");
-  const [selectedProject, setSelectedProject] = useState<string | null>("Select Projects");
-  const [selectedShow, setSelectedShow] = useState<string | null>("Show Entries");
-  const [selectedPeriod, setSelectedPeriod] = useState<string | null>("Period");
+  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [selectedShow, setSelectedShow] = useState<string>("Show Entries");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("Period");
   const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
 
-  const navigate = useNavigate();
   const dropdownsContainerRef = useRef<HTMLDivElement>(null);
   const employeeTriggerRef = useRef<HTMLButtonElement>(null);
   const employeeMenuRef = useRef<HTMLDivElement>(null);
@@ -694,105 +725,128 @@ export default function MytaskPMV() {
   const periodMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const params: Record<string, string> = {};
+    if (statusFilter) params.status = statusFilter;
+    if (isTeam) params.condition = "1";
+
+    setLoading(true);
+    Promise.all([
+      api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params }),
+      api.get<{ resources?: Employee[] }>("/api/vendors/vendor-resource-profiles"),
+      api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
+    ]).then(([tasksRes, resourcesRes, projRes]) => {
+      setList(tasksRes.data.tasks ?? []);
+      setEmployees(resourcesRes.data.resources ?? []);
+      setProjects(projRes.data.projects ?? []);
+    }).catch(() => {
+      toast.error("Failed to load tasks");
+    }).finally(() => setLoading(false));
+  }, [statusFilter, isTeam]);
+
+  useEffect(() => {
     if (openDropdown === null) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownsContainerRef.current && !dropdownsContainerRef.current.contains(e.target as Node)) {
-        setOpenDropdown(null);
-      }
+      const target = e.target as Node;
+      let refs: React.RefObject<HTMLElement | null>[] = [];
+      if (openDropdown === "employee") refs = [employeeTriggerRef, employeeMenuRef];
+      else if (openDropdown === "projects") refs = [projectsTriggerRef, projectsMenuRef];
+      else if (openDropdown === "show") refs = [showTriggerRef, showMenuRef];
+      else if (openDropdown === "period") refs = [periodTriggerRef, periodMenuRef];
+
+      const inside = refs.some((r) => r.current && r.current.contains(target));
+      if (!inside) setOpenDropdown(null);
     };
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, [openDropdown]);
 
-  useEffect(() => {
-    setLoading(true);
-    const params: Record<string, string> = {};
-    if (isTeam) params.condition = "1";
-    
-    Promise.all([
-      api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params }),
-      api.get<{ resources?: Employee[] }>("/api/vendors/vendor-resource-profiles"),
-      api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects", { params: { all: "1" } }),
-    ]).then(([tasksRes, resRes, projRes]) => {
-      setList(tasksRes.data.tasks ?? []);
-      setEmployees(resRes.data.resources ?? []);
-      setProjects(projRes.data.projects ?? []);
-    }).catch(err => {
-      console.error(err);
-      toast.error("Failed to load data");
-    }).finally(() => setLoading(false));
-  }, [isTeam]);
-
-  const employeeOptions = useMemo(() => {
-    const base = ["Select Employee", "Show All"];
-    return [...base, ...employees.map(e => e.full_name)];
-  }, [employees]);
-
-  const projectOptions = useMemo(() => {
-    const base = ["Select Projects", "Show All"];
-    return [...base, ...projects.map(p => p.project_name)];
-  }, [projects]);
-
-  const allFiltered = list.filter(t => {
-    if (selectedEmployee && !["Select Employee", "Show All"].includes(selectedEmployee)) {
-        if (t.assigned_full_name !== selectedEmployee) return false;
+  const allTasks = list.filter((t) => t && t.id != null).filter((t) => {
+    if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
+      if (t.assigned_full_name !== selectedEmployee) return false;
     }
-    if (selectedProject && !["Select Projects", "Show All"].includes(selectedProject)) {
-        if (t.project_name !== selectedProject) return false;
+    if (selectedProject && !["Select Projects", "Show All", "Projects"].includes(selectedProject)) {
+      if (t.project_name !== selectedProject) return false;
+    }
+    if (selectedPeriod && !["Period", "Show All"].includes(selectedPeriod)) {
+      const taskDate = new Date(t.created_at || t.start_date || "");
+      const now = new Date();
+      if (selectedPeriod === "This Week") {
+        const weekAgo = new Date();
+        weekAgo.setDate(now.getDate() - 7);
+        if (taskDate < weekAgo) return false;
+      } else if (selectedPeriod === "This Month") {
+        const monthAgo = new Date();
+        monthAgo.setMonth(now.getMonth() - 1);
+        if (taskDate < monthAgo) return false;
+      } else if (selectedPeriod === "This Quarter") {
+        const quarterAgo = new Date();
+        quarterAgo.setMonth(now.getMonth() - 3);
+        if (taskDate < quarterAgo) return false;
+      }
     }
     return true;
   });
 
+  const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" =>
+    normalizeStatus(t.status);
+
+
+
+
+
+  const openDeleteTask = (task: Task) => setDeleteTaskId(task.id);
+  const confirmDeleteTask = () => {
+    if (deleteTaskId === null) return;
+    api.delete(`/api/vendors/vendor-tasks/${deleteTaskId}`).then(() => {
+      setList(prev => prev.filter(t => t.id !== deleteTaskId));
+      toast.success("Task deleted");
+    }).catch(() => toast.error("Failed to delete task")).finally(() => setDeleteTaskId(null));
+  };
+  const openEditTask = (task: Task) => navigate("/vpm/mytasks/edit", { state: { task } });
+  const openViewTask = (task: Task) => navigate(`/vpm/mytasks/view/${task.id}`, { state: { task } });
+
+  const employeeOptions = ["Select Employee", "Show All", ...employees.map(e => e.full_name).filter(Boolean)];
+  const projectOptions = ["Select Projects", "Show All", ...projects.map(p => p.project_name).filter(Boolean)];
+
   const counts = {
-    todo: allFiltered.filter(t => normalizeStatus(t.status) === "todo").length,
-    in_progress: allFiltered.filter(t => normalizeStatus(t.status) === "in_progress").length,
-    completed: allFiltered.filter(t => normalizeStatus(t.status) === "completed").length,
+    todo: allTasks.filter(t => getEffectiveStatus(t) === "todo").length,
+    in_progress: allTasks.filter(t => getEffectiveStatus(t) === "in_progress").length,
+    completed: allTasks.filter(t => getEffectiveStatus(t) === "completed").length,
   };
 
   const tasksByStatus = {
-    todo: allFiltered.filter(t => normalizeStatus(t.status) === "todo"),
-    in_progress: allFiltered.filter(t => normalizeStatus(t.status) === "in_progress"),
-    completed: allFiltered.filter(t => normalizeStatus(t.status) === "completed"),
+    todo: allTasks.filter(t => getEffectiveStatus(t) === "todo"),
+    in_progress: allTasks.filter(t => getEffectiveStatus(t) === "in_progress"),
+    completed: allTasks.filter(t => getEffectiveStatus(t) === "completed"),
   };
 
-  const showLimit = selectedShow === "All" || !selectedShow || selectedShow === "Show Entries" 
-    ? 9999 
-    : parseInt(selectedShow.split("-")[1] || "50");
+  const showLimit = selectedShow === "All" || !selectedShow || selectedShow === "Show Entries"
+    ? Number.POSITIVE_INFINITY
+    : (() => {
+      const parts = selectedShow.split("-");
+      if (parts.length === 2) return Number(parts[1]) || 50;
+      return Number(selectedShow) || 50;
+    })();
 
-  const displayedTasks = {
+  const displayedTasksByStatus = {
     todo: tasksByStatus.todo.slice(0, showLimit),
     in_progress: tasksByStatus.in_progress.slice(0, showLimit),
     completed: tasksByStatus.completed.slice(0, showLimit),
   };
 
-  const handleMoveTask = (taskId: number, newStatus: "todo" | "in_progress" | "completed") => {
-    const apiStatus = newStatus === "todo" ? "Todo" : newStatus === "in_progress" ? "InProgress" : "Completed";
-    setList(prev => prev.map(t => t.id === taskId ? { ...t, status: apiStatus } : t));
-    api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, { status: apiStatus })
-       .catch(() => toast.error("Failed to update status"));
-  };
-
-  const openEditTask = (task: Task) => navigate("/vpm/mytasks/add", { state: { task } });
-  const openDeleteTask = (task: Task) => setDeleteTaskId(task.id);
-  const openViewTask = (task: Task) => navigate(`/v/mytasks/view/${task.id}`, { state: { task } });
-
-  const confirmDeleteTask = () => {
-    if (deleteTaskId === null) return;
-    api.delete(`/api/vendors/vendor-tasks/${deleteTaskId}`)
-      .then(() => {
-        setList(prev => prev.filter(t => t.id !== deleteTaskId));
-        toast.success("Task deleted");
-      })
-      .finally(() => setDeleteTaskId(null));
-  };
-
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-full min-h-0 flex flex-col overflow-hidden bg-white font-Gantari">
-      <div className="bg-white pb-3 flex-shrink-0 px-6 pt-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-          <h2 className="text-[24px] font-semibold text-slate-800">
+      <div className="pb-3 flex-shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-3 pt-4">
+          <h2 className="text-2xl font-semibold text-slate-800">
             {isTeam ? "Team Task" : "My Task"}
           </h2>
           <div ref={dropdownsContainerRef} className="flex flex-wrap items-center gap-2 w-fit">
@@ -802,11 +856,13 @@ export default function MytaskPMV() {
               selected={selectedEmployee}
               onSelect={setSelectedEmployee}
               isOpen={openDropdown === "employee"}
-              onToggle={() => setOpenDropdown(d => d === "employee" ? null : "employee")}
+              onToggle={() => setOpenDropdown(d => (d === "employee" ? null : "employee"))}
               onClose={() => setOpenDropdown(null)}
               triggerRef={employeeTriggerRef}
               dropdownRef={employeeMenuRef}
               searchable
+              searchPlaceholder="Search employee..."
+              maxVisibleItems={5}
             />
             <TaskDropdown
               label="Select Projects"
@@ -814,11 +870,13 @@ export default function MytaskPMV() {
               selected={selectedProject}
               onSelect={setSelectedProject}
               isOpen={openDropdown === "projects"}
-              onToggle={() => setOpenDropdown(d => d === "projects" ? null : "projects")}
+              onToggle={() => setOpenDropdown(d => (d === "projects" ? null : "projects"))}
               onClose={() => setOpenDropdown(null)}
               triggerRef={projectsTriggerRef}
               dropdownRef={projectsMenuRef}
               searchable
+              searchPlaceholder="Search project..."
+              maxVisibleItems={5}
             />
             <TaskDropdown
               label="Show Entries"
@@ -826,7 +884,7 @@ export default function MytaskPMV() {
               selected={selectedShow}
               onSelect={setSelectedShow}
               isOpen={openDropdown === "show"}
-              onToggle={() => setOpenDropdown(d => d === "show" ? null : "show")}
+              onToggle={() => setOpenDropdown(d => (d === "show" ? null : "show"))}
               onClose={() => setOpenDropdown(null)}
               triggerRef={showTriggerRef}
               dropdownRef={showMenuRef}
@@ -838,60 +896,85 @@ export default function MytaskPMV() {
               selected={selectedPeriod}
               onSelect={setSelectedPeriod}
               isOpen={openDropdown === "period"}
-              onToggle={() => setOpenDropdown(d => d === "period" ? null : "period")}
+              onToggle={() => setOpenDropdown(d => (d === "period" ? null : "period"))}
               onClose={() => setOpenDropdown(null)}
               triggerRef={periodTriggerRef}
               dropdownRef={periodMenuRef}
               narrow
             />
             <button
+              type="button"
               onClick={() => navigate("/vpm/mytasks/add")}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm cursor-pointer border-0"
             >
               <img src={AddBtn} alt="Add" className="h-5 w-5" />
               Add task
             </button>
           </div>
         </div>
+        {/* Status summary cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+          <Link
+            to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
+            className={`flex p-4 gap-4 rounded-xl border py-4 transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200 shadow-sm"}`}
+          >
+            <span className="text-xl font-bold text-[#0D1829]">To Do</span>
+            <span className="text-xl font-bold text-[#0D1829]">({counts.todo})</span>
+            <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+              <img src={Group1} alt="To Do" className="w-8 h-8" />
+            </div>
+          </Link>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4">
-          <Link to={`${pathname}?status=todo`} className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm relative transition-all ${normalizeStatus(statusFilter) === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}>
-            <span className="text-xl font-bold text-[#0D1829]">To Do ({counts.todo})</span>
-            <div className="absolute top-1/2 -translate-y-1/2 right-4"><img src={Group1} alt="" className="w-8 h-8" /></div>
+          <Link
+            to={statusFilter === "in_progress" ? pathname : `${pathname}?status=in_progress`}
+            className={`flex p-4 gap-4 rounded-xl border py-4 transition-all relative ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200 shadow-sm"}`}
+          >
+            <span className="text-xl font-bold text-[#0D1829]">In Progress</span>
+            <span className="text-xl font-bold text-[#0D1829]">({counts.in_progress})</span>
+            <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+              <img src={Group2} alt="In Progress" className="w-8 h-8" />
+            </div>
           </Link>
-          <Link to={`${pathname}?status=in_progress`} className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm relative transition-all ${normalizeStatus(statusFilter) === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}>
-            <span className="text-xl font-bold text-[#0D1829]">In Progress ({counts.in_progress})</span>
-            <div className="absolute top-1/2 -translate-y-1/2 right-4"><img src={Group2} alt="" className="w-8 h-8" /></div>
-          </Link>
-          <Link to={`${pathname}?status=completed`} className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm relative transition-all ${normalizeStatus(statusFilter) === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}>
-            <span className="text-xl font-bold text-[#0D1829]">Completed ({counts.completed})</span>
-            <div className="absolute top-1/2 -translate-y-1/2 right-4"><img src={Group3} alt="" className="w-8 h-8" /></div>
+
+          <Link
+            to={statusFilter === "completed" ? pathname : `${pathname}?status=completed`}
+            className={`flex p-4 gap-4 rounded-xl border py-4 transition-all relative ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200 shadow-sm"}`}
+          >
+            <span className="text-xl font-bold text-[#0D1829]">Completed</span>
+            <span className="text-xl font-bold text-[#0D1829]">({counts.completed})</span>
+            <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+              <img src={Group3} alt="Completed" className="w-8 h-8" />
+            </div>
           </Link>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 pb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-6 mt-4">
-          <div className="space-y-3" onDragOver={e => e.preventDefault()} onDrop={e => handleMoveTask(Number(e.dataTransfer.getData("taskId")), "todo")}>
-            {displayedTasks.todo.map(t => <TaskCard key={t.id} task={t} status="todo" onViewTask={openViewTask} onEditTask={openEditTask} onDeleteTask={openDeleteTask} />)}
-          </div>
-          <div className="space-y-3" onDragOver={e => e.preventDefault()} onDrop={e => handleMoveTask(Number(e.dataTransfer.getData("taskId")), "in_progress")}>
-            {displayedTasks.in_progress.map(t => <TaskCard key={t.id} task={t} status="in_progress" onViewTask={openViewTask} onEditTask={openEditTask} onDeleteTask={openDeleteTask} />)}
-          </div>
-          <div className="space-y-3" onDragOver={e => e.preventDefault()} onDrop={e => handleMoveTask(Number(e.dataTransfer.getData("taskId")), "completed")}>
-            {displayedTasks.completed.map(t => <TaskCard key={t.id} task={t} status="completed" onViewTask={openViewTask} onEditTask={openEditTask} onDeleteTask={openDeleteTask} />)}
-          </div>
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
+          {["todo", "in_progress", "completed"].map((stat) => (
+            <div key={stat} className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1">
+               {(displayedTasksByStatus as any)[stat].map((t: Task) => (
+                 <TaskCard key={t.id} task={t} status={stat as any} onEditTask={openEditTask} onDeleteTask={openDeleteTask} onViewTask={openViewTask} />
+               ))}
+            </div>
+          ))}
         </div>
       </div>
 
       {deleteTaskId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 text-center">
-            <h3 className="text-xl font-bold mb-4">Delete Task</h3>
-            <p className="mb-6">Are you sure you want to delete this task?</p>
-            <div className="flex justify-center gap-4">
-              <button onClick={() => setDeleteTaskId(null)} className="px-6 py-2 rounded-lg bg-slate-100 font-medium">Cancel</button>
-              <button onClick={confirmDeleteTask} className="px-6 py-2 rounded-lg bg-red-100 text-red-600 font-bold">Delete</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 font-Gantari">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+            <div className="flex items-center justify-between px-6 py-4 border-0">
+              <div className="w-9" />
+              <h3 className="flex-1 text-center text-lg font-semibold text-[#353535]">Delete Task</h3>
+              <button type="button" onClick={() => setDeleteTaskId(null)} className="p-1 rounded-sm text-black bg-[#F0F0F0] cursor-pointer border-0">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="px-6 py-10 text-center text-black">Are you sure, you want to Delete this Task?</div>
+            <div className="flex justify-center gap-3 px-6 py-6">
+              <button type="button" onClick={() => setDeleteTaskId(null)} className="rounded-md bg-[#F0F0F0] px-10 py-2 text-sm font-medium text-black cursor-pointer border-0">Discard</button>
+              <button type="button" onClick={confirmDeleteTask} className="rounded-lg bg-[#FFD9D9] px-10 py-2 text-sm font-medium text-[#E00100] cursor-pointer border-0">Yes, Delete</button>
             </div>
           </div>
         </div>

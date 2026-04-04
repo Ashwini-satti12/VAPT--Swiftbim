@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import api from "../../lib/api";
 import Upload from "../../assets/ProjectManager/MyTask/Upload.svg";
 import ImageIcon from "../../assets/ProjectManager/MyTask/image.svg";
+import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 
 interface Task {
   id: number;
@@ -324,14 +325,9 @@ export default function MytaskViewV() {
 
   if (!task) {
     return (
-      <div className="bg-white min-h-screen p-6">
-        <p className="text-slate-600 mb-4">No task selected.</p>
-        <button
-          onClick={() => navigate(-1)}
-          className="text-[#3d3399] hover:underline font-medium cursor-pointer"
-        >
-          ← Back to Tasks
-        </button>
+      <div className="bg-white min-h-screen flex flex-col items-center justify-center p-6 space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3d3399]" />
+        <p className="text-slate-600 font-medium">Loading task details...</p>
       </div>
     );
   }
@@ -363,10 +359,10 @@ export default function MytaskViewV() {
       <div className="flex items-center justify-between px-6 py-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-1 rounded-lg text-black hover:bg-slate-100 cursor-pointer"
-          aria-label="Close"
+          className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer border-0 shadow-none"
+          title="Back"
         >
-          <FiX className="w-5 h-5 text-black rounded-sm bg-[#E8E8E8]" />
+          <img src={backIcon} alt="Back" className="w-5 h-5" />
         </button>
         <h1 className="flex-1 text-center text-2xl font-semibold text-black">
           {task.project_name || task.task_name || "Task Name"}

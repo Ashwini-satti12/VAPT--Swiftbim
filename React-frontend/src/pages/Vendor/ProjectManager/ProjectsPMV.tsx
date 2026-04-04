@@ -2,12 +2,10 @@ import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../../lib/api";
 import { useNavigate } from "react-router-dom";
-import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 import { RiDeleteBin5Fill } from "react-icons/ri";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
-import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
 import paymentMilestoneIcon from "../../../assets/ProjectManager/project/paymentMilestone.svg";
 import threedot from "../../../assets/ProjectManager/project/threedot.svg";
 import ProfileIcon from "../../../assets/ProductNavbarIcons/Profile.svg";
@@ -15,16 +13,6 @@ import closeBtnIcon from "../../../assets/ProductNavbarIcons/close button.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 
-const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "N/A";
-    return date.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-    }).split('/').join('-');
-};
 
 interface Project {
     id: number;
@@ -105,7 +93,6 @@ export default function ProjectsPMV() {
 
     // File & Document State
     const [createFile, setCreateFile] = useState<File | null>(null);
-    const [existingDoc, setExistingDoc] = useState<string | null>(null);
     const [currentAttachments, setCurrentAttachments] = useState<string>("");
 
     const [createClientName, setCreateClientName] = useState("");
@@ -398,7 +385,6 @@ export default function ProjectsPMV() {
         setCreateLocation(p.location || "");
         setCreateDescription(p.description || "");
         setCreateDeliverables(p.deliverables || "");
-        setExistingDoc(p.document_attachment || null);
         setCurrentAttachments(p.document_attachment || "");
         setShowEditModal(true);
     };
@@ -473,7 +459,7 @@ export default function ProjectsPMV() {
                     setCreateTotalHours(""); setCreatePerDay(""); setCreateBIMLead("");
                     setCreateBIMCoOrdinator(""); setSelectedMemberIds([]); setCreateResources("");
                     setCreateRequiredResources(""); setCreatePriority(""); setCreateLocation("");
-                    setCreateDescription(""); setCreateDeliverables(""); setCreateFile(null); setExistingDoc(null);
+                    setCreateDescription(""); setCreateDeliverables(""); setCreateFile(null);
 
                     setSuccessMsg("Project updated!");
                     setTimeout(() => setSuccessMsg(null), 3000);
@@ -784,23 +770,23 @@ export default function ProjectsPMV() {
             </div>
             <div className="md:col-span-2 space-y-4 pt-4">
                 <label className="block text-[14px] font-medium text-[#353535]">Project Documents</label>
-                
+
                 {/* Existing Documents */}
                 {currentAttachments && (
                     <div className="flex flex-wrap gap-3 mb-4">
                         {currentAttachments.split(",").map(file => file.trim()).filter(Boolean).map((fileName, idx) => {
-                             const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
-                             return (
-                                 <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
-                                     <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                                     <span className="text-[13px] font-medium text-[#353535] line-clamp-1 flex-1">
-                                         {fileName.split("_").pop()}
-                                     </span>
-                                     <div className="flex gap-1.5">
-                                         <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-slate-50 rounded transition-colors">
-                                              <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
-                                         </a>
-                                         <button 
+                            const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
+                            return (
+                                <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
+                                    <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                                    <span className="text-[13px] font-medium text-[#353535] line-clamp-1 flex-1">
+                                        {fileName.split("_").pop()}
+                                    </span>
+                                    <div className="flex gap-1.5">
+                                        <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-slate-50 rounded transition-colors">
+                                            <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
+                                        </a>
+                                        <button
                                             type="button"
                                             onClick={() => {
                                                 const remaining = currentAttachments.split(",")
@@ -810,14 +796,14 @@ export default function ProjectsPMV() {
                                                 setCurrentAttachments(remaining);
                                             }}
                                             className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
-                                         >
-                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                             </svg>
-                                         </button>
-                                     </div>
-                                 </div>
-                             );
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            );
                         })}
                     </div>
                 )}
@@ -987,10 +973,12 @@ export default function ProjectsPMV() {
                                         key={i}
                                         type="button"
                                         onClick={() => navigate('/vpm/teamtasks?status=' + stat.status + (selectedProject?.project_name ? `&project=${encodeURIComponent(selectedProject.project_name)}` : ''))}
-                                        className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] hover:bg-[#DD4342] focus:outline-none cursor-pointer transition-colors group border border-slate-200"
+                                        className="bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] hover:bg-[#DD4342] focus:outline-none cursor-pointer transition-colors group border border-slate-200"
                                     >
-                                        <p className="text-[#353535] group-hover:text-white text-[16px] font-Gantari font-semibold leading-tight">{stat.label}</p>
-                                        <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none mt-auto self-end pr-2">{stat.value}</p>
+                                        <p className="text-[#353535] group-hover:text-white text-[16px] font-Gantari font-semibold leading-tight text-center w-full">{stat.label}</p>
+                                        <div className="flex-1 flex items-center justify-center w-full">
+                                          <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">{stat.value}</p>
+                                        </div>
                                     </button>
                                 ))}
                             </div>
@@ -1292,7 +1280,7 @@ export default function ProjectsPMV() {
                                                     return (
                                                         <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-slate-200 md:max-w-md w-full">
                                                             <div className="p-2 bg-white rounded-lg shadow-sm">
-                                                                 <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                                                                <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
                                                             </div>
                                                             <span className="text-[14px] font-bold text-[#353535] line-clamp-1 flex-1">
                                                                 {fileName.split("_").pop() || "Document"}
