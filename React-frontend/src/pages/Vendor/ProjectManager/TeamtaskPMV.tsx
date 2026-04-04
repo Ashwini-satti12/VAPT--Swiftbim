@@ -311,7 +311,7 @@ interface Task {
 interface Employee {
     id: number;
     full_name: string;
-  active?: string;
+    active?: string;
 }
 
 interface Project {
@@ -968,23 +968,23 @@ export default function TeamtaskPMV() {
     const employeeOptions = useMemo(() => {
         const rawEmployees = Array.isArray(employees) ? employees : [];
         const baseOptions = ["Select Employee", "Show All"];
-        
+
         if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
             return [...baseOptions, ...rawEmployees.map((e) => e.full_name)];
         }
-        
+
         const proj = projects.find((p) => p.project_name === selectedProject);
         if (!proj) {
             return [...baseOptions, ...rawEmployees.map((e) => e.full_name)];
         }
-        
+
         const memberTokens = (proj.members || "").split(",").map(s => s.trim()).filter(Boolean);
         const filtered = rawEmployees.filter(emp => {
             const name = (emp.full_name || "").trim();
             const idStr = String(emp.id);
             return memberTokens.some(t => t === idStr || t.toLowerCase() === name.toLowerCase());
         });
-        
+
         return [...baseOptions, ...filtered.map(e => e.full_name)];
     }, [employees, projects, selectedProject]);
     const projectOptions = [
@@ -1069,224 +1069,224 @@ export default function TeamtaskPMV() {
     return (
         <div className="h-full min-h-0 flex flex-col overflow-hidden">
             <div className="bg-white pb-3 flex-shrink-0">
-            {/* Top row: title + dropdowns + Add task */}
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-                <h2 className="text-2xl font-bold text-slate-800">
-                    {isTeam ? "Team Task" : "Team Task"}
-                </h2>
-                <div
-                    ref={dropdownsContainerRef}
-                    className="flex flex-wrap items-center gap-2 w-fit"
-                >
-                    <TaskDropdown
-                        label="Select Employee"
-                        options={employeeOptions}
-                        selected={selectedEmployee}
-                        onSelect={setSelectedEmployee}
-                        isOpen={openDropdown === "employee"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "employee" ? null : "employee"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={employeeTriggerRef}
-                        dropdownRef={employeeMenuRef}
-                        searchable={true}
-                    />
-                    <TaskDropdown
-                        label="Select Projects"
-                        options={projectOptions}
-                        selected={selectedProject}
-                        onSelect={setSelectedProject}
-                        isOpen={openDropdown === "projects"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "projects" ? null : "projects"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={projectsTriggerRef}
-                        dropdownRef={projectsMenuRef}
-                        searchable={true}
-                    />
-                    <TaskDropdown
-                        label="Show Entries"
-                        options={SHOW_OPTIONS}
-                        selected={selectedShow}
-                        onSelect={setSelectedShow}
-                        isOpen={openDropdown === "show"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "show" ? null : "show"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={showTriggerRef}
-                        dropdownRef={showMenuRef}
-                        narrow
-                    />
-                    <TaskDropdown
-                        label="Period"
-                        options={PERIOD_OPTIONS}
-                        selected={selectedPeriod}
-                        onSelect={setSelectedPeriod}
-                        isOpen={openDropdown === "period"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "period" ? null : "period"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={periodTriggerRef}
-                        dropdownRef={periodMenuRef}
-                        narrow
-                    />
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setEditingTaskId(null);
-                            setAttachmentFiles([]);
-                            setAddTaskForm({
-                                projectName: "",
-                                module: "",
-                                taskName: "",
-                                type: "",
-                                actualStartDate: "",
-                                actualEndDate: "",
-                                startTime: "",
-                                dueTime: "",
-                                assignTo: "",
-                                description: "",
-                                checklist: "",
-                            });
-                            setAddTaskModalOpen(true);
-                        }}
-                        className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm cursor-pointer"
+                {/* Top row: title + dropdowns + Add task */}
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
+                    <h2 className="text-2xl font-bold text-slate-800">
+                        {isTeam ? "Team Task" : "Team Task"}
+                    </h2>
+                    <div
+                        ref={dropdownsContainerRef}
+                        className="flex flex-wrap items-center gap-2 w-fit"
                     >
-                        <img src={AddBtn} alt="Add" className="h-5 w-5" />
-                        Add task
-                    </button>
+                        <TaskDropdown
+                            label="Select Employee"
+                            options={employeeOptions}
+                            selected={selectedEmployee}
+                            onSelect={setSelectedEmployee}
+                            isOpen={openDropdown === "employee"}
+                            onToggle={() =>
+                                setOpenDropdown((d) => (d === "employee" ? null : "employee"))
+                            }
+                            onClose={() => setOpenDropdown(null)}
+                            triggerRef={employeeTriggerRef}
+                            dropdownRef={employeeMenuRef}
+                            searchable={true}
+                        />
+                        <TaskDropdown
+                            label="Select Projects"
+                            options={projectOptions}
+                            selected={selectedProject}
+                            onSelect={setSelectedProject}
+                            isOpen={openDropdown === "projects"}
+                            onToggle={() =>
+                                setOpenDropdown((d) => (d === "projects" ? null : "projects"))
+                            }
+                            onClose={() => setOpenDropdown(null)}
+                            triggerRef={projectsTriggerRef}
+                            dropdownRef={projectsMenuRef}
+                            searchable={true}
+                        />
+                        <TaskDropdown
+                            label="Show Entries"
+                            options={SHOW_OPTIONS}
+                            selected={selectedShow}
+                            onSelect={setSelectedShow}
+                            isOpen={openDropdown === "show"}
+                            onToggle={() =>
+                                setOpenDropdown((d) => (d === "show" ? null : "show"))
+                            }
+                            onClose={() => setOpenDropdown(null)}
+                            triggerRef={showTriggerRef}
+                            dropdownRef={showMenuRef}
+                            narrow
+                        />
+                        <TaskDropdown
+                            label="Period"
+                            options={PERIOD_OPTIONS}
+                            selected={selectedPeriod}
+                            onSelect={setSelectedPeriod}
+                            isOpen={openDropdown === "period"}
+                            onToggle={() =>
+                                setOpenDropdown((d) => (d === "period" ? null : "period"))
+                            }
+                            onClose={() => setOpenDropdown(null)}
+                            triggerRef={periodTriggerRef}
+                            dropdownRef={periodMenuRef}
+                            narrow
+                        />
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setEditingTaskId(null);
+                                setAttachmentFiles([]);
+                                setAddTaskForm({
+                                    projectName: "",
+                                    module: "",
+                                    taskName: "",
+                                    type: "",
+                                    actualStartDate: "",
+                                    actualEndDate: "",
+                                    startTime: "",
+                                    dueTime: "",
+                                    assignTo: "",
+                                    description: "",
+                                    checklist: "",
+                                });
+                                setAddTaskModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm cursor-pointer"
+                        >
+                            <img src={AddBtn} alt="Add" className="h-5 w-5" />
+                            Add task
+                        </button>
+                    </div>
                 </div>
-            </div>
-            {/* Status summary cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4">
-                <Link
-                    to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                    className="flex p-4 gap-4 rounded-xl border py-4 shadow-sm relative transition-all bg-white border-slate-200"
-                >
-                    <span className="text-xl font-bold text-[#0D1829]">To Do</span>
-                    <span className="text-xl font-bold text-[#0D1829]">
-                        ({counts.todo})
-                    </span>
-                    <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-                        <img src={Group1} alt="Group1" className="w-8 h-8" />
-                    </div>
-                </Link>
+                {/* Status summary cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4">
+                    <Link
+                        to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
+                        className="flex p-4 gap-4 rounded-xl border py-4 shadow-sm relative transition-all bg-white border-slate-200"
+                    >
+                        <span className="text-xl font-bold text-[#0D1829]">To Do</span>
+                        <span className="text-xl font-bold text-[#0D1829]">
+                            ({counts.todo})
+                        </span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group1} alt="Group1" className="w-8 h-8" />
+                        </div>
+                    </Link>
 
-                <Link
-                    to={
-                        statusFilter === "in_progress"
-                            ? pathname
-                            : `${pathname}?status=in_progress`
-                    }
-                    className="flex p-4 gap-4 rounded-xl border py-4 shadow-sm relative transition-all bg-white border-slate-200"
-                >
-                    <span className="text-xl font-bold text-[#0D1829]">
-                        In Progress
-                    </span>
-                    <span className="text-xl font-bold text-[#0D1829]">
-                        ({counts.in_progress})
-                    </span>
-                    <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-                        <img src={Group2} alt="Group2" className="w-8 h-8" />
-                    </div>
-                </Link>
+                    <Link
+                        to={
+                            statusFilter === "in_progress"
+                                ? pathname
+                                : `${pathname}?status=in_progress`
+                        }
+                        className="flex p-4 gap-4 rounded-xl border py-4 shadow-sm relative transition-all bg-white border-slate-200"
+                    >
+                        <span className="text-xl font-bold text-[#0D1829]">
+                            In Progress
+                        </span>
+                        <span className="text-xl font-bold text-[#0D1829]">
+                            ({counts.in_progress})
+                        </span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group2} alt="Group2" className="w-8 h-8" />
+                        </div>
+                    </Link>
 
-                <Link
-                    to={
-                        statusFilter === "completed"
-                            ? pathname
-                            : `${pathname}?status=completed`
-                    }
-                    className="flex p-4 gap-4 rounded-xl border py-4 shadow-sm relative transition-all bg-white border-slate-200"
-                >
-                    <span className="text-xl font-bold text-[#0D1829]">Completed</span>
-                    <span className="text-xl font-bold text-[#0D1829]">
-                        ({counts.completed})
-                    </span>
-                    <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-                        <img src={Group3} alt="Group3" className="w-8 h-8" />
-                    </div>
-                </Link>
-            </div>
+                    <Link
+                        to={
+                            statusFilter === "completed"
+                                ? pathname
+                                : `${pathname}?status=completed`
+                        }
+                        className="flex p-4 gap-4 rounded-xl border py-4 shadow-sm relative transition-all bg-white border-slate-200"
+                    >
+                        <span className="text-xl font-bold text-[#0D1829]">Completed</span>
+                        <span className="text-xl font-bold text-[#0D1829]">
+                            ({counts.completed})
+                        </span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group3} alt="Group3" className="w-8 h-8" />
+                        </div>
+                    </Link>
+                </div>
             </div>
 
             {/* Task cards under each status - drag and drop columns */}
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 pb-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-6">
-                <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
-                    }}
-                >
-                    {displayedTasksByStatus.todo.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            status="todo"
-                            onViewTask={openViewTask}
-                            onEditTask={openEditTask}
-                            onDeleteTask={openDeleteTask}
-                        />
-                    ))}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-6">
+                    <div
+                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const taskId = Number(e.dataTransfer.getData("taskId"));
+                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
+                        }}
+                    >
+                        {displayedTasksByStatus.todo.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                status="todo"
+                                onViewTask={openViewTask}
+                                onEditTask={openEditTask}
+                                onDeleteTask={openDeleteTask}
+                            />
+                        ))}
+                    </div>
+                    <div
+                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const taskId = Number(e.dataTransfer.getData("taskId"));
+                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
+                        }}
+                    >
+                        {displayedTasksByStatus.in_progress.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                status="in_progress"
+                                onViewTask={openViewTask}
+                                onEditTask={openEditTask}
+                                onDeleteTask={openDeleteTask}
+                            />
+                        ))}
+                    </div>
+                    <div
+                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const taskId = Number(e.dataTransfer.getData("taskId"));
+                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
+                        }}
+                    >
+                        {displayedTasksByStatus.completed.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                status="completed"
+                                onViewTask={openViewTask}
+                                onEditTask={openEditTask}
+                                onDeleteTask={openDeleteTask}
+                            />
+                        ))}
+                    </div>
                 </div>
-                <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
-                    }}
-                >
-                    {displayedTasksByStatus.in_progress.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            status="in_progress"
-                            onViewTask={openViewTask}
-                            onEditTask={openEditTask}
-                            onDeleteTask={openDeleteTask}
-                        />
-                    ))}
-                </div>
-                <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
-                    }}
-                >
-                    {displayedTasksByStatus.completed.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            status="completed"
-                            onViewTask={openViewTask}
-                            onEditTask={openEditTask}
-                            onDeleteTask={openDeleteTask}
-                        />
-                    ))}
-                </div>
-            </div>
             </div>
 
             {/* Delete Task confirmation modal */}

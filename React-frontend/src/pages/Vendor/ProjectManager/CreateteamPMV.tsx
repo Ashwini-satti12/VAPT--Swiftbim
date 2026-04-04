@@ -1,7 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import api from "../../../lib/api";
-import { PlusIcon, XMarkIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import threeDotsIcon from "../../../assets/ProjectManager/CreateTeam/three dots.svg";
+import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
+import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
 import eyeIcon from "../../../assets/ProjectManager/consultant/eyeIcon.svg";
 import upArrow from "../../../assets/TechnicalDirector/upArrow.svg";
 
@@ -46,78 +48,88 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
     }, []);
 
     return (
-        <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative font-Gantari">
+        <div className="bg-white rounded-md p-3.5 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative font-Gantari">
             {/* Team Name */}
-            <div className="flex flex-col mb-4 pt-1">
-                <span className="text-[15px] font-medium text-[#999999] mb-1.5">Team Name</span>
-                <span className="text-[18px] font-bold text-[#353535] pr-8 truncate">
-                    {team.team_name || team.teamname || team.leader_name || getEmpName(team.leader)}
+            <div className="flex flex-col mb-3 pt-1">
+                <span className="text-[14px] font-medium text-[#8B8B8B] mb-1.5">
+                    Team Name
+                </span>
+                <span className="text-[18px] font-semibold text-[#353535] pr-8 truncate">
+                    {team.team_name || team.teamname || team.leader_name || getEmpName(team.leader) || "Untitled Team"}
                 </span>
             </div>
-                <div className="absolute top-6 right-6" ref={menuRef}>
-                    <button
-                        onClick={() => setShowMenu(!showMenu)}
-                        className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
-                    >
-                        <img src={threeDotsIcon} alt="Options" className="w-[18px] h-auto object-contain" />
-                    </button>
 
-                    {showMenu && (
-                        <div className="absolute right-[-70px] mt-3 w-[158px] bg-white/20 backdrop-blur rounded-[15px] border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right">
-                            <button
-                                onClick={() => {
-                                    onViewDetails(team);
-                                    setShowMenu(false);
-                                }}
-                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item cursor-pointer"
-                            >
-                                <img src={eyeIcon} alt="View" className="w-5 h-5 [filter:brightness(0)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
-                                <span className="text-[16px] font-medium text-[#353535] group-hover/item:text-[#DD4342]">View</span>
-                            </button>
-                            <button
-                                onClick={() => {
-                                    onEdit(team);
-                                    setShowMenu(false);
-                                }}
-                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item cursor-pointer"
-                            >
-                                <PencilSquareIcon className="w-5 h-5 text-[#353535] group-hover/item:text-[#DD4342]" />
-                                <span className="text-[16px] font-medium text-[#353535] group-hover/item:text-[#DD4342]">Edit</span>
-                            </button>
-                            <button
-                                onClick={() => {
-                                    onDelete(team.team_id);
-                                    setShowMenu(false);
-                                }}
-                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item cursor-pointer"
-                            >
-                                <TrashIcon className="w-5 h-5 text-[#353535] group-hover/item:text-[#DD4342]" />
-                                <span className="text-[16px] font-medium text-[#353535] group-hover/item:text-[#DD4342]">Delete</span>
-                            </button>
-                        </div>
-                    )}
-                </div>
+            <div className="absolute top-6 right-6" ref={menuRef}>
+                <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+                >
+                    <img
+                        src={threeDotsIcon}
+                        alt="Options"
+                        className="w-5 h-5 object-contain"
+                    />
+                </button>
+
+                {showMenu && (
+                    <div className="absolute right-0 mt-3 w-[158px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
+                        <button
+                            onClick={() => {
+                                onEdit(team);
+                                setShowMenu(false);
+                            }}
+                            className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
+                        >
+                            <img
+                                src={editIcon}
+                                alt="Edit"
+                                className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                            />
+                            <span className="text-[14px] font-medium text-[#8B8B8B] group-hover/item:text-[#DD4342]">
+                                Edit
+                            </span>
+                        </button>
+                        <button
+                            onClick={() => {
+                                onDelete(team.team_id);
+                                setShowMenu(false);
+                            }}
+                            className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
+                        >
+                            <img
+                                src={deleteIcon}
+                                alt="Delete"
+                                className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                            />
+                            <span className="text-[14px] font-medium text-[#8B8B8B] group-hover/item:text-[#DD4342]">
+                                Delete
+                            </span>
+                        </button>
+                    </div>
+                )}
+            </div>
 
             {/* Team Leader */}
-            <div className="flex flex-col mb-5">
-                <span className="text-[15px] font-medium text-[#999999] mb-1.5">Team Leader</span>
-                <span className="text-[18px] font-bold text-[#353535] truncate">
+            <div className="flex flex-col mb-4">
+                <span className="text-[14px] font-medium text-[#8B8B8B] mb-1.5">
+                    Team Leader
+                </span>
+                <span className="text-[18px] font-semibold text-[#353535] truncate flex items-center gap-2">
                     {team.leader_name || getEmpName(team.leader)}
                 </span>
             </div>
 
             {/* Divider */}
-            <div className="h-[1px] w-full bg-[#E5E7EB] mb-5" />
+            <div className="h-[1px] w-full bg-[#E5E7EB] mb-4"></div>
 
             {/* Members + Details */}
             <div className="mt-auto flex items-center justify-between">
                 <div>
-
                     <div className="flex -space-x-3">
-                        {memberIds.slice(0, 5).map((eid) => (
+                        {memberIds.slice(0, 3).map((eid) => (
                             <div
                                 key={eid}
-                                className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm flex items-center justify-center"
+                                className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
                                 title={getEmpName(eid)}
                             >
                                 <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600 uppercase">
@@ -125,9 +137,9 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
                                 </div>
                             </div>
                         ))}
-                        {memberIds.length > 5 && (
-                            <div className="w-9 h-9 rounded-full border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors">
-                                +{memberIds.length - 5}
+                        {memberIds.length > 3 && (
+                            <div className="w-9 h-9 rounded-full border-1 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors">
+                                +{memberIds.length - 3}
                             </div>
                         )}
                         {memberIds.length === 0 && (
@@ -138,13 +150,12 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
                 <button
                     type="button"
                     onClick={() => onViewDetails(team)}
-                    className="flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] pr-1 cursor-pointer"
+                    className="flex items-center gap-1.5 text-sm font-semibold hover:text-[#353535] pr-1 cursor-pointer  transition-colors"
                 >
                     Details
-                    <img src={upArrow} alt="Up" className="w-5 h-5 object-contain" />
+                    <img src={upArrow} alt="Up" className="w-5 h-5 object-contain rotate-5" />
                 </button>
             </div>
-
         </div>
     );
 }
@@ -160,12 +171,31 @@ export default function CreateteamPMV() {
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
     const [submitting, setSubmitting] = useState(false);
+
+    // Dropdown states for Add Modal
+    const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+    const [projectDropdownUpward, setProjectDropdownUpward] = useState(false);
+    const projectDropdownRef = useRef<HTMLDivElement>(null);
+
+    const [showLeaderDropdown, setShowLeaderDropdown] = useState(false);
+    const [leaderSearchQuery, setLeaderSearchQuery] = useState("");
+    const [leaderDropdownUpward, setLeaderDropdownUpward] = useState(false);
+    const leaderDropdownRef = useRef<HTMLDivElement>(null);
+
+    const [memberSearchQuery, setMemberSearchQuery] = useState("");
+    const [memberDropdownUpward, setMemberDropdownUpward] = useState(false);
     const memberDropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (memberDropdownRef.current && !memberDropdownRef.current.contains(event.target as Node)) {
                 setShowMemberDropdown(false);
+            }
+            if (leaderDropdownRef.current && !leaderDropdownRef.current.contains(event.target as Node)) {
+                setShowLeaderDropdown(false);
+            }
+            if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) {
+                setShowProjectDropdown(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -190,9 +220,9 @@ export default function CreateteamPMV() {
 
     useEffect(() => {
         Promise.all([
-            api.get<{ teams?: Team[] }>('/api/teams'),
+            api.get<{ teams?: Team[] }>('/api/vendors/vendor-teams'),
             api.get<{ employees?: Employee[] }>('/api/employees'),
-            api.get<{ projects?: Project[] }>('/api/projects')
+            api.get<{ projects?: Project[] }>('/api/vendors/vendor-projects')
         ])
             .then(([teamsRes, empsRes, projectsRes]) => {
                 setTeams(teamsRes.data.teams ?? []);
@@ -212,7 +242,7 @@ export default function CreateteamPMV() {
         if (!form.leader) return;
         setSubmitting(true);
 
-        api.post('/api/teams', {
+        api.post('/api/vendors/vendor-teams', {
             team_name: form.team_name,
             leader: form.leader,
             employee: form.employee.join(','),
@@ -223,7 +253,7 @@ export default function CreateteamPMV() {
                 if (data.success) {
                     setShowAddModal(false);
                     // Refresh data instead of page reload for better UX
-                    api.get<{ teams?: Team[] }>('/api/teams').then(res => setTeams(res.data.teams ?? []));
+                    api.get<{ teams?: Team[] }>('/api/vendors/vendor-teams').then(res => setTeams(res.data.teams ?? []));
                     setForm({ leader: '', employee: [], project_lead: '', project_id: '', team_name: '' });
                 }
             })
@@ -276,7 +306,7 @@ export default function CreateteamPMV() {
         if (!selectedTeam || !editForm.leader) return;
         setSubmitting(true);
 
-        api.patch(`/api/teams/${selectedTeam.team_id}`, {
+        api.patch(`/api/vendors/vendor-teams/${selectedTeam.team_id}`, {
             team_name: editForm.team_name,
             leader: editForm.leader,
             employee: editForm.employee.join(','),
@@ -286,7 +316,7 @@ export default function CreateteamPMV() {
             .then(({ data }) => {
                 if (data.success) {
                     setShowEditModal(false);
-                    api.get<{ teams?: Team[] }>('/api/teams').then(res => setTeams(res.data.teams ?? []));
+                    api.get<{ teams?: Team[] }>('/api/vendors/vendor-teams').then(res => setTeams(res.data.teams ?? []));
                 }
             })
             .catch(() => { })
@@ -300,7 +330,7 @@ export default function CreateteamPMV() {
 
     const handleDelete = (id: number) => {
         if (!window.confirm('Are you sure you want to delete this team?')) return;
-        api.delete(`/api/teams/${id}`)
+        api.delete(`/api/vendors/vendor-teams/${id}`)
             .then(() => {
                 setTeams(teams.filter(t => t.team_id !== id));
             });
@@ -330,149 +360,280 @@ export default function CreateteamPMV() {
 
             {/* Teams Grid */}
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {teams.length === 0 ? (
-                    <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-[#AEACAC52] flex flex-col items-center justify-center gap-4">
-                        <div className="w-16 h-16 bg-[#F8FAFC] rounded-full flex items-center justify-center">
-                            <PlusIcon className="w-8 h-8 text-[#94A3B8]" />
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {teams.length === 0 ? (
+                        <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-[#AEACAC52] flex flex-col items-center justify-center gap-4">
+                            <div className="w-16 h-16 bg-[#F8FAFC] rounded-full flex items-center justify-center">
+                                <PlusIcon className="w-8 h-8 text-[#94A3B8]" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-[#1E293B]">No teams found</h3>
+                                <p className="text-[#64748B]">Click "New Team" to get started.</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-[#1E293B]">No teams found</h3>
-                            <p className="text-[#64748B]">Click "New Team" to get started.</p>
-                        </div>
-                    </div>
-                ) : (
-                    teams.map((team) => (
-                        <TeamCard
-                            key={team.team_id}
-                            team={team}
-                            getEmpName={getEmpName}
-                            onEdit={handleEditClick}
-                            onDelete={handleDelete}
-                            onViewDetails={(t) => {
-                                setSelectedTeam(t);
-                                setShowDetailsModal(true);
-                            }}
-                        />
-                    ))
-                )}
-            </div>
+                    ) : (
+                        teams.map((team) => (
+                            <TeamCard
+                                key={team.team_id}
+                                team={team}
+                                getEmpName={getEmpName}
+                                onEdit={handleEditClick}
+                                onDelete={handleDelete}
+                                onViewDetails={(t) => {
+                                    setSelectedTeam(t);
+                                    setShowDetailsModal(true);
+                                }}
+                            />
+                        ))
+                    )}
+                </div>
             </div>
 
             {/* Add Modal */}
             {showAddModal && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-[500px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-8">
-                            <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">New Team</h3>
-                                <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors bg-[#F2F2F2] text-black cursor-pointer">
-                                    <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
-                                </button>
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-visible my-auto">
+                        <button
+                            onClick={() => setShowAddModal(false)}
+                            className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
+                        >
+                            <XMarkIcon className="w-5 h-5 text-black stroke-[2]" />
+                        </button>
+
+                        <div className="text-center mb-10">
+                            <h3 className="text-[24px] font-semibold text-[#000000]">
+                                Create New Team
+                            </h3>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div>
+                                <label className="block text-[14px] font-medium text-[#353535] mb-3">
+                                    Team Name <span className="text-[#DD4342]">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Enter Team Name"
+                                    className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                                    value={form.team_name}
+                                    onChange={(e) =>
+                                        setForm({ ...form, team_name: e.target.value })
+                                    }
+                                    required
+                                />
                             </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Team Name</label>
-                                    <input
-                                        type="text"
-                                        value={form.team_name}
-                                        onChange={(e) => setForm({ ...form, team_name: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium"
-                                        placeholder="Enter team name"
-                                        required
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Project</label>
-                                    <select
-                                        value={form.project_id}
-                                        onChange={(e) => setForm({ ...form, project_id: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none cursor-pointer"
-                                        required
+                            <div>
+                                <label className="block text-[14px] font-medium text-[#353535] mb-3">
+                                    Select Project
+                                </label>
+                                <div className="relative" ref={projectDropdownRef}>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const el = projectDropdownRef.current;
+                                            if (el) {
+                                                const rect = el.getBoundingClientRect();
+                                                setProjectDropdownUpward(window.innerHeight - rect.bottom < 220);
+                                            }
+                                            setShowProjectDropdown(!showProjectDropdown);
+                                        }}
+                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] flex items-center justify-between transition-all cursor-pointer font-Gantari"
                                     >
-                                        <option value="">Select Project</option>
-                                        {projects.map((p) => (
-                                            <option key={p.id} value={p.id}>
-                                                {p.project_name ?? `Project ${p.id}`}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
+                                        <span>
+                                            {form.project_id
+                                                ? projects.find((p) => String(p.id) === form.project_id)?.project_name || "Select Project"
+                                                : "Select Project"}
+                                        </span>
+                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M3 4.5L6 7.5L9 4.5" stroke="#8B8B8B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </button>
 
-                                <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Team Leader</label>
-                                    <select
-                                        value={form.leader}
-                                        onChange={(e) => setForm({ ...form, leader: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none cursor-pointer"
-                                        required
-                                    >
-                                        <option value="">Select Leader</option>
-                                        {employees.map(emp => (
-                                            <option key={emp.id} value={emp.id}>{emp.full_name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2 relative" ref={memberDropdownRef}>
-                                    <label className="text-[14px] font-bold text-[#475569] block">Add Members</label>
-                                    <div
-                                        onClick={() => setShowMemberDropdown(!showMemberDropdown)}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg min-h-[48px] cursor-pointer flex flex-wrap gap-2 items-center"
-                                    >
-                                        {form.employee.length === 0 ? (
-                                            <span className="text-gray-400 font-medium">Select teammates</span>
-                                        ) : (
-                                            form.employee.map(eid => (
-                                                <span key={eid} className="bg-white px-2.5 py-1 rounded-md text-[13px] font-bold text-[#1E293B] shadow-sm flex items-center gap-1.5 border border-[#E2E8F0]">
-                                                    {getEmpName(eid)}
-                                                    <XMarkIcon
-                                                        onClick={(e) => { e.stopPropagation(); handleMemberToggle(eid); }}
-                                                        className="w-3.5 h-3.5 cursor-pointer hover:text-red-500"
-                                                    />
-                                                </span>
-                                            ))
-                                        )}
-                                    </div>
-
-                                    {showMemberDropdown && (
-                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-[#E2E8F0] p-3 z-50 max-h-[220px] overflow-y-auto custom-scrollbar">
-                                            {employees.filter(emp => String(emp.id) !== form.leader).map(emp => (
-                                                <div
-                                                    key={emp.id}
-                                                    onClick={() => handleMemberToggle(String(emp.id))}
-                                                    className="flex items-center gap-3 p-2.5 hover:bg-[#F8FAFC] rounded-lg cursor-pointer transition-colors"
+                                    {showProjectDropdown && (
+                                        <div
+                                            className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 overflow-y-auto no-scrollbar flex flex-col ${projectDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
+                                        >
+                                            {projects.map((p) => (
+                                                <button
+                                                    key={p.id}
+                                                    type="button"
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        setForm((f) => ({ ...f, project_id: String(p.id), leader: "", employee: [] }));
+                                                        setShowProjectDropdown(false);
+                                                    }}
+                                                    className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
                                                 >
-                                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${form.employee.includes(String(emp.id)) ? 'bg-[#DD4342] border-[#DD4342]' : 'border-[#CBD5E1]'}`}>
-                                                        {form.employee.includes(String(emp.id)) && <PlusIcon className="w-3.5 h-3.5 text-white rotate-45 stroke-[3]" />}
-                                                    </div>
-                                                    <span className="text-[15px] font-medium text-[#334155]">{emp.full_name}</span>
-                                                </div>
+                                                    {p.project_name ?? `Project ${p.id}`}
+                                                </button>
                                             ))}
                                         </div>
                                     )}
                                 </div>
+                            </div>
 
-                                <div className="flex gap-4 pt-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowAddModal(false)}
-                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-[#E2E8F0] transition-colors cursor-pointer"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={submitting}
-                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity flex items-center justify-center disabled:opacity-50 cursor-pointer"
-                                    >
-                                        {submitting ? 'Creating...' : 'Create Team'}
-                                    </button>
+                            <div>
+                                <label className="block text-[14px] font-medium text-[#353535] mb-3">
+                                    Select Team Leader <span className="text-[#DD4342]">*</span>
+                                </label>
+                                <div className="relative" ref={leaderDropdownRef}>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Select Team Leader"
+                                            value={
+                                                showLeaderDropdown
+                                                    ? leaderSearchQuery
+                                                    : form.leader
+                                                        ? (employees.find((emp) => String(emp.id) === form.leader)?.full_name ?? "")
+                                                        : ""
+                                            }
+                                            onChange={(e) => {
+                                                setLeaderSearchQuery(e.target.value);
+                                                if (e.target.value === "")
+                                                    setForm((f) => ({ ...f, leader: "" }));
+                                                setShowLeaderDropdown(true);
+                                            }}
+                                            onFocus={() => {
+                                                const el = leaderDropdownRef.current;
+                                                if (el) {
+                                                    const rect = el.getBoundingClientRect();
+                                                    setLeaderDropdownUpward(window.innerHeight - rect.bottom < 220);
+                                                }
+                                                setShowLeaderDropdown(true);
+                                                setLeaderSearchQuery(
+                                                    form.leader
+                                                        ? (employees.find((emp) => String(emp.id) === form.leader)?.full_name ?? "")
+                                                        : ""
+                                                );
+                                            }}
+                                            onClick={() => setShowLeaderDropdown(true)}
+                                            className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
+                                        />
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="transition-transform duration-200">
+                                                <path d="M3 4.5L6 7.5L9 4.5" stroke="#8B8B8B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    {showLeaderDropdown && (
+                                        <div className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${leaderDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}>
+                                            <div className="overflow-y-auto no-scrollbar max-h-44">
+                                                {employees
+                                                    .filter(e => !leaderSearchQuery.trim() || e.full_name?.toLowerCase().includes(leaderSearchQuery.toLowerCase()))
+                                                    .map((e) => (
+                                                        <button
+                                                            key={e.id}
+                                                            type="button"
+                                                            onMouseDown={(ev) => {
+                                                                ev.preventDefault();
+                                                                setForm({ ...form, leader: String(e.id) });
+                                                                setLeaderSearchQuery("");
+                                                                setShowLeaderDropdown(false);
+                                                            }}
+                                                            className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer flex items-center gap-3"
+                                                        >
+                                                            <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden text-[12px] font-bold text-slate-600">
+                                                                {(e.full_name || "U")[0].toUpperCase()}
+                                                            </div>
+                                                            {e.full_name}
+                                                        </button>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            </form>
-                        </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-[14px] font-medium text-[#353535] mb-3">
+                                    Select Member <span className="text-[#DD4342]">*</span>
+                                </label>
+                                <div className="relative" ref={memberDropdownRef}>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Select Member"
+                                            value={
+                                                showMemberDropdown
+                                                    ? memberSearchQuery
+                                                    : form.employee.length === 0
+                                                        ? ""
+                                                        : `${form.employee.length} Member(s) Selected`
+                                            }
+                                            onChange={(e) => {
+                                                setMemberSearchQuery(e.target.value);
+                                                setShowMemberDropdown(true);
+                                            }}
+                                            onFocus={() => {
+                                                const el = memberDropdownRef.current;
+                                                if (el) {
+                                                    const rect = el.getBoundingClientRect();
+                                                    setMemberDropdownUpward(window.innerHeight - rect.bottom < 220);
+                                                }
+                                                setShowMemberDropdown(true);
+                                                setMemberSearchQuery("");
+                                            }}
+                                            onClick={() => setShowMemberDropdown(true)}
+                                            className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
+                                        />
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="transition-transform duration-200">
+                                                <path d="M3 4.5L6 7.5L9 4.5" stroke="#8B8B8B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    {showMemberDropdown && (
+                                        <div className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${memberDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}>
+                                            <div className="overflow-y-auto no-scrollbar max-h-44">
+                                                {employees
+                                                    .filter(e => String(e.id) !== form.leader)
+                                                    .filter(e => !memberSearchQuery.trim() || e.full_name?.toLowerCase().includes(memberSearchQuery.toLowerCase()))
+                                                    .map((e) => (
+                                                        <label
+                                                            key={e.id}
+                                                            className="flex items-center gap-3 px-5 py-2.5 hover:bg-[#F2F2F2] cursor-pointer transition-colors group"
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={form.employee.includes(String(e.id))}
+                                                                onChange={() => handleMemberToggle(String(e.id))}
+                                                                className="w-5 h-5 rounded border-gray-300 text-[#000000] focus:ring-0 cursor-pointer"
+                                                            />
+                                                            <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden text-[12px] font-bold text-slate-600">
+                                                                {(e.full_name || "U")[0].toUpperCase()}
+                                                            </div>
+                                                            <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535]">
+                                                                {e.full_name}
+                                                            </span>
+                                                        </label>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex justify-center gap-6 pt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAddModal(false)}
+                                    className="px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] text-[14px] font-medium transition-all active:scale-[0.98] cursor-pointer"
+                                >
+                                    Discard
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="px-12 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-medium transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                                >
+                                    {submitting ? 'Submitting...' : 'Submit'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
@@ -480,33 +641,36 @@ export default function CreateteamPMV() {
             {/* Edit Modal */}
             {showEditModal && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-[500px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-visible my-auto">
+                        <button
+                            onClick={() => setShowEditModal(false)}
+                            className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
+                        >
+                            <XMarkIcon className="w-5 h-5 text-black stroke-[2]" />
+                        </button>
                         <div className="p-8">
-                            <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">Edit Team</h3>
-                                <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors bg-[#F2F2F2] text-black cursor-pointer">
-                                    <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
-                                </button>
+                            <div className="text-center mb-10">
+                                <h3 className="text-[24px] font-semibold text-[#000000]">Edit Team</h3>
                             </div>
 
                             <form onSubmit={handleUpdate} className="space-y-6">
                                 <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Team Name</label>
+                                    <label className="block text-[14px] font-medium text-[#353535] mb-3">Team Name <span className="text-[#DD4342]">*</span></label>
                                     <input
                                         type="text"
                                         value={editForm.team_name}
                                         onChange={(e) => setEditForm({ ...editForm, team_name: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium"
+                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
                                         required
                                     />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Project</label>
+                                    <label className="block text-[14px] font-medium text-[#353535] mb-3">Select Project</label>
                                     <select
                                         value={editForm.project_id}
                                         onChange={(e) => setEditForm({ ...editForm, project_id: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none cursor-pointer"
+                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] outline-none transition-all appearance-none cursor-pointer font-Gantari"
                                         required
                                     >
                                         <option value="">Select Project</option>
@@ -519,11 +683,11 @@ export default function CreateteamPMV() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Team Leader</label>
+                                    <label className="block text-[14px] font-medium text-[#353535] mb-3">Team Leader <span className="text-[#DD4342]">*</span></label>
                                     <select
                                         value={editForm.leader}
                                         onChange={(e) => setEditForm({ ...editForm, leader: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none cursor-pointer"
+                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] outline-none transition-all appearance-none cursor-pointer font-Gantari"
                                         required
                                     >
                                         {employees.map(emp => (
@@ -533,13 +697,16 @@ export default function CreateteamPMV() {
                                 </div>
 
                                 <div className="space-y-2 relative" ref={memberDropdownRef}>
-                                    <label className="text-[14px] font-bold text-[#475569] block">Members</label>
+                                    <label className="block text-[14px] font-medium text-[#353535] mb-3">Select Member <span className="text-[#DD4342]">*</span></label>
                                     <div
                                         onClick={() => setShowMemberDropdown(!showMemberDropdown)}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg min-h-[48px] cursor-pointer flex flex-wrap gap-2 items-center"
+                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md min-h-[42px] cursor-pointer flex flex-wrap gap-2 items-center font-Gantari"
                                     >
+                                        {editForm.employee.length === 0 && (
+                                            <span className="text-[14px] text-[#8B8B8B]">Select Member</span>
+                                        )}
                                         {editForm.employee.map(eid => (
-                                            <span key={eid} className="bg-white px-2.5 py-1 rounded-md text-[13px] font-bold text-[#1E293B] shadow-sm flex items-center gap-1.5 border border-[#E2E8F0]">
+                                            <span key={eid} className="bg-white px-2.5 py-1 rounded-md text-[13px] font-medium text-[#353535] shadow-sm flex items-center gap-1.5 border border-[#AEACAC52]">
                                                 {getEmpName(eid)}
                                                 <XMarkIcon
                                                     onClick={(e) => { e.stopPropagation(); handleMemberToggle(eid, true); }}
@@ -550,35 +717,35 @@ export default function CreateteamPMV() {
                                     </div>
 
                                     {showMemberDropdown && (
-                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-[#E2E8F0] p-3 z-50 max-h-[220px] overflow-y-auto custom-scrollbar">
+                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-50 max-h-[220px] overflow-y-auto custom-scrollbar">
                                             {employees.filter(emp => String(emp.id) !== editForm.leader).map(emp => (
                                                 <div
                                                     key={emp.id}
                                                     onClick={() => handleMemberToggle(String(emp.id), true)}
-                                                    className="flex items-center gap-3 p-2.5 hover:bg-[#F8FAFC] rounded-lg cursor-pointer transition-colors"
+                                                    className="flex items-center gap-3 p-2.5 px-5 hover:bg-[#F2F2F2] cursor-pointer transition-colors"
                                                 >
                                                     <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${editForm.employee.includes(String(emp.id)) ? 'bg-[#DD4342] border-[#DD4342]' : 'border-[#CBD5E1]'}`}>
                                                         {editForm.employee.includes(String(emp.id)) && <PlusIcon className="w-3.5 h-3.5 text-white rotate-45 stroke-[3]" />}
                                                     </div>
-                                                    <span className="text-[15px] font-medium text-[#334155]">{emp.full_name}</span>
+                                                    <span className="text-[14px] text-[#8B8B8B] hover:text-[#353535]">{emp.full_name}</span>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="flex gap-4 pt-4">
+                                <div className="flex justify-center gap-6 pt-6">
                                     <button
                                         type="button"
                                         onClick={() => setShowEditModal(false)}
-                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-[#E2E8F0] transition-colors cursor-pointer"
+                                        className="px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] text-[14px] font-medium transition-all active:scale-[0.98] cursor-pointer"
                                     >
-                                        Cancel
+                                        Discard
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={submitting}
-                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity flex items-center justify-center disabled:opacity-50 cursor-pointer"
+                                        className="px-12 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-medium transition-all disabled:opacity-50 cursor-pointer shadow-sm"
                                     >
                                         {submitting ? 'Updating...' : 'Save Changes'}
                                     </button>
@@ -592,43 +759,46 @@ export default function CreateteamPMV() {
             {/* Details Modal */}
             {showDetailsModal && selectedTeam && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-[500px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-[500px] w-full animate-in fade-in zoom-in duration-200 relative">
+                        <button
+                            onClick={() => setShowDetailsModal(false)}
+                            className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
+                        >
+                            <XMarkIcon className="w-5 h-5 text-black stroke-[2]" />
+                        </button>
                         <div className="p-8">
-                            <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">Team Details</h3>
-                                <button onClick={() => setShowDetailsModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors bg-[#F2F2F2] text-black cursor-pointer">
-                                    <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
-                                </button>
+                            <div className="text-center mb-6">
+                                <h3 className="text-[22px] font-medium text-[#1E293B] px-12">Team Details</h3>
                             </div>
 
                             <div className="space-y-6">
                                 <div>
-                                    <label className="text-[13px] text-[#64748B] block mb-1 font-medium">Team Name</label>
-                                    <div className="text-[18px] font-bold text-[#1E293B]">{selectedTeam.team_name || selectedTeam.teamname || 'Unnamed Team'}</div>
+                                    <label className="text-[16px] font-gantari block mb-1 font-medium">Team Name</label>
+                                    <div className="text-[14px] font-gantari bg-[#F2F3F4] border-2 border-[#AEACAC52] py-3 px-2 rounded-lg">{selectedTeam.team_name || selectedTeam.teamname || 'Unnamed Team'}</div>
                                 </div>
 
                                 <div>
-                                    <label className="text-[13px] text-[#64748B] block mb-1 font-medium">Project</label>
-                                    <div className="text-[16px] font-bold text-[#334155]">{selectedTeam.project_name || 'N/A'}</div>
+                                    <label className="text-[16px] font-gantari block mb-1 font-medium">Project</label>
+                                    <div className="text-[14px] font-gantari bg-[#F2F3F4] border-2 border-[#AEACAC52] py-3 px-2 rounded-lg">{selectedTeam.project_name || 'N/A'}</div>
                                 </div>
 
                                 <div>
-                                    <label className="text-[13px] text-[#64748B] block mb-1 font-medium">Team Leader</label>
-                                    <div className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-[#E2E8F0]">
-                                        <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center font-bold">
-                                            {getEmpName(selectedTeam.leader)[0]}
+                                    <label className="text-[16px] font-gantari block mb-1 font-medium">Team Leader</label>
+                                    <div className="flex items-center gap-3 bg-[#F2F3F4] border-2 border-[#AEACAC52] py-3 px-2 rounded-xl">
+                                        <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center font-gantari font-medium uppercase">
+                                            {(selectedTeam.leader_name || getEmpName(selectedTeam.leader) || 'L')[0]}
                                         </div>
-                                        <div className="font-bold text-[#334155]">{getEmpName(selectedTeam.leader)}</div>
+                                        <div className="font-gantari font-medium text-[#334155]">{selectedTeam.leader_name || getEmpName(selectedTeam.leader)}</div>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="text-[13px] text-[#64748B] block mb-2 font-medium">Members ({selectedTeam.employee.split(',').filter(Boolean).length})</label>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <label className="text-[16px] font-gantari block mb-2 font-medium">Members ({selectedTeam.employee.split(',').filter(Boolean).length})</label>
+                                    <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
                                         {selectedTeam.employee.split(',').filter(Boolean).map(eid => (
-                                            <div key={eid} className="flex items-center gap-2.5 p-2.5 bg-[#F8FAFC] rounded-lg border border-[#F1F5F9]">
-                                                <div className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-[11px] font-bold text-slate-600">
-                                                    {getEmpName(eid)[0]}
+                                            <div key={eid} className="flex items-center gap-2.5 bg-[#F2F3F4] border-2 border-[#AEACAC52] py-3 px-2 rounded-lg">
+                                                <div className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-[11px] font-bold text-slate-600 uppercase">
+                                                    {(getEmpName(eid) || 'M')[0]}
                                                 </div>
                                                 <div className="text-[14px] font-bold text-[#475569]">{getEmpName(eid)}</div>
                                             </div>
@@ -637,14 +807,7 @@ export default function CreateteamPMV() {
                                 </div>
                             </div>
 
-                            <div className="mt-10">
-                                <button
-                                    onClick={() => setShowDetailsModal(false)}
-                                    className="w-full py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity cursor-pointer"
-                                >
-                                    Close
-                                </button>
-                            </div>
+
                         </div>
                     </div>
                 </div>
