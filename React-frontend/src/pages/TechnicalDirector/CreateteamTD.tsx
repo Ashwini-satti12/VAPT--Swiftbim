@@ -1,6 +1,7 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
+import { useAuth } from "../../contexts/AuthContext";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import threeDotsIcon from "../../assets/ProjectManager/CreateTeam/three dots.svg";
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
@@ -68,9 +69,14 @@ interface Project {
   uploader_name?: string;
 }
 
+function isTechnicalDirectorRole(role: string | undefined): boolean {
+  return String(role || "").trim() === "Technical Director";
+}
+
 function TeamCard({
   team,
   employees,
+  canManageTeams,
   onEdit,
   onDelete,
   onViewDetails,
@@ -79,6 +85,8 @@ function TeamCard({
 }: {
   team: Team;
   employees: Employee[];
+  /** Only Technical Director may edit/delete teams from this screen. */
+  canManageTeams: boolean;
   onEdit: (team: Team) => void;
   onDelete: (id: number) => void;
   onViewDetails: (team: Team) => void;
@@ -123,56 +131,60 @@ function TeamCard({
         </span>
       </div>
 
-      <div className="absolute top-6 right-6" ref={menuRef}>
-        <button
-          onClick={() => setShowMenu(!showMenu)}
-          className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
-        >
-          <img
-            src={threeDotsIcon}
-            alt="Options"
-            className="w-5 h-5 object-contain"
-          />
-        </button>
+      {canManageTeams && (
+        <div className="absolute top-6 right-6" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => setShowMenu(!showMenu)}
+            className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+          >
+            <img
+              src={threeDotsIcon}
+              alt="Options"
+              className="w-5 h-5 object-contain"
+            />
+          </button>
 
-        {showMenu && (
-          <div className="absolute right-0 mt-3 w-[158px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
-
-            <button
-              onClick={() => {
-                onEdit(team);
-                setShowMenu(false);
-              }}
-              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
-            >
-              <img
-                src={editIcon}
-                alt="Edit"
-                className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-              />
-              <span className="text-[14px] font-medium text-[#8B8B8B] group-hover/item:text-[#DD4342]">
-                Edit
-              </span>
-            </button>
-            <button
-              onClick={() => {
-                onDelete(team.team_id);
-                setShowMenu(false);
-              }}
-              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
-            >
-              <img
-                src={deleteIcon}
-                alt="Delete"
-                className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-              />
-              <span className="text-[14px] font-medium text-[#8B8B8B] group-hover/item:text-[#DD4342]">
-                Delete
-              </span>
-            </button>
-          </div>
-        )}
-      </div>
+          {showMenu && (
+            <div className="absolute right-0 mt-3 w-[158px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
+              <button
+                type="button"
+                onClick={() => {
+                  onEdit(team);
+                  setShowMenu(false);
+                }}
+                className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
+              >
+                <img
+                  src={editIcon}
+                  alt="Edit"
+                  className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                />
+                <span className="text-[14px] font-medium text-[#8B8B8B] group-hover/item:text-[#DD4342]">
+                  Edit
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onDelete(team.team_id);
+                  setShowMenu(false);
+                }}
+                className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
+              >
+                <img
+                  src={deleteIcon}
+                  alt="Delete"
+                  className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                />
+                <span className="text-[14px] font-medium text-[#8B8B8B] group-hover/item:text-[#DD4342]">
+                  Delete
+                </span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Team Leader */}
       <div className="flex flex-col mb-4">
@@ -274,6 +286,7 @@ function TeamCard({
 
 export default function CreateteamTD() {
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -562,6 +575,18 @@ export default function CreateteamTD() {
 
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
 
+  const currentUserRole = useMemo(() => {
+    const fromUser = user?.user_role?.trim();
+    if (fromUser) return fromUser;
+    if (user?.id != null) {
+      const em = employees.find((e) => e.id === user.id);
+      return em?.user_role?.trim() ?? "";
+    }
+    return "";
+  }, [user?.user_role, user?.id, employees]);
+
+  const isTechnicalDirector = isTechnicalDirectorRole(currentUserRole);
+
   const filteredTeams = teams.filter((t) => {
     if (!searchQuery) return true;
     const tName = (t.team_name || t.teamname || "").toLowerCase();
@@ -692,17 +717,20 @@ export default function CreateteamTD() {
               </div>
             )}
           </div>
-          <button
-            onClick={() => {
-              setShowLeaderDropdown(false);
-              setShowMemberDropdown(false);
-              setShowAddModal(true);
-            }}
-            className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-[#F2F2F2] rounded-md transition-all font-medium text-[14px] shadow-sm cursor-pointer"
-          >
-            <PlusIcon className="w-5 h-5 stroke-[2.5]" />
-            New Team
-          </button>
+          {isTechnicalDirector && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowLeaderDropdown(false);
+                setShowMemberDropdown(false);
+                setShowAddModal(true);
+              }}
+              className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-[#F2F2F2] rounded-md transition-all font-medium text-[14px] shadow-sm cursor-pointer"
+            >
+              <PlusIcon className="w-5 h-5 stroke-[2.5]" />
+              New Team
+            </button>
+          )}
         </div>
       </div>
 
@@ -718,7 +746,11 @@ export default function CreateteamTD() {
                   No teams found
                 </h3>
                 <p className="text-[#64748B]">
-                  Click "New Team" to get started.
+                  {searchQuery
+                    ? "No teams match your search."
+                    : isTechnicalDirector
+                      ? 'Click "New Team" to get started.'
+                      : "You are not part of any team yet."}
                 </p>
               </div>
             </div>
@@ -728,6 +760,7 @@ export default function CreateteamTD() {
                 key={team.team_id}
                 team={team}
                 employees={employees}
+                canManageTeams={isTechnicalDirector}
                 onEdit={handleEditClick}
                 onDelete={handleDelete}
                 onViewDetails={(t) => {

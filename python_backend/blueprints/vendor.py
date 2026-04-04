@@ -823,11 +823,12 @@ def vendor_dashboard_priority_tasks():
                 vp.project_name,
                 vt.assigned_to,
                 vt.vendor_id AS uploaderid,
-                ve_uploader.full_name AS uploader_full_name,
-                ve_uploader.profile_picture AS uploader_profile_picture
+                COALESCE(ve_uploader.full_name, e_uploader.full_name) AS uploader_full_name,
+                COALESCE(ve_uploader.profile_picture, e_uploader.profile_picture) AS uploader_profile_picture
             FROM snh6_swiftproject.vendor_task vt
             LEFT JOIN snh6_swiftproject.vendor_projects vp ON vt.project_id = vp.id
             LEFT JOIN snh6_swiftproject.vendor_employee ve_uploader ON vt.vendor_id = ve_uploader.id
+            LEFT JOIN employee e_uploader ON e_uploader.id = vt.vendor_id AND ve_uploader.id IS NULL
             WHERE (vt.vendor_id IN ({pslots_final}) OR vt.assigned_to IN ({pslots_final}))
               AND LOWER(vt.status) IN ('todo', 'inprogress', 'in progress', 'pause', 'active')
               AND DATE(vt.due_date) >= %s
@@ -3743,14 +3744,16 @@ def list_vendor_tasks():
         SELECT
             vt.*,
             vp.project_name,
-            ve.full_name AS uploader_full_name,
-            ve.profile_picture AS uploader_profile_picture,
-            va.full_name AS assigned_full_name,
-            va.profile_picture AS assigned_profile_picture
+            COALESCE(ve.full_name, e_up.full_name) AS uploader_full_name,
+            COALESCE(ve.profile_picture, e_up.profile_picture) AS uploader_profile_picture,
+            COALESCE(va.full_name, e_as.full_name) AS assigned_full_name,
+            COALESCE(va.profile_picture, e_as.profile_picture) AS assigned_profile_picture
         FROM vendor_task vt
         LEFT JOIN vendor_projects vp ON vt.project_id = vp.id
         LEFT JOIN snh6_swiftproject.vendor_employee ve ON ve.id = vt.vendor_id
+        LEFT JOIN employee e_up ON e_up.id = vt.vendor_id AND ve.id IS NULL
         LEFT JOIN snh6_swiftproject.vendor_employee va ON va.id = vt.assigned_to
+        LEFT JOIN employee e_as ON e_as.id = vt.assigned_to AND va.id IS NULL
         WHERE {(' AND '.join(where)) if where else '1=1'}
         ORDER BY vt.created_at DESC
         """,
@@ -3858,6 +3861,12 @@ def create_vendor_task():
             except Exception:
                 pass
 
+    if assigned_to is not None and str(assigned_to).strip() != "":
+        try:
+            assigned_to = int(str(assigned_to).strip())
+        except (TypeError, ValueError):
+            pass
+
     description = data.get("description") or ""
     checklist = data.get("checklist") or ""
     status = data.get("status") or "Todo"
@@ -3930,8 +3939,14 @@ def update_vendor_task(task_id):
     params = []
     for key in allowed:
         if key in data and data[key] is not None:
+            val = data[key]
+            if key == "assigned_to":
+                try:
+                    val = int(str(val).strip())
+                except (TypeError, ValueError):
+                    pass
             sets.append(f"`{key}` = %s")
-            params.append(data[key])
+            params.append(val)
     if not sets:
         return jsonify({"success": False, "message": "No fields to update"}), 400
 
@@ -3960,14 +3975,16 @@ def get_vendor_task(task_id):
         SELECT
             vt.*,
             vp.project_name,
-            ve.full_name AS uploader_full_name,
-            ve.profile_picture AS uploader_profile_picture,
-            va.full_name AS assigned_full_name,
-            va.profile_picture AS assigned_profile_picture
+            COALESCE(ve.full_name, e_up.full_name) AS uploader_full_name,
+            COALESCE(ve.profile_picture, e_up.profile_picture) AS uploader_profile_picture,
+            COALESCE(va.full_name, e_as.full_name) AS assigned_full_name,
+            COALESCE(va.profile_picture, e_as.profile_picture) AS assigned_profile_picture
         FROM vendor_task vt
         LEFT JOIN vendor_projects vp ON vt.project_id = vp.id
         LEFT JOIN snh6_swiftproject.vendor_employee ve ON ve.id = vt.vendor_id
+        LEFT JOIN employee e_up ON e_up.id = vt.vendor_id AND ve.id IS NULL
         LEFT JOIN snh6_swiftproject.vendor_employee va ON va.id = vt.assigned_to
+        LEFT JOIN employee e_as ON e_as.id = vt.assigned_to AND va.id IS NULL
         WHERE vt.id = %s
         """,
         (task_id,),

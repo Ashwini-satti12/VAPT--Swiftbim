@@ -106,10 +106,20 @@ export default function TimesheetPM() {
     if (!v) return "";
     const s = String(v).trim();
     if (!s) return "";
-    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.split("T")[0].split(" ")[0];
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
-      const [dd, mm, yyyy] = s.split("/");
-      return `${yyyy}-${mm}-${dd}`;
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+      const part = s.split("T")[0].split(" ")[0].slice(0, 10);
+      return /^\d{4}-\d{2}-\d{2}$/.test(part) ? part : "";
+    }
+    const anywhere = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (anywhere) return anywhere[0];
+    const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (dmy) {
+      return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
+    }
+    const t = Date.parse(s);
+    if (!Number.isNaN(t)) {
+      const d = new Date(t);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     }
     return "";
   };
@@ -125,6 +135,42 @@ export default function TimesheetPM() {
     return String(dateStr);
   };
 
+  const rowRec = (row: TimesheetEntry) =>
+    row as unknown as Record<string, unknown>;
+
+  const pickReportStart = (row: TimesheetEntry): string | undefined => {
+    const r = rowRec(row);
+    for (const key of ["start_time", "Actual_start_time", "actual_start_time"]) {
+      const v = r[key];
+      if (v != null && String(v).trim() !== "") return String(v);
+    }
+    return undefined;
+  };
+
+  const pickReportEnd = (row: TimesheetEntry): string | undefined => {
+    const r = rowRec(row);
+    for (const key of ["end_time", "due_date", "Due_date"]) {
+      const v = r[key];
+      if (v != null && String(v).trim() !== "") return String(v);
+    }
+    return undefined;
+  };
+
+  /** Leading apostrophe keeps Excel from coercing DD/MM/YYYY into a broken date serial. */
+  const formatDateForCsvCell = (
+    row: TimesheetEntry,
+    kind: "start" | "end",
+  ): string => {
+    const raw = kind === "start" ? pickReportStart(row) : pickReportEnd(row);
+    const ymd = toYmd(raw);
+    if (!ymd) return "";
+    const [yyyy, mm, dd] = ymd.split("-");
+    return `'${dd}/${mm}/${yyyy}`;
+  };
+
+  const csvEscape = (val: string) =>
+    `"${String(val).replace(/"/g, '""')}"`;
+
   // Calculate task duration from start_time, end_time, Pause, and restart
   const calculateDuration = (entry: TimesheetEntry): string => {
     // Only use tracked time (start_time and end_time). 
@@ -139,12 +185,14 @@ export default function TimesheetPM() {
 
       let totalSeconds = Math.floor((end.getTime() - start.getTime()) / 1000);
 
-      // Subtract pause time and add restart time (these are seconds from the backend)
-      const pauseSeconds = entry.Pause || 0;
-      const restartSeconds = entry.restart || 0;
-      totalSeconds = totalSeconds - pauseSeconds + restartSeconds;
+      const sec = (x: unknown) => {
+        const n =
+          typeof x === "number" ? x : Number(String(x ?? "").trim());
+        return Number.isFinite(n) ? Math.trunc(n) : 0;
+      };
+      totalSeconds = totalSeconds - sec(entry.Pause) + sec(entry.restart);
 
-      if (totalSeconds < 0) totalSeconds = 0;
+      if (!Number.isFinite(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
 
       const hours = Math.floor(totalSeconds / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -343,8 +391,6 @@ export default function TimesheetPM() {
     ];
     const csvData = filteredList.map((row, index) => {
       const slNo = (index + 1).toString().padStart(2, "0");
-      const startDate = formatDate(row.start_time || row.Actual_start_time);
-      const endDate = formatDate(row.end_time || row.due_date);
       const duration = calculateDuration(row);
 
       return [
@@ -355,15 +401,17 @@ export default function TimesheetPM() {
         row.task_name && row.task_name.trim() !== "" ? row.task_name : "-",
         row.assigned_name && row.assigned_name.trim() !== "" ? row.assigned_name : "-",
         row.assigned_by_name && row.assigned_by_name.trim() !== "" ? row.assigned_by_name : "-",
-        startDate,
-        endDate,
+        formatDateForCsvCell(row, "start"),
+        formatDateForCsvCell(row, "end"),
         duration,
       ]
-        .map((val) => `"${val}"`)
+        .map(csvEscape)
         .join(",");
     });
 
-    const csvContent = [headers.join(","), ...csvData].join("\n");
+    const csvContent =
+      "\uFEFF" +
+      [headers.map(csvEscape).join(","), ...csvData].join("\r\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -733,10 +781,8 @@ export default function TimesheetPM() {
                     const baseIndex =
                       rangeStart + (safePage - 1) * PER_PAGE + index;
                     const slNo = (baseIndex + 1).toString().padStart(2, "0");
-                    const startDate = formatDate(
-                      row.start_time || row.Actual_start_time,
-                    );
-                    const endDate = formatDate(row.end_time || row.due_date);
+                    const startDate = formatDate(pickReportStart(row));
+                    const endDate = formatDate(pickReportEnd(row));
                     const duration = calculateDuration(row);
 
                     return (
