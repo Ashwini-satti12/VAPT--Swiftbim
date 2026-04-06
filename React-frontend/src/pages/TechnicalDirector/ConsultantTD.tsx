@@ -20,7 +20,6 @@ import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
 import projectEditIcon from '../../assets/ProjectManager/project/editIcon.svg';
-import deleteIcon from '../../assets/ProjectManager/project/deleteIcon.svg';
 
 const SHOW_ENTRIES_PLACEHOLDER = 'Show Entries';
 const SHOW_ENTRIES_SELECTED_PREFIX = 'Show:';
@@ -169,8 +168,8 @@ function CustomDropdown({
   placeholder,
   className = "",
   styleType = "form",
-  alignMenu = "left",
   menuMaxHeightClass = "max-h-[220px]",
+  direction = "down",
 }: {
   options: string[];
   value: string;
@@ -178,17 +177,23 @@ function CustomDropdown({
   placeholder: string;
   className?: string;
   styleType?: "form" | "header" | "table";
-  /** Right-align panel so it stays on-screen when the trigger is at the viewport edge */
-  alignMenu?: "left" | "right";
   /** Max height for header/form menu list (scroll when content exceeds), e.g. ~4 rows */
   menuMaxHeightClass?: string;
+  /** Direction to open the dropdown menu */
+  direction?: "up" | "down";
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, bottom: 0 });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const isInsideTrigger = dropdownRef.current && dropdownRef.current.contains(target);
+      const isInsideMenu = menuRef.current && menuRef.current.contains(target);
+      
+      if (!isInsideTrigger && !isInsideMenu) {
         setIsOpen(false);
       }
     }
@@ -196,8 +201,132 @@ function CustomDropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (isOpen && dropdownRef.current) {
+      const updatePosition = () => {
+        if (dropdownRef.current) {
+          const rect = dropdownRef.current.getBoundingClientRect();
+          setCoords({
+            top: rect.bottom,
+            left: rect.left,
+            width: rect.width,
+            bottom: window.innerHeight - rect.top,
+          });
+        }
+      };
+      
+      updatePosition();
+      window.addEventListener("scroll", updatePosition, true);
+      window.addEventListener("resize", updatePosition);
+      
+      return () => {
+        window.removeEventListener("scroll", updatePosition, true);
+        window.removeEventListener("resize", updatePosition);
+      };
+    }
+  }, [isOpen]);
+
   // Determine if we should show placeholder color or prefix
   const isPlaceholder = !value || value === placeholder;
+
+  const menuContent = (
+    <div
+      ref={menuRef}
+      className={`fixed z-[9999] bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden`}
+      style={{
+        width: coords.width,
+        left: coords.left,
+        ...(direction === "up" 
+          ? { bottom: coords.bottom + 4 } 
+          : { top: coords.top + 4 }
+        ),
+      }}
+    >
+      {styleType === "table" ? (
+        <div className="flex flex-col py-2">
+          {options.map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => {
+                onChange(option);
+                setIsOpen(false);
+              }}
+              className={`w-full text-left px-6 py-2 text-[14px] font-normal font-Gantari transition-colors cursor-pointer hover:bg-[#F2F2F2] hover:text-[#353535] ${value === option ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className={`${menuMaxHeightClass} overflow-y-auto custom-scrollbar`}>
+          {(styleType === "header" || styleType === "form") && (
+            <button
+              type="button"
+              onClick={() => {
+                if (
+                  (placeholder === "Show" || placeholder === "Show Entries") &&
+                  styleType === "header"
+                ) {
+                  onChange("");
+                  setIsOpen(false);
+                } else if (
+                  (placeholder === "Type" || placeholder === "Status") &&
+                  styleType === "header"
+                ) {
+                  onChange("");
+                  setIsOpen(false);
+                } else {
+                  setIsOpen(false);
+                }
+              }}
+              className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${isPlaceholder && placeholder !== "Show" && placeholder !== "Show Entries"
+                ? "text-[#353535] bg-[#F2F2F2]"
+                : "text-[#8B8B8B] bg-[#FFFFFF]"
+                }`}
+            >
+              {placeholder === "Show Entries" ? "All Entries" : `All ${placeholder}`}
+            </button>
+          )}
+          {options.map((option) => {
+            const isChosen = value === option;
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  onChange(option);
+                  setIsOpen(false);
+                }}
+                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
+                  ? 'text-[#353535] bg-[#F2F2F2]'
+                  : 'text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]'
+                  }`}
+              >
+                <span className="truncate min-w-0">{option}</span>
+                {isChosen && (
+                  <svg
+                    className="w-4 h-4 shrink-0 text-[#353535]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
@@ -212,11 +341,11 @@ function CustomDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between gap-2 transition-all outline-none font-gantari min-w-0 ${styleType === "header"
-          ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
+        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-2 transition-all outline-none font-gantari min-w-0 ${styleType === "header"
+          ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[12px] sm:text-[14px] font-semibold"
           : styleType === "table"
-            ? `px-4 py-2 min-w-[140px] rounded-md border font-gantari font-medium text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
-            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+            ? `px-4 py-2 min-w-[140px] rounded-md border font-gantari font-medium text-[12px] sm:text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
+            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[12px] sm:text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
           }`}
       >
         <span className={`min-w-0 flex-1 truncate overflow-hidden text-left ${styleType === "header" || styleType === "form"
@@ -235,77 +364,11 @@ function CustomDropdown({
           className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : (isPlaceholder ? "opacity-60 grayscale" : "opacity-90")}`}
         />
       </button>
-      {isOpen && (
-        <div
-          className={`absolute top-full mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden ${alignMenu === "right" ? "right-0 left-auto" : "left-0"
-            }`}
-        >
-          {styleType === "table" ? (
-            <div className="flex flex-col py-2">
-              {options.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => {
-                    onChange(option);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full text-left px-6 py-2 text-[14px] font-normal font-Gantari transition-colors cursor-pointer hover:bg-[#F2F2F2] hover:text-[#353535] ${value === option ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className={`${menuMaxHeightClass} overflow-y-auto custom-scrollbar`}>
-              {(styleType === "header" || styleType === "form") && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (
-                      (placeholder === "Show" || placeholder === "Show Entries") &&
-                      styleType === "header"
-                    ) {
-                      onChange("");
-                      setIsOpen(false);
-                    } else if (
-                      (placeholder === "Type" || placeholder === "Status") &&
-                      styleType === "header"
-                    ) {
-                      onChange("");
-                      setIsOpen(false);
-                    } else {
-                      setIsOpen(false);
-                    }
-                  }}
-                  className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${isPlaceholder && placeholder !== "Show" && placeholder !== "Show Entries"
-                    ? "text-[#353535] bg-[#F2F2F2]"
-                    : "text-[#8B8B8B] bg-[#FFFFFF]"
-                    }`}
-                >
-                  {placeholder}
-                </button>
-              )}
-              {options.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => {
-                    onChange(option);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${value === option ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] bg-transparent'}`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {isOpen && createPortal(menuContent, document.body)}
     </div>
   );
 }
+
 
 export default function ConsultantTD() {
   const navigate = useNavigate();
@@ -682,16 +745,7 @@ export default function ConsultantTD() {
     }
   }
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm("Are you sure you want to delete this consultant?")) {
-      try {
-        await api.delete(`/api/employees/${id}`);
-        setList((prev) => prev.filter((e) => e.id !== id));
-      } catch (err) {
-        console.error("Delete failed:", err);
-      }
-    }
-  };
+
 
   const openEditModel = (emp: Employee) => {
     setEditId(emp.id);
@@ -768,63 +822,121 @@ export default function ConsultantTD() {
     <div className="flex flex-col h-full overflow-hidden bg-white">
       {(activeView === 'list' || activeView === 'invite' || activeView === 'deactive') && (
         <>
-          <div className="sticky z-50 bg-white mb-4 mt-2 overflow-visible">
-            <div className="flex w-full min-h-[44px] flex-nowrap items-center gap-2 sm:gap-3 overflow-visible">
-              <h1 className="text-[24px] font-medium text-[#000000] font-Gantari shrink-0 pr-1">
-                Consultants
-              </h1>
-              {/* Tight gap between action buttons and Show Entries / Status (inner), title spacing unchanged */}
-              <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-visible">
-                {/* Scroll only the action buttons — avoids clipping dropdown panels */}
-                <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 pr-0.5 custom-scrollbar">
+          <div className="sticky top-0 z-30 bg-white mb-2 sm:mb-4 sm:mt-2 overflow-visible px-2 sm:px-4">
+            <div className="flex flex-col xl:flex-row w-full xl:items-center justify-between gap-3 overflow-visible py-2">
+              {/* Left/Top side: Title and mobile view toggles */}
+              <div className="flex items-center justify-between w-full xl:w-auto">
+                <h1 className="text-[20px] sm:text-[26px] font-medium text-[#000000] font-Gantari shrink-0">
+                  Consultants
+                </h1>
+                {/* Mobile/Tablet actions - visible on right for anything < 1280px */}
+                <div className="flex xl:hidden items-center gap-1.5 sm:gap-2">
+                  {/* Mobile-only Add button (Top Row) */}
                   {canAdd && (
-                    <>
-
-                      <button
-                        type="button"
-                        onClick={() => setViewMode('table')}
-                        aria-label="Table view"
-                        className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
-                      >
-                        <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setViewMode('card')}
-                        aria-label="Card view"
-                        className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
-                      >
-                        <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
-                      </button>
+                    <div className="flex sm:hidden">
                       <button
                         type="button"
                         onClick={() => navigate('/td/consultants/add')}
-                        className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                        className="shrink-0 px-2.5 py-1.5 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm hover:brightness-110"
+                      >
+                        Add Consultant
+                      </button>
+                    </div>
+                  )}
+                  {/* View Toggles (Priority on mobile) */}
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('table')}
+                      aria-label="Table view"
+                      className={`shrink-0 p-1.5 sm:p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                    >
+                      <FiMenu className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('card')}
+                      aria-label="Card view"
+                      className={`shrink-0 p-1.5 sm:p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                    >
+                      <FiGrid className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right side: Action buttons + Filters */}
+              <div className="flex flex-col sm:flex-row flex-1 items-stretch sm:items-center justify-end gap-3 min-w-0 overflow-visible">
+                {/* Scrollable Action Buttons Group */}
+                <div className="flex flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 px-0.5 custom-scrollbar min-w-0">
+                  {/* Desktop toggles - only visible on xl screens (>= 1280px) */}
+                  <div className="hidden xl:flex items-center gap-2 pr-1 border-r border-slate-200 mr-1">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('table')}
+                      aria-label="Table view"
+                      className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                    >
+                      <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('card')}
+                      aria-label="Card view"
+                      className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                    >
+                      <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </button>
+                  </div>
+
+                  {canAdd && (
+                    <>
+                      {/* Hidden on smallest mobile in this group, moved to top row instead */}
+                      <button
+                        type="button"
+                        onClick={() => navigate('/td/consultants/add')}
+                        className="hidden sm:block shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm hover:brightness-110"
                       >
                         Add Consultant
                       </button>
                       <button
                         type="button"
                         onClick={() => setActiveView('invite')}
-                        className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                        className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm hover:brightness-110"
                       >
                         Invite
                       </button>
                       <button
                         type="button"
                         onClick={() => setActiveView('deactive')}
-                        className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                        className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm hover:brightness-110"
                       >
                         Manage Deactive
                       </button>
                     </>
                   )}
 
+                  {/* Type Dropdown moved beside Manage Deactive for Mobile Card View */}
+                  {viewMode === 'card' && (
+                    <div className="block sm:hidden shrink-0 ml-0.5">
+                      <CustomDropdown
+                        options={['All', 'Employee', 'Trainee']}
+                        value={typeFilter}
+                        onChange={(val) => setTypeFilter(val)}
+                        placeholder="Type"
+                        className="w-[85px]"
+                        styleType="header"
+                        direction="down"
+                      />
+                    </div>
+                  )}
                 </div>
-                <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
+
+                {/* Filter and Dropdown components */}
+                <div className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-2">
                   {viewMode === 'table' && (
                     <div
-                      className="relative min-w-[140px] max-w-[200px] w-[150px]"
+                      className="relative min-w-[130px] sm:min-w-[140px] max-w-[200px] w-[130px] sm:w-[150px]"
                       ref={showEntriesDropdownRef}
                     >
                       <button
@@ -833,7 +945,7 @@ export default function ConsultantTD() {
                           e.stopPropagation();
                           setShowEntriesOpen((o) => !o);
                         }}
-                        className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                        className="w-full h-[36px] min-h-[36px] flex items-center justify-between gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 bg-[#E8E8E8] rounded-md text-[11px] sm:text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                       >
                         <span
                           className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ''
@@ -844,20 +956,20 @@ export default function ConsultantTD() {
                           {selectedShowEntries === '' ? (
                             SHOW_ENTRIES_PLACEHOLDER
                           ) : (
-                            <>
-                              <span className="text-[14px]">
+                            <span className="flex items-center gap-1">
+                              <span className="text-[11px] sm:text-[14px]">
                                 {SHOW_ENTRIES_SELECTED_PREFIX}
                               </span>{' '}
-                              <span className="font-semibold">
+                              <span className="font-semibold text-[11px] sm:text-[14px]">
                                 {selectedRange.label}
                               </span>
-                            </>
+                            </span>
                           )}
                         </span>
                         <img
                           src={ArrowDown}
                           alt=""
-                          className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''
+                          className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''
                             } ${selectedShowEntries === ''
                               ? 'opacity-60 grayscale'
                               : 'opacity-90'
@@ -926,24 +1038,26 @@ export default function ConsultantTD() {
                     </div>
                   )}
                   {viewMode === 'card' ? (
-                    <CustomDropdown
-                      options={['All', 'Employee', 'Trainee']}
-                      value={typeFilter}
-                      onChange={(val) => setTypeFilter(val)}
-                      placeholder="Type"
-                      className="w-[100px]"
-                      styleType="header"
-                      alignMenu="right"
-                    />
+                    <div className="hidden sm:block">
+                      <CustomDropdown
+                        options={['All', 'Employee', 'Trainee']}
+                        value={typeFilter}
+                        onChange={(val) => setTypeFilter(val)}
+                        placeholder="Type"
+                        className="w-[90px] sm:w-[100px]"
+                        styleType="header"
+                        direction="down"
+                      />
+                    </div>
                   ) : (
                     <CustomDropdown
                       options={['All', 'Active', 'Deactivate']}
                       value={statusFilter}
                       onChange={(val) => setStatusFilter(val)}
                       placeholder="Status"
-                      className="w-[100px]"
+                      className="w-[95px] sm:w-[120px]"
                       styleType="header"
-                      alignMenu="right"
+                      direction="down"
                     />
                   )}
                 </div>
@@ -952,9 +1066,9 @@ export default function ConsultantTD() {
           </div>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar ">
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
             {viewMode === 'card' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 p-2 sm:p-3">
                 {displayedList.length === 0 ? (
                   <div className="col-span-full bg-white rounded-md border border-slate-200 p-8 sm:p-12 text-center text-slate-500 shadow-sm">
                     No consultants found.
@@ -1474,9 +1588,9 @@ export default function ConsultantTD() {
       )}
 
       {activeView === 'invite' && createPortal(
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]">
-          <div className="bg-white rounded-[20px] max-w-[813px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
-            <div className="flex items-center justify-center mb-8 relative">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-black/20 backdrop-blur-[2px]">
+          <div className="bg-white rounded-[20px] max-w-[813px] w-full max-h-[90vh] overflow-hidden p-5 sm:p-10 relative shadow-2xl flex flex-col font-Gantari animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-center mb-6 sm:mb-8 relative shrink-0 pt-2 sm:pt-0">
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setInviteEmails(''); setInviteMessage(''); }}
@@ -1511,13 +1625,20 @@ export default function ConsultantTD() {
                 />
               </div>
 
-              <div className="flex justify-center pt-4">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-14 justify-center items-center pt-6 sm:pt-8 border-t border-[#F0F0F0]">
+                <button
+                  type="button"
+                  onClick={() => { setActiveView('list'); setInviteEmails(''); setInviteMessage(''); }}
+                  className="w-full sm:w-auto px-10 py-2 sm:py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-semibold text-[14px] sm:text-[16px] transition-all min-w-[150px] cursor-pointer"
+                >
+                  Discard
+                </button>
                 <button
                   type="submit"
-                  disabled={inviteSubmitting}
-                  className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] disabled:opacity-50 transition-all min-w-[200px] cursor-pointer"
+                  disabled={!inviteEmails || inviteSubmitting}
+                  className="w-full sm:w-auto px-10 py-2 sm:py-3 rounded-[5px] bg-[#DBE9FE] text-[#1A1A1A] font-semibold text-[14px] sm:text-[16px] disabled:opacity-50 transition-all min-w-[200px] cursor-pointer"
                 >
-                  {inviteSubmitting ? 'Sending...' : 'Send Invitations'}
+                  {inviteSubmitting ? 'Sending...' : 'Invite'}
                 </button>
               </div>
             </form>
@@ -1598,21 +1719,23 @@ export default function ConsultantTD() {
             </div>
 
             <div className="flex justify-center gap-6 pt-4 shrink-0">
-              <button
-                type="button"
-                onClick={() => { setActiveView('list'); setdeactiveIds([]); }}
-                className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-semibold text-[16px] transition-all min-w-[150px] cursor-pointer"
-              >
-                Discard
-              </button>
-              <button
-                type="button"
-                onClick={handledeactive}
-                disabled={!deactiveIds.length || deactiveSubmitting}
-                className="px-12 py-2 rounded-md bg-[#D1E6FF] text-[#1A1A1A] font-semibold text-[16px] disabled:opacity-50 transition-all min-w-[180px] cursor-pointer"
-              >
-                {deactiveSubmitting ? 'Updating...' : 'Update Status'}
-              </button>
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-14 justify-center items-center mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-[#F0F0F0] shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setActiveView('list'); setdeactiveIds([]); }}
+                  className="w-full sm:w-auto px-10 py-2 sm:py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-semibold text-[14px] sm:text-[16px] transition-all min-w-[150px] cursor-pointer"
+                >
+                  Discard
+                </button>
+                <button
+                  type="button"
+                  onClick={handledeactive}
+                  disabled={!deactiveIds.length || deactiveSubmitting}
+                  className="w-full sm:w-auto px-10 py-2 sm:py-3 rounded-md bg-[#D1E6FF] text-[#1A1A1A] font-semibold text-[14px] sm:text-[16px] disabled:opacity-50 transition-all min-w-[200px] cursor-pointer"
+                >
+                  {deactiveSubmitting ? 'Updating...' : 'Update Status'}
+                </button>
+              </div>
             </div>
           </div>
         </div>,
@@ -1620,10 +1743,10 @@ export default function ConsultantTD() {
       )}
 
       {showDetailsModal && selectedEmployee && createPortal(
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/10 backdrop-blur-[3px]">
-          <div className="bg-white rounded-[15px] max-w-[550px] w-full overflow-hidden px-[20px] py-[30px] relative shadow-2xl flex flex-col gap-8 font-Gantari">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-black/10 backdrop-blur-[3px]">
+          <div className="bg-white rounded-[15px] max-w-[550px] w-full overflow-hidden px-4 sm:px-[20px] py-[30px] relative shadow-2xl flex flex-col gap-6 sm:gap-8 font-Gantari animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="flex items-center justify-center relative shrink-0">
+            <div className="flex items-center justify-center relative shrink-0 pt-2 sm:pt-0">
               <button
                 type="button"
                 onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
@@ -1635,8 +1758,8 @@ export default function ConsultantTD() {
             </div>
 
             {/* Profile Section */}
-            <div className="flex items-center gap-6 px-10">
-              <div className="w-[66px] h-[66px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0 border border-slate-200">
+            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 px-4 sm:px-10">
+              <div className="w-[80px] h-[80px] sm:w-[66px] sm:h-[66px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0 border border-slate-200 shadow-sm">
                 {selectedEmployee.profile_picture && selectedEmployee.profile_picture.trim() ? (
                   <img
                     key={`modal-${selectedEmployee.id}-${selectedEmployee.profile_picture}`}
@@ -1657,14 +1780,14 @@ export default function ConsultantTD() {
                   </div>
                 )}
               </div>
-              <div className="flex flex-col gap-0.5">
-                <h4 className="text-[22px] font-bold text-[#000000] font-Gantari leading-tight">{toCamelCase(selectedEmployee.full_name)}</h4>
-                <p className="text-[16px] font-medium text-[#353535] font-Gantari">{selectedEmployee.empid || `EMP-${(selectedEmployee.id + 150).toString().padStart(4, '0')}`}</p>
+              <div className="flex flex-col items-center sm:items-start gap-1">
+                <h4 className="text-[20px] sm:text-[22px] font-bold text-[#000000] font-Gantari leading-tight text-center sm:text-left">{toCamelCase(selectedEmployee.full_name)}</h4>
+                <p className="text-[14px] sm:text-[16px] font-medium text-[#353535] font-Gantari">{selectedEmployee.empid || `EMP-${(selectedEmployee.id + 150).toString().padStart(4, '0')}`}</p>
               </div>
             </div>
 
-            {/* Details Table */}
-            <div className="px-10 space-y-3 overflow-y-auto max-h-[60vh] custom-scrollbar">
+            {/* Details Grid */}
+            <div className="px-2 sm:px-10 space-y-4 overflow-y-auto max-h-[55vh] custom-scrollbar">
               {[
                 { label: 'Date of Birth', value: selectedEmployee.dob },
                 { label: 'Phone Number', value: selectedEmployee.phone_number },
@@ -1679,11 +1802,11 @@ export default function ConsultantTD() {
               ].map((item, idx) => (
                 <div
                   key={idx}
-                  className="grid grid-cols-[140px_30px_1fr] text-[15px] items-center"
+                  className="flex flex-col sm:grid sm:grid-cols-[140px_30px_1fr] text-[14px] sm:text-[15px] gap-1 sm:gap-0 sm:items-center border-b border-gray-50 pb-2 sm:border-none sm:pb-0"
                 >
-                  <span className="text-[#616161] font-Gantari font-medium">{item.label}</span>
-                  <span className="text-[#616161] font-Gantari font-medium text-center">:</span>
-                  <span className="text-[#353535] font-Gantari font-medium break-words">{item.value || '0'}</span>
+                  <span className="text-[#616161] font-Gantari font-semibold sm:font-medium">{item.label}</span>
+                  <span className="hidden sm:block text-[#616161] font-Gantari font-medium text-center">:</span>
+                  <span className="text-[#353535] font-Gantari font-medium break-words leading-relaxed">{item.value || 'N/A'}</span>
                 </div>
               ))}
             </div>
