@@ -161,7 +161,8 @@ def completed_tasks():
     if user_role in SEE_ALL_ROLES:
         try:
             v_where = [_VENDOR_TASK_COMPANY_SCOPE]
-            v_params = [g.company_id]
+            # JOIN params first (employee.Company_id matches main app scope), then EXISTS company, filters, dates
+            v_params = [g.company_id, g.company_id, g.company_id]
             if assignee_filter_ids:
                 ph = ",".join(["%s"] * len(assignee_filter_ids))
                 v_where.append(f"vt.assigned_to IN ({ph})")
@@ -199,14 +200,18 @@ def completed_tasks():
                         TIMESTAMP(vt.start_date, COALESCE(vt.start_time, '00:00:00')),
                         vt.created_at
                     ) AS Actual_start_time,
-                    va.full_name AS assigned_name,
-                    ve.full_name AS assigned_by_name,
+                    COALESCE(va.full_name, e_as.full_name) AS assigned_name,
+                    COALESCE(ve_cr.full_name, e_by.full_name) AS assigned_by_name,
                     COALESCE(NULLIF(TRIM(vp.project_name), ''), 'Outsource') AS project_name,
                     'Outsource' AS teamname
                 FROM snh6_swiftproject.vendor_task vt
                 LEFT JOIN snh6_swiftproject.vendor_projects vp ON vp.id = vt.project_id
-                LEFT JOIN snh6_swiftproject.vendor_employee ve ON ve.id = vt.vendor_id
+                LEFT JOIN snh6_swiftproject.vendor_employee ve_cr ON ve_cr.id = vt.vendor_id
+                LEFT JOIN employee e_by ON e_by.id = vt.vendor_id
+                    AND ve_cr.id IS NULL AND e_by.Company_id = %s
                 LEFT JOIN snh6_swiftproject.vendor_employee va ON va.id = vt.assigned_to
+                LEFT JOIN employee e_as ON e_as.id = vt.assigned_to
+                    AND va.id IS NULL AND e_as.Company_id = %s
                 WHERE {' AND '.join(v_where)}
                 ORDER BY vt.id DESC
             """

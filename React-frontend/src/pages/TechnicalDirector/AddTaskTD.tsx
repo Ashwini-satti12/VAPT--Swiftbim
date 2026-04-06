@@ -158,10 +158,34 @@ export default function AddTaskTD() {
         setExistingOutputFilenames(parseOutputFilepaths(editingTask.outputfilepath));
 
         let cancelled = false;
-        api.get<Record<string, unknown>>(`/api/tasks/${editingTask.id}`)
+        const isOutsource = editingTask.source === "Outsource";
+        const url = isOutsource
+            ? `/api/vendors/vendor-tasks/${editingTask.id}`
+            : `/api/tasks/${editingTask.id}`;
+
+        api
+            .get<Record<string, unknown>>(url)
             .then((res) => {
                 if (cancelled) return;
-                setExistingOutputFilenames(parseOutputFilepaths(res.data?.outputfilepath));
+                const data = res.data;
+                if (!data || typeof data !== "object") return;
+                if ("success" in data && (data as { success?: boolean }).success === false) {
+                    return;
+                }
+                const row = data as Record<string, unknown>;
+                const merged: Task = {
+                    ...editingTask,
+                    ...row,
+                    id: editingTask.id,
+                    source: isOutsource ? "Outsource" : editingTask.source,
+                } as Task;
+                setAddTaskForm(taskToFormValues(merged));
+                const out = row.outputfilepath;
+                setExistingOutputFilenames(
+                    parseOutputFilepaths(
+                        typeof out === "string" ? out : editingTask.outputfilepath,
+                    ),
+                );
             })
             .catch(() => {});
 
@@ -169,6 +193,18 @@ export default function AddTaskTD() {
             cancelled = true;
         };
     }, [editingTask]);
+
+    // Map numeric assigned_to to employee.full_name when the API had no assigned_full_name yet.
+    useEffect(() => {
+        if (editingTaskId == null || employees.length === 0) return;
+        setAddTaskForm((prev) => {
+            const v = (prev.assignTo || "").trim();
+            if (!/^\d+$/.test(v)) return prev;
+            const emp = employees.find((e) => String(e.id) === v);
+            if (!emp?.full_name) return prev;
+            return { ...prev, assignTo: emp.full_name };
+        });
+    }, [editingTaskId, employees, addTaskForm.assignTo]);
 
     useEffect(() => {
         if (openFormDropdown === null && !tasklistOpen) return;
@@ -236,7 +272,13 @@ export default function AddTaskTD() {
         setServerAttachmentDeleting(true);
         const next = existingOutputFilenames.filter((f) => f !== stored);
         const newPath = next.length > 0 ? next.join(",") : "";
-        api.patch(`/api/tasks/${taskId}`, { outputfilepath: newPath })
+        const proj = projects.find((p) => p.project_name === addTaskForm.projectName);
+        const isOutsourceTask =
+            editingTask?.source === "Outsource" || proj?.source === "Outsource";
+        const patchUrl = isOutsourceTask
+            ? `/api/vendors/vendor-tasks/${taskId}`
+            : `/api/tasks/${taskId}`;
+        api.patch(patchUrl, { outputfilepath: newPath })
             .then(() => {
                 setExistingOutputFilenames(next);
                 setPendingAttachmentDelete(null);
@@ -307,34 +349,53 @@ export default function AddTaskTD() {
             modules: addTaskForm.module,
         };
 
+        const selectedProj = projects.find((p) => p.project_name === addTaskForm.projectName);
+        const isOutsource = selectedProj?.source === "Outsource";
+
         const handleFiles = (taskId: number | string) => {
             if (attachmentFiles.length > 0) {
                 const formData = new FormData();
                 attachmentFiles.forEach((f) => formData.append("image", f));
-                api.post(`/api/tasks/${taskId}/output-files`, formData, {
+                const outUrl = isOutsource
+                    ? `/api/vendors/vendor-tasks/${taskId}/output-files`
+                    : `/api/tasks/${taskId}/output-files`;
+                api.post(outUrl, formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
             }
         };
 
-        const selectedProj = projects.find((p) => p.project_name === addTaskForm.projectName);
-        const isOutsource = selectedProj?.source === "Outsource";
         const baseEndpoint = isOutsource ? "/api/vendors/vendor-tasks" : "/api/tasks";
 
         if (editingTaskId != null) {
+            const patchBody = isOutsource
+                ? {
+                      task_name: payload.taskName,
+                      assigned_to: payload.assignedTo,
+                      due_date: payload.dueDate,
+                      category: payload.category,
+                      description: payload.description,
+                      checklist: payload.checklist,
+                      modules: payload.modules,
+                      start_date: payload.startdate,
+                      start_time: payload.startTime,
+                      end_time: payload.dueTime,
+                      project_id: selectedProj?.id,
+                  }
+                : {
+                      task_name: payload.taskName,
+                      assigned_to: payload.assignedTo,
+                      due_date: payload.dueDate,
+                      category: payload.category,
+                      description: payload.description,
+                      checklist: payload.checklist,
+                      modules_name: payload.modules,
+                      Actual_start_time: payload.startdate,
+                      perferstart_time: payload.startTime,
+                      perferend_time: payload.dueTime,
+                  };
             api
-                .patch(`${baseEndpoint}/${editingTaskId}`, {
-                    task_name: payload.taskName,
-                    assigned_to: payload.assignedTo,
-                    due_date: payload.dueDate,
-                    category: payload.category,
-                    description: payload.description,
-                    checklist: payload.checklist,
-                    modules_name: payload.modules,
-                    Actual_start_time: payload.startdate,
-                    perferstart_time: payload.startTime,
-                    perferend_time: payload.dueTime,
-                })
+                .patch(`${baseEndpoint}/${editingTaskId}`, patchBody)
                 .then(() => {
                     handleFiles(editingTaskId);
                     navigate(location.state?.from === "teamtasks" ? "/td/teamtasks" : "/td/mytasks");

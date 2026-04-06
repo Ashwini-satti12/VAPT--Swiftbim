@@ -105,10 +105,27 @@ const STATUS_STYLE: Record<
   },
 };
 
-const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
+const STATUS_OPTIONS: { value: "todo" | "in_progress" | "completed"; label: string }[] = [
+  { value: "todo", label: "To Do" },
   { value: "in_progress", label: "Inprogress" },
   { value: "completed", label: "Completed" },
 ];
+
+function shouldHideInProgressInDropdown(status: StatusKey): boolean {
+  return (
+    status === "completed" ||
+    status === "approved" ||
+    status === "rejected"
+  );
+}
+
+function isStatusOptionDisabled(
+  current: StatusKey,
+  option: "todo" | "in_progress" | "completed",
+): boolean {
+  if (current === "todo" && option === "completed") return true;
+  return false;
+}
 
 export default function MytaskViewBC() {
   const location = useLocation();
@@ -138,11 +155,18 @@ export default function MytaskViewBC() {
     e.target.value = "";
   };
 
-  const handleStatusUpdate = async (newStatus: StatusKey) => {
+  const handleStatusUpdate = async (
+    newStatus: "todo" | "in_progress" | "completed",
+  ) => {
     if (!task || updatingStatus) return;
+    if (isStatusOptionDisabled(statusDisplay, newStatus)) return;
     setUpdatingStatus(true);
     const backendStatus =
-      newStatus === "completed" ? "Completed" : "InProgress";
+      newStatus === "completed"
+        ? "Completed"
+        : newStatus === "todo"
+          ? "Todo"
+          : "InProgress";
 
     try {
       await api.patch(`/api/tasks/${task.id}/status`, {
@@ -328,20 +352,31 @@ export default function MytaskViewBC() {
                 {STATUS_OPTIONS.filter(
                   (opt) =>
                     !(
-                      statusDisplay === "completed" &&
+                      shouldHideInProgressInDropdown(statusDisplay) &&
                       opt.value === "in_progress"
                     ),
-                ).map((opt) => (
+                ).map((opt) => {
+                  const disabled = isStatusOptionDisabled(
+                    statusDisplay,
+                    opt.value,
+                  );
+                  return (
                   <button
                     key={opt.value}
                     type="button"
                     role="option"
+                    aria-disabled={disabled}
+                    disabled={disabled}
                     aria-selected={statusDisplay === opt.value}
                     onClick={() => handleStatusUpdate(opt.value)}
-                    className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors cursor-pointer ${
-                      statusDisplay === opt.value
+                    className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors ${
+                      disabled
+                        ? "text-slate-300 cursor-not-allowed opacity-60"
+                        : "cursor-pointer text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
+                    } ${
+                      statusDisplay === opt.value && !disabled
                         ? "bg-[#F2F2F2] text-[#353535] font-medium"
-                        : "text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
+                        : ""
                     }`}
                   >
                     <span
@@ -349,7 +384,8 @@ export default function MytaskViewBC() {
                     />
                     {opt.label}
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

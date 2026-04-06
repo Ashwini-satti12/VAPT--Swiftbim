@@ -233,7 +233,10 @@ const getProfileUrl = (path: string | undefined): string => {
 
 function normalizeStatus(
     s: string | undefined,
+    approval?: string,
 ): "todo" | "in_progress" | "completed" {
+    if (approval?.toLowerCase() === "approved" || approval?.toLowerCase() === "rejected")
+        return "completed";
     if (!s) return "todo";
     const lower = s.toLowerCase().replace(/\s+/g, "_");
     if (lower.includes("progress") || lower === "in_progress")
@@ -594,7 +597,7 @@ export default function TeamtaskEV() {
     });
 
     const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" =>
-        normalizeStatus(t.status);
+        normalizeStatus(t.status, t.Approval);
 
     const statusMap: Record<"todo" | "in_progress" | "completed", string> = {
         todo: "Todo",
@@ -606,6 +609,19 @@ export default function TeamtaskEV() {
         taskId: number,
         newStatus: "todo" | "in_progress" | "completed"
     ) => {
+        const taskRow = list.find((t) => t && t.id === taskId);
+        if (taskRow) {
+            const current = getEffectiveStatus(taskRow);
+            if (current === "todo" && newStatus === "completed") {
+                toast.error("Move the task to In Progress before marking it completed.");
+                return;
+            }
+            if (current === "completed" && newStatus === "in_progress") {
+                toast.error("Completed tasks cannot be moved back to In Progress here.");
+                return;
+            }
+        }
+
         setList((prev) =>
             prev.map((t) => (t && t.id === taskId ? { ...t, status: statusMap[newStatus] } : t))
         );

@@ -8,16 +8,17 @@ interface TimesheetEntry {
     end_date?: string;   // Format: DD/MM/YYYY
     duration?: string;
     assignee_name?: string;
+    assigned_by_name?: string;
     team?: string;
 }
 
 const DUMMY_DATA: TimesheetEntry[] = [
-    { id: 1, project_name: 'Binghatti', task_name: 'task 01', start_date: '20/02/2026', end_date: '20/02/2026', duration: '08:00:00', assignee_name: 'John Doe', team: 'Team A' },
-    { id: 2, project_name: 'Suo01', task_name: 'task 02', start_date: '21/02/2026', end_date: '21/02/2026', duration: '07:30:00', assignee_name: 'Jane Smith', team: 'Team B' },
-    { id: 3, project_name: 'Disu so', task_name: 'task 03', start_date: '22/02/2026', end_date: '22/02/2026', duration: '06:45:00', assignee_name: 'John Doe', team: 'Team A' },
-    { id: 4, project_name: 'Tshingin', task_name: 'task 04', start_date: '23/02/2026', end_date: '23/02/2026', duration: '08:15:00', assignee_name: 'Alice Brown', team: 'Team C' },
-    { id: 5, project_name: 'Project Alpha', task_name: 'task 05', start_date: '24/02/2026', end_date: '24/02/2026', duration: '05:00:00', assignee_name: 'Jane Smith', team: 'Team B' },
-    { id: 6, project_name: 'Project Beta', task_name: 'task 06', start_date: '25/02/2026', end_date: '25/02/2026', duration: '09:00:00', assignee_name: 'Bob Wilson', team: 'Team A' },
+    { id: 1, project_name: 'Binghatti', task_name: 'task 01', start_date: '20/02/2026', end_date: '20/02/2026', duration: '08:00:00', assignee_name: 'John Doe', assigned_by_name: 'PM One', team: 'Team A' },
+    { id: 2, project_name: 'Suo01', task_name: 'task 02', start_date: '21/02/2026', end_date: '21/02/2026', duration: '07:30:00', assignee_name: 'Jane Smith', assigned_by_name: 'PM One', team: 'Team B' },
+    { id: 3, project_name: 'Disu so', task_name: 'task 03', start_date: '22/02/2026', end_date: '22/02/2026', duration: '06:45:00', assignee_name: 'John Doe', assigned_by_name: 'Lead A', team: 'Team A' },
+    { id: 4, project_name: 'Tshingin', task_name: 'task 04', start_date: '23/02/2026', end_date: '23/02/2026', duration: '08:15:00', assignee_name: 'Alice Brown', assigned_by_name: 'Lead B', team: 'Team C' },
+    { id: 5, project_name: 'Project Alpha', task_name: 'task 05', start_date: '24/02/2026', end_date: '24/02/2026', duration: '05:00:00', assignee_name: 'Jane Smith', assigned_by_name: 'PM One', team: 'Team B' },
+    { id: 6, project_name: 'Project Beta', task_name: 'task 06', start_date: '25/02/2026', end_date: '25/02/2026', duration: '09:00:00', assignee_name: 'Bob Wilson', assigned_by_name: 'Lead A', team: 'Team A' },
 ];
 
 export default function TeamReportV() {
@@ -30,6 +31,49 @@ export default function TeamReportV() {
     const [teamOpen, setTeamOpen] = useState(false);
     const employeeOptions = ['All', 'John Doe', 'Jane Smith', 'Alice Brown', 'Bob Wilson'];
     const teamOptions = ['All', 'Team A', 'Team B', 'Team C'];
+
+    const toYmd = (v: string | undefined): string => {
+        if (!v) return '';
+        const s = String(v).trim();
+        if (!s) return '';
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+            const part = s.split('T')[0].split(' ')[0].slice(0, 10);
+            return /^\d{4}-\d{2}-\d{2}$/.test(part) ? part : '';
+        }
+        const anywhere = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+        if (anywhere) return anywhere[0];
+        const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (dmy) {
+            return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+        }
+        const t = Date.parse(s);
+        if (!Number.isNaN(t)) {
+            const d = new Date(t);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+        return '';
+    };
+
+    const formatDate = (dateStr: string | undefined): string => {
+        if (!dateStr) return '-';
+        const ymd = toYmd(dateStr);
+        if (ymd) {
+            const [yyyy, mm, dd] = ymd.split('-');
+            return `${dd}/${mm}/${yyyy}`;
+        }
+        return String(dateStr);
+    };
+
+    /** Leading apostrophe keeps Excel from coercing DD/MM/YYYY into a broken date serial. */
+    const formatDateForCsvCell = (raw: string | undefined): string => {
+        const ymd = toYmd(raw);
+        if (!ymd) return '';
+        const [yyyy, mm, dd] = ymd.split('-');
+        return `'${dd}/${mm}/${yyyy}`;
+    };
+
+    const csvEscape = (val: string) =>
+        `"${String(val).replace(/"/g, '""')}"`;
 
     const filteredList = useMemo(() => {
         return list.filter(item => {
@@ -65,20 +109,35 @@ export default function TeamReportV() {
     const handleDownload = () => {
         if (filteredList.length === 0) return;
 
-        const headers = ['Sl.No', 'Project Name', 'Task', 'Start Date', 'End Date', 'Task Duration'];
+        const headers = [
+            'Sl.No',
+            'Project Name',
+            'Task',
+            'Assigned to',
+            'Assigned by',
+            'Start Date',
+            'End Date',
+            'Task Duration',
+        ];
         const csvData = filteredList.map((row, index) => {
             const slNo = (index + 1).toString().padStart(2, '0');
             return [
                 slNo,
-                row.project_name || '-',
-                row.task_name || '-',
-                row.start_date || '-',
-                row.end_date || '-',
-                row.duration || 'hh:mm:ss'
-            ].map(val => `"${val}"`).join(',');
+                row.project_name && row.project_name.trim() !== '' ? row.project_name : '-',
+                row.task_name && row.task_name.trim() !== '' ? row.task_name : '-',
+                row.assignee_name && row.assignee_name.trim() !== '' ? row.assignee_name : '-',
+                row.assigned_by_name && row.assigned_by_name.trim() !== '' ? row.assigned_by_name : '-',
+                formatDateForCsvCell(row.start_date),
+                formatDateForCsvCell(row.end_date),
+                row.duration && row.duration.trim() !== '' ? row.duration : '00:00:00',
+            ]
+                .map(csvEscape)
+                .join(',');
         });
 
-        const csvContent = [headers.join(','), ...csvData].join('\n');
+        const csvContent =
+            '\uFEFF' +
+            [headers.map(csvEscape).join(','), ...csvData].join('\r\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -215,6 +274,8 @@ export default function TeamReportV() {
                                 <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Sl.No</th>
                                 <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Project Name</th>
                                 <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Task</th>
+                                <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Assigned to</th>
+                                <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Assigned by</th>
                                 <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Start Date</th>
                                 <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">End Date</th>
                                 <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Task Duration</th>
@@ -223,7 +284,7 @@ export default function TeamReportV() {
                         <tbody className="divide-y divide-gray-50">
                             {filteredList.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium">
+                                    <td colSpan={8} className="px-6 py-12 text-center text-gray-400 font-medium">
                                         No records found
                                     </td>
                                 </tr>
@@ -235,9 +296,11 @@ export default function TeamReportV() {
                                             <td className="px-6 py-3 text-center text-sm text-gray-500 font-medium">{slNo}</td>
                                             <td className="px-6 py-3 text-center text-sm text-gray-800 font-semibold">{row.project_name ?? '-'}</td>
                                             <td className="px-6 py-3 text-center text-sm text-gray-600">{row.task_name ?? '-'}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{row.start_date ?? '-'}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{row.end_date ?? '-'}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600 font-medium">{row.duration ?? 'hh:mm:ss'}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{row.assignee_name && row.assignee_name.trim() !== '' ? row.assignee_name : '-'}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{row.assigned_by_name && row.assigned_by_name.trim() !== '' ? row.assigned_by_name : '-'}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{formatDate(row.start_date)}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{formatDate(row.end_date)}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600 font-medium">{row.duration && row.duration.trim() !== '' ? row.duration : '00:00:00'}</td>
                                         </tr>
                                     );
                                 })

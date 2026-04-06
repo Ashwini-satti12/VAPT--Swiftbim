@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../../lib/api";
+import { useAuth } from "../../contexts/AuthContext";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
@@ -40,7 +41,33 @@ type FormDropdownId =
   | "type_end_time"
   | null;
 
-type PendingAttachmentDelete = { type: "local"; index: number };
+type PendingAttachmentDelete =
+  | { type: "local"; index: number }
+  | { type: "server"; stored: string };
+
+function parseOutputFilepaths(raw: unknown): string[] {
+  if (typeof raw !== "string" || !raw.trim()) return [];
+  return raw.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+function getTaskOutputFileUrl(storedFilename: string): string {
+  if (!storedFilename) return "";
+  const base = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+  return `${base}/uploads/task/${encodeURIComponent(storedFilename)}`;
+}
+
+function displayNameFromStoredFilename(stored: string): string {
+  const m = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_(.+)$/i.exec(
+    stored,
+  );
+  return m ? m[1] : stored;
+}
+
+function openServerOutputInNewTab(storedFilename: string) {
+  const url = getTaskOutputFileUrl(storedFilename);
+  if (!url) return;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
 
 interface Task {
   id: number;
@@ -51,28 +78,41 @@ interface Task {
   start_date?: string;
   progress?: number;
   module?: string;
+  modules_name?: string;
+  modules?: string;
   type?: string;
+  category?: string;
   start_time?: string;
   due_time?: string;
+  end_time?: string;
   assign_to?: string;
+  assigned_to?: number;
   description?: string;
   checklist?: string;
   assigned_full_name?: string;
   created_at?: string;
   perferstart_time?: string;
   perferend_time?: string;
+  Actual_start_time?: string;
+  /** Matches merged list rows from MyTasksPM */
+  source?: "In House" | "Outsource";
+  /** Comma-separated stored filenames under /uploads/task/ */
+  outputfilepath?: string;
 }
 
 interface Employee {
   id: number;
   full_name: string;
   active?: string;
+  user_role?: string;
 }
 
 interface Project {
   id: number;
   project_name: string;
   tasks?: string;
+  /** Comma/semicolon-separated from API when present */
+  modules?: string;
   source?: string;
   project_manager_name?: string;
   lead_name?: string;
@@ -80,6 +120,24 @@ interface Project {
   uploader_name?: string;
   members_names?: string[];
   members?: string;
+}
+
+/** DB/API sometimes stores modules as JSON: `["Mod A"]` — match dropdown options. */
+function normalizeModuleDisplay(raw: unknown): string {
+  const s = raw != null ? String(raw).trim() : "";
+  if (!s) return "";
+  if (s.startsWith("[") && s.endsWith("]")) {
+    try {
+      const parsed = JSON.parse(s) as unknown;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return String(parsed[0]).trim();
+      }
+    } catch {
+      const inner = s.slice(1, -1).trim().replace(/^["']|["']$/g, "");
+      if (inner) return inner;
+    }
+  }
+  return s;
 }
 
 function taskToFormValues(task: Task | Record<string, unknown>): {
@@ -105,13 +163,37 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
   };
   const timeOnly = (v: unknown) => {
     if (v == null) return "";
-    const s = str(v);
-    const match = s.match(/(\d{1,2}):(\d{2})/);
-    return match ? `${match[1].padStart(2, "0")}:${match[2]}` : s.slice(0, 5);
+    let s = str(v).trim();
+    if (!s) return "";
+    s = s.replace(/\.\d{3,9}(?:Z)?$/i, "");
+    const isoOrSpace = s.match(/(?:T|\s)(\d{1,2}):(\d{2})(?::\d{2})?/);
+    if (isoOrSpace) {
+      return `${isoOrSpace[1].padStart(2, "0")}:${isoOrSpace[2]}`;
+    }
+    const allClock = s.match(/\d{1,2}:\d{2}(?::\d{2})?/g);
+    if (allClock?.length) {
+      const last = allClock[allClock.length - 1]!;
+      const hm = last.match(/^(\d{1,2}):(\d{2})/);
+      if (hm) return `${hm[1].padStart(2, "0")}:${hm[2]}`;
+    }
+    const match = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+    if (match) {
+      return `${match[1].padStart(2, "0")}:${match[2]}`;
+    }
+    const loose = s.match(/(\d{1,2}):(\d{2})/);
+    return loose ? `${loose[1].padStart(2, "0")}:${loose[2]}` : "";
+  };
+  const firstNonEmpty = (...vals: unknown[]) => {
+    for (const v of vals) {
+      if (v == null) continue;
+      const x = str(v).trim();
+      if (x) return v;
+    }
+    return "";
   };
   return {
     projectName: str(t.project_name ?? t.projectName ?? ""),
-    module: str(t.module ?? t.modules_name ?? ""),
+    module: normalizeModuleDisplay(t.module ?? t.modules_name ?? t.modules ?? ""),
     taskName: str(t.task_name ?? t.taskName ?? ""),
     type: str(t.type ?? t.category ?? ""),
     actualStartDate: dateOnly(
@@ -119,10 +201,33 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
     ),
     actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
     startTime: timeOnly(
-      t.perferstart_time ?? t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
+      firstNonEmpty(
+        t.perferstart_time,
+        (t as { Perferstart_time?: unknown }).Perferstart_time,
+        t.start_time,
+        t.startTime,
+        t.Actual_start_time,
+      ),
     ),
-    dueTime: timeOnly(t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? ""),
-    assignTo: str(t.assigned_full_name ?? t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
+    dueTime: timeOnly(
+      firstNonEmpty(
+        t.perferend_time,
+        (t as { Perferend_time?: unknown }).Perferend_time,
+        t.due_time,
+        t.dueTime,
+        t.end_time,
+        t.endTime,
+      ),
+    ),
+    assignTo: (() => {
+      const fromName = str(
+        t.assigned_full_name ?? t.assign_to ?? t.assignTo ?? "",
+      ).trim();
+      if (fromName) return fromName;
+      const idStr = str(t.assigned_to ?? "").trim();
+      if (idStr && !/^\d+$/.test(idStr)) return idStr;
+      return "";
+    })(),
     description: str(t.description ?? ""),
     checklist: str(t.checklist ?? ""),
   };
@@ -142,9 +247,14 @@ const initialForm = {
   checklist: "",
 };
 
+function isTechnicalDirectorRole(role: string | undefined): boolean {
+  return String(role || "").trim() === "Technical Director";
+}
+
 export default function AddTaskPM() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const editingTask = location.state?.task as Task | undefined;
   const editingTaskId = editingTask?.id ?? null;
 
@@ -155,6 +265,11 @@ export default function AddTaskPM() {
   const [modules, setModules] = useState<string[]>([]);
   const [addTaskForm, setAddTaskForm] = useState(initialForm);
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+  const [existingOutputFilenames, setExistingOutputFilenames] = useState<
+    string[]
+  >([]);
+  const [serverAttachmentDeleting, setServerAttachmentDeleting] =
+    useState(false);
   const [openFormDropdown, setOpenFormDropdown] =
     useState<FormDropdownId>(null);
   const [tasklistOpen, setTasklistOpen] = useState(false);
@@ -189,6 +304,7 @@ export default function AddTaskPM() {
         id: Number(r.id),
         project_name: String(r.project_name || ""),
         tasks: String(r.tasks || ""),
+        modules: String(r.modules ?? ""),
         source: String(r.source || defaultSource),
         project_manager_name: String(r.project_manager_name || ""),
         lead_name: String(r.lead_name || ""),
@@ -205,38 +321,160 @@ export default function AddTaskPM() {
   }, []);
 
   useEffect(() => {
-    if (editingTask) {
-      setAddTaskForm(taskToFormValues(editingTask));
+    if (!editingTask) {
+      setExistingOutputFilenames([]);
+      setAttachmentFiles([]);
+      return;
     }
+
+    setAddTaskForm(taskToFormValues(editingTask));
+    setAttachmentFiles([]);
+    setExistingOutputFilenames(parseOutputFilepaths(editingTask.outputfilepath));
+
+    let cancelled = false;
+    const isOutsource = editingTask.source === "Outsource";
+    const url = isOutsource
+      ? `/api/vendors/vendor-tasks/${editingTask.id}`
+      : `/api/tasks/${editingTask.id}`;
+
+    const applyRow = (row: Record<string, unknown>, forceOutsource: boolean) => {
+      const merged: Task = {
+        ...editingTask,
+        ...row,
+        id: editingTask.id,
+        source: forceOutsource ? "Outsource" : editingTask.source,
+      };
+      setAddTaskForm(taskToFormValues(merged));
+      const out = row.outputfilepath;
+      setExistingOutputFilenames(
+        parseOutputFilepaths(
+          typeof out === "string" ? out : editingTask.outputfilepath,
+        ),
+      );
+    };
+
+    api
+      .get<Record<string, unknown>>(url)
+      .then((res) => {
+        if (cancelled) return;
+        const data = res.data;
+        if (!data || typeof data !== "object") return;
+        if ("success" in data && (data as { success?: boolean }).success === false) {
+          return;
+        }
+        applyRow(data as Record<string, unknown>, isOutsource);
+      })
+      .catch(() => {
+        if (cancelled || isOutsource) return;
+        api
+          .get<Record<string, unknown>>(
+            `/api/vendors/vendor-tasks/${editingTask.id}`,
+          )
+          .then((res) => {
+            if (cancelled) return;
+            const data = res.data;
+            if (!data || typeof data !== "object") return;
+            if (
+              "success" in data &&
+              (data as { success?: boolean }).success === false
+            ) {
+              return;
+            }
+            applyRow(data as Record<string, unknown>, true);
+          })
+          .catch(() => {});
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [editingTask]);
+
+  // Map numeric assignee id to full_name after employees load (vendor / partial rows).
+  useEffect(() => {
+    if (editingTaskId == null || employees.length === 0) return;
+    setAddTaskForm((prev) => {
+      const v = (prev.assignTo || "").trim();
+      if (!/^\d+$/.test(v)) return prev;
+      const emp = employees.find((e) => String(e.id) === v);
+      if (!emp?.full_name) return prev;
+      return { ...prev, assignTo: emp.full_name };
+    });
+  }, [editingTaskId, employees, addTaskForm.assignTo]);
 
   useEffect(() => {
     if (addTaskForm.projectName) {
-      const selectedProj = projects.find(
-        (p) => p.project_name === addTaskForm.projectName,
-      );
+      const name = addTaskForm.projectName;
+      const sourceHint =
+        editingTaskId != null &&
+        editingTask &&
+        String(editingTask.project_name || "") === name
+          ? editingTask.source
+          : undefined;
+
+      const selectedProj =
+        (sourceHint
+          ? projects.find(
+              (p) => p.project_name === name && p.source === sourceHint,
+            )
+          : undefined) ?? projects.find((p) => p.project_name === name);
+
       if (!selectedProj) {
         setModules([]);
         return;
       }
+
+      const parseModulesFromProjectString = (raw: string): string[] => {
+        const s = (raw || "").trim();
+        if (!s) return [];
+        if (s.startsWith("[")) {
+          try {
+            const parsed = JSON.parse(s) as unknown;
+            if (Array.isArray(parsed)) {
+              return parsed.map((x) => String(x).trim()).filter(Boolean);
+            }
+          } catch {
+            /* fall through */
+          }
+        }
+        const sep = s.includes(";") ? ";" : ",";
+        return s.split(sep).map((p) => p.trim()).filter(Boolean);
+      };
+
+      const isOutsource = selectedProj.source === "Outsource";
+      const endpoint = isOutsource
+        ? "/api/vendors/vendor-projects/filters/modules"
+        : "/api/projects/filters/modules";
+
       api
-        .post<{ success: boolean; modules: { label: string }[] }>(
-          "/api/projects/filters/modules",
-          {
-            projectId: selectedProj.id,
-          },
-        )
+        .post<{
+          success?: boolean;
+          modules: { label?: string; value?: string }[];
+        }>(endpoint, { projectId: selectedProj.id })
         .then((res) => {
           const list = Array.isArray(res.data.modules) ? res.data.modules : [];
-          setModules(
-            list
-              .map((m: { label?: string }) => m?.label)
-              .filter((x): x is string => Boolean(x)),
-          );
+          let names = list
+            .map((m) => m?.label ?? m?.value)
+            .filter((x): x is string => Boolean(x));
+          if (names.length === 0 && selectedProj.modules) {
+            names = parseModulesFromProjectString(selectedProj.modules);
+          }
+          setModules(names);
         })
-        .catch(() => setModules([]));
+        .catch(() => {
+          const fallback = selectedProj.modules
+            ? parseModulesFromProjectString(selectedProj.modules)
+            : [];
+          setModules(fallback);
+        });
     } else setModules([]);
-  }, [addTaskForm.projectName, projects]);
+  }, [
+    addTaskForm.projectName,
+    projects,
+    editingTaskId,
+    editingTask?.project_name,
+    editingTask?.source,
+  ]);
 
   useEffect(() => {
     if (openFormDropdown === null && !tasklistOpen) return;
@@ -287,14 +525,58 @@ export default function AddTaskPM() {
 
   const confirmRemoveAttachment = () => {
     if (!pendingAttachmentDelete) return;
-    removeAttachment(pendingAttachmentDelete.index);
-    setPendingAttachmentDelete(null);
+    if (pendingAttachmentDelete.type === "local") {
+      removeAttachment(pendingAttachmentDelete.index);
+      setPendingAttachmentDelete(null);
+      return;
+    }
+    const stored = pendingAttachmentDelete.stored;
+    const taskId = editingTaskId;
+    if (taskId == null) {
+      setPendingAttachmentDelete(null);
+      return;
+    }
+    setServerAttachmentDeleting(true);
+    const next = existingOutputFilenames.filter((f) => f !== stored);
+    const newPath = next.length > 0 ? next.join(",") : "";
+    const name = addTaskForm.projectName;
+    const sourceHint =
+      editingTaskId != null &&
+      editingTask &&
+      String(editingTask.project_name || "") === name
+        ? editingTask.source
+        : undefined;
+    const selectedProj =
+      (sourceHint
+        ? projects.find(
+            (p) => p.project_name === name && p.source === sourceHint,
+          )
+        : undefined) ?? projects.find((p) => p.project_name === name);
+    const isOutsourceTask =
+      editingTask?.source === "Outsource" ||
+      selectedProj?.source === "Outsource";
+    const patchUrl = isOutsourceTask
+      ? `/api/vendors/vendor-tasks/${taskId}`
+      : `/api/tasks/${taskId}`;
+    api
+      .patch(patchUrl, { outputfilepath: newPath })
+      .then(() => {
+        setExistingOutputFilenames(next);
+        setPendingAttachmentDelete(null);
+      })
+      .catch(() => {
+        setAddError("Failed to remove attachment. Please try again.");
+      })
+      .finally(() => setServerAttachmentDeleting(false));
   };
 
-  const pendingDeleteFileName =
-    pendingAttachmentDelete != null
-      ? (attachmentFiles[pendingAttachmentDelete.index]?.name ?? "")
-      : "";
+  const pendingDeleteFileName = (() => {
+    if (!pendingAttachmentDelete) return "";
+    if (pendingAttachmentDelete.type === "local") {
+      return attachmentFiles[pendingAttachmentDelete.index]?.name ?? "";
+    }
+    return displayNameFromStoredFilename(pendingAttachmentDelete.stored);
+  })();
 
   const tasklistOptions = useMemo(() => {
     const taskListStr = projects.find(
@@ -309,7 +591,8 @@ export default function AddTaskPM() {
     return ["Select Task", ...options];
   }, [projects, addTaskForm.projectName]);
 
-  const totalAttachmentCount = attachmentFiles.length;
+  const totalAttachmentCount =
+    existingOutputFilenames.length + attachmentFiles.length;
 
   const goBack = () => navigate("/tasks");
 
@@ -352,10 +635,26 @@ export default function AddTaskPM() {
     setAddSubmitting(true);
     try {
       const isEditing = editingTaskId !== null;
+      const name = addTaskForm.projectName;
+      const sourceHint =
+        editingTaskId != null &&
+        editingTask &&
+        String(editingTask.project_name || "") === name
+          ? editingTask.source
+          : undefined;
+      const selectedProj =
+        (sourceHint
+          ? projects.find(
+              (p) => p.project_name === name && p.source === sourceHint,
+            )
+          : undefined) ?? projects.find((p) => p.project_name === name);
+
+      const assignedId = employees.find(
+        (e) => e.full_name === addTaskForm.assignTo,
+      )?.id;
+
       const payload = {
-        project_id: projects.find(
-          (p) => p.project_name === addTaskForm.projectName,
-        )?.id,
+        project_id: selectedProj?.id,
         project_name: addTaskForm.projectName,
         modules_name: addTaskForm.module,
         module: addTaskForm.module,
@@ -369,8 +668,9 @@ export default function AddTaskPM() {
         dueDate: addTaskForm.actualEndDate,
         perferstart_time: addTaskForm.startTime,
         perferend_time: addTaskForm.dueTime,
-        assigned_to: employees.find((e) => e.full_name === addTaskForm.assignTo)
-          ?.id,
+        start_time: addTaskForm.startTime,
+        end_time: addTaskForm.dueTime,
+        assigned_to: assignedId,
         assign_to: addTaskForm.assignTo,
         description: addTaskForm.description,
         checklist: addTaskForm.checklist,
@@ -379,14 +679,27 @@ export default function AddTaskPM() {
       };
 
       let taskId = editingTaskId;
-      const selectedProj = projects.find(
-        (p) => p.project_name === addTaskForm.projectName,
-      );
       const isOutsource = selectedProj?.source === "Outsource";
       const baseEndpoint = isOutsource ? "/api/vendors/vendor-tasks" : "/api/tasks";
 
       if (isEditing) {
-        await api.patch(`${baseEndpoint}/${editingTaskId}`, payload);
+        if (isOutsource) {
+          await api.patch(`${baseEndpoint}/${editingTaskId}`, {
+            task_name: addTaskForm.taskName,
+            assigned_to: assignedId,
+            due_date: addTaskForm.actualEndDate,
+            category: addTaskForm.type,
+            description: addTaskForm.description,
+            checklist: addTaskForm.checklist,
+            modules: addTaskForm.module,
+            start_date: addTaskForm.actualStartDate,
+            start_time: addTaskForm.startTime,
+            end_time: addTaskForm.dueTime,
+            project_id: selectedProj?.id,
+          });
+        } else {
+          await api.patch(`${baseEndpoint}/${editingTaskId}`, payload);
+        }
       } else {
         const res = await api.post<{ task_id: number }>(baseEndpoint, payload);
         taskId = res.data.task_id;
@@ -395,7 +708,10 @@ export default function AddTaskPM() {
       if (taskId && attachmentFiles.length > 0) {
         const formData = new FormData();
         attachmentFiles.forEach((file) => formData.append("image", file));
-        await api.post(`/api/tasks/${taskId}/output-files`, formData, {
+        const outputUrl = isOutsource
+          ? `/api/vendors/vendor-tasks/${taskId}/output-files`
+          : `/api/tasks/${taskId}/output-files`;
+        await api.post(outputUrl, formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
       }
@@ -424,6 +740,45 @@ export default function AddTaskPM() {
         ...employees.map((e) => ({ value: e.full_name, label: e.full_name })),
       ];
     }
+
+    // Vendor projects often have no members_* on the row; in-house filtering yields an empty list.
+    if (proj.source === "Outsource") {
+      const byId = new Map<number, Employee>();
+      employees
+        .filter((e) => isTechnicalDirectorRole(e.user_role))
+        .forEach((e) => byId.set(e.id, e));
+      if (user?.id != null) {
+        const self = employees.find((e) => e.id === user.id);
+        if (self) byId.set(self.id, self);
+      }
+      if (user?.full_name?.trim()) {
+        const selfByName = employees.find(
+          (e) =>
+            (e.full_name || "").trim().toLowerCase() ===
+            user.full_name.trim().toLowerCase(),
+        );
+        if (selfByName) byId.set(selfByName.id, selfByName);
+      }
+      const merged = Array.from(byId.values()).sort((a, b) =>
+        (a.full_name || "").localeCompare(b.full_name || "", undefined, {
+          sensitivity: "base",
+        }),
+      );
+      if (merged.length === 0 && user?.full_name?.trim()) {
+        return [
+          { value: "", label: "Select Assign To" },
+          {
+            value: user.full_name.trim(),
+            label: user.full_name.trim(),
+          },
+        ];
+      }
+      return [
+        { value: "", label: "Select Assign To" },
+        ...merged.map((e) => ({ value: e.full_name, label: e.full_name })),
+      ];
+    }
+
     const involvedNames = new Set<string>();
     
     const addNames = (val: string | undefined | null) => {
@@ -814,6 +1169,49 @@ export default function AddTaskPM() {
                 </div>
                 {totalAttachmentCount > 0 && (
                   <div className="flex flex-col gap-2">
+                    {existingOutputFilenames.map((stored) => (
+                      <div
+                        key={`server-${stored}`}
+                        className="flex items-center gap-2 rounded-[5px] bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827]"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <span
+                            className="block truncate font-Gantari"
+                            title={displayNameFromStoredFilename(stored)}
+                          >
+                            {displayNameFromStoredFilename(stored)}
+                          </span>
+                          <span className="text-xs text-[#8B8B8B]">
+                            Saved on task
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openServerOutputInNewTab(stored)}
+                            className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
+                            title="View in new tab"
+                            aria-label={`View ${displayNameFromStoredFilename(stored)} in new tab`}
+                          >
+                            <img src={viewIcon} alt="" className="h-5 w-5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPendingAttachmentDelete({
+                                type: "server",
+                                stored,
+                              })
+                            }
+                            className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
+                            title="Remove"
+                            aria-label={`Remove ${displayNameFromStoredFilename(stored)}`}
+                          >
+                            <img src={deleteIcon} alt="" className="h-5 w-5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                     {attachmentFiles.map((file, index) => (
                       <div
                         key={`${file.name}-${index}-${file.size}`}
@@ -880,7 +1278,9 @@ export default function AddTaskPM() {
         {pendingAttachmentDelete !== null && (
           <div
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
-            onClick={() => setPendingAttachmentDelete(null)}
+            onClick={() =>
+              !serverAttachmentDeleting && setPendingAttachmentDelete(null)
+            }
             role="presentation"
           >
             <div
@@ -893,8 +1293,9 @@ export default function AddTaskPM() {
               <div className="relative">
                 <button
                   type="button"
+                  disabled={serverAttachmentDeleting}
                   onClick={() => setPendingAttachmentDelete(null)}
-                  className="absolute left-0 top-0 shrink-0 rounded-md p-1 bg-[#E8E8E8] cursor-pointer border-0 bg-transparent"
+                  className="absolute left-0 top-0 shrink-0 rounded-md p-1 bg-[#E8E8E8] cursor-pointer border-0 bg-transparent disabled:opacity-50"
                   aria-label="Close"
                 >
                   <img
@@ -918,17 +1319,19 @@ export default function AddTaskPM() {
               <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
                 <button
                   type="button"
+                  disabled={serverAttachmentDeleting}
                   onClick={() => setPendingAttachmentDelete(null)}
-                  className="min-w-[140px] rounded-md bg-[#F2F2F2] px-8 py-2 text-[14px] font-semibold text-[#353535] cursor-pointer transition-opacity hover:opacity-90 border-0"
+                  className="min-w-[140px] rounded-md bg-[#F2F2F2] px-8 py-2 text-[14px] font-semibold text-[#353535] cursor-pointer transition-opacity hover:opacity-90 border-0 disabled:opacity-50"
                 >
                   Discard
                 </button>
                 <button
                   type="button"
+                  disabled={serverAttachmentDeleting}
                   onClick={confirmRemoveAttachment}
-                  className="min-w-[140px] rounded-md bg-[#FED9D9] px-8 py-2 text-[14px] font-semibold text-[#E00100] cursor-pointer transition-opacity hover:opacity-90 border-0"
+                  className="min-w-[140px] rounded-md bg-[#FED9D9] px-8 py-2 text-[14px] font-semibold text-[#E00100] cursor-pointer transition-opacity hover:opacity-90 border-0 disabled:opacity-50"
                 >
-                  Yes, Delete
+                  {serverAttachmentDeleting ? "Removing…" : "Yes, Delete"}
                 </button>
               </div>
             </div>

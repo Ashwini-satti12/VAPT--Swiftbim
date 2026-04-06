@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../../lib/api";
+import { useAuth } from "../../contexts/AuthContext";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
@@ -61,6 +62,44 @@ type PendingAttachmentDelete =
     | { type: "local"; index: number }
     | { type: "server"; stored: string };
 
+type EmployeeRow = Employee & { user_role?: string };
+
+function normalizeModuleDisplay(raw: unknown): string {
+    const s = raw != null ? String(raw).trim() : "";
+    if (!s) return "";
+    if (s.startsWith("[") && s.endsWith("]")) {
+        try {
+            const parsed = JSON.parse(s) as unknown;
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                return String(parsed[0]).trim();
+            }
+        } catch {
+            const inner = s.slice(1, -1).trim().replace(/^["']|["']$/g, "");
+            if (inner) return inner;
+        }
+    }
+    return s;
+}
+
+function applyTaskToForm(task: Task | Record<string, unknown>) {
+    const base = taskToFormValues(task);
+    const t = task as Record<string, unknown>;
+    return {
+        ...base,
+        module: normalizeModuleDisplay(
+            t.module ?? t.modules_name ?? t.modules ?? base.module,
+        ),
+    };
+}
+
+function isTechnicalDirectorRole(role: string | undefined): boolean {
+    return String(role || "").trim() === "Technical Director";
+}
+
+function isProjectManagerRole(role: string | undefined): boolean {
+    return String(role || "").trim() === "Project Manager";
+}
+
 const initialForm = {
     projectName: "",
     module: "",
@@ -78,13 +117,14 @@ const initialForm = {
 export default function AddTaskBL() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
     const editingTask = location.state?.task as Task | undefined;
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
     const [addError, setAddError] = useState("");
     const [addSubmitting, setAddSubmitting] = useState(false);
 
     const [list, setList] = useState<Task[]>([]);
-    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [employees, setEmployees] = useState<EmployeeRow[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [modules, setModules] = useState<string[]>([]);
     const [addTaskForm, setAddTaskForm] = useState(initialForm);
@@ -123,7 +163,11 @@ export default function AddTaskBL() {
             const vendorTasks = (vTasksRes.data.tasks ?? []).map((t) => ({ ...t, source: "Outsource" as const }));
             setList([...internalTasks, ...vendorTasks]);
 
-            setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
+            setEmployees(
+                (empRes.data.employees ?? []).filter(
+                    isEmployeeActiveForProjectAssignment,
+                ) as EmployeeRow[],
+            );
 
             const internalProjs = (projRes.data.projects ?? []).map((p) => ({ ...p, source: "In House" as const }));
             const vendorProjs = (vProjRes.data.projects ?? []).map((p) => ({ ...p, source: "Outsource" as const }));
@@ -138,21 +182,65 @@ export default function AddTaskBL() {
             return;
         }
         setEditingTaskId(editingTask.id);
-        setAddTaskForm(taskToFormValues(editingTask));
+        setAddTaskForm(applyTaskToForm(editingTask));
         setAttachmentFiles([]);
         setExistingOutputFilenames(parseOutputFilepaths(editingTask.outputfilepath));
 
         let cancelled = false;
         const isVo = editingTask.source === "Outsource";
-        const req = isVo
-            ? api.get<Record<string, unknown>>(`/api/vendors/vendor-tasks/${editingTask.id}`)
-            : api.get<Record<string, unknown>>(`/api/tasks/${editingTask.id}`);
-        req
+
+        const applyRow = (row: Record<string, unknown>, forceOutsource: boolean) => {
+            const merged: Task = {
+                ...editingTask,
+                ...row,
+                id: editingTask.id,
+                source: forceOutsource ? "Outsource" : editingTask.source,
+            };
+            setAddTaskForm(applyTaskToForm(merged));
+            const out = row.outputfilepath;
+            setExistingOutputFilenames(
+                parseOutputFilepaths(
+                    typeof out === "string" ? out : editingTask.outputfilepath,
+                ),
+            );
+        };
+
+        const url = isVo
+            ? `/api/vendors/vendor-tasks/${editingTask.id}`
+            : `/api/tasks/${editingTask.id}`;
+
+        api.get<Record<string, unknown>>(url)
             .then((res) => {
                 if (cancelled) return;
-                setExistingOutputFilenames(parseOutputFilepaths(res.data?.outputfilepath));
+                const data = res.data;
+                if (!data || typeof data !== "object") return;
+                if (
+                    "success" in data &&
+                    (data as { success?: boolean }).success === false
+                ) {
+                    return;
+                }
+                applyRow(data as Record<string, unknown>, isVo);
             })
-            .catch(() => {});
+            .catch(() => {
+                if (cancelled || isVo) return;
+                api.get<Record<string, unknown>>(
+                    `/api/vendors/vendor-tasks/${editingTask.id}`,
+                )
+                    .then((res) => {
+                        if (cancelled) return;
+                        const data = res.data;
+                        if (!data || typeof data !== "object") return;
+                        if (
+                            "success" in data &&
+                            (data as { success?: boolean }).success === false
+                        ) {
+                            return;
+                        }
+                        applyRow(data as Record<string, unknown>, true);
+                    })
+                    .catch(() => {});
+            });
 
         return () => {
             cancelled = true;
@@ -160,30 +248,88 @@ export default function AddTaskBL() {
     }, [editingTask]);
 
     useEffect(() => {
+        if (editingTaskId == null || employees.length === 0) return;
+        setAddTaskForm((prev) => {
+            const v = (prev.assignTo || "").trim();
+            if (!/^\d+$/.test(v)) return prev;
+            const emp = employees.find((e) => String(e.id) === v);
+            if (!emp?.full_name) return prev;
+            return { ...prev, assignTo: emp.full_name };
+        });
+    }, [editingTaskId, employees, addTaskForm.assignTo]);
+
+    useEffect(() => {
         if (!addTaskForm.projectName) {
             setModules([]);
             return;
         }
-        const selectedProj = projects.find((p) => p.project_name === addTaskForm.projectName);
+        const name = addTaskForm.projectName;
+        const sourceHint =
+            editingTaskId != null &&
+            editingTask &&
+            String(editingTask.project_name || "") === name
+                ? editingTask.source
+                : undefined;
+        const selectedProj =
+            (sourceHint
+                ? projects.find(
+                      (p) => p.project_name === name && p.source === sourceHint,
+                  )
+                : undefined) ?? projects.find((p) => p.project_name === name);
         if (!selectedProj) {
             setModules([]);
             return;
         }
+
+        const parseModulesFromProjectString = (raw: string): string[] => {
+            const s = (raw || "").trim();
+            if (!s) return [];
+            if (s.startsWith("[")) {
+                try {
+                    const parsed = JSON.parse(s) as unknown;
+                    if (Array.isArray(parsed)) {
+                        return parsed.map((x) => String(x).trim()).filter(Boolean);
+                    }
+                } catch {
+                    /* fall through */
+                }
+            }
+            const sep = s.includes(";") ? ";" : ",";
+            return s.split(sep).map((p) => p.trim()).filter(Boolean);
+        };
 
         const endpoint =
             selectedProj.source === "Outsource"
                 ? "/api/vendors/vendor-projects/filters/modules"
                 : "/api/projects/filters/modules";
 
-        api.post<{ modules?: { label: string }[] }>(endpoint, {
-            projectId: selectedProj.id,
-        })
-            .then(({ data }) => {
-                const moduleLabels = (data.modules ?? []).map((m) => m.label);
-                setModules(moduleLabels);
+        api.post<{
+            success?: boolean;
+            modules: { label?: string; value?: string }[];
+        }>(endpoint, { projectId: selectedProj.id })
+            .then((res) => {
+                const list = Array.isArray(res.data.modules) ? res.data.modules : [];
+                let names = list
+                    .map((m) => m?.label ?? m?.value)
+                    .filter((x): x is string => Boolean(x));
+                if (names.length === 0 && selectedProj.modules) {
+                    names = parseModulesFromProjectString(String(selectedProj.modules));
+                }
+                setModules(names);
             })
-            .catch(() => setModules([]));
-    }, [addTaskForm.projectName, projects]);
+            .catch(() => {
+                const fallback = selectedProj.modules
+                    ? parseModulesFromProjectString(String(selectedProj.modules))
+                    : [];
+                setModules(fallback);
+            });
+    }, [
+        addTaskForm.projectName,
+        projects,
+        editingTaskId,
+        editingTask?.project_name,
+        editingTask?.source,
+    ]);
 
     useEffect(() => {
         if (openFormDropdown === null && !tasklistOpen) return;
@@ -245,8 +391,22 @@ export default function AddTaskBL() {
             setPendingAttachmentDelete(null);
             return;
         }
-        const taskRow = list.find((t) => t.id === taskId);
-        const isOutsourceTask = taskRow?.source === "Outsource";
+        const name = addTaskForm.projectName;
+        const sourceHint =
+            editingTaskId != null &&
+            editingTask &&
+            String(editingTask.project_name || "") === name
+                ? editingTask.source
+                : undefined;
+        const selectedProj =
+            (sourceHint
+                ? projects.find(
+                      (p) => p.project_name === name && p.source === sourceHint,
+                  )
+                : undefined) ?? projects.find((p) => p.project_name === name);
+        const isOutsourceTask =
+            editingTask?.source === "Outsource" ||
+            selectedProj?.source === "Outsource";
         setServerAttachmentDeleting(true);
         const next = existingOutputFilenames.filter((f) => f !== stored);
         const newPath = next.length > 0 ? next.join(",") : "";
@@ -275,38 +435,48 @@ export default function AddTaskBL() {
     const merged = list.filter(Boolean);
     const totalAttachmentCount = existingOutputFilenames.length + attachmentFiles.length;
 
+    /** Assign To: Technical Directors, Project Managers, and the logged-in user only. */
     const assignToOptions = useMemo(() => {
-        const all = Array.isArray(employees) ? employees : [];
-        let filtered: Employee[];
-        if (!addTaskForm.projectName) {
-            filtered = all.filter(isEmployeeActiveForProjectAssignment);
-        } else {
-            const proj = projects.find((p) => p.project_name === addTaskForm.projectName);
-            if (!proj) {
-                filtered = all.filter(isEmployeeActiveForProjectAssignment);
-            } else {
-                const raw = (proj.members || "").trim();
-                if (!raw) {
-                    filtered = all.filter(isEmployeeActiveForProjectAssignment);
-                } else {
-                    const tokens = raw.split(",").map((s: string) => s.trim()).filter(Boolean);
-                    filtered = all
-                        .filter(isEmployeeActiveForProjectAssignment)
-                        .filter((emp) => {
-                            const name = (emp.full_name || "").trim();
-                            const idStr = String(emp.id);
-                            return tokens.some(
-                                (t: string) => t === idStr || t.toLowerCase() === name.toLowerCase(),
-                            );
-                        });
-                }
-            }
+        const all = employees.filter(isEmployeeActiveForProjectAssignment);
+        const byId = new Map<number, EmployeeRow>();
+        all
+            .filter(
+                (e) =>
+                    isTechnicalDirectorRole(e.user_role) ||
+                    isProjectManagerRole(e.user_role),
+            )
+            .forEach((e) => byId.set(e.id, e));
+        if (user?.id != null) {
+            const self = all.find((e) => e.id === user.id);
+            if (self) byId.set(self.id, self);
+        }
+        if (user?.full_name?.trim()) {
+            const selfByName = all.find(
+                (e) =>
+                    (e.full_name || "").trim().toLowerCase() ===
+                    user.full_name.trim().toLowerCase(),
+            );
+            if (selfByName) byId.set(selfByName.id, selfByName);
+        }
+        const merged = Array.from(byId.values()).sort((a, b) =>
+            (a.full_name || "").localeCompare(b.full_name || "", undefined, {
+                sensitivity: "base",
+            }),
+        );
+        if (merged.length === 0 && user?.full_name?.trim()) {
+            return [
+                { value: "", label: "Select Assign To" },
+                {
+                    value: user.full_name.trim(),
+                    label: user.full_name.trim(),
+                },
+            ];
         }
         return [
             { value: "", label: "Select Assign To" },
-            ...filtered.map((e) => ({ value: e.full_name, label: e.full_name })),
+            ...merged.map((e) => ({ value: e.full_name, label: e.full_name })),
         ];
-    }, [employees, projects, addTaskForm.projectName]);
+    }, [employees, user?.id, user?.full_name]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -345,8 +515,24 @@ export default function AddTaskBL() {
         setAddSubmitting(true);
         try {
             const isEditing = editingTaskId !== null;
-            const selectedProj = projects.find((p) => p.project_name === addTaskForm.projectName);
+            const name = addTaskForm.projectName;
+            const sourceHint =
+                isEditing &&
+                editingTask &&
+                String(editingTask.project_name || "") === name
+                    ? editingTask.source
+                    : undefined;
+            const selectedProj =
+                (sourceHint
+                    ? projects.find(
+                          (p) => p.project_name === name && p.source === sourceHint,
+                      )
+                    : undefined) ?? projects.find((p) => p.project_name === name);
             const isOutsource = selectedProj?.source === "Outsource";
+
+            const assignedId = employees.find(
+                (e) => e.full_name === addTaskForm.assignTo,
+            )?.id;
 
             const payload = {
                 project_id: selectedProj?.id,
@@ -363,21 +549,48 @@ export default function AddTaskBL() {
                 dueDate: addTaskForm.actualEndDate,
                 perferstart_time: addTaskForm.startTime,
                 perferend_time: addTaskForm.dueTime,
-                assigned_to: employees.find((e) => e.full_name === addTaskForm.assignTo)?.id,
+                start_time: addTaskForm.startTime,
+                end_time: addTaskForm.dueTime,
+                assigned_to: assignedId,
                 assign_to: addTaskForm.assignTo,
                 description: addTaskForm.description,
                 checklist: addTaskForm.checklist,
-                status: isEditing ? list.find((t) => t.id === editingTaskId)?.status : "To Do",
-                progress: isEditing ? list.find((t) => t.id === editingTaskId)?.progress : 0,
+                status: isEditing
+                    ? list.find((t) => t.id === editingTaskId)?.status
+                    : "To Do",
+                progress: isEditing
+                    ? list.find((t) => t.id === editingTaskId)?.progress
+                    : 0,
             };
 
             let taskId = editingTaskId;
             if (isEditing) {
-                const url = isOutsource ? `/api/vendors/vendor-tasks/${editingTaskId}` : `/api/tasks/${editingTaskId}`;
-                await api.patch(url, payload);
+                const url = isOutsource
+                    ? `/api/vendors/vendor-tasks/${editingTaskId}`
+                    : `/api/tasks/${editingTaskId}`;
+                if (isOutsource) {
+                    await api.patch(url, {
+                        task_name: addTaskForm.taskName,
+                        assigned_to: assignedId,
+                        due_date: addTaskForm.actualEndDate,
+                        category: addTaskForm.type,
+                        description: addTaskForm.description,
+                        checklist: addTaskForm.checklist,
+                        modules: addTaskForm.module,
+                        start_date: addTaskForm.actualStartDate,
+                        start_time: addTaskForm.startTime,
+                        end_time: addTaskForm.dueTime,
+                        project_id: selectedProj?.id,
+                    });
+                } else {
+                    await api.patch(url, payload);
+                }
             } else {
                 const url = isOutsource ? "/api/vendors/vendor-tasks" : "/api/tasks";
-                const res = await api.post<{ task_id?: number; id?: number }>(url, payload);
+                const res = await api.post<{ task_id?: number; id?: number }>(
+                    url,
+                    payload,
+                );
                 taskId = res.data.task_id ?? res.data.id ?? null;
             }
 
@@ -564,7 +777,11 @@ export default function AddTaskBL() {
                                     <input
                                         type="date"
                                         value={addTaskForm.actualStartDate}
-                                        min={new Date().toISOString().split("T")[0]}
+                                        min={
+                                            editingTaskId !== null
+                                                ? undefined
+                                                : new Date().toISOString().split("T")[0]
+                                        }
                                         onChange={(e) =>
                                             setAddTaskForm((f) => ({ ...f, actualStartDate: e.target.value }))
                                         }
@@ -581,7 +798,9 @@ export default function AddTaskBL() {
                                         value={addTaskForm.actualEndDate}
                                         min={
                                             addTaskForm.actualStartDate ||
-                                            new Date().toISOString().split("T")[0]
+                                            (editingTaskId !== null
+                                                ? undefined
+                                                : new Date().toISOString().split("T")[0])
                                         }
                                         onChange={(e) =>
                                             setAddTaskForm((f) => ({ ...f, actualEndDate: e.target.value }))

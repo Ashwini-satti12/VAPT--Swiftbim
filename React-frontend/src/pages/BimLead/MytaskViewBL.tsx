@@ -101,10 +101,27 @@ const STATUS_STYLE: Record<StatusKey, { label: string; dot: string; bg: string }
     },
 };
 
-const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
+const STATUS_OPTIONS: { value: "todo" | "in_progress" | "completed"; label: string }[] = [
+    { value: "todo", label: "To Do" },
     { value: "in_progress", label: "Inprogress" },
     { value: "completed", label: "Completed" },
 ];
+
+function shouldHideInProgressInDropdown(status: StatusKey): boolean {
+    return (
+        status === "completed" ||
+        status === "approved" ||
+        status === "rejected"
+    );
+}
+
+function isStatusOptionDisabled(
+    current: StatusKey,
+    option: "todo" | "in_progress" | "completed",
+): boolean {
+    if (current === "todo" && option === "completed") return true;
+    return false;
+}
 
 export default function MytaskViewBL() {
     const location = useLocation();
@@ -123,6 +140,7 @@ export default function MytaskViewBL() {
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
     const [loading, setLoading] = useState(!task);
+    const [updatingStatus, setUpdatingStatus] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,9 +152,18 @@ export default function MytaskViewBL() {
         e.target.value = "";
     };
 
-    const handleStatusUpdate = async (newStatus: StatusKey) => {
-        if (!task) return;
-        const backendStatus = newStatus === "completed" ? "Completed" : "InProgress";
+    const handleStatusUpdate = async (
+        newStatus: "todo" | "in_progress" | "completed",
+    ) => {
+        if (!task || updatingStatus) return;
+        if (isStatusOptionDisabled(statusDisplay, newStatus)) return;
+        setUpdatingStatus(true);
+        const backendStatus =
+            newStatus === "completed"
+                ? "Completed"
+                : newStatus === "todo"
+                  ? "Todo"
+                  : "InProgress";
 
         try {
             await api.patch(`/api/tasks/${task.id}/status`, {
@@ -149,6 +176,7 @@ export default function MytaskViewBL() {
             console.error("Error updating status:", error);
             toast.error("Failed to update status");
         } finally {
+            setUpdatingStatus(false);
             setStatusDropdownOpen(false);
         }
     };
@@ -284,32 +312,46 @@ export default function MytaskViewBL() {
                     <div className="relative" ref={statusDropdownRef}>
                         <button
                             type="button"
+                            disabled={updatingStatus}
                             onClick={() => setStatusDropdownOpen((prev) => !prev)}
                             className="rounded-[5px] bg-[#E8E8E8] px-3 py-2 text-[14px] text-[#8B8B8B] flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer border-0"
                             aria-expanded={statusDropdownOpen}
                             aria-haspopup="listbox"
                         >
-                            Select Status
+                            {updatingStatus ? "Updating..." : "Select Status"}
                             <FiChevronDown className="w-5 h-5 text-[#8B8B8B]" />
                         </button>
-                        {statusDropdownOpen && (
+                        {statusDropdownOpen && !updatingStatus && (
                             <div
                                 className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200"
                                 role="listbox"
                             >
                                 {STATUS_OPTIONS.filter(
                                     (opt) =>
-                                        !(statusDisplay === "completed" && opt.value === "in_progress"),
-                                ).map((opt) => (
+                                        !(
+                                            shouldHideInProgressInDropdown(statusDisplay) &&
+                                            opt.value === "in_progress"
+                                        ),
+                                ).map((opt) => {
+                                    const disabled = isStatusOptionDisabled(
+                                        statusDisplay,
+                                        opt.value,
+                                    );
+                                    return (
                                     <button
                                         key={opt.value}
                                         type="button"
                                         role="option"
+                                        aria-disabled={disabled}
+                                        disabled={disabled}
                                         aria-selected={statusDisplay === opt.value}
                                         onClick={() => handleStatusUpdate(opt.value)}
-                                        className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors cursor-pointer ${statusDisplay === opt.value
+                                        className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors ${disabled
+                                            ? "text-slate-300 cursor-not-allowed opacity-60"
+                                            : "cursor-pointer text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
+                                            } ${statusDisplay === opt.value && !disabled
                                             ? "bg-[#F2F2F2] text-[#353535] font-medium"
-                                            : "text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
+                                            : ""
                                             }`}
                                     >
                                         <span
@@ -317,7 +359,8 @@ export default function MytaskViewBL() {
                                         />
                                         {opt.label}
                                     </button>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

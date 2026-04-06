@@ -6,6 +6,38 @@ from utils import mailer
 bp = Blueprint("teams", __name__, url_prefix="/api/teams")
 
 
+def _user_involved_in_team_row(row, user_id):
+    """True if user is team leader, project_lead, or listed in employee ids."""
+    if user_id is None:
+        return False
+    uid_str = str(user_id).strip()
+    if not uid_str:
+        return False
+
+    def _same_id(a, b):
+        if a is None or b is None or a == "" or b == "":
+            return False
+        if str(a).strip() == str(b).strip():
+            return True
+        try:
+            return int(a) == int(b)
+        except (TypeError, ValueError):
+            return False
+
+    if _same_id(row.get("leader"), user_id):
+        return True
+
+    pl = row.get("project_lead")
+    if pl is not None and str(pl).strip() not in ("", "0") and _same_id(pl, user_id):
+        return True
+
+    emp = (row.get("employee") or "").strip()
+    if not emp:
+        return False
+    ids = [x.strip() for x in emp.split(",") if x.strip()]
+    return uid_str in ids
+
+
 @bp.route("", methods=["GET"])
 @project_app_required
 def list_teams():
@@ -17,6 +49,11 @@ def list_teams():
     )
     rows = cur.fetchall()
     teams = [dict(r) for r in rows]
+    role = (getattr(g, "user_role", None) or "").strip()
+    uid = getattr(g, "user_id", None)
+    is_super = getattr(g, "is_super_admin", False)
+    if role != "Technical Director" and uid is not None and not is_super:
+        teams = [t for t in teams if _user_involved_in_team_row(t, uid)]
     return jsonify({"teams": teams})
 
 
