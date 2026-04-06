@@ -870,7 +870,7 @@ export default function ConsultantTD() {
                 {/* Scrollable Action Buttons Group */}
                 <div className="flex flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 px-0.5 custom-scrollbar min-w-0">
                   {/* Desktop toggles - only visible on xl screens (>= 1280px) */}
-                  <div className="hidden xl:flex items-center gap-2 pr-1 border-r border-slate-200 mr-1">
+                  <div className="hidden xl:flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setViewMode('table')}
@@ -936,7 +936,7 @@ export default function ConsultantTD() {
                 <div className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-2">
                   {viewMode === 'table' && (
                     <div
-                      className="relative min-w-[130px] sm:min-w-[140px] max-w-[200px] w-[130px] sm:w-[150px]"
+                      className="relative min-w-[130px] sm:min-w-[140px] max-w-[200px] w-[130px] sm:w-[150px] "
                       ref={showEntriesDropdownRef}
                     >
                       <button
