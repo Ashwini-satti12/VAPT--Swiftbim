@@ -197,7 +197,7 @@ export default function TrackerTD() {
                     const s = String(raw).trim();
                     if (!s) return null;
                     // accept "HH:MM" or "HH:MM:SS"
-                    if (/^\\d{1,2}:\\d{2}(:\\d{2})?$/.test(s)) {
+                    if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)) {
                         const [hh, mm, ss] = s.split(':');
                         return `${String(hh).padStart(2, '0')}:${mm}:${ss ?? '00'}`;
                     }
@@ -211,76 +211,100 @@ export default function TrackerTD() {
                     return `${y}-${m}-${dd}` === targetDate;
                 };
 
+                // Calendar date of task (YYYY-MM-DD) — same rules as TrackerBC so status matches when no time is selected.
+                const taskDateKey = (t: any): string | null => {
+                    const rawDate: string =
+                        t.start_time || t.Actual_start_time || t.due_date || '';
+                    if (!rawDate) return null;
+                    const isoPart = String(rawDate).split('T')[0].split(' ')[0];
+                    return isoPart || null;
+                };
+
                 // Build selected datetime for comparisons
                 let selectedDt: Date | null = null;
                 if (targetTime && /^\d{2}:\d{2}$/.test(targetTime)) {
                     selectedDt = new Date(`${targetDate}T${targetTime}:00`);
                 }
 
-                tasks.forEach((t) => {
-                    const status = String(t.status || '').toLowerCase();
-                    if (status === 'completed') return;
+                if (!selectedDt) {
+                    // Align with TrackerBC: string date match only (avoids UTC vs local day shift on date-only values).
+                    tasks.forEach((t) => {
+                        const status = String(t.status || '').toLowerCase();
+                        if (status === 'completed') return;
 
-                    const assignedIdRaw = (t as any).assigned_to ?? (t as any).assignedTo ?? (t as any).assigned_to_id;
-                    const assignedKey =
-                        assignedIdRaw != null && String(assignedIdRaw).trim() !== ''
-                            ? String(assignedIdRaw)
-                            : '';
-                    const name = (t.assigned_full_name || '').trim();
-                    if (!assignedKey && !name) return;
+                        const assignedIdRaw = (t as any).assigned_to ?? (t as any).assignedTo ?? (t as any).assigned_to_id;
+                        const assignedKey =
+                            assignedIdRaw != null && String(assignedIdRaw).trim() !== ''
+                                ? String(assignedIdRaw)
+                                : '';
+                        const name = (t.assigned_full_name || '').trim();
+                        if (!assignedKey && !name) return;
 
-                    // Determine task window.
-                    // Prefer explicit datetime columns; otherwise use preferred time window on the selected date.
-                    const preferStartTime =
-                        parseTimeOnly((t as any).perferstart_time) ||
-                        parseTimeOnly((t as any).prefer_start_time) ||
-                        parseTimeOnly((t as any).startTime);
-                    const preferEndTime =
-                        parseTimeOnly((t as any).perferend_time) ||
-                        parseTimeOnly((t as any).prefer_end_time) ||
-                        parseTimeOnly((t as any).dueTime);
+                        const dateKey = taskDateKey(t);
+                        if (!dateKey || dateKey !== targetDate) return;
 
-                    let start =
-                        parseDateTime((t as any).start_time) ||
-                        parseDateTime((t as any).Actual_start_time) ||
-                        parseDateTime((t as any).due_date);
-                    let end =
-                        parseDateTime((t as any).end_time) ||
-                        parseDateTime((t as any).endTime) ||
-                        null;
-
-                    // If we only have preferred time(s), build start/end within today's date
-                    if (!start && preferStartTime) start = new Date(`${targetDate}T${preferStartTime}`);
-                    if (!end && preferEndTime) end = new Date(`${targetDate}T${preferEndTime}`);
-
-                    if (!start) return;
-                    if (!sameDay(start)) return;
-
-                    // If no selected time, treat any task on today as busy
-                    if (!selectedDt) {
                         if (assignedKey) busy[assignedKey] = true;
-                        if (name) busy[name] = true; // fallback
-                        return;
-                    }
+                        if (name) busy[name] = true;
+                    });
+                } else {
+                    tasks.forEach((t) => {
+                        const status = String(t.status || '').toLowerCase();
+                        if (status === 'completed') return;
 
-                    // If end exists, check overlap; otherwise assume busy from start time onward for today
-                    if (end && !Number.isNaN(end.getTime())) {
-                        // If preferred end is before start (bad data), treat as start-only
-                        if (end < start) end = null;
-                    }
-                    if (end && !Number.isNaN(end.getTime())) {
-                        if (selectedDt >= start && selectedDt <= end) {
-                            if (assignedKey) busy[assignedKey] = true;
-                            if (name) busy[name] = true;
+                        const assignedIdRaw = (t as any).assigned_to ?? (t as any).assignedTo ?? (t as any).assigned_to_id;
+                        const assignedKey =
+                            assignedIdRaw != null && String(assignedIdRaw).trim() !== ''
+                                ? String(assignedIdRaw)
+                                : '';
+                        const name = (t.assigned_full_name || '').trim();
+                        if (!assignedKey && !name) return;
+
+                        // Determine task window.
+                        // Prefer explicit datetime columns; otherwise use preferred time window on the selected date.
+                        const preferStartTime =
+                            parseTimeOnly((t as any).perferstart_time) ||
+                            parseTimeOnly((t as any).prefer_start_time) ||
+                            parseTimeOnly((t as any).startTime);
+                        const preferEndTime =
+                            parseTimeOnly((t as any).perferend_time) ||
+                            parseTimeOnly((t as any).prefer_end_time) ||
+                            parseTimeOnly((t as any).dueTime);
+
+                        let start =
+                            parseDateTime((t as any).start_time) ||
+                            parseDateTime((t as any).Actual_start_time) ||
+                            parseDateTime((t as any).due_date);
+                        let end =
+                            parseDateTime((t as any).end_time) ||
+                            parseDateTime((t as any).endTime) ||
+                            null;
+
+                        // If we only have preferred time(s), build start/end within today's date
+                        if (!start && preferStartTime) start = new Date(`${targetDate}T${preferStartTime}`);
+                        if (!end && preferEndTime) end = new Date(`${targetDate}T${preferEndTime}`);
+
+                        if (!start) return;
+                        if (!sameDay(start)) return;
+
+                        // If end exists, check overlap; otherwise assume busy from start time onward for today
+                        if (end && !Number.isNaN(end.getTime())) {
+                            // If preferred end is before start (bad data), treat as start-only
+                            if (end < start) end = null;
                         }
-                    } else {
-                        // start-only: busy if selected time is after start (same day)
-                        if (selectedDt >= start) {
-                            if (assignedKey) busy[assignedKey] = true;
-                            if (name) busy[name] = true;
+                        if (end && !Number.isNaN(end.getTime())) {
+                            if (selectedDt >= start && selectedDt <= end) {
+                                if (assignedKey) busy[assignedKey] = true;
+                                if (name) busy[name] = true;
+                            }
+                        } else {
+                            // start-only: busy if selected time is after start (same day)
+                            if (selectedDt >= start) {
+                                if (assignedKey) busy[assignedKey] = true;
+                                if (name) busy[name] = true;
+                            }
                         }
-                    }
-                });
+                    });
+                }
 
                 setBusyMap(busy);
             } catch (err) {
