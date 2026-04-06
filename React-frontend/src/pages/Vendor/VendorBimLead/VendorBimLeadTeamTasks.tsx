@@ -724,10 +724,10 @@ export default function VendorBimLeadTeamTasks() {
     }
 
     return (
-        <div className="h-full min-h-0 flex flex-col overflow-hidden bg-white font-gantari">
-            <div className="bg-white pb-3 flex-shrink-0 px-4">
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-                    <h2 className="text-[24px] font-medium text-[#000000]">
+        <div className="bg-white h-full min-h-0 flex flex-col font-gantari">
+            <div className="flex-shrink-0 px-4 md:px-6 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                    <h2 className="text-[20px] md:text-[24px] font-semibold text-slate-800">
                         Team Tasks
                     </h2>
                     <div className="flex items-center gap-3">
@@ -761,43 +761,43 @@ export default function VendorBimLeadTeamTasks() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                    <div className="flex p-4 gap-4 rounded-xl border py-4 shadow-sm relative bg-white border-slate-200">
-                        <span className="text-xl font-bold text-[#0D1829]">To Do</span>
-                        <span className="text-xl font-bold text-[#0D1829]">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 pt-2">
+                    <div className="flex px-4 py-3 md:py-4 gap-3 md:gap-4 rounded-xl border shadow-sm relative bg-white border-slate-200">
+                        <span className="text-[16px] md:text-xl font-bold text-[#0D1829]">To Do</span>
+                        <span className="text-[16px] md:text-xl font-bold text-[#0D1829]">
                             ({counts.todo})
                         </span>
                         <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-                            <img src={Group1} alt="Group1" className="w-8 h-8" />
+                            <img src={Group1} alt="Group1" className="w-6 h-6 md:w-8 md:h-8" />
                         </div>
                     </div>
-                    <div className="flex p-4 gap-4 rounded-xl border py-4 shadow-sm relative bg-white border-slate-200">
-                        <span className="text-xl font-bold text-[#0D1829]">
+                    <div className="flex px-4 py-3 md:py-4 gap-3 md:gap-4 rounded-xl border shadow-sm relative bg-white border-slate-200">
+                        <span className="text-[16px] md:text-xl font-bold text-[#0D1829]">
                             In Progress
                         </span>
-                        <span className="text-xl font-bold text-[#0D1829]">
+                        <span className="text-[16px] md:text-xl font-bold text-[#0D1829]">
                             ({counts.in_progress})
                         </span>
                         <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-                            <img src={Group2} alt="Group2" className="w-8 h-8" />
+                            <img src={Group2} alt="Group2" className="w-6 h-6 md:w-8 md:h-8" />
                         </div>
                     </div>
-                    <div className="flex p-4 gap-4 rounded-xl border py-4 shadow-sm relative bg-white border-slate-200">
-                        <span className="text-xl font-bold text-[#0D1829]">
+                    <div className="flex px-4 py-3 md:py-4 gap-3 md:gap-4 rounded-xl border shadow-sm relative bg-white border-slate-200">
+                        <span className="text-[16px] md:text-xl font-bold text-[#0D1829]">
                             Completed
                         </span>
-                        <span className="text-xl font-bold text-[#0D1829]">
+                        <span className="text-[16px] md:text-xl font-bold text-[#0D1829]">
                             ({counts.completed})
                         </span>
                         <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-                            <img src={Group3} alt="Group3" className="w-8 h-8" />
+                            <img src={Group3} alt="Group3" className="w-6 h-6 md:w-8 md:h-8" />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 pb-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 md:px-6 pb-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
                     {(["todo", "in_progress", "completed"] as const).map((bucket) => (
                         <div key={bucket} className="flex flex-col gap-4 min-h-[120px]">
                             {displayedTasksByStatus[bucket].map((task) => (

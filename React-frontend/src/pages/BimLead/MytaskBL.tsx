@@ -315,42 +315,46 @@ function TaskCard({
                                     View
                                 </span>
                             </button>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onEditTask?.(task);
-                                }}
-                            >
-                                <img
-                                    src={editIcon}
-                                    alt="edit"
-                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                />
-                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    Edit
-                                </span>
-                            </button>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onDeleteTask?.(task);
-                                }}
-                            >
-                                <img
-                                    src={deleteIcon}
-                                    alt="delete"
-                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                />
-                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    Delete
-                                </span>
-                            </button>
+                            {!isCompleted && (
+                                <>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onEditTask?.(task);
+                                        }}
+                                    >
+                                        <img
+                                            src={editIcon}
+                                            alt="edit"
+                                            className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                        />
+                                        <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                            Edit
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onDeleteTask?.(task);
+                                        }}
+                                    >
+                                        <img
+                                            src={deleteIcon}
+                                            alt="delete"
+                                            className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                        />
+                                        <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                            Delete
+                                        </span>
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>

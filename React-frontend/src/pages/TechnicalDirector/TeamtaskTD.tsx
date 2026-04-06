@@ -335,7 +335,7 @@ function TaskCard({
       className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted || isOutsource ? "cursor-default opacity-90" : "cursor-grab active:cursor-grabbing"}`}
     >
       <div className="flex items-center justify-between gap-2 mb-2">
-        <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[20px] truncate">
+        <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[18px] sm:text-[20px] truncate leading-tight">
           {task.task_name || "Task Name"}
         </h4>
         <div className="relative shrink-0" ref={menuRef}>
@@ -435,7 +435,7 @@ function TaskCard({
           <span className="text-[14px] font-medium text-[#8B8B8B]">
             {task.due_date
               ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
-              : ""}
+              : "—"}
           </span>
         </div>
       </div>
@@ -966,7 +966,7 @@ export default function TeamtaskTD() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-white px-2 py-2 overflow-hidden">
+    <div className="flex flex-col h-full bg-white px-4 sm:px-2 py-2 overflow-y-auto lg:overflow-hidden custom-scrollbar">
       <div className="bg-white pb-3 flex-shrink-0">
         {/* Top row: title + dropdowns + Add task */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
@@ -1143,7 +1143,7 @@ export default function TeamtaskTD() {
         </div>
 
         {/* Status summary cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 pt-4">
           <Link
             to={statusFilter === "todo" ? pathname : buildStatusLink("todo")}
             className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
@@ -1192,7 +1192,7 @@ export default function TeamtaskTD() {
         </div>
       </div>
 
-      <div className="mt-2 flex-1 min-h-0 overflow-y-auto custom-scrollbar smooth-scroll">
+      <div className="mt-2 flex-1 min-h-0 lg:overflow-y-auto lg:custom-scrollbar smooth-scroll">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pb-4">
           <div
             className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"

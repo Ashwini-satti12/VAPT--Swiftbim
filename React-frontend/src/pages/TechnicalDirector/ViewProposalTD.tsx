@@ -107,23 +107,35 @@ export default function ViewProposalTD() {
     return (
         <div className=" space-y-4 flex flex-col min-h-full bg-white font-gantari overflow-y-auto w-full pb-10">
             {/* Page Header */}
-            <div className="flex items-center justify-between px-2">
-                <button
-                    type="button"
-                    onClick={() => navigate("/td/proposals")}
-                    className="p-2 rounded-md bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer hover:opacity-90"
-                    title="Back to proposals"
-                >
-                    <img src={backIcon} alt="Back" className="w-5 h-5" />
-                </button>
-                <h1 className="text-[24px] font-semibold text-[#000000]">View Proposal</h1>
-                {proposal && proposal.status ? (
-                    <span className={`inline-flex items-center justify-center px-3 py-2 rounded-md text-[14px] font-bold min-w-[4.5rem] ${getStatusBadge(proposal.status)}`}>
-                        {getStatusLabel(proposal.status)}
-                    </span>
-                ) : (
-                    <div className="w-10"></div>
-                )}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0 px-2">
+                <div className="flex items-center justify-between w-full sm:w-auto">
+                    <button
+                        type="button"
+                        onClick={() => navigate("/td/proposals")}
+                        className="p-2 rounded-md bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer hover:opacity-90 shrink-0"
+                        title="Back to proposals"
+                    >
+                        <img src={backIcon} alt="Back" className="w-5 h-5" />
+                    </button>
+                    
+                    <h1 className="sm:hidden text-xl font-semibold text-[#000000] truncate px-2">View Proposal</h1>
+                    
+                    {proposal && proposal.status && (
+                        <span className={`sm:hidden inline-flex items-center justify-center px-3 py-1 rounded-md text-[12px] font-bold ${getStatusBadge(proposal.status)} shrink-0`}>
+                            {getStatusLabel(proposal.status)}
+                        </span>
+                    )}
+                </div>
+
+                <h1 className="hidden sm:block text-[24px] font-semibold text-[#000000]">View Proposal</h1>
+
+                <div className="hidden sm:flex items-center gap-3">
+                    {proposal && proposal.status && (
+                        <span className={`inline-flex items-center justify-center px-4 py-2 rounded-md text-[14px] font-bold min-w-[4.5rem] ${getStatusBadge(proposal.status)}`}>
+                            {getStatusLabel(proposal.status)}
+                        </span>
+                    )}
+                </div>
             </div>
 
             <div className="flex-1 space-y-10 px-2 min-w-0">
@@ -140,26 +152,26 @@ export default function ViewProposalTD() {
                     <div className="w-full space-y-10 relative">
                         {/* Summary Banner — All key info inside the card */}
                         <div className="mt-4">
-                            <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-6 flex flex-wrap items-center">
-                                <div className="flex-1 min-w-[140px] px-6 sm:px-2 border-r border-[#AEACAC52]">
-                                    <p className="text-[18px] font-semibold text-[#020202] mb-1 tracking-wider text-center">Project Name</p>
-                                    <p className="text-[#616161] text-[16px] truncate text-center uppercase tracking-wide">{proposal.project_name || bid?.project_name || `Proposal`}</p>
+                            <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-4 sm:py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-y-4">
+                                <div className="px-4 sm:px-6 sm:border-r border-[#AEACAC52]">
+                                    <p className="text-base sm:text-[18px] font-bold text-[#020202] mb-1 tracking-wider text-center">Project</p>
+                                    <p className="text-[#616161] text-sm sm:text-[16px] truncate text-center uppercase tracking-wide">{proposal.project_name || bid?.project_name || `Proposal`}</p>
                                 </div>
-                                <div className="flex-1 min-w-[140px] px-6 sm:px-2 border-r border-[#AEACAC52]">
-                                    <p className="text-[18px] font-semibold text-[#020202] mb-1 tracking-wider text-center">Vendor Name</p>
-                                    <p className="text-[#616161] text-[16px] truncate text-center uppercase tracking-wide">{proposal.vendor_name || bid?.vendor_name || '—'}</p>
+                                <div className="px-4 sm:px-6 sm:border-r border-[#AEACAC52]">
+                                    <p className="text-base sm:text-[18px] font-bold text-[#020202] mb-1 tracking-wider text-center">Vendor</p>
+                                    <p className="text-[#616161] text-sm sm:text-[16px] truncate text-center uppercase tracking-wide">{proposal.vendor_name || bid?.vendor_name || '—'}</p>
                                 </div>
-                                <div className="flex-1 min-w-[140px] px-6 sm:px-2 border-r border-[#AEACAC52]">
-                                    <p className="text-[18px] font-semibold text-[#020202] mb-1 tracking-wider text-center">Email</p>
-                                    <p className="text-[#616161] text-[16px] truncate text-center">{proposal.email_address || proposal.vendor_email || bid?.vendor_email || '—'}</p>
+                                <div className="px-4 sm:px-6 lg:border-r border-[#AEACAC52]">
+                                    <p className="text-base sm:text-[18px] font-bold text-[#020202] mb-1 tracking-wider text-center">Email</p>
+                                    <p className="text-[#616161] text-sm sm:text-[16px] truncate text-center">{proposal.email_address || proposal.vendor_email || bid?.vendor_email || '—'}</p>
                                 </div>
-                                <div className="flex-1 min-w-[140px] px-6 sm:px-2 border-r border-[#AEACAC52]">
-                                    <p className="text-[18px] font-semibold text-[#020202] mb-1 tracking-wider text-center">Service ID</p>
-                                    <p className="text-[#616161] text-[16px] text-center uppercase tracking-wide">{proposal.opportunity_id ? `OPP-${proposal.opportunity_id}` : (bid?.opportunity_id ? `OPP-${bid.opportunity_id}` : '—')}</p>
+                                <div className="px-4 sm:px-6 sm:border-r border-[#AEACAC52] last:border-r-0">
+                                    <p className="text-base sm:text-[18px] font-bold text-[#020202] mb-1 tracking-wider text-center">Service ID</p>
+                                    <p className="text-[#616161] text-sm sm:text-[16px] text-center uppercase tracking-wide">{proposal.opportunity_id ? `OPP-${proposal.opportunity_id}` : (bid?.opportunity_id ? `OPP-${bid.opportunity_id}` : '—')}</p>
                                 </div>
-                                <div className="flex-1 min-w-[140px] px-6 sm:px-2 last:border-r-0">
-                                    <p className="text-[18px] font-semibold text-[#020202] mb-1 tracking-wider text-center">Created On</p>
-                                    <p className="text-[#616161] text-[16px] text-center">{formatDate(proposal.created_at)}</p>
+                                <div className="px-4 sm:px-6 last:border-r-0">
+                                    <p className="text-base sm:text-[18px] font-bold text-[#020202] mb-1 tracking-wider text-center">Created On</p>
+                                    <p className="text-[#616161] text-sm sm:text-[16px] text-center">{formatDate(proposal.created_at)}</p>
                                 </div>
                             </div>
                         </div>
@@ -198,26 +210,26 @@ export default function ViewProposalTD() {
                                     <p className="text-[14px] text-[#353535] font-gantari leading-relaxed whitespace-pre-line">{stripHtml(proposal.about_us || proposal.aboutus)}</p>
                                 </div>
                                 {(proposal.address || proposal.website_url || proposal.email_address) && (
-                                    <div className="space-y-4 pt-2 w-full">
+                                <div className="space-y-4 pt-2 w-full">
                                         {proposal.address && (
-                                            <div className="flex items-center gap-4">
-                                                <div className="flex items-center gap-3 min-w-[140px] shrink-0">
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                                                <div className="flex items-center gap-3 min-w-0 sm:min-w-[140px] shrink-0">
                                                     <img src={addressIcon} alt="" className="w-5 h-5" />
                                                     <div className="flex-1 flex justify-between text-[14px] font-semibold text-[#020202]">
                                                         <span>Address</span>
-                                                        <span>:</span>
+                                                        <span className="hidden sm:inline">:</span>
                                                     </div>
                                                 </div>
                                                 <span className="text-[#616161] font-medium text-[14px] flex-1">{proposal.address}</span>
                                             </div>
                                         )}
                                         {proposal.website_url && (
-                                            <div className="flex items-center gap-4">
-                                                <div className="flex items-center gap-3 min-w-[140px] shrink-0">
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                                                <div className="flex items-center gap-3 min-w-0 sm:min-w-[140px] shrink-0">
                                                     <img src={websiteIcon} alt="" className="w-5 h-5" />
                                                     <div className="flex-1 flex justify-between text-[14px] font-semibold text-[#020202]">
                                                         <span>Website</span>
-                                                        <span>:</span>
+                                                        <span className="hidden sm:inline">:</span>
                                                     </div>
                                                 </div>
                                                 <a href={proposal.website_url.startsWith('http') ? proposal.website_url : `https://${proposal.website_url}`}
@@ -226,12 +238,12 @@ export default function ViewProposalTD() {
                                             </div>
                                         )}
                                         {proposal.email_address && (
-                                            <div className="flex items-center gap-4">
-                                                <div className="flex items-center gap-3 min-w-[140px] shrink-0">
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                                                <div className="flex items-center gap-3 min-w-0 sm:min-w-[140px] shrink-0">
                                                     <img src={emailIcon} alt="" className="w-5 h-5" />
                                                     <div className="flex-1 flex justify-between text-[14px] font-semibold text-[#020202]">
                                                         <span>Email</span>
-                                                        <span>:</span>
+                                                        <span className="hidden sm:inline">:</span>
                                                     </div>
                                                 </div>
                                                 <span className="text-[#616161] font-medium text-[14px] flex-1">{proposal.email_address}</span>
@@ -255,7 +267,7 @@ export default function ViewProposalTD() {
                         {techs.length > 0 && (
                             <div className="space-y-4">
                                 <h2 className="font-gantari font-bold text-[16px] text-[#020202]">Technology to be Used</h2>
-                                <div className="bg-[#F2F2F2] rounded-md overflow-hidden border border-[#AEACAC52]">
+                                <div className="bg-[#F2F2F2] rounded-md overflow-x-auto border border-[#AEACAC52]">
                                     <table className="w-full">
                                         <thead>
                                             <tr className="bg-[#F2F2F2]">
@@ -302,7 +314,7 @@ export default function ViewProposalTD() {
                         {payments.length > 0 && (
                             <div className="space-y-4">
                                 <h2 className="font-gantari font-bold text-[16px] text-[#020202]">6. Payment Terms</h2>
-                                <div className="bg-[#F2F2F2] rounded-md overflow-hidden border border-[#AEACAC52]">
+                                <div className="bg-[#F2F2F2] rounded-md overflow-x-auto border border-[#AEACAC52]">
                                     <table className="w-full">
                                         <thead>
                                             <tr className="bg-[#F2F2F2] border-b border-[#AEACAC52]">
