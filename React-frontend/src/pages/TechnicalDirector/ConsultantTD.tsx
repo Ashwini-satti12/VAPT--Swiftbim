@@ -192,7 +192,7 @@ function CustomDropdown({
       const target = event.target as Node;
       const isInsideTrigger = dropdownRef.current && dropdownRef.current.contains(target);
       const isInsideMenu = menuRef.current && menuRef.current.contains(target);
-      
+
       if (!isInsideTrigger && !isInsideMenu) {
         setIsOpen(false);
       }
@@ -214,11 +214,11 @@ function CustomDropdown({
           });
         }
       };
-      
+
       updatePosition();
       window.addEventListener("scroll", updatePosition, true);
       window.addEventListener("resize", updatePosition);
-      
+
       return () => {
         window.removeEventListener("scroll", updatePosition, true);
         window.removeEventListener("resize", updatePosition);
@@ -236,8 +236,8 @@ function CustomDropdown({
       style={{
         width: coords.width,
         left: coords.left,
-        ...(direction === "up" 
-          ? { bottom: coords.bottom + 4 } 
+        ...(direction === "up"
+          ? { bottom: coords.bottom + 4 }
           : { top: coords.top + 4 }
         ),
       }}
@@ -1740,26 +1740,24 @@ export default function ConsultantTD() {
           </div>
         </div>,
         document.body
-      )}
-
-      {showDetailsModal && selectedEmployee && createPortal(
+      )}      {showDetailsModal && selectedEmployee && createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-black/10 backdrop-blur-[3px]">
-          <div className="bg-white rounded-[15px] max-w-[550px] w-full overflow-hidden px-4 sm:px-[20px] py-[30px] relative shadow-2xl flex flex-col gap-6 sm:gap-8 font-Gantari animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-md max-w-[520px] w-full overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="flex items-center justify-center relative shrink-0 pt-2 sm:pt-0">
+            <div className="flex items-center justify-center relative shrink-0">
               <button
                 type="button"
                 onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
-                className="absolute left-0 p-2.5 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
+                className="absolute left-0 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer hover:bg-[#E8E8E8]"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
-              <h3 className="text-[28px] font-medium text-[#000000] font-Gantari">View Details</h3>
+              <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">View Details</h3>
             </div>
 
             {/* Profile Section */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 px-4 sm:px-10">
-              <div className="w-[80px] h-[80px] sm:w-[66px] sm:h-[66px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0 border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-4 px-4">
+              <div className="w-[38px] h-[38px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0 border border-slate-200 shadow-sm">
                 {selectedEmployee.profile_picture && selectedEmployee.profile_picture.trim() ? (
                   <img
                     key={`modal-${selectedEmployee.id}-${selectedEmployee.profile_picture}`}
@@ -1780,14 +1778,18 @@ export default function ConsultantTD() {
                   </div>
                 )}
               </div>
-              <div className="flex flex-col items-center sm:items-start gap-1">
-                <h4 className="text-[20px] sm:text-[22px] font-bold text-[#000000] font-Gantari leading-tight text-center sm:text-left">{toCamelCase(selectedEmployee.full_name)}</h4>
-                <p className="text-[14px] sm:text-[16px] font-medium text-[#353535] font-Gantari">{selectedEmployee.empid || `EMP-${(selectedEmployee.id + 150).toString().padStart(4, '0')}`}</p>
+              <div className="flex flex-col gap-0.5">
+                <h4 className="text-[18px] font-bold text-[#000000] font-Gantari leading-tight">
+                  {toCamelCase(selectedEmployee.full_name)}
+                </h4>
+                <p className="text-[14px] font-semibold text-[#353535] font-Gantari">
+                  {selectedEmployee.empid || `EMP-${(selectedEmployee.id + 150).toString().padStart(4, '0')}`}
+                </p>
               </div>
             </div>
 
             {/* Details Grid */}
-            <div className="px-2 sm:px-10 space-y-4 overflow-y-auto max-h-[55vh] custom-scrollbar">
+            <div className="px-4 sm:px-8 space-y-3 overflow-y-auto max-h-[60vh] custom-scrollbar">
               {[
                 { label: 'Date of Birth', value: selectedEmployee.dob },
                 { label: 'Phone Number', value: selectedEmployee.phone_number },
@@ -1802,11 +1804,13 @@ export default function ConsultantTD() {
               ].map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex flex-col sm:grid sm:grid-cols-[140px_30px_1fr] text-[14px] sm:text-[15px] gap-1 sm:gap-0 sm:items-center border-b border-gray-50 pb-2 sm:border-none sm:pb-0"
+                  className="grid grid-cols-[130px_15px_1fr] text-[14px] items-start pb-2"
                 >
-                  <span className="text-[#616161] font-Gantari font-semibold sm:font-medium">{item.label}</span>
-                  <span className="hidden sm:block text-[#616161] font-Gantari font-medium text-center">:</span>
-                  <span className="text-[#353535] font-Gantari font-medium break-words leading-relaxed">{item.value || 'N/A'}</span>
+                  <span className="text-[#020202] font-Gantari">{item.label}</span>
+                  <span className="text-[#020202] font-Gantari text-center">:</span>
+                  <span className="text-[#616161] font-Gantari break-words leading-relaxed">
+                    {item.value || 'N/A'}
+                  </span>
                 </div>
               ))}
             </div>
