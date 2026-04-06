@@ -728,7 +728,7 @@ function TaskCard({
       className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
       <div className="flex items-center justify-between gap-2 mb-2">
-        <h4 className="font-semibold text-[#353535] text-[20px] truncate">
+        <h4 className="font-semibold text-[#353535] text-[18px] sm:text-[20px] truncate leading-tight">
           {task.task_name || "Task Name"}
         </h4>
         <div className="relative" ref={menuRef}>
@@ -824,11 +824,11 @@ function TaskCard({
         </div>
 
         <div className="flex flex-col items-end gap-1">
-          <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+          <span className="text-[14px] font-medium text-[#000000]">Due Date</span>
           <span className="text-[14px] font-medium text-[#8B8B8B]">
             {task.due_date
               ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
-              : ""}
+              : "—"}
           </span>
         </div>
       </div>
@@ -1377,53 +1377,63 @@ export default function MytaskTD() {
   }
 
   return (
-    <div className="h-full min-h-0 flex flex-col overflow-hidden">
-      <div className="bg-white pb-3 flex-shrink-0">
+    <div className="h-full min-h-0 flex flex-col overflow-y-auto lg:overflow-hidden bg-white custom-scrollbar">
+      <div className="bg-white pb-3 flex-shrink-0 px-4 sm:px-0">
         {/* Top row: title + dropdowns + Add task */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-          <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
+          <h2 className="text-xl sm:text-2xl lg:text-[24px] font-semibold text-slate-800 font-Gantari">
             {isTeam ? "Team Task" : "My Task"}
           </h2>
           <div
             ref={dropdownsContainerRef}
-            className="flex flex-wrap items-center gap-2 w-fit"
+            className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto"
           >
-            <TaskDropdown
-              label="Select Employee"
-              options={employeeOptions}
-              selected={selectedEmployee}
-              onSelect={setSelectedEmployee}
-              isOpen={openDropdown === "employee"}
-              onToggle={() =>
-                setOpenDropdown((d) => (d === "employee" ? null : "employee"))
-              }
-              onClose={() => setOpenDropdown(null)}
-              triggerRef={employeeTriggerRef}
-              dropdownRef={employeeMenuRef}
-              searchable
-              searchPlaceholder="Search employee..."
-              maxVisibleItems={4}
-            />
-            <TaskDropdown
-              label="Select Projects"
-              options={projectOptions}
-              selected={selectedProject}
-              onSelect={setSelectedProject}
-              isOpen={openDropdown === "projects"}
-              onToggle={() =>
-                setOpenDropdown((d) => (d === "projects" ? null : "projects"))
-              }
-              onClose={() => setOpenDropdown(null)}
-              triggerRef={projectsTriggerRef}
-              dropdownRef={projectsMenuRef}
-              searchable
-              searchPlaceholder="Search project..."
-              maxVisibleItems={4}
-            />
-            <div
-              className="relative min-w-[140px] max-w-[200px] w-[150px]"
-              ref={showEntriesDropdownRef}
-            >
+            {/* Employee & Projects side-by-side on sm, stacked on xs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full lg:flex lg:w-auto">
+              <div className="w-full lg:w-auto">
+                <TaskDropdown
+                  label="Select Employee"
+                  options={employeeOptions}
+                  selected={selectedEmployee}
+                  onSelect={setSelectedEmployee}
+                  isOpen={openDropdown === "employee"}
+                  onToggle={() =>
+                    setOpenDropdown((d) => (d === "employee" ? null : "employee"))
+                  }
+                  onClose={() => setOpenDropdown(null)}
+                  triggerRef={employeeTriggerRef}
+                  dropdownRef={employeeMenuRef}
+                  searchable
+                  searchPlaceholder="Search employee..."
+                  maxVisibleItems={4}
+                />
+              </div>
+              <div className="w-full lg:w-auto">
+                <TaskDropdown
+                  label="Select Projects"
+                  options={projectOptions}
+                  selected={selectedProject}
+                  onSelect={setSelectedProject}
+                  isOpen={openDropdown === "projects"}
+                  onToggle={() =>
+                    setOpenDropdown((d) => (d === "projects" ? null : "projects"))
+                  }
+                  onClose={() => setOpenDropdown(null)}
+                  triggerRef={projectsTriggerRef}
+                  dropdownRef={projectsMenuRef}
+                  searchable
+                  searchPlaceholder="Search project..."
+                  maxVisibleItems={4}
+                />
+              </div>
+            </div>
+
+            {/* Show Entries & Period side-by-side on mobile */}
+            <div className="flex items-center gap-2.5 w-full lg:w-auto">
+              <div
+                className="relative w-1/2 lg:w-[150px]"
+                ref={showEntriesDropdownRef}
+              >
               <button
                 type="button"
                 onClick={(e) => {
@@ -1522,25 +1532,28 @@ export default function MytaskTD() {
                 </div>
               )}
             </div>
-            <TaskDropdown
-              label="Period"
-              options={PERIOD_OPTIONS}
-              selected={selectedPeriod}
-              onSelect={setSelectedPeriod}
-              isOpen={openDropdown === "period"}
-              onToggle={() =>
-                setOpenDropdown((d) => (d === "period" ? null : "period"))
-              }
-              onClose={() => setOpenDropdown(null)}
-              triggerRef={periodTriggerRef}
-              dropdownRef={periodMenuRef}
-              narrow
-              maxVisibleItems={4}
-            />
+              <div className="w-1/2 lg:w-auto">
+                <TaskDropdown
+                  label="Period"
+                  options={PERIOD_OPTIONS}
+                  selected={selectedPeriod}
+                  onSelect={setSelectedPeriod}
+                  isOpen={openDropdown === "period"}
+                  onToggle={() =>
+                    setOpenDropdown((d) => (d === "period" ? null : "period"))
+                  }
+                  onClose={() => setOpenDropdown(null)}
+                  triggerRef={periodTriggerRef}
+                  dropdownRef={periodMenuRef}
+                  narrow
+                  maxVisibleItems={4}
+                />
+              </div>
+            </div>
             <button
               type="button"
               onClick={() => navigate("/td/mytasks/add")}
-              className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-4 py-2.5 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer w-full sm:w-auto mt-2 sm:mt-0"
             >
               <img src={AddBtn} alt="Add" className="h-5 w-5" />
               Add task
@@ -1549,7 +1562,7 @@ export default function MytaskTD() {
         </div>
 
         {/* Status summary cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
           <Link
             to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
             className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
@@ -1604,8 +1617,8 @@ export default function MytaskTD() {
         </div>
       </div>
 
-      {/* Task columns scrollable area */}
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
+      {/* Task columns area */}
+      <div className="flex-1 min-h-0 lg:overflow-y-auto lg:custom-scrollbar px-4 sm:px-0 pr-1 -mr-1">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pb-4">
           <div
             className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"

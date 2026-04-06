@@ -604,6 +604,12 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
     }
 
     if (normalizedCurrent === normalizedTarget) return true;
+
+    // Special case for Technical Director Proposals
+    if (name === "Proposal" && normalizedTarget === "/td/manage-proposal") {
+      const proposalSubRoutes = ["/td/proposals", "/td/create-proposal", "/td/view-proposal"];
+      if (proposalSubRoutes.includes(normalizedCurrent)) return true;
+    }
     
     // Special case for dashboard matching
     if (name === 'Dashboard' && (normalizedCurrent === '/dashboard' || normalizedCurrent === '')) return true;

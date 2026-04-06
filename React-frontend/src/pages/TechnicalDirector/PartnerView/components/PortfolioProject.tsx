@@ -67,7 +67,7 @@ const PortfolioProject = ({ vendor, editable, onAdd, onEdit, onDelete }: Props) 
                         {proj.project_name ? ` — ${proj.project_name}` : ''}
                     </h3>
 
-                    <div className="grid grid-cols-2 gap-x-12 gap-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
                         <div>
                             <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Project Name</label>
                             <div className="bg-[#F2F2F2] px-4 py-2 rounded-[5px] text-[14px] text-[#353535] font-Gantari min-h-[44px] flex items-center">
@@ -127,7 +127,7 @@ const PortfolioProject = ({ vendor, editable, onAdd, onEdit, onDelete }: Props) 
                             </div>
                         </div>
 
-                        <div className="col-span-2">
+                        <div className="col-span-1 md:col-span-2">
                             <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Description</label>
                             <div className="bg-[#F2F2F2] p-4 rounded-[5px] text-[14px] text-[#353535] font-Gantari min-h-[80px] overflow-y-auto">
                                 {proj.project_description || '—'}

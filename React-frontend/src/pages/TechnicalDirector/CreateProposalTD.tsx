@@ -316,25 +316,25 @@ export default function CreateProposalTD() {
       <div className="flex-1 space-y-8 px-2">
         {/* Pre-filled Bid Summary Banner */}
         {bid && (
-          <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-6 flex flex-wrap items-center">
-            <div className="flex-1 min-w-[140px] px-8 border-r border-[#AEACAC52] last:border-r-0">
-              <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center">Project</p>
-              <p className="font-semibold text-[#616161] text-base font-gantari truncate text-center">{projectName}</p>
+          <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-4 sm:py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-4">
+            <div className="px-4 sm:px-8 sm:border-r border-[#AEACAC52] lg:last:border-r-0">
+              <p className="text-base sm:text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center">Project</p>
+              <p className="font-semibold text-[#616161] text-sm sm:text-base font-gantari truncate text-center">{projectName}</p>
             </div>
-            <div className="flex-1 min-w-[140px] px-8 border-r border-[#AEACAC52] last:border-r-0">
-              <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center">Vendor</p>
-              <p className="font-semibold text-[#616161] text-base font-gantari truncate text-center">{vendorName}</p>
+            <div className="px-4 sm:px-8 lg:border-r border-[#AEACAC52] last:border-r-0">
+              <p className="text-base sm:text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center">Vendor</p>
+              <p className="font-semibold text-[#616161] text-sm sm:text-base font-gantari truncate text-center">{vendorName}</p>
             </div>
-            <div className="flex-1 min-w-[140px] px-8 border-r border-[#AEACAC52] last:border-r-0">
-              <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center">Accepted Bid</p>
-              <p className="font-semibold text-[#DD4342] text-base font-gantari text-center">
+            <div className="px-4 sm:px-8 sm:border-r border-[#AEACAC52] last:border-r-0">
+              <p className="text-base sm:text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center">Accepted Bid</p>
+              <p className="font-semibold text-[#DD4342] text-sm sm:text-base font-gantari text-center">
                 {bidAmount ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(Number(bidAmount)) : "—"}
               </p>
             </div>
             {bidTimeline && (
-              <div className="flex-1 min-w-[140px] px-8 border-r border-[#AEACAC52] last:border-r-0">
-                <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider text-center font-gantari">Timeline</p>
-                <p className="font-semibold text-[#616161] text-base text-center font-gantari">{bidTimeline}</p>
+              <div className="px-4 sm:px-8 last:border-r-0">
+                <p className="text-base sm:text-lg font-bold text-[#353535] mb-1 tracking-wider text-center font-gantari">Timeline</p>
+                <p className="font-semibold text-[#616161] text-sm sm:text-base text-center font-gantari">{bidTimeline}</p>
               </div>
             )}
           </div>
@@ -371,40 +371,37 @@ export default function CreateProposalTD() {
               placeholder="Describe your expertise..."
               className={`${inputCls} resize-none`}
             />
-            <div className="space-y-4 pt-4 max-w-5xl">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3 min-w-[140px] shrink-0">
+            <div className="space-y-6 pt-4 max-w-5xl">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className="flex items-center gap-3 min-w-0 sm:min-w-[140px] shrink-0">
                   <img src={addressIcon} alt="" className="w-5 h-5" />
                   <div className="flex-1 flex justify-between text-sm font-semibold text-[#020202]">
                     <span>Address</span>
-                    <span>:</span>
+                    <span className="hidden sm:inline">:</span>
                   </div>
                 </div>
-
                 <input type="text" value={locationAddress} onChange={e => setLocationAddress(e.target.value)} placeholder="Office address..." className={inputCls} />
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3 min-w-[140px] shrink-0">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className="flex items-center gap-3 min-w-0 sm:min-w-[140px] shrink-0">
                   <img src={websiteIcon} alt="" className="w-5 h-5" />
                   <div className="flex-1 flex justify-between text-sm font-semibold text-[#020202]">
                     <span>Website</span>
-                    <span>:</span>
+                    <span className="hidden sm:inline">:</span>
                   </div>
                 </div>
-
                 <input type="text" value={locationWebsite} onChange={e => setLocationWebsite(e.target.value)} placeholder="www.example.com" className={inputCls} />
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3 min-w-[140px] shrink-0">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className="flex items-center gap-3 min-w-0 sm:min-w-[140px] shrink-0">
                   <img src={emailIcon} alt="" className="w-5 h-5" />
                   <div className="flex-1 flex justify-between text-sm font-semibold text-[#020202]">
                     <span>Email</span>
-                    <span>:</span>
+                    <span className="hidden sm:inline">:</span>
                   </div>
                 </div>
-
                 <input type="text" value={locationEmail} onChange={e => setLocationEmail(e.target.value)} placeholder="contact@example.com" className={inputCls} />
               </div>
             </div>
@@ -415,16 +412,16 @@ export default function CreateProposalTD() {
             <h2 className="font-bold text-lg text-[#020202]">3. Scope of Work <span className="text-red-500">*</span></h2>
 
             {(projectSector || bimServices) && (
-              <div className="bg-[#F9F9F9] border border-[#AEACAC52] rounded-md p-6 space-y-4 mb-4">
+              <div className="bg-[#F9F9F9] border border-[#AEACAC52] rounded-md p-4 sm:p-6 space-y-4 mb-4">
                 {projectSector && (
-                  <div className="flex items-start gap-4">
-                    <span className="font-bold text-[#353535] min-w-[220px]">Project Sector:</span>
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4">
+                    <span className="font-bold text-[#353535] min-w-0 sm:min-w-[220px]">Project Sector:</span>
                     <span className="text-[#616161] font-medium">{projectSector}</span>
                   </div>
                 )}
                 {bimServices && (
-                  <div className="flex items-start gap-4">
-                    <span className="font-bold text-[#353535] min-w-[220px]">BIM Services Required:</span>
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4">
+                    <span className="font-bold text-[#353535] min-w-0 sm:min-w-[220px]">BIM Services Required:</span>
                     <span className="text-[#616161] font-medium">{bimServices}</span>
                   </div>
                 )}
@@ -443,11 +440,11 @@ export default function CreateProposalTD() {
             </div>
 
             <div className="pt-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                 <label className="font-bold text-[#353535]">Technology to be Used:</label>
-                <button onClick={handleAddTechRow} className="text-sm bg-[#DD4342] text-white px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer"> Add Software</button>
+                <button onClick={handleAddTechRow} className="w-full sm:w-auto text-sm bg-[#DD4342] text-white px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer"> Add Software</button>
               </div>
-              <div className="rounded-xl border border-[#AEACAC52] overflow-hidden">
+              <div className="rounded-xl border border-[#AEACAC52] overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                     <tr className="border-b border-gray-100">
@@ -512,11 +509,11 @@ export default function CreateProposalTD() {
 
           {/* 6. PAYMENT TERMS */}
           <div className="space-y-4 pb-10">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <h2 className="font-bold text-lg text-[#020202]">6. Payment Terms</h2>
-              <button onClick={handleAddPaymentRow} className="text-sm bg-[#DD4342] text-white px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer"> Add Term</button>
+              <button onClick={handleAddPaymentRow} className="w-full sm:w-auto text-sm bg-[#DD4342] text-white px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer"> Add Term</button>
             </div>
-            <div className="rounded-xl border border-[#AEACAC52] overflow-hidden">
+            <div className="rounded-xl border border-[#AEACAC52] overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                   <tr className="border-b border-gray-100">
@@ -552,18 +549,18 @@ export default function CreateProposalTD() {
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-center gap-6">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pb-6">
           <button
             onClick={handleDiscard}
             disabled={submitting}
-            className="px-12 py-2 rounded-md bg-[#E8E8E8] text-[#616161] transition-all disabled:opacity-50 cursor-pointer"
+            className="w-full sm:w-auto px-12 py-2.5 rounded-md bg-[#E8E8E8] text-[#616161] font-semibold transition-all disabled:opacity-50 cursor-pointer"
           >
             Discard
           </button>
           <button
             onClick={handleCreate}
             disabled={submitting}
-            className="px-6 py-2 rounded-md bg-[#DD4342] text-white shadow-lg shadow-red-100 transition-all disabled:opacity-50 flex items-center gap-3 cursor-pointer"
+            className="w-full sm:w-auto px-10 py-2.5 rounded-md bg-[#DD4342] text-white font-semibold shadow-lg shadow-red-100 transition-all disabled:opacity-50 flex items-center justify-center gap-3 cursor-pointer"
           >
             {submitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
             {submitting ? "Sending..." : "Send Proposal"}

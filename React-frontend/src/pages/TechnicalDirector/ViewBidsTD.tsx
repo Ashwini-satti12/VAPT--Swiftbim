@@ -347,49 +347,60 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
       )}
 
       {/* ── Page Header ── */}
-      <div className="grid grid-cols-3 items-center flex-shrink-0 mb-6">
-        <div className="flex items-center">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 mb-6">
+        <div className="flex items-center justify-between w-full md:w-auto">
           <button
             onClick={onBack}
-            className="p-2 rounded-md bg-[#F2F2F2] transition-colors cursor-pointer flex items-center justify-center"
+            className="p-2 rounded-md bg-[#F2F2F2] hover:bg-gray-200 transition-colors cursor-pointer flex items-center justify-center shrink-0"
             title="Back to Bidding"
           >
             <img src={backIcon} alt="Back" className="w-5 h-5 object-contain" />
           </button>
+          
+          <h2 className="md:hidden text-xl font-gantari font-semibold text-[#000000] truncate px-2">
+            Bid Details
+          </h2>
+
+          <div className="md:hidden flex items-center gap-2 shrink-0">
+            <span
+              className={`px-3 py-1 rounded-md text-xs font-bold border ${oppStatusCls}`}
+            >
+              {oppStatusLabel}
+            </span>
+          </div>
         </div>
 
-        <h2 className="text-2xl text-center font-gantari font-semibold text-[#000000]">
+        <h2 className="hidden md:block text-2xl font-gantari font-semibold text-[#000000]">
           Bid Details
         </h2>
 
-        <div className="flex justify-end items-center gap-3">
-          {/* Show entries dropdown */}
-          <div className="relative" ref={showEntriesDropdownRef}>
+        <div className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto">
+          <div className="flex-1 md:flex-none relative" ref={showEntriesDropdownRef}>
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowEntriesOpen((o) => !o);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
+              className="w-full md:w-auto flex items-center justify-between md:justify-start gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
             >
               {selectedShowEntries === "show" ? (
                 <span className="text-sm font-medium text-[#616161] font-gantari">
                   Show
                 </span>
               ) : (
-                <>
-                  <span className="text-sm font-medium text-[#353535] font-gantari">
+                <div className="flex items-center gap-1 overflow-hidden">
+                  <span className="text-sm font-medium text-[#353535] font-gantari shrink-0">
                     Show:
                   </span>
-                  <span className="text-sm font-medium text-[#353535] font-gantari">
+                  <span className="text-sm font-medium text-[#353535] font-gantari truncate">
                     {
                       showEntriesOptions.find(
                         (o) => o.value === selectedShowEntries,
                       )?.label
                     }
                   </span>
-                </>
+                </div>
               )}
               <img
                 src={ArrowDown}
@@ -421,7 +432,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
           </div>
 
           <span
-            className={`px-3 py-1 rounded-md text-xs font-bold border ${oppStatusCls}`}
+            className={`hidden md:block px-3 py-1 rounded-md text-xs font-bold border ${oppStatusCls} shrink-0`}
           >
             {oppStatusLabel}
           </span>
@@ -431,20 +442,20 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
       <div className="flex-1 overflow-y-auto custom-scrollbar pb-8 space-y-6 flex flex-col min-h-0">
         {/* ── Project Summary ── */}
         <div className="space-y-4 flex-shrink-0">
-          <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-6 flex flex-wrap items-center">
-            <div className="flex-1 min-w-[160px] px-8 border-r border-[#AEACAC52] last:border-r-0">
-              <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">
+          <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-4 sm:py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-4">
+            <div className="px-4 sm:px-8 sm:border-r border-[#AEACAC52] lg:last:border-r-0">
+              <p className="text-base sm:text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">
                 Project Name
               </p>
-              <p className="font-semibold text-[#616161] text-base font-gantari truncate text-center">
+              <p className="font-semibold text-[#616161] text-sm sm:text-base font-gantari truncate text-center">
                 {opportunity.project_name || "—"}
               </p>
             </div>
-            <div className="flex-1 min-w-[160px] px-8 border-r border-[#AEACAC52] last:border-r-0">
-              <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">
+            <div className="px-4 sm:px-8 lg:border-r border-[#AEACAC52] last:border-r-0">
+              <p className="text-base sm:text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">
                 Outsourcing Budget
               </p>
-              <p className="font-semibold text-[#616161] text-base font-gantari text-center">
+              <p className="font-semibold text-[#616161] text-sm sm:text-base font-gantari text-center">
                 {formatCurrency(
                   opportunity.budget_ceiling ||
                   opportunity.outsource_budget ||
@@ -452,21 +463,21 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                 )}
               </p>
             </div>
-            <div className="flex-1 min-w-[160px] px-8 border-r border-[#AEACAC52] last:border-r-0">
-              <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">
+            <div className="px-4 sm:px-8 sm:border-r border-[#AEACAC52] last:border-r-0">
+              <p className="text-base sm:text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">
                 Bidding End Date
               </p>
-              <p className="font-semibold text-[#616161] text-base font-gantari text-center">
+              <p className="font-semibold text-[#616161] text-sm sm:text-base font-gantari text-center">
                 {opportunity.bid_deadline
                   ? formatDate(opportunity.bid_deadline)
                   : "—"}
               </p>
             </div>
-            <div className="flex-1 min-w-[100px] px-8 border-r border-[#AEACAC52] last:border-r-0">
-              <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">
+            <div className="px-4 sm:px-8 last:border-r-0">
+              <p className="text-base sm:text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">
                 Total Bids
               </p>
-              <p className="font-semibold text-[#353535] text-3xl font-gantari text-center leading-none">
+              <p className="font-semibold text-[#353535] text-2xl sm:text-3xl font-gantari text-center leading-none">
                 {bids.length}
               </p>
             </div>
@@ -495,8 +506,8 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                       {(projectSector || bimServices) && (
                         <div className="bg-[#F9F9F9] border border-[#AEACAC52] rounded-md p-6 space-y-4">
                           {projectSector && (
-                            <div className="flex items-start gap-4">
-                              <span className="font-bold text-[#353535] min-w-[220px]">
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4">
+                              <span className="font-bold text-[#353535] min-w-0 sm:min-w-[220px]">
                                 Project Sector:
                               </span>
                               <span className="text-[#616161] font-medium">
@@ -505,8 +516,8 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                             </div>
                           )}
                           {bimServices && (
-                            <div className="flex items-start gap-4">
-                              <span className="font-bold text-[#353535] min-w-[220px]">
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4">
+                              <span className="font-bold text-[#353535] min-w-0 sm:min-w-[220px]">
                                 BIM Services Required:
                               </span>
                               <span className="text-[#616161] font-medium">
