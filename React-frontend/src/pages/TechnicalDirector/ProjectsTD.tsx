@@ -2320,7 +2320,14 @@ export default function ProjectsTD() {
                   e.preventDefault();
                   setCreateError("");
                   setCreateSubmitting(true);
-                  const endpoint = createDepartment === "Submission Deadline" ? "/api/vendors/vendor-projects" : "/api/projects";
+                  const endpoint = "/api/projects";
+                  if (createDepartment === "Submission Deadline") {
+                    if (!createBudgetCeiling || !createBiddingEndDate) {
+                      setCreateError("Outsourcing Budget and Bidding End Date are required for outsource projects.");
+                      setCreateSubmitting(false);
+                      return;
+                    }
+                  }
 
                   const formData = new FormData();
                   formData.append("project_name", createName.trim());
@@ -2674,7 +2681,7 @@ export default function ProjectsTD() {
                     <>
                       <div className="space-y-2">
                         <label className="block text-[16px] font-medium text-[#000000]">
-                          Outsourcing Budget
+                          Outsourcing Budget <span className="text-[#DD4342]">*</span>
                         </label>
                         <input
                           type="text"
@@ -2712,7 +2719,7 @@ export default function ProjectsTD() {
                       </div>
                       <div className="space-y-2">
                         <label className="block text-[16px] font-medium text-[#000000]">
-                          Bidding End Date
+                          Bidding End Date <span className="text-[#DD4342]">*</span>
                         </label>
                         <input
                           type="date"
@@ -2727,83 +2734,6 @@ export default function ProjectsTD() {
                   )}
                 </div>
 
-                {/* Description & File Attachment Section */}
-                <div className="space-y-6 pt-4 border-t border-gray-100">
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
-                      Project Description
-                    </label>
-                    <textarea
-                      value={createDescription}
-                      onChange={(e) => setCreateDescription(e.target.value)}
-                      className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[10px] transition-all focus:outline-none focus:border-[#AEACAC52] min-h-[100px] resize-none font-Gantari"
-                      placeholder="Enter Project Description..."
-                    />
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
-                        Project Documents
-                      </label>
-                      <label className="flex items-center gap-2 px-4 py-2 bg-[#F2F3F4] hover:bg-[#E8E9EA] text-[#353535] rounded-lg cursor-pointer transition-all border border-transparent hover:border-[#AEACAC52]">
-                        <FiUploadCloud className="w-5 h-5 text-[#1D7AFC]" />
-                        <span className="text-[14px] font-medium">Upload Files</span>
-                        <input
-                          type="file"
-                          multiple
-                          className="hidden"
-                          onChange={(e) => {
-                            if (e.target.files) {
-                              setCreateFiles((prev) => [
-                                ...prev,
-                                ...Array.from(e.target.files!),
-                              ]);
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
-
-                    {/* Multi-file Gallery UI */}
-                    {createFiles.length > 0 && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                        {createFiles.map((file, idx) => (
-                          <div
-                            key={`new-${idx}`}
-                            className="relative group bg-[#F0FDF4] border border-[#DCFCE7] rounded-xl p-3 flex items-center gap-3 hover:border-[#22C55E] transition-all"
-                          >
-                            <div className="w-10 h-10 bg-[#DCFCE7] rounded-lg flex items-center justify-center">
-                              <FiUploadCloud className="w-5 h-5 text-[#22C55E]" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[13px] font-medium text-[#166534] truncate">
-                                {file.name}
-                              </p>
-                              <p className="text-[11px] text-[#166534]/60">
-                                New File
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setCreateFiles((prev) =>
-                                  prev.filter((_, i) => i !== idx),
-                                )
-                              }
-                              className="p-1.5 hover:bg-[#FEE2E2] rounded-md text-[#166534]/40 hover:text-[#EF4444] opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Remove"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
 
                 <div className="flex justify-center gap-4 pt-4 ">
                   <button
@@ -3444,137 +3374,6 @@ export default function ProjectsTD() {
                   )}
                 </div>
 
-                {/* Description & File Attachment Section */}
-                <div className="space-y-6 pt-4 border-t border-gray-100">
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
-                      Project Description
-                    </label>
-                    <textarea
-                      value={createDescription}
-                      onChange={(e) => setCreateDescription(e.target.value)}
-                      className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[10px] transition-all focus:outline-none focus:border-[#AEACAC52] min-h-[100px] resize-none font-Gantari"
-                      placeholder="Enter Project Description..."
-                    />
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
-                        Project Documents
-                      </label>
-                      <label className="flex items-center gap-2 px-4 py-2 bg-[#F2F3F4] hover:bg-[#E8E9EA] text-[#353535] rounded-lg cursor-pointer transition-all border border-transparent hover:border-[#AEACAC52]">
-                        <FiUploadCloud className="w-5 h-5 text-[#1D7AFC]" />
-                        <span className="text-[14px] font-medium">Upload Files</span>
-                        <input
-                          type="file"
-                          multiple
-                          className="hidden"
-                          onChange={(e) => {
-                            if (e.target.files) {
-                              setCreateFiles((prev) => [
-                                ...prev,
-                                ...Array.from(e.target.files!),
-                              ]);
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
-
-                    {/* Multi-file Gallery UI */}
-                    {(createFiles.length > 0 || removedFiles.length > 0 || (selectedProjectForEdit?.document_attachment)) && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                        {/* Existing Files */}
-                        {selectedProjectForEdit?.document_attachment
-                          ?.split(",")
-                          .filter((f) => f && !removedFiles.includes(f))
-                          .map((file, idx) => (
-                            <div
-                              key={`existing-${idx}`}
-                              className="relative group bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 flex items-center gap-3 hover:border-[#1D7AFC] transition-all"
-                            >
-                              <div className="w-10 h-10 bg-[#EFF6FF] rounded-lg flex items-center justify-center">
-                                <FiPaperclip className="w-5 h-5 text-[#1D7AFC]" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[13px] font-medium text-[#1E293B] truncate">
-                                  {file}
-                                </p>
-                                <p className="text-[11px] text-[#64748B]">
-                                  Existing File
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    window.open(
-                                      selectedProjectForEdit.source === "Outsource"
-                                        ? `/static/uploads/vendor_docs/${file}`
-                                        : `/uploads/${file}`,
-                                      "_blank",
-                                    )
-                                  }
-                                  className="p-1.5 hover:bg-[#E2E8F0] rounded-md text-[#64748B] hover:text-[#1D7AFC]"
-                                  title="View"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                  </svg>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setRemovedFiles((prev) => [...prev, file])}
-                                  className="p-1.5 hover:bg-[#FEE2E2] rounded-md text-[#64748B] hover:text-[#EF4444]"
-                                  title="Remove"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-
-                        {/* New Files */}
-                        {createFiles.map((file, idx) => (
-                          <div
-                            key={`new-${idx}`}
-                            className="relative group bg-[#F0FDF4] border border-[#DCFCE7] rounded-xl p-3 flex items-center gap-3 hover:border-[#22C55E] transition-all"
-                          >
-                            <div className="w-10 h-10 bg-[#DCFCE7] rounded-lg flex items-center justify-center">
-                              <FiUploadCloud className="w-5 h-5 text-[#22C55E]" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[13px] font-medium text-[#166534] truncate">
-                                {file.name}
-                              </p>
-                              <p className="text-[11px] text-[#166534]/60">
-                                New File
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setCreateFiles((prev) =>
-                                  prev.filter((_, i) => i !== idx),
-                                )
-                              }
-                              className="p-1.5 hover:bg-[#FEE2E2] rounded-md text-[#166534]/40 hover:text-[#EF4444] opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Remove"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
 
                 {/* Footer Buttons */}
                 <div className="flex justify-center gap-6 pt-6">
