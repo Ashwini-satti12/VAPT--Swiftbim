@@ -565,16 +565,6 @@ export default function CreateteamTD() {
     return filtered.length > 0 ? filtered : selectableEmployees;
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-full">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DD4342]" />
-      </div>
-    );
-  }
-
-  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
-
   const currentUserRole = useMemo(() => {
     const fromUser = user?.user_role?.trim();
     if (fromUser) return fromUser;
@@ -586,6 +576,16 @@ export default function CreateteamTD() {
   }, [user?.user_role, user?.id, employees]);
 
   const isTechnicalDirector = isTechnicalDirectorRole(currentUserRole);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DD4342]" />
+      </div>
+    );
+  }
+
+  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
 
   const filteredTeams = teams.filter((t) => {
     if (!searchQuery) return true;
