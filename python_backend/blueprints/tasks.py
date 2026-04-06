@@ -92,8 +92,9 @@ def update_status(task_id):
 @project_app_required
 def list_tasks():
     """List tasks with optional filters: employeeid, condition, status, project.
-    When condition=1 (management/team view), no assignedby/employeeid means all company tasks."""
-    employee_id = request.args.get("employeeid") or g.user_id
+    When condition=1 (management/team view), omit employeeid or pass employeeid=all for all
+    assignees in scope; pass a numeric employeeid to restrict to one assignee."""
+    employeeid_param = request.args.get("employeeid")
     condition = request.args.get("condition")
     assigned_by = request.args.get("assignedby")
     status = request.args.get("status")
@@ -113,10 +114,15 @@ def list_tasks():
             where.append("t.assigned_to = t.uploaderid")
         elif assigned_by == "Others":
             where.append("t.assigned_to != t.uploaderid")
-        elif employee_id and str(employee_id) != "all":
+        elif (
+            employeeid_param is not None
+            and str(employeeid_param).strip() != ""
+            and str(employeeid_param) != "all"
+        ):
             where.append("t.assigned_to = %s")
-            params.append(employee_id)
-        # else: no assigned_to filter → all company tasks (restricted by project involvement below)
+            params.append(employeeid_param)
+        # else: no assigned_to filter → all tasks in scope (not defaulted to current user;
+        # defaulting omitted employeeid to g.user_id broke team/tracker views that need every assignee.)
 
         # Add project level filtering for non-management roles to match dashboard
         if user_role not in MANAGEMENT_ROLES:
@@ -144,6 +150,7 @@ def list_tasks():
                 params.extend([g.user_id, g.user_id, g.user_id, g.user_id, g.user_id, g.user_id])
     else:
         # My task / employee view: only tasks assigned to me or created by me
+        employee_id = employeeid_param or g.user_id
         where.append("(t.assigned_to = %s OR t.uploaderid = %s)")
         params.extend([employee_id, employee_id])
 

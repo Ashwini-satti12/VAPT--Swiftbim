@@ -500,7 +500,7 @@ function TaskCard({
                                     View
                                 </span>
                             </button>
-                            {task.source !== "Outsource" && (
+                            {task.source !== "Outsource" && !isCompleted && (
                                 <>
                                     <button
                                         type="button"
