@@ -916,7 +916,7 @@ export default function VendorBimLeadProjects() {
 
   return (
     <div className="bg-white min-h-screen font-gantari">
-      <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden">
+      <div className="flex flex-col h-[calc(100vh-100px)] lg:h-[calc(100vh-100px)] overflow-hidden">
         {successMsg && (
           <div className="fixed top-5 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl bg-[#1A8A47] text-white font-gantari text-sm font-medium animate-in slide-in-from-right duration-300">
             <svg
@@ -1017,25 +1017,25 @@ export default function VendorBimLeadProjects() {
           </div>
         ) : showProjectView && selectedProject ? (
           <div className="flex flex-col h-full bg-white">
-            <div className="flex items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
+            <div className="flex items-center gap-4 md:gap-6 px-4 md:px-10 py-4 md:py-6 border-b border-slate-50">
               <button
                 type="button"
                 onClick={() => setShowProjectView(false)}
-                className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-colors"
+                className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-colors cursor-pointer"
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
               <div className="min-w-0">
-                <h3 className="text-[20px] md:text-[24px] font-medium text-[#000000]">
+                <h3 className="text-[18px] md:text-[24px] font-medium text-[#000000] truncate">
                   {selectedProject.project_name ?? "Untitled Project"}
                 </h3>
-                <p className="text-[14px] font-medium text-[#999999]">
+                <p className="text-[12px] md:text-[14px] font-medium text-[#999999]">
                   Overall Progress Tracker
                 </p>
               </div>
             </div>
             <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-10 pt-6 md:pt-8 custom-scrollbar space-y-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                 {[
                   {
                     label: "To Do Tasks",
@@ -1070,12 +1070,12 @@ export default function VendorBimLeadProjects() {
                             : ""),
                       )
                     }
-                    className="text-left bg-[#F2F2F2] p-4 rounded-md flex flex-col h-[80px] md:h-[100px] hover:bg-[#DD4342] focus:outline-none cursor-pointer transition-all group"
+                    className="text-left bg-[#F2F2F2] p-3 md:p-4 rounded-md flex flex-col h-[70px] md:h-[90px] hover:bg-[#DD4342] focus:outline-none cursor-pointer transition-all group"
                   >
-                    <p className="text-[#353535] group-hover:text-white text-[16px] md:text-[18px] font-medium">
+                    <p className="text-[#353535] group-hover:text-white text-[14px] md:text-[16px] font-medium">
                       {stat.label}
                     </p>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] md:text-[24px] font-bold leading-none mt-auto self-center">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[22px] font-bold leading-none mt-auto self-end">
                       {stat.value}
                     </p>
                   </button>
@@ -1244,9 +1244,10 @@ export default function VendorBimLeadProjects() {
                 <h4 className="text-[18px] md:text-[20px] font-semibold text-[#000000]">
                   Project Description
                 </h4>
-                <p className="text-[16px] font-medium text-[#666666] mt-4 leading-relaxed">
-                  {selectedProject.description ?? "No description available"}
-                </p>
+                <div 
+                  className="text-[16px] font-medium text-[#666666] mt-4 leading-relaxed break-words quill-content"
+                  dangerouslySetInnerHTML={{ __html: selectedProject.description ?? "No description available" }}
+                />
               </div>
 
               {/* Team Roles Section - aligned with Vendor overview style */}
@@ -1399,8 +1400,8 @@ export default function VendorBimLeadProjects() {
                 Projects
               </h2>
             </div>
-            <div className="flex-1 overflow-y-auto pt-4 pb-10 px-4 space-y-8 custom-scrollbar">
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            <div className="flex-1 overflow-y-auto pt-4 pb-10 px-6 md:px-10 space-y-6 custom-scrollbar">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {list.length === 0 ? (
                   <div className="col-span-full bg-[#F8FAFC] rounded-2xl border-2 border-dashed border-slate-200 p-20 text-center">
                     <p className="text-slate-500 font-medium">
@@ -1426,7 +1427,7 @@ export default function VendorBimLeadProjects() {
                           setSelectedProject(p);
                           setShowProjectView(true);
                         }}
-                        className="bg-white rounded-2xl border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                        className="bg-white rounded-[20px] border border-[#AEACAC52] p-6 pt-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
                         <div>
                           <div className="flex items-start justify-between mb-4 mt-2 pr-0">

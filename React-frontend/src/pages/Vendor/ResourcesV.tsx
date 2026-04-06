@@ -14,7 +14,7 @@ import eyeIcon from "../../assets/ProjectManager/consultant/eyeIcon.svg";
 import editIcon from "../../assets/ProjectManager/consultant/editIcon.svg";
 import { VendorUploadPreviewModal } from "../../components/VendorUploadPreviewModal";
 import { sanitizeVendorVendorsFilename } from "../../lib/vendorUploads";
-import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 
 const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
 
@@ -124,33 +124,46 @@ function CustomDropdown({
             ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
             : styleType === "table"
               ? `px-4 py-2 min-w-[140px] rounded-md border font-Gantari font-medium text-[14px] ${value === "Active" ? "bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]" : "bg-[#FFE5E5] border-[#FECACA] text-[#E00100]"}`
-              : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+              : `px-5 py-3 bg-[#F2F3F4] rounded-md text-[14px] border border-[#F2F2F2] focus:outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
         }`}
       >
-        <span className={`min-w-0 flex-1 truncate overflow-hidden text-left ${styleType === "header" || styleType === "form"
-          ? (isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535]")
-          : ""
-          }`}>
+        <span
+          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+            styleType === "header" || styleType === "form"
+              ? isPlaceholder
+                ? "text-[#8B8B8B]"
+                : "text-[#353535]"
+              : ""
+          }`}
+        >
           {styleType === "header" && value && !isPlaceholder ? (
             <>
               <span className="text-[14px]">
-                {placeholder === "Show" ? SHOW_ENTRIES_PLACEHOLDER : placeholder}:
+                {placeholder === "Show"
+                  ? SHOW_ENTRIES_PLACEHOLDER
+                  : placeholder}
+                :
               </span>{" "}
               <span className="font-semibold">{value}</span>
             </>
           ) : (
-            value || (placeholder === "Show" ? SHOW_ENTRIES_PLACEHOLDER : placeholder)
+            value ||
+            (placeholder === "Show" ? SHOW_ENTRIES_PLACEHOLDER : placeholder)
           )}
         </span>
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : (isPlaceholder ? "opacity-60 grayscale" : "opacity-90")}`}
+          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""} ${styleType === "table" ? "opacity-70" : isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
         />
       </button>
       {isOpen && (
-        <div className={`absolute top-full mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden ${alignMenu === "right" ? "right-0 left-auto" : "left-0"}`}>
-          <div className={`${menuMaxHeightClass} overflow-y-auto custom-scrollbar`}>
+        <div
+          className={`absolute top-full mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden ${alignMenu === "right" ? "right-0 left-auto" : "left-0"}`}
+        >
+          <div
+            className={`${menuMaxHeightClass} overflow-y-auto custom-scrollbar`}
+          >
             {(styleType === "header" || styleType === "form") && (
               <button
                 type="button"
@@ -171,7 +184,7 @@ function CustomDropdown({
                   onChange(option);
                   setIsOpen(false);
                 }}
-                className={`w-full text-left px-4 py-2 text-[14px] font-Gantari font-normal transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${value === option ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] bg-transparent'}`}
+                className={`w-full text-left px-4 py-2 text-[14px] font-Gantari font-normal transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${value === option ? "text-[#353535] bg-[#F2F2F2]" : "text-[#8B8B8B] bg-transparent"}`}
               >
                 {option}
               </button>
@@ -542,12 +555,12 @@ export default function ResourcesV() {
   const renderList = () => (
     <>
       <div className="sticky z-50 bg-white mb-4 mt-2 overflow-visible">
-        <div className="flex w-full min-h-[44px] flex-nowrap items-center gap-2 sm:gap-3 overflow-visible">
-          <h2 className="text-[24px] font-medium text-[#000000] font-Gantari shrink-0 pr-1">
+        <div className="flex flex-col sm:flex-row w-full min-h-[44px] items-start sm:items-center gap-3 sm:gap-3 overflow-visible">
+          <h2 className="text-[20px] sm:text-[24px] font-medium text-[#000000] font-Gantari shrink-0 pr-1">
             Resources
           </h2>
-          <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-visible">
-            <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 pr-0.5 custom-scrollbar">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:flex-1 sm:justify-end overflow-visible">
+            <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 py-1 overflow-visible">
               {canAdd && (
                 <>
                   <button
@@ -587,32 +600,29 @@ export default function ResourcesV() {
               )}
             </div>
             <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
-              {viewMode === "table" && (
-                <CustomDropdown
-                  options={["10", "20", "30", "40"]}
-                  value={itemsPerPage.toString()}
-                  placeholder="Show"
-                  onChange={(val) => {
-                    if (val) {
-                      setItemsPerPage(parseInt(val, 10));
-                      setCurrentPage(1);
-                    }
-                  }}
-                  className="w-[110px] sm:w-[130px]"
-                  styleType="header"
-                  alignMenu="right"
-                />
-              )}
               <CustomDropdown
                 options={["All", "Online", "Offline"]}
-                value={statusFilter === "All" ? "" : (statusFilter === "Active" ? "Online" : statusFilter === "Inactive" ? "Offline" : "")}
+                value={
+                  statusFilter === "All"
+                    ? ""
+                    : statusFilter === "Active"
+                      ? "Online"
+                      : statusFilter === "Inactive"
+                        ? "Offline"
+                        : ""
+                }
                 onChange={(val) => {
-                  const mapped = val === "Online" ? "Active" : val === "Offline" ? "Inactive" : "All";
+                  const mapped =
+                    val === "Online"
+                      ? "Active"
+                      : val === "Offline"
+                        ? "Inactive"
+                        : "All";
                   setStatusFilter(mapped);
                   setCurrentPage(1);
                 }}
                 placeholder="Type"
-                className="w-[110px] sm:w-[130px]"
+                className="w-full sm:w-[130px]"
                 styleType="header"
                 alignMenu="right"
               />
@@ -830,49 +840,51 @@ export default function ResourcesV() {
                       </td>
                       <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
                         <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => window.open(`mailto:${emp.email}`)}
-                          className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
-                        >
-                          <img src={mailIcon} className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => navigate("/v/communication")}
-                          className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
-                        >
-                          <img src={messageIcon} className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => window.open(`tel:${emp.phone_number}`)}
-                          className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
-                        >
-                          <img src={callIcon} className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="inline-block min-w-[130px]">
-                        <CustomDropdown
-                          options={["Active", "Deactivate"]}
-                          value={
-                            emp.active === "active" ? "Active" : "Deactivate"
-                          }
-                          onChange={(v) => handleStatusToggle(emp.id, v)}
-                          placeholder="Status"
-                          styleType="table"
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                          <button
+                            onClick={() => window.open(`mailto:${emp.email}`)}
+                            className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
+                          >
+                            <img src={mailIcon} className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => navigate("/v/communication")}
+                            className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
+                          >
+                            <img src={messageIcon} className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() =>
+                              window.open(`tel:${emp.phone_number}`)
+                            }
+                            className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
+                          >
+                            <img src={callIcon} className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="inline-block min-w-[130px]">
+                          <CustomDropdown
+                            options={["Active", "Deactivate"]}
+                            value={
+                              emp.active === "active" ? "Active" : "Deactivate"
+                            }
+                            onChange={(v) => handleStatusToggle(emp.id, v)}
+                            placeholder="Status"
+                            styleType="table"
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  </>
-);
+        )}
+      </div>
+    </>
+  );
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-white animate-in fade-in duration-300">
@@ -880,32 +892,40 @@ export default function ResourcesV() {
       {showDetailsModal && selectedEmployee && (
         <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-md w-full max-w-3xl relative flex flex-col max-h-[80vh] overflow-hidden">
-            <div className="flex items-start justify-between p-6 md:p-8 shrink-0">
-              <button
-                onClick={() => setShowDetailsModal(false)}
-                className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
-              >
-                <FiX className="w-5 h-5" />
-              </button>
+            <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between p-5 sm:p-8 shrink-0 gap-4">
+              <div className="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-4">
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer order-1"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+                <span
+                  className={`px-4 py-1 rounded-full text-[12px] font-medium shrink-0 sm:hidden ${selectedEmployee.active === "active" ? "bg-[#E0FFE8] text-[#008F22]" : "bg-[#FFEEEE] text-[#E00100]"}`}
+                >
+                  ●{" "}
+                  {selectedEmployee.active === "active" ? "Active" : "Inactive"}
+                </span>
+              </div>
 
-              <div className="flex-1 text-center mx-6 min-w-0">
-                <h3 className="text-[24px] font-medium text-[#000000]  font-gantari">
+              <div className="flex-1 text-center sm:mx-6 min-w-0">
+                <h3 className="text-[20px] sm:text-[24px] font-medium text-[#000000] font-gantari break-words">
                   {toCamelCase(selectedEmployee.full_name)}
                 </h3>
-                <p className="text-[#353535] text-[16px] font-medium font-gantari">
+                <p className="text-[#353535] text-[14px] sm:text-[16px] font-medium font-gantari opacity-80">
                   {selectedEmployee.user_role || "Worker"}
                 </p>
               </div>
 
               <span
-                className={`px-4 py-1 rounded-full text-[12px] font-medium shrink-0 mt-2 ${selectedEmployee.active === "active" ? "bg-[#E0FFE8] text-[#008F22]" : "bg-[#FFEEEE] text-[#E00100]"}`}
+                className={`hidden sm:inline px-4 py-1 rounded-full text-[12px] font-medium shrink-0 mt-2 ${selectedEmployee.active === "active" ? "bg-[#E0FFE8] text-[#008F22]" : "bg-[#FFEEEE] text-[#E00100]"}`}
               >
                 ● {selectedEmployee.active === "active" ? "Active" : "Inactive"}
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar flex justify-center ">
-              <div className="flex flex-col text-left ">
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-5 sm:px-8 pb-8">
+              <div className="flex flex-col text-left max-w-2xl mx-auto">
                 {[
                   { label: "Login Email", value: selectedEmployee.email },
                   {
@@ -931,11 +951,14 @@ export default function ResourcesV() {
                   },
                 ].map(({ label, value }) =>
                   value ? (
-                    <div key={label} className="flex items-center py-2 gap-6">
-                      <span className="text-[#353535] font-gantari text-[14px] font-medium w-52 shrink-0">
+                    <div
+                      key={label}
+                      className="grid grid-cols-1 sm:flex sm:items-center py-2 gap-1 sm:gap-6"
+                    >
+                      <span className="text-[#353535] font-gantari text-[14px] font-medium sm:w-52 shrink-0">
                         {label}
                       </span>
-                      <span className="text-[#353535] font-gantari text-[14px] font-medium shrink-0">
+                      <span className="hidden sm:inline text-[#353535] font-gantari text-[14px] font-medium shrink-0">
                         :
                       </span>
                       <span className="text-[#000000] font-gantari text-[14px] font-semibold break-words">
@@ -946,11 +969,11 @@ export default function ResourcesV() {
                 )}
                 {renderProfileCertificationsCard()}
                 {selectedEmployee.address ? (
-                  <div className="flex items-center py-2 gap-6">
-                    <span className="text-[#353535] font-gantari text-[14px] font-medium w-52 shrink-0">
+                  <div className="grid grid-cols-1 sm:flex sm:items-center py-2 gap-1 sm:gap-6">
+                    <span className="text-[#353535] font-gantari text-[14px] font-medium sm:w-52 shrink-0">
                       Address
                     </span>
-                    <span className="text-[#353535] font-gantari text-[14px] font-medium shrink-0">
+                    <span className="hidden sm:inline text-[#353535] font-gantari text-[14px] font-medium shrink-0">
                       :
                     </span>
                     <span className="text-[#000000] font-gantari text-[14px] font-semibold break-words">
@@ -1203,7 +1226,7 @@ export default function ResourcesV() {
                       <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
                         Phone
                       </label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <select
                           value={
                             activeView === "add" ? countryCode : editCountryCode
@@ -1213,7 +1236,7 @@ export default function ResourcesV() {
                               ? setCountryCode(e.target.value)
                               : setEditCountryCode(e.target.value)
                           }
-                          className="w-[70px] px-3 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium"
+                          className="w-full sm:w-[75px] px-3 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium appearance-none bg-[url('https://api.iconify.design/heroicons:chevron-down-20-solid.svg')] bg-[length:1.25rem_1.25rem] bg-[right_0.5rem_center] bg-no-repeat pr-8"
                         >
                           {COUNTRY_CODES.map((c) => (
                             <option key={c} value={c}>
@@ -1272,14 +1295,14 @@ export default function ResourcesV() {
                     <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
                       Profile Picture
                     </label>
-                    <div className="flex bg-[#F4F4F4] rounded-lg overflow-hidden border border-transparent focus-within:border-[#DD4342]/30 transition-all">
+                    <div className="flex bg-[#F4F4F4] rounded-lg overflow-hidden border border-transparent focus-within:border-[#DD4342]/30 transition-all flex-col sm:flex-row">
                       <div className="flex-1 px-4 py-3 text-sm text-[#717171] truncate">
                         {(activeView === "add"
                           ? form.profile_picture
                           : editForm.profile_picture
                         )?.name || "Choose JPG/JPEG Image"}
                       </div>
-                      <label className="px-6 py-3 bg-[#EAEAEA] text-[#353535] text-[14px] font-medium transition-all cursor-pointer">
+                      <label className="px-6 py-3 bg-[#EAEAEA] text-[#353535] text-[14px] font-medium transition-all cursor-pointer text-center">
                         Browse
                         <input
                           type="file"

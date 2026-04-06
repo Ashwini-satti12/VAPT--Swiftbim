@@ -1,10 +1,8 @@
-import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
-import Sidebar from './ProductSidebar/Sidebar';
-import ProductNavbar from './ProductNavbar/Navbar';
-import BgImage from '../assets/Bg.png';
-
-
+import { useState } from "react";
+import { Outlet } from "react-router-dom";
+import Sidebar from "./ProductSidebar/Sidebar";
+import ProductNavbar from "./ProductNavbar/Navbar";
+import BgImage from "../assets/Bg.png";
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -20,14 +18,15 @@ export default function AppLayout() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Mobile overlay */}
         <div
-          className={`fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}
+          className={`fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm lg:hidden ${sidebarOpen ? "block" : "hidden"}`}
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />
 
         <div
-          className={`fixed lg:static inset-y-0 left-0 z-[100] w-[280px] lg:w-62 shrink-0 transform transition-transform duration-300 lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-            }`}
+          className={`fixed lg:static inset-y-0 left-0 z-[100] w-[280px] lg:w-62 shrink-0 transform transition-transform duration-300 lg:transform-none ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          }`}
         >
           <Sidebar onMenuClick={() => setSidebarOpen(false)} />
         </div>
