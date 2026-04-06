@@ -4837,7 +4837,11 @@ def create_vendor_project():
     POST /api/vendors/vendor-projects
     Create a new vendor project.
     """
-    data = request.get_json(silent=True) or {}
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+    else:
+        data = request.form
+
     user_id = getattr(g, "user_id", None)
 
     _ensure_vp_table()

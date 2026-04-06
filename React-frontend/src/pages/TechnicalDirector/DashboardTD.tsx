@@ -291,53 +291,53 @@ export default function DashboardTD() {
 
   if (loading) {
     return (
-      <div className="flex flex-col lg:h-full lg:overflow-hidden">
+      <div className="flex flex-col h-auto lg:h-full lg:overflow-hidden">
         {/* Header and KPI Cards */}
-        <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
-          <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">
+        <div className="bg-white pb-2 pt-0 border-b border-transparent shrink-0">
+          <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-2">
             Dashboard
           </h1>
           {/* KPI Grid: compact cards — label left, number right (match reference image) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-1">
             {/* Total Projects — first card red, white text */}
             <div
               onClick={() => navigate("/td/projects")}
-              className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
+              className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
             >
-              <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Total Projects</h3>
-              <p className="text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
+              <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Total Projects</h3>
+              <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
             </div>
             {/* Completed Projects */}
             <div
               onClick={() => navigate("/td/projects?status=Completed")}
-              className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
+              className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
             >
-              <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Projects</h3>
-              <p className="text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
+              <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Projects</h3>
+              <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
             </div>
             {/* In Progress Task */}
             <div
               onClick={() => navigate('/td/teamtasks')}
-              className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
+              className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
             >
-              <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">In Progress Tasks</h3>
-              <p className="text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
+              <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">In Progress Tasks</h3>
+              <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
             </div>
             {/* Completed Tasks */}
             <div
               onClick={() => navigate('/td/teamtasks')}
-              className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
+              className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
             >
-              <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Tasks</h3>
-              <p className="text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
+              <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Tasks</h3>
+              <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
             </div>
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4 overflow-visible lg:overflow-hidden">
+        <div className="h-auto lg:h-full lg:flex-1 lg:min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2 pb-4 overflow-visible lg:overflow-hidden">
           {/* Today's Priority — projects with today's tasks (image 2 card design) */}
-          <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
-            <div className="mb-4 shrink-0">
+          <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[400px] sm:h-[480px] lg:h-full overflow-hidden">
+            <div className="mb-4 shrink-0 pr-4">
               <h2 className="text-xl font-semibold text-[#353535] font-gantari">Today's Priority</h2>
             </div>
 
@@ -346,91 +346,31 @@ export default function DashboardTD() {
                 <p className="text-[#717171] text-sm font-gantari py-4">No priority tasks for today.</p>
               ) : (
                 <>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-[#353535] font-gantari">Projects</h3>
-                    <Link to="/td/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
-                  </div>
-                  {(() => {
-                    const searchQuery = searchParams.get('q')?.toLowerCase() || "";
-                    const filteredTasks = priorityTasks.filter(t => {
-                      if (!searchQuery) return true;
-                      return (
-                        (t.task_name || "").toLowerCase().includes(searchQuery) ||
-                        (t.project_name || "").toLowerCase().includes(searchQuery) ||
-                        (t.status || "").toLowerCase().includes(searchQuery)
-                      );
-                    });
-
-                    if (filteredTasks.length === 0 && searchQuery) {
-                      return <p className="text-[#717171] text-sm font-gantari py-4">No tasks match your search.</p>;
-                    }
-
-                    const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
-                    for (const task of filteredTasks) {
-                      const pid = task.projectid ?? 0;
-                      const name = task.project_name || `Project #${pid}`;
-                      if (!byProject.has(pid)) byProject.set(pid, { projectName: name, tasks: [] });
-                      byProject.get(pid)!.tasks.push(task);
-                    }
-                    const projectList = Array.from(byProject.entries()).map(([id, { projectName, tasks }]) => ({ id, projectName, tasks }));
-                    return projectList.map(({ id, projectName, tasks: projectTasks }) => (
-                      <div key={id} className="mb-6">
-                        <p className="text-sm font-semibold text-[#353535] font-gantari mb-3 truncate pr-2">
-                          <Link to="/td/projects" className="hover:text-[#DE3D3A] hover:underline" title={projectName}>{projectName}</Link>
-                        </p>
-                        <div className="space-y-4">
-                          {projectTasks.map((task) => {
-                            const effStart = task.perferstart_time || task.start_time;
-                            const effEnd = task.perferend_time || task.end_time;
-                            const { progress, countdown } = taskProgressAndCountdown(task.due_date, effStart, effEnd, nowMs);
-                            const strokeOffset = CIRCLE_CIRCUMFERENCE * (1 - progress / 100);
-                            const dateLabel = formatDateOnly(task.due_date);
-                            const hasStart = (effStart || '').trim().length > 0;
-                            const hasEnd = (effEnd || '').trim().length > 0;
-                            const startLabel = hasStart ? formatTimeStringToAMPM(effStart) : '—';
-                            const endLabel = hasEnd ? formatTimeStringToAMPM(effEnd) : '—';
-                            const timeRangeLabel = hasStart || hasEnd ? `${startLabel} — ${endLabel}` : '—';
-                            return (
-                              <div key={task.id} className="flex items-center gap-5 p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative">
-                                <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
-                                  <svg className="w-full h-full -rotate-90">
-                                    <circle cx="40" cy="40" r="36" stroke="#E5E7EB" strokeWidth="5" fill="transparent" className="opacity-60" />
-                                    <circle cx="40" cy="40" r="36" stroke="#00882E" strokeWidth="5" fill="transparent" strokeDasharray={CIRCLE_CIRCUMFERENCE} strokeDashoffset={strokeOffset} strokeLinecap="round" />
-                                  </svg>
-                                  <span className="absolute text-[10px] font-bold text-black font-mono">{countdown}</span>
-                                </div>
-                                <div className="flex-1 min-w-0 pr-2">
-                                  <h3 className="text-xl font-bold text-black truncate mb-0.5">{task.task_name ?? 'Task'}</h3>
-                                  <p className="text-[14px] text-[#6B7280] font-medium leading-tight">{dateLabel} — {timeRangeLabel}</p>
-                                </div>
-                                <div className="absolute top-4 right-4">
-                                  <span className="bg-[#3B82F6] text-white text-[12px] px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight">{task.category || 'Task'}</span>
-                                </div>
-                                <div className="absolute bottom-4 right-4 flex -space-x-4">
-                                  {(task.involved_persons?.length ? task.involved_persons : []).slice(0, 3).map((person) => (
-                                    <div key={person.id} className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden" title={person.full_name}>
-                                      {person.profile_picture ? (
-                                        <img src={getGlobalProfileUrl(person.id, person.profile_picture)} alt="" className="w-full h-full object-cover" />
-                                      ) : (
-                                        <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">{person.full_name?.slice(0, 2).toUpperCase() || '?'}</div>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })}
+                  <div className="pr-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-semibold text-[#353535] font-gantari">Projects</h3>
+                      <Link to="/td/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
+                    </div>
+                    {/* Simplified project/task loop for loading state */}
+                    <div className="space-y-4 animate-pulse">
+                      {[1,2].map(i => (
+                        <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 p-4 sm:p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative">
+                           <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-200 rounded-full shrink-0"></div>
+                           <div className="flex-1 space-y-2">
+                             <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                             <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                           </div>
                         </div>
-                      </div>
-                    ));
-                  })()}
+                      ))}
+                    </div>
+                  </div>
                 </>
               )}
             </div>
           </div>
 
           {/* Calendar & Celebrations */}
-          <div className="lg:col-span-1 flex flex-col h-[600px] lg:h-full overflow-hidden">
+          <div className="lg:col-span-1 flex flex-col h-[500px] sm:h-[560px] lg:h-full overflow-hidden">
             <div className="bg-white rounded-2xl border border-[#AEACAC52] pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full min-h-0">
               {/* Calendar Header — exact match: left = "December" then "2026" stacked; center = large day; right = "SUNDAY" */}
               <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 pt-2 px-2">
@@ -612,83 +552,83 @@ export default function DashboardTD() {
   }
 
   return (
-    <div className="flex flex-col lg:h-full lg:overflow-hidden">
+    <div className="flex flex-col h-auto lg:h-full lg:overflow-hidden">
       {/* Header and KPI Cards */}
-      <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
-        <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">
+      <div className="bg-white pb-4 pt-0 border-b border-transparent shrink-0">
+        <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-4">
           Dashboard
         </h1>
         {/* KPI Grid: compact cards — label left, number right (match reference image) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-1">
           {/* Total Projects — first card red, white text */}
           <div
             onClick={() => navigate("/td/projects")}
-            className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
+            className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >
-            <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
+            <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
               Total Projects
             </h3>
-            <p className="text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
+            <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
               {stats.totalProjects}
             </p>
           </div>
           {/* Completed Projects */}
           <div
             onClick={() => navigate("/td/projects?status=Completed")}
-            className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
+            className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >
-            <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
+            <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
               Completed Projects
             </h3>
-            <p className="text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
+            <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
               {stats.completedProjects}
             </p>
           </div>
           {/* In Progress Task */}
           <div
             onClick={() => navigate("/td/teamtasks?status=in_progress")}
-            className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
+            className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >
-            <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
+            <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
               In Progress Tasks
             </h3>
-            <p className="text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
+            <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
               {stats.inProgressTasks}
             </p>
           </div>
           {/* Completed Tasks */}
           <div
             onClick={() => navigate("/td/teamtasks?status=completed")}
-            className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
+            className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >
-            <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
+            <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
               Completed Tasks
             </h3>
-            <p className="text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
+            <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
               {stats.completedTasks}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4 overflow-visible lg:overflow-hidden">
+      <div className="h-auto lg:h-full lg:flex-1 lg:min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2 pb-4 overflow-visible lg:overflow-hidden">
         {/* Today's Priority — projects with today's tasks (image 2 card design) */}
-        <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
-          <div className="mb-4 shrink-0">
-            <h2 className="text-[20px] font-semibold text-[#353535] font-gantari">
+        <div className="lg:col-span-2 flex flex-col bg-white rounded-md border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[400px] sm:h-[480px] lg:h-full overflow-hidden">
+          <div className="mb-4 shrink-0 pr-4">
+            <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#353535] font-gantari">
               Today's Priority
             </h2>
           </div>
 
           <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
             {priorityTasks.length === 0 ? (
-              <p className="text-[#717171] text-sm font-gantari">
+              <p className="text-[#717171] text-sm font-gantari py-4 pr-4">
                 No priority tasks for today.
               </p>
             ) : (
-              <>
+              <div className="pr-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-[#353535] font-gantari">
+                  <h3 className="text-base sm:text-lg font-semibold text-[#353535] font-gantari">
                     Projects
                   </h3>
                   <Link
@@ -780,9 +720,9 @@ export default function DashboardTD() {
                             return (
                               <div
                                 key={task.id}
-                                className="flex items-center gap-5 p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative"
+                                className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 p-4 sm:p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative overflow-hidden"
                               >
-                                <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
+                                <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center shrink-0">
                                   <svg className="w-full h-full -rotate-90">
                                     <circle
                                       cx="40"
@@ -805,24 +745,26 @@ export default function DashboardTD() {
                                       strokeLinecap="round"
                                     />
                                   </svg>
-                                  <span className="absolute text-[10px] font-bold text-black font-mono">
+                                  <span className="absolute text-[9px] sm:text-[10px] font-bold text-black font-mono">
                                     {countdown}
                                   </span>
                                 </div>
-                                <div className="flex-1 min-w-0 pr-2">
-                                  <h3 className="text-xl font-bold text-black truncate mb-0.5">
-                                    {task.task_name ?? "Task"}
-                                  </h3>
-                                  <p className="text-[14px] text-[#6B7280] font-medium leading-tight">
+                                <div className="flex-1 min-w-0 pr-0 sm:pr-2">
+                                  <div className="flex flex-col-reverse sm:flex-row sm:items-start justify-between gap-1 mb-1 sm:mb-0.5">
+                                    <h3 className="text-lg sm:text-xl font-bold text-black truncate pr-16 sm:pr-0" title={task.task_name ?? 'Task'}>
+                                      {task.task_name ?? "Task"}
+                                    </h3>
+                                    <div className="static sm:absolute sm:top-4 sm:right-4 mb-2 sm:mb-0">
+                                      <span className="bg-[#3B82F6] text-white text-[10px] sm:text-[12px] px-2.5 sm:px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight whitespace-nowrap">
+                                        {task.category || "Task"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <p className="text-[12px] sm:text-[14px] text-[#6B7280] font-medium leading-tight">
                                     {dateLabel} — {timeRangeLabel}
                                   </p>
                                 </div>
-                                <div className="absolute top-4 right-4">
-                                  <span className="bg-[#3B82F6] text-white text-[12px] px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight">
-                                    {task.category || "Task"}
-                                  </span>
-                                </div>
-                                <div className="absolute bottom-4 right-4 flex -space-x-4">
+                                <div className="flex self-end sm:self-auto sm:absolute sm:bottom-4 sm:right-4 -space-x-3 sm:-space-x-4 mt-2 sm:mt-0">
                                   {(task.involved_persons?.length
                                     ? task.involved_persons
                                     : []
@@ -831,7 +773,7 @@ export default function DashboardTD() {
                                     .map((person) => (
                                       <div
                                         key={person.id}
-                                        className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden"
+                                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden"
                                         title={person.full_name}
                                       >
                                         {person.profile_picture ? (
@@ -849,14 +791,14 @@ export default function DashboardTD() {
                                               if (parent) {
                                                 const initials = person.full_name?.slice(0, 2).toUpperCase() || "?";
                                                 const fallback = document.createElement('div');
-                                                fallback.className = "w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]";
+                                                fallback.className = "w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[10px] sm:text-[11px] font-bold text-[#353535]";
                                                 fallback.innerText = initials;
                                                 parent.appendChild(fallback);
                                               }
                                             }}
                                           />
                                         ) : (
-                                          <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">
+                                          <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[10px] sm:text-[11px] font-bold text-[#353535]">
                                             {person.full_name
                                               ?.slice(0, 2)
                                               .toUpperCase() || "?"}
@@ -873,31 +815,31 @@ export default function DashboardTD() {
                     ),
                   );
                 })()}
-              </>
+              </div>
             )}
           </div>
         </div>
 
         {/* Calendar & Celebrations */}
-        <div className="lg:col-span-1 flex flex-col h-[600px] lg:h-full overflow-hidden">
-          <div className="bg-white rounded-2xl border border-[#AEACAC52] pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full min-h-0">
+        <div className="lg:col-span-1 flex flex-col h-[500px] sm:h-[560px] lg:h-full overflow-hidden">
+          <div className="bg-white rounded-md border border-[#AEACAC52] pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full min-h-0">
             {/* Calendar Header — exact match: left = "December" then "2026" stacked; center = large day; right = "SUNDAY" */}
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 pt-2 px-2">
-              <div className="flex flex-col items-start min-w-[70px]">
-                <span className="text-[15px] lg:text-[17px] font-semibold text-black font-gantari leading-tight">
+            <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 mb-4 shrink-0 pt-2 px-2 pr-4">
+              <div className="flex flex-col items-start min-w-[60px] sm:min-w-[70px]">
+                <span className="text-[14px] sm:text-[15px] lg:text-[17px] font-semibold text-black font-gantari leading-tight">
                   {currentMonthName}
                 </span>
-                <span className="text-[15px] lg:text-[17px] font-semibold text-black font-gantari leading-tight">
+                <span className="text-[14px] sm:text-[15px] lg:text-[17px] font-semibold text-black font-gantari leading-tight">
                   {displayYear}
                 </span>
               </div>
               <div className="flex flex-col items-center flex-1 min-w-0">
-                <span className="text-[38px] lg:text-[32px] font-bold text-black leading-none tracking-tighter">
+                <span className="text-[32px] sm:text-[38px] lg:text-[32px] font-bold text-black leading-none tracking-tighter">
                   {selectedDate.getDate()}
                 </span>
               </div>
-              <div className="flex flex-col items-end min-w-[75px]">
-                <span className="text-[13px] lg:text-[16px] font-semibold text-black font-gantari tracking-wide">
+              <div className="flex flex-col items-end min-w-[65px] sm:min-w-[75px]">
+                <span className="text-[12px] sm:text-[13px] lg:text-[16px] font-semibold text-black font-gantari tracking-wide uppercase">
                   {currentDayName}
                 </span>
               </div>
