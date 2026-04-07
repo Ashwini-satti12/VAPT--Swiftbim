@@ -204,8 +204,8 @@ export default function ProjectsBC() {
   const [editModuleInput, setEditModuleInput] = useState("");
   const [editTaskTags, setEditTaskTags] = useState<string[]>([]);
   const [editTaskInput, setEditTaskInput] = useState("");
-  const [createTaskTags, _setCreateTaskTags] = useState<string[]>([]);
-  const [_createTaskInput, _setCreateTaskInput] = useState("");
+  const [createTaskTags, setCreateTaskTags] = useState<string[]>([]);
+  const [createTaskInput, setCreateTaskInput] = useState("");
   const [editPriority, setEditPriority] = useState("");
   const [editMember, _setEditMember] = useState("");
   const [createClientName, setCreateClientName] = useState("");
@@ -1410,6 +1410,17 @@ export default function ProjectsBC() {
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center">
                         <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          Task Name
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">
+                          :
+                        </span>
+                        <span className="text-md font-Gantari font-medium text-[#666666]">
+                          {selectedProjectForView.tasks || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
                           Total Resources Available
                         </span>
                         <span className="hidden sm:inline text-[#999999] mr-4">
@@ -1784,6 +1795,7 @@ export default function ProjectsBC() {
                     !createPriority.trim() ||
                     !createLocation.trim() ||
                     !createDescription.trim() ||
+                    createTaskTags.length === 0 ||
                     createFiles.length === 0
                   ) {
                     setCreateError(
@@ -1858,6 +1870,8 @@ export default function ProjectsBC() {
                     .then(({ data }) => {
                       if (data.success) {
                         setShowCreateModal(false);
+                        setCreateTaskTags([]);
+                        setCreateTaskInput("");
                         setCreateName("");
                         setCreateBudget("");
                         setModuleNameTags([]);
@@ -2002,6 +2016,66 @@ export default function ProjectsBC() {
                               type="button"
                               onClick={() =>
                                 setModuleNameTags((prev) =>
+                                  prev.filter((_, i) => i !== idx),
+                                )
+                              }
+                              className="text-gray-400 transition-colors leading-none cursor-pointer"
+                            >
+                              x
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {/* Task Name */}
+                  <div className="md:col-span-2 space-y-4">
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                      Task Name <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={createTaskInput}
+                      onChange={(e) => setCreateTaskInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === ",") {
+                          e.preventDefault();
+                          const val = createTaskInput.trim().replace(/,$/, "");
+                          if (val && !createTaskTags.includes(val))
+                            setCreateTaskTags((prev) => [...prev, val]);
+                          setCreateTaskInput("");
+                        }
+                      }}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Task Name"
+                    />
+                    <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
+                      <svg
+                        className="w-3.5 h-3.5 shrink-0"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Please enter names, separated by commas, and then press
+                      enter
+                    </p>
+                    {createTaskTags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {createTaskTags.map((tag, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[16px] font-Gantari font-medium px-3 py-1 rounded-[15px]"
+                          >
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCreateTaskTags((prev) =>
                                   prev.filter((_, i) => i !== idx),
                                 )
                               }
@@ -2415,6 +2489,8 @@ export default function ProjectsBC() {
                       setCreateError("");
                       setModuleNameTags([]);
                       setModuleNameInput("");
+                      setCreateTaskTags([]);
+                      setCreateTaskInput("");
                     }}
                     className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#000000] font-semibold text-[16px] transition-all font-Gantari cursor-pointer"
                   >
@@ -2472,7 +2548,8 @@ export default function ProjectsBC() {
                     !createRequiredResources.trim() ||
                     !editPriority.trim() ||
                     !createLocation.trim() ||
-                    !createDescription.trim()
+                    !createDescription.trim() ||
+                    editTaskTags.length === 0
                   ) {
                     setEditError("Please fill in all required fields.");
                     return;
@@ -3255,8 +3332,8 @@ export default function ProjectsBC() {
                     setEditModuleInput("");
                     setSelectedMemberIds([]);
                     setMemberSearch("");
-                    setEditTaskTags([]);
-                    setEditTaskInput("");
+                    setCreateTaskTags([]);
+                    setCreateTaskInput("");
                     setCreateError("");
                     setShowCreateModal(true);
                   }}
