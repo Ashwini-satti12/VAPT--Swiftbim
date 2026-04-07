@@ -15,6 +15,7 @@ import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+import plusIcon from "../../assets/ProjectManager/Client/plusicon.svg";
 
 
 const nameToId = (name: string, employeesList: Employee[]) => {
@@ -61,7 +62,12 @@ function CustomDropdown({
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
-      if (dropdownRef.current && !dropdownRef.current.contains(target) && menuRef.current && !menuRef.current.contains(target)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target) &&
+        menuRef.current &&
+        !menuRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     }
@@ -102,15 +108,27 @@ function CustomDropdown({
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-md transition-all cursor-pointer font-Gantari text-[13px] sm:text-[14px] border-0 outline-none min-w-0 ${styleType === "header" ? "bg-[#F2F2F2]" : "bg-[#F2F3F4]"}`}
+        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-2 transition-all outline-none font-Gantari min-w-0 ${
+          styleType === "header"
+            ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[12px] sm:text-[14px] font-semibold"
+            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[12px] sm:text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${
+                isOpen ? "!border-[#AEACAC52]" : ""
+              }`
+        }`}
       >
-        <span className={`truncate text-left ${isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535] font-semibold"}`}>
+        <span
+          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+            isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535]"
+          }`}
+        >
           {isPlaceholder ? placeholder : value}
         </span>
         <img
           src={ArrowDown}
-          alt=""
-          className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""} ${isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
+          alt="arrow"
+          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${
+            isOpen ? "rotate-180" : ""
+          } ${isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
         />
       </button>
 
@@ -121,10 +139,14 @@ function CustomDropdown({
           style={{
             width: coords.width,
             left: coords.left,
-            ...(direction === "up" ? { bottom: coords.bottom + 4 } : { top: coords.top + 4 }),
+            ...(direction === "up"
+              ? { bottom: coords.bottom + 4 }
+              : { top: coords.top + 4 }),
           }}
         >
-          <div className={`flex flex-col py-1 overflow-y-auto ${menuMaxHeightClass} custom-scrollbar`}>
+          <div
+            className={`flex flex-col py-1 overflow-y-auto ${menuMaxHeightClass} custom-scrollbar`}
+          >
             {options.map((option) => (
               <button
                 key={option}
@@ -133,9 +155,29 @@ function CustomDropdown({
                   onChange(option);
                   setIsOpen(false);
                 }}
-                className={`w-full px-4 py-2 text-left text-[13px] sm:text-[14px] font-Gantari transition-colors hover:bg-[#F2F2F2] cursor-pointer ${value === option ? "text-[#DD4342] bg-[#F2F2F2]" : "text-[#8B8B8B] hover:text-[#353535]"}`}
+                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${
+                  value === option
+                    ? "text-[#353535] bg-[#F2F2F2]"
+                    : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                }`}
               >
-                {option}
+                <span className="truncate min-w-0">{option}</span>
+                {value === option && (
+                  <svg
+                    className="w-4 h-4 shrink-0 text-[#353535]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                )}
               </button>
             ))}
           </div>
@@ -2078,8 +2120,13 @@ export default function ProjectsTD() {
                       <button
                         type="button"
                         onClick={() => setShowCreateModal(true)}
-                        className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm hover:brightness-110"
+                        className="flex items-center gap-1 sm:gap-2 shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
                       >
+                        <img
+                          src={plusIcon}
+                          alt="Add"
+                          className="w-3.5 h-3.5 sm:w-4 sm:h-4"
+                        />
                         Create Project
                       </button>
                     )}
@@ -2476,7 +2523,7 @@ export default function ProjectsTD() {
 
       {/* Create Project Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
           <div className="bg-white rounded-2xl border-2 border-gray-100 max-w-4xl w-full flex flex-col max-h-[85vh] overflow-hidden shadow-xl">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-8 py-6 border-b border-gray-100">
@@ -2941,7 +2988,7 @@ export default function ProjectsTD() {
 
       {/* Delete confirmation */}
       {deleteProject !== null && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
             {/* Close Button */}
             {/* <div className="relative flex items-center justify-center mb-10"> */}
@@ -3008,7 +3055,7 @@ export default function ProjectsTD() {
 
       {/* Add Payment Milestone Modal */}
       {showAddMilestoneModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full flex flex-col p-10">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center mb-10">
@@ -3150,7 +3197,7 @@ export default function ProjectsTD() {
 
       {/* Edit Project Details Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full flex flex-col max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-10 py-8 border-b border-gray-100">
@@ -3614,7 +3661,7 @@ export default function ProjectsTD() {
 
       {/* All Members Modal */}
       {showAllMembersModal && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">

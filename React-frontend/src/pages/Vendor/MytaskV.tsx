@@ -83,7 +83,7 @@ const getApiBaseUrl = () => {
 const getProfileUrl = (path: string | undefined): string => {
   if (!path || path.trim() === "") return "";
   if (path.startsWith("http")) return path;
-  let normalizedPath = path
+  const normalizedPath = path
     .replace(/\\/g, "/")
     .trim()
     .replace(/^\d+\s+/, "")
