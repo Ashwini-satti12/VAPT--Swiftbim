@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -319,11 +320,11 @@ export default function ManageLeave() {
     if (!leaveType || !leaveFrom || !leaveTo || !reason.trim()) return;
 
     if (leaveFrom < todayStr) {
-      alert("Leave From date cannot be in the past.");
+      toast.error("Leave From date cannot be in the past.");
       return;
     }
     if (leaveTo < leaveFrom) {
-      alert("Leave To date must be after or on Leave From date.");
+      toast.error("Leave To date must be after or on Leave From date.");
       return;
     }
 
@@ -353,7 +354,7 @@ export default function ManageLeave() {
         message?: string;
       }>("/api/leave/applications", payload);
       if (data.success === false) {
-        alert(data.message || "Failed to apply leave.");
+        toast.error(data.message || "Failed to apply leave.");
         return;
       }
 
@@ -396,6 +397,7 @@ export default function ManageLeave() {
         console.error("Failed to refresh leaves after apply", err);
       }
 
+      toast.success("Applied successfully");
       setLeaveType("");
       setLeaveTypeId(null);
       setLeaveFrom("");
@@ -404,7 +406,7 @@ export default function ManageLeave() {
       setApplyModalOpen(false);
     } catch (err: any) {
       console.error("Apply leave failed", err);
-      alert(
+      toast.error(
         err?.response?.data?.message ||
           "Failed to apply leave. Please try again.",
       );
@@ -446,11 +448,11 @@ export default function ManageLeave() {
       return;
 
     if (leaveFrom < todayStr) {
-      alert("Leave From date cannot be in the past.");
+      toast.error("Leave From date cannot be in the past.");
       return;
     }
     if (leaveTo < leaveFrom) {
-      alert("Leave To date must be after or on Leave From date.");
+      toast.error("Leave To date must be after or on Leave From date.");
       return;
     }
 
@@ -478,7 +480,7 @@ export default function ManageLeave() {
       );
 
       if (data.success === false) {
-        alert(data.message || "Failed to update leave.");
+        toast.error(data.message || "Failed to update leave.");
         return;
       }
 
@@ -513,10 +515,11 @@ export default function ManageLeave() {
         console.error("Failed to refresh leaves after edit", err);
       }
 
+      toast.success("Updated successfully");
       handleCloseEditModal();
     } catch (err: any) {
       console.error("Update leave failed", err);
-      alert(
+      toast.error(
         err?.response?.data?.message ||
           "Failed to update leave. Please try again.",
       );
@@ -568,10 +571,11 @@ export default function ManageLeave() {
         }));
         setLeaves(mapped);
       }
+      toast.success("Deleted successfully");
       setDeleteLeave(null);
     } catch (err) {
       console.error("Failed to delete leave (BIM Modeler):", err);
-      alert("Delete failed. Please try again.");
+      toast.error("Delete failed. Please try again.");
     }
   };
 
