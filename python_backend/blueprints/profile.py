@@ -2,9 +2,10 @@ from flask import Blueprint, request, jsonify, g, current_app
 from db import get_db
 from auth_middleware import project_app_required
 from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash
 import hashlib
 import os
+import json
 
 bp = Blueprint("profile", __name__, url_prefix="/api/profile")
 
@@ -30,6 +31,12 @@ def get_profile():
         return jsonify({"success": False, "message": "User not found"}), 404
     d = dict(row)
     d.pop("password", None)
+    # Normalize legacy/invalid values so frontend doesn't request v={}
+    pic = d.get("profile_picture")
+    if pic is not None:
+        s = str(pic).strip()
+        if s in ("", "{}", "[]", "[object Object]", "null", "undefined"):
+            d["profile_picture"] = None
     for k in ("dob", "doj"):
         if d.get(k) and hasattr(d[k], "isoformat"):
             d[k] = d[k].isoformat()
@@ -111,11 +118,44 @@ def update_profile():
             filename = f"{name}_{timestamp}{ext}"
             save_path = os.path.join(employee_dir, filename)
             file.save(save_path)
-            profile_path = filename
+            # Store relative path so it is always under uploads/employee
+            profile_path = f"employee/{filename}"
 
     conn = get_db()
     cur = conn.cursor()
     user_type = getattr(g, "user_type", "employee")
+
+    def _to_db_value(value):
+        """Convert nested JSON values (dict/list) into DB-safe scalars."""
+        if value is None:
+            return None
+        if isinstance(value, (str, int, float, bool)):
+            return value
+        if isinstance(value, dict):
+            # Common UI select payloads: {value,label} or {id,name}
+            for key in ("value", "id", "name", "label"):
+                v = value.get(key)
+                if v is not None and not isinstance(v, (dict, list)):
+                    return v
+            return json.dumps(value, ensure_ascii=False)
+        if isinstance(value, list):
+            # Prefer readable CSV for simple arrays, JSON otherwise
+            if all(not isinstance(v, (dict, list)) for v in value):
+                return ", ".join(str(v) for v in value)
+            return json.dumps(value, ensure_ascii=False)
+        return str(value)
+
+    def _normalize_profile_picture_value(value):
+        """Accept only a valid profile path/filename; reject '{}'/object-like junk."""
+        v = _to_db_value(value)
+        if v is None:
+            return None
+        s = str(v).strip()
+        if not s:
+            return None
+        if s in ("{}", "[]", "[object Object]", "null", "undefined"):
+            return None
+        return s
     
     if user_type == "vendor":
         allowed = ("full_name", "phone_number", "email", "address", "role")
@@ -127,16 +167,18 @@ def update_profile():
     for key in allowed:
         if key in data and data[key] is not None:
             sets.append(f"`{key}` = %s")
-            params.append(data[key])
+            params.append(_to_db_value(data[key]))
             
     # Add profile picture to update if uploaded
     if profile_path:
         sets.append("`profile_picture` = %s")
         params.append(profile_path)
     elif "profile_picture" in data and data["profile_picture"] is not None:
-        # If passed as string path in JSON
-        sets.append("`profile_picture` = %s")
-        params.append(data["profile_picture"])
+        # If passed as path in JSON, write only when valid.
+        normalized_pic = _normalize_profile_picture_value(data["profile_picture"])
+        if normalized_pic:
+            sets.append("`profile_picture` = %s")
+            params.append(normalized_pic)
 
     if not sets:
         return jsonify({"success": False, "message": "No fields to update"}), 400
@@ -172,18 +214,20 @@ def change_password():
     if not row:
         return jsonify({"success": False, "message": "User not found"}), 404
     
-    stored = row.get("password") or ""
-    # Verify current password
+    stored = (row.get("password") or "").strip()
+    # Verify current password (supports werkzeug hash, md5, and legacy plain-text)
     is_valid = False
     if stored.startswith("scrypt:") or stored.startswith("pbkdf2:"):
         is_valid = check_password_hash(stored, current)
     else:
-        is_valid = hashlib.md5(current.encode()).hexdigest() == stored
+        current_md5 = hashlib.md5(current.encode()).hexdigest()
+        is_valid = (current_md5 == stored) or (current == stored)
         
     if not is_valid:
         return jsonify({"success": False, "message": "Current password is incorrect"}), 401
     
-    # Generate new password hash (using scrypt by default now for better security)
-    hashed = generate_password_hash(new_password)
+    # Store md5 hash for compatibility with legacy schema/data.
+    # (Other auth paths already support md5 and this avoids column-length issues.)
+    hashed = hashlib.md5(new_password.encode()).hexdigest()
     cur.execute(f"UPDATE {table} SET password = %s WHERE id = %s", (hashed, g.user_id))
     return jsonify({"success": True, "message": "Password updated"})

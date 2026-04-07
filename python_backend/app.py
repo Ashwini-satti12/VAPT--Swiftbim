@@ -111,7 +111,7 @@ def create_app(config_class=Config):
 
     @app.route("/api/view_profile_picture/<int:emp_id>")
     def view_profile_picture(emp_id):
-        from flask import current_app, jsonify, send_file
+        from flask import current_app, jsonify, send_file, request
         import os
         import mimetypes
         from werkzeug.utils import safe_join
@@ -120,7 +120,14 @@ def create_app(config_class=Config):
         try:
             conn = get_db()
             cur = conn.cursor()
-            cur.execute("SELECT profile_picture FROM employee WHERE id = %s", (emp_id,))
+            user_type = (request.args.get("user_type") or "").strip().lower()
+            if user_type == "vendor":
+                cur.execute(
+                    "SELECT profile_picture FROM vendor_employee WHERE id = %s",
+                    (emp_id,),
+                )
+            else:
+                cur.execute("SELECT profile_picture FROM employee WHERE id = %s", (emp_id,))
             row = cur.fetchone()
             
             if not row or not row.get("profile_picture"):
@@ -132,12 +139,15 @@ def create_app(config_class=Config):
             if not upload_dir:
                 return jsonify({"error": "UPLOAD_FOLDER not configured"}), 500
 
-            # Find physical file (try employee dir first, then root upload dir)
+            # Find physical file:
+            # - new stored format: "employee/<file>"
+            # - old stored format: "<file>" (implicitly under uploads/employee)
             employee_dir = os.path.join(upload_dir, "employee")
-            file_path = safe_join(employee_dir, profile_picture)
-            
+            file_path = safe_join(upload_dir, profile_picture)
+
             if not (file_path and os.path.isfile(file_path)):
-                file_path = safe_join(upload_dir, profile_picture)
+                # fallback for old DB values that store only filename
+                file_path = safe_join(employee_dir, os.path.basename(profile_picture))
 
             if not (file_path and os.path.isfile(file_path)):
                 return jsonify({
