@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { toast } from 'react-hot-toast';
 import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiGrid, FiMenu, FiX } from 'react-icons/fi';
@@ -590,10 +591,13 @@ export default function ConsultantTD() {
     if (!emails.length) return;
     setInviteSubmitting(true);
     api.post('/api/employees/invite', { emails, message: inviteMessage }).then(() => {
+      toast.success('Invitations sent successfully!');
       setActiveView('list');
       setInviteEmails('');
       setInviteMessage('');
-    }).catch(() => { }).finally(() => setInviteSubmitting(false));
+    }).catch(() => {
+      toast.error('Failed to send invitations');
+    }).finally(() => setInviteSubmitting(false));
   }
 
   function handledeactive() {
@@ -603,6 +607,7 @@ export default function ConsultantTD() {
     api.post('/api/employees/bulk-status', { ids: deactiveIds, action: 'inactive' })
       .then((response) => {
         if (response.data?.success) {
+          toast.success('Consultants deactivated successfully!');
           // Update UI with 'deactive' (frontend display format)
           setList((prev) => prev.map((e) => (deactiveIds.includes(e.id) ? { ...e, active: 'deactive' } : e)));
           setActiveView('list');
@@ -680,11 +685,13 @@ export default function ConsultantTD() {
             })
           );
           setEditId(null);
+          toast.success('Consultant details updated successfully!');
           setActiveView('list');
           setSearchParams({});
         })
         .catch((err) => {
           console.error('Update failed:', err);
+          toast.error(err.response?.data?.message || 'Failed to update consultant details');
         })
         .finally(() => setEditSubmitting(false));
     } else {
@@ -735,11 +742,13 @@ export default function ConsultantTD() {
             })
           );
           setEditId(null);
+          toast.success('Consultant updated successfully!');
           setActiveView('list');
           setSearchParams({});
         })
         .catch((err) => {
           console.error('Update failed:', err);
+          toast.error(err.response?.data?.message || 'Failed to update consultant');
         })
         .finally(() => setEditSubmitting(false));
     }
@@ -794,6 +803,7 @@ export default function ConsultantTD() {
             }
             return e;
           }));
+          toast.success(`Status updated to ${newStatus} successfully!`);
         } else {
           // API returned failure - revert to previous state
           setList(previousList);
