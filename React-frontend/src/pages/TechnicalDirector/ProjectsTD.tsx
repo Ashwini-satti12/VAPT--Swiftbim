@@ -17,6 +17,27 @@ import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import plusIcon from "../../assets/ProjectManager/Client/plusicon.svg";
 
+const CURRENCIES = [
+  { code: "INR", symbol: "₹", label: "Indian Rupee" },
+  { code: "USD", symbol: "$", label: "US Dollar" },
+  { code: "EUR", symbol: "€", label: "Euro" },
+  { code: "GBP", symbol: "£", label: "British Pound" },
+  { code: "AED", symbol: "د.إ", label: "UAE Dirham" },
+  { code: "SAR", symbol: "﷼", label: "Saudi Riyal" },
+  { code: "QAR", symbol: "﷼", label: "Qatari Riyal" },
+  { code: "OMR", symbol: "﷼", label: "Omani Riyal" },
+  { code: "BHD", symbol: ".د.ب", label: "Bahraini Dinar" },
+  { code: "KWD", symbol: "د.ك", label: "Kuwaiti Dinar" },
+  { code: "SGD", symbol: "S$", label: "Singapore Dollar" },
+  { code: "AUD", symbol: "A$", label: "Australian Dollar" },
+  { code: "CAD", symbol: "C$", label: "Canadian Dollar" },
+  { code: "JPY", symbol: "¥", label: "Japanese Yen" },
+  { code: "CNY", symbol: "¥", label: "Chinese Yuan" },
+  { code: "MYR", symbol: "RM", label: "Malaysian Ringgit" },
+  { code: "THB", symbol: "฿", label: "Thai Baht" },
+  { code: "IDR", symbol: "Rp", label: "Indonesian Rupiah" },
+];
+
 
 const nameToId = (name: string, employeesList: Employee[]) => {
   if (!name || name === "Nothing Selected" || name === "Other")
@@ -371,6 +392,7 @@ interface Project {
   bidding_end_date?: string;
   source?: string;
   document_attachment?: string;
+  currency?: string;
 }
 
 interface Milestone {
@@ -407,6 +429,8 @@ export default function ProjectsTD() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createBudget, setCreateBudget] = useState("");
+  const [createCurrency, setCreateCurrency] = useState("INR");
+  const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
   const [createModuleName, setCreateModuleName] = useState("");
   const [createClientName, setCreateClientName] = useState("");
   const [showOtherClient, setShowOtherClient] = useState(false);
@@ -627,6 +651,7 @@ export default function ProjectsTD() {
       description: str(r.description),
       source: str(r.source),
       document_attachment: str(r.document_attachment),
+      currency: str(r.currency) || "INR",
     };
   };
 
@@ -2325,6 +2350,7 @@ export default function ProjectsTD() {
                                           ? `${p.budget}`
                                           : "Fetching...",
                                       );
+                                      setCreateCurrency(p.currency || "INR");
                                       setCreateModuleName(p.module_name ?? "");
                                       setCreateClientName(
                                         clientsList.find(
@@ -2558,6 +2584,7 @@ export default function ProjectsTD() {
                 onClick={() => {
                   setShowCreateModal(false);
                   setCreateError("");
+                  setCurrencyDropdownOpen(false);
                 }}
                 className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
                 title="Close"
@@ -2587,6 +2614,7 @@ export default function ProjectsTD() {
                   const formData = new FormData();
                   formData.append("project_name", createName.trim());
                   if (createBudget) formData.append("budget", createBudget);
+                  formData.append("currency", createCurrency);
                   if (createModuleName) formData.append("modules", createModuleName);
 
                   const clientId = (() => {
@@ -2638,6 +2666,8 @@ export default function ProjectsTD() {
                         setShowCreateModal(false);
                         setCreateName("");
                         setCreateBudget("");
+                        setCreateCurrency("INR");
+                        setCurrencyDropdownOpen(false);
                         setCreateModuleName("");
                         setCreateClientName("");
                         setShowOtherClient(false);
@@ -2752,13 +2782,52 @@ export default function ProjectsTD() {
                     <label className="block text-[16px] font-medium text-[#000000]">
                       Budget <span className="text-[#DD4342]">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={createBudget}
-                      onChange={(e) => setCreateBudget(e.target.value)}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
-                      placeholder="Enter Project Budget"
-                    />
+                    <div className="flex gap-2">
+                      <div className="relative w-1/3">
+                        <button
+                          type="button"
+                          onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
+                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-[5px] transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] cursor-pointer ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
+                        >
+                          <span className="text-[14px] text-[#353535] font-medium truncate">
+                            {CURRENCIES.find(c => c.code === createCurrency)?.symbol} {createCurrency}
+                          </span>
+                          <img
+                            src={ArrowDown}
+                            alt="arrow"
+                            className={`w-3.5 h-3.5 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
+                          />
+                        </button>
+                        {currencyDropdownOpen && (
+                          <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                            {CURRENCIES.map((c) => (
+                              <button
+                                key={c.code}
+                                type="button"
+                                onClick={() => {
+                                  setCreateCurrency(c.code);
+                                  setCurrencyDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-2 text-[14px] transition-colors hover:bg-[#F2F2F2] flex items-center justify-between cursor-pointer ${createCurrency === c.code ? "text-[#353535] bg-[#F8F8F8] font-bold" : "text-[#8B8B8B] font-medium"}`}
+                              >
+                                {c.code}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        value={createBudget}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9.]/g, "");
+                          const parts = val.split(".");
+                          if (parts.length <= 2) setCreateBudget(val);
+                        }}
+                        className="flex-1 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                        placeholder="Enter Project Budget"
+                      />
+                    </div>
                   </div>
 
                   {/* Client Name & Project Manager */}
@@ -3220,7 +3289,7 @@ export default function ProjectsTD() {
 
               <div className="space-y-2">
                 <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
-                  Amount ($)*
+                  Amount ({CURRENCIES.find(c => c.code === currentProject?.currency)?.symbol || "$"})*
                 </label>
                 <input
                   type="number"
@@ -3314,9 +3383,11 @@ export default function ProjectsTD() {
                   setEditDropdownOpen(null);
                   setCreateBudgetCeiling("");
                   setCreateBiddingEndDate("");
+                  setCurrencyDropdownOpen(false);
                   // Reset all form fields
                   setCreateName("");
                   setCreateBudget("");
+                  setCreateCurrency("INR");
                   setCreateModuleName("");
                   setCreateClientName("");
                   setCreateProjectManager([]);
@@ -3362,6 +3433,7 @@ export default function ProjectsTD() {
                   const formData = new FormData();
                   formData.append("project_name", createName.trim());
                   if (createBudget) formData.append("budget", createBudget);
+                  formData.append("currency", createCurrency);
                   if (createModuleName) formData.append("modules", createModuleName);
 
                   const clientId = (() => {
@@ -3464,13 +3536,48 @@ export default function ProjectsTD() {
                     <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
                       Client Budget
                     </label>
-                    <input
-                      type="text"
-                      readOnly
-                      className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-lg font-Gantari font-medium text-[#353535] cursor-not-allowed focus:outline-none focus:border-[#AEACAC52]"
-                      placeholder="Auto-fetched from contract"
-                      value={createBudget}
-                    />
+                    <div className="flex gap-2">
+                      <div className="relative w-1/3">
+                        <button
+                          type="button"
+                          onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
+                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-[5px] transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] cursor-pointer ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
+                        >
+                          <span className="text-[14px] text-[#353535] font-medium truncate">
+                            {CURRENCIES.find(c => c.code === createCurrency)?.symbol} {createCurrency}
+                          </span>
+                          <img
+                            src={ArrowDown}
+                            alt="arrow"
+                            className={`w-3.5 h-3.5 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
+                          />
+                        </button>
+                        {currencyDropdownOpen && (
+                          <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                            {CURRENCIES.map((c) => (
+                              <button
+                                key={c.code}
+                                type="button"
+                                onClick={() => {
+                                  setCreateCurrency(c.code);
+                                  setCurrencyDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-2 text-[14px] transition-colors hover:bg-[#F2F2F2] flex items-center justify-between cursor-pointer ${createCurrency === c.code ? "text-[#353535] bg-[#F8F8F8] font-bold" : "text-[#8B8B8B] font-medium"}`}
+                              >
+                                {c.code}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        readOnly
+                        className="flex-1 px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-lg font-Gantari font-medium text-[#353535] cursor-not-allowed focus:outline-none focus:border-[#AEACAC52]"
+                        placeholder="Auto-fetched from contract"
+                        value={createBudget}
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
@@ -3670,9 +3777,11 @@ export default function ProjectsTD() {
                           })()}`}
                           placeholder="Enter Outsourcing Budget"
                           value={createBudgetCeiling}
-                          onChange={(e) =>
-                            setCreateBudgetCeiling(e.target.value)
-                          }
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9.]/g, "");
+                            const parts = val.split(".");
+                            if (parts.length <= 2) setCreateBudgetCeiling(val);
+                          }}
                         />
                         {(() => {
                           const clientNum = parseBudgetValue(createBudget);
@@ -3719,9 +3828,11 @@ export default function ProjectsTD() {
                       setEditDropdownOpen(null);
                       setCreateBudgetCeiling("");
                       setCreateBiddingEndDate("");
+                      setCurrencyDropdownOpen(false);
                       // Reset all form fields
                       setCreateName("");
                       setCreateBudget("");
+                      setCreateCurrency("INR");
                       setCreateModuleName("");
                       setCreateClientName("");
                       setCreateProjectManager([]);

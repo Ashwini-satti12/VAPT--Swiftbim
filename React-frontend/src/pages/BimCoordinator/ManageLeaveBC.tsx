@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import toast from "react-hot-toast";
 import { useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -282,6 +283,7 @@ export default function ManageLeaveBC() {
         currentStatus: app.status === 1 ? "Approved" : app.status === 2 ? "Rejected" : "Pending",
       }));
       setLeaves(mapped);
+      toast.success("Applied successfully");
       handleCloseModal();
     } catch (err) {
       console.error("Failed to submit leave", err);
@@ -340,6 +342,7 @@ export default function ManageLeaveBC() {
             : l
         )
       );
+      toast.success("Updated successfully");
       handleCloseEditModal();
     } catch (err) {
       console.error("Failed to update leave", err);
@@ -355,6 +358,7 @@ export default function ManageLeaveBC() {
     try {
       await api.delete(`/api/leave/applications/${deleteLeave.id}`);
       setLeaves((prev) => prev.filter((l) => l.id !== deleteLeave.id));
+      toast.error("Deleted successfully");
       setDeleteLeave(null);
     } catch (err) {
       console.error("Failed to delete leave", err);
@@ -453,7 +457,7 @@ export default function ManageLeaveBC() {
                 type="button"
                 onClick={() => {
                   if (!user?.full_name) {
-                    alert("User information not available.");
+                    toast.error("User information not available.");
                     return;
                   }
                   setApplyModalOpen(true);
@@ -730,6 +734,7 @@ export default function ManageLeaveBC() {
                                 type="button"
                                 onClick={() => handleView(row)}
                                 className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DD4242] text-white rounded-md font-medium text-[12px] "
+                                title="View"
                               >
                                 <img
                                   src={viewIcon}
