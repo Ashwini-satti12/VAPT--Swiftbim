@@ -167,9 +167,9 @@ export default function ProjectsPMV() {
             .then(({ data }) => {
                 const emps = data.employees ?? [];
                 setAllEmployees(emps);
-                setProjectManagers(emps.filter(e => e.user_role === "Project Manager"));
-                setBimLeads(emps.filter(e => e.user_role === 'BIM Lead'));
-                setBimCoordinators(emps.filter(e => e.user_role === 'BIM Coordinator'));
+                setProjectManagers(emps.filter(e => (e.user_role || e.role || e.designation) === "Project Manager"));
+                setBimLeads(emps.filter(e => (e.user_role || e.role || e.designation) === 'BIM Lead'));
+                setBimCoordinators(emps.filter(e => (e.user_role || e.role || e.designation) === 'BIM Coordinator'));
             })
             .catch(() => {
                 setAllEmployees([]);
@@ -646,7 +646,7 @@ export default function ProjectsPMV() {
                 {/* Budget hidden for PM in edit mode */}
                 <div className="space-y-2">
                     <label className="block text-[14px] font-medium text-[#353535]">Select Project Manager <span className="text-[#DD4342]">*</span></label>
-                    <div className="relative dropdown-container">
+                    <div className={`relative dropdown-container ${editDropdownOpen === "pm" ? "z-[60]" : "z-10"}`}>
                         <button type="button" onClick={() => setEditDropdownOpen(o => o === "pm" ? null : "pm")}
                             className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer">
                             <span className={createProjectManager ? "text-gray-700" : "text-gray-400"}>{createProjectManager || "Select Project Manager"}</span>
@@ -665,7 +665,7 @@ export default function ProjectsPMV() {
                 </div>
                 <div className="space-y-2">
                     <label className="block text-[14px] font-medium text-[#353535]">Select BIM Lead <span className="text-[#DD4342]">*</span></label>
-                    <div className="relative dropdown-container">
+                    <div className={`relative dropdown-container ${editDropdownOpen === "bimLead" ? "z-[60]" : "z-10"}`}>
                         <button type="button" onClick={() => setEditDropdownOpen(o => o === "bimLead" ? null : "bimLead")}
                             className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer">
                             <span className={createBIMLead ? "text-gray-700" : "text-gray-400"}>{createBIMLead || "Select BIM Lead"}</span>
@@ -682,9 +682,9 @@ export default function ProjectsPMV() {
                         )}
                     </div>
                 </div>
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                     <label className="block text-[14px] font-medium text-[#353535]">Select BIM Coordinator <span className="text-[#DD4342]">*</span></label>
-                    <div className="relative dropdown-container">
+                    <div className={`relative dropdown-container ${editDropdownOpen === "bimCoord" ? "z-[60]" : "z-10"}`}>
                         <button type="button" onClick={() => setEditDropdownOpen(o => o === "bimCoord" ? null : "bimCoord")}
                             className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer">
                             <span className={createBIMCoOrdinator ? "text-gray-700" : "text-gray-400"}>{createBIMCoOrdinator || "Select BIM Coordinator"}</span>
@@ -700,7 +700,7 @@ export default function ProjectsPMV() {
                             </div>
                         )}
                     </div>
-                </div>
+                </div> */}
                 <div className="space-y-2">
                     <label className="block text-[14px] font-medium text-[#000000]">Project Start Date <span className="text-[#DD4342]">*</span></label>
                     <input type="date" value={createStartDate}
@@ -737,7 +737,7 @@ export default function ProjectsPMV() {
                 </div>
                 <div className="space-y-2">
                     <label className="block text-[14px] font-medium text-[#353535]">Priority <span className="text-[#DD4342]">*</span></label>
-                    <div className="relative dropdown-container">
+                    <div className={`relative dropdown-container ${editDropdownOpen === "priority" ? "z-[60]" : "z-10"}`}>
                         <button type="button" onClick={() => setEditDropdownOpen(o => o === "priority" ? null : "priority")}
                             className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer">
                             <span className={createPriority ? "text-gray-700" : "text-gray-400"}>{createPriority || "Select Priority"}</span>
