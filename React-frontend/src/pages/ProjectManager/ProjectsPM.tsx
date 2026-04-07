@@ -71,6 +71,29 @@ const firstCsvValue = (value: string | undefined): string => {
     .filter(Boolean)[0] ?? '';
 };
 
+const decodeHtmlEntities = (value: string): string => {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = value;
+  return textarea.value;
+};
+
+const normalizeProjectDescriptionHtml = (raw?: string): string => {
+  if (!raw) return "";
+  let normalized = raw;
+  for (let i = 0; i < 2; i += 1) {
+    const decoded = decodeHtmlEntities(normalized);
+    if (decoded === normalized) break;
+    normalized = decoded;
+  }
+  return normalized;
+};
+
+const hasProjectDescriptionContent = (raw?: string): boolean => {
+  const normalized = normalizeProjectDescriptionHtml(raw);
+  const text = normalized.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/gi, " ").trim();
+  return text.length > 0;
+};
+
 const truncateFileName = (name: string, maxLen = 25) => {
   const lastDot = name.lastIndexOf('.');
   const ext = lastDot !== -1 ? name.slice(lastDot) : '';
@@ -864,9 +887,18 @@ export default function ProjectsPM() {
             {/* Project Description */}
             <div className="border border-[#AEACAC52] rounded-[10px] md:rounded-[10px] p-6 md:p-8 lg:p-4">
               <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">Project Description</h4>
-              <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
-                {selectedProjectForView.description ?? 'This project involves comprehensive BIM modeling and coordination for the selected facility, ensuring all architectural, structural, and MEP systems are perfectly aligned according to international standards.'}
-              </p>
+              {hasProjectDescriptionContent(selectedProjectForView.description) ? (
+                <div
+                  className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] [&_*]:max-w-full [&_*]:whitespace-normal [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#DD4342] [&_a]:underline"
+                  dangerouslySetInnerHTML={{
+                    __html: normalizeProjectDescriptionHtml(selectedProjectForView.description),
+                  }}
+                />
+              ) : (
+                <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                  This project involves comprehensive BIM modeling and coordination for the selected facility, ensuring all architectural, structural, and MEP systems are perfectly aligned according to international standards.
+                </p>
+              )}
             </div>
 
             {/* Team Overview Section */}

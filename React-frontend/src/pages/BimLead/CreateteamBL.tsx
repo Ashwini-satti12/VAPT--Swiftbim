@@ -40,6 +40,9 @@ interface Employee {
     address?: string;
     department?: string;
     user_role?: string;
+    profile?: string;
+    avatar?: string;
+    image?: string;
 }
 
 interface Team {
@@ -58,6 +61,13 @@ interface Project {
     id: number;
     project_name?: string;
 }
+
+const getEmployeeProfileUrl = (emp?: Employee | null): string => {
+    if (!emp) return "";
+    const profilePicture = emp.profile_picture || emp.profile || emp.avatar || emp.image || "";
+    if (!profilePicture) return "";
+    return getGlobalProfileUrl(emp.id, profilePicture);
+};
 
 
 
@@ -152,7 +162,7 @@ function TeamCard({ team, employees, getEmpName, onEdit, onDelete, onViewDetails
                         return (
                             <>
                                 {visibleMembers.map((emp) => {
-                                    const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                    const profileUrl = getEmployeeProfileUrl(emp);
                                     return (
                                         <div
                                             key={emp.id}
@@ -916,9 +926,22 @@ export default function CreateteamBL() {
                                 <div className="bg-[#F2F2F2] rounded-md p-6 border border-[#AEACAC52]">
                                     <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Leadership</h4>
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-white rounded-full border border-slate-200 flex items-center justify-center text-lg font-bold text-slate-700 shadow-sm">
-                                            {(selectedTeam?.leader_name || getEmpName(selectedTeam?.leader ?? ''))?.charAt(0) ?? '?'}
-                                        </div>
+                                        {(() => {
+                                            const leaderInfo = employees.find(e => String(e.id) === String(selectedTeam?.leader ?? ''));
+                                            const leaderProfileUrl = getEmployeeProfileUrl(leaderInfo);
+                                            return leaderProfileUrl ? (
+                                                <img
+                                                    src={leaderProfileUrl}
+                                                    alt={selectedTeam?.leader_name || getEmpName(selectedTeam?.leader ?? '')}
+                                                    className="w-12 h-12 rounded-full border border-slate-200 object-cover shadow-sm"
+                                                    onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }}
+                                                />
+                                            ) : (
+                                                <div className="w-12 h-12 bg-white rounded-full border border-slate-200 flex items-center justify-center text-lg font-bold text-slate-700 shadow-sm">
+                                                    {(selectedTeam?.leader_name || getEmpName(selectedTeam?.leader ?? ''))?.charAt(0) ?? '?'}
+                                                </div>
+                                            );
+                                        })()}
                                         <div>
                                             <p className="font-semibold text-slate-800">{selectedTeam?.leader_name || getEmpName(selectedTeam?.leader ?? '')}</p>
                                             <p className="text-sm text-slate-500">Team Leader</p>
@@ -933,11 +956,21 @@ export default function CreateteamBL() {
                                     <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md overflow-hidden">
                                         {(selectedTeam?.employee ?? '').split(',').filter(Boolean).map((eid, i) => {
                                             const empInfo = employees.find(e => String(e.id) === eid);
+                                            const empProfileUrl = getEmployeeProfileUrl(empInfo);
                                             return (
                                                 <div key={eid} className={`flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors ${i !== 0 ? 'border-t border-slate-100' : ''}`}>
-                                                    <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-sm font-bold text-slate-600">
-                                                        {getEmpName(eid)?.charAt(0) ?? '?'}
-                                                    </div>
+                                                    {empProfileUrl ? (
+                                                        <img
+                                                            src={empProfileUrl}
+                                                            alt={getEmpName(eid)}
+                                                            className="w-10 h-10 rounded-full border border-slate-200 object-cover"
+                                                            onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }}
+                                                        />
+                                                    ) : (
+                                                        <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-sm font-bold text-slate-600">
+                                                            {getEmpName(eid)?.charAt(0) ?? '?'}
+                                                        </div>
+                                                    )}
                                                     <div>
                                                         <p className="font-medium text-slate-800">{getEmpName(eid)}</p>
                                                         {empInfo?.email && <p className="text-sm text-slate-500">{empInfo.email}</p>}
@@ -976,7 +1009,7 @@ export default function CreateteamBL() {
                             {allMembersList.length > 0 ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {allMembersList.map((emp) => {
-                                        const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                        const profileUrl = getEmployeeProfileUrl(emp);
                                         return (
                                             <div
                                                 key={emp.id}
@@ -1046,9 +1079,9 @@ export default function CreateteamBL() {
                         </div>
                         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-10 py-8 custom-scrollbar">
                             <div className="flex flex-col items-center">
-                                {selectedMember.profile_picture ? (
+                                {getEmployeeProfileUrl(selectedMember) ? (
                                     <img
-                                        src={getGlobalProfileUrl(selectedMember.id, selectedMember.profile_picture)}
+                                        src={getEmployeeProfileUrl(selectedMember)}
                                         alt={selectedMember.full_name || 'Member'}
                                         className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover mb-6"
                                         onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }}

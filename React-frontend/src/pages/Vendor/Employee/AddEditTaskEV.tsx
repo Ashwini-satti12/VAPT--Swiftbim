@@ -45,10 +45,14 @@ interface Task {
   project_name?: string;
   start_date?: string;
   module?: string;
+  modules?: string;
   modules_name?: string;
+  category?: string;
   type?: string;
   start_time?: string;
+  startTime?: string;
   due_time?: string;
+  dueTime?: string;
   end_time?: string;
   assign_to?: string;
   description?: string;
@@ -57,8 +61,11 @@ interface Task {
   uploader_full_name?: string;
   assigned_to?: number;
   Actual_start_time?: string;
+  actual_start_time?: string;
   perferstart_time?: string;
+  perfer_start_time?: string;
   perferend_time?: string;
+  perfer_end_time?: string;
 }
 
 interface FormDropdownProps {
@@ -182,17 +189,35 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
   };
   return {
     projectName: str(t.project_name ?? t.projectName ?? ""),
-    module: str(t.module ?? t.modules_name ?? t.modules ?? ""),
+    module: str(
+      t.module ?? t.modules_name ?? t.modules ?? t.modulesName ?? "",
+    ),
     taskName: str(t.task_name ?? t.taskName ?? ""),
     type: str(t.type ?? t.category ?? ""),
+    // Backend `tasks` table: Actual_start_time = start date; perfer* = scheduled times
     actualStartDate: toInputDate(
-      t.start_date ?? t.startDate ?? t.Actual_start_time ?? "",
+      t.start_date ??
+        t.startDate ??
+        t.Actual_start_time ??
+        t.actual_start_time ??
+        "",
     ),
     actualEndDate: toInputDate(t.due_date ?? t.dueDate ?? ""),
     startTime: timeOnly(
-      t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
+      t.perferstart_time ??
+        t.perfer_start_time ??
+        t.start_time ??
+        t.startTime ??
+        "",
     ),
-    dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
+    dueTime: timeOnly(
+      t.perferend_time ??
+        t.perfer_end_time ??
+        t.due_time ??
+        t.dueTime ??
+        t.end_time ??
+        "",
+    ),
     assignTo: str(
       t.assign_to ??
         t.assignTo ??

@@ -3850,7 +3850,7 @@ def list_vendor_tasks():
             status = "Todo"
     project_id = request.args.get("project_id")
     # When condition=1 (team view in frontend) we want ALL vendor tasks,
-    # otherwise restrict to tasks created by the logged‑in vendor.
+    # otherwise restrict the list (vendor "My Task" = created by or assigned to this login).
     is_team_view = request.args.get("condition") == "1"
 
     is_vendor_user_task = getattr(g, "user_type", None) == "vendor"
@@ -3859,9 +3859,44 @@ def list_vendor_tasks():
     where = []
     params = []
     if not is_team_view:
-        # My task view: restrict to tasks created by this user
-        where.append("vt.vendor_id = %s")
-        params.append(user_id)
+        if is_vendor_user_task:
+            # vendor_task.vendor_id is the creator's vendor_employee.id.
+            # Assign Task dropdown stores vendor_resource_profiles.id in assigned_to;
+            # JWT user_id is vendor_employee.id — include both so assignees see their tasks.
+            profile_ids: list = []
+            try:
+                vendor_onboard_id = _current_vendor_onboarding_id()
+                if vendor_onboard_id:
+                    vcur = vendor_cursor()
+                    vcur.execute(
+                        "SELECT id FROM vendor_resource_profiles WHERE vendor_id = %s AND vendor_employee_id = %s",
+                        (vendor_onboard_id, user_id),
+                    )
+                    for r in vcur.fetchall() or []:
+                        pid = r.get("id")
+                        if pid is not None:
+                            try:
+                                profile_ids.append(int(pid))
+                            except (TypeError, ValueError):
+                                pass
+            except Exception:
+                profile_ids = []
+            if profile_ids:
+                ph = ",".join(["%s"] * len(profile_ids))
+                where.append(
+                    f"(vt.vendor_id = %s OR vt.assigned_to = %s OR vt.assigned_to IN ({ph}))"
+                )
+                params.append(user_id)
+                params.append(user_id)
+                params.extend(profile_ids)
+            else:
+                where.append("(vt.vendor_id = %s OR vt.assigned_to = %s)")
+                params.append(user_id)
+                params.append(user_id)
+        else:
+            # Non-vendor callers: legacy filter
+            where.append("vt.vendor_id = %s")
+            params.append(user_id)
     elif is_vendor_user_task:
         # Team view for vendor: no vendor_id restriction (all tasks in project)
         pass

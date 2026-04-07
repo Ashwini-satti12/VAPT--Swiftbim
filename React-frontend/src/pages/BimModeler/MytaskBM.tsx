@@ -786,6 +786,7 @@ export default function MytaskBM() {
             await api.delete(endpoint);
             setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
             setDeleteTaskId(null);
+            toast.error("Deleted successfully");
         } catch (err) {
             console.error("Error deleting task:", err);
         }
@@ -849,7 +850,7 @@ export default function MytaskBM() {
     }
 
     return (
-        <div className="h-full min-h-0 flex flex-col overflow-hidden px-4 md:px-8 py-4 bg-white">
+        <div className="h-[calc(100vh-100px)] min-h-0 flex flex-col overflow-hidden px-4 md:px-8 py-4 bg-white">
             <div className="flex-shrink-0 mb-6">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                     <h1 className="text-[24px] font-semibold text-[#000000] font-Gantari">

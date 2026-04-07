@@ -16,6 +16,8 @@ interface Task {
   projectid?: number;
   project_id?: number;
   start_date?: string;
+  /** Main `tasks` table: start date (same as Add form “Actual Start Date”) */
+  Actual_start_time?: string;
   progress?: number;
   module?: string;
   modules?: string;
@@ -23,6 +25,9 @@ interface Task {
   category?: string;
   type?: string;
   start_time?: string;
+  /** Preferred start / end times from `tasks` (Add form “Select Start/End Time”) */
+  perferstart_time?: string;
+  perferend_time?: string;
   due_time?: string;
   end_time?: string;
   assign_to?: string;
@@ -363,6 +368,53 @@ export default function MyTaskViewEV() {
   const style = STATUS_STYLE[statusDisplay];
   const taskRecord = task as unknown as Record<string, unknown>;
 
+  const displayStartDate = (): string => {
+    const raw =
+      task.start_date ??
+      task.Actual_start_time ??
+      (taskRecord.Actual_start_time as string | undefined) ??
+      (taskRecord.start_date as string | undefined);
+    return raw ? formatDateDDMMYYYY(String(raw)) : "—";
+  };
+
+  const displayStartTime = (): string =>
+    formatTimeDisplay(
+      task.perferstart_time ??
+        (taskRecord.perferstart_time as string | undefined) ??
+        task.start_time,
+    );
+
+  const displayEndTime = (): string =>
+    formatTimeDisplay(
+      task.perferend_time ??
+        (taskRecord.perferend_time as string | undefined) ??
+        task.due_time ??
+        task.end_time,
+    );
+
+  const displayType = (): string => {
+    const v = String(
+      task.type ??
+        task.category ??
+        taskRecord.category ??
+        taskRecord.type ??
+        "",
+    ).trim();
+    return v || "—";
+  };
+
+  const displayModule = (): string => {
+    const v = String(
+      task.modules_name ??
+        task.module ??
+        task.modules ??
+        taskRecord.modules_name ??
+        taskRecord.modules ??
+        "",
+    ).trim();
+    return v || "—";
+  };
+
   const resolveAssignedName = (): string => {
     if (!task) return "—";
     if (task.assigned_full_name && task.assigned_full_name.trim() !== "") {
@@ -484,31 +536,15 @@ export default function MyTaskViewEV() {
             </div>
             <div className="flex gap-2">
               <span className="text-black shrink-0 lg:whitespace-nowrap w-28">
-                Modules Name
+                Select Module
               </span>
               <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">
-                {String(
-                  taskRecord.modules_name ??
-                  task.module ??
-                  task.modules ??
-                  taskRecord.modules ??
-                  "—",
-                )}
-              </span>
+              <span className="text-[#616161]">{displayModule()}</span>
             </div>
             <div className="flex gap-2 items-center">
-              <span className="text-black shrink-0 w-28">Category</span>
+              <span className="text-black shrink-0 w-28">Type</span>
               <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">
-                {String(
-                  task.type ??
-                  task.category ??
-                  taskRecord.category ??
-                  taskRecord.type ??
-                  "—",
-                )}
-              </span>
+              <span className="text-[#616161]">{displayType()}</span>
             </div>
             <div className="flex gap-2">
               <span className="text-black shrink-0 w-28">Assigned By</span>
@@ -527,21 +563,19 @@ export default function MyTaskViewEV() {
                 Actual Start Date
               </span>
               <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">
-                {task.start_date
-                  ? formatDateDDMMYYYY(task.start_date)
-                  : "—"}
-              </span>
+              <span className="text-[#616161]">{displayStartDate()}</span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Start Time</span>
+              <span className="text-black shrink-0 w-28">
+                Select Start Time
+              </span>
               <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">
-                {formatTimeDisplay(task.start_time)}
-              </span>
+              <span className="text-[#616161]">{displayStartTime()}</span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Actual Due Date</span>
+              <span className="text-black shrink-0 w-28">
+                Actual End Date
+              </span>
               <span className="text-black shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.due_date
@@ -550,11 +584,11 @@ export default function MyTaskViewEV() {
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">End Time</span>
-              <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">
-                {formatTimeDisplay(task.due_time ?? task.end_time)}
+              <span className="text-black shrink-0 w-28">
+                Select End Time
               </span>
+              <span className="text-black shrink-0">:</span>
+              <span className="text-[#616161]">{displayEndTime()}</span>
             </div>
           </div>
 

@@ -592,6 +592,7 @@ export default function MytaskBL() {
 
             api.delete(endpoint).then(() => {
                 setList((prev) => prev.filter((t) => t.id !== deleteTask.id));
+                toast.error("Deleted successfully");
             }).finally(() => {
                 setDeleteTask(null);
             });

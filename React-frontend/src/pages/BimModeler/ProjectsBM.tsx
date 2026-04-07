@@ -33,6 +33,29 @@ const nameToId = (name: string, employeesList: Employee[]) => {
   return emp ? emp.id : undefined;
 };
 
+const decodeHtmlEntities = (value: string): string => {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = value;
+  return textarea.value;
+};
+
+const normalizeProjectDescriptionHtml = (raw?: string): string => {
+  if (!raw) return "";
+  let normalized = raw;
+  for (let i = 0; i < 2; i += 1) {
+    const decoded = decodeHtmlEntities(normalized);
+    if (decoded === normalized) break;
+    normalized = decoded;
+  }
+  return normalized;
+};
+
+const hasProjectDescriptionContent = (raw?: string): boolean => {
+  const normalized = normalizeProjectDescriptionHtml(raw);
+  const text = normalized.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/gi, " ").trim();
+  return text.length > 0;
+};
+
 // const idToName = (
 //   id: string | number | undefined,
 //   employeesList: Employee[],
@@ -627,10 +650,10 @@ export default function ProjectsBL() {
     );
   }
   return (
-    <div className="bg-white h-full flex flex-col overflow-hidden">
+    <div className="bg-white h-[calc(100vh-100px)] flex flex-col overflow-hidden">
       {/* Main Content View Switcher */}
       {showProjectView && selectedProjectForView ? (
-        <div className="flex flex-col h-full bg-white">
+        <div className="flex flex-col flex-1 min-h-0 bg-white">
           {/* Project View Header */}
           <div className="relative flex items-center justify-center px-4 md:px-6 py-2 border-b border-slate-50">
             <button
@@ -840,9 +863,18 @@ export default function ProjectsBL() {
               {/* Project Description */}
               <div className="border border-[#AEACAC52] rounded-md p-6 md:p-8 lg:p-4">
                 <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">Project Description</h4>
-                <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
-                  {selectedProjectForView.description ?? 'This project involves comprehensive BIM modeling and coordination for the selected facility, ensuring all architectural, structural, and MEP systems are perfectly aligned according to international standards.'}
-                </p>
+                {hasProjectDescriptionContent(selectedProjectForView.description) ? (
+                  <div
+                    className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] [&_*]:max-w-full [&_*]:whitespace-normal [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#DD4342] [&_a]:underline"
+                    dangerouslySetInnerHTML={{
+                      __html: normalizeProjectDescriptionHtml(selectedProjectForView.description),
+                    }}
+                  />
+                ) : (
+                  <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                    This project involves comprehensive BIM modeling and coordination for the selected facility, ensuring all architectural, structural, and MEP systems are perfectly aligned according to international standards.
+                  </p>
+                )}
               </div>
 
               {/* Team Overview Section */}
