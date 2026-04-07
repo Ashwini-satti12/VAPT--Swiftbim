@@ -460,6 +460,49 @@ export default function AddEditTaskEV() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Required field validation
+    if (!addTaskForm.projectName.trim()) {
+      toast.error("Please fill in the Project Name.");
+      return;
+    }
+    if (!addTaskForm.module.trim()) {
+      toast.error("Please fill in the Module.");
+      return;
+    }
+    if (!addTaskForm.taskName.trim()) {
+      toast.error("Please fill in the Task Name.");
+      return;
+    }
+    if (!addTaskForm.type.trim()) {
+      toast.error("Please select the Type.");
+      return;
+    }
+    if (!addTaskForm.actualStartDate.trim()) {
+      toast.error("Please fill in the Actual Start Date.");
+      return;
+    }
+    if (!addTaskForm.actualEndDate.trim()) {
+      toast.error("Please fill in the Actual End Date.");
+      return;
+    }
+    if (!addTaskForm.startTime.trim()) {
+      toast.error("Please fill in the Start Time.");
+      return;
+    }
+    if (!addTaskForm.dueTime.trim()) {
+      toast.error("Please fill in the End Time.");
+      return;
+    }
+    if (!addTaskForm.assignTo.trim()) {
+      toast.error("Please fill in the Assign To field.");
+      return;
+    }
+    if (!addTaskForm.description.trim()) {
+      toast.error("Please fill in the Description.");
+      return;
+    }
+
     if (
       addTaskForm.actualStartDate &&
       addTaskForm.actualStartDate < todayInputDate
@@ -594,6 +637,7 @@ export default function AddEditTaskEV() {
           <div className="sm:col-span-2">
             <label className="block text-[16px] font-medium text-[#353535] mb-1">
               Project Name
+              <span className="text-red-500">*</span>
             </label>
             <FormDropdown
               label="Select Project name"
@@ -602,6 +646,7 @@ export default function AddEditTaskEV() {
                 ...projects.map((p) => ({
                   value: p.project_name,
                   label: p.project_name,
+                  required: true,
                 })),
               ]}
               value={addTaskForm.projectName}
@@ -625,6 +670,7 @@ export default function AddEditTaskEV() {
           <div>
             <label className="block text-[16px] font-medium text-[#353535] mb-1">
               Select Module
+              <span className="text-red-500">*</span>
             </label>
             <FormDropdown
               label="Select Module"
@@ -633,6 +679,7 @@ export default function AddEditTaskEV() {
                 ...dynamicModuleOptions.map((m) => ({
                   value: m,
                   label: m,
+                  required: true,
                 })),
               ]}
               value={addTaskForm.module}
@@ -652,6 +699,7 @@ export default function AddEditTaskEV() {
           <div>
             <label className="block text-[16px] font-medium text-[#353535] mb-1">
               Task Name
+              <span className="text-red-500">*</span>
             </label>
             <div className="flex">
               <input
@@ -661,6 +709,7 @@ export default function AddEditTaskEV() {
                   setAddTaskForm((f) => ({
                     ...f,
                     taskName: e.target.value,
+                    required: true,
                   }))
                 }
                 placeholder="Enter Task / Select Task"
@@ -681,6 +730,7 @@ export default function AddEditTaskEV() {
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
                 Type
+                <span className="text-red-500">*</span>
               </label>
               <FormDropdown
                 label="Select Type"
@@ -689,6 +739,7 @@ export default function AddEditTaskEV() {
                   { value: "task", label: "Task" },
                   { value: "bug", label: "Bug" },
                   { value: "feature", label: "Feature" },
+                  { value: "other", label: "Other" },
                 ]}
                 value={addTaskForm.type}
                 onChange={(v) =>
@@ -706,6 +757,7 @@ export default function AddEditTaskEV() {
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
                 Actual Start Date
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
@@ -721,12 +773,13 @@ export default function AddEditTaskEV() {
                     return next;
                   });
                 }}
-                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
+                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none required"
               />
             </div>
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
                 Actual End Date
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
@@ -738,7 +791,7 @@ export default function AddEditTaskEV() {
                     actualEndDate: e.target.value,
                   }))
                 }
-                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
+                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none required"
               />
             </div>
           </div>
@@ -746,6 +799,7 @@ export default function AddEditTaskEV() {
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
                 Select Start Time
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="time"
@@ -764,12 +818,13 @@ export default function AddEditTaskEV() {
                     return next;
                   });
                 }}
-                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
+                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none required"
               />
             </div>
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
                 Select End Time
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="time"
@@ -785,12 +840,13 @@ export default function AddEditTaskEV() {
                     dueTime: e.target.value,
                   }))
                 }
-                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
+                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none required"
               />
             </div>
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
                 Assign To
+                <span className="text-red-500">*</span>
               </label>
               <FormDropdown
                 label="Select Assign To"
@@ -825,6 +881,7 @@ export default function AddEditTaskEV() {
           <div className="sm:col-span-2">
             <label className="block text-[16px] font-medium text-[#353535] mb-1">
               Description
+              <span className="text-red-500">*</span>
             </label>
             <textarea
               value={addTaskForm.description}
@@ -836,7 +893,7 @@ export default function AddEditTaskEV() {
               }
               placeholder="Enter Description..."
               rows={3}
-              className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
+              className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none required"
             />
           </div>
           <div className="sm:col-span-2">
