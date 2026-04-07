@@ -289,6 +289,7 @@ export default function AddEditTaskEV() {
   const listBasePath = pathname.includes("/ve/teamtasks")
     ? "/ve/teamtasks"
     : "/ve/mytasks";
+  const isTeamTasksRoute = listBasePath === "/ve/teamtasks";
 
   const goBackToList = () => {
     navigate(`${listBasePath}${listQs}`);
@@ -349,6 +350,13 @@ export default function AddEditTaskEV() {
   useEffect(() => {
     if (!isEdit || editingTaskId == null || loadingMeta) return;
 
+    if (
+      fetchedTaskForEditRef.current &&
+      fetchedTaskForEditRef.current.id !== editingTaskId
+    ) {
+      fetchedTaskForEditRef.current = null;
+    }
+
     const fromNav = initialTaskFromNav.current;
     if (fromNav && fromNav.id === editingTaskId) {
       setAddTaskForm(buildFormFromTask(fromNav, employees));
@@ -358,11 +366,15 @@ export default function AddEditTaskEV() {
 
     if (!fetchedTaskForEditRef.current) {
       setFormReady(false);
+      const detailUrl = isTeamTasksRoute
+        ? `/api/vendors/vendor-tasks/${editingTaskId}`
+        : `/api/tasks/${editingTaskId}`;
       api
-        .get(`/api/tasks/${editingTaskId}`)
+        .get(detailUrl)
         .then((res) => {
-          const raw =
-            (res.data as { task?: Task })?.task ?? (res.data as Task);
+          const raw = isTeamTasksRoute
+            ? (res.data as Task)
+            : ((res.data as { task?: Task })?.task ?? (res.data as Task));
           if (raw && typeof (raw as Task).id === "number") {
             fetchedTaskForEditRef.current = raw as Task;
             setAddTaskForm(
@@ -381,7 +393,7 @@ export default function AddEditTaskEV() {
       buildFormFromTask(fetchedTaskForEditRef.current, employees),
     );
     setFormReady(true);
-  }, [isEdit, editingTaskId, loadingMeta, employees]);
+  }, [isEdit, editingTaskId, loadingMeta, employees, isTeamTasksRoute]);
 
   useEffect(() => {
     if (openFormDropdown === null) return;
@@ -460,6 +472,49 @@ export default function AddEditTaskEV() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Required field validation
+    if (!addTaskForm.projectName.trim()) {
+      toast.error("Please fill in the Project Name.");
+      return;
+    }
+    if (!addTaskForm.module.trim()) {
+      toast.error("Please fill in the Module.");
+      return;
+    }
+    if (!addTaskForm.taskName.trim()) {
+      toast.error("Please fill in the Task Name.");
+      return;
+    }
+    if (!addTaskForm.type.trim()) {
+      toast.error("Please select the Type.");
+      return;
+    }
+    if (!addTaskForm.actualStartDate.trim()) {
+      toast.error("Please fill in the Actual Start Date.");
+      return;
+    }
+    if (!addTaskForm.actualEndDate.trim()) {
+      toast.error("Please fill in the Actual End Date.");
+      return;
+    }
+    if (!addTaskForm.startTime.trim()) {
+      toast.error("Please fill in the Start Time.");
+      return;
+    }
+    if (!addTaskForm.dueTime.trim()) {
+      toast.error("Please fill in the End Time.");
+      return;
+    }
+    if (!addTaskForm.assignTo.trim()) {
+      toast.error("Please fill in the Assign To field.");
+      return;
+    }
+    if (!addTaskForm.description.trim()) {
+      toast.error("Please fill in the Description.");
+      return;
+    }
+
     if (
       addTaskForm.actualStartDate &&
       addTaskForm.actualStartDate < todayInputDate
@@ -517,32 +572,74 @@ export default function AddEditTaskEV() {
       if (attachmentFiles.length > 0) {
         const formData = new FormData();
         attachmentFiles.forEach((f) => formData.append("image", f));
-        api.post(`/api/tasks/${taskId}/output-files`, formData, {
+        const base = isTeamTasksRoute
+          ? `/api/vendors/vendor-tasks/${taskId}/output-files`
+          : `/api/tasks/${taskId}/output-files`;
+        api.post(base, formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
       }
     };
 
     if (isEdit && editingTaskId != null) {
+      if (isTeamTasksRoute) {
+        api
+          .patch(`/api/vendors/vendor-tasks/${editingTaskId}`, {
+            task_name: addTaskForm.taskName,
+            assigned_to: assignedToVal,
+            project_id: projectId ?? undefined,
+            due_date: addTaskForm.actualEndDate || undefined,
+            start_date: addTaskForm.actualStartDate || undefined,
+            start_time: addTaskForm.startTime || undefined,
+            end_time: addTaskForm.dueTime || undefined,
+            category: addTaskForm.type,
+            modules: addTaskForm.module,
+            description: addTaskForm.description,
+            checklist: addTaskForm.checklist,
+          })
+          .then(() => {
+            handleFiles(editingTaskId);
+            goBackToList();
+          })
+          .catch(() => {
+            toast.error("Failed to update task");
+          });
+      } else {
+        api
+          .patch(`/api/tasks/${editingTaskId}`, {
+            task_name: addTaskForm.taskName,
+            assigned_to: assignedToVal,
+            due_date: addTaskForm.actualEndDate || undefined,
+            category: addTaskForm.type,
+            description: addTaskForm.description,
+            checklist: addTaskForm.checklist,
+            modules_name: addTaskForm.module,
+            Actual_start_time: addTaskForm.actualStartDate || undefined,
+            perferstart_time: addTaskForm.startTime || undefined,
+            perferend_time: addTaskForm.dueTime || undefined,
+          })
+          .then(() => {
+            handleFiles(editingTaskId);
+            goBackToList();
+          })
+          .catch(() => {
+            toast.error("Failed to update task");
+          });
+      }
+    } else if (isTeamTasksRoute) {
       api
-        .patch(`/api/tasks/${editingTaskId}`, {
-          task_name: addTaskForm.taskName,
-          assigned_to: assignedToVal,
-          due_date: addTaskForm.actualEndDate || undefined,
-          category: addTaskForm.type,
-          description: addTaskForm.description,
-          checklist: addTaskForm.checklist,
-          modules_name: addTaskForm.module,
-          Actual_start_time: addTaskForm.actualStartDate || undefined,
-          perferstart_time: addTaskForm.startTime || undefined,
-          perferend_time: addTaskForm.dueTime || undefined,
-        })
-        .then(() => {
-          handleFiles(editingTaskId);
-          goBackToList();
+        .post("/api/vendors/vendor-tasks", payload)
+        .then((res) => {
+          const taskId = res.data?.task_id ?? res.data?.id;
+          if (res.data?.success && taskId != null) {
+            handleFiles(taskId);
+            goBackToList();
+          } else {
+            toast.error("Could not create task");
+          }
         })
         .catch(() => {
-          toast.error("Failed to update task");
+          toast.error("Failed to create task");
         });
     } else {
       api
@@ -594,6 +691,7 @@ export default function AddEditTaskEV() {
           <div className="sm:col-span-2">
             <label className="block text-[16px] font-medium text-[#353535] mb-1">
               Project Name
+              <span className="text-red-500">*</span>
             </label>
             <FormDropdown
               label="Select Project name"
@@ -602,6 +700,7 @@ export default function AddEditTaskEV() {
                 ...projects.map((p) => ({
                   value: p.project_name,
                   label: p.project_name,
+                  required: true,
                 })),
               ]}
               value={addTaskForm.projectName}
@@ -625,6 +724,7 @@ export default function AddEditTaskEV() {
           <div>
             <label className="block text-[16px] font-medium text-[#353535] mb-1">
               Select Module
+              <span className="text-red-500">*</span>
             </label>
             <FormDropdown
               label="Select Module"
@@ -633,6 +733,7 @@ export default function AddEditTaskEV() {
                 ...dynamicModuleOptions.map((m) => ({
                   value: m,
                   label: m,
+                  required: true,
                 })),
               ]}
               value={addTaskForm.module}
@@ -652,6 +753,7 @@ export default function AddEditTaskEV() {
           <div>
             <label className="block text-[16px] font-medium text-[#353535] mb-1">
               Task Name
+              <span className="text-red-500">*</span>
             </label>
             <div className="flex">
               <input
@@ -661,6 +763,7 @@ export default function AddEditTaskEV() {
                   setAddTaskForm((f) => ({
                     ...f,
                     taskName: e.target.value,
+                    required: true,
                   }))
                 }
                 placeholder="Enter Task / Select Task"
@@ -681,6 +784,7 @@ export default function AddEditTaskEV() {
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
                 Type
+                <span className="text-red-500">*</span>
               </label>
               <FormDropdown
                 label="Select Type"
@@ -689,6 +793,7 @@ export default function AddEditTaskEV() {
                   { value: "task", label: "Task" },
                   { value: "bug", label: "Bug" },
                   { value: "feature", label: "Feature" },
+                  { value: "other", label: "Other" },
                 ]}
                 value={addTaskForm.type}
                 onChange={(v) =>
@@ -706,6 +811,7 @@ export default function AddEditTaskEV() {
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
                 Actual Start Date
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
@@ -721,12 +827,13 @@ export default function AddEditTaskEV() {
                     return next;
                   });
                 }}
-                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
+                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none required"
               />
             </div>
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
                 Actual End Date
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
@@ -738,7 +845,7 @@ export default function AddEditTaskEV() {
                     actualEndDate: e.target.value,
                   }))
                 }
-                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
+                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none required"
               />
             </div>
           </div>
@@ -746,6 +853,7 @@ export default function AddEditTaskEV() {
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
                 Select Start Time
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="time"
@@ -764,12 +872,13 @@ export default function AddEditTaskEV() {
                     return next;
                   });
                 }}
-                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
+                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none required"
               />
             </div>
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
                 Select End Time
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="time"
@@ -785,12 +894,13 @@ export default function AddEditTaskEV() {
                     dueTime: e.target.value,
                   }))
                 }
-                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
+                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none required"
               />
             </div>
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
                 Assign To
+                <span className="text-red-500">*</span>
               </label>
               <FormDropdown
                 label="Select Assign To"
@@ -825,6 +935,7 @@ export default function AddEditTaskEV() {
           <div className="sm:col-span-2">
             <label className="block text-[16px] font-medium text-[#353535] mb-1">
               Description
+              <span className="text-red-500">*</span>
             </label>
             <textarea
               value={addTaskForm.description}
@@ -836,7 +947,7 @@ export default function AddEditTaskEV() {
               }
               placeholder="Enter Description..."
               rows={3}
-              className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
+              className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none required"
             />
           </div>
           <div className="sm:col-span-2">

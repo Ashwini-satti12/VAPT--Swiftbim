@@ -231,6 +231,17 @@ const getProfileUrl = (path: string | undefined): string => {
     return `${apiBaseUrl}${urlPath}`;
 };
 
+function toApiTaskStatusParam(
+    statusFilter: string | null | undefined,
+): string | undefined {
+    if (!statusFilter) return undefined;
+    const s = statusFilter.toLowerCase().trim();
+    if (s === "in_progress" || s === "inprogress") return "InProgress";
+    if (s === "completed" || s === "complete" || s === "done") return "Completed";
+    if (s === "todo" || s === "to_do" || s === "to-do") return "Todo";
+    return statusFilter;
+}
+
 function normalizeStatus(
     s: string | undefined,
     approval?: string,
@@ -693,14 +704,17 @@ export default function TeamtaskEV() {
 
     useEffect(() => {
         const params: Record<string, string> = {};
-        if (statusFilter) params.status = statusFilter;
+        const apiStatus = toApiTaskStatusParam(statusFilter);
+        if (apiStatus) params.status = apiStatus;
         if (isTeam) {
             params.condition = "1";
             params.employeeid = "all";
         }
 
+        // Vendor employee team board uses vendor_task (same as TeamtaskV). /api/tasks omits
+        // outsource-linked projects, so tasks added from /ve/teamtasks/add would not appear.
         Promise.all([
-            api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params }),
             api.get<{ success?: boolean; resources?: Employee[] }>(
                 "/api/vendors/vendor-resource-profiles",
             ),
