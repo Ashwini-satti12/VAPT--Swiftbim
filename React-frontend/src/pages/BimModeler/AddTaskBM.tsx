@@ -124,7 +124,7 @@ export default function AddTaskBM() {
                 project_name: String(r.project_name || ""),
                 tasks: String(r.tasks || ""),
                 modules: String(r.modules || ""),
-                source: String(r.source || defaultSource),
+                source: (r.source || defaultSource) as "Outsource" | "In House",
                 project_manager_name: String(r.project_manager_name || ""),
                 lead_name: String(r.lead_name || ""),
                 bim_coordinator_name: String(r.bim_coordinator_name || ""),
