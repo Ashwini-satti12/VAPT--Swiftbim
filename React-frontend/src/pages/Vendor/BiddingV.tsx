@@ -38,6 +38,7 @@ type Bid = {
 
 type BidFormState = {
   bid_amount: string;
+  currency: string;
   notes: string;
   timeline: string;
   team_size: string;
@@ -45,6 +46,7 @@ type BidFormState = {
 
 const EMPTY_BID_FORM: BidFormState = {
   bid_amount: "",
+  currency: "INR",
   notes: "",
   timeline: "",
   team_size: "",
@@ -95,12 +97,43 @@ function getInitials(name: string) {
   );
 }
 
-function formatBudget(amount: number) {
+const CURRENCIES = [
+  { code: "INR", symbol: "₹", label: "Indian Rupee" },
+  { code: "USD", symbol: "$", label: "US Dollar" },
+  { code: "EUR", symbol: "€", label: "Euro" },
+  { code: "GBP", symbol: "£", label: "British Pound" },
+  { code: "AED", symbol: "DH", label: "UAE Dirham" },
+  { code: "SAR", symbol: "SR", label: "Saudi Riyal" },
+  { code: "QAR", symbol: "QR", label: "Qatari Riyal" },
+  { code: "OMR", symbol: "RO", label: "Omani Rial" },
+  { code: "BHD", symbol: "BD", label: "Bahraini Dinar" },
+  { code: "KWD", symbol: "KD", label: "Kuwaiti Dinar" },
+  { code: "SGD", symbol: "S$", label: "Singapore Dollar" },
+  { code: "AUD", symbol: "A$", label: "Australian Dollar" },
+  { code: "CAD", symbol: "C$", label: "Canadian Dollar" },
+  { code: "JPY", symbol: "¥", label: "Japanese Yen" },
+  { code: "CNY", symbol: "¥", label: "Chinese Yuan" },
+  { code: "MYR", symbol: "RM", label: "Malaysian Ringgit" },
+  { code: "THB", symbol: "฿", label: "Thai Baht" },
+  { code: "IDR", symbol: "Rp", label: "Indonesian Rupiah" },
+];
+
+function formatBudget(amount: number, currencyCode: string = "INR") {
   if (!amount) return "—";
-  if (amount >= 10000000) return `₹ ${(amount / 10000000).toFixed(1)} Cr`;
-  if (amount >= 100000) return `₹ ${(amount / 100000).toFixed(1)} L`;
-  if (amount >= 1000) return `₹ ${(amount / 1000).toFixed(0)}K`;
-  return `₹ ${amount}`;
+  
+  if (currencyCode === "INR") {
+    if (amount >= 10000000) return `₹ ${(amount / 10000000).toFixed(1)} Cr`;
+    if (amount >= 100000) return `₹ ${(amount / 100000).toFixed(1)} L`;
+    if (amount >= 1000) return `₹ ${(amount / 1000).toFixed(0)}K`;
+    return `₹ ${amount.toLocaleString("en-IN")}`;
+  }
+  
+  const symbol = CURRENCIES.find(c => c.code === currencyCode)?.symbol || currencyCode;
+  
+  if (amount >= 1000000) return `${symbol} ${(amount / 1000000).toFixed(1)}M`;
+  if (amount >= 1000) return `${symbol} ${(amount / 1000).toFixed(1)}K`;
+  
+  return `${symbol} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
 /** Budget from API (number or string with commas / ₹). */
@@ -139,8 +172,8 @@ function maxBidAmountForOpportunity(opp: Opportunity): number | null {
   return Math.min(...caps);
 }
 
-function bidTooHighMessage(maxInr: number): string {
-  return `Your bid amount is too high. It cannot exceed ${formatBudget(maxInr)} for this opportunity.`;
+function bidTooHighMessage(maxVal: number, currency: string = "INR"): string {
+  return `Your bid amount is too high. It cannot exceed ${formatBudget(maxVal, currency)} for this opportunity.`;
 }
 
 function extractApiErrorMessage(err: unknown): string | null {
@@ -198,6 +231,7 @@ export default function BiddingV() {
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [showEntries, setShowEntries] = useState("show");
   const [showDropdownOpen, setShowDropdownOpen] = useState(false);
+  const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -255,12 +289,13 @@ export default function BiddingV() {
     setBidError(null);
     setBidAmountError(null);
     setBidForm({ ...EMPTY_BID_FORM });
+    setCurrencyDropdownOpen(false);
   };
 
   const openSubmitBidModal = (opp: Opportunity) => {
     setBidError(null);
     setBidAmountError(null);
-    setBidForm({ ...EMPTY_BID_FORM });
+    setBidForm({ ...EMPTY_BID_FORM, currency: opp.currency || "INR" });
     setSelectedOpp(opp);
   };
 
@@ -280,7 +315,7 @@ export default function BiddingV() {
     const maxBid = maxBidAmountForOpportunity(selectedOpp);
     if (maxBid != null && amount > maxBid) {
       setBidError(null);
-      setBidAmountError(bidTooHighMessage(maxBid));
+      setBidAmountError(bidTooHighMessage(maxBid, bidForm.currency));
       return;
     }
     setBidSubmitting(true);
@@ -289,6 +324,7 @@ export default function BiddingV() {
     try {
       await api.post(`/api/vendors/opportunities/${selectedOpp.id}/bid`, {
         bid_amount: amount,
+        selected_currency: bidForm.currency,
         notes: bidForm.notes,
         timeline: bidForm.timeline,
         team_size: Number(bidForm.team_size) || 0,
@@ -474,6 +510,7 @@ export default function BiddingV() {
                         parseBudgetNumeric(detailOpp.budget_ceiling) ??
                         parseBudgetNumeric(detailOpp.outsource_budget) ??
                         0,
+                        detailOpp.currency
                       )}
                     </span>
                   </div>
@@ -643,8 +680,8 @@ export default function BiddingV() {
                     <span className="text-[#8B8B8B] text-[14px] font-medium font-gantari uppercase tracking-wider">
                       Your Submitted Bid
                     </span>
-                    <span className="text-[24px] font-bold text-[#DE3D3A] font-gantari">
-                      {formatBudget(detailBid.bid_amount)}
+                    <span className="text-[24px] font-medium text-[#353535] font-gantari">
+                      {formatBudget(detailBid.bid_amount, detailBid.currency)}
                     </span>
                   </div>
                   <div className="flex flex-col gap-1 p-4 border-[1.5px] border-[#F2F2F2] rounded-md">
@@ -652,7 +689,7 @@ export default function BiddingV() {
                       Project Budget Ceiling
                     </span>
                     <span className="text-[24px] font-bold text-[#353535] font-gantari">
-                      {formatBudget(detailBid.outsource_budget || 0)}
+                      {formatBudget(detailBid.outsource_budget || 0, detailBid.currency)}
                     </span>
                   </div>
                 </div>
@@ -1027,6 +1064,7 @@ export default function BiddingV() {
                               parseBudgetNumeric(opp.budget_ceiling) ??
                               parseBudgetNumeric(opp.outsource_budget) ??
                               0,
+                              opp.currency
                             )}
                           </p>
                           {opp.bids_count !== undefined && (
@@ -1168,10 +1206,10 @@ export default function BiddingV() {
                           </p>
                         </td>
                         <td className="px-4 py-6 text-center text-[14px] font-medium text-[#DE3D3A] font-gantari whitespace-nowrap">
-                          {formatBudget(bid.bid_amount)}
+                          {formatBudget(bid.bid_amount, bid.currency)}
                         </td>
                         <td className="px-4 py-6 text-center text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
-                          {formatBudget(bid.outsource_budget || 0)}
+                          {formatBudget(bid.outsource_budget || 0, bid.currency)}
                         </td>
                         <td className="px-4 py-6 text-center text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
                           {bid.created_at
@@ -1229,38 +1267,84 @@ export default function BiddingV() {
               <span className="font-bold">{selectedOpp.project_name}</span>
             </p>
             <div className="flex flex-col gap-4">
-              <div>
-                <label className="block text-[16px] font-medium text-[#353535] mb-2 font-gantari">
-                  Bid Amount (INR) <span className="text-[#DE3D3A]">*</span>
-                </label>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  value={bidForm.bid_amount}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setBidForm((f) => ({ ...f, bid_amount: v }));
-                    setBidError(null);
-                    const max = maxBidAmountForOpportunity(selectedOpp);
-                    const n = parseBidAmountInput(v);
-                    if (max != null && n != null && n > max) {
-                      setBidAmountError(bidTooHighMessage(max));
-                    } else {
-                      setBidAmountError(null);
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="relative">
+                  <label className="block text-[16px] font-medium text-[#353535] mb-2 font-gantari">
+                    Currency <span className="text-[#DE3D3A]">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
+                    className="w-full rounded-md px-4 py-2.5 text-[14px] text-[#353535] bg-[#F2F3F4] focus:ring-1 focus:ring-[#AEACAC52] outline-none border-none flex items-center justify-between cursor-pointer"
+                  >
+                    <span>
+                      {CURRENCIES.find((c) => c.code === bidForm.currency)?.label} ({bidForm.currency})
+                    </span>
+                    <img
+                      src={ArrowDown}
+                      alt="arrow-down"
+                      className={`w-4 h-4 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+
+                  {currencyDropdownOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-[110]"
+                        onClick={() => setCurrencyDropdownOpen(false)}
+                      />
+                      <div className="absolute top-full left-0 mt-1 w-full bg-white border border-[#E5E5E5] rounded-xl shadow-2xl z-[120] py-1 max-h-[250px] overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-1 duration-200">
+                        {CURRENCIES.map((c) => (
+                          <button
+                            key={c.code}
+                            type="button"
+                            onClick={() => {
+                              setBidForm((f) => ({ ...f, currency: c.code }));
+                              setCurrencyDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 text-[14px] transition-all font-gantari hover:bg-[#F2F2F2] ${bidForm.currency === c.code ? "bg-[#F2F2F2] text-[#353535] font-bold" : "text-[#8B8B8B] font-medium hover:text-[#353535]"}`}
+                          >
+                            {c.label} ({c.code})
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-[16px] font-medium text-[#353535] mb-2 font-gantari">
+                    Bid Amount <span className="text-[#DE3D3A]">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={bidForm.bid_amount}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setBidForm((f) => ({ ...f, bid_amount: v }));
+                      setBidError(null);
+                      const max = maxBidAmountForOpportunity(selectedOpp);
+                      const n = parseBidAmountInput(v);
+                      if (max != null && n != null && n > max) {
+                        setBidAmountError(bidTooHighMessage(max, bidForm.currency));
+                      } else {
+                        setBidAmountError(null);
+                      }
+                    }}
+                    className={`w-full rounded-md px-4 py-2.5 text-[14px] text-[#353535] bg-[#F2F3F4] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-1 focus:ring-[#AEACAC52] outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${bidAmountError
+                        ? "ring-2 ring-[#DE3D3A] bg-[#FFF8F8]"
+                        : ""
+                      }`}
+                    placeholder="0.00"
+                    min={0}
+                    step="0.01"
+                    aria-invalid={bidAmountError ? true : undefined}
+                    aria-describedby={
+                      bidAmountError ? "bid-amount-error" : undefined
                     }
-                  }}
-                  className={`w-full rounded-md px-4 py-2.5 text-[14px] text-[#353535] bg-[#F2F3F4] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-2 focus:ring-[#AEACAC52] outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${bidAmountError
-                      ? "ring-2 ring-[#DE3D3A] bg-[#FFF8F8]"
-                      : ""
-                    }`}
-                  placeholder="0.00"
-                  min={0}
-                  step="0.01"
-                  aria-invalid={bidAmountError ? true : undefined}
-                  aria-describedby={
-                    bidAmountError ? "bid-amount-error" : undefined
-                  }
-                />
+                  />
+                </div>
+              </div>
                 {bidAmountError && (
                   <p
                     id="bid-amount-error"
@@ -1272,10 +1356,10 @@ export default function BiddingV() {
                 {!bidAmountError && submitModalMaxBid != null && (
                   <p className="mt-1.5 text-[14px] font-gantari text-[#666666]">
                     Maximum bid for this opportunity:{" "}
-                    {formatBudget(submitModalMaxBid)}
+                    {formatBudget(submitModalMaxBid, bidForm.currency)}
                   </p>
                 )}
-              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[16px] font-medium text-[#353535] mb-2 font-gantari">
@@ -1287,7 +1371,7 @@ export default function BiddingV() {
                     onChange={(e) =>
                       setBidForm((f) => ({ ...f, timeline: e.target.value }))
                     }
-                    className="w-full bg-[#F2F3F4] border-none rounded-md px-4 py-2.5 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-2 focus:ring-[#AEACAC52] outline-none"
+                    className="w-full bg-[#F2F3F4] border-none rounded-md px-4 py-2.5 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-1 focus:ring-[#AEACAC52] outline-none"
                     placeholder="e.g. 2 months"
                   />
                 </div>
@@ -1301,7 +1385,7 @@ export default function BiddingV() {
                     onChange={(e) =>
                       setBidForm((f) => ({ ...f, team_size: e.target.value }))
                     }
-                    className="w-full bg-[#F2F3F4] border-none rounded-md px-4 py-2.5 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-2 focus:ring-[#AEACAC52] outline-none"
+                    className="w-full bg-[#F2F3F4] border-none rounded-md px-4 py-2.5 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-1 focus:ring-[#AEACAC52] outline-none"
                     placeholder="0"
                   />
                 </div>
@@ -1316,7 +1400,7 @@ export default function BiddingV() {
                     setBidForm((f) => ({ ...f, notes: e.target.value }))
                   }
                   rows={3}
-                  className="w-full bg-[#F2F3F4] border-none rounded-md px-4 py-2.5 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-2 focus:ring-[#AEACAC52] outline-none resize-none"
+                  className="w-full bg-[#F2F3F4] border-none rounded-md px-4 py-2.5 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-1 focus:ring-[#AEACAC52] outline-none resize-none"
                   placeholder="Highlight your expertise..."
                 />
               </div>
