@@ -604,6 +604,12 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
     }
 
     if (normalizedCurrent === normalizedTarget) return true;
+
+    // Special case for Technical Director Proposals
+    if (name === "Proposal" && normalizedTarget === "/td/manage-proposal") {
+      const proposalSubRoutes = ["/td/proposals", "/td/create-proposal", "/td/view-proposal"];
+      if (proposalSubRoutes.includes(normalizedCurrent)) return true;
+    }
     
     // Special case for dashboard matching
     if (name === 'Dashboard' && (normalizedCurrent === '/dashboard' || normalizedCurrent === '')) return true;
@@ -615,9 +621,9 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
   };
 
   return (
-    <div className="w-66 flex flex-col gap-4 sticky h-[calc(100vh-100px)] px-4">
-      {/* Navigation Items Container */}
-      <nav className="flex-1 flex flex-col bg-transparent backdrop-blur-sm rounded-2xl border border-[rgba(89,89,89,0.2)] overflow-hidden">
+    <div className="w-full lg:w-66 flex flex-col gap-4 sticky lg:h-[calc(100vh-100px)] h-[calc(100vh-32px)] px-3 sm:px-4 py-4 lg:py-0">
+      {/* Navigation Items Container - Glass Effect on Responsive */}
+      <nav className="flex-1 flex flex-col lg:bg-transparent bg-[#FFFFFF]/70 backdrop-blur-xl lg:backdrop-blur-sm rounded-lg lg:rounded-lg border border-white/40 lg:border-[rgba(89,89,89,0.2)] overflow-hidden shadow-2xl lg:shadow-none transition-all duration-300">
         <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4 space-y-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
           {navItems.map((item) => {
             const active = isActive(item.path, item.name);
@@ -629,9 +635,9 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
                 type="button"
                 onClick={() => handleNavClick(item.path)}
                 disabled={isNavigating}
-                className={`w-full flex items-center gap-3 px-4 py-2 rounded-md transition-all duration-200 font-medium cursor-pointer ${active
-                  ? "bg-[#DD4342] text-white shadow-lg active-scale-95"
-                  : "text-slate-700 hover:bg-white/20 hover:text-black"
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-md lg:rounded-md transition-all duration-200 font-medium cursor-pointer ${active
+                  ? "bg-[#DD4342] text-white shadow-lg active-scale-95 scale-[1.02]"
+                  : "text-slate-700 hover:bg-white/40 lg:hover:bg-white/20 hover:text-black"
                   } ${isNavigating ? "opacity-90" : ""}`}
               >
                 {isNavigating ? (
@@ -654,12 +660,12 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
         </div>
       </nav>
 
-      {/* Log Out Button Container */}
+      {/* Log Out Button Container - Consistent Glass Effect */}
       <div className="mt-auto">
         <button
           type="button"
           onClick={() => setShowLogoutModal(true)}
-          className="flex w-full bg-transparent backdrop-blur-md items-center font-semibold font-gantari justify-center gap-3 px-4 py-3 rounded-lg border border-[rgba(89,89,89,0.2)] text-[#E00100] transition-all shadow-lg active:scale-95 cursor-pointer"
+          className="flex w-full lg:bg-transparent bg-[#FFFFFF]/70 backdrop-blur-xl lg:backdrop-blur-md items-center font-semibold font-gantari justify-center gap-3 px-4 py-3.5 rounded-lg lg:rounded-lg border border-white/40 lg:border-[rgba(89,89,89,0.2)] text-[#E00100] transition-all shadow-xl lg:shadow-lg active:scale-95 cursor-pointer hover:bg-white/90 lg:hover:bg-transparent"
         >
           <ArrowRightOnRectangleIcon className="w-6 h-6 text-[#E00100]" />
           <span>Log Out</span>

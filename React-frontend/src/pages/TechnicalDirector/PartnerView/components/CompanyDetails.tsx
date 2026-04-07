@@ -46,7 +46,7 @@ const CompanyDetails = ({ vendor, editable = false, onChange }: Props) => {
 
   return (
     <div className="animate-fade-in">
-      <div className="grid grid-cols-2 gap-x-12 gap-y-8 max-w-4xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 max-w-4xl">
         <div>
           <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">
             Company Name
