@@ -1161,7 +1161,7 @@ export default function TeamtaskBL() {
 
     return (
         <div className="flex flex-col h-full bg-white overflow-hidden">
-            <div className="bg-white px-4 sm:px-6 pb-4 border-b border-[#F0F0F0] shrink-0 z-10 pt-2">
+            <div className="bg-white px-4 sm:px-6 pb-4 shrink-0 z-10 pt-2">
                 {/* Top row: title + Filters + Add task */}
                 <div className="max-w-full mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div className="flex items-center justify-between gap-4 w-full lg:w-auto">

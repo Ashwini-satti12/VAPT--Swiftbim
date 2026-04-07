@@ -749,7 +749,7 @@ export default function MytaskBL() {
     return (
         <div className="h-full flex flex-col overflow-hidden bg-white pt-2">
             {/* Header Section (Title & Filters) - Stays fixed due to flex-col */}
-            <div className="bg-white px-4 sm:px-6 pb-4 border-b border-[#F0F0F0] shrink-0 z-10">
+            <div className="bg-white px-4 sm:px-6 pb-4 shrink-0 z-10">
                 <div className="max-w-full mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     {/* Row 1: Title and Mobile/Tablet Add Task Button */}
                     <div className="flex items-center justify-between gap-4 w-full lg:w-auto">
