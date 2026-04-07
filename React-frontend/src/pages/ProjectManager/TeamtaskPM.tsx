@@ -489,7 +489,16 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
   const str = (v: unknown) => (v != null ? String(v) : "");
   const dateOnly = (v: unknown) => {
     if (v == null) return "";
-    const s = str(v);
+    const s = str(v).trim();
+    if (!s) return "";
+    // Expected by <input type="date">: YYYY-MM-DD
+    // Backend/old UI sometimes stores DD-MM-YYYY or DD/MM/YYYY; normalize.
+    const isoMatch = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+    const dmyDash = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (dmyDash) return `${dmyDash[3]}-${dmyDash[2]}-${dmyDash[1]}`;
+    const dmySlash = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (dmySlash) return `${dmySlash[3]}-${dmySlash[2]}-${dmySlash[1]}`;
     if (s.length >= 10) return s.slice(0, 10);
     return s;
   };
@@ -509,9 +518,22 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
     ),
     actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
     startTime: timeOnly(
-      t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
+      t.perferstart_time ??
+        t.perferStartTime ??
+        t.start_time ??
+        t.startTime ??
+        t.Actual_start_time ??
+        "",
     ),
-    dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
+    dueTime: timeOnly(
+      t.perferend_time ??
+        t.perferEndTime ??
+        t.due_time ??
+        t.dueTime ??
+        t.end_time ??
+        t.endTime ??
+        "",
+    ),
     assignTo: str(t.assigned_full_name ?? t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
     description: str(t.description ?? ""),
     checklist: str(t.checklist ?? ""),

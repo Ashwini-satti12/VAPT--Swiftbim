@@ -571,7 +571,7 @@ export default function ManageLeave() {
         }));
         setLeaves(mapped);
       }
-      toast.success("Deleted successfully");
+      toast.error("Deleted successfully");
       setDeleteLeave(null);
     } catch (err) {
       console.error("Failed to delete leave (BIM Modeler):", err);

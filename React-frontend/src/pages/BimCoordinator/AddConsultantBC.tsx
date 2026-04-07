@@ -82,6 +82,8 @@ export default function AddConsultantBC() {
     dob: '',
     type: '',
     joining_date: '',
+    salary: '',
+    accountnumber: '',
     profile_picture: null as File | null,
     active: 'Active',
   });
@@ -200,6 +202,8 @@ export default function AddConsultantBC() {
     if (form.type) formData.append('user_type', form.type);
     if (form.joining_date) formData.append('doj', form.joining_date);
     if (form.department) formData.append('department', form.department);
+    if (form.salary) formData.append('salary', form.salary);
+    if (form.accountnumber) formData.append('accountnumber', form.accountnumber);
     formData.append('active', form.active === 'Active' ? 'active' : 'inactive');
     if (form.profile_picture) {
         formData.append('profile_picture', form.profile_picture);
@@ -214,6 +218,22 @@ export default function AddConsultantBC() {
         .then(({ data }) => {
             if (data.success) {
                 setAddSuccess('Consultant added successfully!');
+                setForm({
+                    full_name: '',
+                    email: '',
+                    password: '',
+                    phone_number: '',
+                    user_role: '',
+                    department: '',
+                    address: '',
+                    dob: '',
+                    type: '',
+                    joining_date: '',
+                    salary: '',
+                    accountnumber: '',
+                    profile_picture: null,
+                    active: 'Active',
+                });
                 setTimeout(() => {
                     navigate('/bc/consultants');
                 }, 1500);
@@ -331,6 +351,17 @@ export default function AddConsultantBC() {
                   placeholder="Select Department"
                 />
               </div>
+              <div>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number <span className="text-[#DD4342]">*</span></label>
+                <input
+                  type="text"
+                  placeholder="Enter Account Number"
+                  value={form.accountnumber}
+                  onChange={(e) => setForm((f) => ({ ...f, accountnumber: e.target.value }))}
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                  required
+                />
+              </div>
             </div>
 
             <div className="space-y-5">
@@ -354,6 +385,15 @@ export default function AddConsultantBC() {
                   required
                 />
               </div>
+              <div className="relative">
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
+                <CustomDropdown
+                  options={['Trainee', 'Employee']}
+                  value={form.type}
+                  onChange={(val) => setForm((f) => ({ ...f, type: val }))}
+                  placeholder="Select Type"
+                />
+              </div>
               <div>
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining <span className="text-[#DD4342]">*</span></label>
                 <input
@@ -361,6 +401,17 @@ export default function AddConsultantBC() {
                   value={form.joining_date}
                   onChange={(e) => setForm((f) => ({ ...f, joining_date: e.target.value }))}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                />
+              </div>
+              <div>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Salary <span className="text-[#DD4342]">*</span></label>
+                <input
+                  type="text"
+                  placeholder="00$"
+                  value={form.salary}
+                  onChange={(e) => setForm((f) => ({ ...f, salary: e.target.value }))}
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -379,15 +430,6 @@ export default function AddConsultantBC() {
                     />
                   </label>
                 </div>
-              </div>
-              <div className="relative">
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
-                <CustomDropdown
-                  options={['Trainee', 'Employee']}
-                  value={form.type}
-                  onChange={(val) => setForm((f) => ({ ...f, type: val }))}
-                  placeholder="Select Type"
-                />
               </div>
             </div>
           </div>

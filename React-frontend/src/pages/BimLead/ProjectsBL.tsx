@@ -32,6 +32,29 @@ const nameToId = (name: string, employeesList: Employee[]) => {
   return emp ? emp.id : undefined;
 };
 
+const decodeHtmlEntities = (value: string): string => {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = value;
+  return textarea.value;
+};
+
+const normalizeProjectDescriptionHtml = (raw?: string): string => {
+  if (!raw) return "";
+  let normalized = raw;
+  for (let i = 0; i < 2; i += 1) {
+    const decoded = decodeHtmlEntities(normalized);
+    if (decoded === normalized) break;
+    normalized = decoded;
+  }
+  return normalized;
+};
+
+const hasProjectDescriptionContent = (raw?: string): boolean => {
+  const normalized = normalizeProjectDescriptionHtml(raw);
+  const text = normalized.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/gi, " ").trim();
+  return text.length > 0;
+};
+
 // const idToName = (
 //   id: string | number | undefined,
 //   employeesList: Employee[],
@@ -524,7 +547,10 @@ export default function ProjectsBL() {
 
   const fetchProjects = () => {
     const status = searchParams.get('status');
-    const params = { status: status || undefined };
+    const isCompletedFilter = (status || "").toLowerCase() === "completed";
+    // NOTE: vendor-projects "Completed" filtering is not reliable across DBs (status vs progress).
+    // For Completed, fetch all and filter by progress client-side for both internal + outsource.
+    const params = isCompletedFilter ? {} : { status: status || undefined };
 
     setLoading(true);
     Promise.all([
@@ -536,15 +562,24 @@ export default function ProjectsBL() {
 
       const allProjects = [...internal, ...vendor];
 
+      const isCompletedByProgress = (p: any): boolean => {
+        const raw = p?.progress;
+        const n = typeof raw === "number" ? raw : Number(String(raw ?? "").trim());
+        return Number.isFinite(n) && n >= 100;
+      };
+
       const userId = user?.id;
-      const filtered = userId
+      const involvedFiltered = userId
         ? allProjects.filter((p: any) => {
           if (p.source === "Outsource") return true;
           if (!p.lead_id) return false;
           return String(p.lead_id).split(',').map((s: string) => s.trim()).includes(String(userId));
         })
         : allProjects;
-      setList(filtered.map((p) => mapApiProjectToProject(p as Record<string, unknown>)));
+      const finalFiltered = isCompletedFilter
+        ? involvedFiltered.filter(isCompletedByProgress)
+        : involvedFiltered;
+      setList(finalFiltered.map((p) => mapApiProjectToProject(p as Record<string, unknown>)));
     })
       .catch(() => { })
       .finally(() => setLoading(false));
@@ -946,9 +981,18 @@ export default function ProjectsBL() {
               {/* Project Description */}
               <div className="border border-[#AEACAC52] rounded-md p-6 md:p-8 lg:p-4">
                 <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">Project Description</h4>
-                <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
-                  {selectedProjectForView.description ?? 'This project involves comprehensive BIM modeling and coordination for the selected facility, ensuring all architectural, structural, and MEP systems are perfectly aligned according to international standards.'}
-                </p>
+                {hasProjectDescriptionContent(selectedProjectForView.description) ? (
+                  <div
+                    className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] [&_*]:max-w-full [&_*]:whitespace-normal [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#DD4342] [&_a]:underline"
+                    dangerouslySetInnerHTML={{
+                      __html: normalizeProjectDescriptionHtml(selectedProjectForView.description),
+                    }}
+                  />
+                ) : (
+                  <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                    This project involves comprehensive BIM modeling and coordination for the selected facility, ensuring all architectural, structural, and MEP systems are perfectly aligned according to international standards.
+                  </p>
+                )}
               </div>
 
               {/* Team Overview Section */}

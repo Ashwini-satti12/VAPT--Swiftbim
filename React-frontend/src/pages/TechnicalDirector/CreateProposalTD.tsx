@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 // @ts-ignore
 import ReactQuill from "react-quill-new";
@@ -15,6 +15,8 @@ export default function CreateProposalTD() {
   const location = useLocation();
   const state: any = (location && (location as any).state) || {};
   const bid = state?.bid || null;
+  const proposalIdEdit = state?.proposalId ?? bid?.proposal_id ?? null;
+  const editProposal = !!state?.editProposal && proposalIdEdit != null;
 
   // Pre-filled from bid
   const [serviceId] = useState(bid?.opportunity_id ? `OPP-${bid.opportunity_id}` : "");
@@ -45,10 +47,113 @@ export default function CreateProposalTD() {
     message: "",
   });
 
+  const applyLoadedProposal = useCallback((base: any) => {
+    if (!base) return;
+
+    if (base.executive_summary) setExecutiveSummary(base.executive_summary);
+    const about = base.aboutus ?? base.about_us;
+    if (about) setAboutUs(about);
+    if (base.address) setLocationAddress(base.address);
+    if (base.website_url) setLocationWebsite(base.website_url);
+    if (base.email_address) setLocationEmail(base.email_address);
+    if (base.scope_of_work) setScopeDescription(base.scope_of_work);
+
+    if (base.project_type_sector) {
+      try {
+        const parsed = JSON.parse(base.project_type_sector);
+        const sectors = Object.entries(parsed)
+          .map(([key, val]) => {
+            if (Array.isArray(val) && val.length > 0) return `${key}: ${val.join(" / ")}`;
+            return key;
+          })
+          .join(", ");
+        setProjectSector(sectors);
+      } catch {
+        setProjectSector(base.project_type_sector);
+      }
+    }
+
+    if (base.bim_services_required) {
+      try {
+        const parsed = JSON.parse(base.bim_services_required);
+        const services = Object.values(parsed)
+          .flat()
+          .join(" & ");
+        setBimServices(services);
+      } catch {
+        setBimServices(base.bim_services_required);
+      }
+    }
+
+    if (base.technologies_used) {
+      try {
+        let modules: string[] = [];
+        if (typeof base.technologies_used === "string") {
+          const trimmed = base.technologies_used.trim();
+          if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) {
+              modules = parsed
+                .map((m: any) => (typeof m === "string" ? m : m?.module))
+                .filter((m: any) => typeof m === "string" && m.trim())
+                .map((m: string) => m.trim());
+            }
+          } else {
+            modules = trimmed
+              .split(",")
+              .map((m: string) => m.trim())
+              .filter(Boolean);
+          }
+        } else if (Array.isArray(base.technologies_used)) {
+          modules = base.technologies_used
+            .map((m: any) => (typeof m === "string" ? m : m?.module))
+            .filter((m: any) => typeof m === "string" && m.trim())
+            .map((m: string) => m.trim());
+        }
+
+        if (modules.length) {
+          setTechRows(modules.map((module: string) => ({ module })));
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    if (base.payment_terms) {
+      try {
+        let termsData: any = base.payment_terms;
+        if (typeof termsData === "string") {
+          const trimmed = termsData.trim();
+          if (trimmed) {
+            termsData = JSON.parse(trimmed);
+          }
+        }
+
+        if (Array.isArray(termsData) && termsData.length) {
+          setPaymentRows(
+            termsData.map((row: any) => ({
+              basis: row?.basis || "",
+              terms: row?.terms || "",
+              timeline: row?.timeline || "",
+            }))
+          );
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    const deliv = base.deliverables || base.deliverables_intro || base.deliverables_list || "";
+    if (deliv) setDeliverablesIntro(deliv);
+
+    const excl = base.exclusions || base.exclusions_list || "";
+    if (excl) setExclusionsContent(excl);
+  }, []);
+
   useEffect(() => {
+    if (editProposal) return;
     if (!bid?.opportunity_id) return;
 
-    // Reset fields before fetching to avoid stale data
     setExecutiveSummary("");
     setAboutUs("");
     setLocationAddress("");
@@ -59,6 +164,8 @@ export default function CreateProposalTD() {
     setExclusionsContent("");
     setProjectSector("");
     setBimServices("");
+    setTechRows([{ module: "" }]);
+    setPaymentRows([{ basis: "", terms: "", timeline: "" }]);
 
     api
       .get<{ proposal?: any }>("/api/vendors/proposals/phase-one", {
@@ -67,113 +174,38 @@ export default function CreateProposalTD() {
         },
       })
       .then(({ data }) => {
-        const base = data.proposal;
-        if (!base) return;
-
-        if (base.executive_summary) setExecutiveSummary(base.executive_summary);
-        if (base.aboutus) setAboutUs(base.aboutus);
-        if (base.address) setLocationAddress(base.address);
-        if (base.website_url) setLocationWebsite(base.website_url);
-        if (base.email_address) setLocationEmail(base.email_address);
-        if (base.scope_of_work) setScopeDescription(base.scope_of_work);
-
-        // Parse project sector from DB enum/json
-        if (base.project_type_sector) {
-          try {
-            const parsed = JSON.parse(base.project_type_sector);
-            const sectors = Object.entries(parsed)
-              .map(([key, val]) => {
-                if (Array.isArray(val) && val.length > 0) return `${key}: ${val.join(" / ")}`;
-                return key;
-              })
-              .join(", ");
-            setProjectSector(sectors);
-          } catch {
-            setProjectSector(base.project_type_sector);
-          }
-        }
-
-        // Parse bim services
-        if (base.bim_services_required) {
-          try {
-            const parsed = JSON.parse(base.bim_services_required);
-            const services = Object.values(parsed)
-              .flat()
-              .join(" & ");
-            setBimServices(services);
-          } catch {
-            setBimServices(base.bim_services_required);
-          }
-        }
-
-        if (base.technologies_used) {
-          try {
-            let modules: string[] = [];
-            if (typeof base.technologies_used === "string") {
-              const trimmed = base.technologies_used.trim();
-              if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
-                const parsed = JSON.parse(trimmed);
-                if (Array.isArray(parsed)) {
-                  modules = parsed
-                    .map((m: any) => (typeof m === "string" ? m : m?.module))
-                    .filter((m: any) => typeof m === "string" && m.trim())
-                    .map((m: string) => m.trim());
-                }
-              } else {
-                modules = trimmed
-                  .split(",")
-                  .map((m: string) => m.trim())
-                  .filter(Boolean);
-              }
-            } else if (Array.isArray(base.technologies_used)) {
-              modules = base.technologies_used
-                .map((m: any) => (typeof m === "string" ? m : m?.module))
-                .filter((m: any) => typeof m === "string" && m.trim())
-                .map((m: string) => m.trim());
-            }
-
-            if (modules.length) {
-              setTechRows(modules.map((module: string) => ({ module })));
-            }
-          } catch {
-            // ignore JSON parse issues, keep default rows
-          }
-        }
-
-        if (base.payment_terms) {
-          try {
-            let termsData: any = base.payment_terms;
-            if (typeof termsData === "string") {
-              const trimmed = termsData.trim();
-              if (trimmed) {
-                termsData = JSON.parse(trimmed);
-              }
-            }
-
-            if (Array.isArray(termsData) && termsData.length) {
-              setPaymentRows(
-                termsData.map((row: any) => ({
-                  basis: row?.basis || "",
-                  terms: row?.terms || "",
-                  timeline: row?.timeline || "",
-                }))
-              );
-            }
-          } catch {
-            // ignore JSON parse issues, keep default rows
-          }
-        }
-
-        const deliv = base.deliverables || base.deliverables_intro || base.deliverables_list || "";
-        if (deliv) setDeliverablesIntro(deliv);
-
-        const excl = base.exclusions || base.exclusions_list || "";
-        if (excl) setExclusionsContent(excl);
+        applyLoadedProposal(data.proposal);
       })
       .catch(() => {
         // Silently ignore if phase-one proposal is not found or errors
       });
-  }, [bid?.opportunity_id, bid?.vendor_email]);
+  }, [bid?.opportunity_id, bid?.vendor_email, editProposal, applyLoadedProposal]);
+
+  useEffect(() => {
+    if (!editProposal || !proposalIdEdit) return;
+
+    setExecutiveSummary("");
+    setAboutUs("");
+    setLocationAddress("");
+    setLocationWebsite("");
+    setLocationEmail(bid?.vendor_email || "");
+    setScopeDescription("");
+    setDeliverablesIntro("");
+    setExclusionsContent("");
+    setProjectSector("");
+    setBimServices("");
+    setTechRows([{ module: "" }]);
+    setPaymentRows([{ basis: "", terms: "", timeline: "" }]);
+
+    api
+      .get<{ proposal?: any }>(`/api/vendors/proposals/td/${proposalIdEdit}`)
+      .then(({ data }) => {
+        applyLoadedProposal(data.proposal);
+      })
+      .catch(() => {
+        // ignore
+      });
+  }, [editProposal, proposalIdEdit, bid?.vendor_email, applyLoadedProposal]);
 
   // Handlers for Technology Table
   const handleAddTechRow = () => setTechRows([...techRows, { module: "" }]);
@@ -245,19 +277,24 @@ export default function CreateProposalTD() {
         vendor_name: vendorName
       };
 
-      const { data } = await api.post<{ success: boolean; message?: string }>("/api/vendors/proposals/td-create", payload);
+      const { data } = editProposal && proposalIdEdit
+        ? await api.put<{ success: boolean; message?: string }>(`/api/vendors/proposals/td/${proposalIdEdit}`, payload)
+        : await api.post<{ success: boolean; message?: string }>("/api/vendors/proposals/td-create", payload);
       if (data.success) {
-        setNotification({ visible: true, message: "Proposal created successfully!" });
+        setNotification({
+          visible: true,
+          message: editProposal ? "Proposal updated successfully!" : "Proposal created successfully!",
+        });
         setTimeout(() => {
           setNotification({ visible: false, message: "" });
           navigate("/td/proposals", { state: { created: true } });
         }, 1600);
       } else {
-        setNotification({ visible: true, message: data.message || "Failed to create proposal.", error: true });
+        setNotification({ visible: true, message: data.message || (editProposal ? "Failed to update proposal." : "Failed to create proposal."), error: true });
         setTimeout(() => setNotification({ visible: false, message: "" }), 3000);
       }
     } catch (err: any) {
-      setNotification({ visible: true, message: "Error creating proposal. Please try again.", error: true });
+      setNotification({ visible: true, message: editProposal ? "Error updating proposal. Please try again." : "Error creating proposal. Please try again.", error: true });
       setTimeout(() => setNotification({ visible: false, message: "" }), 3000);
     } finally {
       setSubmitting(false);
@@ -309,7 +346,7 @@ export default function CreateProposalTD() {
         >
           <img src={backIcon} alt="Back" className="w-5 h-5" />
         </button>
-        <h1 className="text-2xl font-semibold text-[#000000]">Create Proposal</h1>
+        <h1 className="text-2xl font-semibold text-[#000000]">{editProposal ? "Edit Proposal" : "Create Proposal"}</h1>
         <div className="w-10"></div>
       </div>
 
@@ -563,7 +600,7 @@ export default function CreateProposalTD() {
             className="w-full sm:w-auto px-10 py-2.5 rounded-md bg-[#DD4342] text-white font-semibold shadow-lg shadow-red-100 transition-all disabled:opacity-50 flex items-center justify-center gap-3 cursor-pointer"
           >
             {submitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-            {submitting ? "Sending..." : "Send Proposal"}
+            {submitting ? "Sending..." : editProposal ? "Update & Send" : "Send Proposal"}
           </button>
         </div>
       </div>
