@@ -15,7 +15,6 @@ import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 
-
 interface Employee {
   id: number;
   full_name: string;
@@ -36,7 +35,10 @@ const nameToId = (name: string, employeesList: Employee[]) => {
   return emp ? emp.id : undefined;
 };
 
-const idToName = (id: string | number | undefined, employeesList: Employee[]) => {
+const idToName = (
+  id: string | number | undefined,
+  employeesList: Employee[],
+) => {
   if (id === undefined || id === null || id === "") return "";
   const emp = employeesList.find((e) => String(e.id) === String(id).trim());
   return emp ? emp.full_name : "";
@@ -102,9 +104,7 @@ function FormSelect({
       >
         <span
           className={
-            value
-              ? "text-[#353535] font-medium"
-              : "text-[#8B8B8B] font-medium"
+            value ? "text-[#353535] font-medium" : "text-[#8B8B8B] font-medium"
           }
         >
           {value || placeholder}
@@ -237,7 +237,12 @@ export default function ProjectsBC() {
   const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
   const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
-  const [pmTaskStats, setPmTaskStats] = useState({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
+  const [pmTaskStats, setPmTaskStats] = useState({
+    todo: 0,
+    inProgress: 0,
+    paused: 0,
+    completed: 0,
+  });
   const [pmTaskStatsLoading, setPmTaskStatsLoading] = useState(false);
 
   // Add Project Form State (Restoring used ones)
@@ -264,7 +269,6 @@ export default function ProjectsBC() {
     null,
   );
 
-
   // Select Options States
   const [projectManagers, setProjectManagers] = useState<string[]>([]);
   const [bimLeads, setBimLeads] = useState<string[]>([]);
@@ -287,7 +291,9 @@ export default function ProjectsBC() {
         ]);
         if (isMounted) {
           const empData: Employee[] = empRes.data.employees || [];
-          const selectable = empData.filter(isEmployeeActiveForProjectAssignment);
+          const selectable = empData.filter(
+            isEmployeeActiveForProjectAssignment,
+          );
           const roleOf = (e: Employee) =>
             String(e.user_role || "")
               .toLowerCase()
@@ -339,16 +345,16 @@ export default function ProjectsBC() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.project-menu-container')) {
+      if (!target.closest(".project-menu-container")) {
         setOpenMenuProjectId(null);
       }
     };
     if (openMenuProjectId !== null) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [openMenuProjectId]);
-
 
   const panelType = user?.panel_type ?? 3;
   const isManagement = panelType === 1;
@@ -426,11 +432,19 @@ export default function ProjectsBC() {
     let cancelled = false;
 
     const source = searchParams.get("source") || "In House";
-    const statsApi = source === "Outsource" ? `/api/vendors/vendor-projects/${projectId}/module-progress` : `/api/projects/${projectId}/module-progress`;
+    const statsApi =
+      source === "Outsource"
+        ? `/api/vendors/vendor-projects/${projectId}/module-progress`
+        : `/api/projects/${projectId}/module-progress`;
 
     api
       .get<{
-        status_counts?: { todo?: number; inprogress?: number; paused?: number; completed?: number };
+        status_counts?: {
+          todo?: number;
+          inprogress?: number;
+          paused?: number;
+          completed?: number;
+        };
       }>(statsApi)
       .then(({ data }) => {
         if (cancelled) return;
@@ -446,7 +460,12 @@ export default function ProjectsBC() {
         if (cancelled) return;
         const completed = selectedProjectForView?.completed_tasks ?? 0;
         const total = selectedProjectForView?.total_tasks ?? 0;
-        setPmTaskStats({ todo: Math.max(0, total - completed), inProgress: 0, paused: 0, completed });
+        setPmTaskStats({
+          todo: Math.max(0, total - completed),
+          inProgress: 0,
+          paused: 0,
+          completed,
+        });
       })
       .finally(() => {
         if (!cancelled) setPmTaskStatsLoading(false);
@@ -457,29 +476,44 @@ export default function ProjectsBC() {
   }, [showProjectView, selectedProjectForView?.id, searchParams]);
 
   const fetchProjects = () => {
-    const status = searchParams.get('status');
+    const status = searchParams.get("status");
     const params = { status: status || undefined };
 
     setLoading(true);
     Promise.all([
-      api.get<{ projects?: Record<string, unknown>[] }>("/api/projects", { params }),
-      api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects", { params })
-    ]).then(([res1, res2]) => {
-      const internal = (res1.data.projects ?? []).map((p) => ({ ...p, source: "In House" }));
-      const vendor = (res2.data.projects ?? []).map((p) => ({ ...p, source: "Outsource" }));
+      api.get<{ projects?: Record<string, unknown>[] }>("/api/projects", {
+        params,
+      }),
+      api.get<{ projects?: Record<string, unknown>[] }>(
+        "/api/vendors/vendor-projects",
+        { params },
+      ),
+    ])
+      .then(([res1, res2]) => {
+        const internal = (res1.data.projects ?? []).map((p) => ({
+          ...p,
+          source: "In House",
+        }));
+        const vendor = (res2.data.projects ?? []).map((p) => ({
+          ...p,
+          source: "Outsource",
+        }));
 
-      const allProjects = [...internal, ...vendor];
+        const allProjects = [...internal, ...vendor];
 
-      const userId = user?.id;
-      const filtered = userId
-        ? allProjects.filter((p: any) => {
-          if (!p.bim_coordinator_id) return false;
-          return String(p.bim_coordinator_id).split(',').map((s: string) => s.trim()).includes(String(userId));
-        })
-        : allProjects;
-      setList(filtered.map(mapApiProjectToProject));
-    })
-      .catch(() => { })
+        const userId = user?.id;
+        const filtered = userId
+          ? allProjects.filter((p: any) => {
+              if (!p.bim_coordinator_id) return false;
+              return String(p.bim_coordinator_id)
+                .split(",")
+                .map((s: string) => s.trim())
+                .includes(String(userId));
+            })
+          : allProjects;
+        setList(filtered.map(mapApiProjectToProject));
+      })
+      .catch(() => {})
       .finally(() => setLoading(false));
   };
 
@@ -546,7 +580,8 @@ export default function ProjectsBC() {
     }
 
     const source = searchParams.get("source") || "In House";
-    const baseApi = source === "Outsource" ? "/api/vendors/vendor-projects" : "/api/projects";
+    const baseApi =
+      source === "Outsource" ? "/api/vendors/vendor-projects" : "/api/projects";
 
     api
       .get<Record<string, unknown>>(`${baseApi}/${id}`)
@@ -609,7 +644,14 @@ export default function ProjectsBC() {
                 {/* Total Tasks */}
                 <button
                   type="button"
-                  onClick={() => navigate('/bc/teamtasks' + (selectedProjectForView?.project_name ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                  onClick={() =>
+                    navigate(
+                      "/bc/teamtasks" +
+                        (selectedProjectForView?.project_name
+                          ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                          : ""),
+                    )
+                  }
                   className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
                 >
                   <div className="flex items-center justify-left mb-2">
@@ -625,7 +667,14 @@ export default function ProjectsBC() {
                 {/* Completed Tasks */}
                 <button
                   type="button"
-                  onClick={() => navigate('/bc/teamtasks?status=completed' + (selectedProjectForView?.project_name ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                  onClick={() =>
+                    navigate(
+                      "/bc/teamtasks?status=completed" +
+                        (selectedProjectForView?.project_name
+                          ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                          : ""),
+                    )
+                  }
                   className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
                 >
                   <div className="flex items-center justify-left mb-2">
@@ -641,7 +690,14 @@ export default function ProjectsBC() {
                 {/* To Do Tasks */}
                 <button
                   type="button"
-                  onClick={() => navigate('/bc/teamtasks?status=todo' + (selectedProjectForView?.project_name ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                  onClick={() =>
+                    navigate(
+                      "/bc/teamtasks?status=todo" +
+                        (selectedProjectForView?.project_name
+                          ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                          : ""),
+                    )
+                  }
                   className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
                 >
                   <div className="flex items-center justify-left mb-2">
@@ -657,7 +713,14 @@ export default function ProjectsBC() {
                 {/* In Progress Tasks */}
                 <button
                   type="button"
-                  onClick={() => navigate('/bc/teamtasks?status=in_progress' + (selectedProjectForView?.project_name ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                  onClick={() =>
+                    navigate(
+                      "/bc/teamtasks?status=in_progress" +
+                        (selectedProjectForView?.project_name
+                          ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                          : ""),
+                    )
+                  }
                   className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
                 >
                   <div className="flex items-center justify-left mb-2">
@@ -671,8 +734,6 @@ export default function ProjectsBC() {
                 </button>
               </div>
 
-
-
               {/* Scrollable Content below KPI cards */}
               <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 px-4 md:px-6 pb-6">
                 {/* Tower Progress Grid */}
@@ -680,102 +741,112 @@ export default function ProjectsBC() {
                   <div className="max-h-[220px] overflow-y-auto custom-scrollbar p-6 md:p-8 lg:p-2">
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-4">
                       {selectedProjectForView.module_name ? (
-                        selectedProjectForView.module_name.split(",").map((mod, i) => {
-                          const modProgress = Math.round(selectedProjectForView.progress ?? 0);
-                          const statusColor =
-                            modProgress >= 80
-                              ? "#008F22"
-                              : modProgress >= 50
-                                ? "#EB7200"
-                                : "#E00100";
-                          const statusBg =
-                            modProgress >= 80
-                              ? "bg-[#E0FFE8]"
-                              : modProgress >= 50
-                                ? "bg-[#FFEAD6]"
-                                : "bg-[#FFD9D9]";
-                          const statusLabel =
-                            modProgress >= 80
-                              ? "Approved"
-                              : modProgress >= 50
-                                ? "Pending"
-                                : "Review";
-                          return (
-                            <div
-                              key={i}
-                              className="bg-white border border-[#AEACAC52] rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[120px]"
-                            >
-                              <div className="flex justify-between items-start">
-                                <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
-                                  {mod.trim()}
-                                </h5>
-                                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0 ${statusBg}`}>
-                                  <span
-                                    className="w-1.5 h-1.5 rounded-full"
-                                    style={{ backgroundColor: statusColor }}
-                                  ></span>
-                                  <span
-                                    className="text-[12px] font-bold font-Gantari"
-                                    style={{ color: statusColor }}
+                        selectedProjectForView.module_name
+                          .split(",")
+                          .map((mod, i) => {
+                            const modProgress = Math.round(
+                              selectedProjectForView.progress ?? 0,
+                            );
+                            const statusColor =
+                              modProgress >= 80
+                                ? "#008F22"
+                                : modProgress >= 50
+                                  ? "#EB7200"
+                                  : "#E00100";
+                            const statusBg =
+                              modProgress >= 80
+                                ? "bg-[#E0FFE8]"
+                                : modProgress >= 50
+                                  ? "bg-[#FFEAD6]"
+                                  : "bg-[#FFD9D9]";
+                            const statusLabel =
+                              modProgress >= 80
+                                ? "Approved"
+                                : modProgress >= 50
+                                  ? "Pending"
+                                  : "Review";
+                            return (
+                              <div
+                                key={i}
+                                className="bg-white border border-[#AEACAC52] rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[120px]"
+                              >
+                                <div className="flex justify-between items-start">
+                                  <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
+                                    {mod.trim()}
+                                  </h5>
+                                  <div
+                                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0 ${statusBg}`}
                                   >
-                                    {statusLabel}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center justify-between mt-2">
-                                <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
-                                  <svg
-                                    className="w-full h-full transform -rotate-90"
-                                    viewBox="0 0 64 64"
-                                  >
-                                    <circle
-                                      cx="32"
-                                      cy="32"
-                                      r="26"
-                                      stroke="#F2F3F5"
-                                      strokeWidth="5"
-                                      fill="transparent"
-                                    />
-                                    <circle
-                                      cx="32"
-                                      cy="32"
-                                      r="26"
-                                      stroke={statusColor}
-                                      strokeWidth="5"
-                                      fill="transparent"
-                                      strokeDasharray={163.36}
-                                      strokeDashoffset={
-                                        163.36 - (modProgress / 100) * 163.36
-                                      }
-                                      strokeLinecap="round"
-                                      style={{
-                                        transition: "stroke-dashoffset 1s ease-in-out",
-                                      }}
-                                    />
-                                  </svg>
-                                  <span className="absolute text-[14px] font-bold text-[#8B8B8B] font-Gantari">
-                                    {modProgress}%
-                                  </span>
+                                    <span
+                                      className="w-1.5 h-1.5 rounded-full"
+                                      style={{ backgroundColor: statusColor }}
+                                    ></span>
+                                    <span
+                                      className="text-[12px] font-bold font-Gantari"
+                                      style={{ color: statusColor }}
+                                    >
+                                      {statusLabel}
+                                    </span>
+                                  </div>
                                 </div>
 
-                                <div className="flex flex-col items-end">
-                                  <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1">
-                                    Tasks Done
-                                  </p>
-                                  <div className="flex items-baseline border-t border-slate-100 pt-1">
-                                    <p className="text-[18px] font-bold text-[#353535] font-Gantari">
-                                      {selectedProjectForView.completed_tasks ?? 0}
+                                <div className="flex items-center justify-between mt-2">
+                                  <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
+                                    <svg
+                                      className="w-full h-full transform -rotate-90"
+                                      viewBox="0 0 64 64"
+                                    >
+                                      <circle
+                                        cx="32"
+                                        cy="32"
+                                        r="26"
+                                        stroke="#F2F3F5"
+                                        strokeWidth="5"
+                                        fill="transparent"
+                                      />
+                                      <circle
+                                        cx="32"
+                                        cy="32"
+                                        r="26"
+                                        stroke={statusColor}
+                                        strokeWidth="5"
+                                        fill="transparent"
+                                        strokeDasharray={163.36}
+                                        strokeDashoffset={
+                                          163.36 - (modProgress / 100) * 163.36
+                                        }
+                                        strokeLinecap="round"
+                                        style={{
+                                          transition:
+                                            "stroke-dashoffset 1s ease-in-out",
+                                        }}
+                                      />
+                                    </svg>
+                                    <span className="absolute text-[14px] font-bold text-[#8B8B8B] font-Gantari">
+                                      {modProgress}%
+                                    </span>
+                                  </div>
+
+                                  <div className="flex flex-col items-end">
+                                    <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1">
+                                      Tasks Done
                                     </p>
-                                    <p className="text-[14px] font-bold text-[#8B8B8B] font-Gantari">
-                                      /{selectedProjectForView.total_tasks ?? 0}
-                                    </p>
+                                    <div className="flex items-baseline border-t border-slate-100 pt-1">
+                                      <p className="text-[18px] font-bold text-[#353535] font-Gantari">
+                                        {selectedProjectForView.completed_tasks ??
+                                          0}
+                                      </p>
+                                      <p className="text-[14px] font-bold text-[#8B8B8B] font-Gantari">
+                                        /
+                                        {selectedProjectForView.total_tasks ??
+                                          0}
+                                      </p>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })
+                            );
+                          })
                       ) : (
                         <div className="col-span-full py-8 text-center text-gray-500 font-Gantari">
                           Currently, no modules have been added.
@@ -786,12 +857,14 @@ export default function ProjectsBC() {
                 </div>
                 {/* Project Description */}
                 <div className="border border-[#AEACAC52] rounded-md p-6 md:p-8 lg:p-4">
-                  <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">Project Description</h4>
+                  <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">
+                    Project Description
+                  </h4>
                   <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
-                    {selectedProjectForView.description ?? 'This project involves comprehensive BIM modeling and coordination for the selected facility, ensuring all architectural, structural, and MEP systems are perfectly aligned according to international standards.'}
+                    {selectedProjectForView.description ??
+                      "This project involves comprehensive BIM modeling and coordination for the selected facility, ensuring all architectural, structural, and MEP systems are perfectly aligned according to international standards."}
                   </p>
                 </div>
-
 
                 {/* Team Overview Section */}
                 <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 lg:p-4">
@@ -802,19 +875,33 @@ export default function ProjectsBC() {
                     {/* Project Manager */}
                     {(() => {
                       const pmIds = selectedProjectForView.project_manager_id
-                        ? String(selectedProjectForView.project_manager_id).split(',').map(id => id.trim()).filter(Boolean)
+                        ? String(selectedProjectForView.project_manager_id)
+                            .split(",")
+                            .map((id) => id.trim())
+                            .filter(Boolean)
                         : [];
-                      const pmNames = selectedProjectForView.project_manager_name
-                        ? String(selectedProjectForView.project_manager_name).split(',').map(n => n.trim()).filter(Boolean)
-                        : [];
+                      const pmNames =
+                        selectedProjectForView.project_manager_name
+                          ? String(selectedProjectForView.project_manager_name)
+                              .split(",")
+                              .map((n) => n.trim())
+                              .filter(Boolean)
+                          : [];
 
                       if (pmIds.length === 0 && pmNames.length === 0) {
                         return (
                           <div className="min-w-0">
-                            <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">Project Manager</p>
+                            <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                              Project Manager
+                            </p>
                             <div className="flex items-center -space-x-3">
-                              <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
-                                <span className="text-slate-600 text-xs font-bold">PM</span>
+                              <div
+                                className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
+                                title="Not assigned"
+                              >
+                                <span className="text-slate-600 text-xs font-bold">
+                                  PM
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -822,44 +909,83 @@ export default function ProjectsBC() {
                       }
 
                       const maxCount = Math.max(pmIds.length, pmNames.length);
-                      const pmEntries = Array.from({ length: maxCount }).map((_, i) => {
-                        const pId = pmIds[i];
-                        const pName = pmNames[i];
-                        const pmEmp = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
-                        const dName = pmEmp?.full_name || pName || "Unknown";
-                        const url = pmEmp?.profile_picture ? getGlobalProfileUrl(pmEmp.id, pmEmp.profile_picture) : null;
-                        return { key: i, dName, url };
-                      });
+                      const pmEntries = Array.from({ length: maxCount }).map(
+                        (_, i) => {
+                          const pId = pmIds[i];
+                          const pName = pmNames[i];
+                          const pmEmp = pId
+                            ? allEmployees.find(
+                                (e: any) => String(e.id) === pId,
+                              )
+                            : null;
+                          const dName = pmEmp?.full_name || pName || "Unknown";
+                          const url = pmEmp?.profile_picture
+                            ? getGlobalProfileUrl(
+                                pmEmp.id,
+                                pmEmp.profile_picture,
+                              )
+                            : null;
+                          return { key: i, dName, url };
+                        },
+                      );
                       const visiblePm = pmEntries.slice(0, 3);
                       const pmRemaining = Math.max(0, pmEntries.length - 3);
                       const pmOverflowTitle =
-                        pmRemaining > 0 ? pmEntries.slice(3).map((e) => e.dName).join(", ") : undefined;
+                        pmRemaining > 0
+                          ? pmEntries
+                              .slice(3)
+                              .map((e) => e.dName)
+                              .join(", ")
+                          : undefined;
 
                       return (
                         <div className="min-w-0">
                           <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
-                            {maxCount > 1 ? "Project Managers" : "Project Manager"}
+                            {maxCount > 1
+                              ? "Project Managers"
+                              : "Project Manager"}
                           </p>
                           {maxCount === 1 ? (
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
                                 {visiblePm[0].url ? (
-                                  <img src={visiblePm[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                  <img
+                                    src={visiblePm[0].url}
+                                    className="w-full h-full object-cover"
+                                    alt=""
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src =
+                                        ProfileIcon;
+                                    }}
+                                  />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
                                     {visiblePm[0].dName.charAt(0).toUpperCase()}
                                   </div>
                                 )}
                               </div>
-                              <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visiblePm[0].dName}</span>
+                              <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                                {visiblePm[0].dName}
+                              </span>
                             </div>
                           ) : (
                             <div className="flex items-center -space-x-3">
                               {visiblePm.map((entry) => (
-                                <div key={entry.key} className="relative group shrink-0">
+                                <div
+                                  key={entry.key}
+                                  className="relative group shrink-0"
+                                >
                                   <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
                                     {entry.url ? (
-                                      <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                      <img
+                                        src={entry.url}
+                                        className="w-full h-full object-cover"
+                                        alt=""
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).src =
+                                            ProfileIcon;
+                                        }}
+                                      />
                                     ) : (
                                       <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
                                         {entry.dName.charAt(0).toUpperCase()}
@@ -890,19 +1016,32 @@ export default function ProjectsBC() {
                     {/* BIM Lead */}
                     {(() => {
                       const blIds = selectedProjectForView.lead_id
-                        ? String(selectedProjectForView.lead_id).split(',').map(id => id.trim()).filter(Boolean)
+                        ? String(selectedProjectForView.lead_id)
+                            .split(",")
+                            .map((id) => id.trim())
+                            .filter(Boolean)
                         : [];
                       const blNames = selectedProjectForView.lead_name
-                        ? String(selectedProjectForView.lead_name).split(',').map(n => n.trim()).filter(Boolean)
+                        ? String(selectedProjectForView.lead_name)
+                            .split(",")
+                            .map((n) => n.trim())
+                            .filter(Boolean)
                         : [];
 
                       if (blIds.length === 0 && blNames.length === 0) {
                         return (
                           <div className="min-w-0">
-                            <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">BIM Lead</p>
+                            <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                              BIM Lead
+                            </p>
                             <div className="flex items-center -space-x-3">
-                              <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
-                                <span className="text-slate-600 text-xs font-bold">BL</span>
+                              <div
+                                className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
+                                title="Not assigned"
+                              >
+                                <span className="text-slate-600 text-xs font-bold">
+                                  BL
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -910,18 +1049,34 @@ export default function ProjectsBC() {
                       }
 
                       const maxCount = Math.max(blIds.length, blNames.length);
-                      const blEntries = Array.from({ length: maxCount }).map((_, i) => {
-                        const pId = blIds[i];
-                        const pName = blNames[i];
-                        const blEmp = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
-                        const dName = blEmp?.full_name || pName || "Unknown";
-                        const url = blEmp?.profile_picture ? getGlobalProfileUrl(blEmp.id, blEmp.profile_picture) : null;
-                        return { key: i, dName, url };
-                      });
+                      const blEntries = Array.from({ length: maxCount }).map(
+                        (_, i) => {
+                          const pId = blIds[i];
+                          const pName = blNames[i];
+                          const blEmp = pId
+                            ? allEmployees.find(
+                                (e: any) => String(e.id) === pId,
+                              )
+                            : null;
+                          const dName = blEmp?.full_name || pName || "Unknown";
+                          const url = blEmp?.profile_picture
+                            ? getGlobalProfileUrl(
+                                blEmp.id,
+                                blEmp.profile_picture,
+                              )
+                            : null;
+                          return { key: i, dName, url };
+                        },
+                      );
                       const visibleBl = blEntries.slice(0, 3);
                       const blRemaining = Math.max(0, blEntries.length - 3);
                       const blOverflowTitle =
-                        blRemaining > 0 ? blEntries.slice(3).map((e) => e.dName).join(", ") : undefined;
+                        blRemaining > 0
+                          ? blEntries
+                              .slice(3)
+                              .map((e) => e.dName)
+                              .join(", ")
+                          : undefined;
 
                       return (
                         <div className="min-w-0">
@@ -932,22 +1087,43 @@ export default function ProjectsBC() {
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
                                 {visibleBl[0].url ? (
-                                  <img src={visibleBl[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                  <img
+                                    src={visibleBl[0].url}
+                                    className="w-full h-full object-cover"
+                                    alt=""
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src =
+                                        ProfileIcon;
+                                    }}
+                                  />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
                                     {visibleBl[0].dName.charAt(0).toUpperCase()}
                                   </div>
                                 )}
                               </div>
-                              <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visibleBl[0].dName}</span>
+                              <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                                {visibleBl[0].dName}
+                              </span>
                             </div>
                           ) : (
                             <div className="flex items-center -space-x-3">
                               {visibleBl.map((entry) => (
-                                <div key={entry.key} className="relative group shrink-0">
+                                <div
+                                  key={entry.key}
+                                  className="relative group shrink-0"
+                                >
                                   <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
                                     {entry.url ? (
-                                      <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                      <img
+                                        src={entry.url}
+                                        className="w-full h-full object-cover"
+                                        alt=""
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).src =
+                                            ProfileIcon;
+                                        }}
+                                      />
                                     ) : (
                                       <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
                                         {entry.dName.charAt(0).toUpperCase()}
@@ -977,41 +1153,81 @@ export default function ProjectsBC() {
 
                     {/* Department Involved */}
                     <div className="flex flex-col gap-3">
-                      <p className="text-md font-Gantari font-semibold text-[#000000]">Department Involved</p>
-                      <p className="text-sm font-Gantari text-[#616161] truncate">{selectedProjectForView.department || 'N/A'}</p>
+                      <p className="text-md font-Gantari font-semibold text-[#000000]">
+                        Department Involved
+                      </p>
+                      <p className="text-sm font-Gantari text-[#616161] truncate">
+                        {selectedProjectForView.department || "N/A"}
+                      </p>
                     </div>
 
                     {/* Members Involved */}
                     <div className="flex flex-col gap-3">
-                      <p className="text-md font-Gantari font-semibold text-[#000000]">Members Involved</p>
+                      <p className="text-md font-Gantari font-semibold text-[#000000]">
+                        Members Involved
+                      </p>
                       {(() => {
                         const memberIdsForView = selectedProjectForView.member
-                          ? selectedProjectForView.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
+                          ? selectedProjectForView.member
+                              .split(",")
+                              .map((s) => parseInt(s.trim(), 10))
+                              .filter((n) => !isNaN(n))
                           : [];
 
                         if (memberIdsForView.length === 0) {
-                          return <p className="text-sm font-Gantari font-bold text-[#999999]">N/A</p>;
+                          return (
+                            <p className="text-sm font-Gantari font-bold text-[#999999]">
+                              N/A
+                            </p>
+                          );
                         }
 
                         return memberIdsForView.length === 1 ? (
                           <div className="flex items-center gap-3">
                             {(() => {
                               const id = memberIdsForView[0];
-                              const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
-                              const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                              const emp = allEmployees.find(
+                                (e) =>
+                                  Number(e.id) === Number(id) ||
+                                  String(e.id) === String(id),
+                              );
+                              const url = emp?.profile_picture
+                                ? getGlobalProfileUrl(
+                                    emp.id,
+                                    emp.profile_picture,
+                                  )
+                                : null;
                               return (
                                 <>
                                   <div
                                     role="button"
                                     tabIndex={0}
                                     className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                    onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
-                                    onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                                    onClick={() => {
+                                      if (emp) {
+                                        setSelectedMember(emp);
+                                        setShowMemberProfileModal(true);
+                                      }
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" && emp) {
+                                        setSelectedMember(emp);
+                                        setShowMemberProfileModal(true);
+                                      }
+                                    }}
                                   >
                                     {url ? (
-                                      <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
+                                      <img
+                                        src={url}
+                                        alt={emp?.full_name}
+                                        className="w-full h-full object-cover"
+                                      />
                                     ) : (
-                                      <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
+                                      <img
+                                        src={ProfileIcon}
+                                        alt={emp?.full_name}
+                                        className="w-full h-full object-cover p-1"
+                                      />
                                     )}
                                   </div>
                                   <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
@@ -1024,21 +1240,51 @@ export default function ProjectsBC() {
                         ) : (
                           <div className="flex flex-wrap items-center -space-x-4">
                             {memberIdsForView.slice(0, 3).map((id, j) => {
-                              const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
-                              const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                              const emp = allEmployees.find(
+                                (e) =>
+                                  Number(e.id) === Number(id) ||
+                                  String(e.id) === String(id),
+                              );
+                              const url = emp?.profile_picture
+                                ? getGlobalProfileUrl(
+                                    emp.id,
+                                    emp.profile_picture,
+                                  )
+                                : null;
                               return (
-                                <div key={j} className="relative group shrink-0">
+                                <div
+                                  key={j}
+                                  className="relative group shrink-0"
+                                >
                                   <div
                                     role="button"
                                     tabIndex={0}
                                     className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                    onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
-                                    onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                                    onClick={() => {
+                                      if (emp) {
+                                        setSelectedMember(emp);
+                                        setShowMemberProfileModal(true);
+                                      }
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" && emp) {
+                                        setSelectedMember(emp);
+                                        setShowMemberProfileModal(true);
+                                      }
+                                    }}
                                   >
                                     {url ? (
-                                      <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
+                                      <img
+                                        src={url}
+                                        alt={emp?.full_name}
+                                        className="w-full h-full object-cover"
+                                      />
                                     ) : (
-                                      <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
+                                      <img
+                                        src={ProfileIcon}
+                                        alt={emp?.full_name}
+                                        className="w-full h-full object-cover p-1"
+                                      />
                                     )}
                                   </div>
                                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
@@ -1057,16 +1303,28 @@ export default function ProjectsBC() {
                                     e.preventDefault();
                                     e.stopPropagation();
                                     const emps = memberIdsForView
-                                      .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
+                                      .map((id) =>
+                                        allEmployees.find(
+                                          (e) =>
+                                            Number(e.id) === Number(id) ||
+                                            String(e.id) === String(id),
+                                        ),
+                                      )
                                       .filter(Boolean) as Employee[];
                                     setAllMembersList(emps);
                                     setShowAllMembersModal(true);
                                   }}
                                   onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
+                                    if (e.key === "Enter" || e.key === " ") {
                                       e.preventDefault();
                                       const emps = memberIdsForView
-                                        .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
+                                        .map((id) =>
+                                          allEmployees.find(
+                                            (e) =>
+                                              Number(e.id) === Number(id) ||
+                                              String(e.id) === String(id),
+                                          ),
+                                        )
                                         .filter(Boolean) as Employee[];
                                       setAllMembersList(emps);
                                       setShowAllMembersModal(true);
@@ -1115,12 +1373,12 @@ export default function ProjectsBC() {
                         <span className="text-md font-Gantari font-medium text-[#666666]">
                           {selectedProjectForView.start_date
                             ? new Date(
-                              selectedProjectForView.start_date,
-                            ).toLocaleDateString("en-GB", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                            })
+                                selectedProjectForView.start_date,
+                              ).toLocaleDateString("en-GB", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })
                             : "N/A"}
                         </span>
                       </div>
@@ -1184,12 +1442,12 @@ export default function ProjectsBC() {
                         <span className="text-md font-Gantari font-medium text-[#666666]">
                           {selectedProjectForView.end_date
                             ? new Date(
-                              selectedProjectForView.end_date,
-                            ).toLocaleDateString("en-GB", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                            })
+                                selectedProjectForView.end_date,
+                              ).toLocaleDateString("en-GB", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })
                             : "N/A"}
                         </span>
                       </div>
@@ -1251,7 +1509,8 @@ export default function ProjectsBC() {
                   Payment Milestones
                 </h3>
                 <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
-                  {currentProject?.project_name ?? "Prestige Park Grove"}_Tower 1 to 09
+                  {currentProject?.project_name ?? "Prestige Park Grove"}_Tower
+                  1 to 09
                 </p>
               </div>
               <button
@@ -1284,25 +1543,33 @@ export default function ProjectsBC() {
                 return (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                     <div className="border border-slate-200 bg-[#F2F2F2] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
-                      <p className="text-[#353535] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Total Amount</p>
+                      <p className="text-[#353535] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">
+                        Total Amount
+                      </p>
                       <p className="text-[#353535] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">
                         {totalAmount.toLocaleString()}
                       </p>
                     </div>
                     <div className="border border-slate-200 bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
-                      <p className="text-[#353535] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Paid Amount</p>
+                      <p className="text-[#353535] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">
+                        Paid Amount
+                      </p>
                       <p className="text-[#353535] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">
                         {paidAmount.toLocaleString()}
                       </p>
                     </div>
                     <div className="border border-slate-200 bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
-                      <p className="text-[#333333] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Pending Amount</p>
+                      <p className="text-[#333333] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">
+                        Pending Amount
+                      </p>
                       <p className="text-[#333333] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">
                         {pendingAmount.toLocaleString()}
                       </p>
                     </div>
                     <div className="border border-slate-200 bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
-                      <p className="text-[#333333] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Progress</p>
+                      <p className="text-[#333333] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">
+                        Progress
+                      </p>
                       <p className="text-[#333333] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">
                         {progressPercent}%
                       </p>
@@ -1361,7 +1628,9 @@ export default function ProjectsBC() {
                             <span>
                               Due:{" "}
                               {m.due_date
-                                ? new Date(m.due_date).toLocaleDateString("en-GB")
+                                ? new Date(m.due_date).toLocaleDateString(
+                                    "en-GB",
+                                  )
                                 : "-"}
                             </span>
                           </div>
@@ -1380,7 +1649,9 @@ export default function ProjectsBC() {
                                   d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
                                 />
                               </svg>
-                              <span className="truncate max-w-xs">{m.notes}</span>
+                              <span className="truncate max-w-xs">
+                                {m.notes}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -1407,7 +1678,7 @@ export default function ProjectsBC() {
                                       currentProject?.id &&
                                       fetchMilestones(currentProject.id),
                                   )
-                                  .catch(() => { });
+                                  .catch(() => {});
                               }}
                               className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
                               title="Mark as Paid"
@@ -1441,7 +1712,7 @@ export default function ProjectsBC() {
                                       currentProject?.id &&
                                       fetchMilestones(currentProject.id),
                                   )
-                                  .catch(() => { });
+                                  .catch(() => {});
                               }
                             }}
                             className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors"
@@ -1515,7 +1786,9 @@ export default function ProjectsBC() {
                     !createDescription.trim() ||
                     createFiles.length === 0
                   ) {
-                    setCreateError("Please fill in all required fields and attach at least one file.");
+                    setCreateError(
+                      "Please fill in all required fields and attach at least one file.",
+                    );
                     return;
                   }
 
@@ -1542,7 +1815,8 @@ export default function ProjectsBC() {
                     createBIMCoOrdinator,
                     allEmployees,
                   );
-                  if (bcIdsCreate) formData.append("bim_coordinator_id", bcIdsCreate);
+                  if (bcIdsCreate)
+                    formData.append("bim_coordinator_id", bcIdsCreate);
                   if (selectedMemberIds.length > 0)
                     formData.append("members", selectedMemberIds.join(","));
                   if (createDepartment)
@@ -1553,8 +1827,10 @@ export default function ProjectsBC() {
                   if (createTotalHours)
                     formData.append("totalhours", createTotalHours);
                   if (createPerDay) formData.append("perday", createPerDay);
-                  if (createPriority) formData.append("priority", createPriority);
-                  if (createLocation) formData.append("location", createLocation);
+                  if (createPriority)
+                    formData.append("priority", createPriority);
+                  if (createLocation)
+                    formData.append("location", createLocation);
                   if (createDescription)
                     formData.append("description", createDescription);
                   if (createResources)
@@ -1613,21 +1889,22 @@ export default function ProjectsBC() {
                             const userId = user?.id;
                             const filtered = userId
                               ? allProjects.filter((p: any) => {
-                                if (!p.bim_coordinator_id) return false;
-                                return String(p.bim_coordinator_id)
-                                  .split(",")
-                                  .map((s: string) => s.trim())
-                                  .includes(String(userId));
-                              })
+                                  if (!p.bim_coordinator_id) return false;
+                                  return String(p.bim_coordinator_id)
+                                    .split(",")
+                                    .map((s: string) => s.trim())
+                                    .includes(String(userId));
+                                })
                               : allProjects;
                             setList(filtered.map(mapApiProjectToProject));
                           })
-                          .catch(() => { });
+                          .catch(() => {});
                       }
                     })
                     .catch((err) =>
                       setCreateError(
-                        err.response?.data?.message || "Failed to create project",
+                        err.response?.data?.message ||
+                          "Failed to create project",
                       ),
                     )
                     .finally(() => setCreateSubmitting(false));
@@ -1636,9 +1913,13 @@ export default function ProjectsBC() {
               >
                 {createError && (
                   <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
-                    <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
+                    <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
+                      !
+                    </div>
                     <div className="flex-1">
-                      <p className="mt-0.5 text-[13px] leading-snug">{createError}</p>
+                      <p className="mt-0.5 text-[13px] leading-snug">
+                        {createError}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -1766,7 +2047,8 @@ export default function ProjectsBC() {
                   {/* ── Project Start Date ── */}
                   <div className="space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Project Start Date <span className="text-[#DD4342]">*</span>
+                      Project Start Date{" "}
+                      <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                       type="date"
@@ -1800,7 +2082,9 @@ export default function ProjectsBC() {
                       type="text"
                       required
                       value={createPerDay}
-                      onChange={(e) => setCreatePerDay(e.target.value.replace(/  +/g, ' '))}
+                      onChange={(e) =>
+                        setCreatePerDay(e.target.value.replace(/  +/g, " "))
+                      }
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Per Day Hours"
                     />
@@ -1824,7 +2108,8 @@ export default function ProjectsBC() {
                   {/* ── Department dropdown ── */}
                   <div className="space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Select Department <span className="text-[#DD4342]">*</span>
+                      Select Department{" "}
+                      <span className="text-[#DD4342]">*</span>
                     </label>
                     <FormSelect
                       label="Department"
@@ -1850,7 +2135,8 @@ export default function ProjectsBC() {
                   {/* ── BIM Co-ordinator dropdown ── */}
                   <div className="space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Select BIM Co-Ordinator <span className="text-[#DD4342]">*</span>
+                      Select BIM Co-Ordinator{" "}
+                      <span className="text-[#DD4342]">*</span>
                     </label>
                     <FormSelect
                       label="BIM Co-Ordinator"
@@ -1861,7 +2147,10 @@ export default function ProjectsBC() {
                     />
                   </div>
                   {/* ── Members multi-select ── */}
-                  <div className="md:col-span-2 space-y-4" style={{ position: "relative" }}>
+                  <div
+                    className="md:col-span-2 space-y-4"
+                    style={{ position: "relative" }}
+                  >
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                       Select Members <span className="text-[#DD4342]">*</span>
                     </label>
@@ -1961,7 +2250,9 @@ export default function ProjectsBC() {
                       type="text"
                       required
                       value={createResources}
-                      onChange={(e) => setCreateResources(e.target.value.replace(/  +/g, ' '))}
+                      onChange={(e) =>
+                        setCreateResources(e.target.value.replace(/  +/g, " "))
+                      }
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Actual Resources"
                     />
@@ -1970,13 +2261,18 @@ export default function ProjectsBC() {
                   {/* ── Required Resources ── */}
                   <div className="space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Required Resources <span className="text-[#DD4342]">*</span>
+                      Required Resources{" "}
+                      <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                       type="text"
                       required
                       value={createRequiredResources}
-                      onChange={(e) => setCreateRequiredResources(e.target.value.replace(/  +/g, ' '))}
+                      onChange={(e) =>
+                        setCreateRequiredResources(
+                          e.target.value.replace(/  +/g, " "),
+                        )
+                      }
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Required Resources"
                     />
@@ -2005,7 +2301,9 @@ export default function ProjectsBC() {
                       type="text"
                       required
                       value={createLocation}
-                      onChange={(e) => setCreateLocation(e.target.value.replace(/  +/g, ' '))}
+                      onChange={(e) =>
+                        setCreateLocation(e.target.value.replace(/  +/g, " "))
+                      }
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Project Location"
                     />
@@ -2014,7 +2312,8 @@ export default function ProjectsBC() {
                   {/* ── Project Description (full width) ── */}
                   <div className="md:col-span-2 space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Project Description <span className="text-[#DD4342]">*</span>
+                      Project Description{" "}
+                      <span className="text-[#DD4342]">*</span>
                     </label>
                     <textarea
                       required
@@ -2068,11 +2367,20 @@ export default function ProjectsBC() {
                             <div className="flex items-center gap-3 shrink-0">
                               <button
                                 type="button"
-                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                                onClick={() =>
+                                  window.open(
+                                    URL.createObjectURL(file),
+                                    "_blank",
+                                  )
+                                }
                                 className="text-[#DD4342] hover:opacity-80 transition-opacity cursor-pointer shrink-0"
                                 title="View file"
                               >
-                                <img src={viewIcon} alt="View" className="w-5 h-5" />
+                                <img
+                                  src={viewIcon}
+                                  alt="View"
+                                  className="w-5 h-5"
+                                />
                               </button>
                               <button
                                 type="button"
@@ -2084,7 +2392,11 @@ export default function ProjectsBC() {
                                 className="text-[#616161] hover:text-[#DD4342] transition-colors cursor-pointer shrink-0"
                                 title="Remove file"
                               >
-                                <img src={deleteIcon} alt="Delete" className="w-5 h-5" />
+                                <img
+                                  src={deleteIcon}
+                                  alt="Delete"
+                                  className="w-5 h-5"
+                                />
                               </button>
                             </div>
                           </div>
@@ -2111,7 +2423,7 @@ export default function ProjectsBC() {
                   <button
                     type="submit"
                     disabled={createSubmitting}
-                    className={`w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari ${createSubmitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                    className={`w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari ${createSubmitting ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
                   >
                     {createSubmitting ? "Submitting..." : "Submit"}
                   </button>
@@ -2191,7 +2503,8 @@ export default function ProjectsBC() {
                     allEmployees,
                   );
                   if (bcIds) formData.append("bim_coordinator_id", bcIds);
-                  if (membersPayload) formData.append("members", membersPayload);
+                  if (membersPayload)
+                    formData.append("members", membersPayload);
                   if (createDepartment)
                     formData.append("department", createDepartment);
                   if (createEndDate) formData.append("due_date", createEndDate);
@@ -2201,7 +2514,8 @@ export default function ProjectsBC() {
                     formData.append("totalhours", createTotalHours);
                   if (createPerDay) formData.append("perday", createPerDay);
                   if (editPriority) formData.append("priority", editPriority);
-                  if (createLocation) formData.append("location", createLocation);
+                  if (createLocation)
+                    formData.append("location", createLocation);
                   if (createDescription)
                     formData.append("description", createDescription);
                   if (createResources)
@@ -2242,28 +2556,32 @@ export default function ProjectsBC() {
                             const userId = user?.id;
                             const filtered = userId
                               ? allProjects.filter((p: any) => {
-                                if (!p.bim_coordinator_id) return false;
-                                return String(p.bim_coordinator_id)
-                                  .split(",")
-                                  .map((s: string) => s.trim())
-                                  .includes(String(userId));
-                              })
+                                  if (!p.bim_coordinator_id) return false;
+                                  return String(p.bim_coordinator_id)
+                                    .split(",")
+                                    .map((s: string) => s.trim())
+                                    .includes(String(userId));
+                                })
                               : allProjects;
                             setList(filtered.map(mapApiProjectToProject));
                           })
-                          .catch(() => { });
+                          .catch(() => {});
                       }
                     })
-                    .catch(() => { })
+                    .catch(() => {})
                     .finally(() => setIsEditSubmitting(false));
                 }}
                 className="mx-auto space-y-6 md:space-y-8 mt-8"
               >
                 {editError && (
                   <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
-                    <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
+                    <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
+                      !
+                    </div>
                     <div className="flex-1">
-                      <p className="mt-0.5 text-[13px] leading-snug">{editError}</p>
+                      <p className="mt-0.5 text-[13px] leading-snug">
+                        {editError}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -2277,7 +2595,9 @@ export default function ProjectsBC() {
                       type="text"
                       required
                       value={createName}
-                      onChange={(e) => setCreateName(e.target.value.replace(/  +/g, ' '))}
+                      onChange={(e) =>
+                        setCreateName(e.target.value.replace(/  +/g, " "))
+                      }
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Project Name"
                     />
@@ -2292,7 +2612,9 @@ export default function ProjectsBC() {
                       type="text"
                       required
                       value={createBudget}
-                      onChange={(e) => setCreateBudget(e.target.value.replace(/  +/g, ' '))}
+                      onChange={(e) =>
+                        setCreateBudget(e.target.value.replace(/  +/g, " "))
+                      }
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Project Budget"
                     />
@@ -2451,7 +2773,8 @@ export default function ProjectsBC() {
                   {/* Start Date */}
                   <div className="space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Project Start Date <span className="text-[#DD4342]">*</span>
+                      Project Start Date{" "}
+                      <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                       type="date"
@@ -2485,7 +2808,9 @@ export default function ProjectsBC() {
                       type="text"
                       required
                       value={createPerDay}
-                      onChange={(e) => setCreatePerDay(e.target.value.replace(/  +/g, ' '))}
+                      onChange={(e) =>
+                        setCreatePerDay(e.target.value.replace(/  +/g, " "))
+                      }
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Per Day Hours"
                     />
@@ -2500,7 +2825,9 @@ export default function ProjectsBC() {
                       type="text"
                       required
                       value={createTotalHours}
-                      onChange={(e) => setCreateTotalHours(e.target.value.replace(/  +/g, ' '))}
+                      onChange={(e) =>
+                        setCreateTotalHours(e.target.value.replace(/  +/g, " "))
+                      }
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Total Hours"
                     />
@@ -2509,7 +2836,8 @@ export default function ProjectsBC() {
                   {/* Select Department */}
                   <div className="space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Select Department <span className="text-[#DD4342]">*</span>
+                      Select Department{" "}
+                      <span className="text-[#DD4342]">*</span>
                     </label>
                     <FormSelect
                       label="Department"
@@ -2523,7 +2851,8 @@ export default function ProjectsBC() {
                   {/* Select Project Manager */}
                   <div className="space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Select Project Manager <span className="text-[#DD4342]">*</span>
+                      Select Project Manager{" "}
+                      <span className="text-[#DD4342]">*</span>
                     </label>
                     <FormSelect
                       label="Project Manager"
@@ -2551,7 +2880,8 @@ export default function ProjectsBC() {
                   {/* Select BIM Co-Ordinator (read-only for BIM Coordinator) */}
                   <div className="space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Select BIM Co-Ordinator <span className="text-[#DD4342]">*</span>
+                      Select BIM Co-Ordinator{" "}
+                      <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                       type="text"
@@ -2562,7 +2892,10 @@ export default function ProjectsBC() {
                   </div>
 
                   {/* Select Members (multi-select, same as PM) */}
-                  <div className="md:col-span-2 space-y-4" style={{ position: "relative" }}>
+                  <div
+                    className="md:col-span-2 space-y-4"
+                    style={{ position: "relative" }}
+                  >
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                       Select Members <span className="text-[#DD4342]">*</span>
                     </label>
@@ -2662,7 +2995,9 @@ export default function ProjectsBC() {
                       type="text"
                       required
                       value={createLocation}
-                      onChange={(e) => setCreateLocation(e.target.value.replace(/  +/g, ' '))}
+                      onChange={(e) =>
+                        setCreateLocation(e.target.value.replace(/  +/g, " "))
+                      }
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Project Location"
                     />
@@ -2677,7 +3012,9 @@ export default function ProjectsBC() {
                       type="text"
                       required
                       value={createResources}
-                      onChange={(e) => setCreateResources(e.target.value.replace(/  +/g, ' '))}
+                      onChange={(e) =>
+                        setCreateResources(e.target.value.replace(/  +/g, " "))
+                      }
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Actual Resources"
                     />
@@ -2686,13 +3023,18 @@ export default function ProjectsBC() {
                   {/* Required Resources */}
                   <div className="space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Required Resources <span className="text-[#DD4342]">*</span>
+                      Required Resources{" "}
+                      <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                       type="text"
                       required
                       value={createRequiredResources}
-                      onChange={(e) => setCreateRequiredResources(e.target.value.replace(/  +/g, ' '))}
+                      onChange={(e) =>
+                        setCreateRequiredResources(
+                          e.target.value.replace(/  +/g, " "),
+                        )
+                      }
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Required Resources"
                     />
@@ -2701,13 +3043,18 @@ export default function ProjectsBC() {
                   {/* Project Description */}
                   <div className="md:col-span-2 space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Project Description <span className="text-[#DD4342]">*</span>
+                      Project Description{" "}
+                      <span className="text-[#DD4342]">*</span>
                     </label>
                     <textarea
                       required
                       rows={4}
                       value={createDescription}
-                      onChange={(e) => setCreateDescription(e.target.value.replace(/  +/g, ' '))}
+                      onChange={(e) =>
+                        setCreateDescription(
+                          e.target.value.replace(/  +/g, " "),
+                        )
+                      }
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                       placeholder="Type Project Description"
                     />
@@ -2746,8 +3093,12 @@ export default function ProjectsBC() {
                             className="flex items-center gap-3 p-3 bg-[#F2F3F4] rounded-[5px] group w-full"
                           >
                             <div className="flex-1 min-w-0">
-                              <p className="text-[14px] font-semibold text-[#353535] truncate">{fileName}</p>
-                              <p className="text-[12px] font-medium text-[#8B8B8B]">Existing File</p>
+                              <p className="text-[14px] font-semibold text-[#353535] truncate">
+                                {fileName}
+                              </p>
+                              <p className="text-[12px] font-medium text-[#8B8B8B]">
+                                Existing File
+                              </p>
                             </div>
                             <div className="flex items-center gap-3 shrink-0">
                               <a
@@ -2757,7 +3108,11 @@ export default function ProjectsBC() {
                                 className="text-[#DD4342] hover:opacity-80 transition-opacity cursor-pointer shrink-0"
                                 title="View file"
                               >
-                                <img src={viewIcon} alt="View" className="w-5 h-5" />
+                                <img
+                                  src={viewIcon}
+                                  alt="View"
+                                  className="w-5 h-5"
+                                />
                               </a>
                               <button
                                 type="button"
@@ -2771,7 +3126,11 @@ export default function ProjectsBC() {
                                 className="text-[#616161] hover:text-[#DD4342] transition-colors cursor-pointer shrink-0"
                                 title="Remove file"
                               >
-                                <img src={deleteIcon} alt="Delete" className="w-5 h-5" />
+                                <img
+                                  src={deleteIcon}
+                                  alt="Delete"
+                                  className="w-5 h-5"
+                                />
                               </button>
                             </div>
                           </div>
@@ -2784,17 +3143,30 @@ export default function ProjectsBC() {
                             className="flex items-center gap-3 p-3 bg-[#F2F3F4] rounded-[5px] group w-full"
                           >
                             <div className="flex-1 min-w-0">
-                              <p className="text-[14px] font-semibold text-[#353535] truncate">{file.name}</p>
-                              <p className="text-[12px] font-medium text-[#8B8B8B]">{(file.size / 1024).toFixed(1)} KB</p>
+                              <p className="text-[14px] font-semibold text-[#353535] truncate">
+                                {file.name}
+                              </p>
+                              <p className="text-[12px] font-medium text-[#8B8B8B]">
+                                {(file.size / 1024).toFixed(1)} KB
+                              </p>
                             </div>
                             <div className="flex items-center gap-3 shrink-0">
                               <button
                                 type="button"
-                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                                onClick={() =>
+                                  window.open(
+                                    URL.createObjectURL(file),
+                                    "_blank",
+                                  )
+                                }
                                 className="text-[#DD4342] hover:opacity-80 transition-opacity cursor-pointer shrink-0"
                                 title="View file"
                               >
-                                <img src={viewIcon} alt="View" className="w-5 h-5" />
+                                <img
+                                  src={viewIcon}
+                                  alt="View"
+                                  className="w-5 h-5"
+                                />
                               </button>
                               <button
                                 type="button"
@@ -2806,7 +3178,11 @@ export default function ProjectsBC() {
                                 className="text-[#616161] hover:text-[#DD4342] transition-colors cursor-pointer shrink-0"
                                 title="Remove file"
                               >
-                                <img src={deleteIcon} alt="Delete" className="w-5 h-5" />
+                                <img
+                                  src={deleteIcon}
+                                  alt="Delete"
+                                  className="w-5 h-5"
+                                />
                               </button>
                             </div>
                           </div>
@@ -2928,14 +3304,21 @@ export default function ProjectsBC() {
                                   cx="26"
                                   cy="26"
                                   r={radius}
-                                  stroke={progress >= 80 ? "#0a9344" : progress >= 1 ? "#DD4342" : "#999999"}
+                                  stroke={
+                                    progress >= 80
+                                      ? "#0a9344"
+                                      : progress >= 1
+                                        ? "#DD4342"
+                                        : "#999999"
+                                  }
                                   strokeWidth="4"
                                   fill="transparent"
                                   strokeDasharray={circumference}
                                   strokeDashoffset={offset}
                                   strokeLinecap="round"
                                   style={{
-                                    transition: "stroke-dashoffset 0.8s ease-in-out",
+                                    transition:
+                                      "stroke-dashoffset 0.8s ease-in-out",
                                   }}
                                 />
                               </svg>
@@ -2954,20 +3337,28 @@ export default function ProjectsBC() {
                                 }}
                                 className="p-2 rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
                               >
-                                <img src={threedot} alt="threeDots" className="w-5 h-5 text-[#8B8B8B]" />
+                                <img
+                                  src={threedot}
+                                  alt="threeDots"
+                                  className="w-5 h-5 text-[#8B8B8B]"
+                                />
                               </button>
                               <div
-                                className={`absolute right-0 mt-3 w-60 bg-white/90 backdrop-blur-md rounded-md border border-[#595959]/50 shadow-xl transition-all origin-top-right z-50 ${openMenuProjectId === p.id
-                                  ? "opacity-100 scale-100 visible"
-                                  : "opacity-0 scale-95 invisible"
-                                  }`}
+                                className={`absolute right-0 mt-3 w-60 bg-white/90 backdrop-blur-md rounded-md border border-[#595959]/50 shadow-xl transition-all origin-top-right z-50 ${
+                                  openMenuProjectId === p.id
+                                    ? "opacity-100 scale-100 visible"
+                                    : "opacity-0 scale-95 invisible"
+                                }`}
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setOpenMenuProjectId(null);
-                                    setSearchParams({ projectId: String(p.id), source: String(p.source || "In House") });
+                                    setSearchParams({
+                                      projectId: String(p.id),
+                                      source: String(p.source || "In House"),
+                                    });
                                   }}
                                   className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                                 >
@@ -3007,13 +3398,15 @@ export default function ProjectsBC() {
                                       setOpenMenuProjectId(null);
                                       setSelectedProjectForEdit(p);
                                       setCreateName(p.project_name ?? "");
-                                      setCreateBudget(p.budget ? `${p.budget}` : "");
+                                      setCreateBudget(
+                                        p.budget ? `${p.budget}` : "",
+                                      );
                                       setEditModuleTags(
                                         p.module_name
                                           ? p.module_name
-                                            .split(",")
-                                            .map((m) => m.trim())
-                                            .filter(Boolean)
+                                              .split(",")
+                                              .map((m) => m.trim())
+                                              .filter(Boolean)
                                           : [],
                                       );
                                       setCreateClientName(p.client_name ?? "");
@@ -3029,15 +3422,15 @@ export default function ProjectsBC() {
                                       setCreateStartDate(
                                         p.start_date
                                           ? String(p.start_date)
-                                            .split("T")[0]
-                                            .split(" ")[0]
+                                              .split("T")[0]
+                                              .split(" ")[0]
                                           : "",
                                       );
                                       setCreateEndDate(
                                         p.end_date
                                           ? String(p.end_date)
-                                            .split("T")[0]
-                                            .split(" ")[0]
+                                              .split("T")[0]
+                                              .split(" ")[0]
                                           : "",
                                       );
                                       setCreateTotalHours(p.total_hours ?? "");
@@ -3070,30 +3463,34 @@ export default function ProjectsBC() {
                                       setSelectedMemberIds(
                                         p.member
                                           ? p.member
-                                            .split(",")
-                                            .map((m) => parseInt(m.trim(), 10))
-                                            .filter((n) => !isNaN(n))
+                                              .split(",")
+                                              .map((m) =>
+                                                parseInt(m.trim(), 10),
+                                              )
+                                              .filter((n) => !isNaN(n))
                                           : [],
                                       );
                                       setCreateResources(p.resources ?? "");
-                                      setCreateRequiredResources(p.required_resources ?? "");
+                                      setCreateRequiredResources(
+                                        p.required_resources ?? "",
+                                      );
                                       setCreatePriority(p.priority ?? "");
                                       setEditPriority(p.priority ?? "");
                                       setCreateLocation(p.location ?? "");
                                       setCreateDescription(p.description ?? "");
                                       const tasksArr = p.tasks
                                         ? p.tasks
-                                          .split(",")
-                                          .map((t) => t.trim())
-                                          .filter(Boolean)
+                                            .split(",")
+                                            .map((t) => t.trim())
+                                            .filter(Boolean)
                                         : [];
                                       setEditTaskTags(tasksArr);
                                       setExistingFiles(
                                         p.document_attachment
                                           ? p.document_attachment
-                                            .split(",")
-                                            .map((f) => f.trim())
-                                            .filter(Boolean)
+                                              .split(",")
+                                              .map((f) => f.trim())
+                                              .filter(Boolean)
                                           : [],
                                       );
                                       setShowEditModal(true);
@@ -3144,11 +3541,19 @@ export default function ProjectsBC() {
                           role="button"
                           tabIndex={0}
                           className="flex items-center justify-between border-t border-[#E8E8E8] pt-2 mt-auto cursor-pointer"
-                          onClick={() => setSearchParams({ projectId: String(p.id), source: String(p.source || "In House") })}
+                          onClick={() =>
+                            setSearchParams({
+                              projectId: String(p.id),
+                              source: String(p.source || "In House"),
+                            })
+                          }
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              setSearchParams({ projectId: String(p.id), source: String(p.source || "In House") });
+                              setSearchParams({
+                                projectId: String(p.id),
+                                source: String(p.source || "In House"),
+                              });
                             }
                           }}
                           title="View project details"
@@ -3160,9 +3565,9 @@ export default function ProjectsBC() {
                             {(() => {
                               const rawIds = p.member
                                 ? p.member
-                                  .split(",")
-                                  .map((m) => m.trim())
-                                  .filter(Boolean)
+                                    .split(",")
+                                    .map((m) => m.trim())
+                                    .filter(Boolean)
                                 : [];
                               const memberIds_card = rawIds.map((m) => {
                                 const n = Number(m);
@@ -3178,7 +3583,10 @@ export default function ProjectsBC() {
                                 )
                                 .filter(Boolean) as Employee[];
 
-                              const visibleMembers = projectEmployees.slice(0, 3);
+                              const visibleMembers = projectEmployees.slice(
+                                0,
+                                3,
+                              );
                               const remainingCount = Math.max(
                                 0,
                                 projectEmployees.length - 3,
@@ -3189,9 +3597,9 @@ export default function ProjectsBC() {
                                   {visibleMembers.map((emp) => {
                                     const profileUrl = emp.profile_picture
                                       ? getGlobalProfileUrl(
-                                        emp.id,
-                                        emp.profile_picture,
-                                      )
+                                          emp.id,
+                                          emp.profile_picture,
+                                        )
                                       : null;
 
                                     return (
@@ -3213,8 +3621,9 @@ export default function ProjectsBC() {
                                             alt={emp.full_name}
                                             className="w-full h-full object-cover"
                                             onError={(e) => {
-                                              (e.target as HTMLImageElement).src =
-                                                ProfileIcon;
+                                              (
+                                                e.target as HTMLImageElement
+                                              ).src = ProfileIcon;
                                             }}
                                           />
                                         ) : (
@@ -3248,10 +3657,11 @@ export default function ProjectsBC() {
                           </div>
                           {p.priority && (
                             <div
-                              className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority === "High"
-                                ? "bg-[#DD4342]"
-                                : "bg-[#94D6F2]"
-                                }`}
+                              className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${
+                                p.priority === "High"
+                                  ? "bg-[#DD4342]"
+                                  : "bg-[#94D6F2]"
+                              }`}
                             >
                               {p.priority}
                             </div>
@@ -3270,12 +3680,27 @@ export default function ProjectsBC() {
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="bg-white rounded-[20px] shadow-2xl max-w-sm w-full p-8 text-center border border-gray-100">
               <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                <svg
+                  className="w-10 h-10 text-red-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2 font-Gantari">Delete Project</h3>
-              <p className="text-gray-500 mb-8 font-Gantari">Are you sure you want to delete this project? This action cannot be undone.</p>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2 font-Gantari">
+                Delete Project
+              </h3>
+              <p className="text-gray-500 mb-8 font-Gantari">
+                Are you sure you want to delete this project? This action cannot
+                be undone.
+              </p>
               <div className="flex gap-3 justify-center">
                 <button
                   type="button"
@@ -3289,23 +3714,28 @@ export default function ProjectsBC() {
                   onClick={() => {
                     if (deleteProject === null) return;
                     const isOutsource = deleteProject.source === "Outsource";
-                    const baseEndpoint = isOutsource ? `/api/vendors/vendor-projects/${deleteProject.id}` : `/api/projects/${deleteProject.id}`;
-                    
-                    api.delete(baseEndpoint)
+                    const baseEndpoint = isOutsource
+                      ? `/api/vendors/vendor-projects/${deleteProject.id}`
+                      : `/api/projects/${deleteProject.id}`;
+
+                    api
+                      .delete(baseEndpoint)
                       .then(() => {
-                        setList(prev => prev.filter(p => p.id !== deleteProject.id));
+                        setList((prev) =>
+                          prev.filter((p) => p.id !== deleteProject.id),
+                        );
                         setDeleteProject(null);
                       })
-                      .catch(() => { });
-                }}
-                className="flex-1 px-6 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all font-Gantari shadow-lg shadow-red-200 cursor-pointer"
-              >
-                Delete
-              </button>
+                      .catch(() => {});
+                  }}
+                  className="flex-1 px-6 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all font-Gantari shadow-lg shadow-red-200 cursor-pointer"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
         {/* Add Payment Milestone Modal */}
         {showAddMilestoneModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
@@ -3347,7 +3777,7 @@ export default function ProjectsBC() {
                       setMilestoneNotes("");
                       fetchMilestones(currentProject.id);
                     })
-                    .catch(() => { });
+                    .catch(() => {});
                 }}
                 className="space-y-5 md:space-y-6 px-1"
               >

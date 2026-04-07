@@ -13,7 +13,7 @@ import threedot from "../../assets/ProjectManager/project/threedot.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
-import { FiUploadCloud, FiPaperclip, FiGrid, FiMenu } from "react-icons/fi";
+import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 
 
@@ -434,6 +434,10 @@ export default function ProjectsTD() {
     Employee[]
   >([]);
 
+  const [typeFilter, setTypeFilter] = useState<
+    "All" | "In House" | "Outsource"
+  >("All");
+
   // Profile modal state
   const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
@@ -623,9 +627,12 @@ export default function ProjectsTD() {
           const mapped = mapApiProjectToProject(p);
           // If department is "Submission Deadline", it's an Outsource project
           const isOutsource = mapped.department === "Submission Deadline";
+          const source: "Outsource" | "In House" = isOutsource
+            ? "Outsource"
+            : "In House";
           return {
             ...mapped,
-            source: (isOutsource ? "Outsource" : "In House") as const,
+            source,
           };
         });
 
@@ -2076,18 +2083,15 @@ export default function ProjectsTD() {
                         Create Project
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => setShowInactiveModal(true)}
-                      className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm hover:brightness-110"
-                    >
-                      Manage Deactive
-                    </button>
                     <div className="shrink-0">
                       <CustomDropdown
                         options={["All", "In House", "Outsource"]}
                         value={typeFilter}
-                        onChange={(val) => setTypeFilter(val)}
+                        onChange={(val) =>
+                          setTypeFilter(
+                            val as "All" | "In House" | "Outsource",
+                          )
+                        }
                         placeholder="Type"
                         className="w-[100px] sm:w-[130px]"
                         styleType="header"
@@ -2104,13 +2108,12 @@ export default function ProjectsTD() {
             <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-4 pl-4 pr-1 custom-scrollbar">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(() => {
-                  const typeFiltered = typeFilter === "All"
-                    ? list
-                    : list.filter(p => p.source === typeFilter);
+                  const displayList =
+                    typeFilter === "All"
+                      ? filteredList
+                      : filteredList.filter((p) => p.source === typeFilter);
 
-                  const filteredList = typeFiltered;
-
-                  if (filteredList.length === 0) {
+                  if (displayList.length === 0) {
                     return (
                       <div className="col-span-full bg-slate-50 rounded-md border border-dashed border-slate-300 p-10 text-center text-slate-500">
                         No projects found.
@@ -2118,7 +2121,7 @@ export default function ProjectsTD() {
                     );
                   }
 
-                  return filteredList.map((p) => {
+                  return displayList.map((p) => {
 
                     // Use data directly from projects table
                     const progress = Math.round(p.progress ?? 0);

@@ -202,13 +202,13 @@ export default function ClientV() {
 
     return (
         <div className="h-full flex flex-col">
-            <div className="flex items-center justify-between flex-shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
                 <h2 className="text-2xl font-bold text-slate-800">Clients</h2>
                 {canAdd && (
                     <button
                         type="button"
                         onClick={() => setShowAddModal(true)}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#E14B4B] text-white font-semibold transition shadow-md shadow-red-100"
+                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-[#E14B4B] text-white font-semibold transition shadow-md shadow-red-100"
                     >
                         <img src={plusIcon} alt="Add" className="w-5 h-5 object-contain" />
                         Add Client
@@ -303,24 +303,24 @@ export default function ClientV() {
             {showAddModal && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     <div className="bg-white rounded-[20px] shadow-2xl max-w-3xl w-full transition-all animate-in fade-in zoom-in duration-200 max-h-[95vh] overflow-y-auto hide-scrollbar">
-                        {/* Header */}
-                        <div className="relative p-5">
-                            <button
-                                type="button"
-                                onClick={() => { setShowAddModal(false); setAddError(''); }}
-                                className="absolute left-6 top-6 w-7 h-7 flex items-center justify-center transition hover:opacity-80"
-                            >
+                                {/* Header */}
+                                <div className="relative p-5">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setShowAddModal(false); setAddError(''); }}
+                                        className="absolute left-4 top-4 md:left-6 md:top-6 w-7 h-7 flex items-center justify-center transition hover:opacity-80"
+                                    >
                                 <img src={closeIcon} alt="Close" className="w-full h-full object-contain" />
                             </button>
                             <h3 className="text-center text-xl font-gantari font-semibold text-[#020202]">Add New Client</h3>
                         </div>
 
-                        <div className="px-10 pb-8 pt-0">
+                        <div className="px-5 md:px-10 pb-6 md:pb-8 pt-0">
                             <form onSubmit={handleAddSubmit} className="space-y-4">
                                 {addError && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">{addError}</p>}
 
                                 {/* Row 1 to 5: Two Column Grid */}
-                                <div className="grid grid-cols-2 gap-x-12 gap-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
                                     <div className="space-y-1.5">
                                         <label className="block text-[14px] font-gantari font-bold text-[#000000]">Client Name*</label>
                                         <input
@@ -437,7 +437,7 @@ export default function ClientV() {
                                     </div>
 
                                     {/* Row 6: Company Address (Full Width) */}
-                                    <div className="col-span-2 space-y-1.5">
+                                    <div className="col-span-1 md:col-span-2 space-y-1.5">
                                         <label className="block text-[14px] font-gantari font-bold text-[#000000]">Company Address*</label>
                                         <textarea
                                             value={form.address}
@@ -480,17 +480,17 @@ export default function ClientV() {
                             <button
                                 type="button"
                                 onClick={() => { setEditId(null); setSearchParams({}); }}
-                                className="absolute left-6 top-6 w-7 h-7 flex items-center justify-center transition hover:opacity-80"
+                                className="absolute left-4 top-4 md:left-6 md:top-6 w-7 h-7 flex items-center justify-center transition hover:opacity-80"
                             >
                                 <img src={closeIcon} alt="Close" className="w-full h-full object-contain" />
                             </button>
                             <h3 className="text-center text-xl font-gantari font-semibold text-[#020202]">Edit Client Details</h3>
                         </div>
 
-                        <div className="px-10 pb-8 pt-0">
+                        <div className="px-5 md:px-10 pb-6 md:pb-8 pt-0">
                             <form onSubmit={handleEditSubmit} className="space-y-4">
                                 {/* Row 1 to 5: Two Column Grid */}
-                                <div className="grid grid-cols-2 gap-x-12 gap-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
                                     <div className="space-y-1.5">
                                         <label className="block text-[14px] font-gantari font-bold text-[#000000]">Client Name*</label>
                                         <input
@@ -607,7 +607,7 @@ export default function ClientV() {
                                     </div>
 
                                     {/* Row 6: Company Address (Full Width) */}
-                                    <div className="col-span-2 space-y-1.5">
+                                    <div className="col-span-1 md:col-span-2 space-y-1.5">
                                         <label className="block text-[14px] font-gantari font-bold text-[#000000]">Company Address*</label>
                                         <textarea
                                             value={editForm.address}
@@ -646,18 +646,18 @@ export default function ClientV() {
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                     <div className="bg-white rounded-[20px] shadow-2xl max-w-xl w-full transition-all animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto hide-scrollbar">
                         {/* Header */}
-                        <div className="relative p-6">
+                        <div className="relative p-4 md:p-6">
                             <button
                                 type="button"
                                 onClick={() => { setViewId(null); setViewClient(null); }}
-                                className="absolute left-6 top-6 w-8 h-8 flex items-center justify-center transition hover:opacity-80"
+                                className="absolute left-4 top-4 md:left-6 md:top-6 w-8 h-8 flex items-center justify-center transition hover:opacity-80"
                             >
                                 <img src={closeIcon} alt="Close" className="w-full h-full object-contain" />
                             </button>
                             <h3 className="text-center text-xl font-gantari font-semibold text-[#020202]">View Client Details</h3>
                         </div>
 
-                        <div className="px-10 pb-10 pt-2 space-y-8">
+                        <div className="px-5 md:px-10 pb-6 md:pb-10 pt-2 space-y-6 md:space-y-8">
                             {/* Progress Bar */}
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
@@ -692,9 +692,9 @@ export default function ClientV() {
                                     { label: 'Total Hours', value: viewClient.totalHours ? `${viewClient.totalHours}hrs` : '0000hrs' },
                                     { label: 'Resources Involved', value: viewClient.resourceInvolved || '0000' }
                                 ].map((row, idx) => (
-                                    <div key={idx} className="flex items-center text-[15px] font-gantari">
-                                        <span className="text-[#000000] font-semibold w-48 flex-shrink-0">{row.label}</span>
-                                        <span className="mx-4 flex-shrink-0">
+                                    <div key={idx} className="flex flex-col sm:flex-row sm:items-center text-[15px] font-gantari gap-1 sm:gap-0">
+                                        <span className="text-[#000000] font-semibold w-full sm:w-48 flex-shrink-0">{row.label}</span>
+                                        <span className="hidden sm:block mx-4 flex-shrink-0">
                                             <img src={colonIcon} alt=":" className="w-1.5 h-3.5 object-contain" />
                                         </span>
                                         <span className="text-slate-500 flex-1 truncate">{row.value || '-'}</span>

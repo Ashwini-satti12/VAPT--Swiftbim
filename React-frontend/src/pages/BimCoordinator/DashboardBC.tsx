@@ -49,10 +49,13 @@ type BcTeamTaskRow = {
   Approval?: string;
 };
 
-function bcTeamTaskEffectiveStatus(task: BcTeamTaskRow): "todo" | "in_progress" | "completed" {
+function bcTeamTaskEffectiveStatus(
+  task: BcTeamTaskRow,
+): "todo" | "in_progress" | "completed" {
   if (!task.status) return "todo";
   const lower = task.status.toLowerCase().replace(/\s+/g, "_");
-  if (lower.includes("progress") || lower === "in_progress") return "in_progress";
+  if (lower.includes("progress") || lower === "in_progress")
+    return "in_progress";
   if (
     lower.includes("complete") ||
     lower === "done" ||
@@ -169,7 +172,9 @@ export default function DashboardBC() {
         let totalProjects = 0;
         let completedProjects = 0;
         try {
-          const statsRes = await api.get<DashboardStats>("/api/dashboard/stats");
+          const statsRes = await api.get<DashboardStats>(
+            "/api/dashboard/stats",
+          );
           totalProjects = statsRes.data.totalProjects ?? 0;
           completedProjects = statsRes.data.completedProjects ?? 0;
         } catch {
@@ -179,7 +184,9 @@ export default function DashboardBC() {
         const teamParams = { condition: "1", employeeid: "all" } as const;
         const [tasksRes, vendorRes] = await Promise.all([
           api
-            .get<{ tasks?: BcTeamTaskRow[] }>("/api/tasks", { params: teamParams })
+            .get<{
+              tasks?: BcTeamTaskRow[];
+            }>("/api/tasks", { params: teamParams })
             .catch(() => ({ data: { tasks: [] as BcTeamTaskRow[] } })),
           api
             .get<{ tasks?: BcTeamTaskRow[] }>("/api/vendors/vendor-tasks", {
@@ -199,7 +206,9 @@ export default function DashboardBC() {
           const raw = localStorage.getItem(BC_TEAMTASK_STORAGE_KEY);
           if (raw) {
             const parsed = JSON.parse(raw) as unknown;
-            localTasks = Array.isArray(parsed) ? (parsed as BcTeamTaskRow[]) : [];
+            localTasks = Array.isArray(parsed)
+              ? (parsed as BcTeamTaskRow[])
+              : [];
           }
         } catch {
           localTasks = [];
@@ -362,222 +371,224 @@ export default function DashboardBC() {
   }
 
   return (
-    <div className="flex flex-col lg:h-full lg:overflow-hidden">
+    <div className="flex flex-col h-auto lg:h-full lg:overflow-hidden">
       {/* Header and KPI Cards */}
-      <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
-        <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">
+      <div className="bg-white pb-4 pt-0 border-b border-transparent shrink-0">
+        <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-4">
           Dashboard
         </h1>
-        {/* KPI Grid — same style as DashboardTD */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        {/* KPI Grid: compact cards — same as DashboardTD */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-1">
           <Link
             to="/bc/projects"
-            className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 cursor-pointer no-underline"
+            className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline transition-colors"
           >
-            <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
+            <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
               Total Projects
             </h3>
-            <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
+            <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
               {stats.totalProjects}
             </p>
           </Link>
           <Link
             to="/bc/projects?status=Completed"
-            className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 cursor-pointer no-underline"
+            className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline transition-colors"
           >
-            <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">
+            <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
               Completed Projects
             </h3>
-            <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
+            <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
               {stats.completedProjects}
             </p>
           </Link>
           <Link
             to="/bc/teamtasks?status=in_progress"
-            className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 cursor-pointer no-underline"
+            className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline transition-colors"
           >
-            <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">
+            <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
               In Progress Tasks
             </h3>
-            <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
+            <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
               {stats.inProgressTasks}
             </p>
           </Link>
           <Link
             to="/bc/teamtasks?status=completed"
-            className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 cursor-pointer no-underline"
+            className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline transition-colors"
           >
-            <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">
+            <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
               Completed Tasks
             </h3>
-            <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
+            <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
               {stats.completedTasks}
             </p>
           </Link>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4 overflow-visible lg:overflow-hidden">
-        {/* Today's Priority — projects with today's tasks (same as DashboardTD) */}
-        <div className="lg:col-span-2 flex flex-col bg-white rounded-md border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
-          <div className="mb-4 shrink-0">
-            <h2 className="text-[18px] font-semibold text-[#353535] font-gantari">
+      <div className="h-auto lg:h-full lg:flex-1 lg:min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2 pb-4 overflow-visible lg:overflow-hidden">
+        {/* Today's Priority — identical structure to DashboardTD */}
+        <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[400px] sm:h-[480px] lg:h-full overflow-hidden">
+          <div className="mb-4 shrink-0 pr-4">
+            <h2 className="text-xl font-semibold text-[#353535] font-gantari">
               Today's Priority
             </h2>
           </div>
           <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
             {priorityTasks.length === 0 ? (
-              <p className="text-[#717171] text-[16px] font-gantari">
+              <p className="text-[#717171] text-sm font-gantari py-4">
                 No priority tasks for today.
               </p>
             ) : (
               <>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-[16px] font-semibold text-[#353535] font-gantari">
-                    Projects
-                  </h3>
-                  <Link
-                    to="/bc/projects"
-                    className="text-[16px] font-medium text-[#DE3D3A] hover:underline font-gantari cursor-pointer"
-                  >
-                    View all
-                  </Link>
-                </div>
-                {(() => {
-                  const byProject = new Map<
-                    number,
-                    { projectName: string; tasks: PriorityTask[] }
-                  >();
-                  for (const task of priorityTasks) {
-                    const pid = task.projectid ?? 0;
-                    const name = task.project_name || `Project #${pid}`;
-                    if (!byProject.has(pid))
-                      byProject.set(pid, { projectName: name, tasks: [] });
-                    byProject.get(pid)!.tasks.push(task);
-                  }
-                  return Array.from(byProject.entries()).map(
-                    ([id, { projectName, tasks: projectTasks }]) => (
-                      <div key={id} className="mb-6">
-                        <p className="text-sm font-semibold text-[#353535] font-gantari mb-3 truncate pr-2">
-                          <Link
-                            to="/bc/projects"
-                            className="hover:text-[#DE3D3A] hover:underline cursor-pointer"
-                            title={projectName}
-                          >
-                            {projectName}
-                          </Link>
-                        </p>
-                        <div className="space-y-4">
-                          {projectTasks.map((task) => {
-                            const { progress, countdown } =
-                              taskProgressAndCountdown(
-                                task.due_date,
-                                task.perferstart_time,
-                                task.perferend_time,
-                                nowMs,
+                <div className="pr-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-[#353535] font-gantari">
+                      Projects
+                    </h3>
+                    <Link
+                      to="/bc/projects"
+                      className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari"
+                    >
+                      View all
+                    </Link>
+                  </div>
+                  {(() => {
+                    const byProject = new Map<
+                      number,
+                      { projectName: string; tasks: PriorityTask[] }
+                    >();
+                    for (const task of priorityTasks) {
+                      const pid = task.projectid ?? 0;
+                      const name = task.project_name || `Project #${pid}`;
+                      if (!byProject.has(pid))
+                        byProject.set(pid, { projectName: name, tasks: [] });
+                      byProject.get(pid)!.tasks.push(task);
+                    }
+                    return Array.from(byProject.entries()).map(
+                      ([id, { projectName, tasks: projectTasks }]) => (
+                        <div key={id} className="mb-6">
+                          <p className="text-sm font-semibold text-[#353535] font-gantari mb-3 truncate pr-2">
+                            <Link
+                              to="/bc/projects"
+                              className="hover:text-[#DE3D3A] hover:underline cursor-pointer"
+                              title={projectName}
+                            >
+                              {projectName}
+                            </Link>
+                          </p>
+                          <div className="space-y-4">
+                            {projectTasks.map((task) => {
+                              const { progress, countdown } =
+                                taskProgressAndCountdown(
+                                  task.due_date,
+                                  task.perferstart_time,
+                                  task.perferend_time,
+                                  nowMs,
+                                );
+                              const strokeOffset =
+                                CIRCLE_CIRCUMFERENCE * (1 - progress / 100);
+                              const dateLabel = formatDateOnly(task.due_date);
+                              const hasStart =
+                                (task.perferstart_time || "").trim().length > 0;
+                              const hasEnd =
+                                (task.perferend_time || "").trim().length > 0;
+                              const timeRangeLabel =
+                                hasStart || hasEnd
+                                  ? `${hasStart ? formatTimeStringToAMPM(task.perferstart_time) : "—"} — ${hasEnd ? formatTimeStringToAMPM(task.perferend_time) : "—"}`
+                                  : "—";
+                              return (
+                                <div
+                                  key={task.id}
+                                  className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 p-4 sm:p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative"
+                                >
+                                  <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center shrink-0">
+                                    <svg className="w-full h-full -rotate-90">
+                                      <circle
+                                        cx={40}
+                                        cy={40}
+                                        r="36"
+                                        stroke="#E5E7EB"
+                                        strokeWidth="5"
+                                        fill="transparent"
+                                        className="opacity-60"
+                                      />
+                                      <circle
+                                        cx={40}
+                                        cy={40}
+                                        r="36"
+                                        stroke="#00882E"
+                                        strokeWidth="5"
+                                        fill="transparent"
+                                        strokeDasharray={CIRCLE_CIRCUMFERENCE}
+                                        strokeDashoffset={strokeOffset}
+                                        strokeLinecap="round"
+                                      />
+                                    </svg>
+                                    <span className="absolute text-[9px] sm:text-[10px] font-bold text-black font-mono">
+                                      {countdown}
+                                    </span>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="text-lg sm:text-xl font-bold text-black truncate mb-0.5">
+                                      {task.task_name ?? "Task"}
+                                    </h3>
+                                    <p className="text-[13px] sm:text-[14px] text-[#6B7280] font-medium leading-tight">
+                                      {dateLabel} — {timeRangeLabel}
+                                    </p>
+                                  </div>
+                                  <div className="sm:absolute top-4 right-4 mt-2 sm:mt-0">
+                                    <span className="bg-[#3B82F6] text-white text-[11px] sm:text-[12px] px-3 py-1 sm:py-1.5 rounded-md font-medium font-gantari tracking-tight">
+                                      {task.category || "Task"}
+                                    </span>
+                                  </div>
+                                  <div className="sm:absolute bottom-4 right-4 flex -space-x-3 sm:-space-x-4 mt-3 sm:mt-0 px-1 sm:px-0">
+                                    {(task.involved_persons?.length
+                                      ? task.involved_persons
+                                      : []
+                                    )
+                                      .slice(0, 3)
+                                      .map((person) => (
+                                        <div
+                                          key={person.id}
+                                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden"
+                                          title={person.full_name}
+                                        >
+                                          {person.profile_picture ? (
+                                            <img
+                                              src={getGlobalProfileUrl(
+                                                person.id,
+                                                person.profile_picture,
+                                              )}
+                                              alt=""
+                                              className="w-full h-full object-cover"
+                                            />
+                                          ) : (
+                                            <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[10px] sm:text-[11px] font-bold text-[#353535]">
+                                              {person.full_name
+                                                ?.slice(0, 2)
+                                                .toUpperCase() || "?"}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                  </div>
+                                </div>
                               );
-                            const strokeOffset =
-                              CIRCLE_CIRCUMFERENCE * (1 - progress / 100);
-                            const dateLabel = formatDateOnly(task.due_date);
-                            const hasStart =
-                              (task.perferstart_time || "").trim().length > 0;
-                            const hasEnd =
-                              (task.perferend_time || "").trim().length > 0;
-                            const timeRangeLabel =
-                              hasStart || hasEnd
-                                ? `${hasStart ? formatTimeStringToAMPM(task.perferstart_time) : "—"} — ${hasEnd ? formatTimeStringToAMPM(task.perferend_time) : "—"}`
-                                : "—";
-                            return (
-                              <div
-                                key={task.id}
-                                className="flex items-center gap-5 p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative"
-                              >
-                                <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
-                                  <svg className="w-full h-full -rotate-90">
-                                    <circle
-                                      cx="40"
-                                      cy="40"
-                                      r="36"
-                                      stroke="#E5E7EB"
-                                      strokeWidth="5"
-                                      fill="transparent"
-                                      className="opacity-60"
-                                    />
-                                    <circle
-                                      cx="40"
-                                      cy="40"
-                                      r="36"
-                                      stroke="#00882E"
-                                      strokeWidth="5"
-                                      fill="transparent"
-                                      strokeDasharray={CIRCLE_CIRCUMFERENCE}
-                                      strokeDashoffset={strokeOffset}
-                                      strokeLinecap="round"
-                                    />
-                                  </svg>
-                                  <span className="absolute text-[10px] font-bold text-black font-mono">
-                                    {countdown}
-                                  </span>
-                                </div>
-                                <div className="flex-1 min-w-0 pr-2">
-                                  <h3 className="text-xl font-bold text-black truncate mb-0.5">
-                                    {task.task_name ?? "Task"}
-                                  </h3>
-                                  <p className="text-[14px] text-[#6B7280] font-medium leading-tight">
-                                    {dateLabel} — {timeRangeLabel}
-                                  </p>
-                                </div>
-                                <div className="absolute top-4 right-4">
-                                  <span className="bg-[#3B82F6] text-white text-[12px] px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight">
-                                    {task.category || "Task"}
-                                  </span>
-                                </div>
-                                <div className="absolute bottom-4 right-4 flex -space-x-4">
-                                  {(task.involved_persons?.length
-                                    ? task.involved_persons
-                                    : []
-                                  )
-                                    .slice(0, 3)
-                                    .map((person) => (
-                                      <div
-                                        key={person.id}
-                                        className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden"
-                                        title={person.full_name}
-                                      >
-                                        {person.profile_picture ? (
-                                          <img
-                                            src={getGlobalProfileUrl(
-                                              person.id,
-                                              person.profile_picture,
-                                            )}
-                                            alt=""
-                                            className="w-full h-full object-cover"
-                                          />
-                                        ) : (
-                                          <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">
-                                            {person.full_name
-                                              ?.slice(0, 2)
-                                              .toUpperCase() || "?"}
-                                          </div>
-                                        )}
-                                      </div>
-                                    ))}
-                                </div>
-                              </div>
-                            );
-                          })}
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    ),
-                  );
-                })()}
+                      ),
+                    );
+                  })()}
+                </div>
               </>
             )}
           </div>
         </div>
 
-        {/* Calendar & Celebrations — same design as DashboardTD */}
-        <div className="lg:col-span-1 flex flex-col h-[600px] lg:h-full overflow-hidden">
+        {/* Calendar & Celebrations — exact match to TD responsiveness */}
+        <div className="lg:col-span-1 flex flex-col h-[500px] sm:h-[560px] lg:h-full overflow-hidden">
           <div className="bg-white rounded-2xl border border-[#AEACAC52] pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full min-h-0">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 pt-2 px-2">
               <div className="flex flex-col items-start min-w-[70px]">
