@@ -1618,13 +1618,15 @@ def respond_to_proposal(proposal_id):
 
                 main_cur.execute("""
                     INSERT INTO vendor_projects (
+                        main_project_id,
                         proposal_id, opportunity_id, vendor_id, project_name, 
                         description, modules, deliverables, budget, document_attachment,
                         client_id, bidding_end_date, budget_ceiling, location, category,
                         department, due_date, start_date, priority, Company_id
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
+                    project_id_main,
                     proposal_id,
                     proposal_data.get("opportunity_id"),
                     proposal_data.get("vendor_id"),
@@ -2007,6 +2009,124 @@ def td_get_proposal(proposal_id: int):
         return jsonify({"proposal": proposal})
     except Exception:
         return jsonify({"proposal": None}), 500
+
+
+@bp.route("/proposals/td/<int:proposal_id>", methods=["PUT"])
+@login_required
+def td_update_proposal(proposal_id: int):
+    """
+    PUT /api/vendors/proposals/td/<proposal_id>
+    Update a TD proposal after the vendor requested clarification (status clarification_requested).
+    Resets status to Sent so the vendor can review again.
+    """
+    data = request.get_json() or {}
+
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute("SELECT * FROM td_proposals WHERE id = %s", (proposal_id,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"success": False, "message": "Proposal not found"}), 404
+
+        current = (row.get("status") or "").lower()
+        if current != "clarification_requested":
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "Proposal can only be edited when the vendor has requested clarification.",
+                }
+            ), 400
+
+        technologies = data.get("technologies_used", [])
+        if isinstance(technologies, list):
+            tech_json = json.dumps(technologies)
+        else:
+            tech_json = json.dumps([])
+
+        commercial = data.get("commercial_offer", [])
+        if not isinstance(commercial, list):
+            commercial = []
+
+        payment_terms = data.get("payment_terms", [])
+        if not isinstance(payment_terms, list):
+            payment_terms = []
+
+        cur.execute(
+            """
+            UPDATE td_proposals SET
+                executive_summary = %s,
+                about_us = %s,
+                address = %s,
+                website_url = %s,
+                email_address = %s,
+                selected_currency = %s,
+                scope_of_work = %s,
+                technologies_used = %s,
+                deliverables = %s,
+                exclusions = %s,
+                commercial_offer = %s,
+                payment_terms = %s,
+                status = 'Sent',
+                reason = NULL
+            WHERE id = %s
+            """,
+            (
+                data.get("executive_summary"),
+                data.get("aboutus"),
+                data.get("address"),
+                data.get("website_url"),
+                data.get("email_address"),
+                data.get("selected_currency"),
+                data.get("scope_of_work"),
+                tech_json,
+                data.get("deliverables"),
+                data.get("exclusions"),
+                json.dumps(commercial),
+                json.dumps(payment_terms),
+                proposal_id,
+            ),
+        )
+        conn.commit()
+
+        # Notify vendor that an updated proposal is available
+        try:
+            vendor_id = row.get("vendor_id")
+            project_name = data.get("project_name") or row.get("project_name") or "a project"
+            if vendor_id and getattr(g, "company_id", None):
+                title = "Proposal updated"
+                msg = f"The proposal for \"{project_name}\" has been updated. Please review and respond."
+                try:
+                    cur.execute(
+                        "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+                    )
+                    if cur.fetchone() is None:
+                        cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+                    cur.execute(
+                        "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+                    )
+                    if cur.fetchone() is None:
+                        cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+                except Exception:
+                    pass
+                cur.execute(
+                    """
+                    INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                    """,
+                    (vendor_id, None, title, msg, "proposal_sent", "proposal", proposal_id, g.company_id),
+                )
+                conn.commit()
+        except Exception:
+            pass
+
+        return jsonify({"success": True, "message": "Proposal updated and sent to vendor.", "proposal_id": proposal_id})
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return jsonify({"success": False, "message": str(e)}), 500
 
 
 @bp.route("/proposals/td-create", methods=["POST"])
@@ -3514,6 +3634,8 @@ CREATE TABLE IF NOT EXISTS vendor_projects (
     bim_coordinator_id VARCHAR(255),
     total_paid_amount DECIMAL(12,2) DEFAULT 0.00,
     payment_completion_status ENUM('NotStarted','InProgress','Completed') DEFAULT 'NotStarted',
+    -- Link back to main snh6_swiftproject.projects.id so renames don't break joins/sync.
+    main_project_id INT NULL,
     vendor_id INT,
     proposal_id INT,
     opportunity_id INT
@@ -3561,7 +3683,8 @@ def _ensure_vp_table():
         "deliverables": "MEDIUMTEXT",
         "bim_coordinator_id": "VARCHAR(255)",
         "total_paid_amount": "DECIMAL(12,2) DEFAULT 0.00",
-        "payment_completion_status": "ENUM('NotStarted','InProgress','Completed') DEFAULT 'NotStarted'"
+        "payment_completion_status": "ENUM('NotStarted','InProgress','Completed') DEFAULT 'NotStarted'",
+        "main_project_id": "INT NULL",
     }
 
     for col, col_type in expected.items():
@@ -4272,8 +4395,21 @@ def list_vendor_projects():
 
         # Show all outsource vendor_projects for their company
         if company_id is not None:
-            where_clause = "p.Company_id = %s"
-            query_params = [company_id]
+            # Include outsource rows for this company via:
+            # 1) direct projects join, 2) vendor_projects.Company_id fallback, or
+            # 3) vendor_bidding -> projects link (works even when names diverge).
+            where_clause = """(
+                p.Company_id = %s
+                OR vp.Company_id = %s
+                OR EXISTS (
+                    SELECT 1
+                    FROM snh6_swiftproject.vendor_bidding vb2
+                    JOIN snh6_swiftproject.projects p2 ON p2.id = vb2.project_id
+                    WHERE vb2.id = vp.opportunity_id
+                      AND p2.Company_id = %s
+                )
+            )"""
+            query_params = [company_id, company_id, company_id]
         else:
             where_clause = "1=0"  # no company, show nothing
             query_params = []
@@ -4307,7 +4443,10 @@ def list_vendor_projects():
             p.department                                        AS department_name
         FROM snh6_swiftproject.vendor_projects vp
         LEFT JOIN snh6_swiftproject.projects p
-            ON p.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
+            ON (
+                (vp.main_project_id IS NOT NULL AND p.id = vp.main_project_id)
+                OR (p.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci)
+            )
         LEFT JOIN new_swiftbim.users u
             ON u.id = p.client_id
         WHERE {where_clause}
@@ -4880,6 +5019,7 @@ def create_vendor_project():
         "no_resource", "no_resources_required", "lead_id",
         "project_manager_id", "totalhours", "perday", "vendor_id",
         "proposal_id", "opportunity_id", "bim_coordinator_id", "deliverables",
+        "main_project_id",
     ]
     values = []
     placeholders = []
@@ -4922,11 +5062,16 @@ def update_vendor_project(project_id):
     conn = get_db()
     cur = conn.cursor(dictionary=True)
 
-    # 1. Check existence
-    cur.execute("SELECT document_attachment FROM snh6_swiftproject.vendor_projects WHERE id = %s", (project_id,))
+    # 1. Check existence + snapshot for sync (renames must use old values)
+    cur.execute(
+        "SELECT document_attachment, project_name, main_project_id FROM snh6_swiftproject.vendor_projects WHERE id = %s",
+        (project_id,),
+    )
     row = cur.fetchone()
     if not row:
         return jsonify({"success": False, "message": "Project not found"}), 404
+    old_project_name = row.get("project_name") or ""
+    main_project_id = row.get("main_project_id")
 
     # 2. Handle Document Attachments (Multi-file logic)
     existing_file_str = row.get("document_attachment") or ""
@@ -4988,14 +5133,21 @@ def update_vendor_project(project_id):
         # -------------------------------------------------------------------
         # DUAL-TABLE SYNC: Update main projects table if it exists
         # -------------------------------------------------------------------
-        # Fetch current name if not in data (to search projects)
-        p_name = data.get("project_name")
-        if not p_name:
-            cur.execute("SELECT project_name FROM snh6_swiftproject.vendor_projects WHERE id = %s", (project_id,))
-            nr = cur.fetchone()
-            p_name = nr["project_name"] if nr else ""
-        
-        if p_name:
+        # Resolve / backfill the linked main projects.id (never rely on project_name when renaming)
+        if not main_project_id and old_project_name:
+            cur.execute(
+                "SELECT id FROM snh6_swiftproject.projects WHERE project_name = %s LIMIT 1",
+                (old_project_name,),
+            )
+            r = cur.fetchone()
+            if r and r.get("id"):
+                main_project_id = int(r["id"])
+                cur.execute(
+                    "UPDATE snh6_swiftproject.vendor_projects SET main_project_id = %s WHERE id = %s",
+                    (main_project_id, project_id),
+                )
+
+        if main_project_id:
             p_allowed = {
                 "project_name": "project_name",
                 "client_id": "client_id",
@@ -5017,10 +5169,9 @@ def update_vendor_project(project_id):
                     p_params.append(data[k])
             
             if p_sets:
-                p_params.append(p_name)
                 cur.execute(
-                    "UPDATE snh6_swiftproject.projects SET " + ", ".join(p_sets) + " WHERE project_name = %s",
-                    tuple(p_params)
+                    "UPDATE snh6_swiftproject.projects SET " + ", ".join(p_sets) + " WHERE id = %s",
+                    tuple(p_params + [main_project_id]),
                 )
 
         conn.commit()

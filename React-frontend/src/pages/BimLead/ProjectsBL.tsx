@@ -524,7 +524,10 @@ export default function ProjectsBL() {
 
   const fetchProjects = () => {
     const status = searchParams.get('status');
-    const params = { status: status || undefined };
+    const isCompletedFilter = (status || "").toLowerCase() === "completed";
+    // NOTE: vendor-projects "Completed" filtering is not reliable across DBs (status vs progress).
+    // For Completed, fetch all and filter by progress client-side for both internal + outsource.
+    const params = isCompletedFilter ? {} : { status: status || undefined };
 
     setLoading(true);
     Promise.all([
@@ -536,15 +539,24 @@ export default function ProjectsBL() {
 
       const allProjects = [...internal, ...vendor];
 
+      const isCompletedByProgress = (p: any): boolean => {
+        const raw = p?.progress;
+        const n = typeof raw === "number" ? raw : Number(String(raw ?? "").trim());
+        return Number.isFinite(n) && n >= 100;
+      };
+
       const userId = user?.id;
-      const filtered = userId
+      const involvedFiltered = userId
         ? allProjects.filter((p: any) => {
           if (p.source === "Outsource") return true;
           if (!p.lead_id) return false;
           return String(p.lead_id).split(',').map((s: string) => s.trim()).includes(String(userId));
         })
         : allProjects;
-      setList(filtered.map((p) => mapApiProjectToProject(p as Record<string, unknown>)));
+      const finalFiltered = isCompletedFilter
+        ? involvedFiltered.filter(isCompletedByProgress)
+        : involvedFiltered;
+      setList(finalFiltered.map((p) => mapApiProjectToProject(p as Record<string, unknown>)));
     })
       .catch(() => { })
       .finally(() => setLoading(false));
