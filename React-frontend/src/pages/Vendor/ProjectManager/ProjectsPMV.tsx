@@ -1008,6 +1008,9 @@ export default function ProjectsPMV() {
 
                             {/* Tower Data (Modules) Card Section */}
                             <div className="border border-slate-200 rounded-md p-6 lg:p-4">
+                                <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">
+                                    Modules
+                                </h4>
                                 <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 px-1">
                                         {loadingTaskStats ? (

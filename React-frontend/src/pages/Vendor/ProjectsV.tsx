@@ -1289,6 +1289,9 @@ export default function ProjectsV() {
 
                             {/* Module Progress Cards */}
                             <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8">
+                                <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">
+                                    Modules
+                                </h4>
                                 <div className="max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
                                         {loadingTaskStats ? (
