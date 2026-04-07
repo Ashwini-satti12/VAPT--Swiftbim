@@ -689,8 +689,23 @@ export default function ProjectsTD() {
           source: "Outsource" as const,
         }));
 
-        // Map res1 (Internal)
-        const p1 = rawP1.map((p) => {
+        const vendorMainProjectIds = new Set<number>(
+          rawP2
+            .map((p) => Number((p as { main_project_id?: unknown }).main_project_id))
+            .filter((id) => Number.isFinite(id) && id > 0),
+        );
+        const vendorProjectNames = new Set<string>(
+          rawP2
+            .map((p) => String(p.project_name ?? "").trim().toLowerCase())
+            .filter(Boolean),
+        );
+
+        // Map res1 (main projects):
+        // - always keep in-house
+        // - keep outsource only when it is not represented in vendor_projects yet
+        //   (prevents duplicates while preserving pending outsource rows)
+        const p1 = rawP1
+          .map((p) => {
           const mapped = mapApiProjectToProject(p);
           // If department is "Submission Deadline", it's an Outsource project
           const isOutsource = mapped.department === "Submission Deadline";
@@ -701,24 +716,19 @@ export default function ProjectsTD() {
             ...mapped,
             source,
           };
-        });
+          })
+          .filter((p) => {
+            if (p.source !== "Outsource") return true;
+            const byId = vendorMainProjectIds.has(Number(p.id));
+            const byName = vendorProjectNames.has(
+              String(p.project_name ?? "").trim().toLowerCase(),
+            );
+            return !byId && !byName;
+          });
 
-        // Deduplicate: If a project exists in both, prefer the "Outsource" version 
-        // from vendor API as it likely has more up-to-date vendor-specific info.
-        // We match by project_name.
-        const mergedMap = new Map<string, any>();
-        
-        // Add internal projects first
-        p1.forEach(p => {
-          if (p.project_name) mergedMap.set(p.project_name.toLowerCase(), p);
-        });
-        
-        // Override with vendor projects (the Outsource versions)
-        p2.forEach(p => {
-          if (p.project_name) mergedMap.set(p.project_name.toLowerCase(), p);
-        });
-
-        setList(Array.from(mergedMap.values()));
+        // At this point p1 contains in-house only and p2 contains outsource only.
+        // Do not dedupe by project_name; different projects can legitimately share names.
+        setList([...p1, ...p2]);
       })
       .catch(() => setList([]))
       .finally(() => setLoading(false));
@@ -2674,8 +2684,48 @@ export default function ProjectsTD() {
                           api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects")
                         ])
                           .then(([res1, res2]) => {
-                            const p1 = (res1.data.projects ?? []).map(mapApiProjectToProject);
-                            const p2 = (res2.data.projects ?? []).map(mapApiProjectToProject);
+                            const rawP1 = res1.data.projects ?? [];
+                            const rawP2 = res2.data.projects ?? [];
+                            const p2 = (res2.data.projects ?? []).map((p) => ({
+                              ...mapApiProjectToProject(p),
+                              source: "Outsource" as const,
+                            }));
+                            const vendorMainProjectIds = new Set<number>(
+                              rawP2
+                                .map((p) =>
+                                  Number(
+                                    (p as { main_project_id?: unknown })
+                                      .main_project_id,
+                                  ),
+                                )
+                                .filter((id) => Number.isFinite(id) && id > 0),
+                            );
+                            const vendorProjectNames = new Set<string>(
+                              rawP2
+                                .map((p) =>
+                                  String(p.project_name ?? "").trim().toLowerCase(),
+                                )
+                                .filter(Boolean),
+                            );
+                            const p1 = rawP1
+                              .map(mapApiProjectToProject)
+                              .map((p) => ({
+                                ...p,
+                                source:
+                                  p.department === "Submission Deadline"
+                                    ? ("Outsource" as const)
+                                    : ("In House" as const),
+                              }))
+                              .filter((p) => {
+                                if (p.source !== "Outsource") return true;
+                                const byId = vendorMainProjectIds.has(Number(p.id));
+                                const byName = vendorProjectNames.has(
+                                  String(p.project_name ?? "")
+                                    .trim()
+                                    .toLowerCase(),
+                                );
+                                return !byId && !byName;
+                              });
                             setList([...p1, ...p2]);
                           })
                           .catch(() => { });
@@ -3103,8 +3153,48 @@ export default function ProjectsTD() {
                           api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects")
                         ])
                           .then(([res1, res2]) => {
-                            const p1 = (res1.data.projects ?? []).map(mapApiProjectToProject);
-                            const p2 = (res2.data.projects ?? []).map(mapApiProjectToProject);
+                            const rawP1 = res1.data.projects ?? [];
+                            const rawP2 = res2.data.projects ?? [];
+                            const p2 = (res2.data.projects ?? []).map((p) => ({
+                              ...mapApiProjectToProject(p),
+                              source: "Outsource" as const,
+                            }));
+                            const vendorMainProjectIds = new Set<number>(
+                              rawP2
+                                .map((p) =>
+                                  Number(
+                                    (p as { main_project_id?: unknown })
+                                      .main_project_id,
+                                  ),
+                                )
+                                .filter((id) => Number.isFinite(id) && id > 0),
+                            );
+                            const vendorProjectNames = new Set<string>(
+                              rawP2
+                                .map((p) =>
+                                  String(p.project_name ?? "").trim().toLowerCase(),
+                                )
+                                .filter(Boolean),
+                            );
+                            const p1 = rawP1
+                              .map(mapApiProjectToProject)
+                              .map((p) => ({
+                                ...p,
+                                source:
+                                  p.department === "Submission Deadline"
+                                    ? ("Outsource" as const)
+                                    : ("In House" as const),
+                              }))
+                              .filter((p) => {
+                                if (p.source !== "Outsource") return true;
+                                const byId = vendorMainProjectIds.has(Number(p.id));
+                                const byName = vendorProjectNames.has(
+                                  String(p.project_name ?? "")
+                                    .trim()
+                                    .toLowerCase(),
+                                );
+                                return !byId && !byName;
+                              });
                             setList([...p1, ...p2]);
                           })
                           .catch(() => { });
