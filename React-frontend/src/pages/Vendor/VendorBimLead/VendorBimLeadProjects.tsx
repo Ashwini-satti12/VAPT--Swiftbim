@@ -647,7 +647,7 @@ export default function VendorBimLeadProjects() {
           </div>
         )}
 
-        <div className="md:col-span-2 space-y-3">
+        <div className="space-y-2">
           <label className="block text-[16px] font-medium text-[#020202]">
             Modules Name <span className="text-[#DD4342]">*</span>
           </label>
@@ -1030,7 +1030,7 @@ export default function VendorBimLeadProjects() {
         {/* Project View (In-Page) */}
         {showEditModal ? (
           <div className="flex flex-col h-full bg-white">
-            <div className="flex items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50 cursor-pointer">
+            <div className="flex items-center gap-4 md:gap-6 px-6 py-2 md:px-6 md:py-4 border-b border-slate-50 cursor-pointer">
               <button
                 type="button"
                 onClick={() => {
@@ -1067,9 +1067,7 @@ export default function VendorBimLeadProjects() {
                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A] truncate">
                   Edit Project Details
                 </h3>
-                <p className="text-[14px] font-Gantari font-semibold text-[#999999]">
-                  Update your project information
-                </p>
+                
               </div>
             </div>
             <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 pt-6 md:pt-8 custom-scrollbar">
@@ -1177,9 +1175,9 @@ export default function VendorBimLeadProjects() {
               </div>
 
               {/* Scrollable Content Below KPI Cards */}
-              <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-10 pt-4 md:pt-4 custom-scrollbar space-y-8">
+              <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-10 pt-4 md:pt-6 custom-scrollbar space-y-8">
                 {/* Modules */}
-                <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8">
+                <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-4">
                   <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">
                     Modules
                   </h4>
@@ -1598,29 +1596,29 @@ export default function VendorBimLeadProjects() {
                           setSelectedProject(p);
                           setShowProjectView(true);
                         }}
-                        className="bg-white rounded-[20px] border border-[#AEACAC52] p-6 pt-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                        className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
                         <div>
                           <div className="flex items-start justify-between mb-4 mt-2 pr-0">
-                            <div className="relative flex items-center justify-center">
-                              <svg className="w-20 h-20 transform -rotate-90">
+                            <div className="relative flex items-center justify-center shrink-0">
+                              <svg className="w-12 h-12 md:w-16 md:h-16 transform -rotate-90">
                                 <circle
-                                  cx="40"
-                                  cy="40"
-                                  r={radius}
+                                  cx="50%"
+                                  cy="50%"
+                                  r={22}
                                   stroke="#f1f5f9"
-                                  strokeWidth="6"
+                                  strokeWidth="4"
                                   fill="transparent"
                                 />
                                 <circle
-                                  cx="40"
-                                  cy="40"
-                                  r={radius}
+                                  cx="50%"
+                                  cy="50%"
+                                  r={22}
                                   stroke="#0a9344"
-                                  strokeWidth="6"
+                                  strokeWidth="4"
                                   fill="transparent"
-                                  strokeDasharray={circumference}
-                                  strokeDashoffset={offset}
+                                  strokeDasharray={2 * Math.PI * 22}
+                                  strokeDashoffset={(2 * Math.PI * 22) - (progress / 100) * (2 * Math.PI * 22)}
                                   strokeLinecap="round"
                                   style={{
                                     transition:
@@ -1628,7 +1626,7 @@ export default function VendorBimLeadProjects() {
                                   }}
                                 />
                               </svg>
-                              <span className="absolute text-[16px] font-Gantari font-bold text-[#353535]">
+                              <span className="absolute text-[12px] font-Gantari font-bold text-[#353535]">
                                 {progress}%
                               </span>
                             </div>
@@ -1709,15 +1707,15 @@ export default function VendorBimLeadProjects() {
                             </div>
                           </div>
 
-                          <div className="mb-4 ml-4 -mt-4">
-                            <h3 className="text-[18px] md:text-[20px] font-Gantari font-medium text-[#000000]">
+                          <div className="mb-2 ml-6 -mt-2 min-h-[45px] flex flex-col justify-center">
+                            <h3 className="text-[18px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
                               {p.project_name ?? "Untitled Project"}
                             </h3>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
-                          <div className="flex -space-x-4">
+                          <div className="flex items-center min-w-0">
                             {(() => {
                               const projectEmployees = memberIds
                                 .map((id) => resolveVendorMember(id))
@@ -1809,12 +1807,16 @@ export default function VendorBimLeadProjects() {
                               );
                             })()}
                           </div>
-                          {p.priority && (
-                            <span
-                              className={`px-2.5 py-1 rounded-md text-[12px] font-Gantari font-semibold tracking-wider ${p.priority === "High" || p.priority === "Urgent" ? "bg-red-200 text-red-600 border border-red-100" : p.priority === "Medium" ? "bg-orange-200 text-orange-600 border border-orange-100" : "bg-green-200 text-green-600 border border-green-100"}`}
+                          {p.priority ? (
+                            <div
+                              className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm shrink-0 ${(p.priority || "").toLowerCase() === "high" || (p.priority || "").toLowerCase() === "urgent" ? "bg-[#DD4342]" : "bg-[#94D6F2]"}`}
                             >
                               {p.priority}
-                            </span>
+                            </div>
+                          ) : (
+                            <div className="min-w-[2.75rem] h-9 flex items-center justify-center rounded-lg bg-sky-100 border border-sky-200/90 text-black text-[13px] px-4 py-2 font-Gantari shrink-0">
+                              Low
+                            </div>
                           )}
                         </div>
                       </div>
