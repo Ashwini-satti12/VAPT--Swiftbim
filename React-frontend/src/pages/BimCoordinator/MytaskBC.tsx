@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import api from "../../lib/api";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import Group1 from "../../assets/ProjectManager/MyTask/Group1.svg";
@@ -896,6 +897,17 @@ export default function MytaskBC() {
             };
 
             const task = list.find(t => t.id === taskId);
+            if (task) {
+                const bucket = getEffectiveStatus(task);
+                if (bucket === "todo" && newStatus === "completed") {
+                    toast.error("Move the task to In Progress before marking it completed.");
+                    return;
+                }
+                if (bucket === "completed" && newStatus !== "completed") {
+                    toast.error("Completed tasks cannot be moved.");
+                    return;
+                }
+            }
             const projectId = (task as any)?.projectid ?? (task as any)?.project_id;
 
             const isOutsource = task?.source === "Outsource";

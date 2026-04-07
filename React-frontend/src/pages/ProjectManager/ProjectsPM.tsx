@@ -655,10 +655,11 @@ export default function ProjectsPM() {
 
 
   return (
-    <div className="bg-white h-full flex flex-col overflow-hidden">
-      {/* Main Content View Switcher */}
-      {showProjectView && selectedProjectForView ? (
-        <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden">
+      <div className="flex flex-col flex-1 min-h-0 bg-white">
+        <div className="flex flex-col flex-1 min-h-0 p-1">
+          {showProjectView && selectedProjectForView ? (
+            <div className="flex flex-col h-full bg-white">
           {/* Project View Header */}
           <div className="relative flex items-center justify-center px-4 md:px-6 py-2 border-b border-slate-50">
             <button
@@ -3121,5 +3122,7 @@ export default function ProjectsPM() {
       )}
 
     </div>
+        </div>
+      </div>
   );
 }

@@ -19,6 +19,7 @@ import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
+import { resolveVendorTaskAssigneeName } from "./MytaskV";
 
 const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL || "";
@@ -248,16 +249,19 @@ function toApiTaskStatusParam(
 function TaskCard({
     task,
     status,
+    employees = [],
     onViewTask,
     onEditTask,
     onDeleteTask,
 }: {
     task: Task;
     status: "todo" | "in_progress" | "completed";
+    employees?: Employee[];
     onViewTask?: (task: Task) => void;
     onEditTask?: (task: Task) => void;
     onDeleteTask?: (task: Task) => void;
 }) {
+    const assigneeName = resolveVendorTaskAssigneeName(task, employees);
     const progress = typeof task.progress === "number" ? task.progress : (status === "todo" ? 0 : status === "in_progress" ? 50 : 100);
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -283,7 +287,7 @@ function TaskCard({
 
     return (
         <div
-            draggable
+            draggable={!isCompleted}
             onDragStart={handleDragStart}
             className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
@@ -402,7 +406,7 @@ function TaskCard({
             <div className="flex items-center justify-between gap-2 font-Gantari">
                 <div className="flex items-center gap-1">
                     <div className="flex -space-x-2">
-                        {task.assigned_full_name &&
+                        {assigneeName &&
                             (() => {
                                 const src =
                                     task.assigned_to != null && task.assigned_profile_picture
@@ -410,7 +414,7 @@ function TaskCard({
                                         : task.assigned_profile_picture
                                             ? getProfileUrl(task.assigned_profile_picture)
                                             : "";
-                                const initials = task.assigned_full_name
+                                const initials = assigneeName
                                     .split(" ")
                                     .filter(Boolean)
                                     .map((p) => p[0])
@@ -420,10 +424,10 @@ function TaskCard({
                                 return (
                                     <div
                                         className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
-                                        title={`Assigned To: ${task.assigned_full_name}`}
+                                        title={`Assigned To: ${assigneeName}`}
                                     >
                                         {src ? (
-                                            <img src={src} alt={task.assigned_full_name} className="w-full h-full object-cover" />
+                                            <img src={src} alt={assigneeName} className="w-full h-full object-cover" />
                                         ) : (
                                             <span>{initials}</span>
                                         )}
@@ -520,7 +524,7 @@ export default function TeamtaskV() {
     const periodMenuRef = useRef<HTMLDivElement>(null);
     const allTasks = list.filter((t: any) => {
         if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
-            if (t.assigned_full_name !== selectedEmployee) return false;
+            if (resolveVendorTaskAssigneeName(t, employees) !== selectedEmployee) return false;
         }
         if (selectedProject && !["Select Projects", "Show All", "Projects"].includes(selectedProject)) {
             if (t.project_name !== selectedProject) return false;
@@ -556,8 +560,8 @@ export default function TeamtaskV() {
                 toast.error("Move the task to In Progress before marking it completed.");
                 return;
             }
-            if (current === "completed" && newStatus === "in_progress") {
-                toast.error("Completed tasks cannot be moved back to In Progress here.");
+            if (current === "completed" && newStatus !== "completed") {
+                toast.error("Completed tasks cannot be moved.");
                 return;
             }
         }
@@ -868,6 +872,7 @@ export default function TeamtaskV() {
                                 key={task.id}
                                 task={task}
                                 status="todo"
+                                employees={employees}
                                 onViewTask={openViewTask}
                                 onEditTask={openEditTask}
                                 onDeleteTask={openDeleteTask}
@@ -891,6 +896,7 @@ export default function TeamtaskV() {
                                 key={task.id}
                                 task={task}
                                 status="in_progress"
+                                employees={employees}
                                 onViewTask={openViewTask}
                                 onEditTask={openEditTask}
                                 onDeleteTask={openDeleteTask}
@@ -914,6 +920,7 @@ export default function TeamtaskV() {
                                 key={task.id}
                                 task={task}
                                 status="completed"
+                                employees={employees}
                                 onViewTask={openViewTask}
                                 onEditTask={openEditTask}
                                 onDeleteTask={openDeleteTask}

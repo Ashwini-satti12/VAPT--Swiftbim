@@ -190,7 +190,7 @@ function TaskCard({
     const isCompleted = status === "completed";
     return (
         <div
-            draggable
+            draggable={!isCompleted}
             onDragStart={handleDragStart}
             className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"} mb-3 last:mb-0`}
         >
@@ -421,8 +421,8 @@ export default function TeamtaskPMV() {
                 toast.error("Move the task to In Progress before marking it completed.");
                 return;
             }
-            if (current === "completed" && next === "in_progress") {
-                toast.error("Completed tasks cannot be moved back to In Progress here.");
+            if (current === "completed" && next !== "completed") {
+                toast.error("Completed tasks cannot be moved.");
                 return;
             }
         }

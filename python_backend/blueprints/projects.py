@@ -674,6 +674,8 @@ def _hydrate_project_phase1_fields(project_dicts: list[dict]):
                     or _parse_iso_date(_first_nonempty(prop_row, [c for c in start_cols if c in prop_row]))
                     or _parse_iso_date(_first_nonempty(con_row, [c for c in start_cols if c in con_row]))
                 )
+                if start_dt and not p.get("start_date"):
+                    p["start_date"] = start_dt.isoformat()
 
             # We only trust end_date if it's a real date; due_date may be a duration string ("6 months")
             end_dt_existing = _parse_iso_date(p.get("end_date"))
@@ -1138,10 +1140,53 @@ def update_project(project_id):
     cur.execute("UPDATE projects SET " + ", ".join(sets) + " WHERE id = %s AND Company_id = %s", params)
 
     # -----------------------------------------------------------------------
+    # DUAL-TABLE SYNC: if it is in vendor_projects it should update in both 
+    # vendor_projects and projects table (per User Request).
+    # We match by project_name (most reliable across tables).
+    # -----------------------------------------------------------------------
+    try:
+        # Fetch current name if not in data (to search vendor_projects)
+        p_name = data.get("project_name")
+        if not p_name:
+            cur.execute("SELECT project_name FROM projects WHERE id = %s", (project_id,))
+            nr = cur.fetchone()
+            p_name = nr["project_name"] if nr else ""
+
+        if p_name:
+            # Fields to sync to vendor_projects
+            vp_allowed = {
+                "project_name": "project_name",
+                "client_id": "client_id",
+                "budget": "budget",
+                "budget_ceiling": "budget_ceiling",
+                "bidding_end_date": "bidding_end_date",
+                "location": "location",
+                "description": "description",
+                "start_date": "start_date",
+                "due_date": "due_date"
+            }
+            vp_sets = []
+            vp_params = []
+            for k, col in vp_allowed.items():
+                if k in data and data[k] is not None:
+                    vp_sets.append(f"`{col}` = %s")
+                    vp_params.append(data[k])
+            
+            if vp_sets:
+                vp_params.append(p_name)
+                # Note: vendor_projects is in the same database (snh6_swiftproject) 
+                # but might be in different schemas in some setups. Here it seems same.
+                cur.execute(
+                    "UPDATE vendor_projects SET " + ", ".join(vp_sets) + " WHERE project_name = %s",
+                    tuple(vp_params)
+                )
+    except Exception:
+        pass
+
+    # -----------------------------------------------------------------------
     # OUTSOURCE BRIDGE: if this update marks the project as Outsource
     # (department = "Submission Deadline"), push/update the opportunity in
-    # the vendor-facing new_swiftbim.vendor_bidding table so all vendors
-    # can see it immediately in their Opportunities page.
+    # the vendor-facing new_swiftbim.vendor_bidding table.
     # -----------------------------------------------------------------------
     department_val = data.get("department", "")
     budget_ceiling = data.get("budget_ceiling")

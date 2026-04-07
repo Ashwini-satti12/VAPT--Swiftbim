@@ -80,28 +80,30 @@ const PartnerView = () => {
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div className="flex-1 min-h-0 flex flex-col p-2">
                     {/* Header */}
-                    <div className="grid grid-cols-3 items-center mb-8 shrink-0">
+                    <div className="flex items-center gap-4 mb-6 md:mb-8 shrink-0 px-2 md:px-0">
                         {/* Left: Back button */}
                         <button
                             type="button"
                             onClick={() => navigate(-1)}
-                            className="flex items-center justify-center p-2 rounded-[5px] bg-[#F2F2F2] transition-colors w-10 h-10 cursor-pointer"
+                            className="flex items-center justify-center p-2 rounded-[5px] bg-[#F2F2F2] transition-colors w-9 h-9 md:w-10 md:h-10 cursor-pointer shrink-0"
                         >
                             <img src={backIcon} alt="Back" className="w-5 h-5 object-contain" />
                         </button>
 
                         {/* Centre: Title */}
-                        <h3 className="text-[24px] font-semibold font-Gantari text-[#12141D] text-center whitespace-nowrap">
-                            View Partner Details
-                        </h3>
+                        <div className="flex-1 text-center">
+                            <h3 className="text-[18px] md:text-[24px] font-semibold font-Gantari text-[#12141D] truncate">
+                                View Partner Details
+                            </h3>
+                        </div>
 
-                        {/* Right: Empty spacer for flex alignment */}
-                        <div className="flex gap-3 justify-end"></div>
+                        {/* Right: Empty spacer for alignment */}
+                        <div className="w-9 md:w-10 shrink-0"></div>
                     </div>
 
-                    <div className="flex-1 flex gap-8 items-stretch min-h-0">
+                    <div className="flex-1 flex flex-col md:flex-row gap-6 md:gap-8 items-stretch min-h-0">
                         {/* Sidebar */}
-                        <div className="w-1/4 max-w-[240px] flex-shrink-0">
+                        <div className="w-full md:w-1/4 md:max-w-[240px] shrink-0 border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0">
                             <PartnerSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
                         </div>
 

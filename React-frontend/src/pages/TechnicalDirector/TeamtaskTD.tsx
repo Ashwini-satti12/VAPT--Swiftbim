@@ -100,7 +100,7 @@ function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-1.5 sm:py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
@@ -332,10 +332,10 @@ function TaskCard({
     <div
       draggable={!isCompleted && !isOutsource}
       onDragStart={handleDragStart}
-      className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted || isOutsource ? "cursor-default opacity-90" : "cursor-grab active:cursor-grabbing"}`}
+      className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative mx-auto w-full max-w-full lg:max-w-none ${isCompleted || isOutsource ? "cursor-default opacity-90" : "cursor-grab active:cursor-grabbing"}`}
     >
       <div className="flex items-center justify-between gap-2 mb-2">
-        <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[20px] truncate">
+        <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[18px] truncate leading-tight">
           {task.task_name || "Task Name"}
         </h4>
         <div className="relative shrink-0" ref={menuRef}>
@@ -435,7 +435,7 @@ function TaskCard({
           <span className="text-[14px] font-medium text-[#8B8B8B]">
             {task.due_date
               ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
-              : ""}
+              : "—"}
           </span>
         </div>
       </div>
@@ -726,8 +726,8 @@ export default function TeamtaskTD() {
       toast.error("Move the task to In Progress before marking it completed.");
       return;
     }
-    if (current === "completed" && newStatus === "in_progress") {
-      toast.error("Completed tasks cannot be moved back to In Progress here.");
+    if (current === "completed" && newStatus !== "completed") {
+      toast.error("Completed tasks cannot be moved.");
       return;
     }
 
@@ -966,49 +966,76 @@ export default function TeamtaskTD() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-white px-2 py-2 overflow-hidden">
-      <div className="bg-white pb-3 flex-shrink-0">
-        {/* Top row: title + dropdowns + Add task */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-          <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
+    <div className="h-full min-h-0 flex flex-col overflow-y-auto lg:overflow-hidden bg-white custom-scrollbar">
+      <div className="bg-white flex-shrink-0 px-1 sm:px-0 pt-0 sm:pt-0 sm:mt-2">
+        {/* Row 1: Title and Add Task button for mobile only */}
+        <div className="flex flex-row items-center justify-between w-full mb-4 lg:hidden">
+          <h2 className="text-[20px] sm:text-[24px] font-semibold text-slate-800 font-Gantari">
+            Team Task
+          </h2>
+          {(() => {
+            const isProjOutsource = projects.find(p => p.project_name === selectedProject)?.source === "Outsource";
+            return (
+              <button
+                type="button"
+                disabled={isProjOutsource}
+                onClick={() => navigate("/td/teamtasks/add", { state: { from: "teamtasks" } })}
+                className={`sm:hidden inline-flex items-center justify-center gap-2 rounded-md px-4 py-1.5 text-[13px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all ${isProjOutsource ? "bg-gray-400 cursor-not-allowed" : "bg-[#DD4342]"}`}
+              >
+                <img src={AddBtn} alt="Add" className="h-4 w-4" />
+                Add task
+              </button>
+            );
+          })()}
+        </div>
+
+        {/* Row 2: Title (LG only) + Filters + Desktop Add Task button */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
+          <h2 className="hidden lg:block text-[24px] font-semibold text-slate-800 font-Gantari">
             Team Task
           </h2>
           <div
             ref={dropdownsContainerRef}
-            className="flex flex-wrap items-center gap-2 w-fit "
+            className="grid grid-cols-2 lg:flex lg:flex-row lg:items-center gap-2.5 w-full lg:w-auto"
           >
-            <TaskDropdown
-              label="Select Employee"
-              options={employeeOptions}
-              selected={selectedEmployee}
-              onSelect={setSelectedEmployee}
-              isOpen={openDropdown === "employee"}
-              onToggle={() =>
-                setOpenDropdown((d) => (d === "employee" ? null : "employee"))
-              }
-              onClose={() => setOpenDropdown(null)}
-              triggerRef={employeeTriggerRef}
-              dropdownRef={employeeMenuRef}
-              searchable
-              searchPlaceholder="Search employee..."
-            />
-            <TaskDropdown
-              label="Select Projects"
-              options={projectOptions}
-              selected={selectedProject}
-              onSelect={setSelectedProject}
-              isOpen={openDropdown === "projects"}
-              onToggle={() =>
-                setOpenDropdown((d) => (d === "projects" ? null : "projects"))
-              }
-              onClose={() => setOpenDropdown(null)}
-              triggerRef={projectsTriggerRef}
-              dropdownRef={projectsMenuRef}
-              searchable
-              searchPlaceholder="Search project..."
-            />
+            <div className="w-full lg:w-auto">
+              <TaskDropdown
+                label="Select Employee"
+                options={employeeOptions}
+                selected={selectedEmployee}
+                onSelect={setSelectedEmployee}
+                isOpen={openDropdown === "employee"}
+                onToggle={() =>
+                  setOpenDropdown((d) => (d === "employee" ? null : "employee"))
+                }
+                onClose={() => setOpenDropdown(null)}
+                triggerRef={employeeTriggerRef}
+                dropdownRef={employeeMenuRef}
+                searchable
+                searchPlaceholder="Search employee..."
+                maxVisibleItems={4}
+              />
+            </div>
+            <div className="w-full lg:w-auto">
+              <TaskDropdown
+                label="Select Projects"
+                options={projectOptions}
+                selected={selectedProject}
+                onSelect={setSelectedProject}
+                isOpen={openDropdown === "projects"}
+                onToggle={() =>
+                  setOpenDropdown((d) => (d === "projects" ? null : "projects"))
+                }
+                onClose={() => setOpenDropdown(null)}
+                triggerRef={projectsTriggerRef}
+                dropdownRef={projectsMenuRef}
+                searchable
+                searchPlaceholder="Search project..."
+                maxVisibleItems={4}
+              />
+            </div>
             <div
-              className="relative min-w-[140px] max-w-[200px] w-[150px]"
+              className="relative w-full lg:w-[150px]"
               ref={showEntriesDropdownRef}
             >
               <button
@@ -1018,7 +1045,7 @@ export default function TeamtaskTD() {
                   setOpenDropdown(null);
                   setShowEntriesOpen((o) => !o);
                 }}
-                className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                className="w-full flex items-center justify-between gap-2 px-3 py-1.5 sm:py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
               >
                 <span
                   className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
@@ -1109,20 +1136,23 @@ export default function TeamtaskTD() {
                 </div>
               )}
             </div>
-            <TaskDropdown
-              label="Period"
-              options={PERIOD_OPTIONS}
-              selected={selectedPeriod}
-              onSelect={setSelectedPeriod}
-              isOpen={openDropdown === "period"}
-              onToggle={() =>
-                setOpenDropdown((d) => (d === "period" ? null : "period"))
-              }
-              onClose={() => setOpenDropdown(null)}
-              triggerRef={periodTriggerRef}
-              dropdownRef={periodMenuRef}
-              narrow
-            />
+            <div className="w-full lg:w-auto">
+              <TaskDropdown
+                label="Period"
+                options={PERIOD_OPTIONS}
+                selected={selectedPeriod}
+                onSelect={setSelectedPeriod}
+                isOpen={openDropdown === "period"}
+                onToggle={() =>
+                  setOpenDropdown((d) => (d === "period" ? null : "period"))
+                }
+                onClose={() => setOpenDropdown(null)}
+                triggerRef={periodTriggerRef}
+                dropdownRef={periodMenuRef}
+                narrow
+                maxVisibleItems={4}
+              />
+            </div>
             {(() => {
               const isProjOutsource = projects.find(p => p.project_name === selectedProject)?.source === "Outsource";
               return (
@@ -1132,7 +1162,7 @@ export default function TeamtaskTD() {
                   onClick={() =>
                     navigate("/td/teamtasks/add", { state: { from: "teamtasks" } })
                   }
-                  className={`inline-flex cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-[14px] font-medium text-[#F2F2F2] shadow-sm ml-auto ${isProjOutsource ? "bg-gray-400 cursor-not-allowed" : "bg-[#DD4342]"}`}
+                  className={`hidden sm:inline-flex items-center justify-center gap-2 rounded-md px-6 py-1.5 lg:py-2 text-white rounded-md font-Gantari font-semibold transition-all shadow-sm cursor-pointer ${isProjOutsource ? "bg-gray-400 cursor-not-allowed" : "bg-[#DD4342]"}`}
                 >
                   <img src={AddBtn} alt="Add" className="h-5 w-5" />
                   Add task
@@ -1143,14 +1173,14 @@ export default function TeamtaskTD() {
         </div>
 
         {/* Status summary cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 pt-4">
           <Link
             to={statusFilter === "todo" ? pathname : buildStatusLink("todo")}
             className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
           >
-            <span className="text-xl font-bold text-[#0D1829]">To Do</span>
+            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">To Do</span>
 
-            <span className="text-xl font-bold text-[#0D1829]">({counts.todo})</span>
+            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">({counts.todo})</span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
               <img src={Group1} alt="Group1" className="w-8 h-8" />
             </div>
@@ -1164,9 +1194,9 @@ export default function TeamtaskTD() {
             }
             className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
           >
-            <span className="text-xl font-bold text-[#0D1829]">In Progress</span>
+            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">In Progress</span>
 
-            <span className="text-xl font-bold text-[#0D1829]">
+            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">
               ({counts.in_progress})
             </span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
@@ -1182,9 +1212,9 @@ export default function TeamtaskTD() {
             }
             className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
           >
-            <span className="text-xl font-bold text-[#0D1829]">Completed</span>
+            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">Completed</span>
 
-            <span className="text-xl font-bold text-[#0D1829]">({counts.completed})</span>
+            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">({counts.completed})</span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
               <img src={Group3} alt="Group3" className="w-8 h-8" />
             </div>
@@ -1192,10 +1222,11 @@ export default function TeamtaskTD() {
         </div>
       </div>
 
-      <div className="mt-2 flex-1 min-h-0 overflow-y-auto custom-scrollbar smooth-scroll">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pb-4">
+      {/* Task columns area */}
+      <div className="flex-1 min-h-0 lg:overflow-y-auto lg:custom-scrollbar px-2 sm:px-0 pr-1 sm:pr-0 sm:mr-1">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4 justify-items-center">
           <div
-            className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
+            className="flex flex-col items-center gap-3 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1 w-full max-w-md mx-auto"
             onDragOver={(e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = "move";
@@ -1218,7 +1249,7 @@ export default function TeamtaskTD() {
             ))}
           </div>
           <div
-            className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
+            className="flex flex-col items-center gap-3 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1 w-full max-w-md mx-auto"
             onDragOver={(e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = "move";
@@ -1241,7 +1272,7 @@ export default function TeamtaskTD() {
             ))}
           </div>
           <div
-            className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
+            className="flex flex-col items-center gap-3 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1 w-full max-w-md mx-auto"
             onDragOver={(e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = "move";

@@ -431,14 +431,14 @@ export default function TimesheetPM() {
   return (
     <div className="p-1 space-y-8 flex flex-col h-full bg-white">
       {/* Header & Filter Section */}
-      <div className="flex flex-col gap-4 flex-shrink-0">
+      <div className="flex flex-col gap-4 flex-shrink-0 px-1 sm:px-0 -mt-1 sm:mt-0">
         {/* Line 1: Heading and Download */}
-        <div className="flex items-center justify-between">
-          <h3 className="text-[24px] font-semibold text-[#000000] font-gantari whitespace-nowrap">Monthly Report</h3>
+        <div className="flex items-center justify-between w-full">
+          <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#000000] font-gantari whitespace-nowrap">Monthly Report</h3>
           <button
             onClick={handleDownload}
             disabled={filteredList.length === 0}
-            className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="flex items-center gap-2 px-4 sm:px-6 py-1.5 sm:py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <svg
               width="20"
@@ -455,15 +455,15 @@ export default function TimesheetPM() {
                 strokeLinejoin="round"
               />
             </svg>
-            <span className="text-[14px]">Download</span>
+            <span className="text-[13px] sm:text-[14px]">Download</span>
           </button>
         </div>
 
-        {/* Line 2: Filters */}
-        <div className="flex flex-wrap items-center gap-3 justify-end">
+        {/* Line 2: Filters Grid */}
+        <div className="grid grid-cols-2 lg:flex lg:flex-wrap lg:items-center gap-3 lg:justify-end">
           {/* Start Date — calendar icon only opens native picker */}
           <div
-            className="relative flex min-w-[140px] items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-2 transition-all"
+            className="relative flex w-full lg:min-w-[140px] lg:w-auto items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-1.5 lg:py-2 transition-all"
           >
             <span
               className={`select-none text-[14px] font-gantari font-semibold ${startDate ? "text-[#353535]" : "text-[#8B8B8B]"}`}
@@ -510,7 +510,7 @@ export default function TimesheetPM() {
 
           {/* End Date — calendar icon only opens native picker */}
           <div
-            className="relative flex min-w-[140px] items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-2 transition-all"
+            className="relative flex w-full lg:min-w-[140px] lg:w-auto items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-1.5 lg:py-2 transition-all"
           >
             <span
               className={`select-none text-[14px] font-gantari font-semibold ${endDate ? "text-[#353535]" : "text-[#8B8B8B]"}`}
@@ -554,7 +554,7 @@ export default function TimesheetPM() {
           </div>
 
           {/* Employee Custom Dropdown */}
-          <div className="relative min-w-[140px]" ref={employeeDropdownRef}>
+          <div className="relative w-full lg:min-w-[140px] lg:w-auto" ref={employeeDropdownRef}>
             <button
               type="button"
               onClick={(e) => {
@@ -562,7 +562,7 @@ export default function TimesheetPM() {
                 setEmployeeOpen((o) => !o);
                 setTeamOpen(false);
               }}
-              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer font-semibold"
+              className="flex items-center justify-between gap-3 w-full px-4 py-1.5 lg:py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer font-semibold"
             >
               <span
                 className={`text-[14px] font-gantari ${employee !== "All" ? "text-[#353535]" : "text-[#8B8B8B]"}`}
@@ -607,7 +607,7 @@ export default function TimesheetPM() {
           </div>
 
           {/* Team Custom Dropdown */}
-          <div className="relative min-w-[120px]" ref={teamDropdownRef}>
+          <div className="relative w-full lg:min-w-[120px] lg:w-auto" ref={teamDropdownRef}>
             <button
               type="button"
               onClick={(e) => {
@@ -615,7 +615,7 @@ export default function TimesheetPM() {
                 setTeamOpen((o) => !o);
                 setEmployeeOpen(false);
               }}
-              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer font-semibold"
+              className="flex items-center justify-between gap-3 w-full px-4 py-1.5 lg:py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer font-semibold"
             >
               <span
                 className={`text-[14px] font-gantari ${team !== "All" ? "text-[#353535]" : "text-[#8B8B8B]"}`}
@@ -660,14 +660,14 @@ export default function TimesheetPM() {
           </div>
 
           {/* Show entries — same design as EmployeesPM CustomDropdown (header) */}
-          <div className="relative w-[140px]" ref={showEntriesDropdownRef}>
+          <div className="relative w-full lg:w-[140px]" ref={showEntriesDropdownRef}>
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowEntriesOpen((o) => !o);
               }}
-              className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+              className="w-full flex items-center justify-between gap-2 px-3 py-1.5 lg:py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
             >
               <span
                 className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
@@ -752,28 +752,28 @@ export default function TimesheetPM() {
 
               <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                 <tr className="bg-white">
-                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
+                  <th className="px-2 lg:px-4 py-4 text-center text-[13px] lg:text-md font-medium text-[#353535] bg-white whitespace-nowrap">
                     Sl.No
                   </th>
-                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
+                  <th className="px-2 lg:px-4 py-4 text-center text-[13px] lg:text-md font-medium text-[#353535] bg-white whitespace-nowrap">
                     Project Name
                   </th>
-                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white font-gantari">
+                  <th className="px-2 lg:px-4 py-4 text-center text-[13px] lg:text-md font-medium text-[#353535] bg-white font-gantari">
                     Task
                   </th>
-                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
+                  <th className="px-2 lg:px-4 py-4 text-center text-[13px] lg:text-md font-medium text-[#353535] bg-white whitespace-nowrap">
                     Assigned to
                   </th>
-                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
+                  <th className="px-2 lg:px-4 py-4 text-center text-[13px] lg:text-md font-medium text-[#353535] bg-white whitespace-nowrap">
                     Assigned by
                   </th>
-                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
+                  <th className="px-2 lg:px-4 py-4 text-center text-[13px] lg:text-md font-medium text-[#353535] bg-white whitespace-nowrap">
                     Start Date
                   </th>
-                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
+                  <th className="px-2 lg:px-4 py-4 text-center text-[13px] lg:text-md font-medium text-[#353535] bg-white whitespace-nowrap">
                     End Date
                   </th>
-                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
+                  <th className="px-2 lg:px-4 py-4 text-center text-[13px] lg:text-md font-medium text-[#353535] bg-white whitespace-nowrap">
                     Task Duration
                   </th>
                 </tr>
@@ -802,38 +802,37 @@ export default function TimesheetPM() {
                         key={row.id}
                         className={`${index % 2 === 1 ? "bg-[#F2F2F2] hover:bg-gray-100" : "bg-white"} transition-colors`}
                       >
-                        <td className="px-4 py-3 text-center text-[14px] text-gray-500 font-gantari align-middle">
+                        <td className="px-2 lg:px-4 py-4 lg:py-6 text-center text-[12px] lg:text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
                           {slNo}
                         </td>
-                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
+                        <td className="px-2 lg:px-4 py-4 lg:py-6 text-center text-[12px] lg:text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
                           {row.project_name && row.project_name.trim() !== ""
                             ? row.project_name
-                            : "-"}
+                            : "–"}
                         </td>
-                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
-                          <div className="mx-auto max-w-[250px] line-clamp-2 break-words text-center">
-                            {row.task_name && row.task_name.trim() !== ""
-                              ? row.task_name
-                              : "-"}
-                          </div>
+                        <td className="px-2 lg:px-4 py-4 lg:py-6 text-center text-[12px] lg:text-[14px] text-[#353535] font-gantari align-middle">
+                          {row.task_name && row.task_name.trim() !== ""
+                            ? row.task_name
+                            : "–"}
                         </td>
-                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
+                        <td className="px-2 lg:px-4 py-4 lg:py-6 text-center text-[12px] lg:text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                           {row.assigned_name && row.assigned_name.trim() !== ""
                             ? row.assigned_name
-                            : "-"}
+                            : "–"}
                         </td>
-                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
-                          {row.assigned_by_name && row.assigned_by_name.trim() !== ""
+                        <td className="px-2 lg:px-4 py-4 lg:py-6 text-center text-[12px] lg:text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          {row.assigned_by_name &&
+                            row.assigned_by_name.trim() !== ""
                             ? row.assigned_by_name
-                            : "-"}
+                            : "–"}
                         </td>
-                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
+                        <td className="px-2 lg:px-4 py-4 lg:py-6 text-center text-[12px] lg:text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                           {startDate}
                         </td>
-                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
+                        <td className="px-2 lg:px-4 py-4 lg:py-6 text-center text-[12px] lg:text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                           {endDate}
                         </td>
-                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
+                        <td className="px-2 lg:px-4 py-4 lg:py-6 text-center text-[12px] lg:text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
                           {duration}
                         </td>
                       </tr>

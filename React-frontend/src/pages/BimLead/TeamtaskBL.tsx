@@ -217,7 +217,7 @@ function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? (label === "Period" ? "min-w-[100px]" : "min-w-[150px]") : "min-w-[160px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-3 sm:px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer w-full transition-colors hover:bg-[#dfdfdf] ${narrow ? (label === "Period" ? "lg:min-w-[100px]" : "lg:min-w-[150px]") : "lg:min-w-[160px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
@@ -459,7 +459,7 @@ function TaskCard({
             className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
             <div className="flex items-center justify-between gap-2 mb-2">
-                <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[20px] truncate">
+                <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[18px] sm:text-[20px] truncate">
                     {task.task_name || "Task Name"}
                 </h4>
                 <div className="relative shrink-0" ref={menuRef}>
@@ -906,8 +906,8 @@ export default function TeamtaskBL() {
                 toast.error("Move the task to In Progress before marking it completed.");
                 return;
             }
-            if (current === "completed" && newStatus === "in_progress") {
-                toast.error("Completed tasks cannot be moved back to In Progress here.");
+            if (current === "completed" && newStatus !== "completed") {
+                toast.error("Completed tasks cannot be moved.");
                 return;
             }
         }
@@ -1160,16 +1160,37 @@ export default function TeamtaskBL() {
     }
 
     return (
-        <div className="flex flex-col h-full bg-white px-2 py-2 overflow-hidden">
-            <div className="bg-white pb-3 flex-shrink-0">
-                {/* Top row: title + dropdowns + Add task */}
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-                    <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
-                        Team Task
-                    </h2>
+        <div className="flex flex-col h-full bg-white overflow-hidden">
+            <div className="bg-white px-4 sm:px-6 pb-4 shrink-0 z-10 pt-2">
+                {/* Top row: title + Filters + Add task */}
+                <div className="max-w-full mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="flex items-center justify-between gap-4 w-full lg:w-auto">
+                        <h2 className="text-[20px] sm:text-[24px] font-semibold text-slate-800 font-Gantari whitespace-nowrap">
+                            Team Task
+                        </h2>
+                        {/* Mobile/Tablet Add Task Button */}
+                        <div className="lg:hidden">
+                            <button
+                                type="button"
+                                disabled={isOutsourceProjectSelected}
+                                onClick={() =>
+                                    navigate("/bl/teamtasks/add", {
+                                        state: { from: "teamtasks" },
+                                    })
+                                }
+                                className={`inline-flex items-center justify-center gap-2 rounded-md px-3 sm:px-4 h-[36px] min-h-[36px] text-[14px] font-medium shadow-sm cursor-pointer transition-all ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-[#F2F2F2] hover:bg-[#c33a39]"}`}
+                                title={isOutsourceProjectSelected ? "Cannot add tasks to Outsource projects" : "Add task"}
+                            >
+                                <img src={AddBtn} alt="Add" className="h-4 w-4 sm:h-5 sm:w-5" />
+                                <span className="hidden sm:inline whitespace-nowrap">Add task</span>
+                                <span className="sm:hidden whitespace-nowrap">Add</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <div
                         ref={dropdownsContainerRef}
-                        className="flex flex-wrap items-center gap-2 w-fit "
+                        className="grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-start lg:justify-end gap-2 w-full lg:w-auto overflow-visible"
                     >
                         <TaskDropdown
                             label="Select Employee"
@@ -1233,74 +1254,76 @@ export default function TeamtaskBL() {
                             narrow
                             maxVisibleItems={4}
                         />
-                        <button
-                            type="button"
-                            disabled={isOutsourceProjectSelected}
-                            onClick={() =>
-                                navigate("/bl/teamtasks/add", {
-                                    state: { from: "teamtasks" },
-                                })
-                            }
-                            className={`inline-flex cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-[14px] font-medium shadow-sm ml-auto ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-[#F2F2F2]"}`}
-                            title={isOutsourceProjectSelected ? "Cannot add tasks to Outsource projects" : "Add task"}
-                        >
-                            <img src={AddBtn} alt="Add" className="h-5 w-5" />
-                            Add task
-                        </button>
+                        {/* Desktop Add Task Button */}
+                        <div className="hidden lg:block ml-2">
+                            <button
+                                type="button"
+                                disabled={isOutsourceProjectSelected}
+                                onClick={() =>
+                                    navigate("/bl/teamtasks/add", {
+                                        state: { from: "teamtasks" },
+                                    })
+                                }
+                                className={`inline-flex items-center justify-center gap-2 rounded-md px-4 h-[36px] min-h-[36px] text-[14px] font-medium shadow-sm cursor-pointer transition-all ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-[#F2F2F2] hover:bg-[#c33a39]"}`}
+                                title={isOutsourceProjectSelected ? "Cannot add tasks to Outsource projects" : "Add task"}
+                            >
+                                <img src={AddBtn} alt="Add" className="h-5 w-5" />
+                                <span className="whitespace-nowrap">Add task</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
-
-                {/* Status summary cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-                    <Link
-                        to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
-                    >
-                        <span className="text-xl font-bold text-[#0D1829]">To Do</span>
-
-                        <span className="text-xl font-bold text-[#0D1829]">({counts.todo})</span>
-                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-                            <img src={Group1} alt="Group1" className="w-8 h-8" />
-                        </div>
-                    </Link>
-
-                    <Link
-                        to={
-                            statusFilter === "in_progress"
-                                ? pathname
-                                : `${pathname}?status=in_progress`
-                        }
-                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
-                    >
-                        <span className="text-xl font-bold text-[#0D1829]">In Progress</span>
-
-                        <span className="text-xl font-bold text-[#0D1829]">({counts.in_progress})</span>
-                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-                            <img src={Group2} alt="Group2" className="w-8 h-8" />
-                        </div>
-                    </Link>
-
-                    <Link
-                        to={
-                            statusFilter === "completed"
-                                ? pathname
-                                : `${pathname}?status=completed`
-                        }
-                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
-                    >
-                        <span className="text-xl font-bold text-[#0D1829]">Completed</span>
-
-                        <span className="text-xl font-bold text-[#0D1829]">({counts.completed})</span>
-                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-                            <img src={Group3} alt="Group3" className="w-8 h-8" />
-                        </div>
-                    </Link>
                 </div>
             </div>
 
-            {/* Task columns scrollable area */}
-            <div className="mt-2 flex-1 min-h-0 overflow-y-auto custom-scrollbar smooth-scroll">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pb-4">
+            {/* Scrollable Content Area */}
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 custom-scrollbar bg-[#FFFFFF]">
+                <div className="max-w-full mx-auto space-y-6">
+                    {/* Status summary cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                        <Link
+                            to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
+                            className={`flex p-3 sm:p-4 gap-2 sm:gap-4 rounded-xl border shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
+                        >
+                            <span className="text-[18px] sm:text-[20px] font-bold text-[#0D1829]">To Do</span>
+                            <span className="text-[18px] sm:text-[20px] font-bold text-[#0D1829]">({counts.todo})</span>
+                            <div className="absolute top-1/2 -translate-y-1/2 right-3 sm:right-4 flex items-center justify-center">
+                                <img src={Group1} alt="Group1" className="w-6 h-6 sm:w-8 sm:h-8" />
+                            </div>
+                        </Link>
+
+                        <Link
+                            to={
+                                statusFilter === "in_progress"
+                                    ? pathname
+                                    : `${pathname}?status=in_progress`
+                            }
+                            className={`flex p-3 sm:p-4 gap-2 sm:gap-4 rounded-xl border shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
+                        >
+                            <span className="text-[18px] sm:text-[20px] font-bold text-[#0D1829]">In Progress</span>
+                            <span className="text-[18px] sm:text-[20px] font-bold text-[#0D1829]">({counts.in_progress})</span>
+                            <div className="absolute top-1/2 -translate-y-1/2 right-3 sm:right-4 flex items-center justify-center">
+                                <img src={Group2} alt="Group2" className="w-6 h-6 sm:w-8 sm:h-8" />
+                            </div>
+                        </Link>
+
+                        <Link
+                            to={
+                                statusFilter === "completed"
+                                    ? pathname
+                                    : `${pathname}?status=completed`
+                            }
+                            className={`flex p-3 sm:p-4 gap-2 sm:gap-4 rounded-xl border shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
+                        >
+                            <span className="text-[18px] sm:text-[20px] font-bold text-[#0D1829]">Completed</span>
+                            <span className="text-[18px] sm:text-[20px] font-bold text-[#0D1829]">({counts.completed})</span>
+                            <div className="absolute top-1/2 -translate-y-1/2 right-3 sm:right-4 flex items-center justify-center">
+                                <img src={Group3} alt="Group3" className="w-6 h-6 sm:w-8 sm:h-8" />
+                            </div>
+                        </Link>
+                    </div>
+
+                    {/* Task columns */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div
                         className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
                         onDragOver={(e) => {
@@ -1372,6 +1395,7 @@ export default function TeamtaskBL() {
                     </div>
                 </div>
             </div>
+        </div>
 
             {deleteTask !== null && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">

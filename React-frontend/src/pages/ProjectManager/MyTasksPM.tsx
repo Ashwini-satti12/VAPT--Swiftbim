@@ -5,6 +5,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
+import toast from "react-hot-toast";
 import api from "../../lib/api";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
@@ -518,6 +519,20 @@ export default function MyTasksPM() {
       };
 
       const task = list.find(t => t.id === taskId);
+      if (task) {
+        const s = normalizeStatus(task.status, task.Approval);
+        if (s === "todo" && newStatus === "completed") {
+          toast.error("Move the task to In Progress before marking it completed.");
+          return;
+        }
+        if (
+          (s === "completed" || s === "approved" || s === "rejected") &&
+          (newStatus === "todo" || newStatus === "in_progress")
+        ) {
+          toast.error("Completed tasks cannot be moved.");
+          return;
+        }
+      }
       const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
 
       const isOutsource = task?.source === "Outsource";
