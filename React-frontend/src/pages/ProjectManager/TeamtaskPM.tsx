@@ -1717,21 +1717,49 @@ export default function TeamtaskPM() {
                     })
                     .then(() => {
                       handleFiles(existing.id);
-                      api
-                        .get<{
-                          tasks?: Task[];
-                        }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
-                        .then((res) => setList(res.data.tasks ?? []));
+                      const params: Record<string, string> = {
+                        condition: isTeam ? "1" : "0",
+                        employeeid: "all",
+                      };
+                      Promise.all([
+                        api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+                        api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", {
+                          params,
+                        }),
+                      ]).then(([resTasks, resVendorTasks]) => {
+                        const internalTasks = (resTasks.data.tasks ?? []).map((t) => ({
+                          ...t,
+                          source: "In House",
+                        }));
+                        const vendorTasks = (resVendorTasks.data.tasks ?? []).map(
+                          (t) => ({ ...t, source: "Outsource" }),
+                        );
+                        setList([...internalTasks, ...vendorTasks] as Task[]);
+                      });
                     });
                 } else {
                   api.post("/api/tasks", payload).then((res) => {
                     if (res.data.success && res.data.task_id) {
                       handleFiles(res.data.task_id);
-                      api
-                        .get<{
-                          tasks?: Task[];
-                        }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
-                        .then((r) => setList(r.data.tasks ?? []));
+                      const params: Record<string, string> = {
+                        condition: isTeam ? "1" : "0",
+                        employeeid: "all",
+                      };
+                      Promise.all([
+                        api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+                        api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", {
+                          params,
+                        }),
+                      ]).then(([resTasks, resVendorTasks]) => {
+                        const internalTasks = (resTasks.data.tasks ?? []).map((t) => ({
+                          ...t,
+                          source: "In House",
+                        }));
+                        const vendorTasks = (resVendorTasks.data.tasks ?? []).map(
+                          (t) => ({ ...t, source: "Outsource" }),
+                        );
+                        setList([...internalTasks, ...vendorTasks] as Task[]);
+                      });
                     }
                   });
                 }

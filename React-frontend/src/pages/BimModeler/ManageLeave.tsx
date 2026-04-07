@@ -317,7 +317,11 @@ export default function ManageLeave() {
   const handleSubmitApply = async (e: React.FormEvent) => {
     e.preventDefault();
     // allow "Others" (leaveTypeId can be 0)
-    if (!leaveType || !leaveFrom || !leaveTo || !reason.trim()) return;
+    if (!leaveType) {
+      toast.error("Select leave type");
+      return;
+    }
+    if (!leaveFrom || !leaveTo || !reason.trim()) return;
 
     if (leaveFrom < todayStr) {
       toast.error("Leave From date cannot be in the past.");
@@ -444,8 +448,12 @@ export default function ManageLeave() {
 
   const handleSubmitEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingLeave || !leaveType || !leaveFrom || !leaveTo || !reason.trim())
+    if (!editingLeave) return;
+    if (!leaveType) {
+      toast.error("Select leave type");
       return;
+    }
+    if (!leaveFrom || !leaveTo || !reason.trim()) return;
 
     if (leaveFrom < todayStr) {
       toast.error("Leave From date cannot be in the past.");

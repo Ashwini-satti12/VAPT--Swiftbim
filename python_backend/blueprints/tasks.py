@@ -149,14 +149,20 @@ def list_tasks():
                     )""")
                 params.extend([g.user_id, g.user_id, g.user_id, g.user_id, g.user_id, g.user_id])
     else:
-        # My task / employee view: only tasks assigned to me or created by me
-        employee_id = employeeid_param or g.user_id
+        # My task / employee view: only tasks assigned to me or created by me.
+        # Legacy frontend may send employeeid=all even for My Task. In that case,
+        # default to current user instead of filtering by literal string "all".
+        if employeeid_param is None or str(employeeid_param).strip() == "" or str(employeeid_param).strip().lower() == "all":
+            employee_id = g.user_id
+        else:
+            employee_id = employeeid_param
         where.append("(t.assigned_to = %s OR t.uploaderid = %s)")
         params.extend([employee_id, employee_id])
 
     if status:
         if status == 'todo':
-            where.append("t.status = 'Todo'")
+            # Backward compatibility: old rows may use "To Do", "Todo", or NULL.
+            where.append("(t.status IN ('Todo', 'To Do') OR t.status IS NULL OR TRIM(t.status) = '')")
         elif status == 'in_progress':
             where.append(
                 "(t.status IN ('InProgress', 'Started')) AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))"
