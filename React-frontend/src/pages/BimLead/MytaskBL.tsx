@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import api from "../../lib/api";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
@@ -533,10 +534,21 @@ export default function MytaskBL() {
         taskId: number,
         newStatus: "todo" | "in_progress" | "completed" | "approved" | "rejected"
     ) => {
+        const task = list.find(t => t.id === taskId);
+        if (task) {
+            const current = normalizeStatus(task.status, task.Approval);
+            if (current === "todo" && newStatus === "completed") {
+                toast.error("Move the task to In Progress before marking it completed.");
+                return;
+            }
+            if (current === "completed" && newStatus !== "completed") {
+                toast.error("Completed tasks cannot be moved.");
+                return;
+            }
+        }
+
         const label = statusToLabel(newStatus);
 
-        // Find task to get projectId if possible
-        const task = list.find(t => t.id === taskId);
         const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
 
         // Visual update immediately

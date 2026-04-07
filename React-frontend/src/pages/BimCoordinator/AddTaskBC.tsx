@@ -394,9 +394,9 @@ export default function AddTaskBC() {
     };
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 p-2 bg-white">
-            <div className="max-w-[1174px] mx-auto flex flex-col flex-1 min-h-0 w-full">
-                <div className="flex shrink-0 items-center justify-between mb-6 sm:mb-8 relative">
+        <div className="flex-1 min-h-0 p-4 bg-white overflow-hidden">
+            <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col w-full">
+                <div className="flex shrink-0 items-center justify-between mb-8 sm:mb-10 relative">
                     <button
                         type="button"
                         onClick={goBack}
@@ -405,13 +405,13 @@ export default function AddTaskBC() {
                     >
                         <img src={backIcon} alt="Back" className="w-5 h-5" />
                     </button>
-                    <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#000000] font-Gantari text-center flex-1">
+                    <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
                         {editingTaskId !== null ? "Edit Task" : "Add New Task"}
                     </h3>
                     <div className="w-10" />
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-6">
+                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-6">
                 <input
                     ref={fileInputRef}
                     type="file"

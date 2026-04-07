@@ -470,7 +470,7 @@ export default function ConsultantV() {
                                         <hr className="border-slate-200" />
 
                                         {/* Actions Grid */}
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <button
                                                 type="button"
                                                 onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}

@@ -143,11 +143,7 @@ const STATUS_OPTIONS: { value: "todo" | "in_progress" | "completed"; label: stri
 ];
 
 function shouldHideInProgressInDropdown(status: StatusKey): boolean {
-  return (
-    status === "completed" ||
-    status === "approved" ||
-    status === "rejected"
-  );
+  return status === "approved" || status === "rejected";
 }
 
 function isStatusOptionDisabled(
@@ -155,6 +151,11 @@ function isStatusOptionDisabled(
   option: "todo" | "in_progress" | "completed",
 ): boolean {
   if (current === "todo" && option === "completed") return true;
+  if (
+    (current === "completed" || current === "approved") &&
+    (option === "todo" || option === "in_progress")
+  )
+    return true;
   return false;
 }
 
