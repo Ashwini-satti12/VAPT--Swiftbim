@@ -93,7 +93,12 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
           setProfileData(updated);
           setEditData(updated);
           if (data.profile_picture) {
-            const url = getGlobalProfileUrl(data.id || user?.id, data.profile_picture, user?.user_type);
+            const baseUrl = getGlobalProfileUrl(
+              data.id || user?.id,
+              data.profile_picture,
+              user?.user_type
+            );
+            const url = `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}t=${Date.now()}`;
             setProfilePicture(url);
             localStorage.setItem("userProfilePicture", url);
           } else {
@@ -342,7 +347,6 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     reader.onload = (ev) => {
       const result = ev.target?.result as string;
       setProfilePicture(result);
-      localStorage.setItem("userProfilePicture", result);
     };
     reader.readAsDataURL(file);
   };
@@ -383,16 +387,27 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
       }
 
       // Update basic profile fields
-      const { data } = await api.put("/api/profile", formData);
+      const { data } = await api.put("/api/profile", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
       // Update password if provided
       if (curPass && newPass) {
-        await api.post("/api/profile/change-password", {
-          current_password: curPass,
-          new_password: newPass,
-        });
-        setCurrentPassword("");
-        setNewPassword("");
+        try {
+          await api.post("/api/profile/change-password", {
+            current_password: curPass,
+            new_password: newPass,
+          });
+          setCurrentPassword("");
+          setNewPassword("");
+        } catch (e: any) {
+          // Profile update succeeded; don't block UI update because password failed.
+          const msg =
+            e?.response?.data?.message ||
+            e?.response?.data?.error ||
+            "Password update failed. Please check current password.";
+          setPasswordError(String(msg));
+        }
       }
 
       setProfileData({ ...editData });
@@ -400,7 +415,12 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
       // If a new profile picture was uploaded, the backend returns the filename
       const empId = editData.id || user?.id;
       if (data && data.profile_picture && empId) {
-        const url = getGlobalProfileUrl(empId, data.profile_picture, user?.user_type);
+        const baseUrl = getGlobalProfileUrl(
+          empId,
+          data.profile_picture,
+          user?.user_type
+        );
+        const url = `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}t=${Date.now()}`;
         setProfilePicture(url);
         localStorage.setItem("userProfilePicture", url);
       }
