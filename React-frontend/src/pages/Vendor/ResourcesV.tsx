@@ -355,7 +355,7 @@ export default function ResourcesV() {
         setEditId(id);
         setActiveView("edit");
 
-        let savedPhone = emp.phone_number || "";
+        const savedPhone = emp.phone_number || "";
         let foundCode = "+91";
         let phoneWithoutCode = savedPhone;
 

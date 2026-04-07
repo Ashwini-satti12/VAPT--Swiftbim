@@ -206,7 +206,7 @@ export default function CreateProposalTD() {
     if (digitsOnly === "") {
       updated[index] = { ...updated[index], terms: "" };
     } else {
-      let num = Math.min(100, Number(digitsOnly.slice(0, 3)));
+      const num = Math.min(100, Number(digitsOnly.slice(0, 3)));
       updated[index] = { ...updated[index], terms: `${num}%` };
     }
     setPaymentRows(updated);

@@ -115,7 +115,7 @@ export default function ConsultantV() {
             const emp = list.find((e) => e.id === id);
             if (emp) {
                 setEditId(id);
-                let savedPhone = emp.phone_number || '';
+                const savedPhone = emp.phone_number || '';
                 let foundCode = '+91';
                 let phoneWithoutCode = savedPhone;
                 for (const c of COUNTRY_CODES) {
@@ -483,7 +483,7 @@ export default function ConsultantV() {
                                                     type="button"
                                                     onClick={() => {
                                                         setEditId(emp.id);
-                                                        let savedPhone = emp.phone_number || '';
+                                                        const savedPhone = emp.phone_number || '';
                                                         let foundCode = '+91';
                                                         let phoneWithoutCode = savedPhone;
                                                         for (const c of COUNTRY_CODES) {
@@ -613,7 +613,7 @@ export default function ConsultantV() {
                             {(() => {
                                 const maxVisible = 4;
                                 let start = Math.max(1, currentPage - 1);
-                                let end = Math.min(totalPages, start + maxVisible - 1);
+                                const end = Math.min(totalPages, start + maxVisible - 1);
                                 if (end - start + 1 < maxVisible) {
                                     start = Math.max(1, end - maxVisible + 1);
                                 }

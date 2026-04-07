@@ -1151,9 +1151,9 @@ export default function ManageLeave() {
                                     required
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}
-                                    rows={3}
+                                    rows={6}
                                     placeholder="Enter your reason for leave..."
-                                    className="w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] resize-none border-0 bg-[#F2F3F4]"
+                                    className="w-full min-h-[140px] px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] resize-y border-0 bg-[#F2F3F4] break-words"
                                 />
                             </div>
 
@@ -1394,9 +1394,9 @@ export default function ManageLeave() {
                                     required
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}
-                                    rows={3}
+                                    rows={6}
                                     placeholder="Enter your reason for leave..."
-                                    className="w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] resize-none border-0 bg-[#F2F3F4]"
+                                    className="w-full min-h-[140px] px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] resize-y border-0 bg-[#F2F3F4] break-words"
                                 />
                             </div>
 
@@ -1442,9 +1442,9 @@ export default function ManageLeave() {
                             </button>
                             <h3 className="text-[24px] font-medium text-[#000000]">Leave Details</h3>
                         </div>
-                        <div className="px-6 pb-6 pt-6">
+                        <div className="px-6 pb-6 pt-6 overflow-x-hidden min-w-0">
                             {/* Rows with fixed label width so colons align vertically (like second image) */}
-                            <div className="space-y-5 text-[14px] font-gantari">
+                            <div className="space-y-5 text-[14px] font-gantari min-w-0">
                                 <div className="flex items-center gap-1">
                                     <span className="w-[140px] shrink-0 font-semibold text-black">Employee Name</span>
                                     <span className="shrink-0 text-black">:</span>
@@ -1470,10 +1470,12 @@ export default function ManageLeave() {
                                     <span className="shrink-0 text-black">:</span>
                                     <span className="text-[#8B8B8B]">{selectedLeave.toDate ?? '-'}</span>
                                 </div>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-start gap-1">
                                     <span className="w-[140px] shrink-0 font-semibold text-black">Reason</span>
-                                    <span className="shrink-0 text-black">:</span>
-                                    <span className="text-[#8B8B8B]">{selectedLeave.description ?? '-'}</span>
+                                    <span className="shrink-0 text-black leading-[1.5]">:</span>
+                                    <span className="text-[#8B8B8B] min-w-0 flex-1 break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
+                                        {selectedLeave.description ?? '-'}
+                                    </span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                     <span className="w-[140px] shrink-0 font-semibold text-black">Current Status</span>
