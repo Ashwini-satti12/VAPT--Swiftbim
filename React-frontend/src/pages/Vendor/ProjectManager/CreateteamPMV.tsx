@@ -55,7 +55,7 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
                     Team Name
                 </span>
                 <span className="text-[18px] font-semibold text-[#353535] pr-8 truncate">
-                    {team.team_name || team.teamname || team.leader_name || getEmpName(team.leader) || "Untitled Team"}
+                    {team.team_name || team.teamname || (getEmpName(team.leader) !== 'N/A' ? getEmpName(team.leader) : team.leader_name) || "Untitled Team"}
                 </span>
             </div>
 
@@ -115,7 +115,7 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
                     Team Leader
                 </span>
                 <span className="text-[18px] font-semibold text-[#353535] truncate flex items-center gap-2">
-                    {team.leader_name || getEmpName(team.leader)}
+                    {getEmpName(team.leader) !== 'N/A' ? getEmpName(team.leader) : (team.leader_name || 'N/A')}
                 </span>
             </div>
 
@@ -786,9 +786,9 @@ export default function CreateteamPMV() {
                                     <label className="text-[16px] font-gantari block mb-1 font-medium">Team Leader</label>
                                     <div className="flex items-center gap-3 bg-[#F2F3F4] border-2 border-[#AEACAC52] py-3 px-2 rounded-xl">
                                         <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center font-gantari font-medium uppercase">
-                                            {(selectedTeam.leader_name || getEmpName(selectedTeam.leader) || 'L')[0]}
+                                            {((getEmpName(selectedTeam.leader) !== 'N/A' ? getEmpName(selectedTeam.leader) : selectedTeam.leader_name) || 'L')[0]}
                                         </div>
-                                        <div className="font-gantari font-medium text-[#334155]">{selectedTeam.leader_name || getEmpName(selectedTeam.leader)}</div>
+                                        <div className="font-gantari font-medium text-[#334155]">{getEmpName(selectedTeam.leader) !== 'N/A' ? getEmpName(selectedTeam.leader) : selectedTeam.leader_name}</div>
                                     </div>
                                 </div>
 

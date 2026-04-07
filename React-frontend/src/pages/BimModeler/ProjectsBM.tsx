@@ -650,10 +650,10 @@ export default function ProjectsBL() {
     );
   }
   return (
-    <div className="bg-white h-full flex flex-col overflow-hidden">
+    <div className="bg-white h-[calc(100vh-100px)] flex flex-col overflow-hidden">
       {/* Main Content View Switcher */}
       {showProjectView && selectedProjectForView ? (
-        <div className="flex flex-col h-full bg-white">
+        <div className="flex flex-col flex-1 min-h-0 bg-white">
           {/* Project View Header */}
           <div className="relative flex items-center justify-center px-4 md:px-6 py-2 border-b border-slate-50">
             <button
