@@ -753,6 +753,9 @@ export default function ProjectsBL() {
             <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 px-4 md:px-6 pb-6">
               {/* Tower Progress Grid */}
               <div className="border border-[#AEACAC52] rounded-md ">
+                <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] px-6 md:px-8 lg:px-2 pt-6 md:pt-8 lg:pt-2">
+                  Modules
+                </h4>
                 <div className="max-h-[220px] overflow-y-auto custom-scrollbar p-6 md:p-8 lg:p-2">
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-4">
                     {selectedProjectForView.module_name ? (
