@@ -79,8 +79,12 @@ export default function ProposalTD() {
     const s = (status || '').toLowerCase();
     if (s === 'accepted') return 'Accepted';
     if (s === 'pending') return 'Pending';
+    if (s === 'clarification_requested') return 'Clarification requested';
     return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
   };
+
+  const isClarificationRequested = (displayStatus: string) =>
+    (displayStatus || '').toLowerCase().replace(/-/g, '_') === 'clarification_requested';
 
   const getStatusBadge = (status: string) => {
     const s = (status || '').toLowerCase();
@@ -234,6 +238,10 @@ export default function ProposalTD() {
                         bid.proposal_exists && bid.proposal_status
                           ? bid.proposal_status
                           : bid.status;
+                      const clarificationEdit = isClarificationRequested(displayStatus);
+                      const canOpenCreateOrEdit =
+                        !bid.proposal_exists ||
+                        (clarificationEdit && bid.proposal_id != null && bid.proposal_id !== undefined);
                       return (
                         <tr key={bid.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
                           <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{slNo}</td>
@@ -254,22 +262,27 @@ export default function ProposalTD() {
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() =>
-                                  !bid.proposal_exists && navigate("/td/create-proposal", {
+                                  canOpenCreateOrEdit &&
+                                  navigate("/td/create-proposal", {
                                     state: {
                                       bid,
                                       projectName: bid.project_name,
                                       opportunityId: bid.opportunity_id,
+                                      ...(clarificationEdit && bid.proposal_id != null
+                                        ? { proposalId: bid.proposal_id, editProposal: true }
+                                        : {}),
                                     },
                                   })
                                 }
-                                disabled={!!bid.proposal_exists}
-                                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${bid.proposal_exists
+                                disabled={!canOpenCreateOrEdit}
+                                title={clarificationEdit ? "Edit proposal" : "Create proposal"}
+                                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${!canOpenCreateOrEdit
                                   ? 'cursor-not-allowed opacity-50'
                                   : 'hover:bg-[#c33a39]'
                                   }`}
                               >
                                 <img src={viewIcon} alt="" className="w-4 h-4 object-contain brightness-0 invert" />
-                                Create
+                                {clarificationEdit ? "Edit" : "Create"}
                               </button>
 
                               <button
