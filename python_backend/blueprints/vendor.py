@@ -2011,6 +2011,124 @@ def td_get_proposal(proposal_id: int):
         return jsonify({"proposal": None}), 500
 
 
+@bp.route("/proposals/td/<int:proposal_id>", methods=["PUT"])
+@login_required
+def td_update_proposal(proposal_id: int):
+    """
+    PUT /api/vendors/proposals/td/<proposal_id>
+    Update a TD proposal after the vendor requested clarification (status clarification_requested).
+    Resets status to Sent so the vendor can review again.
+    """
+    data = request.get_json() or {}
+
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute("SELECT * FROM td_proposals WHERE id = %s", (proposal_id,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"success": False, "message": "Proposal not found"}), 404
+
+        current = (row.get("status") or "").lower()
+        if current != "clarification_requested":
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "Proposal can only be edited when the vendor has requested clarification.",
+                }
+            ), 400
+
+        technologies = data.get("technologies_used", [])
+        if isinstance(technologies, list):
+            tech_json = json.dumps(technologies)
+        else:
+            tech_json = json.dumps([])
+
+        commercial = data.get("commercial_offer", [])
+        if not isinstance(commercial, list):
+            commercial = []
+
+        payment_terms = data.get("payment_terms", [])
+        if not isinstance(payment_terms, list):
+            payment_terms = []
+
+        cur.execute(
+            """
+            UPDATE td_proposals SET
+                executive_summary = %s,
+                about_us = %s,
+                address = %s,
+                website_url = %s,
+                email_address = %s,
+                selected_currency = %s,
+                scope_of_work = %s,
+                technologies_used = %s,
+                deliverables = %s,
+                exclusions = %s,
+                commercial_offer = %s,
+                payment_terms = %s,
+                status = 'Sent',
+                reason = NULL
+            WHERE id = %s
+            """,
+            (
+                data.get("executive_summary"),
+                data.get("aboutus"),
+                data.get("address"),
+                data.get("website_url"),
+                data.get("email_address"),
+                data.get("selected_currency"),
+                data.get("scope_of_work"),
+                tech_json,
+                data.get("deliverables"),
+                data.get("exclusions"),
+                json.dumps(commercial),
+                json.dumps(payment_terms),
+                proposal_id,
+            ),
+        )
+        conn.commit()
+
+        # Notify vendor that an updated proposal is available
+        try:
+            vendor_id = row.get("vendor_id")
+            project_name = data.get("project_name") or row.get("project_name") or "a project"
+            if vendor_id and getattr(g, "company_id", None):
+                title = "Proposal updated"
+                msg = f"The proposal for \"{project_name}\" has been updated. Please review and respond."
+                try:
+                    cur.execute(
+                        "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+                    )
+                    if cur.fetchone() is None:
+                        cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+                    cur.execute(
+                        "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+                    )
+                    if cur.fetchone() is None:
+                        cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+                except Exception:
+                    pass
+                cur.execute(
+                    """
+                    INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                    """,
+                    (vendor_id, None, title, msg, "proposal_sent", "proposal", proposal_id, g.company_id),
+                )
+                conn.commit()
+        except Exception:
+            pass
+
+        return jsonify({"success": True, "message": "Proposal updated and sent to vendor.", "proposal_id": proposal_id})
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @bp.route("/proposals/td-create", methods=["POST"])
 @login_required
 def td_create_proposal():
