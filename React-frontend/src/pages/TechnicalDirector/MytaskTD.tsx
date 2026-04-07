@@ -1201,6 +1201,7 @@ export default function MytaskTD() {
           setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTask.id));
           setDeletedIds((prev) => [...prev, deleteTask.id]);
           setDeleteTask(null);
+          toast.error("Deleted successfully");
         })
         .catch(() => {
           setDeleteTask(null);
