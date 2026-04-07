@@ -198,22 +198,30 @@ export default function VendorBimLeadProjects() {
     api
       .get<{ employees?: Employee[] }>("/api/employees")
       .then(({ data }) => {
-        const emps = data.employees ?? [];
-        setAllEmployees(emps);
-        setProjectManagers(
-          emps.filter((e) => e.user_role === "Project Manager"),
-        );
-        setBimLeads(emps.filter((e) => e.user_role === "BIM Lead"));
+        const allEmp = data.employees ?? [];
+        setAllEmployees(allEmp);
         setBimCoordinators(
-          emps.filter((e) => e.user_role === "BIM Coordinator"),
+          allEmp.filter((e) =>
+            ["BIM Coordinator", "FrontEnd Developer"].includes(e.user_role || ""),
+          ),
         );
       })
       .catch(() => {
         setAllEmployees([]);
-        setProjectManagers([]);
-        setBimLeads([]);
         setBimCoordinators([]);
       });
+    api
+      .get<{ success: boolean; employees?: Employee[] }>(
+        "/api/vendors/vendor-by-role?role=Vendor PM",
+      )
+      .then(({ data }) => setProjectManagers(data.employees ?? []))
+      .catch(() => setProjectManagers([]));
+    api
+      .get<{ success: boolean; employees?: Employee[] }>(
+        "/api/vendors/vendor-by-role?role=Vendor Bim Lead",
+      )
+      .then(({ data }) => setBimLeads(data.employees ?? []))
+      .catch(() => setBimLeads([]));
     api
       .get<{ resources?: Employee[] }>("/api/vendors/vendor-resource-profiles")
       .then(({ data }) => setVendorResourceProfiles(data.resources ?? []))
@@ -341,13 +349,19 @@ export default function VendorBimLeadProjects() {
     setCreateBudget(p.budget || "");
     setCreateModuleName(p.modules || "");
     setCreateClientName(idToNameClients(p.client_id, clientsList));
-    setCreateProjectManager(idToName(p.project_manager_id, allEmployees));
+    setCreateProjectManager(
+      idToName(p.project_manager_id, projectManagers) ||
+        idToName(p.project_manager_id, allEmployees),
+    );
     setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
     setCreateEndDate(p.end_date || p.due_date || "");
     setCreateTotalHours(p.totalhours || "");
     setCreatePerDay(p.per_day || p.perday || "");
-    setCreateBIMLead(idToName(p.lead_id, allEmployees));
-    setCreateBIMCoOrdinator(idToName(p.bim_coordinator_id, allEmployees));
+    setCreateBIMLead(idToName(p.lead_id, bimLeads) || idToName(p.lead_id, allEmployees));
+    setCreateBIMCoOrdinator(
+      idToName(p.bim_coordinator_id, bimCoordinators) ||
+        idToName(p.bim_coordinator_id, allEmployees),
+    );
     setCreateResources(p.resources || p.no_resource || "");
     setCreateRequiredResources(
       p.required_resources || p.no_resources_required || "",
@@ -371,7 +385,6 @@ export default function VendorBimLeadProjects() {
 
     if (
       !createName.trim() ||
-      !createClientName ||
       !createStartDate ||
       !createEndDate ||
       !createPriority ||
@@ -563,7 +576,7 @@ export default function VendorBimLeadProjects() {
         </div>
         {editDropdownOpen === "members" && (
           <div className="absolute z-[200] left-0 right-0 mt-2 bg-white border border-[#E2E8F0] rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar p-2">
-            {allEmployees.map((emp) => (
+            {vendorResourceProfiles.map((emp) => (
               <div
                 key={emp.id}
                 onClick={() => toggleMember(emp.id)}
@@ -619,18 +632,20 @@ export default function VendorBimLeadProjects() {
             onChange={(e) => setCreateName(e.target.value)}
           />
         </div>
-        <div className="space-y-2">
-          <label className="block text-[16px] font-medium text-[#353535]">
-            Client Name <span className="text-[#DD4342]">*</span>
-          </label>
-          <input
-            type="text"
-            className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-            placeholder="Enter Client Name"
-            value={createClientName}
-            onChange={(e) => setCreateClientName(e.target.value)}
-          />
-        </div>
+        {!showEditModal && (
+          <div className="space-y-2">
+            <label className="block text-[16px] font-medium text-[#353535]">
+              Client Name <span className="text-[#DD4342]">*</span>
+            </label>
+            <input
+              type="text"
+              className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+              placeholder="Enter Client Name"
+              value={createClientName}
+              onChange={(e) => setCreateClientName(e.target.value)}
+            />
+          </div>
+        )}
 
         <div className="md:col-span-2 space-y-3">
           <label className="block text-[16px] font-medium text-[#020202]">
