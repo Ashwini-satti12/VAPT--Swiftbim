@@ -188,18 +188,24 @@ export default function ProjectsPMV() {
         fetchProjects(statusFilter);
         api.get<{ employees?: Employee[] }>("/api/employees")
             .then(({ data }) => {
-                const emps = data.employees ?? [];
-                setAllEmployees(emps);
-                setProjectManagers(emps.filter(e => (e.user_role || e.role || e.designation) === "Project Manager"));
-                setBimLeads(emps.filter(e => (e.user_role || e.role || e.designation) === 'BIM Lead'));
-                setBimCoordinators(emps.filter(e => (e.user_role || e.role || e.designation) === 'BIM Coordinator'));
+                const allEmp = data.employees ?? [];
+                setAllEmployees(allEmp);
+                setBimCoordinators(
+                    allEmp.filter((e) =>
+                        ["BIM Coordinator", "FrontEnd Developer"].includes(e.user_role || ""),
+                    ),
+                );
             })
             .catch(() => {
                 setAllEmployees([]);
-                setProjectManagers([]);
-                setBimLeads([]);
                 setBimCoordinators([]);
             });
+        api.get<{ success: boolean; employees?: Employee[] }>("/api/vendors/vendor-by-role?role=Vendor PM")
+            .then(({ data }) => setProjectManagers(data.employees ?? []))
+            .catch(() => setProjectManagers([]));
+        api.get<{ success: boolean; employees?: Employee[] }>("/api/vendors/vendor-by-role?role=Vendor Bim Lead")
+            .then(({ data }) => setBimLeads(data.employees ?? []))
+            .catch(() => setBimLeads([]));
         api.get<{ resources?: Employee[] }>("/api/vendors/vendor-resource-profiles")
             .then(({ data }) => setVendorResourceProfiles(data.resources ?? []))
             .catch(() => setVendorResourceProfiles([]));
@@ -315,7 +321,6 @@ export default function ProjectsPMV() {
             !createName.trim() ||
             !createBudget.trim() ||
             !createModuleName.trim() ||
-            !createClientName.trim() ||
             !createProjectManager.trim() ||
             !createStartDate.trim() ||
             !createEndDate.trim() ||
@@ -394,13 +399,21 @@ export default function ProjectsPMV() {
         setCreateClientName(
             getClientNameById(p.client_id) || (p.client_id ? String(p.client_id) : "")
         );
-        setCreateProjectManager(idToName(p.project_manager_id, allEmployees));
+        setCreateProjectManager(
+            idToName(p.project_manager_id, projectManagers) ||
+            idToName(p.project_manager_id, allEmployees),
+        );
         setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
         setCreateEndDate(p.end_date || p.due_date || "");
         setCreateTotalHours(p.totalhours || "");
         setCreatePerDay(p.per_day || p.perday || "");
-        setCreateBIMLead(idToName(p.lead_id, bimLeads));
-        setCreateBIMCoOrdinator(idToName(p.bim_coordinator_id, allEmployees));
+        setCreateBIMLead(
+            idToName(p.lead_id, bimLeads) || idToName(p.lead_id, allEmployees),
+        );
+        setCreateBIMCoOrdinator(
+            idToName(p.bim_coordinator_id, bimCoordinators) ||
+            idToName(p.bim_coordinator_id, allEmployees),
+        );
         setSelectedMemberIds(p.members ? p.members.split(",").filter(Boolean).map(Number) : []);
         setCreateResources(p.resources || p.no_resource || "");
         setCreateRequiredResources(p.required_resources || p.no_resources_required || "");
@@ -552,7 +565,9 @@ export default function ProjectsPMV() {
                     <div className="flex flex-wrap gap-2 pr-4">
                         {selectedMemberIds.length > 0 ? (
                             selectedMemberIds.map(id => {
-                                const emp = allEmployees.find(e => e.id === id);
+                                const emp =
+                                    vendorResourceProfiles.find((e) => e.id === id) ||
+                                    allEmployees.find(e => e.id === id);
                                 return (
                                     <span key={id} className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#DD4342]/20 text-[#DD4342] text-xs font-bold rounded-lg shadow-sm">
                                         {emp?.full_name || `ID: ${id}`}
@@ -579,7 +594,7 @@ export default function ProjectsPMV() {
                 </button>
                 {editDropdownOpen === "members" && (
                     <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-56 overflow-y-auto custom-scrollbar">
-                        {allEmployees.map(emp => (
+                        {vendorResourceProfiles.map(emp => (
                             <button
                                 key={emp.id}
                                 type="button"
@@ -613,11 +628,13 @@ export default function ProjectsPMV() {
                     <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all  text-gray-700 placeholder-gray-400"
                         placeholder="Enter Project name" value={createName} onChange={(e) => setCreateName(e.target.value)} />
                 </div>
-                <div className="space-y-2">
-                    <label className="block text-[14px] font-medium text-[#353535]">Client Name <span className="text-[#DD4342]">*</span></label>
-                    <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 placeholder-gray-400"
-                        placeholder="Enter Client Name" value={createClientName} onChange={(e) => setCreateClientName(e.target.value)} />
-                </div>
+                {!showEditModal && (
+                    <div className="space-y-2">
+                        <label className="block text-[14px] font-medium text-[#353535]">Client Name <span className="text-[#DD4342]">*</span></label>
+                        <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 placeholder-gray-400"
+                            placeholder="Enter Client Name" value={createClientName} onChange={(e) => setCreateClientName(e.target.value)} />
+                    </div>
+                )}
 
                 <div className="md:col-span-2 space-y-3">
                     <label className="block text-[14px] font-medium text-[#020202]">
@@ -1008,6 +1025,9 @@ export default function ProjectsPMV() {
 
                             {/* Tower Data (Modules) Card Section */}
                             <div className="border border-slate-200 rounded-md p-6 lg:p-4">
+                                <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">
+                                    Modules
+                                </h4>
                                 <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 px-1">
                                         {loadingTaskStats ? (

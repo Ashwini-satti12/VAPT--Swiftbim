@@ -194,6 +194,8 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
     setTimeout(() => setActionToast(null), 3500);
   };
 
+  const hasAcceptedBid = bids.some((b) => b.status === "shortlisted");
+
   // ── View Vendor → redirect to /td/partner/:id ──
   const handleViewVendor = async (bid: VendorBid) => {
     setViewLoading((prev) => ({ ...prev, [bid.id]: true }));
@@ -215,6 +217,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
 
   // ── Accept ──
   const handleAccept = async (bid: VendorBid) => {
+    if (hasAcceptedBid && bid.status !== "shortlisted") return;
     setActionLoading((prev) => ({ ...prev, [bid.id]: true }));
     try {
       const { data } = await api.post<{ success: boolean; bid: VendorBid }>(
@@ -253,6 +256,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
 
   // ── Reject → move to bottom, increment other ranks ──
   const handleReject = async (bid: VendorBid) => {
+    if (hasAcceptedBid && bid.status !== "shortlisted") return;
     setActionLoading((prev) => ({ ...prev, [bid.id]: true }));
     try {
       const { data } = await api.post<{ success: boolean }>(
@@ -643,6 +647,11 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                       const isRejected = bid.status === "lost";
                       const busy = !!actionLoading[bid.id];
                       const viewBusy = !!viewLoading[bid.id];
+                      const disableActionsForBid =
+                        busy ||
+                        (hasAcceptedBid &&
+                          bid.status !== "shortlisted" &&
+                          bid.status !== "lost");
                       const slNo = (index + 1).toString().padStart(2, "0");
 
                       return (
@@ -729,10 +738,10 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                               <div className="flex items-center justify-center gap-2">
                                 {/* Accept — icon only circle */}
                                 <button
-                                  disabled={busy}
+                                  disabled={disableActionsForBid}
                                   onClick={() => handleAccept(bid)}
                                   title="Accept bid"
-                                  className="flex items-center justify-center w-8 h-8 rounded-full bg-[#E6F4EA] text-[#1E7E34] transition-colors disabled:opacity-60 cursor-pointer"
+                                  className="flex items-center justify-center w-8 h-8 rounded-full bg-[#E6F4EA] text-[#1E7E34] transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                                 >
                                   {busy ? (
                                     <span className="animate-spin w-3 h-3 border-b-2 border-current rounded-full inline-block" />
@@ -754,10 +763,10 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                                 </button>
                                 {/* Reject — icon only circle */}
                                 <button
-                                  disabled={busy}
+                                  disabled={disableActionsForBid}
                                   onClick={() => handleReject(bid)}
                                   title="Reject bid"
-                                  className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FCE8E8] text-[#D93025] transition-colors disabled:opacity-60 cursor-pointer"
+                                  className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FCE8E8] text-[#D93025] transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                                 >
                                   <svg
                                     className="w-4 h-4"

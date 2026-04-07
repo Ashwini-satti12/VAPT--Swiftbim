@@ -127,23 +127,67 @@ export default function DashboardPMV() {
         return () => clearInterval(id);
     }, []);
 
-    // GET stats → KPI cards
-    useEffect(() => {
-        // Vendor project/task stats (vendor_projects + vendor_task for this vendor company)
-        api.get<any>('/api/vendors/dashboard/project-stats')
-            .then(({ data }) => setStats(prev => ({
-                ...prev,
-                total_projects: Number(data?.totalProjects) || 0,
-                completed_projects: Number(data?.completedProjects) || 0,
-                in_progress_tasks: Number(data?.inProgressTasks) || 0,
-                completed_tasks: Number(data?.completedTasks) || 0,
-            })))
-            .catch(() => { });
+    const normalizeVendorProjectStatus = (p: any): { isCompleted: boolean } => {
+        const rawStatus = String(p?.status ?? '').trim().toLowerCase().replace(/-/g, '_').replace(/\s+/g, '_');
+        const progressNum = Number(String(p?.progress ?? '').replace(/[^\d.]/g, ''));
+        const progress = Number.isFinite(progressNum) ? progressNum : NaN;
+        const isCompleted =
+            rawStatus === 'completed' ||
+            rawStatus === 'done' ||
+            rawStatus === 'complete' ||
+            (Number.isFinite(progress) && progress >= 100);
+        return { isCompleted };
+    };
 
-        api.get<{ projects?: any[] }>('/api/vendors/vendor-projects')
-            .then(({ data }) => setProjects(Array.isArray(data.projects) ? data.projects : []))
-            .catch(() => setProjects([]))
-            .finally(() => setLoading(false));
+    const normalizeVendorTaskStatus = (t: any): { isInProgress: boolean; isCompleted: boolean } => {
+        const s = String(t?.status ?? '').trim().toLowerCase().replace(/-/g, '_').replace(/\s+/g, '_');
+        const isCompleted = s === 'completed' || s === 'done';
+        const isInProgress = s === 'inprogress' || s === 'in_progress' || s === 'active' || s === 'started' || s === 'progress';
+        return { isInProgress, isCompleted };
+    };
+
+    // GET stats → KPI cards (with safe fallback to compute from lists)
+    useEffect(() => {
+        let cancelled = false;
+
+        const fetchAll = async () => {
+            try {
+                const [statsResp, projectsResp, tasksResp] = await Promise.all([
+                    api.get<any>('/api/vendors/dashboard/project-stats').catch(() => ({ data: null } as any)),
+                    api.get<{ projects?: any[] }>('/api/vendors/vendor-projects').catch(() => ({ data: { projects: [] } } as any)),
+                    api.get<{ tasks?: any[] }>('/api/vendors/vendor-tasks').catch(() => ({ data: { tasks: [] } } as any)),
+                ]);
+
+                const projectsList = Array.isArray(projectsResp?.data?.projects) ? projectsResp.data.projects : [];
+                const tasksList = Array.isArray(tasksResp?.data?.tasks) ? tasksResp.data.tasks : [];
+
+                const computedTotalProjects = projectsList.length;
+                const computedCompletedProjects = projectsList.filter((p) => normalizeVendorProjectStatus(p).isCompleted).length;
+                const computedInProgressTasks = tasksList.filter((t) => normalizeVendorTaskStatus(t).isInProgress).length;
+                const computedCompletedTasks = tasksList.filter((t) => normalizeVendorTaskStatus(t).isCompleted).length;
+
+                const apiStats = statsResp?.data;
+                const apiTotal = Number(apiStats?.totalProjects);
+                const apiCompletedProjects = Number(apiStats?.completedProjects);
+                const apiInProgressTasks = Number(apiStats?.inProgressTasks);
+                const apiCompletedTasks = Number(apiStats?.completedTasks);
+
+                if (!cancelled) {
+                    setProjects(projectsList);
+                    setStats({
+                        total_projects: Math.max(Number.isFinite(apiTotal) ? apiTotal : 0, computedTotalProjects),
+                        completed_projects: Math.max(Number.isFinite(apiCompletedProjects) ? apiCompletedProjects : 0, computedCompletedProjects),
+                        in_progress_tasks: Math.max(Number.isFinite(apiInProgressTasks) ? apiInProgressTasks : 0, computedInProgressTasks),
+                        completed_tasks: Math.max(Number.isFinite(apiCompletedTasks) ? apiCompletedTasks : 0, computedCompletedTasks),
+                    });
+                }
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        };
+
+        fetchAll();
+        return () => { cancelled = true; };
     }, []);
 
     // GET /api/vendors/dashboard/priority-tasks → Today's Priority tasks

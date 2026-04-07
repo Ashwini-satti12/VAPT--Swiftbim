@@ -1154,6 +1154,9 @@ export default function ProjectsTD() {
                 {/* Scrollable Content Below KPI Cards */}
                 <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 px-4 md:px-2 pb-10 pt-4">
                   <div className="border border-slate-200 rounded-md md:rounded-md p-6 md:p-8 lg:p-2">
+                    <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">
+                      Modules
+                    </h4>
                     <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
                       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-4">
                         {loadingTaskStats ? (
