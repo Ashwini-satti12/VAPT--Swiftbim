@@ -159,7 +159,7 @@ def _hydrate_vendor_projects_phase1(vendor_cur, project_dicts: list[dict]):
     try:
         enq_loc_parts = ["address", "city", "state", "country"]
         duration_cols = ["completion_timeline", "project_completion_time", "completion_time", "project_duration", "duration"]
-        start_cols = ["project_start_date", "start_date"]
+        start_cols = ["projectstart_date", "project_start_date", "start_date"]
         proposal_res_cols = ["resources", "no_resource", "total_resources"]
 
         for p in project_dicts:
@@ -350,7 +350,13 @@ def _hydrate_vendor_projects_phase1(vendor_cur, project_dicts: list[dict]):
             if not _is_concrete_calendar_date(p.get("due_date") or p.get("end_date")):
                 start_dt = _parse_iso_date(p.get("start_date"))
                 if not start_dt:
-                    start_dt = _parse_iso_date(enq.get("project_start_date") or prop.get("project_start_date") or con.get("start_date"))
+                    start_dt = _parse_iso_date(
+                        _first_nonempty_val(enq, start_cols) or 
+                        _first_nonempty_val(prop, start_cols) or 
+                        con.get("start_date")
+                    )
+                    if start_dt:
+                        p["start_date"] = start_dt.isoformat()
 
                 duration_text = _first_nonempty_val(enq, duration_cols) or _first_nonempty_val(prop, duration_cols) or _first_nonempty_val(con, duration_cols) or (p.get("due_date") or "")
                 months = _duration_to_months(str(duration_text))
@@ -1581,50 +1587,63 @@ def respond_to_proposal(proposal_id):
             main_cur.execute("SELECT id FROM vendor_projects WHERE proposal_id = %s", (proposal_id,))
             existing = main_cur.fetchone()
             if not existing:
-                technologies = proposal_data.get("technologies_used")
-                if technologies:
-                    try:
-                        # If it's a JSON string, parse it first
-                        if isinstance(technologies, str):
-                            import json
-                            parsed = json.loads(technologies)
-                            if isinstance(parsed, list):
-                                modules_str = ", ".join(map(str, parsed))
-                            else:
-                                modules_str = str(technologies)
-                        elif isinstance(technologies, list):
-                            modules_str = ", ".join(map(str, technologies))
-                        else:
-                            modules_str = str(technologies)
-                    except Exception:
-                        modules_str = str(technologies)
-                else:
-                    modules_str = ""
-
-                # Also copy document_attachment from main projects table if exists
+                # Fetch source project details to sync more fields
+                # First get project_id from vendor_bidding
                 main_cur.execute(
-                    "SELECT document_attachment FROM snh6_swiftproject.projects WHERE project_name = %s LIMIT 1",
-                    (proposal_data.get("project_name"),)
+                    "SELECT project_id FROM snh6_swiftproject.vendor_bidding WHERE id = %s",
+                    (proposal_data.get("opportunity_id"),)
                 )
-                source_proj = main_cur.fetchone()
-                doc_attachment = source_proj.get("document_attachment") if source_proj else None
+                vb_row = main_cur.fetchone()
+                project_id_main = vb_row.get("project_id") if vb_row else None
+
+                if project_id_main:
+                    main_cur.execute(
+                        """SELECT client_id, bidding_end_date, budget_ceiling, location, category, 
+                           department, due_date, start_date, priority, Company_id, document_attachment 
+                           FROM snh6_swiftproject.projects WHERE id = %s""",
+                        (project_id_main,)
+                    )
+                    source_proj = main_cur.fetchone()
+                else:
+                    # Fallback to matching by name if project_id logic fails
+                    main_cur.execute(
+                        """SELECT client_id, bidding_end_date, budget_ceiling, location, category, 
+                           department, due_date, start_date, priority, Company_id, document_attachment 
+                           FROM snh6_swiftproject.projects WHERE project_name = %s LIMIT 1""",
+                        (proposal_data.get("project_name"),)
+                    )
+                    source_proj = main_cur.fetchone()
+
+                source_proj = source_proj or {}
 
                 main_cur.execute("""
                     INSERT INTO vendor_projects (
                         proposal_id, opportunity_id, vendor_id, project_name, 
-                        description, modules, deliverables, budget, document_attachment
+                        description, modules, deliverables, budget, document_attachment,
+                        client_id, bidding_end_date, budget_ceiling, location, category,
+                        department, due_date, start_date, priority, Company_id
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     proposal_id,
                     proposal_data.get("opportunity_id"),
                     proposal_data.get("vendor_id"),
                     proposal_data.get("project_name"),
                     proposal_data.get("scope_of_work"),
-                    modules_str,
+                    "", # Removed automatic modules creation at the time of proposal acceptance.
                     proposal_data.get("deliverables"),
                     "0",
-                    doc_attachment
+                    source_proj.get("document_attachment"),
+                    source_proj.get("client_id"),
+                    source_proj.get("bidding_end_date"),
+                    source_proj.get("budget_ceiling"),
+                    source_proj.get("location"),
+                    source_proj.get("category"),
+                    source_proj.get("department"),
+                    source_proj.get("due_date"),
+                    source_proj.get("start_date"),
+                    source_proj.get("priority"),
+                    source_proj.get("Company_id")
                 ))
                 project_id = main_cur.lastrowid
                 main_conn.commit()
@@ -4575,7 +4594,13 @@ def list_vendor_projects():
                 p["end_date"] = _add_months(start_dt, months).isoformat()
     except Exception:
         pass
-    return jsonify({"projects": projects})
+
+    # Final pass to ensure all fields are JSON serialisable
+    final_projects = []
+    for p in projects:
+        final_projects.append({k: _serialize(v) for k, v in p.items()})
+        
+    return jsonify({"projects": final_projects})
 
 
 @bp.route("/vendor-projects/<int:project_id>/task-stats", methods=["GET"])
@@ -4959,6 +4984,45 @@ def update_vendor_project(project_id):
     sql = f"UPDATE snh6_swiftproject.vendor_projects SET {', '.join(fields)} WHERE id = %s"
     try:
         cur.execute(sql, tuple(values))
+
+        # -------------------------------------------------------------------
+        # DUAL-TABLE SYNC: Update main projects table if it exists
+        # -------------------------------------------------------------------
+        # Fetch current name if not in data (to search projects)
+        p_name = data.get("project_name")
+        if not p_name:
+            cur.execute("SELECT project_name FROM snh6_swiftproject.vendor_projects WHERE id = %s", (project_id,))
+            nr = cur.fetchone()
+            p_name = nr["project_name"] if nr else ""
+        
+        if p_name:
+            p_allowed = {
+                "project_name": "project_name",
+                "client_id": "client_id",
+                "budget": "budget",
+                "budget_ceiling": "budget_ceiling",
+                "bidding_end_date": "bidding_end_date",
+                "location": "location",
+                "description": "description",
+                "start_date": "start_date",
+                "due_date": "due_date",
+                "no_resource": "no_resource",
+                "no_resources_required": "no_resources_requried"
+            }
+            p_sets = []
+            p_params = []
+            for k, col in p_allowed.items():
+                if k in data and data[k] is not None:
+                    p_sets.append(f"`{col}` = %s")
+                    p_params.append(data[k])
+            
+            if p_sets:
+                p_params.append(p_name)
+                cur.execute(
+                    "UPDATE snh6_swiftproject.projects SET " + ", ".join(p_sets) + " WHERE project_name = %s",
+                    tuple(p_params)
+                )
+
         conn.commit()
         return jsonify({"success": True})
     except Exception as e:

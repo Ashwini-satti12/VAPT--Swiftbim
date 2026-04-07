@@ -9,6 +9,24 @@ import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
 import upArrow from '../../assets/TechnicalDirector/upArrow.svg';
 import ProfileIcon from '../../assets/ProductNavbarIcons/Profile.svg';
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+
+const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
+const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
+const showEntriesOptions: {
+    value: string;
+    label: string;
+    start: number;
+    end: number | null;
+}[] = [
+        { value: "1-50", label: "1-50", start: 0, end: 50 },
+        { value: "51-100", label: "51-100", start: 50, end: 100 },
+        { value: "101-150", label: "101-150", start: 100, end: 150 },
+        { value: "151-200", label: "151-200", start: 150, end: 200 },
+        { value: "201-250", label: "201-250", start: 200, end: 250 },
+        { value: "251-300", label: "251-300", start: 250, end: 300 },
+        { value: "all", label: "All", start: 0, end: null },
+    ];
 
 interface Employee {
     id: number;
@@ -65,7 +83,7 @@ function TeamCard({ team, employees, getEmpName, onEdit, onDelete, onViewDetails
             {/* Team Name */}
             <div className="flex flex-col mb-3 pt-1">
                 <span className="text-[14px] font-medium text-[#8B8B8B] mb-1.5">Team Name</span>
-                <span className="text-[18px] font-semibold text-[#353535] pr-8 truncate">
+                <span className="text-[16px] sm:text-[18px] font-semibold text-[#353535] pr-8 truncate">
                     {team.team_name || team.teamname || "Untitled Team"}
                 </span>
             </div>
@@ -117,85 +135,82 @@ function TeamCard({ team, employees, getEmpName, onEdit, onDelete, onViewDetails
             {/* Team Leader */}
             <div className="flex flex-col mb-4">
                 <span className="text-[14px] font-medium text-[#8B8B8B] mb-1.5">Team Leader</span>
-                <span className="text-[18px] font-semibold text-[#353535] truncate">
+                <span className="text-[16px] sm:text-[18px] font-semibold text-[#353535] truncate">
                     {team.leader_name || getEmpName(team.leader)}
                 </span>
             </div>
 
             <div className="h-[1px] w-full bg-[#E5E7EB] mb-4"></div>
 
-            {/* Members */}
+            {/* Members & Details */}
             <div className="mt-auto flex items-center justify-between">
-
-                <div className="flex items-center justify-between">
-                    <div className="flex -space-x-3">
-                        {(() => {
-                            const projectEmployees = memberIds.map(id => getEmployee(id)).filter(Boolean) as Employee[];
-                            const visibleMembers = projectEmployees.slice(0, 3);
-                            const remainingCount = Math.max(0, projectEmployees.length - 3);
-                            return (
-                                <>
-                                    {visibleMembers.map((emp) => {
-                                        const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                                        return (
-                                            <div
-                                                key={emp.id}
-                                                role="button"
-                                                tabIndex={0}
-                                                onClick={() => onShowMemberProfile(emp)}
-                                                onKeyDown={(e) => e.key === 'Enter' && onShowMemberProfile(emp)}
-                                                className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all flex items-center justify-center"
-                                                title={emp.full_name || getEmpName(emp.id)}
-                                            >
-                                                {profileUrl ? (
-                                                    <img src={profileUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
-                                                        {(emp.full_name || 'U').charAt(0).toUpperCase()}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                    {remainingCount > 0 && (
+                <div className="flex -space-x-3">
+                    {(() => {
+                        const projectEmployees = memberIds.map(id => getEmployee(id)).filter(Boolean) as Employee[];
+                        const visibleMembers = projectEmployees.slice(0, 3);
+                        const remainingCount = Math.max(0, projectEmployees.length - 3);
+                        return (
+                            <>
+                                {visibleMembers.map((emp) => {
+                                    const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                    return (
                                         <div
+                                            key={emp.id}
                                             role="button"
                                             tabIndex={0}
-                                            onClick={() => onShowAllMembers(projectEmployees)}
-                                            onKeyDown={(e) => e.key === 'Enter' && onShowAllMembers(projectEmployees)}
-                                            className="w-9 h-9 rounded-full border-2 border-dashed border-white bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
-                                            title="View all members"
+                                            onClick={() => onShowMemberProfile(emp)}
+                                            onKeyDown={(e) => e.key === 'Enter' && onShowMemberProfile(emp)}
+                                            className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all flex items-center justify-center"
+                                            title={emp.full_name || getEmpName(emp.id)}
                                         >
-                                            +{remainingCount}
+                                            {profileUrl ? (
+                                                <img src={profileUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
+                                                    {(emp.full_name || 'U').charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                    {visibleMembers.length === 0 && memberIds.length > 0 && (
-                                        <div
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={() => onShowAllMembers(projectEmployees)}
-                                            onKeyDown={(e) => e.key === 'Enter' && onShowAllMembers(projectEmployees)}
-                                            className="w-9 h-9 rounded-full border-2 border-dashed border-white bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
-                                            title="View all members"
-                                        >
-                                            +{memberIds.length}
-                                        </div>
-                                    )}
-                                    {memberIds.length === 0 && (
-                                        <span className="text-[14px] font-medium text-[#8B8B8B]">No members</span>
-                                    )}
-                                </>
-                            );
-                        })()}
-                    </div>
-                    <button
-                        onClick={() => onViewDetails(team)}
-                        className="flex items-center gap-2 text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] transition-colors pr-2 cursor-pointer group/details"
-                    >
-                        Details
-                        <img src={upArrow} alt="Up" className="w-5 h-5 object-contain transition-all duration-200 group-hover/details:brightness-0 group-hover/details:invert-[20%]" />
-                    </button>
+                                    );
+                                })}
+                                {remainingCount > 0 && (
+                                    <div
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => onShowAllMembers(projectEmployees)}
+                                        onKeyDown={(e) => e.key === 'Enter' && onShowAllMembers(projectEmployees)}
+                                        className="w-9 h-9 rounded-full border-2 border-dashed border-white bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
+                                        title="View all members"
+                                    >
+                                        +{remainingCount}
+                                    </div>
+                                )}
+                                {visibleMembers.length === 0 && memberIds.length > 0 && (
+                                    <div
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => onShowAllMembers(projectEmployees)}
+                                        onKeyDown={(e) => e.key === 'Enter' && onShowAllMembers(projectEmployees)}
+                                        className="w-9 h-9 rounded-full border-2 border-dashed border-white bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
+                                        title="View all members"
+                                    >
+                                        +{memberIds.length}
+                                    </div>
+                                )}
+                                {memberIds.length === 0 && (
+                                    <span className="text-[14px] font-medium text-[#8B8B8B]">No members</span>
+                                )}
+                            </>
+                        );
+                    })()}
                 </div>
+                <button
+                    onClick={() => onViewDetails(team)}
+                    className="flex items-center gap-2 text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] transition-colors pr-2 cursor-pointer group/details"
+                >
+                    Details
+                    <img src={upArrow} alt="Up" className="w-5 h-5 object-contain transition-all duration-200 group-hover/details:brightness-0 group-hover/details:invert-[20%]" />
+                </button>
             </div>
         </div>
     );
@@ -228,6 +243,17 @@ export default function CreateteamBL() {
     const leaderDropdownRef = useRef<HTMLDivElement>(null);
     const [searchParams] = useSearchParams();
 
+    const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+    const [selectedShowEntries, setSelectedShowEntries] = useState("");
+    const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+    const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (showEntriesOpen && showEntriesDropdownContentRef.current) {
+            showEntriesDropdownContentRef.current.scrollTop = 0;
+        }
+    }, [showEntriesOpen]);
+
     const filteredTeams = useMemo(() => {
         const q = searchParams.get('q')?.toLowerCase() || '';
         if (!q) return teams;
@@ -244,6 +270,9 @@ export default function CreateteamBL() {
             }
             if (leaderDropdownRef.current && !leaderDropdownRef.current.contains(event.target as Node)) {
                 setShowLeaderDropdown(false);
+            }
+            if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
+                setShowEntriesOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -400,6 +429,11 @@ export default function CreateteamBL() {
         return e ? (e.full_name ?? 'Unknown') : 'Unknown';
     };
 
+    const effectiveShowEntryValue = selectedShowEntries || (showEntriesOptions[0]?.value ?? "");
+    const selectedRange = showEntriesOptions.find((opt) => opt.value === effectiveShowEntryValue) ?? showEntriesOptions[0];
+    const rangeEnd = selectedRange.end === null ? filteredTeams.length : Math.min(selectedRange.end, filteredTeams.length);
+    const displayTeams = filteredTeams.slice(selectedRange.start, rangeEnd);
+
     if (loading) {
         return (
             <div className="flex justify-center items-center h-full">
@@ -409,16 +443,88 @@ export default function CreateteamBL() {
     }
 
     return (
-        <div className="h-full flex flex-col p-2">
-            <div className="flex items-center justify-between mb-4">
+        <div className="h-full flex flex-col p-2 overflow-hidden bg-white">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 px-2 sm:px-0">
                 <h2 className="text-[24px] font-semibold text-[#000000] font-Gantari">Team Workspace</h2>
-                <button
-                    onClick={() => { setShowLeaderDropdown(false); setShowMemberDropdown(false); setShowAddModal(true); }}
-                    className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-[#F2F2F2] rounded-md transition-all font-medium text-[14px] shadow-sm cursor-pointer"
-                >
-                    <PlusIcon className="w-5 h-5 stroke-[2.5]" />
-                    New Team
-                </button>
+                <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                    {/* Show entries dropdown */}
+                    <div className="relative w-1/2 sm:w-[150px]" ref={showEntriesDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowEntriesOpen((o) => !o);
+                            }}
+                            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-Gantari transition-all cursor-pointer border-0 min-w-0"
+                        >
+                            <span className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === "" ? "text-[#8B8B8B]" : "text-[#353535]"}`}>
+                                {selectedShowEntries === "" ? SHOW_ENTRIES_PLACEHOLDER : (
+                                    <>
+                                        <span className="text-[14px]">{SHOW_ENTRIES_SELECTED_PREFIX}</span>{" "}
+                                        <span className="font-semibold">{selectedRange.label}</span>
+                                    </>
+                                )}
+                            </span>
+                            <img
+                                src={ArrowDown}
+                                alt=""
+                                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""} ${selectedShowEntries === "" ? "opacity-60 grayscale" : "opacity-90"}`}
+                                aria-hidden
+                            />
+                        </button>
+                        {showEntriesOpen && (
+                            <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                                <div
+                                    ref={showEntriesDropdownContentRef}
+                                    className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                                >
+                                    <button
+                                        type="button"
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setSelectedShowEntries("");
+                                            setShowEntriesOpen(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-[14px] transition-colors font-Gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                    >
+                                        {SHOW_ENTRIES_PLACEHOLDER}
+                                    </button>
+                                    {showEntriesOptions.map((opt) => {
+                                        const isChosen = selectedShowEntries === opt.value;
+                                        return (
+                                            <button
+                                                key={`${opt.value}-${opt.start}-${String(opt.end)}`}
+                                                type="button"
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setSelectedShowEntries(opt.value);
+                                                    setShowEntriesOpen(false);
+                                                }}
+                                                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${isChosen ? "text-[#353535] bg-[#F2F2F2]" : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
+                                            >
+                                                <span className="truncate min-w-0">{opt.label}</span>
+                                                {isChosen && (
+                                                    <svg className="w-4 h-4 shrink-0 text-[#353535]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <button
+                        onClick={() => { setShowLeaderDropdown(false); setShowMemberDropdown(false); setShowAddModal(true); }}
+                        className="flex items-center justify-center gap-2 px-6 py-2 bg-[#DD4342] text-[#F2F2F2] rounded-md transition-all font-medium text-[14px] shadow-sm cursor-pointer whitespace-nowrap w-1/2 sm:w-auto"
+                    >
+                        <PlusIcon className="w-5 h-5 stroke-[2.5]" />
+                        New Team
+                    </button>
+                </div>
             </div>
 
             {deleteSuccess && (
@@ -430,9 +536,9 @@ export default function CreateteamBL() {
                 </div>
             )}
 
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="flex-1 min-h-0 overflow-y-auto px-2 sm:px-0 custom-scrollbar">
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filteredTeams.length === 0 ? (
+                    {displayTeams.length === 0 ? (
                         <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-[#AEACAC52] flex flex-col items-center justify-center gap-4">
                             <div className="w-16 h-16 bg-[#F8FAFC] rounded-full flex items-center justify-center">
                                 <PlusIcon className="w-8 h-8 text-[#94A3B8]" />

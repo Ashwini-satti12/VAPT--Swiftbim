@@ -1205,26 +1205,26 @@ export default function ProjectsBL() {
                           selectedProjectForView.document_attachment.split(",").map((file) => file.trim()).filter(Boolean).map((fileName, idx) => {
                             const isOutsource = selectedProjectForView.source === "Outsource";
                             const url = isOutsource
-                                ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
-                                : `${api.defaults.baseURL}uploads/${fileName}`;
+                              ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
+                              : `${api.defaults.baseURL}uploads/${fileName}`;
 
                             return (
-                                <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-2 rounded-xl border border-slate-200 w-full md:max-w-xs mt-1">
-                                  <div className="p-1.5 bg-white rounded-lg shadow-sm">
-                                    <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                                  </div>
-                                  <span className="text-[13px] font-bold text-[#353535] line-clamp-1 flex-1">
-                                    {fileName.split('_').pop() || "Document"}
-                                  </span>
-                                  <div className="flex gap-1">
-                                    <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-white rounded" title="View">
-                                      <img src={viewIcon} alt="View" className="w-[16px] h-[16px] opacity-70 hover:opacity-100" />
-                                    </a>
-                                    <a href={url} download className="p-1 hover:bg-white rounded" title="Download">
-                                      <FiUploadCloud className="w-[16px] h-[16px] rotate-180 text-slate-500 hover:text-[#DD4342]" />
-                                    </a>
-                                  </div>
+                              <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-2 rounded-xl border border-slate-200 w-full md:max-w-xs mt-1">
+                                <div className="p-1.5 bg-white rounded-lg shadow-sm">
+                                  <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
                                 </div>
+                                <span className="text-[13px] font-bold text-[#353535] line-clamp-1 flex-1">
+                                  {fileName.split('_').pop() || "Document"}
+                                </span>
+                                <div className="flex gap-1">
+                                  <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-white rounded" title="View">
+                                    <img src={viewIcon} alt="View" className="w-[16px] h-[16px] opacity-70 hover:opacity-100" />
+                                  </a>
+                                  <a href={url} download className="p-1 hover:bg-white rounded" title="Download">
+                                    <FiUploadCloud className="w-[16px] h-[16px] rotate-180 text-slate-500 hover:text-[#DD4342]" />
+                                  </a>
+                                </div>
+                              </div>
                             );
                           })
                         ) : (
@@ -2258,7 +2258,7 @@ export default function ProjectsBL() {
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Attach File <span className="text-[#DD4342]">*</span>
                   </label>
-                  
+
                   {/* File Gallery */}
                   {createFiles.length > 0 && (
                     <div className="flex flex-wrap gap-3 mb-4">
@@ -2267,19 +2267,19 @@ export default function ProjectsBL() {
                           <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
                           <div className="flex-1 min-w-0">
                             <p className="text-[13px] font-bold text-[#353535] truncate">
-                                {file.name}
+                              {file.name}
                             </p>
                             <p className="text-[11px] text-slate-500">
-                                {(file.size / 1024).toFixed(1)} KB
+                              {(file.size / 1024).toFixed(1)} KB
                             </p>
                           </div>
                           <div className="flex gap-1.5">
-                            <button 
-                                type="button"
-                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
-                                className="p-1 hover:bg-slate-50 rounded transition-colors"
+                            <button
+                              type="button"
+                              onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                              className="p-1 hover:bg-slate-50 rounded transition-colors"
                             >
-                                <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
+                              <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
                             </button>
                             <button
                               type="button"
@@ -2290,9 +2290,9 @@ export default function ProjectsBL() {
                               }
                               className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
                             >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
                             </button>
                           </div>
                         </div>
@@ -2948,7 +2948,7 @@ export default function ProjectsBL() {
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Attach File <span className="text-[#DD4342]">*</span>
                   </label>
-                  
+
                   {/* File Gallery */}
                   {(existingFiles.length > 0 || createFiles.length > 0) && (
                     <div className="flex flex-wrap gap-3 mb-4">
@@ -2969,7 +2969,7 @@ export default function ProjectsBL() {
                               <p className="text-[11px] text-slate-500">Existing File</p>
                             </div>
                             <div className="flex gap-1.5">
-                              <button 
+                              <button
                                 type="button"
                                 onClick={() => window.open(url, '_blank')}
                                 className="p-1 hover:bg-slate-50 rounded transition-colors"
@@ -3000,17 +3000,17 @@ export default function ProjectsBL() {
                           <FiPaperclip className="w-4 h-4 text-blue-500" />
                           <div className="flex-1 min-w-0">
                             <p className="text-[13px] font-bold text-[#353535] truncate">
-                                {file.name}
+                              {file.name}
                             </p>
                             <p className="text-[11px] text-blue-400">New Upload</p>
                           </div>
                           <div className="flex gap-1.5">
-                            <button 
-                                type="button"
-                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
-                                className="p-1 hover:bg-slate-50 rounded transition-colors"
+                            <button
+                              type="button"
+                              onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                              className="p-1 hover:bg-slate-50 rounded transition-colors"
                             >
-                                <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
+                              <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
                             </button>
                             <button
                               type="button"
@@ -3021,9 +3021,9 @@ export default function ProjectsBL() {
                               }
                               className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
                             >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
                             </button>
                           </div>
                         </div>
@@ -3444,7 +3444,7 @@ export default function ProjectsBL() {
                   if (deleteProject === null) return;
                   const isOutsource = deleteProject.source === "Outsource";
                   const baseEndpoint = isOutsource ? `/api/vendors/vendor-projects/${deleteProject.id}` : `/api/projects/${deleteProject.id}`;
-                  
+
                   api.delete(baseEndpoint)
                     .then(() => {
                       setList(prev => prev.filter(p => p.id !== deleteProject.id));

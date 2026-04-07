@@ -276,16 +276,31 @@ export default function TrackerBL() {
     }
 
     return (
-        <div className="px-0 pt-2 pb-6 space-y-8 flex flex-col h-full bg-white">
+        <div className="flex flex-col h-full bg-white p-4 sm:p-6 overflow-hidden">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
-                <div className="flex items-center justify-between w-full md:w-auto">
-                    <h2 className="text-2xl font-bold text-gray-900">Employee Tracking</h2>
-                </div>
+        <div className="flex flex-col gap-4 mb-6 font-gantari px-1 sm:px-0 -mt-1 sm:mt-0">
+            {/* Row 1: Title and Download button for mobile/tablet */}
+            <div className="flex flex-row items-center justify-between w-full">
+                <h2 className="text-[20px] sm:text-[24px] font-bold text-gray-900">Employee Tracking</h2>
+                <button
+                    onClick={handleDownload}
+                    disabled={filteredList.length === 0}
+                    className="sm:hidden flex items-center justify-center gap-2 px-4 py-1.5 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+                >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="text-[13px]">Download</span>
+                </button>
+            </div>
 
-                <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 w-full sm:w-auto">
+                {/* Spacer for desktop justify-between */}
+                <div className="hidden sm:block h-px w-px" />
+                
+                <div className="grid grid-cols-2 gap-3 w-full sm:flex sm:items-center sm:w-auto sm:justify-end">
                     {/* Time Range Filter dropdown with AM/PM ranges */}
-                    <div className="relative min-w-[170px]" ref={timeDropdownRef}>
+                    <div className="relative w-full sm:min-w-[170px] sm:w-auto" ref={timeDropdownRef}>
                         <button
                             type="button"
                             onClick={(e) => {
@@ -315,11 +330,11 @@ export default function TrackerBL() {
                                 strokeLinejoin="round"
                                 style={{ transform: timeDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
                             >
-                                <path d="M6 9l6 6 6-6" />
+                            <path d="M6 9l6 6 6-6" />
                             </svg>
                         </button>
                         {timeDropdownOpen && (
-                            <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[170px] py-1">
+                            <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg w-full sm:min-w-[170px] py-1">
                                 {timeRangeOptions.map((opt) => (
                                     <button
                                         key={opt}
@@ -341,7 +356,7 @@ export default function TrackerBL() {
                     </div>
 
                     {/* Status Custom Dropdown */}
-                    <div className="relative min-w-[120px]" ref={statusDropdownRef}>
+                    <div className="relative w-full sm:min-w-[120px] sm:w-auto" ref={statusDropdownRef}>
                         <button type="button" onClick={() => setStatusOpen(o => !o)}
                             className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer">
                             <span className={`text-sm font-medium ${selectedStatus ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
@@ -353,7 +368,7 @@ export default function TrackerBL() {
                             </svg>
                         </button>
                         {statusOpen && (
-                            <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1">
+                            <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg w-full sm:min-w-[130px] py-1">
                                 {statusOptions.map(opt => (
                                     <button key={opt} type="button" onClick={() => { setSelectedStatus(opt); setStatusOpen(false); }}
                                         className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${selectedStatus === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]'}`}>
@@ -366,11 +381,11 @@ export default function TrackerBL() {
 
                     {/* Show entries removed */}
 
-                    {/* Download Button */}
+                    {/* Desktop Download Button */}
                     <button
                         onClick={handleDownload}
                         disabled={filteredList.length === 0}
-                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        className="hidden sm:flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -379,29 +394,22 @@ export default function TrackerBL() {
                     </button>
                 </div>
             </div>
+        </div>
 
             {/* Table Section - scrollable when many rows */}
-            <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-                <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-280px)] pr-1 pb-0">
-                    <table className="min-w-full border-collapse table-fixed">
-                        <colgroup>
-                            <col className="w-[14.28%]" />
-                            <col className="w-[14.28%]" />
-                            <col className="w-[14.28%]" />
-                            <col className="w-[14.28%]" />
-                            <col className="w-[14.28%]" />
-                            <col className="w-[14.28%]" />
-                            <col className="w-[14.28%]" />
-                        </colgroup>
+            <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+                <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-280px)]">
+                    <table className="min-w-full border-collapse">
+
                         <thead className="sticky top-0 z-10 bg-white">
                             <tr className="border-b border-gray-100 bg-white">
-                                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Date</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Employee Name</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Time In</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Time Out</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Total Hours</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
+                                <th className="px-2 sm:px-3 py-4 text-center text-[13px] sm:text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                                <th className="px-2 sm:px-3 py-4 text-center text-[13px] sm:text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Date</th>
+                                <th className="px-2 sm:px-3 py-4 text-center text-[13px] sm:text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Employee Name</th>
+                                <th className="px-2 sm:px-3 py-4 text-center text-[13px] sm:text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Time In</th>
+                                <th className="px-2 sm:px-3 py-4 text-center text-[13px] sm:text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Time Out</th>
+                                <th className="px-2 sm:px-3 py-4 text-center text-[13px] sm:text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Total Hours</th>
+                                <th className="px-2 sm:px-3 py-4 text-center text-[13px] sm:text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -421,15 +429,15 @@ export default function TrackerBL() {
                                     const status = getStatus(entry);
                                     return (
                                         <tr key={entry.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
-                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
-                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{formattedDate}</td>
-                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{entry.full_name ?? '-'}</td>
-                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{timeIn}</td>
-                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{timeOut}</td>
-                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{totalHours}</td>
-                                            <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                                            <td className="px-2 sm:px-3 py-4 sm:py-6 text-center text-[12px] sm:text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                                            <td className="px-2 sm:px-3 py-4 sm:py-6 text-center text-[12px] sm:text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{formattedDate}</td>
+                                            <td className="px-2 sm:px-3 py-4 sm:py-6 text-center text-[12px] sm:text-[14px] text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{entry.full_name ?? '-'}</td>
+                                            <td className="px-2 sm:px-3 py-4 sm:py-6 text-center text-[12px] sm:text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{timeIn}</td>
+                                            <td className="px-2 sm:px-3 py-4 sm:py-6 text-center text-[12px] sm:text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{timeOut}</td>
+                                            <td className="px-2 sm:px-3 py-4 sm:py-6 text-center text-[12px] sm:text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{totalHours}</td>
+                                            <td className="px-2 sm:px-3 py-4 sm:py-6 text-center whitespace-nowrap align-middle">
                                                 <span
-                                                    className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${
+                                                    className={`inline-flex px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold font-gantari ${
                                                         status === 'Busy' ? 'bg-[#FCE8E8] text-[#D93025]' : 'bg-[#E6F4EA] text-[#1E7E34]'
                                                     }`}
                                                 >

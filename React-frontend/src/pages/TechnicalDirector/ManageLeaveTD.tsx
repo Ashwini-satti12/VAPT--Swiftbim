@@ -367,9 +367,9 @@ export default function ManageLeave() {
             <h1 className="text-[24px] font-gantari font-semibold">
               Manage Leaves
             </h1>
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5 w-full sm:w-auto">
               <div
-                className="relative min-w-[180px] max-w-[240px] w-[180px]"
+                className="relative w-1/2 sm:w-[180px]"
                 ref={employeeDropdownRef}
               >
                 <button
@@ -453,7 +453,7 @@ export default function ManageLeave() {
                 )}
               </div>
               <div
-                className="relative min-w-[140px] max-w-[200px] w-[160px]"
+                className="relative w-1/2 sm:w-[160px]"
                 ref={showEntriesDropdownRef}
               >
                 <button

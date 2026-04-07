@@ -314,7 +314,7 @@ export default function DashboardBL() {
     }
 
     return (
-        <div className="flex flex-col lg:h-full lg:overflow-hidden">
+        <div className="flex flex-col lg:h-full lg:overflow-hidden text-[#353535]">
             {/* Header and KPI Cards */}
             <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
                 <h1 className="text-xl font-medium font-gantari text-slate-800 mb-6">Dashboard</h1>

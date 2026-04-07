@@ -871,11 +871,11 @@ export default function ManageLeave() {
     <div className="flex flex-col h-full font-gantari overflow-hidden">
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
         <div className="flex flex-col flex-1 min-h-0">
-          <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">
-            <h1 className="text-[24px] font-gantari font-semibold">
-              Manage Leave
-            </h1>
-            <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex-shrink-0 mb-6 flex flex-col gap-4 px-2 sm:px-0 pt-0 sm:pt-0 -mt-1 sm:mt-0">
+            <div className="flex flex-row items-center justify-between w-full">
+              <h1 className="text-[20px] sm:text-[24px] font-gantari font-semibold text-[#000000]">
+                Manage Leave
+              </h1>
               <button
                 type="button"
                 onClick={() => {
@@ -885,21 +885,39 @@ export default function ManageLeave() {
                   setEmployeeName(displayName);
                   setApplyModalOpen(true);
                 }}
-                className="px-4 py-2 bg-[#DD4346] text-white rounded-md text-[14px] font-gantari font-medium hover:bg-[#c43a39] transition-colors cursor-pointer"
+                className="sm:hidden mt-2 px-4 py-1.5 bg-[#DD4346] text-white rounded-md text-[13px] font-gantari font-medium hover:bg-[#c43a39] transition-all cursor-pointer whitespace-nowrap shadow-sm active:scale-[0.98]"
               >
                 Apply Leave
               </button>
-              <div
-                className="relative min-w-[180px] max-w-[240px] w-[180px]"
-                ref={employeeDropdownRef}
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between sm:gap-3 w-full">
+              <div className="hidden sm:block h-px w-px" /> {/* Spacer for desktop justify-between if needed */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  const displayName = user
+                    ? `${user.full_name}${user.user_role ? ` - ${user.user_role}` : ""}`
+                    : "";
+                  setEmployeeName(displayName);
+                  setApplyModalOpen(true);
+                }}
+                className="hidden sm:block px-6 py-2 bg-[#DD4346] text-white rounded-md text-[14px] font-gantari font-medium hover:bg-[#c43a39] transition-all cursor-pointer whitespace-nowrap w-full sm:w-auto shadow-sm active:scale-[0.98]"
               >
+                Apply Leave
+              </button>
+              <div className="grid grid-cols-2 gap-3 w-full sm:flex sm:items-center sm:w-auto">
+                <div
+                  className="relative w-full sm:w-[180px]"
+                  ref={employeeDropdownRef}
+                >
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setEmployeeDropdownOpen((o) => !o);
                   }}
-                  className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                  className="w-full flex items-center justify-between gap-2 px-3 py-1.5 sm:py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                 >
                   <span
                     className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedEmployee === ""
@@ -974,7 +992,7 @@ export default function ManageLeave() {
                 )}
               </div>
               <div
-                className="relative min-w-[140px] max-w-[200px] w-[160px]"
+                className="relative w-full sm:w-[160px]"
                 ref={showEntriesDropdownRef}
               >
                 <button
@@ -983,7 +1001,7 @@ export default function ManageLeave() {
                     e.stopPropagation();
                     setShowEntriesOpen((o) => !o);
                   }}
-                  className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                  className="w-full flex items-center justify-between gap-2 px-3 py-1.5 sm:py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                 >
                   <span
                     className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
@@ -1076,34 +1094,36 @@ export default function ManageLeave() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
           <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
             <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1 pb-0">
               <table className="min-w-full border-collapse">
                 <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                   <tr className=" bg-white">
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                    <th className="px-2 sm:px-3 py-4 text-center text-[13px] sm:text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
                       Sl.No
                     </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                    <th className="px-2 sm:px-3 py-4 text-center text-[13px] sm:text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
                       Employee Name
                     </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                    <th className="px-2 sm:px-3 py-4 text-center text-[13px] sm:text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
                       Role
                     </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                    <th className="px-2 sm:px-3 py-4 text-center text-[13px] sm:text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
                       Leave Type
                     </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                    <th className="px-2 sm:px-3 py-4 text-center text-[13px] sm:text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
                       From Date
                     </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                    <th className="px-2 sm:px-3 py-4 text-center text-[13px] sm:text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
                       To Date
                     </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                    <th className="px-2 sm:px-3 py-4 text-center text-[13px] sm:text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
                       Status
                     </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
+                    <th className="px-2 sm:px-3 py-4 text-center text-[13px] sm:text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap align-middle">
                       Action
                     </th>
                   </tr>
@@ -1129,27 +1149,27 @@ export default function ManageLeave() {
                           key={row.id}
                           className={`${index % 2 === 1 ? "bg-[#F2F2F2] " : "bg-[#FFFFFF]"} transition-colors`}
                         >
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
+                          <td className="px-2 sm:px-3 py-4 sm:py-6 text-center text-[12px] sm:text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
                             {String(slNo).padStart(2, "0")}
                           </td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
+                          <td className="px-2 sm:px-3 py-4 sm:py-6 text-center text-[12px] sm:text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
                             {row.employeeName}
                           </td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-2 sm:px-3 py-4 sm:py-6 text-center text-[12px] sm:text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {row.role ?? "–"}
                           </td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-2 sm:px-3 py-4 sm:py-6 text-center text-[12px] sm:text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {row.leaveType}
                           </td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-2 sm:px-3 py-4 sm:py-6 text-center text-[12px] sm:text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {row.fromDate ?? "–"}
                           </td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-2 sm:px-3 py-4 sm:py-6 text-center text-[12px] sm:text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {row.toDate ?? "–"}
                           </td>
-                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                          <td className="px-2 sm:px-3 py-4 sm:py-6 text-center whitespace-nowrap align-middle">
                             <span
-                              className={`inline-flex px-3 py-1 rounded-md text-[12px] font-semibold font-gantari ${row.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : row.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFEAD6] text-[#EB7200]"}`}
+                              className={`inline-flex px-2 sm:px-3 py-1 rounded-md text-[10px] sm:text-[12px] font-semibold font-gantari ${row.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : row.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFEAD6] text-[#EB7200]"}`}
                             >
                               {row.currentStatus}
                             </span>
@@ -1159,12 +1179,12 @@ export default function ManageLeave() {
                               <button
                                 type="button"
                                 onClick={() => handleView(row)}
-                                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DD4242] text-white rounded-md font-medium text-[12px] cursor-pointer"
+                                className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-[#DD4242] text-white rounded-md font-medium text-[11px] sm:text-[12px] cursor-pointer"
                               >
                                 <img
                                   src={viewIcon}
                                   alt=""
-                                  className="w-3.5 h-3.5 shrink-0 [filter:brightness(0)_invert(1)]"
+                                  className="w-3 sm:w-3.5 h-3 sm:h-3.5 shrink-0 [filter:brightness(0)_invert(1)]"
                                 />
                                 View
                               </button>
@@ -1178,20 +1198,20 @@ export default function ManageLeave() {
                                         onClick={() =>
                                           setApproveLeave(row)
                                         }
-                                        className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
+                                        className="inline-flex items-center justify-center p-1.5 sm:p-2 bg-[#008F22] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
                                       >
-                                        <svg
-                                          className="w-4 h-4 shrink-0"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          viewBox="0 0 24 24"
-                                          strokeWidth="2.5"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        >
-                                          <path d="M5 13l4 4L19 7" />
-                                        </svg>
-                                      </button>
+                                          <svg
+                                            className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                            strokeWidth="2.5"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                          >
+                                            <path d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        </button>
                                       {isLastRow ? (
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
                                           <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
@@ -1223,10 +1243,10 @@ export default function ManageLeave() {
                                         onClick={() =>
                                           setRejectLeave(row)
                                         }
-                                        className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
+                                        className="inline-flex items-center justify-center p-1.5 sm:p-2 bg-[#C62828] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
                                       >
                                         <svg
-                                          className="w-4 h-4 shrink-0"
+                                          className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0"
                                           fill="none"
                                           stroke="currentColor"
                                           viewBox="0 0 24 24"
@@ -1268,7 +1288,7 @@ export default function ManageLeave() {
                                   <button
                                     type="button"
                                     onClick={() => handleEdit(row)}
-                                    className={`inline-flex items-center justify-center p-2 rounded-md cursor-pointer ${index % 2 === 0
+                                    className={`inline-flex items-center justify-center p-1.5 sm:p-2 rounded-md cursor-pointer ${index % 2 === 0
                                         ? "bg-[#F2F2F2]"
                                         : "bg-[#FFFFFF]"
                                       }`}
@@ -1283,7 +1303,7 @@ export default function ManageLeave() {
                                   <button
                                     type="button"
                                     onClick={() => openDeleteLeave(row)}
-                                    className={`inline-flex items-center justify-center p-2 rounded-md text-[#353535] transition-colors shrink-0 cursor-pointer ${index % 2 === 0
+                                    className={`inline-flex items-center justify-center p-1.5 sm:p-2 rounded-md text-[#353535] transition-colors shrink-0 cursor-pointer ${index % 2 === 0
                                         ? "bg-[#F2F2F2]"
                                         : "bg-[#FFFFFF]"
                                       }`}
