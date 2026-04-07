@@ -14,6 +14,28 @@ import threedot from "../../assets/ProjectManager/project/threedot.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+
+const CURRENCIES = [
+  { code: "INR", symbol: "₹", label: "Indian Rupee" },
+  { code: "USD", symbol: "$", label: "US Dollar" },
+  { code: "EUR", symbol: "€", label: "Euro" },
+  { code: "GBP", symbol: "£", label: "British Pound" },
+  { code: "AED", symbol: "د.إ", label: "UAE Dirham" },
+  { code: "SAR", symbol: "﷼", label: "Saudi Riyal" },
+  { code: "QAR", symbol: "﷼", label: "Qatari Riyal" },
+  { code: "OMR", symbol: "﷼", label: "Omani Riyal" },
+  { code: "BHD", symbol: ".د.ب", label: "Bahraini Dinar" },
+  { code: "KWD", symbol: "د.ك", label: "Kuwaiti Dinar" },
+  { code: "SGD", symbol: "S$", label: "Singapore Dollar" },
+  { code: "AUD", symbol: "A$", label: "Australian Dollar" },
+  { code: "CAD", symbol: "C$", label: "Canadian Dollar" },
+  { code: "JPY", symbol: "¥", label: "Japanese Yen" },
+  { code: "CNY", symbol: "¥", label: "Chinese Yuan" },
+  { code: "MYR", symbol: "RM", label: "Malaysian Ringgit" },
+  { code: "THB", symbol: "฿", label: "Thai Baht" },
+  { code: "IDR", symbol: "Rp", label: "Indonesian Rupiah" },
+];
 
 interface Employee {
   id: number;
@@ -152,6 +174,7 @@ interface Project {
   total_tasks?: number;
   completed_tasks?: number;
   budget?: string;
+  budget_ceiling?: string;
   module_name?: string;
   client_name?: string;
   project_manager?: string;
@@ -177,6 +200,7 @@ interface Project {
   tasks?: string;
   document_attachment?: string;
   source?: "In House" | "Outsource";
+  currency?: string;
 }
 
 interface Milestone {
@@ -197,6 +221,8 @@ export default function ProjectsBC() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createBudget, setCreateBudget] = useState("");
+  const [createCurrency, setCreateCurrency] = useState("INR");
+  const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
   const [moduleNameTags, setModuleNameTags] = useState<string[]>([]);
   const [moduleNameInput, setModuleNameInput] = useState("");
   // Edit modal tag states
@@ -371,6 +397,8 @@ export default function ProjectsBC() {
     completed_tasks: r.completed_tasks ?? 0,
     priority: r.priority ?? "Normal",
     budget: r.budget,
+    budget_ceiling: r.budget_ceiling != null ? String(r.budget_ceiling) : undefined,
+    currency: r.currency != null ? String(r.currency) : "INR",
     module_name: r.modules,
     client_name: r.client_name,
     project_manager:
@@ -1808,6 +1836,7 @@ export default function ProjectsBC() {
                   const formData = new FormData();
                   formData.append("project_name", createName.trim());
                   if (createBudget) formData.append("budget", createBudget);
+                  formData.append("currency", createCurrency);
                   if (moduleNameTags.length > 0)
                     formData.append("modules", moduleNameTags.join(", "));
                   if (createClientName)
@@ -1874,6 +1903,8 @@ export default function ProjectsBC() {
                         setCreateTaskInput("");
                         setCreateName("");
                         setCreateBudget("");
+                        setCreateCurrency("INR");
+                        setCurrencyDropdownOpen(false);
                         setModuleNameTags([]);
                         setModuleNameInput("");
                         setCreateClientName("");
@@ -1957,14 +1988,57 @@ export default function ProjectsBC() {
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                       Budget <span className="text-[#DD4342]">*</span>
                     </label>
-                    <input
-                      type="text"
-                      required
-                      value={createBudget}
-                      onChange={(e) => setCreateBudget(e.target.value)}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                      placeholder="Enter Project Budget"
-                    />
+                    <div className="flex gap-2">
+                      <div className="relative w-1/3">
+                        <button
+                          type="button"
+                          onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
+                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-[5px] transition-all focus:outline-none border border-transparent focus:border-[#AEACAC52] cursor-pointer ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
+                        >
+                          <span className="text-[14px] text-[#353535] font-medium truncate">
+                            {CURRENCIES.find((c) => c.code === createCurrency)?.symbol}{" "}{createCurrency}
+                          </span>
+                          <img
+                            src={ArrowDown}
+                            alt="arrow"
+                            className={`w-3.5 h-3.5 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
+                          />
+                        </button>
+                        {currencyDropdownOpen && (
+                          <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                            {CURRENCIES.map((c) => (
+                              <button
+                                key={c.code}
+                                type="button"
+                                onClick={() => {
+                                  setCreateCurrency(c.code);
+                                  setCurrencyDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-2 text-[14px] transition-colors hover:bg-[#F2F2F2] flex items-center justify-between cursor-pointer ${
+                                  createCurrency === c.code
+                                    ? "text-[#353535] bg-[#F8F8F8] font-bold"
+                                    : "text-[#8B8B8B] font-medium"
+                                }`}
+                              >
+                                {c.code}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        value={createBudget}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9.]/g, "");
+                          const parts = val.split(".");
+                          if (parts.length <= 2) setCreateBudget(val);
+                        }}
+                        className="flex-1 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                        placeholder="Enter Project Budget"
+                      />
+                    </div>
                   </div>
 
                   {/* ── Module Name ── */}

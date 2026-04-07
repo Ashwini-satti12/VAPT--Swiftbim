@@ -12,7 +12,29 @@ import paymentMilestone from "../../assets/ProjectManager/project/paymentMilesto
 import threedot from "../../assets/ProjectManager/project/threedot.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
+
+const CURRENCIES = [
+  { code: 'USD', symbol: '$' },
+  { code: 'EUR', symbol: '€' },
+  { code: 'GBP', symbol: '£' },
+  { code: 'JPY', symbol: '¥' },
+  { code: 'INR', symbol: '₹' },
+  { code: 'AUD', symbol: 'A$' },
+  { code: 'CAD', symbol: 'C$' },
+  { code: 'CHF', symbol: 'Fr' },
+  { code: 'CNY', symbol: '¥' },
+  { code: 'AED', symbol: 'د.إ' },
+  { code: 'SAR', symbol: '﷼' },
+  { code: 'QAR', symbol: '﷼' },
+  { code: 'OMR', symbol: '﷼' },
+  { code: 'KWD', symbol: 'د.ك' },
+  { code: 'BHD', symbol: '.د.ب' },
+  { code: 'SGD', symbol: 'S$' },
+  { code: 'NZD', symbol: 'NZ$' },
+  { code: 'ZAR', symbol: 'R' },
+];
 
 interface Employee {
   id: number;
@@ -150,6 +172,7 @@ interface Project {
   document_attachment?: string;
   budget_ceiling?: string;
   source?: "In House" | "Outsource";
+  currency?: string;
 }
 
 interface Milestone {
@@ -170,6 +193,8 @@ export default function ProjectsBL() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createBudget, setCreateBudget] = useState("");
+  const [createCurrency, setCreateCurrency] = useState("INR");
+  const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
   const [moduleNameTags, setModuleNameTags] = useState<string[]>([]);
   const [moduleNameInput, setModuleNameInput] = useState("");
   // Edit modal tag states
@@ -380,6 +405,8 @@ export default function ProjectsBL() {
     setExistingFiles([]);
     setRemovedFiles([]);
     setCreateError("");
+    setCreateCurrency("INR");
+    setCurrencyDropdownOpen(false);
   };
   const isManagement = panelType === 1;
   const isTechnicalDirector = user?.user_role === "Technical Director";
@@ -441,6 +468,7 @@ export default function ProjectsBL() {
       r.source != null && String(r.source) !== "undefined"
         ? (String(r.source) as "In House" | "Outsource")
         : undefined,
+    currency: r.currency != null ? String(r.currency) : "INR",
   });
 
   const fetchMilestones = (projectId: number) => {
@@ -569,6 +597,7 @@ export default function ProjectsBL() {
   const populateEditFieldsFromProject = (p: Project) => {
     setCreateName(p.project_name ?? "");
     setCreateBudget(p.budget ?? "");
+    setCreateCurrency(p.currency ?? "INR");
 
     const foundClient = clientsList.find((c) => String(c.id) === String(p.client_id));
     setCreateClientName(foundClient ? foundClient.full_name : (p.client_name ?? ""));
@@ -1850,6 +1879,7 @@ export default function ProjectsBL() {
                 const formData = new FormData();
                 formData.append("project_name", createName.trim());
                 if (createBudget) formData.append("budget", createBudget);
+                if (createCurrency) formData.append("currency", createCurrency);
                 if (moduleNameTags.length > 0)
                   formData.append("modules", moduleNameTags.join(", "));
 
@@ -1971,14 +2001,52 @@ export default function ProjectsBL() {
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Budget <span className="text-[#DD4342]">*</span>
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={createBudget}
-                    onChange={(e) => setCreateBudget(e.target.value)}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                    placeholder="Enter Project Budget"
-                  />
+                  <div className="flex gap-2">
+                    <div className="relative w-1/3">
+                      <button
+                        type="button"
+                        onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
+                        className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-[5px] transition-all focus:outline-none border border-transparent focus:border-[#AEACAC52] cursor-pointer ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
+                      >
+                        <span className="text-[14px] text-[#353535] font-medium truncate">
+                          {CURRENCIES.find(c => c.code === createCurrency)?.symbol} {createCurrency}
+                        </span>
+                        <img
+                          src={ArrowDown}
+                          alt="arrow"
+                          className={`w-3.5 h-3.5 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                      {currencyDropdownOpen && (
+                        <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                          {CURRENCIES.map((c) => (
+                            <button
+                              key={c.code}
+                              type="button"
+                              onClick={() => {
+                                setCreateCurrency(c.code);
+                                setCurrencyDropdownOpen(false);
+                              }}
+                              className={`w-full text-left px-4 py-2 text-[14px] transition-colors hover:bg-[#F2F2F2] flex items-center justify-between cursor-pointer ${createCurrency === c.code ? "text-[#353535] bg-[#F8F8F8] font-bold" : "text-[#8B8B8B] font-medium"}`}
+                            >
+                              {c.code}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      type="text" required
+                      value={createBudget}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9.]/g, "");
+                        const parts = val.split(".");
+                        if (parts.length <= 2) setCreateBudget(val);
+                      }}
+                      className="flex-1 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Project Budget"
+                    />
+                  </div>
                 </div>
 
                 {/* ── Module Name ── */}
@@ -2554,6 +2622,7 @@ export default function ProjectsBL() {
                 const formData = new FormData();
                 formData.append("project_name", createName.trim());
                 if (createBudget) formData.append("budget", createBudget);
+                if (createCurrency) formData.append("currency", createCurrency);
                 if (editModuleTags.length > 0)
                   formData.append("modules", editModuleTags.join(", "));
 
@@ -2658,14 +2727,52 @@ export default function ProjectsBL() {
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Budget <span className="text-[#DD4342]">*</span>
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={createBudget}
-                    onChange={(e) => setCreateBudget(e.target.value)}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                    placeholder="Enter Project Budget"
-                  />
+                  <div className="flex gap-2">
+                    <div className="relative w-1/3">
+                      <button
+                        type="button"
+                        onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
+                        className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-[5px] transition-all focus:outline-none border border-transparent focus:border-[#AEACAC52] cursor-pointer ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
+                      >
+                        <span className="text-[14px] text-[#353535] font-medium truncate">
+                          {CURRENCIES.find(c => c.code === createCurrency)?.symbol} {createCurrency}
+                        </span>
+                        <img
+                          src={ArrowDown}
+                          alt="arrow"
+                          className={`w-3.5 h-3.5 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                      {currencyDropdownOpen && (
+                        <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                          {CURRENCIES.map((c) => (
+                            <button
+                              key={c.code}
+                              type="button"
+                              onClick={() => {
+                                setCreateCurrency(c.code);
+                                setCurrencyDropdownOpen(false);
+                              }}
+                              className={`w-full text-left px-4 py-2 text-[14px] transition-colors hover:bg-[#F2F2F2] flex items-center justify-between cursor-pointer ${createCurrency === c.code ? "text-[#353535] bg-[#F8F8F8] font-bold" : "text-[#8B8B8B] font-medium"}`}
+                            >
+                              {c.code}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      type="text" required
+                      value={createBudget}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9.]/g, "");
+                        const parts = val.split(".");
+                        if (parts.length <= 2) setCreateBudget(val);
+                      }}
+                      className="flex-1 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Project Budget"
+                    />
+                  </div>
                 </div>
 
                 {/* Modules Name */}
