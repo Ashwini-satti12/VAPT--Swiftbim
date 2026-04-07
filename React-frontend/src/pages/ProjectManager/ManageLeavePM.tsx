@@ -637,12 +637,12 @@ export default function ManageLeavePM() {
   };
 
   return (
-    <div className=" flex flex-col h-full font-gantari overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        <div className="flex flex-col flex-1 min-h-0">
+    <div className="flex flex-col h-[calc(100vh-100px)] font-gantari overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white">
+        <div className="flex flex-col flex-1 min-h-0 p-1">
           {/* Page header: heading left; Employee + Show entries right */}
           <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">
-            <h1 className="text-[24px] font-gantari font-semibold">
+            <h1 className="text-[24px] font-gantari font-semibold text-[#000000]">
               Manage Leave
             </h1>
             <div className="flex items-center gap-3 flex-wrap">
@@ -857,9 +857,9 @@ export default function ManageLeavePM() {
             </div>
           </div>
 
-          {/* Table Section - same table box + scroll as TrackerPM */}
+          {/* Table Section - synced with ManageLeaveTD */}
           <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-            <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-280px)] pr-1 pb-0">
+            <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1 pb-0">
               <table className="min-w-full border-collapse">
                 <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                   <tr className="bg-white">

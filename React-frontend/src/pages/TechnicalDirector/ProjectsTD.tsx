@@ -609,15 +609,42 @@ export default function ProjectsTD() {
       })
     ])
       .then(([res1, res2]) => {
-        const p1 = (res1.data.projects ?? []).map((p) => ({
+        const rawP1 = res1.data.projects ?? [];
+        const rawP2 = res2.data.projects ?? [];
+        
+        // Map and tag res2 (Vendors) as Outsource
+        const p2 = rawP2.map((p) => ({
           ...mapApiProjectToProject(p),
-          source: "In House",
+          source: "Outsource" as const,
         }));
-        const p2 = (res2.data.projects ?? []).map((p) => ({
-          ...mapApiProjectToProject(p),
-          source: "Outsource",
-        }));
-        setList([...p1, ...p2]);
+
+        // Map res1 (Internal)
+        const p1 = rawP1.map((p) => {
+          const mapped = mapApiProjectToProject(p);
+          // If department is "Submission Deadline", it's an Outsource project
+          const isOutsource = mapped.department === "Submission Deadline";
+          return {
+            ...mapped,
+            source: (isOutsource ? "Outsource" : "In House") as const,
+          };
+        });
+
+        // Deduplicate: If a project exists in both, prefer the "Outsource" version 
+        // from vendor API as it likely has more up-to-date vendor-specific info.
+        // We match by project_name.
+        const mergedMap = new Map<string, any>();
+        
+        // Add internal projects first
+        p1.forEach(p => {
+          if (p.project_name) mergedMap.set(p.project_name.toLowerCase(), p);
+        });
+        
+        // Override with vendor projects (the Outsource versions)
+        p2.forEach(p => {
+          if (p.project_name) mergedMap.set(p.project_name.toLowerCase(), p);
+        });
+
+        setList(Array.from(mergedMap.values()));
       })
       .catch(() => setList([]))
       .finally(() => setLoading(false));
