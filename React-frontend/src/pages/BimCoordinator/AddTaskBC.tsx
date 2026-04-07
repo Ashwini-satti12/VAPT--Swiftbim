@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import api from "../../lib/api";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
@@ -211,6 +212,7 @@ export default function AddTaskBC() {
         if (pendingAttachmentDelete.type === "local") {
             removeAttachment(pendingAttachmentDelete.index);
             setPendingAttachmentDelete(null);
+            toast.error("Deleted successfully");
             return;
         }
         const stored = pendingAttachmentDelete.stored;
@@ -231,6 +233,7 @@ export default function AddTaskBC() {
             .then(() => {
                 setExistingOutputFilenames(next);
                 setPendingAttachmentDelete(null);
+                toast.error("Deleted successfully");
             })
             .catch(() => {
                 setAddError("Failed to remove attachment. Please try again.");
@@ -329,6 +332,7 @@ export default function AddTaskBC() {
                 })
                 .then(() => {
                     handleFiles(editingTaskId);
+                    toast.success("Updated successfully");
                     navigate(location.state?.from === "teamtasks" ? "/bc/teamtasks" : "/bc/mytasks");
                 })
                 .catch((err) => {
@@ -341,6 +345,7 @@ export default function AddTaskBC() {
                 const taskId = isOutsource ? res.data.id : res.data.task_id;
                 if ((res.data.success || isOutsource) && taskId) {
                     handleFiles(taskId);
+                    toast.success("Task added successfully");
                     navigate(location.state?.from === "teamtasks" ? "/bc/teamtasks" : "/bc/mytasks");
                 }
             })

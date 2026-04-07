@@ -429,7 +429,7 @@ export default function ConsultantBM() {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-20px)] overflow-hidden bg-white">
+        <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden bg-white">
             <div className="sticky top-0 z-50 bg-white shadow-sm px-2 pb-6">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pt-4">
                     <h2 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari truncate">Employee / Trainee List</h2>
