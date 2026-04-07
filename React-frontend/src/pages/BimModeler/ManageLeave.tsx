@@ -591,7 +591,7 @@ export default function ManageLeave() {
                             <button
                                 type="button"
                                 onClick={() => setApplyModalOpen(true)}
-                                className="px-4 py-2 bg-[#DD4346] text-white rounded-md text-[14px] font-gantari font-medium hover:bg-[#c43a39] transition-colors cursor-pointer"
+                                className="px-4 py-2 bg-[#DD4342] text-white rounded-md text-[14px] font-gantari font-medium transition-colors cursor-pointer"
                             >
                                 Apply Leave
                             </button>
