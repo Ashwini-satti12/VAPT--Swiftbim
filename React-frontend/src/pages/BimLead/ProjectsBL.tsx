@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
@@ -12,7 +12,6 @@ import paymentMilestone from "../../assets/ProjectManager/project/paymentMilesto
 import threedot from "../../assets/ProjectManager/project/threedot.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
-import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 
 interface Employee {
@@ -235,6 +234,7 @@ export default function ProjectsBL() {
   const [selectedProjectForEdit, setSelectedProjectForEdit] =
     useState<Project | null>(null);
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  const [editPrefillLoading, setEditPrefillLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [showAllMembersModal, setShowAllMembersModal] = useState(false);
   const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
@@ -284,7 +284,7 @@ export default function ProjectsBL() {
   const [clientsList, setClientsList] = useState<
     { id: number; full_name: string }[]
   >([]);
-  const priorityOptions = ["High", "Normal"];
+  const priorityOptions = ["High", "Medium", "Low"];
 
   // Fetch employees + departments at mount so project view can resolve members
   useEffect(() => {
@@ -395,7 +395,7 @@ export default function ProjectsBL() {
     total_tasks: r.total_tasks != null ? Number(r.total_tasks) : undefined,
     completed_tasks:
       r.completed_tasks != null ? Number(r.completed_tasks) : undefined,
-    priority: r.priority != null ? String(r.priority) : "Normal",
+    priority: r.priority != null ? String(r.priority) : "Medium",
     budget: r.budget != null ? String(r.budget) : undefined,
     module_name: r.modules != null ? String(r.modules) : undefined,
     client_name: r.client_name != null ? String(r.client_name) : undefined,
@@ -430,7 +430,10 @@ export default function ProjectsBL() {
       r.required_resources != null ? String(r.required_resources) : undefined,
     location: r.location != null ? String(r.location) : undefined,
     description: r.description != null ? String(r.description) : undefined,
-    tasks: r.tasks != null ? String(r.tasks) : undefined,
+    tasks:
+      r.tasks != null
+        ? String(r.tasks)
+        : (r.project_tasks != null ? String(r.project_tasks) : undefined),
     document_attachment:
       r.document_attachment != null ? String(r.document_attachment) : undefined,
     budget_ceiling: r.budget_ceiling != null ? String(r.budget_ceiling) : undefined,
@@ -521,7 +524,10 @@ export default function ProjectsBL() {
 
   const fetchProjects = () => {
     const status = searchParams.get('status');
-    const params = { status: status || undefined };
+    const isCompletedFilter = (status || "").toLowerCase() === "completed";
+    // NOTE: vendor-projects "Completed" filtering is not reliable across DBs (status vs progress).
+    // For Completed, fetch all and filter by progress client-side for both internal + outsource.
+    const params = isCompletedFilter ? {} : { status: status || undefined };
 
     setLoading(true);
     Promise.all([
@@ -533,15 +539,24 @@ export default function ProjectsBL() {
 
       const allProjects = [...internal, ...vendor];
 
+      const isCompletedByProgress = (p: any): boolean => {
+        const raw = p?.progress;
+        const n = typeof raw === "number" ? raw : Number(String(raw ?? "").trim());
+        return Number.isFinite(n) && n >= 100;
+      };
+
       const userId = user?.id;
-      const filtered = userId
+      const involvedFiltered = userId
         ? allProjects.filter((p: any) => {
           if (p.source === "Outsource") return true;
           if (!p.lead_id) return false;
           return String(p.lead_id).split(',').map((s: string) => s.trim()).includes(String(userId));
         })
         : allProjects;
-      setList(filtered.map((p) => mapApiProjectToProject(p as Record<string, unknown>)));
+      const finalFiltered = isCompletedFilter
+        ? involvedFiltered.filter(isCompletedByProgress)
+        : involvedFiltered;
+      setList(finalFiltered.map((p) => mapApiProjectToProject(p as Record<string, unknown>)));
     })
       .catch(() => { })
       .finally(() => setLoading(false));
@@ -550,6 +565,109 @@ export default function ProjectsBL() {
   useEffect(() => {
     fetchProjects();
   }, [searchParams]);
+
+  const populateEditFieldsFromProject = (p: Project) => {
+    setCreateName(p.project_name ?? "");
+    setCreateBudget(p.budget ?? "");
+
+    const foundClient = clientsList.find((c) => String(c.id) === String(p.client_id));
+    setCreateClientName(foundClient ? foundClient.full_name : (p.client_name ?? ""));
+
+    setCreateProjectManager(p.project_manager ?? "");
+    setEditProjectManager(p.project_manager ?? "");
+
+    setCreateStartDate(p.start_date ?? "");
+    setCreateEndDate(p.end_date ?? "");
+    setCreateTotalHours(p.total_hours ?? "");
+    setCreatePerDay(p.per_day ?? "");
+
+    // BUGFIX: department should come from `department`, not `source`.
+    setCreateDepartment(p.department ?? "");
+    setEditDepartment(p.department ?? "");
+
+    setCreateBIMLead(p.bim_lead ?? "");
+    setEditBIMLead(p.bim_lead ?? "");
+    setCreateBIMCoOrdinator(p.bim_co_ordinator ?? "");
+    setEditBIMCoOrd(p.bim_co_ordinator ?? "");
+
+    setCreateResources(p.resources ?? "");
+    setCreateRequiredResources(p.required_resources ?? "");
+    setEditPriority(p.priority ?? "");
+    setCreatePriority(p.priority ?? "");
+    setCreateLocation(p.location ?? "");
+    setCreateDescription(p.description ?? "");
+
+    setEditModuleTags(
+      p.module_name
+        ? p.module_name
+            .split(",")
+            .map((m) => m.trim())
+            .filter(Boolean)
+        : [],
+    );
+
+    if (p.member) {
+      const memIds = p.member
+        .split(",")
+        .map((s) => parseInt(s.trim(), 10))
+        .filter((n) => !Number.isNaN(n));
+      setSelectedMemberIds(memIds);
+    } else {
+      setSelectedMemberIds([]);
+    }
+
+    setEditTaskTags(
+      p.tasks
+        ? p.tasks
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
+        : [],
+    );
+
+    const docs = p.document_attachment
+      ? p.document_attachment
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
+    setExistingFiles(docs);
+    setRemovedFiles([]);
+    setCreateFiles([]);
+  };
+
+  // Ensure Edit modal always pre-fills with full project data.
+  // After creating a project, the list API may not include all fields, so fetch by id.
+  useEffect(() => {
+    if (!showEditModal || !selectedProjectForEdit?.id) return;
+    let cancelled = false;
+
+    populateEditFieldsFromProject(selectedProjectForEdit);
+
+    const isOutsource = selectedProjectForEdit.source === "Outsource";
+    const baseApi = isOutsource ? "/api/vendors/vendor-projects" : "/api/projects";
+
+    setEditPrefillLoading(true);
+    api
+      .get<Record<string, unknown>>(`${baseApi}/${selectedProjectForEdit.id}`)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const mapped = mapApiProjectToProject(data);
+        if (!mapped.source) mapped.source = isOutsource ? "Outsource" : "In House";
+        setSelectedProjectForEdit(mapped);
+        populateEditFieldsFromProject(mapped);
+      })
+      .catch(() => {
+        // Keep whatever we already have from list; edit can still proceed.
+      })
+      .finally(() => {
+        if (!cancelled) setEditPrefillLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showEditModal, selectedProjectForEdit?.id]);
 
   // Deep-link support: keep project view on refresh using ?projectId=
   useEffect(() => {
@@ -1172,6 +1290,35 @@ export default function ProjectsBL() {
                       <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Resources Available</span>
                       <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                       <span className="text-[16px] font-Gantari font-medium text-[#616161]">{selectedProjectForView.resources || "N/A"}</span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-start">
+                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                        Tasks
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4 mt-[2px]">:</span>
+                      <div className="flex flex-wrap gap-2">
+                        {(selectedProjectForView.tasks || "")
+                          .split(",")
+                          .map((t) => t.trim())
+                          .filter(Boolean).length > 0 ? (
+                          (selectedProjectForView.tasks || "")
+                            .split(",")
+                            .map((t) => t.trim())
+                            .filter(Boolean)
+                            .map((t, idx) => (
+                              <span
+                                key={`${t}-${idx}`}
+                                className="inline-flex items-center rounded-full bg-[#F2F3F4] px-3 py-1 text-[13px] font-Gantari font-medium text-[#353535] border border-[#AEACAC52]"
+                              >
+                                {t}
+                              </span>
+                            ))
+                        ) : (
+                          <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                            N/A
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-4 md:space-y-5">
@@ -3073,10 +3220,14 @@ export default function ProjectsBL() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isEditSubmitting}
+                  disabled={isEditSubmitting || editPrefillLoading}
                   className="px-5 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-Gantari font-medium text-[16px] cursor-pointer"
                 >
-                  {isEditSubmitting ? "Updating..." : "Update Project"}
+                  {editPrefillLoading
+                    ? "Loading..."
+                    : isEditSubmitting
+                      ? "Updating..."
+                      : "Update Project"}
                 </button>
               </div>
             </form>
@@ -3254,8 +3405,8 @@ export default function ProjectsBL() {
                                     setCreateEndDate(p.end_date ?? "");
                                     setCreateTotalHours(p.total_hours ?? "");
                                     setCreatePerDay(p.per_day ?? "");
-                                    setCreateDepartment(p.source ?? "");
-                                    setEditDepartment(p.source ?? "");
+                                    setCreateDepartment(p.department ?? "");
+                                    setEditDepartment(p.department ?? "");
                                     setCreateBIMLead(p.bim_lead ?? "");
                                     setEditBIMLead(p.bim_lead ?? "");
                                     setCreateBIMCoOrdinator(
