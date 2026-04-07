@@ -3,6 +3,7 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import api from "../../lib/api";
+import { resolveVendorTaskAssigneeName, type Employee as VendorRosterEmployee } from "./MytaskV";
 import Upload from "../../assets/ProjectManager/MyTask/Upload.svg";
 import ImageIcon from "../../assets/ProjectManager/MyTask/image.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
@@ -135,11 +136,7 @@ const STATUS_OPTIONS: { value: "todo" | "in_progress" | "completed"; label: stri
 ];
 
 function shouldHideInProgressInDropdown(status: StatusKey): boolean {
-  return (
-    status === "completed" ||
-    status === "approved" ||
-    status === "rejected"
-  );
+  return status === "approved" || status === "rejected";
 }
 
 function isStatusOptionDisabled(
@@ -147,6 +144,11 @@ function isStatusOptionDisabled(
   option: "todo" | "in_progress" | "completed",
 ): boolean {
   if (current === "todo" && option === "completed") return true;
+  if (
+    (current === "completed" || current === "approved") &&
+    (option === "todo" || option === "in_progress")
+  )
+    return true;
   return false;
 }
 
@@ -369,21 +371,9 @@ export default function MytaskViewV() {
 
   const resolveAssignedName = (): string => {
     if (!task) return "—";
-    if (task.assigned_full_name && task.assigned_full_name.trim() !== "") {
-      return task.assigned_full_name;
-    }
-    const rawId =
-      task.assign_to ??
-      (taskRecord.assigned_to as string | number | undefined) ??
-      "";
-    const idNum = typeof rawId === "number" ? rawId : Number(rawId);
-    if (!Number.isNaN(idNum) && vendorResourceProfiles.length > 0) {
-      const emp = vendorResourceProfiles.find((e) => e.id === idNum);
-      if (emp?.full_name) return emp.full_name;
-    }
-    return typeof rawId === "string" && rawId.trim() !== ""
-      ? String(rawId)
-      : "—";
+    const roster = vendorResourceProfiles as VendorRosterEmployee[];
+    const name = resolveVendorTaskAssigneeName(task, roster);
+    return name.trim() !== "" ? name : "—";
   };
 
   return (

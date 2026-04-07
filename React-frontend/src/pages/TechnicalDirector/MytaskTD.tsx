@@ -12,6 +12,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
+import toast from "react-hot-toast";
 import api from "../../lib/api";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
@@ -1103,6 +1104,21 @@ export default function MytaskTD() {
     taskId: number,
     newStatus: "todo" | "in_progress" | "completed",
   ) => {
+    const task =
+      list.find((t) => t.id === taskId) ??
+      safeLocal.find((t) => t.id === taskId);
+    if (!task) return;
+
+    const current = normalizeStatus(statusOverrides[taskId] ?? task.status);
+    if (current === "todo" && newStatus === "completed") {
+      toast.error("Move the task to In Progress before marking it completed.");
+      return;
+    }
+    if (current === "completed" && newStatus !== "completed") {
+      toast.error("Completed tasks cannot be moved.");
+      return;
+    }
+
     const label = statusToLabel(newStatus);
     setStatusOverrides((prev) => ({ ...prev, [taskId]: label }));
 
@@ -1111,9 +1127,6 @@ export default function MytaskTD() {
       in_progress: "InProgress",
       completed: "Completed",
     };
-    const task =
-      list.find((t) => t.id === taskId) ??
-      safeLocal.find((t) => t.id === taskId);
 
     setList((prev) =>
       prev.map((t) =>

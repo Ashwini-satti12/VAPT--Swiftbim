@@ -5,6 +5,7 @@ import {
     useLocation,
     useNavigate,
 } from "react-router-dom";
+import toast from "react-hot-toast";
 import api from "../../lib/api";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
@@ -723,6 +724,16 @@ export default function MytaskBM() {
     const handleMoveTask = async (taskId: number, newStatus: "todo" | "in_progress" | "completed") => {
         const task = list.find(t => t.id === taskId);
         if (!task) return;
+
+        const current = normalizeStatus(task.status, task.Approval);
+        if (current === "todo" && newStatus === "completed") {
+            toast.error("Move the task to In Progress before marking it completed.");
+            return;
+        }
+        if (current === "completed" && newStatus !== "completed") {
+            toast.error("Completed tasks cannot be moved.");
+            return;
+        }
 
         const isOutsource = task.source === "Outsource";
         const projectId = task.projectid || projects.find(p => p.project_name === task.project_name)?.id;

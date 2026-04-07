@@ -906,8 +906,8 @@ export default function TeamtaskBL() {
                 toast.error("Move the task to In Progress before marking it completed.");
                 return;
             }
-            if (current === "completed" && newStatus === "in_progress") {
-                toast.error("Completed tasks cannot be moved back to In Progress here.");
+            if (current === "completed" && newStatus !== "completed") {
+                toast.error("Completed tasks cannot be moved.");
                 return;
             }
         }

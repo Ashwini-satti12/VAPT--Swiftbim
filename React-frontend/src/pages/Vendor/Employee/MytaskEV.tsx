@@ -578,6 +578,14 @@ export default function MytaskEV() {
         taskId: number,
         newStatus: "todo" | "in_progress" | "completed"
     ) => {
+        const taskRow = list.find((t) => t && t.id === taskId);
+        if (taskRow) {
+            const current = getEffectiveStatus(taskRow);
+            if (current === "completed" && newStatus !== "completed") {
+                toast.error("Completed tasks cannot be moved.");
+                return;
+            }
+        }
         setList((prev) =>
             prev.map((t) => (t && t.id === taskId ? { ...t, status: statusMap[newStatus] } : t))
         );
