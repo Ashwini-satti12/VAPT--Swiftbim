@@ -13,7 +13,9 @@ import threedot from "../../assets/ProjectManager/project/threedot.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
-import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
+import { FiUploadCloud, FiPaperclip, FiGrid, FiMenu } from "react-icons/fi";
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+
 
 const nameToId = (name: string, employeesList: Employee[]) => {
   if (!name || name === "Nothing Selected" || name === "Other")
@@ -32,7 +34,119 @@ const namesToIds = (names: string[], employeesList: Employee[]) => {
 };
 
 /** True when description has visible text (empty string and empty HTML are treated as missing). */
+function CustomDropdown({
+  options,
+  value,
+  onChange,
+  placeholder,
+  className = "",
+  styleType = "form",
+  menuMaxHeightClass = "max-h-[220px]",
+  direction = "down",
+}: {
+  options: string[];
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  className?: string;
+  styleType?: "form" | "header" | "table";
+  menuMaxHeightClass?: string;
+  direction?: "up" | "down";
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, bottom: 0 });
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      if (dropdownRef.current && !dropdownRef.current.contains(target) && menuRef.current && !menuRef.current.contains(target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && dropdownRef.current) {
+      const updatePosition = () => {
+        if (dropdownRef.current) {
+          const rect = dropdownRef.current.getBoundingClientRect();
+          setCoords({
+            top: rect.bottom,
+            left: rect.left,
+            width: rect.width,
+            bottom: window.innerHeight - rect.top,
+          });
+        }
+      };
+      updatePosition();
+      window.addEventListener("scroll", updatePosition, true);
+      window.addEventListener("resize", updatePosition);
+      return () => {
+        window.removeEventListener("scroll", updatePosition, true);
+        window.removeEventListener("resize", updatePosition);
+      };
+    }
+  }, [isOpen]);
+
+  const isPlaceholder = !value || value === placeholder;
+
+  return (
+    <div className={`relative ${className}`} ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-md transition-all cursor-pointer font-Gantari text-[13px] sm:text-[14px] border-0 outline-none min-w-0 ${styleType === "header" ? "bg-[#F2F2F2]" : "bg-[#F2F3F4]"}`}
+      >
+        <span className={`truncate text-left ${isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535] font-semibold"}`}>
+          {isPlaceholder ? placeholder : value}
+        </span>
+        <img
+          src={ArrowDown}
+          alt=""
+          className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""} ${isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          ref={menuRef}
+          className="fixed z-[9999] bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden"
+          style={{
+            width: coords.width,
+            left: coords.left,
+            ...(direction === "up" ? { bottom: coords.bottom + 4 } : { top: coords.top + 4 }),
+          }}
+        >
+          <div className={`flex flex-col py-1 overflow-y-auto ${menuMaxHeightClass} custom-scrollbar`}>
+            {options.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  onChange(option);
+                  setIsOpen(false);
+                }}
+                className={`w-full px-4 py-2 text-left text-[13px] sm:text-[14px] font-Gantari transition-colors hover:bg-[#F2F2F2] cursor-pointer ${value === option ? "text-[#DD4342] bg-[#F2F2F2]" : "text-[#8B8B8B] hover:text-[#353535]"}`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function hasProjectDescriptionContent(raw: string | undefined): boolean {
+
   if (raw == null) return false;
   const text = raw
     .replace(/<[^>]*>?/gm, "")
@@ -1917,31 +2031,68 @@ export default function ProjectsTD() {
         ) : (
           <>
             {/* Dashboard Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 px-1">
-              <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
-                {title}
-              </h2>
-              {canCreate && (
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(true)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
-                >
-                  <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
-                  Create Project
-                </button>
-              )}
+            <div className="sticky top-0 z-30 bg-white mb-2 sm:mb-4 sm:mt-0 overflow-visible px-2 sm:px-1">
+              <div className="flex flex-col xl:flex-row w-full xl:items-center justify-between gap-3 overflow-visible py-2">
+                <div className="flex items-center justify-between w-full xl:w-auto">
+                  <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
+                    {title}
+                  </h2>
+                </div>
+                <div className="flex flex-col sm:flex-row flex-1 items-stretch sm:items-center justify-end gap-3 min-w-0 overflow-visible">
+                  <div className="flex flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 px-0.5 custom-scrollbar min-w-0">
+                    {canCreate && (
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateModal(true)}
+                        className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm hover:brightness-110"
+                      >
+                        Create Project
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowInactiveModal(true)}
+                      className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm hover:brightness-110"
+                    >
+                      Manage Deactive
+                    </button>
+                    <div className="shrink-0">
+                      <CustomDropdown
+                        options={["All", "In House", "Outsource"]}
+                        value={typeFilter}
+                        onChange={(val) => setTypeFilter(val)}
+                        placeholder="Type"
+                        className="w-[100px] sm:w-[130px]"
+                        styleType="header"
+                        direction="down"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
+
 
             {/* Dashboard Content with Scrollbar */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-4 pl-4 pr-1 custom-scrollbar">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredList.length === 0 ? (
-                  <div className="col-span-full bg-slate-50 rounded-md border border-dashed border-slate-300 p-10 text-center text-slate-500">
-                    No projects found.
-                  </div>
-                ) : (
-                  filteredList.map((p) => {
+                {(() => {
+                  const typeFiltered = typeFilter === "All"
+                    ? list
+                    : list.filter(p => p.source === typeFilter);
+
+                  const filteredList = typeFiltered;
+
+                  if (filteredList.length === 0) {
+                    return (
+                      <div className="col-span-full bg-slate-50 rounded-md border border-dashed border-slate-300 p-10 text-center text-slate-500">
+                        No projects found.
+                      </div>
+                    );
+                  }
+
+                  return filteredList.map((p) => {
+
                     // Use data directly from projects table
                     const progress = Math.round(p.progress ?? 0);
 
@@ -2283,14 +2434,15 @@ export default function ProjectsTD() {
                           </div>
                         </div>
                       </div>
-                    );
-                  })
-                )}
+                      );
+                    });
+                  })()}
+                </div>
               </div>
-            </div>
-          </>
-        )}
-      </div>
+            </>
+          )}
+        </div>
+
 
       {/* Create Project Modal */}
       {showCreateModal && (

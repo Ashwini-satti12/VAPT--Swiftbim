@@ -187,13 +187,14 @@ export default function AddConsultantBL() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-2 bg-white">
-      <div className="max-w-[1174px] mx-auto">
-        <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
+    <div className="flex flex-col h-full bg-white overflow-hidden">
+      {/* Fixed Header Section */}
+      <div className="sticky top-0 z-50 bg-white px-4 sm:px-8 py-4 sm:py-6 border-b border-[#F0F0F0]">
+        <div className="max-w-[1174px] mx-auto flex items-center justify-between relative">
           <button
             type="button"
             onClick={() => navigate('/bl/consultants')}
-            className="p-2 rounded-md bg-[#F2F2F2] text-[#616161] transition-all cursor-pointer"
+            className="p-2 rounded-md bg-[#F2F2F2] text-[#616161] transition-all cursor-pointer hover:bg-[#E8E8E8]"
             title="Back"
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
@@ -203,6 +204,11 @@ export default function AddConsultantBL() {
           </h3>
           <div className="w-10" />
         </div>
+      </div>
+
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 custom-scrollbar">
+        <div className="max-w-[1174px] mx-auto">
 
         <form onSubmit={handleAddSubmit} className="space-y-6">
           {addError && (
@@ -369,6 +375,7 @@ export default function AddConsultantBL() {
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );
