@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import toast from "react-hot-toast";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -334,20 +335,20 @@ export default function ManageLeave() {
   const handleApproveBackend = async (row: LeaveEntry) => {
     try {
       await api.post(`/api/leave/applications/${row.id}/approve`);
+      toast.success("Approved successfully");
       updateLeaveStatus(row.id, "Approved");
     } catch (err) {
-      console.error("Failed to approve leave", err);
-      alert("Failed to approve leave. Please try again.");
+      toast.error("Failed to approve leave. Please try again.");
     }
   };
 
   const handleRejectBackend = async (row: LeaveEntry) => {
     try {
       await api.post(`/api/leave/applications/${row.id}/reject`);
+      toast.error("Rejected successfully");
       updateLeaveStatus(row.id, "Rejected");
     } catch (err) {
-      console.error("Failed to reject leave", err);
-      alert("Failed to reject leave. Please try again.");
+      toast.error("Failed to reject leave. Please try again.");
     }
   };
 
@@ -639,6 +640,7 @@ export default function ManageLeave() {
                                 type="button"
                                 onClick={() => handleView(row)}
                                 className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DD4242] text-white rounded-md font-medium text-[12px] cursor-pointer"
+                                title="View"
                               >
                                 <img
                                   src={viewIcon}

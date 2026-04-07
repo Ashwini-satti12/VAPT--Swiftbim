@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import toast from "react-hot-toast";
 import { useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -386,6 +387,7 @@ export default function ManageLeavePM() {
         console.error("Failed to refresh leaves after apply.", err);
       }
 
+      toast.success("Applied successfully");
       setLeaveType("");
       setLeaveTypeId(null);
       setLeaveFrom("");
@@ -395,7 +397,7 @@ export default function ManageLeavePM() {
       setApplyModalOpen(false);
     } catch (err: any) {
       console.error("Apply leave failed", err);
-      alert(
+      toast.error(
         err?.response?.data?.message ||
           "Failed to apply leave. Please try again.",
       );
@@ -466,7 +468,7 @@ export default function ManageLeavePM() {
       );
 
       if (data.success === false) {
-        alert(data.message || "Failed to update leave.");
+        toast.error(data.message || "Failed to update leave.");
         return;
       }
 
@@ -505,10 +507,11 @@ export default function ManageLeavePM() {
         console.error("Failed to refresh leaves after edit.", err);
       }
 
+      toast.success("Updated successfully");
       handleCloseEditModal();
     } catch (err: any) {
       console.error("Update leave failed", err);
-      alert(
+      toast.error(
         err?.response?.data?.message ||
           "Failed to update leave. Please try again.",
       );
@@ -553,10 +556,11 @@ export default function ManageLeavePM() {
               : "Pending",
       }));
       setLeaves(mapped);
+      toast.error("Deleted successfully");
       setDeleteLeave(null);
     } catch (err: any) {
       console.error("Delete leave failed", err);
-      alert(err?.response?.data?.message || "Delete failed. Please try again.");
+      toast.error(err?.response?.data?.message || "Delete failed. Please try again.");
     }
   };
 
@@ -929,7 +933,8 @@ export default function ManageLeavePM() {
                               <button
                                 type="button"
                                 onClick={() => handleView(row)}
-                                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DD4242] text-white rounded-md font-medium text-[12px] "
+                                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DD4242] text-white rounded-md font-medium text-[12px] cursor-pointer"
+                                title="View"
                               >
                                 <img
                                   src={viewIcon}

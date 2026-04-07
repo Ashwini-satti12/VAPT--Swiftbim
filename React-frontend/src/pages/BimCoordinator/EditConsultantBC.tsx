@@ -100,6 +100,8 @@ export default function EditConsultantBC() {
     password: '',
     user_type: '',
     doj: '',
+    salary: '',
+    accountnumber: '',
     profile_picture: null as File | null,
     active: 'Active',
     roles: [] as string[],
@@ -177,6 +179,8 @@ export default function EditConsultantBC() {
               password: '', // Don't show password
               user_type: emp.user_type || '',
               doj: emp.doj || '',
+              salary: emp.salary || '',
+              accountnumber: emp.accountnumber || '',
               profile_picture: null,
               active: emp.active === 'active' ? 'Active' : 'Deactivate',
               roles: emp.Allpannel ? emp.Allpannel.split(',').map((r: string) => r.trim()) : [],
@@ -222,6 +226,8 @@ export default function EditConsultantBC() {
     if (form.user_type) formData.append('user_type', form.user_type);
     if (form.doj) formData.append('doj', form.doj);
     if (form.department) formData.append('department', form.department);
+    if (form.salary) formData.append('salary', form.salary);
+    if (form.accountnumber) formData.append('accountnumber', form.accountnumber);
     formData.append('active', form.active === 'Active' ? 'active' : 'inactive');
     if (form.roles.length) formData.append('roles', form.roles.join(','));
     if (form.profile_picture) {
@@ -362,6 +368,17 @@ export default function EditConsultantBC() {
                   placeholder="Select Department"
                 />
               </div>
+              <div>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number <span className="text-[#DD4342]">*</span></label>
+                <input
+                  type="text"
+                  placeholder="Enter Account Number"
+                  value={form.accountnumber}
+                  onChange={(e) => setForm((f) => ({ ...f, accountnumber: e.target.value }))}
+                  className="w-full px-4 py-2.5 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                  required
+                />
+              </div>
             </div>
 
             <div className="space-y-5">
@@ -385,6 +402,15 @@ export default function EditConsultantBC() {
                   required
                 />
               </div>
+              <div className="relative">
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
+                <CustomDropdown
+                  options={['Trainee', 'Employee']}
+                  value={form.user_type}
+                  onChange={(val) => setForm((f) => ({ ...f, user_type: val }))}
+                  placeholder="Select Type"
+                />
+              </div>
               <div>
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining</label>
                 <input
@@ -394,15 +420,17 @@ export default function EditConsultantBC() {
                   className="w-full px-4 py-2.5 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                 />
               </div>
-              {/* <div className="space-y-2">
-                <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Status</label>
-                <CustomDropdown
-                  options={['Active', 'Deactivate']}
-                  value={form.active}
-                  onChange={(val) => setForm((f) => ({ ...f, active: val }))}
-                  placeholder="Select Status"
+              <div>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Salary <span className="text-[#DD4342]">*</span></label>
+                <input
+                  type="text"
+                  placeholder="00$"
+                  value={form.salary}
+                  onChange={(e) => setForm((f) => ({ ...f, salary: e.target.value }))}
+                  className="w-full px-4 py-2.5 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                  required
                 />
-              </div> */}
+              </div>
               <div className="space-y-2">
                 <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
                 <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden transition-all focus-within:ring-1 focus-within:ring-[#D1E6FF]">
@@ -419,15 +447,6 @@ export default function EditConsultantBC() {
                     />
                   </label>
                 </div>
-              </div>
-                 <div className="relative">
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
-                <CustomDropdown
-                  options={['Trainee', 'Employee']}
-                  value={form.user_type}
-                  onChange={(val) => setForm((f) => ({ ...f, user_type: val }))}
-                  placeholder="Select Type"
-                />
               </div>
             </div>
           </div>
