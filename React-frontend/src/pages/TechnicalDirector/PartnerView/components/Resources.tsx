@@ -96,7 +96,7 @@ const Resources = ({ vendor, editable, onAdd, onEdit, onDelete }: Props) => {
                         {profile.name || `Resource #${index + 1}`}
                     </h4>
 
-                    <div className="grid grid-cols-2 gap-x-12 gap-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
                         <div>
                             <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-1">Name</label>
                             <div className="text-[14px] text-[#353535] font-Gantari bg-[#F2F2F2] px-4 py-2 rounded-[5px] min-h-[44px] flex items-center">
@@ -139,21 +139,21 @@ const Resources = ({ vendor, editable, onAdd, onEdit, onDelete }: Props) => {
                             </div>
                         </div>
 
-                        <div className="col-span-2">
+                        <div className="col-span-1 md:col-span-2">
                             <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-1">Software</label>
                             <div className="text-[14px] text-[#353535] font-Gantari bg-[#F2F2F2] px-4 py-2 rounded-[5px] min-h-[44px] flex items-center">
                                 {profile.software}
                             </div>
                         </div>
 
-                        <div className="col-span-2">
+                        <div className="col-span-1 md:col-span-2">
                             <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-1">Projects Worked On</label>
                             <div className="text-[14px] text-[#353535] font-Gantari bg-[#F2F2F2] px-4 py-2 rounded-[5px] min-h-[44px] flex items-center">
                                 {profile.projects_worked_on}
                             </div>
                         </div>
 
-                        <div className="col-span-2">
+                        <div className="col-span-1 md:col-span-2">
                             <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-1">Certificates & Projects</label>
                             {/* The backend might return a path string or JSON array, handling basic string for now based on typical output */}
                             <div className="mt-1">

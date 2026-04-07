@@ -132,13 +132,13 @@ export default function BiddingTD() {
   return (
     <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
-        <div className="flex items-center justify-between w-full md:w-auto">
-          <h2 className="text-2xl font-semibold text-[#000000]">Bidding</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0 px-4 py-2">
+        <div className="flex items-center justify-between w-full sm:w-auto">
+          <h2 className="text-xl sm:text-2xl font-semibold text-[#000000]">Bidding</h2>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <div
-            className="relative min-w-[140px] max-w-[200px] w-[150px]"
+            className="relative w-full sm:w-[150px]"
             ref={showEntriesDropdownRef}
           >
             <button
@@ -240,8 +240,8 @@ export default function BiddingTD() {
       </div>
 
       {/* Table Card */}
-      <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-        <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-220px)]">
+      <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mx-2 mb-2 sm:mx-0 sm:mb-0">
+        <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-250px)] sm:max-h-[calc(100vh-220px)]">
           {loading ? (
             <div className="flex justify-center items-center py-20">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />

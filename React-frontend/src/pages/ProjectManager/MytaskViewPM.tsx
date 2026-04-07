@@ -108,11 +108,7 @@ const STATUS_OPTIONS: { value: "todo" | "in_progress" | "completed"; label: stri
 ];
 
 function shouldHideInProgressInDropdown(status: StatusKey): boolean {
-  return (
-    status === "completed" ||
-    status === "approved" ||
-    status === "rejected"
-  );
+  return status === "approved" || status === "rejected";
 }
 
 function isStatusOptionDisabled(
@@ -120,6 +116,11 @@ function isStatusOptionDisabled(
   option: "todo" | "in_progress" | "completed",
 ): boolean {
   if (current === "todo" && option === "completed") return true;
+  if (
+    (current === "completed" || current === "approved") &&
+    (option === "todo" || option === "in_progress")
+  )
+    return true;
   return false;
 }
 
@@ -443,8 +444,8 @@ export default function MytaskViewPM() {
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">End Time</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] font-medium shrink-0 w-32">End Time</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.perferend_time || task.due_time || task.end_time
                   ? formatTimeAMPM(task.perferend_time || task.due_time || task.end_time)

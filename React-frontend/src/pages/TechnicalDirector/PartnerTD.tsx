@@ -34,67 +34,30 @@ export default function PartnerTD() {
     }
 
     return (
-        <div className="h-full min-h-0 flex flex-col flex-1 -mb-4">
+        <div className="flex-1 flex flex-col min-h-0 h-full lg:overflow-hidden overflow-visible">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 mb-6">
                 <div>
-                    <h2 className="text-[24px] font-semibold text-[#12141D] font-Gantari">Partners</h2>
-                    {/* <p className="text-sm text-slate-500 mt-1 font-gantari">View and manage approved vendor profiles — only Technical Director has bidding access</p> */}
+                    <h2 className="text-[20px] md:text-[24px] font-semibold text-[#12141D] font-Gantari">Partners</h2>
                 </div>
             </div>
 
-            {/* Search + Filter Tabs */}
-            {/* <div className="flex flex-col sm:flex-row gap-4 shrink-0 mb-6">
-                
-                <div className="relative flex-1 max-w-sm">
-                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#AEACAC]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-                    </svg>
-                    <input
-                        type="text"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        placeholder="Search by name, city, country…"
-                        className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[#AEACAC52] bg-white text-sm font-gantari text-[#353535] focus:outline-none focus:ring-2 focus:ring-[#DE3D3A]/20 shadow-sm"
-                    />
-                </div>
-
-               
-                <div className="flex items-center gap-1 bg-[#F2F2F2] rounded-xl p-1">
-                    {tabs.map(tab => (
-                        <button
-                            key={tab.value}
-                            onClick={() => setStatusFilter(tab.value)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold font-gantari transition-all ${statusFilter === tab.value
-                                ? 'bg-[#DD4342] text-white shadow-sm'
-                                : 'text-[#717171] hover:text-[#353535]'
-                                }`}
-                        >
-                            {tab.label}
-                            <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${statusFilter === tab.value ? 'bg-white/20 text-white' : 'bg-[#AEACAC]/20 text-[#717171]'}`}>
-                                {countBy(tab.value)}
-                            </span>
-                        </button>
-                    ))}
-                </div>
-            </div> */}
-
-            {/* Grid — fills remaining height; no extra bottom padding */}
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-0">
+            {/* Grid — fills remaining height; scrolling happens inside the flex container */}
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 pb-4">
                     {(() => {
                         const searchQuery = searchParams.get('q')?.toLowerCase() || "";
                         const filteredList = allList.filter(v => {
                             if (!searchQuery) return true;
                             return (v.company_name || "").toLowerCase().includes(searchQuery) ||
-                                   (v.partner_name || "").toLowerCase().includes(searchQuery) ||
-                                   (v.contact_name || "").toLowerCase().includes(searchQuery) ||
-                                   (v.contact_email || "").toLowerCase().includes(searchQuery);
+                                (v.partner_name || "").toLowerCase().includes(searchQuery) ||
+                                (v.contact_name || "").toLowerCase().includes(searchQuery) ||
+                                (v.contact_email || "").toLowerCase().includes(searchQuery);
                         });
 
                         if (filteredList.length === 0) {
                             return (
-                                <div className="col-span-full bg-white/50 backdrop-blur-sm rounded-[20px] p-12 text-center text-slate-500 border border-white/40">
+                                <div className="col-span-full bg-slate-50/50 backdrop-blur-sm rounded-[20px] p-12 text-center text-slate-500 border border-slate-100">
                                     No partners found.
                                 </div>
                             );

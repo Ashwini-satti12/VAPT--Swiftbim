@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import api from "../../lib/api";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import Group1 from "../../assets/ProjectManager/MyTask/Group1.svg";
@@ -76,7 +77,7 @@ export function FormDropdown({
 }: FormDropdownProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const q = searchQuery.trim().toLowerCase();
-    const filteredOptions = searchable && q
+    const filteredOptions = searchable && isOpen && q
         ? options.filter((opt) =>
             opt.label.toLowerCase().includes(q) ||
             String(opt.value).toLowerCase().includes(q)
@@ -86,59 +87,100 @@ export function FormDropdown({
     const displayLabel = value
         ? (options.find((o) => o.value === value)?.label ?? value)
         : label;
+
+    useEffect(() => {
+        if (isOpen && searchable) setSearchQuery("");
+    }, [isOpen, searchable]);
+
+    const setRootRef = (node: HTMLDivElement | null) => {
+        (triggerRef as React.MutableRefObject<HTMLElement | null>).current = node;
+    };
+
+    const fieldShellClass =
+        "flex w-full items-center gap-2 rounded-md border border-transparent bg-[#E8E8E8] px-3 py-2 text-left text-[14px] font-semibold font-Gantari transition-colors focus-within:border-[#AEACAC52]";
+
     return (
-        <div className="relative w-full">
-            <button
-                ref={triggerRef}
-                type="button"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onToggle();
-                }}
-                className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-[14px] cursor-pointer"
-                aria-expanded={isOpen}
-                aria-haspopup="listbox"
-                aria-label={label}
-            >
-                <span className={value ? "text-[#353535]" : "text-[#8B8B8B]"}>
-                    {displayLabel}
-                </span>
-                <img
-                    src={ArrowDown}
-                    alt="arrow"
-                    className={`ml-2  w-3 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                />
-            </button>
+        <div ref={setRootRef} className="relative w-full">
+            {isOpen && searchable ? (
+                <div className={fieldShellClass}>
+                    <input
+                        type="text"
+                        autoFocus
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => {
+                            e.stopPropagation();
+                            if (e.key === "Escape") onClose();
+                        }}
+                        placeholder={label}
+                        className="min-w-0 flex-1 border-0 bg-transparent text-[14px] text-[#353535] outline-none placeholder-[#8B8B8B]"
+                        aria-expanded={isOpen}
+                        aria-label={label}
+                        role="combobox"
+                        aria-autocomplete="list"
+                    />
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggle();
+                        }}
+                        className="shrink-0 cursor-pointer rounded p-0.5 outline-none focus-visible:ring-1 focus-visible:ring-[#AEACAC52]"
+                        aria-label="Close list"
+                    >
+                        <img
+                            src={ArrowDown}
+                            alt=""
+                            className="h-3 w-3 rotate-180 transition-transform"
+                        />
+                    </button>
+                </div>
+            ) : (
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onToggle();
+                    }}
+                    className={`${fieldShellClass} cursor-pointer outline-none focus-visible:border-[#AEACAC52]`}
+                    aria-expanded={isOpen}
+                    aria-haspopup="listbox"
+                    aria-label={label}
+                >
+                    <span className={`min-w-0 flex-1 truncate text-left ${value ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
+                        {displayLabel}
+                    </span>
+                    <img
+                        src={ArrowDown}
+                        alt=""
+                        className={`ml-auto h-3 w-3 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                    />
+                </button>
+            )}
             {isOpen && (
                 <div
                     ref={dropdownRef}
                     role="listbox"
-                    className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                    className="absolute top-full left-0 z-50 mt-0.5 w-full overflow-hidden rounded-md border border-[#E0E0E0] bg-white shadow-lg"
                 >
-                    {searchable && (
-                        <div className="px-2 pb-1">
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onClick={(e) => e.stopPropagation()}
-                                onPointerDown={(e) => e.stopPropagation()}
-                                className="w-full rounded border border-slate-200 px-2 py-1 text-xs text-slate-800 placeholder-slate-400"
-                                placeholder="Search..."
-                            />
-                        </div>
-                    )}
-                    <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
+                    <div
+                        className="min-h-0 overflow-y-auto py-1 custom-scrollbar"
+                        style={{ maxHeight: '168px' }}
+                    >
                         {filteredOptions.map((opt) => (
                             <button
                                 key={opt.value}
                                 type="button"
                                 role="option"
+                                onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => {
                                     onChange(opt.value);
+                                    if (searchable) setSearchQuery("");
                                     onClose();
                                 }}
-                                className="block w-full px-3 py-2 text-left text-[14px] text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2] first:rounded-t-lg last:rounded-b-lg cursor-pointer"
+                                className="block w-full px-4 py-2 text-left text-[14px] font-Gantari text-[#8B8B8B] transition-colors hover:bg-[#F2F2F2] hover:text-[#353535] cursor-pointer"
                             >
                                 {opt.label}
                             </button>
@@ -179,7 +221,7 @@ export function TaskDropdown({
     narrow = false,
     searchable = false,
     searchPlaceholder = "Search...",
-    maxVisibleItems = 5,
+    maxVisibleItems = 4,
 }: TaskDropdownProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const q = (searchQuery || "").trim().toLowerCase();
@@ -196,7 +238,51 @@ export function TaskDropdown({
             });
         })()
         : options;
-    const listMaxHeight = `${maxVisibleItems * 40}px`;
+
+    const menuShellClass =
+        "flex flex-col overflow-hidden rounded-md border border-[#E0E0E0] bg-white shadow-lg";
+
+    const triggerButtonClass =
+        `inline-flex items-center justify-between rounded-md border border-transparent bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`;
+
+    const triggerTextClass = `truncate font-Gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`;
+
+    const menuContent = (
+        <>
+            {searchable && (
+                <div className="shrink-0 border-b border-slate-100 bg-white p-2">
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        placeholder={searchPlaceholder}
+                        className="w-full rounded-md border border-transparent bg-[#F2F3F4] px-3 py-2 text-sm font-Gantari text-[#353535] outline-none transition-colors placeholder-[#8B8B8B] focus:border-[#AEACAC52]"
+                        aria-label={searchPlaceholder}
+                    />
+                </div>
+            )}
+            <div className="min-h-0 flex-1 overflow-y-auto py-1 custom-scrollbar">
+                {filteredOptions.map((opt, idx) => (
+                    <button
+                        key={`${opt}-${idx}`}
+                        type="button"
+                        role="option"
+                        onClick={() => {
+                            if (searchable) setSearchQuery("");
+                            onSelect(opt);
+                            onClose();
+                        }}
+                        className={`block w-full px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
+                    >
+                        {opt}
+                    </button>
+                ))}
+            </div>
+        </>
+    );
 
     return (
         <div className="relative">
@@ -207,12 +293,12 @@ export function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? (label === "Period" ? "min-w-[100px]" : "min-w-[150px]") : "min-w-[160px]"}`}
+                className={triggerButtonClass}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
-                <span className={`truncate font-Gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
+                <span className={triggerTextClass}>
                     {(label.toLowerCase() === "show entries" || label.toLowerCase() === "show") && selected && selected !== label ? (
                         <>
                             <span className="text-[14px]">Show:</span>{" "}
@@ -232,43 +318,9 @@ export function TaskDropdown({
                 <div
                     ref={dropdownRef}
                     role="listbox"
-                    className={`absolute top-full z-10 mt-1 rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 min-w-[110px]" : "left-0 min-w-[160px]"}`}
+                    className={`absolute top-full z-50 mt-1 flex max-h-[min(18rem,calc(100vh-7rem))] ${menuShellClass} ${narrow ? "right-0 min-w-[110px]" : "left-0 min-w-[160px]"}`}
                 >
-                    {searchable && (
-                        <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onPointerDown={(e) => e.stopPropagation()}
-                                onClick={(e) => e.stopPropagation()}
-                                onKeyDown={(e) => e.stopPropagation()}
-                                placeholder={searchPlaceholder}
-                                className="w-full rounded border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400"
-                                aria-label={searchPlaceholder}
-                            />
-                        </div>
-                    )}
-                    <div
-                        className="overflow-y-auto py-1 custom-scrollbar"
-                        style={{ maxHeight: listMaxHeight }}
-                    >
-                        {filteredOptions.map((opt, idx) => (
-                            <button
-                                key={`${opt}-${idx}`}
-                                type="button"
-                                role="option"
-                                onClick={() => {
-                                    if (searchable) setSearchQuery("");
-                                    onSelect(opt);
-                                    onClose();
-                                }}
-                                className={`block w-full px-4 py-2 text-left text-[14px] font-Gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535] font-semibold" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
-                            >
-                                {opt}
-                            </button>
-                        ))}
-                    </div>
+                    {menuContent}
                 </div>
             )}
         </div>
@@ -528,12 +580,7 @@ export function TaskCard({
                 : status === "in_progress"
                     ? 50
                     : 100;
-    const startStr = (task.start_date || task.Actual_start_time)
-        ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}`
-        : "—";
-    const endStr = task.due_date
-        ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
-        : "";
+
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const isCompleted = status === "completed";
@@ -558,6 +605,19 @@ export function TaskCard({
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("text/plain", task.task_name || "Task");
     };
+
+    const dateOnly = (v: string | undefined): string => {
+        if (!v) return "—";
+        const d = new Date(v);
+        if (isNaN(d.getTime())) return "—";
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
+
+    const startStr = dateOnly(task.start_date || task.Actual_start_time);
+    const endStr = dateOnly(task.due_date);
 
     return (
         <div
@@ -585,7 +645,8 @@ export function TaskCard({
                     </button>
                     {menuOpen && (
                         <div
-                            className="absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right"
+                            className={`absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right
+                                ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
                             role="menu"
                         >
                             <button
@@ -653,20 +714,20 @@ export function TaskCard({
             <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex flex-col">
                     <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
-                    <span className="text-[14px] font-medium text-[#8B8B8B]">{startStr}</span>
+                    <span className="text-[14px] font-medium text-[#8B8B8B] tracking-tight">{startStr}</span>
                 </div>
                 <div className="flex flex-col items-end gap-1">
                     <span className="text-[14px] font-medium text-[#000000]">End Date</span>
-                    <span className="text-[14px] font-medium text-[#8B8B8B]">{endStr}</span>
+                    <span className="text-[14px] font-medium text-[#8B8B8B] tracking-tight">{endStr}</span>
                 </div>
             </div>
-            <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-xs text-[#8B8B8B]">Progress</span>
-                <span className="text-xs font-medium text-[#8B8B8B]">{progress}%</span>
+            <div className="flex items-center justify-between gap-2 mb-2 text-xs text-[#8B8B8B]">
+                <span>Progress</span>
+                <span className="font-medium">{progress}%</span>
             </div>
-            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
+            <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-4">
                 <div
-                    className="h-full rounded-full bg-[#8B8B8B]"
+                    className="h-full rounded-full bg-[#8B8B8B] transition-all duration-300"
                     style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                 />
             </div>
@@ -742,13 +803,13 @@ export function TaskCard({
                     type="button"
                     draggable={false}
                     onClick={() => onViewTask?.(task)}
-                    className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer"
+                    className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer transition-colors"
                 >
                     Details
                     <img
                         src={Arrow}
                         alt="Arrow"
-                        className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
+                        className="w-2.5 h-2.5 transition-all duration-200 group-hover:translate-x-0.5 group-hover:brightness-0 group-hover:invert-[20%]"
                     />
                 </button>
             </div>
@@ -836,6 +897,17 @@ export default function MytaskBC() {
             };
 
             const task = list.find(t => t.id === taskId);
+            if (task) {
+                const bucket = getEffectiveStatus(task);
+                if (bucket === "todo" && newStatus === "completed") {
+                    toast.error("Move the task to In Progress before marking it completed.");
+                    return;
+                }
+                if (bucket === "completed" && newStatus !== "completed") {
+                    toast.error("Completed tasks cannot be moved.");
+                    return;
+                }
+            }
             const projectId = (task as any)?.projectid ?? (task as any)?.project_id;
 
             const isOutsource = task?.source === "Outsource";

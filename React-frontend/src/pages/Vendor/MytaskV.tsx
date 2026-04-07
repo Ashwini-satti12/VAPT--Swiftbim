@@ -111,6 +111,43 @@ const getProfileUrl = (path: string | undefined): string => {
   return `${apiBaseUrl}${urlPath}`;
 };
 
+/**
+ * One assignee display name for vendor tasks: prefer `assigned_to` id + roster,
+ * never show a raw numeric id; trim comma-separated API values to the first name only when id is unknown.
+ */
+export function resolveVendorTaskAssigneeName(
+  task: Task | Record<string, unknown>,
+  employeeList: Employee[],
+): string {
+  const t = task as Record<string, unknown>;
+  const rawId = t.assigned_to;
+  const idNum =
+    typeof rawId === "number"
+      ? rawId
+      : typeof rawId === "string" && /^\d+$/.test(String(rawId).trim())
+        ? Number(String(rawId).trim())
+        : NaN;
+  if (!Number.isNaN(idNum) && employeeList.length > 0) {
+    const emp = employeeList.find((e) => e.id === idNum);
+    if (emp?.full_name?.trim()) return emp.full_name.trim();
+  }
+  const nameRaw = String(t.assigned_full_name ?? "").trim();
+  if (nameRaw) {
+    if (nameRaw.includes(",")) {
+      return nameRaw.split(",")[0].trim();
+    }
+    return nameRaw;
+  }
+  const assignStr = String(t.assign_to ?? t.assignTo ?? "").trim();
+  if (!assignStr) return "";
+  if (!/^\d+$/.test(assignStr)) return assignStr;
+  if (employeeList.length > 0) {
+    const emp = employeeList.find((e) => e.id === Number(assignStr));
+    if (emp?.full_name?.trim()) return emp.full_name.trim();
+  }
+  return "";
+}
+
 export function toInputDate(v: unknown): string {
   if (v == null || v === "") return "";
   const s = String(v).trim();
@@ -185,9 +222,8 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
       t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
     ),
     dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
-    assignTo: str(
-      t.assign_to ?? t.assignTo ?? t.assigned_to ?? t.assigned_full_name ?? "",
-    ),
+    // Do not stringify numeric assigned_to here — it breaks the Assign To dropdown (shows "42" instead of name).
+    assignTo: str(t.assign_to ?? t.assignTo ?? t.assigned_full_name ?? ""),
     description: str(t.description ?? ""),
     checklist: str(t.checklist ?? ""),
   };
@@ -195,20 +231,16 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
 
 export function buildFormFromTask(task: Task, employeeList: Employee[]) {
   const base = taskToFormValues(task);
-  let assignTo = base.assignTo;
-  if (task.assigned_full_name && task.assigned_full_name.trim() !== "") {
-    assignTo = task.assigned_full_name;
-  } else {
-    const rawId =
-      (task.assign_to as string | undefined) ??
-      (task.assigned_to as number | undefined) ??
-      base.assignTo;
-    const idNum = typeof rawId === "number" ? rawId : Number(rawId || NaN);
-    if (!Number.isNaN(idNum) && employeeList.length > 0) {
-      const emp = employeeList.find((e) => e.id === idNum);
-      if (emp?.full_name) assignTo = emp.full_name;
+  const resolved = resolveVendorTaskAssigneeName(task, employeeList);
+  let assignTo = resolved;
+  if (!assignTo && base.assignTo) {
+    const n = Number(base.assignTo);
+    if (!Number.isNaN(n) && employeeList.length > 0) {
+      const emp = employeeList.find((e) => e.id === n);
+      if (emp?.full_name?.trim()) assignTo = emp.full_name.trim();
     }
   }
+  if (!assignTo) assignTo = base.assignTo;
   return { ...base, assignTo };
 }
 
@@ -469,16 +501,19 @@ export function TaskDropdown({
 function TaskCard({
   task,
   status,
+  employees = [],
   onViewTask,
   onEditTask,
   onDeleteTask,
 }: {
   task: Task;
   status: "todo" | "in_progress" | "completed";
+  employees?: Employee[];
   onViewTask?: (task: Task) => void;
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (task: Task) => void;
 }) {
+  const assigneeName = resolveVendorTaskAssigneeName(task, employees);
   const progress =
     typeof task.progress === "number"
       ? task.progress
@@ -507,7 +542,7 @@ function TaskCard({
   const isCompleted = status === "completed";
   return (
     <div
-      draggable
+      draggable={!isCompleted}
       onDragStart={handleDragStart}
       className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
@@ -628,7 +663,7 @@ function TaskCard({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1">
           <div className="flex -space-x-2">
-            {task.assigned_full_name &&
+            {assigneeName &&
               (() => {
                 const src =
                   task.assigned_to != null && task.assigned_profile_picture
@@ -639,7 +674,7 @@ function TaskCard({
                     : task.assigned_profile_picture
                       ? getProfileUrl(task.assigned_profile_picture)
                       : "";
-                const initials = task.assigned_full_name
+                const initials = assigneeName
                   .split(" ")
                   .filter(Boolean)
                   .map((p) => p[0])
@@ -649,12 +684,12 @@ function TaskCard({
                 return (
                   <div
                     className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
-                    title={`Assigned To: ${task.assigned_full_name}`}
+                    title={`Assigned To: ${assigneeName}`}
                   >
                     {src ? (
                       <img
                         src={src}
-                        alt={task.assigned_full_name}
+                        alt={assigneeName}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -762,7 +797,8 @@ export default function MytaskV() {
       selectedEmployee &&
       !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)
     ) {
-      if (t.assigned_full_name !== selectedEmployee) return false;
+      if (resolveVendorTaskAssigneeName(t, employees) !== selectedEmployee)
+        return false;
     }
     // Project filter
     if (
@@ -805,6 +841,14 @@ export default function MytaskV() {
     taskId: number,
     newStatus: "todo" | "in_progress" | "completed",
   ) => {
+    const taskRow = list.find((t) => t && t.id === taskId);
+    if (taskRow) {
+      const current = getEffectiveStatus(taskRow);
+      if (current === "completed" && newStatus !== "completed") {
+        toast.error("Completed tasks cannot be moved.");
+        return;
+      }
+    }
     // Optimistic update
     setList((prev) =>
       prev.map((t) =>
@@ -1112,6 +1156,7 @@ export default function MytaskV() {
                 key={task.id}
                 task={task}
                 status="todo"
+                employees={employees}
                 onViewTask={openViewTask}
                 onEditTask={openEditTask}
                 onDeleteTask={openDeleteTask}
@@ -1135,6 +1180,7 @@ export default function MytaskV() {
                 key={task.id}
                 task={task}
                 status="in_progress"
+                employees={employees}
                 onViewTask={openViewTask}
                 onEditTask={openEditTask}
                 onDeleteTask={openDeleteTask}
@@ -1158,6 +1204,7 @@ export default function MytaskV() {
                 key={task.id}
                 task={task}
                 status="completed"
+                employees={employees}
                 onViewTask={openViewTask}
                 onEditTask={openEditTask}
                 onDeleteTask={openDeleteTask}

@@ -471,7 +471,7 @@ function TaskCard({
   const isCompleted = status === "completed";
   return (
     <div
-      draggable
+      draggable={!isCompleted}
       onDragStart={handleDragStart}
       className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >

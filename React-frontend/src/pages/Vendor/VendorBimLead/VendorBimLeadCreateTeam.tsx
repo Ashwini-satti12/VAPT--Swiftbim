@@ -254,10 +254,10 @@ export default function VendorBimLeadCreateTeam() {
     }
 
     return (
-        <div className="h-full min-h-0 flex flex-col overflow-hidden bg-white font-gantari">
-            <div className="bg-white pb-3 flex-shrink-0 px-6 pt-6">
-                <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-[24px] font-semibold text-[#000000] font-Gantari">
+        <div className="bg-white h-full min-h-0 flex flex-col font-gantari">
+            <div className="flex-shrink-0 px-4 md:px-6 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                    <h2 className="text-[20px] md:text-[24px] font-semibold text-slate-800">
                         Teams
                     </h2>
                     <div className="flex items-center gap-3">
@@ -303,8 +303,8 @@ export default function VendorBimLeadCreateTeam() {
                 </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6 custom-scrollbar">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 md:px-6 pb-6 custom-scrollbar">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                 {displayedTeams.length === 0 ? (
                     <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-[#AEACAC52] flex flex-col items-center justify-center gap-4">
                         <p className="text-gray-500 font-medium">No teams found. Start by creating a team.</p>

@@ -17,7 +17,7 @@ const CompanyOverview = ({ vendor, editable = false, onChange }: Props) => {
     return (
         <div className="animate-fade-in">
 
-            <div className="grid grid-cols-2 gap-x-12 gap-y-8 max-w-4xl">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 max-w-4xl">
                 <div>
                     <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Number Of Employee</label>
                     {editable ? (
@@ -70,7 +70,7 @@ const CompanyOverview = ({ vendor, editable = false, onChange }: Props) => {
                     )}
                 </div>
 
-                <div className="col-span-2">
+                <div className="col-span-1 md:col-span-2">
                     <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Description</label>
                     {editable ? (
                         <textarea
