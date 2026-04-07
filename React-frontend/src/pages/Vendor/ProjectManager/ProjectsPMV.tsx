@@ -977,7 +977,7 @@ export default function ProjectsPMV() {
                                     >
                                         <p className="text-[#353535] group-hover:text-white text-[16px] font-Gantari font-semibold leading-tight text-center w-full">{stat.label}</p>
                                         <div className="flex-1 flex items-center justify-center w-full">
-                                          <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">{stat.value}</p>
+                                            <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">{stat.value}</p>
                                         </div>
                                     </button>
                                 ))}
