@@ -316,7 +316,7 @@ export default function DashboardBM() {
 
   if (loading) {
     return (
-        <div className="flex flex-col lg:h-full lg:overflow-hidden">
+      <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden">
             {/* Header and KPI Cards */}
             <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
                 <h1 className="text-xl font-medium font-gantari text-slate-800 mb-6">Dashboard</h1>
@@ -583,7 +583,7 @@ export default function DashboardBM() {
   }
 
   return (
-    <div className="flex flex-col lg:h-full lg:overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden">
       {/* Header and KPI Cards */}
       <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
         <h1 className="text-[24px] font-medium font-gantari text-slate-800 mb-6">
@@ -593,9 +593,9 @@ export default function DashboardBM() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Link
             to="/bm/mytasks"
-            className="bg-[#F2F3F4] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 cursor-pointer no-underline"
+            className="bg-[#F2F3F4] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 cursor-pointer no-underline transition-all duration-300"
           >
-            <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">
+            <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
               Total Projects
             </h3>
             <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
@@ -604,9 +604,9 @@ export default function DashboardBM() {
           </Link>
           <Link
             to="/bm/mytasks"
-            className="bg-[#F2F3F4] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 cursor-pointer no-underline"
+            className="bg-[#F2F3F4] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 cursor-pointer no-underline transition-all duration-300"
           >
-            <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">
+            <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
               Completed Projects
             </h3>
             <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
@@ -615,9 +615,9 @@ export default function DashboardBM() {
           </Link>
           <Link
             to="/bm/mytasks"
-            className="bg-[#F2F3F4] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 cursor-pointer no-underline"
+            className="bg-[#F2F3F4] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 cursor-pointer no-underline transition-all duration-300"
           >
-            <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">
+            <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
               In-Progress Task
             </h3>
             <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
@@ -626,9 +626,9 @@ export default function DashboardBM() {
           </Link>
           <Link
             to="/bm/mytasks"
-            className="bg-[#F2F3F4] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 cursor-pointer no-underline"
+            className="bg-[#F2F3F4] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 cursor-pointer no-underline transition-all duration-300"
           >
-            <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">
+            <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
               Completed Task
             </h3>
             <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
@@ -638,7 +638,7 @@ export default function DashboardBM() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4 overflow-visible lg:overflow-hidden">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4 overflow-y-auto lg:overflow-hidden pr-1 custom-scrollbar">
         {/* Today's Priority — projects with today's tasks (same as DashboardTD) */}
         <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
           <div className="mb-4 shrink-0">
@@ -751,7 +751,7 @@ export default function DashboardBM() {
                                   </p>
                                 </div>
                                 <div className="absolute top-4 right-4">
-                                  <span className="bg-[#3B82F6] text-white text-[12px] px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight">
+                                  <span className="bg-[#353535] text-white text-[12px] px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight">
                                     {task.category || "Task"}
                                   </span>
                                 </div>
