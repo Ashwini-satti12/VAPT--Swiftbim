@@ -588,7 +588,7 @@ export default function ManageLeave() {
   };
 
     return (
-        <div className="flex flex-col h-full font-gantari overflow-hidden">
+        <div className="flex flex-col h-[calc(100vh-100px)] font-gantari overflow-hidden">
             <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
                 <div className="flex flex-col flex-1 min-h-0">
                     <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">

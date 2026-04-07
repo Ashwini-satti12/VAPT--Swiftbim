@@ -814,6 +814,7 @@ export default function TeamtaskTD() {
           setDeletedIds((prev) =>
             prev.includes(deleteTask.id) ? prev : [...prev, deleteTask.id],
           );
+          toast.error("Deleted successfully");
         })
         .finally(() => {
           setDeleteTask(null);

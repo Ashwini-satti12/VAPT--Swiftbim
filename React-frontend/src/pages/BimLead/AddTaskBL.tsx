@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import api from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
@@ -383,6 +384,7 @@ export default function AddTaskBL() {
         if (pendingAttachmentDelete.type === "local") {
             removeAttachment(pendingAttachmentDelete.index);
             setPendingAttachmentDelete(null);
+            toast.error("Deleted successfully");
             return;
         }
         const stored = pendingAttachmentDelete.stored;
@@ -417,6 +419,7 @@ export default function AddTaskBL() {
             .then(() => {
                 setExistingOutputFilenames(next);
                 setPendingAttachmentDelete(null);
+                toast.error("Deleted successfully");
             })
             .catch(() => {
                 setAddError("Failed to remove attachment. Please try again.");
@@ -585,6 +588,7 @@ export default function AddTaskBL() {
                 } else {
                     await api.patch(url, payload);
                 }
+                toast.success("Updated successfully");
             } else {
                 const url = isOutsource ? "/api/vendors/vendor-tasks" : "/api/tasks";
                 const res = await api.post<{ task_id?: number; id?: number }>(
@@ -592,6 +596,7 @@ export default function AddTaskBL() {
                     payload,
                 );
                 taskId = res.data.task_id ?? res.data.id ?? null;
+                toast.success("Task added successfully");
             }
 
             if (taskId != null && attachmentFiles.length > 0) {

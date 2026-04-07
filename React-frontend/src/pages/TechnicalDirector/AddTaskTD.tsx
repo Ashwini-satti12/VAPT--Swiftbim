@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import api from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
@@ -261,6 +262,7 @@ export default function AddTaskTD() {
         if (pendingAttachmentDelete.type === "local") {
             removeAttachment(pendingAttachmentDelete.index);
             setPendingAttachmentDelete(null);
+            toast.error("Deleted successfully");
             return;
         }
         const stored = pendingAttachmentDelete.stored;
@@ -282,6 +284,7 @@ export default function AddTaskTD() {
             .then(() => {
                 setExistingOutputFilenames(next);
                 setPendingAttachmentDelete(null);
+                toast.error("Deleted successfully");
             })
             .catch(() => {
                 setAddError("Failed to remove attachment. Please try again.");
@@ -398,6 +401,7 @@ export default function AddTaskTD() {
                 .patch(`${baseEndpoint}/${editingTaskId}`, patchBody)
                 .then(() => {
                     handleFiles(editingTaskId);
+                    toast.success("Updated successfully");
                     navigate(location.state?.from === "teamtasks" ? "/td/teamtasks" : "/td/mytasks");
                 })
                 .catch((err) => {
@@ -408,6 +412,7 @@ export default function AddTaskTD() {
             api.post(baseEndpoint, payload).then((res) => {
                 if (res.data.success && res.data.task_id) {
                     handleFiles(res.data.task_id);
+                    toast.success("Task added successfully");
                     navigate(location.state?.from === "teamtasks" ? "/td/teamtasks" : "/td/mytasks");
                 }
             })

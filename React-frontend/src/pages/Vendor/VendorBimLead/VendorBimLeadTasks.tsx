@@ -277,21 +277,6 @@ export default function VendorBimLeadTasks() {
       .finally(() => setCreateSubmitting(false));
   };
 
-  const handleStatusChange = (taskId: number, newStatus: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)),
-    );
-    api
-      .patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
-        status: newStatus,
-      })
-      .then(() => toast.success("Status updated"))
-      .catch(() => {
-        toast.error("Failed to update status");
-        fetchTasks();
-      });
-  };
-
   const deleteAttachment = (index: number) => {
     setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
   };
@@ -414,6 +399,39 @@ export default function VendorBimLeadTasks() {
     return "todo";
   };
 
+  /** Kanban drag-and-drop: same API as status change, no success toast per move. */
+  const handleMoveTask = (
+    taskId: number,
+    newBucket: "todo" | "in_progress" | "completed",
+  ) => {
+    const taskRow = tasks.find((t) => t.id === taskId);
+    if (taskRow) {
+      const current = normalizeStatus(taskRow.status);
+      if (current === "completed" && newBucket !== "completed") {
+        toast.error("Completed tasks cannot be moved.");
+        return;
+      }
+      if (current === newBucket) return;
+    }
+    const statusMap = {
+      todo: "Todo",
+      in_progress: "InProgress",
+      completed: "Completed",
+    } as const;
+    const apiStatus = statusMap[newBucket];
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: apiStatus } : t)),
+    );
+    api
+      .patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
+        status: apiStatus,
+      })
+      .catch(() => {
+        toast.error("Failed to update status");
+        fetchTasks();
+      });
+  };
+
   const tasksByStatus = {
     todo: tasks.filter((t) => normalizeStatus(t.status) === "todo"),
     in_progress: tasks.filter(
@@ -529,7 +547,16 @@ export default function VendorBimLeadTasks() {
           {(["todo", "in_progress", "completed"] as const).map((bucket) => (
             <div
               key={bucket}
-              className="space-y-3 min-h-[120px] rounded-lg p-1"
+              className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent p-1 transition-colors"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const taskId = Number(e.dataTransfer.getData("taskId"));
+                if (!Number.isNaN(taskId)) handleMoveTask(taskId, bucket);
+              }}
             >
               {displayedTasksByStatus[bucket].map((task) => {
                 const progress =
@@ -538,10 +565,20 @@ export default function VendorBimLeadTasks() {
                     : normalizeStatus(task.status) === "in_progress"
                       ? 50
                       : 100;
+                const isCompletedCol = normalizeStatus(task.status) === "completed";
                 return (
                   <div
                     key={task.id}
-                    className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative font-gantari"
+                    draggable={!isCompletedCol}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("taskId", String(task.id));
+                      e.dataTransfer.effectAllowed = "move";
+                      e.dataTransfer.setData(
+                        "text/plain",
+                        task.task_name || "Task",
+                      );
+                    }}
+                    className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative font-gantari ${isCompletedCol ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
                   >
                     <div className="flex justify-between items-start mb-2 gap-2">
                       <h4 className="font-semibold text-slate-900 text-[18px] md:text-xl truncate font-Gantari flex-1">
@@ -552,6 +589,8 @@ export default function VendorBimLeadTasks() {
                         ref={openMenuTaskId === task.id ? cardMenuRef : null}
                       >
                         <button
+                          type="button"
+                          draggable={false}
                           onClick={() =>
                             setOpenMenuTaskId(
                               openMenuTaskId === task.id ? null : task.id,
@@ -568,6 +607,8 @@ export default function VendorBimLeadTasks() {
                         {openMenuTaskId === task.id && (
                           <div className="absolute top-full mt-1 right-0 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out font-Gantari">
                             <button
+                              type="button"
+                              draggable={false}
                               onClick={() => handleViewAction(task)}
                               className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                             >
@@ -581,6 +622,8 @@ export default function VendorBimLeadTasks() {
                               </span>
                             </button>
                             <button
+                              type="button"
+                              draggable={false}
                               onClick={() => {
                                 setSelectedTask(task);
                                 setEditForm({
@@ -619,6 +662,8 @@ export default function VendorBimLeadTasks() {
                               </span>
                             </button>
                             <button
+                              type="button"
+                              draggable={false}
                               onClick={() => {
                                 setOpenMenuTaskId(null);
                                 handleDelete(task.id);
@@ -683,6 +728,8 @@ export default function VendorBimLeadTasks() {
                         </div>
                       </div>
                       <button
+                        type="button"
+                        draggable={false}
                         onClick={() => handleViewAction(task)}
                         className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2 font-Gantari cursor-pointer"
                       >

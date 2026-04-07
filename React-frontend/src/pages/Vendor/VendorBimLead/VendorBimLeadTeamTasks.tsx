@@ -550,6 +550,38 @@ export default function VendorBimLeadTeamTasks() {
         ),
     };
 
+    const handleMoveTask = (
+        taskId: number,
+        newBucket: "todo" | "in_progress" | "completed",
+    ) => {
+        const taskRow = tasks.find((t) => t.id === taskId);
+        if (taskRow) {
+            const current = normalizeStatus(taskRow.status);
+            if (current === "completed" && newBucket !== "completed") {
+                toast.error("Completed tasks cannot be moved.");
+                return;
+            }
+            if (current === newBucket) return;
+        }
+        const statusMap = {
+            todo: "Todo",
+            in_progress: "InProgress",
+            completed: "Completed",
+        } as const;
+        const apiStatus = statusMap[newBucket];
+        setTasks((prev) =>
+            prev.map((t) => (t.id === taskId ? { ...t, status: apiStatus } : t)),
+        );
+        api
+            .patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
+                status: apiStatus,
+            })
+            .catch(() => {
+                toast.error("Failed to update status");
+                fetchData();
+            });
+    };
+
     /** Inner TaskCard component matching TD design */
     const TaskCard = ({
         task,
@@ -559,6 +591,7 @@ export default function VendorBimLeadTeamTasks() {
         status: "todo" | "in_progress" | "completed";
     }) => {
         const progress = (task as any).progress ?? (status === "todo" ? 0 : status === "in_progress" ? 50 : 100);
+        const isCompleted = normalizeStatus(task.status) === "completed";
         const [menuOpen, setMenuOpen] = useState(false);
         const menuRef = useRef<HTMLDivElement>(null);
 
@@ -574,7 +607,15 @@ export default function VendorBimLeadTeamTasks() {
         }, [menuOpen]);
 
         return (
-            <div className="rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative transition-all hover:shadow-md font-Gantari">
+            <div
+                draggable={!isCompleted}
+                onDragStart={(e) => {
+                    e.dataTransfer.setData("taskId", String(task.id));
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", task.task_name || "Task");
+                }}
+                className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative transition-all hover:shadow-md font-Gantari ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+            >
                 <div className="flex items-center justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0 pr-6">
                         <h4 className="text-[20px] font-semibold text-[#353535] truncate leading-tight">
@@ -584,6 +625,7 @@ export default function VendorBimLeadTeamTasks() {
                     <div className="absolute top-4 right-4" ref={menuRef}>
                         <button
                             type="button"
+                            draggable={false}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setMenuOpen((prev) => !prev);
@@ -596,6 +638,8 @@ export default function VendorBimLeadTeamTasks() {
                         {menuOpen && (
                             <div className="absolute top-full right-0 mt-2 z-50 min-w-[170px] bg-white/40 backdrop-blur-xl rounded-[15px] border border-[#59595980] shadow-2xl py-2.5 animate-in fade-in zoom-in duration-200 origin-top-right">
                                 <button
+                                    type="button"
+                                    draggable={false}
                                     onMouseDown={(e) => e.stopPropagation()}
                                     onClick={() => {
                                         setMenuOpen(false);
@@ -607,6 +651,8 @@ export default function VendorBimLeadTeamTasks() {
                                     <span className="text-[15px] font-medium group-hover:text-[#DD4342]">View</span>
                                 </button>
                                 <button
+                                    type="button"
+                                    draggable={false}
                                     onMouseDown={(e) => e.stopPropagation()}
                                     onClick={() => {
                                         setMenuOpen(false);
@@ -633,6 +679,8 @@ export default function VendorBimLeadTeamTasks() {
                                     <span className="text-[15px] font-medium group-hover:text-[#DD4342]">Edit</span>
                                 </button>
                                 <button
+                                    type="button"
+                                    draggable={false}
                                     onMouseDown={(e) => e.stopPropagation()}
                                     onClick={() => {
                                         setMenuOpen(false);
@@ -698,6 +746,7 @@ export default function VendorBimLeadTeamTasks() {
                     </div>
                     <button
                         type="button"
+                        draggable={false}
                         onClick={() => {
                             navigate(`/vendor-bim-lead/tasks/view/${task.id}`, { state: { task, from: "teamtask" } });
                         }}
@@ -799,7 +848,19 @@ export default function VendorBimLeadTeamTasks() {
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 md:px-6 pb-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
                     {(["todo", "in_progress", "completed"] as const).map((bucket) => (
-                        <div key={bucket} className="flex flex-col gap-4 min-h-[120px]">
+                        <div
+                            key={bucket}
+                            className="flex flex-col gap-4 min-h-[120px] rounded-lg border-2 border-dashed border-transparent p-1 transition-colors"
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                                e.dataTransfer.dropEffect = "move";
+                            }}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                const taskId = Number(e.dataTransfer.getData("taskId"));
+                                if (!Number.isNaN(taskId)) handleMoveTask(taskId, bucket);
+                            }}
+                        >
                             {displayedTasksByStatus[bucket].map((task) => (
                                 <TaskCard key={task.id} task={task} status={bucket} />
                             ))}

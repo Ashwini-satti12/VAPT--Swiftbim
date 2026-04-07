@@ -368,7 +368,7 @@ export default function EditConsultantBL() {
                                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
                                 <input
                                     type="text"
-                                    value="******** (password hidden)"
+                                    value="********"
                                     disabled
                                     className="w-full px-4 py-2 text-[14px] text-[#8B8B8B] bg-[#E8E8E8] border border-transparent rounded-[5px] font-Gantari outline-none cursor-not-allowed"
                                 />
