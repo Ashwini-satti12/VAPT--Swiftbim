@@ -187,10 +187,26 @@ function CustomDropdown({
   );
 }
 
-function hasProjectDescriptionContent(raw: string | undefined): boolean {
+function decodeHtmlEntities(value: string): string {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = value;
+  return textarea.value;
+}
 
-  if (raw == null) return false;
-  const text = raw
+function normalizeProjectDescriptionHtml(raw?: string): string {
+  if (!raw) return "";
+  let normalized = raw;
+  for (let i = 0; i < 2; i += 1) {
+    const decoded = decodeHtmlEntities(normalized);
+    if (decoded === normalized) break;
+    normalized = decoded;
+  }
+  return normalized;
+}
+
+function hasProjectDescriptionContent(raw: string | undefined): boolean {
+  const normalized = normalizeProjectDescriptionHtml(raw);
+  const text = normalized
     .replace(/<[^>]*>?/gm, "")
     .replace(/&nbsp;/gi, " ")
     .trim();
@@ -1231,7 +1247,7 @@ export default function ProjectsTD() {
                         <div
                           className="project-description-html text-[14px] font-Gantari font-medium text-[#666666] mt-4 w-full min-w-0 max-w-full leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] [&_*]:max-w-full [&_*]:whitespace-normal [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#DD4342] [&_a]:underline"
                           dangerouslySetInnerHTML={{
-                            __html: selectedProjectForView.description ?? "",
+                            __html: normalizeProjectDescriptionHtml(selectedProjectForView.description),
                           }}
                         />
                       ) : (

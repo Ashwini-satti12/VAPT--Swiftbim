@@ -64,6 +64,29 @@ interface Employee {
   address?: string;
 }
 
+function decodeHtmlEntities(value: string): string {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = value;
+  return textarea.value;
+}
+
+function normalizeProjectDescriptionHtml(raw?: string): string {
+  if (!raw) return "";
+  let normalized = raw;
+  for (let i = 0; i < 2; i += 1) {
+    const decoded = decodeHtmlEntities(normalized);
+    if (decoded === normalized) break;
+    normalized = decoded;
+  }
+  return normalized;
+}
+
+function hasProjectDescriptionContent(raw?: string): boolean {
+  const normalized = normalizeProjectDescriptionHtml(raw);
+  const text = normalized.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/gi, " ").trim();
+  return text.length > 0;
+}
+
 export default function VendorBimLeadProjects() {
   const navigate = useNavigate();
   const [list, setList] = useState<Project[]>([]);
@@ -1244,10 +1267,18 @@ export default function VendorBimLeadProjects() {
                 <h4 className="text-[18px] md:text-[20px] font-semibold text-[#000000]">
                   Project Description
                 </h4>
-                <div 
-                  className="text-[16px] font-medium text-[#666666] mt-4 leading-relaxed break-words quill-content"
-                  dangerouslySetInnerHTML={{ __html: selectedProject.description ?? "No description available" }}
-                />
+                {hasProjectDescriptionContent(selectedProject.description) ? (
+                  <div
+                    className="text-[16px] font-medium text-[#666666] mt-4 leading-relaxed break-words quill-content"
+                    dangerouslySetInnerHTML={{
+                      __html: normalizeProjectDescriptionHtml(selectedProject.description),
+                    }}
+                  />
+                ) : (
+                  <p className="text-[16px] font-medium text-[#666666] mt-4 leading-relaxed break-words">
+                    No description available
+                  </p>
+                )}
               </div>
 
               {/* Team Roles Section - aligned with Vendor overview style */}
