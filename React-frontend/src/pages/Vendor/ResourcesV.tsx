@@ -355,7 +355,7 @@ export default function ResourcesV() {
         setEditId(id);
         setActiveView("edit");
 
-        let savedPhone = emp.phone_number || "";
+        const savedPhone = emp.phone_number || "";
         let foundCode = "+91";
         let phoneWithoutCode = savedPhone;
 
@@ -575,12 +575,12 @@ export default function ResourcesV() {
                   >
                     <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
                   </button>
-                  <button
+                  {/* <button
                     onClick={() => setActiveView("add")}
                     className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
                     Add Worker
-                  </button>
+                  </button> */}
                   <button
                     onClick={() => {
                       setInviteShowSuccess(false);

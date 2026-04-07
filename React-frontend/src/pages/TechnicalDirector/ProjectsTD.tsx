@@ -13,8 +13,30 @@ import threedot from "../../assets/ProjectManager/project/threedot.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
-import { FiUploadCloud, FiPaperclip, FiGrid, FiMenu } from "react-icons/fi";
+import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+import plusIcon from "../../assets/ProjectManager/Client/plusicon.svg";
+
+const CURRENCIES = [
+  { code: "INR", symbol: "₹", label: "Indian Rupee" },
+  { code: "USD", symbol: "$", label: "US Dollar" },
+  { code: "EUR", symbol: "€", label: "Euro" },
+  { code: "GBP", symbol: "£", label: "British Pound" },
+  { code: "AED", symbol: "د.إ", label: "UAE Dirham" },
+  { code: "SAR", symbol: "﷼", label: "Saudi Riyal" },
+  { code: "QAR", symbol: "﷼", label: "Qatari Riyal" },
+  { code: "OMR", symbol: "﷼", label: "Omani Riyal" },
+  { code: "BHD", symbol: ".د.ب", label: "Bahraini Dinar" },
+  { code: "KWD", symbol: "د.ك", label: "Kuwaiti Dinar" },
+  { code: "SGD", symbol: "S$", label: "Singapore Dollar" },
+  { code: "AUD", symbol: "A$", label: "Australian Dollar" },
+  { code: "CAD", symbol: "C$", label: "Canadian Dollar" },
+  { code: "JPY", symbol: "¥", label: "Japanese Yen" },
+  { code: "CNY", symbol: "¥", label: "Chinese Yuan" },
+  { code: "MYR", symbol: "RM", label: "Malaysian Ringgit" },
+  { code: "THB", symbol: "฿", label: "Thai Baht" },
+  { code: "IDR", symbol: "Rp", label: "Indonesian Rupiah" },
+];
 
 
 const nameToId = (name: string, employeesList: Employee[]) => {
@@ -61,7 +83,12 @@ function CustomDropdown({
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
-      if (dropdownRef.current && !dropdownRef.current.contains(target) && menuRef.current && !menuRef.current.contains(target)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target) &&
+        menuRef.current &&
+        !menuRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     }
@@ -102,15 +129,27 @@ function CustomDropdown({
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-md transition-all cursor-pointer font-Gantari text-[13px] sm:text-[14px] border-0 outline-none min-w-0 ${styleType === "header" ? "bg-[#F2F2F2]" : "bg-[#F2F3F4]"}`}
+        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-2 transition-all outline-none font-Gantari min-w-0 ${
+          styleType === "header"
+            ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[12px] sm:text-[14px] font-semibold"
+            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[12px] sm:text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${
+                isOpen ? "!border-[#AEACAC52]" : ""
+              }`
+        }`}
       >
-        <span className={`truncate text-left ${isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535] font-semibold"}`}>
+        <span
+          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+            isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535]"
+          }`}
+        >
           {isPlaceholder ? placeholder : value}
         </span>
         <img
           src={ArrowDown}
-          alt=""
-          className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""} ${isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
+          alt="arrow"
+          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${
+            isOpen ? "rotate-180" : ""
+          } ${isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
         />
       </button>
 
@@ -121,10 +160,14 @@ function CustomDropdown({
           style={{
             width: coords.width,
             left: coords.left,
-            ...(direction === "up" ? { bottom: coords.bottom + 4 } : { top: coords.top + 4 }),
+            ...(direction === "up"
+              ? { bottom: coords.bottom + 4 }
+              : { top: coords.top + 4 }),
           }}
         >
-          <div className={`flex flex-col py-1 overflow-y-auto ${menuMaxHeightClass} custom-scrollbar`}>
+          <div
+            className={`flex flex-col py-1 overflow-y-auto ${menuMaxHeightClass} custom-scrollbar`}
+          >
             {options.map((option) => (
               <button
                 key={option}
@@ -133,9 +176,29 @@ function CustomDropdown({
                   onChange(option);
                   setIsOpen(false);
                 }}
-                className={`w-full px-4 py-2 text-left text-[13px] sm:text-[14px] font-Gantari transition-colors hover:bg-[#F2F2F2] cursor-pointer ${value === option ? "text-[#DD4342] bg-[#F2F2F2]" : "text-[#8B8B8B] hover:text-[#353535]"}`}
+                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${
+                  value === option
+                    ? "text-[#353535] bg-[#F2F2F2]"
+                    : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                }`}
               >
-                {option}
+                <span className="truncate min-w-0">{option}</span>
+                {value === option && (
+                  <svg
+                    className="w-4 h-4 shrink-0 text-[#353535]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                )}
               </button>
             ))}
           </div>
@@ -145,10 +208,26 @@ function CustomDropdown({
   );
 }
 
-function hasProjectDescriptionContent(raw: string | undefined): boolean {
+function decodeHtmlEntities(value: string): string {
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = value;
+  return textarea.value;
+}
 
-  if (raw == null) return false;
-  const text = raw
+function normalizeProjectDescriptionHtml(raw?: string): string {
+  if (!raw) return "";
+  let normalized = raw;
+  for (let i = 0; i < 2; i += 1) {
+    const decoded = decodeHtmlEntities(normalized);
+    if (decoded === normalized) break;
+    normalized = decoded;
+  }
+  return normalized;
+}
+
+function hasProjectDescriptionContent(raw: string | undefined): boolean {
+  const normalized = normalizeProjectDescriptionHtml(raw);
+  const text = normalized
     .replace(/<[^>]*>?/gm, "")
     .replace(/&nbsp;/gi, " ")
     .trim();
@@ -313,6 +392,7 @@ interface Project {
   bidding_end_date?: string;
   source?: string;
   document_attachment?: string;
+  currency?: string;
 }
 
 interface Milestone {
@@ -349,6 +429,8 @@ export default function ProjectsTD() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createBudget, setCreateBudget] = useState("");
+  const [createCurrency, setCreateCurrency] = useState("INR");
+  const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
   const [createModuleName, setCreateModuleName] = useState("");
   const [createClientName, setCreateClientName] = useState("");
   const [showOtherClient, setShowOtherClient] = useState(false);
@@ -433,6 +515,10 @@ export default function ProjectsTD() {
   const [vendorResourceProfiles, setVendorResourceProfiles] = useState<
     Employee[]
   >([]);
+
+  const [typeFilter, setTypeFilter] = useState<
+    "All" | "In House" | "Outsource"
+  >("All");
 
   // Profile modal state
   const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
@@ -565,6 +651,7 @@ export default function ProjectsTD() {
       description: str(r.description),
       source: str(r.source),
       document_attachment: str(r.document_attachment),
+      currency: str(r.currency) || "INR",
     };
   };
 
@@ -618,33 +705,46 @@ export default function ProjectsTD() {
           source: "Outsource" as const,
         }));
 
-        // Map res1 (Internal)
-        const p1 = rawP1.map((p) => {
+        const vendorMainProjectIds = new Set<number>(
+          rawP2
+            .map((p) => Number((p as { main_project_id?: unknown }).main_project_id))
+            .filter((id) => Number.isFinite(id) && id > 0),
+        );
+        const vendorProjectNames = new Set<string>(
+          rawP2
+            .map((p) => String(p.project_name ?? "").trim().toLowerCase())
+            .filter(Boolean),
+        );
+
+        // Map res1 (main projects):
+        // - always keep in-house
+        // - keep outsource only when it is not represented in vendor_projects yet
+        //   (prevents duplicates while preserving pending outsource rows)
+        const p1 = rawP1
+          .map((p) => {
           const mapped = mapApiProjectToProject(p);
           // If department is "Submission Deadline", it's an Outsource project
           const isOutsource = mapped.department === "Submission Deadline";
+          const source: "Outsource" | "In House" = isOutsource
+            ? "Outsource"
+            : "In House";
           return {
             ...mapped,
-            source: (isOutsource ? "Outsource" : "In House") as const,
+            source,
           };
-        });
+          })
+          .filter((p) => {
+            if (p.source !== "Outsource") return true;
+            const byId = vendorMainProjectIds.has(Number(p.id));
+            const byName = vendorProjectNames.has(
+              String(p.project_name ?? "").trim().toLowerCase(),
+            );
+            return !byId && !byName;
+          });
 
-        // Deduplicate: If a project exists in both, prefer the "Outsource" version 
-        // from vendor API as it likely has more up-to-date vendor-specific info.
-        // We match by project_name.
-        const mergedMap = new Map<string, any>();
-        
-        // Add internal projects first
-        p1.forEach(p => {
-          if (p.project_name) mergedMap.set(p.project_name.toLowerCase(), p);
-        });
-        
-        // Override with vendor projects (the Outsource versions)
-        p2.forEach(p => {
-          if (p.project_name) mergedMap.set(p.project_name.toLowerCase(), p);
-        });
-
-        setList(Array.from(mergedMap.values()));
+        // At this point p1 contains in-house only and p2 contains outsource only.
+        // Do not dedupe by project_name; different projects can legitimately share names.
+        setList([...p1, ...p2]);
       })
       .catch(() => setList([]))
       .finally(() => setLoading(false));
@@ -1172,7 +1272,7 @@ export default function ProjectsTD() {
                         <div
                           className="project-description-html text-[14px] font-Gantari font-medium text-[#666666] mt-4 w-full min-w-0 max-w-full leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] [&_*]:max-w-full [&_*]:whitespace-normal [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#DD4342] [&_a]:underline"
                           dangerouslySetInnerHTML={{
-                            __html: selectedProjectForView.description ?? "",
+                            __html: normalizeProjectDescriptionHtml(selectedProjectForView.description),
                           }}
                         />
                       ) : (
@@ -2071,23 +2171,25 @@ export default function ProjectsTD() {
                       <button
                         type="button"
                         onClick={() => setShowCreateModal(true)}
-                        className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm hover:brightness-110"
+                        className="flex items-center gap-1 sm:gap-2 shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
                       >
+                        <img
+                          src={plusIcon}
+                          alt="Add"
+                          className="w-3.5 h-3.5 sm:w-4 sm:h-4"
+                        />
                         Create Project
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => setShowInactiveModal(true)}
-                      className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm hover:brightness-110"
-                    >
-                      Manage Deactive
-                    </button>
                     <div className="shrink-0">
                       <CustomDropdown
                         options={["All", "In House", "Outsource"]}
                         value={typeFilter}
-                        onChange={(val) => setTypeFilter(val)}
+                        onChange={(val) =>
+                          setTypeFilter(
+                            val as "All" | "In House" | "Outsource",
+                          )
+                        }
                         placeholder="Type"
                         className="w-[100px] sm:w-[130px]"
                         styleType="header"
@@ -2104,13 +2206,12 @@ export default function ProjectsTD() {
             <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-4 pl-4 pr-1 custom-scrollbar">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(() => {
-                  const typeFiltered = typeFilter === "All"
-                    ? list
-                    : list.filter(p => p.source === typeFilter);
+                  const displayList =
+                    typeFilter === "All"
+                      ? filteredList
+                      : filteredList.filter((p) => p.source === typeFilter);
 
-                  const filteredList = typeFiltered;
-
-                  if (filteredList.length === 0) {
+                  if (displayList.length === 0) {
                     return (
                       <div className="col-span-full bg-slate-50 rounded-md border border-dashed border-slate-300 p-10 text-center text-slate-500">
                         No projects found.
@@ -2118,7 +2219,7 @@ export default function ProjectsTD() {
                     );
                   }
 
-                  return filteredList.map((p) => {
+                  return displayList.map((p) => {
 
                     // Use data directly from projects table
                     const progress = Math.round(p.progress ?? 0);
@@ -2249,6 +2350,7 @@ export default function ProjectsTD() {
                                           ? `${p.budget}`
                                           : "Fetching...",
                                       );
+                                      setCreateCurrency(p.currency || "INR");
                                       setCreateModuleName(p.module_name ?? "");
                                       setCreateClientName(
                                         clientsList.find(
@@ -2473,7 +2575,7 @@ export default function ProjectsTD() {
 
       {/* Create Project Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
           <div className="bg-white rounded-2xl border-2 border-gray-100 max-w-4xl w-full flex flex-col max-h-[85vh] overflow-hidden shadow-xl">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-8 py-6 border-b border-gray-100">
@@ -2482,6 +2584,7 @@ export default function ProjectsTD() {
                 onClick={() => {
                   setShowCreateModal(false);
                   setCreateError("");
+                  setCurrencyDropdownOpen(false);
                 }}
                 className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
                 title="Close"
@@ -2511,6 +2614,7 @@ export default function ProjectsTD() {
                   const formData = new FormData();
                   formData.append("project_name", createName.trim());
                   if (createBudget) formData.append("budget", createBudget);
+                  formData.append("currency", createCurrency);
                   if (createModuleName) formData.append("modules", createModuleName);
 
                   const clientId = (() => {
@@ -2562,6 +2666,8 @@ export default function ProjectsTD() {
                         setShowCreateModal(false);
                         setCreateName("");
                         setCreateBudget("");
+                        setCreateCurrency("INR");
+                        setCurrencyDropdownOpen(false);
                         setCreateModuleName("");
                         setCreateClientName("");
                         setShowOtherClient(false);
@@ -2594,8 +2700,48 @@ export default function ProjectsTD() {
                           api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects")
                         ])
                           .then(([res1, res2]) => {
-                            const p1 = (res1.data.projects ?? []).map(mapApiProjectToProject);
-                            const p2 = (res2.data.projects ?? []).map(mapApiProjectToProject);
+                            const rawP1 = res1.data.projects ?? [];
+                            const rawP2 = res2.data.projects ?? [];
+                            const p2 = (res2.data.projects ?? []).map((p) => ({
+                              ...mapApiProjectToProject(p),
+                              source: "Outsource" as const,
+                            }));
+                            const vendorMainProjectIds = new Set<number>(
+                              rawP2
+                                .map((p) =>
+                                  Number(
+                                    (p as { main_project_id?: unknown })
+                                      .main_project_id,
+                                  ),
+                                )
+                                .filter((id) => Number.isFinite(id) && id > 0),
+                            );
+                            const vendorProjectNames = new Set<string>(
+                              rawP2
+                                .map((p) =>
+                                  String(p.project_name ?? "").trim().toLowerCase(),
+                                )
+                                .filter(Boolean),
+                            );
+                            const p1 = rawP1
+                              .map(mapApiProjectToProject)
+                              .map((p) => ({
+                                ...p,
+                                source:
+                                  p.department === "Submission Deadline"
+                                    ? ("Outsource" as const)
+                                    : ("In House" as const),
+                              }))
+                              .filter((p) => {
+                                if (p.source !== "Outsource") return true;
+                                const byId = vendorMainProjectIds.has(Number(p.id));
+                                const byName = vendorProjectNames.has(
+                                  String(p.project_name ?? "")
+                                    .trim()
+                                    .toLowerCase(),
+                                );
+                                return !byId && !byName;
+                              });
                             setList([...p1, ...p2]);
                           })
                           .catch(() => { });
@@ -2636,13 +2782,52 @@ export default function ProjectsTD() {
                     <label className="block text-[16px] font-medium text-[#000000]">
                       Budget <span className="text-[#DD4342]">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={createBudget}
-                      onChange={(e) => setCreateBudget(e.target.value)}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
-                      placeholder="Enter Project Budget"
-                    />
+                    <div className="flex gap-2">
+                      <div className="relative w-1/3">
+                        <button
+                          type="button"
+                          onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
+                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-[5px] transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] cursor-pointer ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
+                        >
+                          <span className="text-[14px] text-[#353535] font-medium truncate">
+                            {CURRENCIES.find(c => c.code === createCurrency)?.symbol} {createCurrency}
+                          </span>
+                          <img
+                            src={ArrowDown}
+                            alt="arrow"
+                            className={`w-3.5 h-3.5 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
+                          />
+                        </button>
+                        {currencyDropdownOpen && (
+                          <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                            {CURRENCIES.map((c) => (
+                              <button
+                                key={c.code}
+                                type="button"
+                                onClick={() => {
+                                  setCreateCurrency(c.code);
+                                  setCurrencyDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-2 text-[14px] transition-colors hover:bg-[#F2F2F2] flex items-center justify-between cursor-pointer ${createCurrency === c.code ? "text-[#353535] bg-[#F8F8F8] font-bold" : "text-[#8B8B8B] font-medium"}`}
+                              >
+                                {c.code}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        value={createBudget}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9.]/g, "");
+                          const parts = val.split(".");
+                          if (parts.length <= 2) setCreateBudget(val);
+                        }}
+                        className="flex-1 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                        placeholder="Enter Project Budget"
+                      />
+                    </div>
                   </div>
 
                   {/* Client Name & Project Manager */}
@@ -2938,7 +3123,7 @@ export default function ProjectsTD() {
 
       {/* Delete confirmation */}
       {deleteProject !== null && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
             {/* Close Button */}
             {/* <div className="relative flex items-center justify-center mb-10"> */}
@@ -2984,8 +3169,48 @@ export default function ProjectsTD() {
                           api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects")
                         ])
                           .then(([res1, res2]) => {
-                            const p1 = (res1.data.projects ?? []).map(mapApiProjectToProject);
-                            const p2 = (res2.data.projects ?? []).map(mapApiProjectToProject);
+                            const rawP1 = res1.data.projects ?? [];
+                            const rawP2 = res2.data.projects ?? [];
+                            const p2 = (res2.data.projects ?? []).map((p) => ({
+                              ...mapApiProjectToProject(p),
+                              source: "Outsource" as const,
+                            }));
+                            const vendorMainProjectIds = new Set<number>(
+                              rawP2
+                                .map((p) =>
+                                  Number(
+                                    (p as { main_project_id?: unknown })
+                                      .main_project_id,
+                                  ),
+                                )
+                                .filter((id) => Number.isFinite(id) && id > 0),
+                            );
+                            const vendorProjectNames = new Set<string>(
+                              rawP2
+                                .map((p) =>
+                                  String(p.project_name ?? "").trim().toLowerCase(),
+                                )
+                                .filter(Boolean),
+                            );
+                            const p1 = rawP1
+                              .map(mapApiProjectToProject)
+                              .map((p) => ({
+                                ...p,
+                                source:
+                                  p.department === "Submission Deadline"
+                                    ? ("Outsource" as const)
+                                    : ("In House" as const),
+                              }))
+                              .filter((p) => {
+                                if (p.source !== "Outsource") return true;
+                                const byId = vendorMainProjectIds.has(Number(p.id));
+                                const byName = vendorProjectNames.has(
+                                  String(p.project_name ?? "")
+                                    .trim()
+                                    .toLowerCase(),
+                                );
+                                return !byId && !byName;
+                              });
                             setList([...p1, ...p2]);
                           })
                           .catch(() => { });
@@ -3005,7 +3230,7 @@ export default function ProjectsTD() {
 
       {/* Add Payment Milestone Modal */}
       {showAddMilestoneModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full flex flex-col p-10">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center mb-10">
@@ -3064,7 +3289,7 @@ export default function ProjectsTD() {
 
               <div className="space-y-2">
                 <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
-                  Amount ($)*
+                  Amount ({CURRENCIES.find(c => c.code === currentProject?.currency)?.symbol || "$"})*
                 </label>
                 <input
                   type="number"
@@ -3147,7 +3372,7 @@ export default function ProjectsTD() {
 
       {/* Edit Project Details Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full flex flex-col max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-10 py-8 border-b border-gray-100">
@@ -3158,9 +3383,11 @@ export default function ProjectsTD() {
                   setEditDropdownOpen(null);
                   setCreateBudgetCeiling("");
                   setCreateBiddingEndDate("");
+                  setCurrencyDropdownOpen(false);
                   // Reset all form fields
                   setCreateName("");
                   setCreateBudget("");
+                  setCreateCurrency("INR");
                   setCreateModuleName("");
                   setCreateClientName("");
                   setCreateProjectManager([]);
@@ -3206,6 +3433,7 @@ export default function ProjectsTD() {
                   const formData = new FormData();
                   formData.append("project_name", createName.trim());
                   if (createBudget) formData.append("budget", createBudget);
+                  formData.append("currency", createCurrency);
                   if (createModuleName) formData.append("modules", createModuleName);
 
                   const clientId = (() => {
@@ -3308,13 +3536,48 @@ export default function ProjectsTD() {
                     <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
                       Client Budget
                     </label>
-                    <input
-                      type="text"
-                      readOnly
-                      className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-lg font-Gantari font-medium text-[#353535] cursor-not-allowed focus:outline-none focus:border-[#AEACAC52]"
-                      placeholder="Auto-fetched from contract"
-                      value={createBudget}
-                    />
+                    <div className="flex gap-2">
+                      <div className="relative w-1/3">
+                        <button
+                          type="button"
+                          onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
+                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-[5px] transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] cursor-pointer ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
+                        >
+                          <span className="text-[14px] text-[#353535] font-medium truncate">
+                            {CURRENCIES.find(c => c.code === createCurrency)?.symbol} {createCurrency}
+                          </span>
+                          <img
+                            src={ArrowDown}
+                            alt="arrow"
+                            className={`w-3.5 h-3.5 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
+                          />
+                        </button>
+                        {currencyDropdownOpen && (
+                          <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                            {CURRENCIES.map((c) => (
+                              <button
+                                key={c.code}
+                                type="button"
+                                onClick={() => {
+                                  setCreateCurrency(c.code);
+                                  setCurrencyDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-2 text-[14px] transition-colors hover:bg-[#F2F2F2] flex items-center justify-between cursor-pointer ${createCurrency === c.code ? "text-[#353535] bg-[#F8F8F8] font-bold" : "text-[#8B8B8B] font-medium"}`}
+                              >
+                                {c.code}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        readOnly
+                        className="flex-1 px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-lg font-Gantari font-medium text-[#353535] cursor-not-allowed focus:outline-none focus:border-[#AEACAC52]"
+                        placeholder="Auto-fetched from contract"
+                        value={createBudget}
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
@@ -3514,9 +3777,11 @@ export default function ProjectsTD() {
                           })()}`}
                           placeholder="Enter Outsourcing Budget"
                           value={createBudgetCeiling}
-                          onChange={(e) =>
-                            setCreateBudgetCeiling(e.target.value)
-                          }
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9.]/g, "");
+                            const parts = val.split(".");
+                            if (parts.length <= 2) setCreateBudgetCeiling(val);
+                          }}
                         />
                         {(() => {
                           const clientNum = parseBudgetValue(createBudget);
@@ -3563,9 +3828,11 @@ export default function ProjectsTD() {
                       setEditDropdownOpen(null);
                       setCreateBudgetCeiling("");
                       setCreateBiddingEndDate("");
+                      setCurrencyDropdownOpen(false);
                       // Reset all form fields
                       setCreateName("");
                       setCreateBudget("");
+                      setCreateCurrency("INR");
                       setCreateModuleName("");
                       setCreateClientName("");
                       setCreateProjectManager([]);
@@ -3611,7 +3878,7 @@ export default function ProjectsTD() {
 
       {/* All Members Modal */}
       {showAllMembersModal && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">

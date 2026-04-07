@@ -111,36 +111,20 @@ def create_app(config_class=Config):
 
     @app.route("/api/view_profile_picture/<int:emp_id>")
     def view_profile_picture(emp_id):
-        from flask import current_app, jsonify, send_file, request
+        from flask import current_app, jsonify, send_file
         import os
         import mimetypes
         from werkzeug.utils import safe_join
         from db import get_db
         
         try:
-            user_type = request.args.get("user_type")
             conn = get_db()
-            cur = conn.cursor(dictionary=True)
+            cur = conn.cursor()
+            cur.execute("SELECT profile_picture FROM employee WHERE id = %s", (emp_id,))
+            row = cur.fetchone()
             
-            row = None
-            if user_type == "vendor":
-                cur.execute("SELECT profile_picture FROM vendor_employee WHERE id = %s", (emp_id,))
-                row = cur.fetchone()
-            elif user_type == "employee":
-                cur.execute("SELECT profile_picture FROM employee WHERE id = %s", (emp_id,))
-                row = cur.fetchone()
-            else:
-                # Fallback: Try employee table first
-                cur.execute("SELECT profile_picture FROM employee WHERE id = %s", (emp_id,))
-                row = cur.fetchone()
-                
-                # If not found or no picture, try vendor_employee table
-                if not row or not row.get("profile_picture"):
-                    cur.execute("SELECT profile_picture FROM vendor_employee WHERE id = %s", (emp_id,))
-                    row = cur.fetchone()
-
             if not row or not row.get("profile_picture"):
-                return jsonify({"error": "No profile picture found for this user"}), 404
+                return jsonify({"error": "No profile picture found for this employee"}), 404
                 
             profile_picture = row["profile_picture"]
             

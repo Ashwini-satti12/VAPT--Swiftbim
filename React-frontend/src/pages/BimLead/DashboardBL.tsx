@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
+import { useAuth } from '../../contexts/AuthContext';
 
 const MONTH_NAMES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((m) =>
     new Date(2000, m, 1).toLocaleString('default', { month: 'long' })
@@ -128,6 +129,7 @@ type CelebrationEvent = {
 };
 
 export default function DashboardBL() {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<DashboardStats>(defaultStats);
     const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
@@ -160,9 +162,40 @@ export default function DashboardBL() {
                 let totalProjects = 0;
                 let completedProjects = 0;
                 try {
-                    const statsRes = await api.get<DashboardStats>('/api/dashboard/stats');
-                    totalProjects = Number(statsRes.data?.totalProjects) || 0;
-                    completedProjects = Number(statsRes.data?.completedProjects) || 0;
+                    const uid = user?.id != null ? String(user.id) : "";
+                    const [p1, p2] = await Promise.all([
+                        api
+                            .get<{ projects?: any[] }>('/api/projects')
+                            .catch(() => ({ data: { projects: [] as any[] } })),
+                        api
+                            .get<{ projects?: any[] }>('/api/vendors/vendor-projects')
+                            .catch(() => ({ data: { projects: [] as any[] } })),
+                    ]);
+
+                    const internal = Array.isArray(p1.data.projects) ? p1.data.projects : [];
+                    const vendor = Array.isArray(p2.data.projects) ? p2.data.projects : [];
+
+                    const involvedInternal = uid
+                        ? internal.filter((p: any) => {
+                            const leadId = String(p?.lead_id ?? "").trim();
+                            if (!leadId) return false;
+                            return leadId
+                                .split(',')
+                                .map((s: string) => s.trim())
+                                .filter(Boolean)
+                                .includes(uid);
+                        })
+                        : internal;
+
+                    // BIM Lead view in ProjectsBL shows outsource projects as involved (no lead_id filter).
+                    const involvedAll = [...involvedInternal, ...vendor];
+                    totalProjects = involvedAll.length;
+
+                    const progressNum = (v: any): number => {
+                        const n = typeof v === "number" ? v : Number(String(v ?? "").trim());
+                        return Number.isFinite(n) ? n : 0;
+                    };
+                    completedProjects = involvedAll.filter((p: any) => progressNum(p?.progress) >= 100).length;
                 } catch {
                     /* keep zeros */
                 }
@@ -220,7 +253,7 @@ export default function DashboardBL() {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [user?.id]);
 
     useEffect(() => { const id = setInterval(() => setNowMs(Date.now()), 1000); return () => clearInterval(id); }, []);
     useEffect(() => {

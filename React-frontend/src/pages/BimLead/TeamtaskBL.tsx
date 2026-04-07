@@ -26,7 +26,7 @@ const getApiBaseUrl = () => import.meta.env.VITE_API_URL || "";
 const getProfileUrl = (path: string | undefined): string => {
     if (!path || path.trim() === "") return "";
     if (path.startsWith("http")) return path;
-    let normalizedPath = path.replace(/\\/g, "/").trim().replace(/^\d+\s+/, "").replace(/^\/+/, "");
+    const normalizedPath = path.replace(/\\/g, "/").trim().replace(/^\d+\s+/, "").replace(/^\/+/, "");
     const apiBaseUrl = getApiBaseUrl();
     let urlPath = "";
     if (normalizedPath.startsWith("employee/")) {

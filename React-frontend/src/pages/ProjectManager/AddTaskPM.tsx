@@ -674,8 +674,8 @@ export default function AddTaskPM() {
         assign_to: addTaskForm.assignTo,
         description: addTaskForm.description,
         checklist: addTaskForm.checklist,
-        status: isEditing ? editingTask?.status : "To Do",
-        progress: isEditing ? editingTask?.progress : 0,
+        status: isEditing ? editingTask?.status : "Todo",
+        progress: isEditing ? editingTask?.status === "Completed" ? 100 : editingTask?.progress : 0,
       };
 
       let taskId = editingTaskId;

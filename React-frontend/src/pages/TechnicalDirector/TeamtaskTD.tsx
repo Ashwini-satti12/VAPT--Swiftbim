@@ -3,7 +3,7 @@ import { Link, useSearchParams, useLocation, useNavigate } from "react-router-do
 import toast from "react-hot-toast";
 import api from "../../lib/api";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
-import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
+//import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
@@ -20,7 +20,7 @@ const getApiBaseUrl = () => import.meta.env.VITE_API_URL || "";
 const getProfileUrl = (path: string | undefined): string => {
   if (!path || path.trim() === "") return "";
   if (path.startsWith("http")) return path;
-  let normalizedPath = path.replace(/\\/g, "/").trim().replace(/^\d+\s+/, "").replace(/^\/+/, "");
+  const normalizedPath = path.replace(/\\/g, "/").trim().replace(/^\d+\s+/, "").replace(/^\/+/, "");
   const apiBaseUrl = getApiBaseUrl();
   let urlPath = "";
   if (normalizedPath.startsWith("employee/")) {
@@ -220,51 +220,51 @@ interface Project {
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
-function taskToFormValues(task: Task | Record<string, unknown>): {
-  projectName: string;
-  module: string;
-  taskName: string;
-  type: string;
-  actualStartDate: string;
-  actualEndDate: string;
-  startTime: string;
-  dueTime: string;
-  assignTo: string;
-  description: string;
-  checklist: string;
-} {
-  const t = task as Record<string, unknown>;
-  const str = (v: unknown) => (v != null ? String(v) : "");
-  const dateOnly = (v: unknown) => {
-    if (v == null) return "";
-    const s = str(v);
-    if (s.length >= 10) return s.slice(0, 10);
-    return s;
-  };
-  const timeOnly = (v: unknown) => {
-    if (v == null) return "";
-    const s = str(v);
-    const match = s.match(/(\d{1,2}):(\d{2})/);
-    return match ? `${match[1].padStart(2, "0")}:${match[2]}` : s.slice(0, 5);
-  };
-  return {
-    projectName: str(t.project_name ?? t.projectName ?? ""),
-    module: str(t.module ?? t.modules_name ?? ""),
-    taskName: str(t.task_name ?? t.taskName ?? ""),
-    type: str(t.type ?? t.category ?? ""),
-    actualStartDate: dateOnly(
-      t.start_date ?? t.startDate ?? t.Actual_start_time ?? "",
-    ),
-    actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
-    startTime: timeOnly(
-      t.perferstart_time ?? t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
-    ),
-    dueTime: timeOnly(t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? ""),
-    assignTo: str(t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
-    description: str(t.description ?? ""),
-    checklist: str(t.checklist ?? ""),
-  };
-}
+//function taskToFormValues(task: Task | Record<string, unknown>): {
+//  projectName: string;
+//  module: string;
+//  taskName: string;
+//  type: string;
+//  actualStartDate: string;
+//  actualEndDate: string;
+//  startTime: string;
+//  dueTime: string;
+//  assignTo: string;
+//  description: string;
+//  checklist: string;
+//} {
+//  const t = task as Record<string, unknown>;
+//  const str = (v: unknown) => (v != null ? String(v) : "");
+//  const dateOnly = (v: unknown) => {
+//    if (v == null) return "";
+//    const s = str(v);
+//    if (s.length >= 10) return s.slice(0, 10);
+//    return s;
+//  };
+//   const timeOnly = (v: unknown) => {
+//     if (v == null) return "";
+//     const s = str(v);
+//     const match = s.match(/(\d{1,2}):(\d{2})/);
+//     return match ? `${match[1].padStart(2, "0")}:${match[2]}` : s.slice(0, 5);
+//   };
+//   return {
+//     projectName: str(t.project_name ?? t.projectName ?? ""),
+//     module: str(t.module ?? t.modules_name ?? ""),
+//     taskName: str(t.task_name ?? t.taskName ?? ""),
+//     type: str(t.type ?? t.category ?? ""),
+//     actualStartDate: dateOnly(
+//       t.start_date ?? t.startDate ?? t.Actual_start_time ?? "",
+//     ),
+//     actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
+//     startTime: timeOnly(
+//       t.perferstart_time ?? t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
+//     ),
+//     dueTime: timeOnly(t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? ""),
+//     assignTo: str(t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
+//     description: str(t.description ?? ""),
+//     checklist: str(t.checklist ?? ""),
+//   };
+// }
 
 
 function normalizeStatus(

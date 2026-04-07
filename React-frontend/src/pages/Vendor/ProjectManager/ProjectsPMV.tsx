@@ -69,6 +69,29 @@ interface Employee {
     address?: string;
 }
 
+function decodeHtmlEntities(value: string): string {
+    const textarea = document.createElement("textarea");
+    textarea.innerHTML = value;
+    return textarea.value;
+}
+
+function normalizeProjectDescriptionHtml(raw?: string): string {
+    if (!raw) return "";
+    let normalized = raw;
+    for (let i = 0; i < 2; i += 1) {
+        const decoded = decodeHtmlEntities(normalized);
+        if (decoded === normalized) break;
+        normalized = decoded;
+    }
+    return normalized;
+}
+
+function hasProjectDescriptionContent(raw?: string): boolean {
+    const normalized = normalizeProjectDescriptionHtml(raw);
+    const text = normalized.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/gi, " ").trim();
+    return text.length > 0;
+}
+
 export default function ProjectsPMV() {
     const navigate = useNavigate();
     const [list, setList] = useState<Project[]>([]);
@@ -1062,10 +1085,10 @@ export default function ProjectsPMV() {
                                 <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">
                                     Project Description
                                 </h4>
-                                {selectedProject.description ? (
+                                {hasProjectDescriptionContent(selectedProject.description) ? (
                                     <div
                                         className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 w-full min-w-0 max-w-full leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] [&_*]:max-w-full [&_*]:whitespace-normal [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#DD4342] [&_a]:underline"
-                                        dangerouslySetInnerHTML={{ __html: selectedProject.description }}
+                                        dangerouslySetInnerHTML={{ __html: normalizeProjectDescriptionHtml(selectedProject.description) }}
                                     />
                                 ) : (
                                     <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
@@ -1337,14 +1360,14 @@ export default function ProjectsPMV() {
                 ) : (
                     /* Project List */
                     <>
-                        <div className="flex items-center justify-between pb-6">
+                        {/* <div className="flex items-center justify-between pb-6">
                             <h2 className="text-[24px] font-semibold text-[#000000]">Projects</h2>
                             <button onClick={() => { setShowCreateModal(true); setSelectedMemberIds([]); }}
                                 className="flex items-center gap-2 bg-[#DD4342] text-white px-5 py-2.5 rounded-lg hover:opacity-90 transition-all font-semibold shadow-sm text-sm cursor-pointer">
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
                                 Create Project
                             </button>
-                        </div>
+                        </div> */}
                         <div className="flex-1 overflow-y-auto pt-4 pb-4 px-4 space-y-8 custom-scrollbar">
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {list.length === 0 ? (

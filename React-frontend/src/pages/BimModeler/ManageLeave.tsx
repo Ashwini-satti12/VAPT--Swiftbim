@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -319,11 +320,11 @@ export default function ManageLeave() {
     if (!leaveType || !leaveFrom || !leaveTo || !reason.trim()) return;
 
     if (leaveFrom < todayStr) {
-      alert("Leave From date cannot be in the past.");
+      toast.error("Leave From date cannot be in the past.");
       return;
     }
     if (leaveTo < leaveFrom) {
-      alert("Leave To date must be after or on Leave From date.");
+      toast.error("Leave To date must be after or on Leave From date.");
       return;
     }
 
@@ -353,7 +354,7 @@ export default function ManageLeave() {
         message?: string;
       }>("/api/leave/applications", payload);
       if (data.success === false) {
-        alert(data.message || "Failed to apply leave.");
+        toast.error(data.message || "Failed to apply leave.");
         return;
       }
 
@@ -396,6 +397,7 @@ export default function ManageLeave() {
         console.error("Failed to refresh leaves after apply", err);
       }
 
+      toast.success("Applied successfully");
       setLeaveType("");
       setLeaveTypeId(null);
       setLeaveFrom("");
@@ -404,7 +406,7 @@ export default function ManageLeave() {
       setApplyModalOpen(false);
     } catch (err: any) {
       console.error("Apply leave failed", err);
-      alert(
+      toast.error(
         err?.response?.data?.message ||
           "Failed to apply leave. Please try again.",
       );
@@ -446,11 +448,11 @@ export default function ManageLeave() {
       return;
 
     if (leaveFrom < todayStr) {
-      alert("Leave From date cannot be in the past.");
+      toast.error("Leave From date cannot be in the past.");
       return;
     }
     if (leaveTo < leaveFrom) {
-      alert("Leave To date must be after or on Leave From date.");
+      toast.error("Leave To date must be after or on Leave From date.");
       return;
     }
 
@@ -478,7 +480,7 @@ export default function ManageLeave() {
       );
 
       if (data.success === false) {
-        alert(data.message || "Failed to update leave.");
+        toast.error(data.message || "Failed to update leave.");
         return;
       }
 
@@ -513,10 +515,11 @@ export default function ManageLeave() {
         console.error("Failed to refresh leaves after edit", err);
       }
 
+      toast.success("Updated successfully");
       handleCloseEditModal();
     } catch (err: any) {
       console.error("Update leave failed", err);
-      alert(
+      toast.error(
         err?.response?.data?.message ||
           "Failed to update leave. Please try again.",
       );
@@ -568,10 +571,11 @@ export default function ManageLeave() {
         }));
         setLeaves(mapped);
       }
+      toast.error("Deleted successfully");
       setDeleteLeave(null);
     } catch (err) {
       console.error("Failed to delete leave (BIM Modeler):", err);
-      alert("Delete failed. Please try again.");
+      toast.error("Delete failed. Please try again.");
     }
   };
 
@@ -587,7 +591,7 @@ export default function ManageLeave() {
                             <button
                                 type="button"
                                 onClick={() => setApplyModalOpen(true)}
-                                className="px-4 py-2 bg-[#DD4346] text-white rounded-md text-[14px] font-gantari font-medium hover:bg-[#c43a39] transition-colors cursor-pointer"
+                                className="px-4 py-2 bg-[#DD4342] text-white rounded-md text-[14px] font-gantari font-medium transition-colors cursor-pointer"
                             >
                                 Apply Leave
                             </button>
@@ -1147,9 +1151,9 @@ export default function ManageLeave() {
                                     required
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}
-                                    rows={3}
+                                    rows={6}
                                     placeholder="Enter your reason for leave..."
-                                    className="w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] resize-none border-0 bg-[#F2F3F4]"
+                                    className="w-full min-h-[140px] px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] resize-y border-0 bg-[#F2F3F4] break-words"
                                 />
                             </div>
 
@@ -1390,9 +1394,9 @@ export default function ManageLeave() {
                                     required
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}
-                                    rows={3}
+                                    rows={6}
                                     placeholder="Enter your reason for leave..."
-                                    className="w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] resize-none border-0 bg-[#F2F3F4]"
+                                    className="w-full min-h-[140px] px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] resize-y border-0 bg-[#F2F3F4] break-words"
                                 />
                             </div>
 
@@ -1438,9 +1442,9 @@ export default function ManageLeave() {
                             </button>
                             <h3 className="text-[24px] font-medium text-[#000000]">Leave Details</h3>
                         </div>
-                        <div className="px-6 pb-6 pt-6">
+                        <div className="px-6 pb-6 pt-6 overflow-x-hidden min-w-0">
                             {/* Rows with fixed label width so colons align vertically (like second image) */}
-                            <div className="space-y-5 text-[14px] font-gantari">
+                            <div className="space-y-5 text-[14px] font-gantari min-w-0">
                                 <div className="flex items-center gap-1">
                                     <span className="w-[140px] shrink-0 font-semibold text-black">Employee Name</span>
                                     <span className="shrink-0 text-black">:</span>
@@ -1466,10 +1470,12 @@ export default function ManageLeave() {
                                     <span className="shrink-0 text-black">:</span>
                                     <span className="text-[#8B8B8B]">{selectedLeave.toDate ?? '-'}</span>
                                 </div>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-start gap-1">
                                     <span className="w-[140px] shrink-0 font-semibold text-black">Reason</span>
-                                    <span className="shrink-0 text-black">:</span>
-                                    <span className="text-[#8B8B8B]">{selectedLeave.description ?? '-'}</span>
+                                    <span className="shrink-0 text-black leading-[1.5]">:</span>
+                                    <span className="text-[#8B8B8B] min-w-0 flex-1 break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
+                                        {selectedLeave.description ?? '-'}
+                                    </span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                     <span className="w-[140px] shrink-0 font-semibold text-black">Current Status</span>
