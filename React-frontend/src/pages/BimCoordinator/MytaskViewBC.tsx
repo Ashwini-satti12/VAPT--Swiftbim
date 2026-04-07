@@ -175,7 +175,7 @@ export default function MytaskViewBC() {
         projectId: task.projectid,
       });
       setStatusDisplay(newStatus);
-      toast.success(`Task ${backendStatus.toLowerCase()} successfully`);
+      toast.success(`Status Updated Successfully`);
     } catch (error) {
       console.error("Error updating status:", error);
       toast.error("Failed to update status");
