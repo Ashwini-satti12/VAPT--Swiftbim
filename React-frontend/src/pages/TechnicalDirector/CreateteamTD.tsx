@@ -316,6 +316,7 @@ export default function CreateteamTD() {
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState<number | null>(null);
+  const [successMsg, setSuccessMsg] = useState("");
 
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const [selectedShowEntries, setSelectedShowEntries] = useState("");
@@ -435,6 +436,8 @@ export default function CreateteamTD() {
             project_id: "",
             team_name: "",
           });
+          setSuccessMsg("Team Created Successfully");
+          setTimeout(() => setSuccessMsg(""), 3000);
         }
       })
       .catch(() => { })
@@ -501,6 +504,8 @@ export default function CreateteamTD() {
           setTeams(teams.filter((t) => t.team_id !== teamToDelete));
           setShowDeleteModal(false);
           setTeamToDelete(null);
+          setSuccessMsg("Team Deleted Successfully");
+          setTimeout(() => setSuccessMsg(""), 3000);
         }
       })
       .catch(console.error)
@@ -528,6 +533,8 @@ export default function CreateteamTD() {
           api
             .get<{ teams?: Team[] }>("/api/teams")
             .then((res) => setTeams(res.data.teams ?? []));
+          setSuccessMsg("Team Updated Successfully");
+          setTimeout(() => setSuccessMsg(""), 3000);
         }
       })
       .catch(() => { })
@@ -611,7 +618,29 @@ export default function CreateteamTD() {
   const displayTeams = filteredTeams.slice(selectedRange.start, rangeEnd);
 
   return (
-    <div className="h-full flex flex-col p-2 overflow-hidden bg-white">
+    <div className="h-full flex flex-col p-2 overflow-hidden bg-white relative">
+      {successMsg && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-3 px-5 py-3 rounded-lg bg-white shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-gray-100 min-w-[300px] animate-in fade-in slide-in-from-top-2 duration-300 font-Gantari">
+          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#58D662]">
+            <svg
+              className="w-3.5 h-3.5 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={4}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
+          <span className="text-[16px] font-medium text-[#2D2D2D]">
+            {successMsg}
+          </span>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 px-2 sm:px-0">
         <h2 className="text-[24px] font-semibold text-[#000000] font-Gantari">
           Team Workspace

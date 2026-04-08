@@ -5517,10 +5517,143 @@ def delete_vendor_project(project_id):
     """
     DELETE /api/vendors/vendor-projects/<id>
     """
+    _ensure_vp_table()
+    _ensure_vendor_task_table()
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(dictionary=True)
     try:
-        cur.execute("DELETE FROM snh6_swiftproject.vendor_projects WHERE id = %s", (project_id,))
+        # This endpoint is used by the UI for "Outsource" deletion, but the id passed
+        # can be either:
+        # - snh6_swiftproject.vendor_projects.id, OR
+        # - snh6_swiftproject.projects.id (main project id) when a vendor_projects row
+        #   is missing/out-of-sync.
+
+        # 1) Try to resolve a vendor_projects row by id, else by main_project_id.
+        cur.execute(
+            """
+            SELECT
+                id,
+                Company_id,
+                project_name,
+                main_project_id,
+                proposal_id,
+                opportunity_id
+            FROM snh6_swiftproject.vendor_projects
+            WHERE id = %s
+            LIMIT 1
+            """,
+            (project_id,),
+        )
+        vp_row = cur.fetchone()
+
+        if not vp_row:
+            cur.execute(
+                """
+                SELECT
+                    id,
+                    Company_id,
+                    project_name,
+                    main_project_id,
+                    proposal_id,
+                    opportunity_id
+                FROM snh6_swiftproject.vendor_projects
+                WHERE main_project_id = %s
+                LIMIT 1
+                """,
+                (project_id,),
+            )
+            vp_row = cur.fetchone()
+
+        vendor_project_id = vp_row["id"] if vp_row else None
+        company_id = (vp_row or {}).get("Company_id") or getattr(g, "company_id", None)
+        main_project_id = (vp_row or {}).get("main_project_id") or project_id
+        proposal_id = (vp_row or {}).get("proposal_id")
+        opportunity_id = (vp_row or {}).get("opportunity_id")
+
+        # 2) If we have a vendor_project row, delete all vendor_task linked to it.
+        if vendor_project_id:
+            cur.execute(
+                "DELETE FROM snh6_swiftproject.vendor_task WHERE project_id = %s",
+                (vendor_project_id,),
+            )
+
+        # 3) For outsource flows, delete bids + TD proposals by opportunity/proposal ids.
+        if opportunity_id:
+            cur.execute(
+                "DELETE FROM snh6_swiftproject.vendor_bids WHERE opportunity_id = %s",
+                (opportunity_id,),
+            )
+            cur.execute(
+                "DELETE FROM td_proposals WHERE opportunity_id = %s",
+                (opportunity_id,),
+            )
+        if proposal_id:
+            cur.execute("DELETE FROM td_proposals WHERE id = %s", (proposal_id,))
+
+        # 4) Delete vendor_projects row(s) tied to the main project id (if any)
+        # (covers cases where vp_row was missing by id but exists by main_project_id).
+        cur.execute(
+            "DELETE FROM snh6_swiftproject.vendor_projects WHERE main_project_id = %s",
+            (main_project_id,),
+        )
+        if vendor_project_id:
+            # Also delete direct id just in case it differs
+            cur.execute(
+                "DELETE FROM snh6_swiftproject.vendor_projects WHERE id = %s",
+                (vendor_project_id,),
+            )
+
+        # 5) Delete main project related data (tasks/milestones) and the project itself.
+        # Even for outsource, these tables can contain rows and should be cleaned.
+        if company_id:
+            cur.execute(
+                "DELETE FROM tasks WHERE projectid = %s AND Company_id = %s",
+                (main_project_id, company_id),
+            )
+            cur.execute(
+                "DELETE FROM payment_milestones WHERE project_id = %s AND Company_id = %s",
+                (main_project_id, company_id),
+            )
+            # Remove vendor_bidding envelope (if exists) by project_id so the project is fully removed.
+            cur.execute(
+                "SELECT id FROM vendor_bidding WHERE project_id = %s",
+                (main_project_id,),
+            )
+            bidding_ids = [r["id"] for r in (cur.fetchall() or [])]
+            if bidding_ids:
+                for bid_id in bidding_ids:
+                    cur.execute(
+                        "DELETE FROM snh6_swiftproject.vendor_bids WHERE opportunity_id = %s",
+                        (bid_id,),
+                    )
+                    cur.execute(
+                        "DELETE FROM td_proposals WHERE opportunity_id = %s",
+                        (bid_id,),
+                    )
+                cur.execute(
+                    "DELETE FROM vendor_bidding WHERE project_id = %s",
+                    (main_project_id,),
+                )
+
+            cur.execute(
+                "DELETE FROM projects WHERE id = %s AND Company_id = %s",
+                (main_project_id, company_id),
+            )
+        else:
+            cur.execute("DELETE FROM tasks WHERE projectid = %s", (main_project_id,))
+            cur.execute(
+                "DELETE FROM payment_milestones WHERE project_id = %s",
+                (main_project_id,),
+            )
+            cur.execute("DELETE FROM vendor_bidding WHERE project_id = %s", (main_project_id,))
+            cur.execute("DELETE FROM projects WHERE id = %s", (main_project_id,))
+
+        # We consider the delete successful if either the vendor project existed and was removed,
+        # or the main project existed and was removed. If neither existed, return 404.
+        if cur.rowcount <= 0 and not vendor_project_id and not vp_row:
+            conn.rollback()
+            return jsonify({"success": False, "message": "Project not found"}), 404
+
         conn.commit()
         return jsonify({"success": True})
     except Exception as e:
