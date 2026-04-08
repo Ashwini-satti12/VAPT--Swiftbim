@@ -544,7 +544,7 @@ export default function ManageLeave() {
     const trimmedReason = reason.trim();
     const today = getTodayInputDate();
     if (!trimmedName) err.employeeName = "Employee name is required";
-    if (!leaveType) err.leaveType = "Leave type is required";
+    if (!leaveType) err.leaveType = "Select leave type";
     if (!leaveFrom) err.leaveFrom = "Leave from date is required";
     if (!leaveTo) err.leaveTo = "Leave to date is required";
     if (!trimmedReason) err.reason = "Reason is required";
@@ -558,7 +558,10 @@ export default function ManageLeave() {
 
   const handleSubmitApply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateApplyForm()) return;
+    if (!validateApplyForm()) {
+      if (!leaveType) toast.error("Select leave type");
+      return;
+    }
 
     try {
       const payload: any = {
@@ -687,7 +690,10 @@ export default function ManageLeave() {
 
   const handleSubmitEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingLeave || !validateApplyForm()) return;
+    if (!editingLeave || !validateApplyForm()) {
+      if (!leaveType) toast.error("Select leave type");
+      return;
+    }
 
     try {
       const payload: any = {

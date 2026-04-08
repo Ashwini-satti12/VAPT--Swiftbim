@@ -10,7 +10,7 @@ import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import swifterzLogo from "../../assets/ProductNavbarIcons/swifterzlogo.png";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
-// import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
+import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
 import paymentMilestoneIcon from "../../assets/ProjectManager/project/paymentMilestone.svg";
 import threedot from "../../assets/ProjectManager/project/threedot.svg";
 
@@ -127,6 +127,23 @@ function countInclusiveProjectDays(startYmd: string, endYmd: string): number | n
     return diffDays + 1;
 }
 
+/** Opens a local `File` in a new browser tab. */
+function openAttachmentInNewTab(file: File) {
+    const url = URL.createObjectURL(file);
+    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    if (!opened) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+    // Revoke after delay so the new tab can load the blob.
+    window.setTimeout(() => URL.revokeObjectURL(url), 300_000);
+}
+
 export default function ProjectsV() {
     const { user: authUser } = useAuth();
     const userRole = authUser?.user_role || "";
@@ -237,13 +254,18 @@ export default function ProjectsV() {
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
+            // Close main project row menus
             if (!target.closest(".project-menu-container")) {
                 setOpenMenuProjectId(null);
+            }
+            // Close in-form dropdowns (Project Manager, BIM Lead, BIM Coordinator, etc.)
+            if (editDropdownOpen && !target.closest(".dropdown-container")) {
+                setEditDropdownOpen(null);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
+    }, [editDropdownOpen]);
 
     useEffect(() => {
         fetchProjects(statusFilter);
@@ -674,19 +696,19 @@ export default function ProjectsV() {
 
 
     const renderMemberSelector = () => (
-        <div className="space-y-4">
-            <label className="block text-[16px] font-bold text-[#000000]">Team Members</label>
+        <div className="space-y-4 dropdown-container">
+            <label className="block text-[16px] font-medium text-[#000000]">Team Members</label>
             <div className="relative">
                 <button
                     type="button"
                     onClick={(o) => { o.stopPropagation(); setEditDropdownOpen(editDropdownOpen === "members" ? null : "members"); }}
-                    className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F2F3F4] rounded-[5px] text-[#353535] font-semibold transition-all group hover:bg-[#E8EAEC]"
+                    className="w-full flex items-center justify-between px-5 py-2 bg-[#F2F2F2] border-none rounded-md focus:ring-2 focus:ring-[#AEACAC52] transition-all font-normal text-left cursor-pointer"
                 >
-                    <span className={selectedMemberIds.length > 0 ? "text-[#353535]" : "text-gray-400"}>
+                    <span className={`${selectedMemberIds.length > 0 ? "text-[#353535]" : "text-[#8B8B8B]"} text-[14px]`}>
                         {selectedMemberIds.length > 0 ? `${selectedMemberIds.length} members selected` : "Select members"}
                     </span>
                     <svg
-                        className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${editDropdownOpen === "members" ? "rotate-180" : ""}`}
+                        className={`w-5 h-5 text-[#8B8B8B] shrink-0 transition-transform ${editDropdownOpen === "members" ? "rotate-180" : ""}`}
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -695,9 +717,9 @@ export default function ProjectsV() {
                     </svg>
                 </button>
                 {editDropdownOpen === "members" && (
-                    <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-56 overflow-y-auto custom-scrollbar">
+                    <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-md bg-white border border-slate-200 shadow-lg py-1 max-h-56 overflow-y-auto custom-scrollbar">
                         {vendorResourceProfiles.length === 0 ? (
-                            <div className="px-5 py-3 text-sm text-gray-500 text-center">No team members available</div>
+                            <div className="px-5 py-3 text-sm text-[#616161] text-center">No team members available</div>
                         ) : (
                             <>
                                 {vendorResourceProfiles.map(resource => {
@@ -707,7 +729,7 @@ export default function ProjectsV() {
                                             key={resource.id}
                                             type="button"
                                             onClick={() => toggleMember(resource.id)}
-                                            className={`flex items-center justify-between w-full px-5 py-2.5 text-sm hover:bg-[#F2F3F4] transition-colors ${isSelected ? "bg-[#FFF1F1] text-[#DD4342]" : "text-gray-700"}`}
+                                            className={`flex items-center justify-between w-full px-5 py-2.5 text-sm hover:bg-[#F2F2F2] transition-colors ${isSelected ? "bg-[#FFF1F1] text-[#DD4342]" : "text-[#353535]"}`}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${isSelected ? "bg-[#DD4342] text-white" : "bg-slate-200 text-slate-500"}`}>
@@ -754,7 +776,7 @@ export default function ProjectsV() {
                     </label>
                     <input
                         type="text"
-                        className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-[#353535] placeholder-gray-400"
+                        className="w-full px-4 py-2 bg-[#F2F2F2] border-none rounded-md focus:ring-2 focus:ring-[#AEACAC52] transition-all font-normal text-[#353535] placeholder:text-[14px] placeholder:font-normal placeholder-gray-400"
                         placeholder="Enter Project name"
                         value={createName}
                         onChange={(e) => setCreateName(e.target.value)}
@@ -766,7 +788,7 @@ export default function ProjectsV() {
                     </label>
                     <input
                         type="text"
-                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 placeholder-gray-400"
+                        className="w-full px-5 py-2 bg-[#F2F2F2] border-none rounded-md focus:ring-2 focus:ring-[#AEACAC52] transition-all font-normal text-[#353535] placeholder:text-[14px] placeholder:font-normal placeholder-gray-400"
                         placeholder="Enter Client Name"
                         value={createClientName}
                         onChange={(e) => setCreateClientName(e.target.value)}
@@ -782,7 +804,7 @@ export default function ProjectsV() {
                         <input
                             type="text"
                             readOnly
-                            className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] font-medium text-gray-500 cursor-not-allowed"
+                            className="w-full px-5 py-2 bg-[#F2F2F2] border-none rounded-md font-medium text-[#616161] cursor-not-allowed placeholder:text-[14px] placeholder:font-normal"
                             placeholder="Auto-fetched from contract"
                             value={createBudget}
                         />
@@ -800,13 +822,13 @@ export default function ProjectsV() {
                             onClick={() =>
                                 setEditDropdownOpen((o) => (o === "pm" ? null : "pm"))
                             }
-                            className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer"
+                            className="w-full flex items-center justify-between px-5 py-2 bg-[#F2F2F2] border-none rounded-md focus:ring-2 focus:ring-[#AEACAC52] transition-all font-normal text-left cursor-pointer"
                         >
-                            <span className={createProjectManager ? "text-gray-700" : "text-gray-400"}>
+                            <span className={`${createProjectManager ? "text-[#353535]" : "text-[#8B8B8B]"} text-[14px]`}>
                                 {createProjectManager || "Select Project Manager"}
                             </span>
                             <svg
-                                className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${editDropdownOpen === "pm" ? "rotate-180" : ""}`}
+                                className={`w-5 h-5 text-[#8B8B8B] shrink-0 transition-transform ${editDropdownOpen === "pm" ? "rotate-180" : ""}`}
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -815,14 +837,14 @@ export default function ProjectsV() {
                             </svg>
                         </button>
                         {editDropdownOpen === "pm" && (
-                            <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
+                            <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-md bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setCreateProjectManager("");
                                         setEditDropdownOpen(null);
                                     }}
-                                    className="block w-full text-left px-5 py-2.5 text-sm text-gray-700 hover:bg-[#F2F3F4]"
+                                    className="block w-full text-left px-5 py-2.5 text-sm text-[#353535] hover:bg-[#F2F2F2]"
                                 >
                                     Select Project Manager
                                 </button>
@@ -834,9 +856,9 @@ export default function ProjectsV() {
                                             setCreateProjectManager(pm.full_name || "");
                                             setEditDropdownOpen(null);
                                         }}
-                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F3F4] ${createProjectManager === pm.full_name
-                                            ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                                            : "text-gray-700"
+                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F2F2] ${createProjectManager === pm.full_name
+                                            ? "bg-[#FFF1F1] text-[#DD4342]"
+                                            : "text-[#353535]"
                                             }`}
                                     >
                                         {pm.full_name || `Employee ${pm.id}`}
@@ -858,13 +880,13 @@ export default function ProjectsV() {
                             onClick={() =>
                                 setEditDropdownOpen((o) => (o === "bimLead" ? null : "bimLead"))
                             }
-                            className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer"
+                            className="w-full flex items-center justify-between px-5 py-2 bg-[#F2F2F2] border-none rounded-md focus:ring-2 focus:ring-[#AEACAC52] transition-all font-normal text-left cursor-pointer"
                         >
-                            <span className={createBIMLead ? "text-gray-700" : "text-gray-400"}>
+                            <span className={`${createBIMLead ? "text-[#353535]" : "text-[#8B8B8B]"} text-[14px]`}>
                                 {createBIMLead || "Select BIM Lead"}
                             </span>
                             <svg
-                                className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${editDropdownOpen === "bimLead" ? "rotate-180" : ""}`}
+                                className={`w-5 h-5 text-[#8B8B8B] shrink-0 transition-transform ${editDropdownOpen === "bimLead" ? "rotate-180" : ""}`}
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -873,14 +895,14 @@ export default function ProjectsV() {
                             </svg>
                         </button>
                         {editDropdownOpen === "bimLead" && (
-                            <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
+                            <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-md bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setCreateBIMLead("");
                                         setEditDropdownOpen(null);
                                     }}
-                                    className="block w-full text-left px-5 py-2.5 text-sm text-gray-700 hover:bg-[#F2F3F4]"
+                                    className="block w-full text-left px-5 py-2.5 text-sm text-[#353535] hover:bg-[#F2F2F2]"
                                 >
                                     Select BIM Lead
                                 </button>
@@ -892,9 +914,9 @@ export default function ProjectsV() {
                                             setCreateBIMLead(lead.full_name || "");
                                             setEditDropdownOpen(null);
                                         }}
-                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F3F4] ${createBIMLead === lead.full_name
-                                            ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                                            : "text-gray-700"
+                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F2F2] ${createBIMLead === lead.full_name
+                                            ? "bg-[#FFF1F1] text-[#DD4342]"
+                                            : "text-[#353535]"
                                             }`}
                                     >
                                         {lead.full_name || `Employee ${lead.id}`}
@@ -914,13 +936,13 @@ export default function ProjectsV() {
                             onClick={() =>
                                 setEditDropdownOpen((o) => (o === "bimCoord" ? null : "bimCoord"))
                             }
-                            className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer"
+                            className="w-full flex items-center justify-between px-5 py-2 bg-[#F2F2F2] border-none rounded-md focus:ring-2 focus:ring-[#AEACAC52] transition-all font-normal text-left cursor-pointer"
                         >
-                            <span className={createBIMCoOrdinator ? "text-gray-700" : "text-gray-400"}>
+                            <span className={createBIMCoOrdinator ? "text-[#353535]" : "text-[#8B8B8B]"}>
                                 {createBIMCoOrdinator || "Select BIM Coordinator"}
                             </span>
                             <svg
-                                className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${editDropdownOpen === "bimCoord" ? "rotate-180" : ""}`}
+                                className={`w-5 h-5 text-[#8B8B8B] shrink-0 transition-transform ${editDropdownOpen === "bimCoord" ? "rotate-180" : ""}`}
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -929,14 +951,14 @@ export default function ProjectsV() {
                             </svg>
                         </button>
                         {editDropdownOpen === "bimCoord" && (
-                            <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
+                            <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-md bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setCreateBIMCoOrdinator("");
                                         setEditDropdownOpen(null);
                                     }}
-                                    className="block w-full text-left px-5 py-2.5 text-sm text-gray-700 hover:bg-[#F2F3F4]"
+                                    className="block w-full text-left px-5 py-2.5 text-sm text-[#353535] hover:bg-[#F2F2F2]"
                                 >
                                     Select BIM Coordinator
                                 </button>
@@ -948,9 +970,9 @@ export default function ProjectsV() {
                                             setCreateBIMCoOrdinator(coord.full_name || "");
                                             setEditDropdownOpen(null);
                                         }}
-                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F3F4] ${createBIMCoOrdinator === coord.full_name
-                                            ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                                            : "text-gray-700"
+                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F2F2] ${createBIMCoOrdinator === coord.full_name
+                                            ? "bg-[#FFF1F1] text-[#DD4342]"
+                                            : "text-[#353535]"
                                             }`}
                                     >
                                         {coord.full_name || `Employee ${coord.id}`}
@@ -974,19 +996,19 @@ export default function ProjectsV() {
                                 setCreateEndDate(d.toISOString().split('T')[0]);
                             }
                         }}
-                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" />
+                        className="w-full px-5 py-2 bg-[#F2F2F2] border-none rounded-md focus:ring-2 focus:ring-[#AEACAC52] transition-all font-normal text-[#353535]" />
                 </div>
                 <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">Project End Date <span className="text-[#DD4342]">*</span></label>
                     <input type="date" value={createEndDate} onChange={e => setCreateEndDate(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" />
+                        className="w-full px-5 py-2 bg-[#F2F2F2] border-none rounded-md focus:ring-2 focus:ring-[#AEACAC52] transition-all font-normal text-[#353535]" />
                 </div>
 
                 {/* Row 6: Total Hours, Per Day */}
                 <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">Per Day <span className="text-[#DD4342]">*</span></label>
                     <input type="text" value={createPerDay} onChange={e => setCreatePerDay(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Hours Per Day" />
+                        className="w-full px-5 py-2 bg-[#F2F2F2] border-none rounded-md focus:ring-2 focus:ring-[#AEACAC52] transition-all font-normal text-[#353535] placeholder:text-[14px] placeholder:font-normal" placeholder="Hours Per Day" />
                 </div>
                 <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">
@@ -996,7 +1018,7 @@ export default function ProjectsV() {
                         type="text"
                         readOnly
                         value={computedTotalHours}
-                        className="w-full px-5 py-3.5 bg-[#E8EAED] border-none rounded-[5px] font-medium text-gray-700 cursor-not-allowed"
+                        className="w-full px-5 py-2 bg-[#E8EAED] border-none rounded-md font-normal text-[#353535] cursor-not-allowed placeholder:text-[14px] placeholder:font-normal"
                         placeholder="Set start date, end date, and per day"
                         title="Calculated: (days from start to end, inclusive) × hours per day"
                     />
@@ -1009,12 +1031,12 @@ export default function ProjectsV() {
                 <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">Resources <span className="text-[#DD4342]">*</span></label>
                     <input type="text" value={createResources} onChange={e => setCreateResources(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Number of Resources" />
+                        className="w-full px-5 py-2 bg-[#F2F2F2] border-none rounded-md focus:ring-2 focus:ring-[#AEACAC52] transition-all font-normal text-[#353535] placeholder:text-[14px] placeholder:font-normal" placeholder="Number of Resources" />
                 </div>
                 <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">Required Resources <span className="text-[#DD4342]">*</span></label>
                     <input type="text" value={createRequiredResources} onChange={e => setCreateRequiredResources(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Required Resources Count" />
+                        className="w-full px-5 py-2 bg-[#F2F2F2] border-none rounded-md focus:ring-2 focus:ring-[#AEACAC52] transition-all font-normal text-[#353535] placeholder:text-[14px] placeholder:font-normal" placeholder="Required Resources Count" />
                 </div>
 
                 {/* Row 8: Priority, Location */}
@@ -1026,13 +1048,13 @@ export default function ProjectsV() {
                             onClick={() =>
                                 setEditDropdownOpen((o) => (o === "priority" ? null : "priority"))
                             }
-                            className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer"
+                            className="w-full flex items-center justify-between px-5 py-2 bg-[#F2F2F2] border-none rounded-md focus:ring-2 focus:ring-[#AEACAC52] transition-all font-normal text-left cursor-pointer"
                         >
-                            <span className={createPriority ? "text-gray-700" : "text-gray-400"}>
+                            <span className={`${createPriority ? "text-[#353535]" : "text-[#8B8B8B]"} text-[14px]`}>
                                 {createPriority || "Select Priority"}
                             </span>
                             <svg
-                                className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${editDropdownOpen === "priority" ? "rotate-180" : ""}`}
+                                className={`w-5 h-5 text-[#8B8B8B] shrink-0 transition-transform ${editDropdownOpen === "priority" ? "rotate-180" : ""}`}
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -1041,7 +1063,7 @@ export default function ProjectsV() {
                             </svg>
                         </button>
                         {editDropdownOpen === "priority" && (
-                            <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
+                            <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-md bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
                                 {["High", "Medium", "Low"].map((p) => (
                                     <button
                                         key={p}
@@ -1050,9 +1072,9 @@ export default function ProjectsV() {
                                             setCreatePriority(p);
                                             setEditDropdownOpen(null);
                                         }}
-                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F3F4] ${createPriority === p
-                                            ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                                            : "text-gray-700"
+                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F2F2] ${createPriority === p
+                                            ? "bg-[#FFF1F1] text-[#DD4342]"
+                                            : "text-[#353535]"
                                             }`}
                                     >
                                         {p}
@@ -1065,7 +1087,7 @@ export default function ProjectsV() {
                 <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">Location <span className="text-[#DD4342]">*</span></label>
                     <input type="text" value={createLocation} onChange={e => setCreateLocation(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Project Location" />
+                        className="w-full px-5 py-2 bg-[#F2F2F2] border-none rounded-md focus:ring-2 focus:ring-[#AEACAC52] transition-all font-normal text-[#353535] placeholder:text-[14px] placeholder:font-normal" placeholder="Project Location" />
                 </div>
 
 
@@ -1076,94 +1098,104 @@ export default function ProjectsV() {
                 <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">Description <span className="text-[#DD4342]">*</span></label>
                     <textarea value={createDescription} onChange={e => setCreateDescription(e.target.value)} rows={4}
-                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 resize-none" placeholder="Provide a detailed project description..." />
+                        className="w-full px-5 py-2 bg-[#F2F2F2] border-none rounded-md focus:ring-2 focus:ring-[#AEACAC52] transition-all font-normal text-[#353535] resize-none placeholder:text-[14px] placeholder:font-normal" placeholder="Provide a detailed project description..." />
                 </div>
             </div>
             <div className="md:col-span-2 space-y-4 pt-6">
-                <label className="block text-[16px] font-medium text-[#000000]">Project Documents</label>
-
-                {/* Existing Documents */}
-                {currentAttachments && (
-                    <div className="flex flex-wrap gap-3 mb-4">
-                        {currentAttachments.split(",").map(file => file.trim()).filter(Boolean).map((fileName, idx) => {
-                            const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
-                            return (
-                                <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
-                                    <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                                    <span className="text-[13px] font-medium text-[#353535] line-clamp-1 flex-1">
-                                        {fileName.split("_").pop()}
-                                    </span>
-                                    <div className="flex gap-1.5">
-                                        <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-slate-50 rounded transition-colors">
-                                            <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
-                                        </a>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const remaining = currentAttachments.split(",")
-                                                    .map(f => f.trim())
-                                                    .filter(f => f !== fileName)
-                                                    .join(",");
-                                                setCurrentAttachments(remaining);
-                                            }}
-                                            className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </button>
+                <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000] font-Gantari">Project Documents</label>
+                    
+                    {/* Existing Documents List */}
+                    {currentAttachments && currentAttachments.split(",").map(f => f.trim()).filter(Boolean).length > 0 && (
+                        <div className="flex flex-col gap-2 mb-4">
+                            {currentAttachments.split(",").map(f => f.trim()).filter(Boolean).map((fileName, idx) => {
+                                const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
+                                return (
+                                    <div key={idx} className="flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-md">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="text-[13px] font-medium text-[#353535] truncate max-w-[200px] md:max-w-md">
+                                                    {fileName.split("_").pop()}
+                                                </span>
+                                                <span className="text-[11px] text-[#8B8B8B]">Existing Document</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-white rounded transition-colors" title="View">
+                                                <img src={viewIcon} alt="View" className="w-5 h-5 opacity-70" />
+                                            </a>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const remaining = currentAttachments.split(",")
+                                                        .map(f => f.trim())
+                                                        .filter(f => f !== fileName)
+                                                        .join(",");
+                                                    setCurrentAttachments(remaining);
+                                                }}
+                                                className="p-1 hover:bg-white rounded transition-colors"
+                                                title="Remove"
+                                            >
+                                                <img src={deleteIcon} alt="Delete" className="w-5 h-5 opacity-70" />
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+                                );
+                            })}
+                        </div>
+                    )}
 
-                <div className="relative group">
-                    <input
-                        type="file"
-                        id="file-upload"
-                        className="hidden"
-                        onChange={(e) => setCreateFile(e.target.files?.[0] || null)}
-                    />
-                    {!createFile ? (
-                        <label
-                            htmlFor="file-upload"
-                            className="flex flex-col items-center justify-center w-full h-32 px-4 transition bg-[#F8FAFC] border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 hover:border-[#DD4342]/40 group"
+                    {/* New File Upload Selector */}
+                    <div className="flex items-center bg-[#F2F2F2] rounded-md overflow-hidden">
+                        <div className="flex-1 px-4 text-[14px] text-[#979797] truncate min-w-0 py-2">
+                            {createFile ? createFile.name : "Choose file"}
+                        </div>
+                        <input
+                            type="file"
+                            id="file-upload"
+                            className="hidden"
+                            onChange={(e) => setCreateFile(e.target.files?.[0] || null)}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => document.getElementById('file-upload')?.click()}
+                            className="px-5 py-2 bg-[#E2E2E2] text-[#353535] text-[14px] cursor-pointer transition-colors shrink-0 font-Gantari border-0"
                         >
-                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                <FiUploadCloud className="w-8 h-8 mb-3 text-slate-400 group-hover:text-[#DD4342] transition-colors" />
-                                <p className="mb-1 text-sm text-slate-500 group-hover:text-slate-600">
-                                    <span className="font-bold">Add new file</span> or drag and drop
-                                </p>
-                                <p className="text-xs text-slate-400">PDF, DOCX, ZIP or Images (Max 10MB)</p>
-                            </div>
-                        </label>
-                    ) : (
-                        <div className="flex items-center justify-between p-4 bg-[#F8FAFC] border border-[#DD4342]/20 rounded-2xl animate-in fade-in zoom-in-95 duration-200">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-white rounded-xl shadow-sm">
-                                    <FiPaperclip className="w-5 h-5 text-[#DD4342]" />
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="text-sm font-bold text-[#1E293B] truncate max-w-[200px] md:max-w-md">
+                            Browse File
+                        </button>
+                    </div>
+
+                    {/* Pending Local File View */}
+                    {createFile && (
+                        <div className="flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-md mt-2">
+                            <div className="flex items-center gap-3">
+                                <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                                <div className="flex flex-col min-w-0">
+                                    <span className="text-[13px] font-medium text-[#353535] truncate max-w-[200px]">
                                         {createFile.name}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                        {(createFile.size / 1024).toFixed(1)} KB
-                                    </p>
+                                    </span>
+                                    <span className="text-[11px] text-[#8B8B8B]">Pending Upload</span>
                                 </div>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setCreateFile(null)}
-                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                title="Remove file"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => openAttachmentInNewTab(createFile)}
+                                    className="p-1 hover:bg-white/50 rounded transition-colors"
+                                    title="View"
+                                >
+                                    <img src={viewIcon} alt="View" className="w-5 h-5 opacity-70" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setCreateFile(null)}
+                                    className="p-1 hover:bg-white/50 rounded transition-colors"
+                                    title="Discard"
+                                >
+                                    <img src={deleteIcon} alt="Delete" className="w-5 h-5 opacity-70" />
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -1185,7 +1217,7 @@ export default function ProjectsV() {
             <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden">
                 {/* Toast */}
                 {successMsg && (
-                    <div className="fixed top-5 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl bg-[#1A8A47] text-white font-gantari text-sm font-medium min-w-[280px]">
+                    <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 px-6 py-2.5 rounded-xl shadow-xl bg-[#1A8A47] text-white font-gantari text-[14px] font-medium min-w-[300px] animate-in fade-in slide-in-from-top-4 duration-300">
                         <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                         </svg>
@@ -1196,7 +1228,7 @@ export default function ProjectsV() {
                 {/* Project View (In-Page) */}
                 {showEditModal ? (
                     <div className="flex flex-col h-full bg-white">
-                        <div className="flex items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
+                        <div className="relative flex items-center justify-center px-2 md:px-4 py-6 border-b border-slate-50 mt-[-20px]">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -1210,21 +1242,21 @@ export default function ProjectsV() {
                                     setCreatePriority(""); setCreateLocation(""); setCreateDescription("");
                                     setCreateDeliverables(""); setSelectedMemberIds([]); setCreateFile(null);
                                 }}
-                                className="p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
+                                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-colors cursor-pointer"
                                 title="Close"
                             >
                                 <img src={backIcon} alt="Back" className="w-5 h-5" />
                             </button>
 
-                            <div className="min-w-0">
-                                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] truncate">
+                            <div className="text-center">
+                                <h3 className="text-[24px] font-Gantari font-medium text-[#000000]">
                                     Edit Project Details
                                 </h3>
-                                <p className="text-[14px] font-Gantari font-semibold text-[#999999]">Update your project information</p>
+
                             </div>
                         </div>
-                        <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 pt-6 md:pt-8 custom-scrollbar">
-                            <form onSubmit={handleEdit} className="max-w-4xl mx-auto space-y-10">
+                        <div className="flex-1 overflow-y-auto px-2 md:px-4 pb-10 pt-6 md:pt-8 custom-scrollbar">
+                            <form onSubmit={handleEdit} className="max-w-5xl mx-auto space-y-10">
                                 {renderFormFields()}
                                 <div className="flex justify-center gap-6 pt-6">
                                     <button
@@ -1234,14 +1266,14 @@ export default function ProjectsV() {
                                             setEditDropdownOpen(null);
                                             setEditError("");
                                         }}
-                                        className="px-12 py-3.5 rounded-xl bg-[#F1F1F1] text-[#666666] font-bold text-[16px] transition-all hover:bg-gray-200"
+                                        className="px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-medium text-[14px] transition-all"
                                     >
                                         Discard
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={editSubmitting}
-                                        className="px-12 py-4 rounded-xl bg-[#DD4342] text-white font-bold hover:opacity-90 shadow-lg shadow-red-100 transition-all disabled:opacity-50"
+                                        className="px-6 py-2 rounded-md bg-[#DD4342] text-[#FFFFFF] font-medium shadow-lg shadow-red-100 transition-all disabled:opacity-50"
                                     >
                                         {editSubmitting ? "Updating..." : "Update Project"}
                                     </button>
@@ -1256,179 +1288,201 @@ export default function ProjectsV() {
                     </div>
                 ) : showProjectView && selectedProject ? (
                     <div className="flex flex-col h-full bg-white">
-                        <div className="flex items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
-                            <button type="button" onClick={() => setShowProjectView(false)}
-                                className="p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer" title="Close">
+                        <div className="relative flex items-center justify-center px-2 md:px-4 py-6 border-b border-slate-50 mt-[-20px]">
+                            <button
+                                type="button"
+                                onClick={() => setShowProjectView(false)}
+                                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
+                                title="Close"
+                            >
                                 <img src={backIcon} alt="Back" className="w-5 h-5" />
                             </button>
-
-                            <div className="min-w-0">
-                                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] truncate">
+                            <div className="text-center">
+                                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                                     {selectedProject.project_name ?? "Untitled Project"}
                                 </h3>
-                                <p className="text-[14px] font-Gantari font-semibold text-[#999999]">Overall Progress Tracker</p>
+                                <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
+                                    <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#353535]"></span>
+                                    <p className="text-[14px] md:text-[14px] font-Gantari font-semibold text-[#353535]">
+                                        Overall Progress Tracker
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                        <div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-6 md:px-10 pb-10 pt-6 md:pt-8 custom-scrollbar space-y-8">
-                            {/* Task Status Cards */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
-                                {[
-                                    { label: "To Do Tasks", value: taskStats.todo, status: "todo" },
-                                    { label: "In Progress", value: taskStats.inProgress, status: "in_progress" },
-                                    { label: "Paused", value: taskStats.paused, status: "" },
-                                    { label: "Completed", value: taskStats.completed, status: "completed" },
-                                ].map((stat, i) => (
-                                    <div key={i} onClick={() => stat.status && navigate(`/v/teamtasks?project=${encodeURIComponent(selectedProject?.project_name || "")}&status=${stat.status}`)} className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors group border border-slate-200">
-                                        <div className="flex items-center justify-left mb-2">
-                                            <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold">{stat.label}</p>
-                                        </div>
-                                        <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center">{stat.value}</p>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Module Progress Cards */}
-                            <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8">
-                                <div className="max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
-                                        {loadingTaskStats ? (
-                                            <div className="col-span-full py-10 flex flex-col items-center justify-center gap-3">
-                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#DD4342]" />
-                                                <p className="text-gray-500 font-medium">Loading module analysis...</p>
+                        {/* Project View Content */}
+                        <div className="flex-1 flex flex-col overflow-hidden">
+                            {/* Fixed KPI Cards at top */}
+                            <div className="px-2 md:px-4 mt-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+                                    {[
+                                        { label: "To Do Tasks", value: taskStats.todo, status: "todo" },
+                                        { label: "In Progress Tasks", value: taskStats.inProgress, status: "in_progress" },
+                                        { label: "Paused Tasks", value: taskStats.paused, status: "" },
+                                        { label: "Completed Tasks", value: taskStats.completed, status: "completed" },
+                                    ].map((stat, i) => (
+                                        <button
+                                            key={i}
+                                            type="button"
+                                            onClick={() => stat.status && navigate(`/v/teamtasks?project=${encodeURIComponent(selectedProject?.project_name || "")}&status=${stat.status}`)}
+                                            className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                                        >
+                                            <div className="flex items-center justify-left mb-2">
+                                                <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">{stat.label}</p>
                                             </div>
-                                        ) : towerData.length > 0 ? (
-                                            towerData.map((tower) => {
-                                                const statusColor =
-                                                    tower.status === "Approved" ? "#008F22" :
-                                                        tower.status === "Pending" ? "#EB7200" : "#E00100";
-                                                const statusBg =
-                                                    tower.status === "Approved" ? "bg-[#E0FFE8]" :
-                                                        tower.status === "Pending" ? "bg-[#FFEAD6]" : "bg-[#FFD9D9]";
-
-                                                return (
-                                                    <div key={tower.id} className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[150px]">
-                                                        <div className="flex justify-between items-start mb-2">
-                                                            <h5 className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">{tower.name}</h5>
-                                                            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md shrink-0 ${statusBg}`}>
-                                                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }}></span>
-                                                                <span className="text-[11px] font-bold font-Gantari" style={{ color: statusColor }}>{tower.status}</span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center justify-between mt-auto">
-                                                            <div className="relative flex items-center justify-center w-16 h-16">
-                                                                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
-                                                                    <circle cx="32" cy="32" r="26" stroke="#F2F3F5" strokeWidth="5" fill="transparent" />
-                                                                    <circle cx="32" cy="32" r="26" stroke={statusColor} strokeWidth="5" fill="transparent"
-                                                                        strokeDasharray={163.36}
-                                                                        strokeDashoffset={163.36 - (tower.progress / 100) * 163.36}
-                                                                        strokeLinecap="round"
-                                                                        style={{ transition: "stroke-dashoffset 1s ease-in-out" }}
-                                                                    />
-                                                                </svg>
-                                                                <span className="absolute text-[14px] font-bold text-[#353535] font-Gantari">{tower.progress}%</span>
-                                                            </div>
-                                                            <div className="flex flex-col items-end">
-                                                                <p className="text-[12px] font-medium text-[#8B8B8B] font-Gantari mb-1">Tasks Done</p>
-                                                                <div className="flex items-baseline">
-                                                                    <p className="text-[18px] font-bold text-[#353535] font-Gantari">{tower.completedTasks}</p>
-                                                                    <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari">/{tower.totalTasks}</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })
-                                        ) : (
-                                            <div className="col-span-full py-10 text-center text-gray-500 font-medium bg-slate-50 border border-dashed border-slate-200 rounded-xl">
-                                                No module progress available yet.
-                                            </div>
-                                        )}
-                                    </div>
+                                            <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">{stat.value}</p>
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
 
+                            {/* Scrollable Content Below KPI Cards */}
+                            <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 md:px-4 pb-10 pt-4 md:pt-4 custom-scrollbar space-y-8">
 
-                            {/* Description (stored as HTML from rich editor) */}
-                            <div className="min-w-0 max-w-full overflow-hidden border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8">
-                                <h4 className="text-xl font-Gantari font-semibold text-[#000000]">Project Description</h4>
-                                {hasProjectDescriptionContent(selectedProject.description) ? (
-                                    <div
-                                        className="project-description-html w-full min-w-0 max-w-full text-md font-Gantari font-medium text-[#666666] mt-4 leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] [&_*]:max-w-full [&_*]:whitespace-normal [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#DD4342] [&_a]:underline"
-                                        dangerouslySetInnerHTML={{
-                                            __html: normalizeProjectDescriptionHtml(selectedProject.description),
-                                        }}
-                                    />
-                                ) : (
-                                    <p className="text-md font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
-                                        No description available
-                                    </p>
-                                )}
-                            </div>
+                                {/* Module Progress Cards */}
+                                <div className="border border-slate-200 rounded-md md:rounded-md p-4 md:p-6 lg:p-2">
+                                    <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">
+                                        Modules
+                                    </h4>
+                                    <div className="max-h-[220px] overflow-y-auto custom-scrollbar pr-2">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-4">
+                                            {loadingTaskStats ? (
+                                                <div className="col-span-full py-10 flex flex-col items-center justify-center gap-3">
+                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#DD4342]" />
+                                                    <p className="text-[#616161] font-medium">Loading module analysis...</p>
+                                                </div>
+                                            ) : towerData.length > 0 ? (
+                                                towerData.map((tower) => {
+                                                    const statusColor =
+                                                        tower.status === "Approved" ? "#008F22" :
+                                                            tower.status === "Pending" ? "#EB7200" : "#E00100";
+                                                    const statusBg =
+                                                        tower.status === "Approved" ? "bg-[#E0FFE8]" :
+                                                            tower.status === "Pending" ? "bg-[#FFEAD6]" : "bg-[#FFD9D9]";
 
-
-                            {/* Team Roles Section */}
-                            <div className="border border-slate-200 rounded-xl md:rounded-xl p-8 space-y-10">
-                                <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">
-                                    Team Overview
-                                </h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                                    {/* Project Manager */}
-                                    <div className="space-y-4">
-                                        <p className="text-[16px] font-bold text-[#000000]">Project Manager</p>
-                                        <div className="flex items-center gap-4">
-                                            {(() => {
-                                                const id = selectedProject.project_manager_id;
-                                                const name = getEmployeeName(id);
-                                                const emp = allEmployees.find(e => e.id === Number(id));
-                                                const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                                                return (
-                                                    <>
-                                                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
-                                                            {profileUrl ? (
-                                                                <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
-                                                            ) : (
-                                                                <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
-                                                            )}
+                                                    return (
+                                                        <div key={tower.id} className="bg-white border border-slate-200 rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[120px]">
+                                                            <div className="flex justify-between items-start mb-2">
+                                                                <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">{tower.name}</h5>
+                                                                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0 ${statusBg}`}>
+                                                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }}></span>
+                                                                    <span className="text-[12px] font-bold font-Gantari" style={{ color: statusColor }}>{tower.status}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center justify-between mt-auto">
+                                                                <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
+                                                                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
+                                                                        <circle cx="32" cy="32" r="26" stroke="#F2F3F5" strokeWidth="5" fill="transparent" />
+                                                                        <circle cx="32" cy="32" r="26" stroke={statusColor} strokeWidth="5" fill="transparent"
+                                                                            strokeDasharray={163.36}
+                                                                            strokeDashoffset={163.36 - (tower.progress / 100) * 163.36}
+                                                                            strokeLinecap="round"
+                                                                            style={{ transition: "stroke-dashoffset 1s ease-in-out" }}
+                                                                        />
+                                                                    </svg>
+                                                                    <span className="absolute text-[13px] font-bold text-[#353535] font-Gantari">{tower.progress}%</span>
+                                                                </div>
+                                                                <div className="flex flex-col items-end">
+                                                                    <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1">Tasks Done</p>
+                                                                    <div className="flex items-baseline border-t border-slate-100 pt-1">
+                                                                        <p className="text-[18px] font-bold text-[#353535] font-Gantari">{tower.completedTasks}</p>
+                                                                        <p className="text-[14px] font-bold text-[#8B8B8B] font-Gantari">/{tower.totalTasks}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
-                                                            {name || "Not assigned"}
-                                                        </p>
-                                                    </>
-                                                );
-                                            })()}
+                                                    );
+                                                })
+                                            ) : (
+                                                <div className="col-span-full py-10 text-center text-[#616161] font-medium bg-slate-50 border border-dashed border-slate-200 rounded-xl">
+                                                    No module progress available yet.
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
+                                </div>
 
-                                    {/* BIM Lead */}
-                                    <div className="space-y-4">
-                                        <p className="text-[16px] font-bold text-[#000000]">BIM Lead</p>
-                                        <div className="flex items-center gap-4">
-                                            {(() => {
-                                                const id = selectedProject.lead_id;
-                                                const name = getEmployeeName(id);
-                                                const emp = bimLeads.find(e => e.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
-                                                const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                                                return (
-                                                    <>
-                                                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
-                                                            {profileUrl ? (
-                                                                <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
-                                                            ) : (
-                                                                <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
-                                                            )}
-                                                        </div>
-                                                        <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
-                                                            {name || "Not assigned"}
-                                                        </p>
-                                                    </>
-                                                );
-                                            })()}
+
+                                {/* Description (stored as HTML from rich editor) */}
+                                <div className="min-w-0 max-w-full overflow-hidden border border-slate-200 rounded-md md:rounded-md p-6 md:p-8 lg:p-4">
+                                    <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">Project Description</h4>
+                                    {hasProjectDescriptionContent(selectedProject.description) ? (
+                                        <div
+                                            className="project-description-html text-[14px] font-Gantari font-medium text-[#666666] mt-4 w-full min-w-0 max-w-full leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] [&_*]:max-w-full [&_*]:whitespace-normal [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#DD4342] [&_a]:underline"
+                                            dangerouslySetInnerHTML={{
+                                                __html: normalizeProjectDescriptionHtml(selectedProject.description),
+                                            }}
+                                        />
+                                    ) : (
+                                        <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                                            No description available
+                                        </p>
+                                    )}
+                                </div>
+
+
+                                {/* Team Roles Section */}
+                                <div className="border border-slate-200 rounded-xl md:rounded-xl p-8 space-y-10">
+                                    <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">
+                                        Team Overview
+                                    </h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                                        {/* Project Manager */}
+                                        <div className="space-y-4">
+                                            <p className="text-[16px] font-medium text-[#000000]">Project Manager</p>
+                                            <div className="flex items-center gap-4">
+                                                {(() => {
+                                                    const id = selectedProject.project_manager_id;
+                                                    const name = getEmployeeName(id);
+                                                    const emp = allEmployees.find(e => e.id === Number(id));
+                                                    const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                    return (
+                                                        <>
+                                                            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                                                                {profileUrl ? (
+                                                                    <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
+                                                                ) : (
+                                                                    <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
+                                                                )}
+                                                            </div>
+                                                            <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                                                                {name || "Not assigned"}
+                                                            </p>
+                                                        </>
+                                                    );
+                                                })()}
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {/* Department Involved */}
-                                    {/* <div className="space-y-4">
-                                        <p className="text-[16px] font-bold text-[#000000]">Department Involved</p>
+                                        {/* BIM Lead */}
+                                        <div className="space-y-4">
+                                            <p className="text-[16px] font-medium text-[#000000]">BIM Lead</p>
+                                            <div className="flex items-center gap-4">
+                                                {(() => {
+                                                    const id = selectedProject.lead_id;
+                                                    const name = getEmployeeName(id);
+                                                    const emp = bimLeads.find(e => e.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
+                                                    const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                    return (
+                                                        <>
+                                                            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                                                                {profileUrl ? (
+                                                                    <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
+                                                                ) : (
+                                                                    <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
+                                                                )}
+                                                            </div>
+                                                            <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                                                                {name || "Not assigned"}
+                                                            </p>
+                                                        </>
+                                                    );
+                                                })()}
+                                            </div>
+                                        </div>
+
+                                        {/* Department Involved */}
+                                        {/* <div className="space-y-4">
+                                        <p className="text-[16px] font-medium text-[#000000]">Department Involved</p>
                                         <div className="h-10 flex items-center">
                                             <p className="text-[14px] font-bold text-[#666666] transition-all">
                                                 {selectedProject.department || "N/A"}
@@ -1436,250 +1490,258 @@ export default function ProjectsV() {
                                         </div>
                                     </div> */}
 
-                                    {/* Members Involved */}
-                                    <div className="space-y-4">
-                                        <p className="text-[16px] font-bold text-[#000000]">Members Involved</p>
-                                        {(() => {
-                                            const memberIds = (selectedProject.members || "").split(",").filter(Boolean);
-                                            const projectMembers = memberIds.map(id => {
-                                                return vendorResourceProfiles.find(r => r.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
-                                            }).filter(Boolean);
+                                        {/* Members Involved */}
+                                        <div className="space-y-4">
+                                            <p className="text-[16px] font-medium text-[#000000]">Members Involved</p>
+                                            {(() => {
+                                                const memberIds = (selectedProject.members || "").split(",").filter(Boolean);
+                                                const projectMembers = memberIds.map(id => {
+                                                    return vendorResourceProfiles.find(r => r.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
+                                                }).filter(Boolean);
 
-                                            if (projectMembers.length === 0) {
-                                                return (
-                                                    <div className="h-10 flex items-center text-[14px] font-bold text-[#666666]">
-                                                        N/A
-                                                    </div>
-                                                );
-                                            }
-
-                                            return (
-                                                <div className="flex items-center -space-x-3">
-                                                    {projectMembers.slice(0, 3).map((member: any) => {
-                                                        const profileUrl = member.profile_picture ? getGlobalProfileUrl(member.id, member.profile_picture) : null;
-                                                        return (
-                                                            <div key={member.id} className="relative group shrink-0">
-                                                                <div
-                                                                    role="button"
-                                                                    tabIndex={0}
-                                                                    className="w-10 h-10 rounded-full bg-white flex items-center justify-center border-2 border-white overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                                                    onClick={() => openMemberProfile(member)}
-                                                                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openMemberProfile(member); } }}
-                                                                >
-                                                                    {profileUrl ? (
-                                                                        <img src={profileUrl} className="w-full h-full object-cover" alt={member.full_name || "Member"} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                                                    ) : (
-                                                                        <img src={ProfileIcon} className="w-full h-full object-cover p-1" alt={member.full_name || "Member"} />
-                                                                    )}
-                                                                </div>
-                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                                                    {member.full_name || "Unknown"}
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                    {projectMembers.length > 3 && (
-                                                        <div
-                                                            role="button"
-                                                            tabIndex={0}
-                                                            className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                                                            onClick={() => { setAllMembersList(projectMembers as Employee[]); setShowAllMembersModal(true); }}
-                                                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAllMembersList(projectMembers as Employee[]); setShowAllMembersModal(true); } }}
-                                                        >
-                                                            +{projectMembers.length - 3}
+                                                if (projectMembers.length === 0) {
+                                                    return (
+                                                        <div className="h-10 flex items-center text-[14px] font-bold text-[#666666]">
+                                                            N/A
                                                         </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
-                                </div>
-                            </div>
+                                                    );
+                                                }
 
-
-                            {/* Project Details */}
-                            <div className="rounded-lg border border-slate-200 p-6 md:p-8">
-                                <h4 className="text-[20px] font-Gantari font-semibold text-[#1A1A1A] mb-6">
-                                    Project Details
-                                </h4>
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
-                                    <div className="space-y-4 md:space-y-5">
-                                        <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                                Actual Start Date
-                                            </span>
-                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                                {formatDate(selectedProject.start_date)}
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                                Total Project Hours
-                                            </span>
-                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                                {selectedProject.totalhours ? `${selectedProject.totalhours}hrs` : "N/A"}
-                                            </span>
-                                        </div>
-                                        {userRole === "Vendor" && (
-                                            <>
-                                                <div className="flex flex-col sm:flex-row sm:items-center">
-                                                    <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                                        Budget
-                                                    </span>
-                                                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                                                    <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                                        {selectedProject.budget ? `${selectedProject.budget}$` : "N/A"}
-                                                    </span>
-                                                </div>
-                                            </>
-                                        )}
-                                        <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                                Total Resources Available
-                                            </span>
-                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                                {selectedProject.resources || selectedProject.no_resource || "N/A"}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4 md:space-y-5">
-                                        <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                                Location
-                                            </span>
-                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                                {selectedProject.location || "N/A"}
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                                Actual End Date
-                                            </span>
-                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                                {formatDate(selectedProject.end_date || selectedProject.due_date)}
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                                Hours/Day
-                                            </span>
-                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                                {selectedProject.per_day || selectedProject.perday ? `${selectedProject.per_day || selectedProject.perday}hrs` : "N/A"}
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                                Required Resources
-                                            </span>
-                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                                {selectedProject.required_resources || selectedProject.no_resources_required || "N/A"}
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                                                Project Document
-                                            </span>
-                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                                            <div className="flex flex-wrap gap-2">
-                                                {selectedProject.document_attachment ? (
-                                                    selectedProject.document_attachment
-                                                        .split(",")
-                                                        .map((file) => file.trim())
-                                                        .filter(Boolean)
-                                                        .map((fileName, idx) => {
-                                                            const isOutsource = selectedProject.source === "Outsource";
-                                                            const url = isOutsource
-                                                                ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
-                                                                : `${api.defaults.baseURL}uploads/${fileName}`;
-
+                                                return (
+                                                    <div className="flex items-center -space-x-3">
+                                                        {projectMembers.slice(0, 3).map((member: any) => {
+                                                            const profileUrl = member.profile_picture ? getGlobalProfileUrl(member.id, member.profile_picture) : null;
                                                             return (
-                                                                <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-2 rounded-xl border border-slate-200 w-full md:max-w-xs mt-1">
-                                                                    <div className="p-1.5 bg-white rounded-lg shadow-sm">
-                                                                        <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                                                                <div key={member.id} className="relative group shrink-0">
+                                                                    <div
+                                                                        role="button"
+                                                                        tabIndex={0}
+                                                                        className="w-10 h-10 rounded-full bg-white flex items-center justify-center border-2 border-white overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                                                        onClick={() => openMemberProfile(member)}
+                                                                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openMemberProfile(member); } }}
+                                                                    >
+                                                                        {profileUrl ? (
+                                                                            <img src={profileUrl} className="w-full h-full object-cover" alt={member.full_name || "Member"} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                                                        ) : (
+                                                                            <img src={ProfileIcon} className="w-full h-full object-cover p-1" alt={member.full_name || "Member"} />
+                                                                        )}
                                                                     </div>
-                                                                    <span className="text-[13px] font-bold text-[#353535] line-clamp-1 flex-1">
-                                                                        {fileName.split("_").pop() || "Document"}
-                                                                    </span>
-                                                                    <div className="flex gap-1">
-                                                                        <a
-                                                                            href={url}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            className="p-1 hover:bg-white rounded"
-                                                                            title="View"
-                                                                        >
-                                                                            <img
-                                                                                src={viewIcon}
-                                                                                alt="View"
-                                                                                className="w-[16px] h-[16px] opacity-70 hover:opacity-100"
-                                                                            />
-                                                                        </a>
-                                                                        <a
-                                                                            href={url}
-                                                                            download
-                                                                            className="p-1 hover:bg-white rounded"
-                                                                            title="Download"
-                                                                        >
-                                                                            <FiUploadCloud className="w-[16px] h-[16px] rotate-180 text-slate-500 hover:text-[#DD4342]" />
-                                                                        </a>
+                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                                                        {member.full_name || "Unknown"}
                                                                     </div>
                                                                 </div>
                                                             );
-                                                        })
-                                                ) : (
-                                                    <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                                        No Document Available
-                                                    </span>
-                                                )}
+                                                        })}
+                                                        {projectMembers.length > 3 && (
+                                                            <div
+                                                                role="button"
+                                                                tabIndex={0}
+                                                                className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                                                                onClick={() => { setAllMembersList(projectMembers as Employee[]); setShowAllMembersModal(true); }}
+                                                                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAllMembersList(projectMembers as Employee[]); setShowAllMembersModal(true); } }}
+                                                            >
+                                                                +{projectMembers.length - 3}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                {/* Project Details */}
+                                <div className="rounded-lg border border-slate-200 p-6 md:p-8">
+                                    <h4 className="text-[20px] font-Gantari font-bold text-[#1A1A1A] mb-6">
+                                        Project Details
+                                    </h4>
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
+                                        <div className="space-y-4 md:space-y-5">
+                                            <div className="flex flex-col sm:flex-row sm:items-center">
+                                                <span className="w-full sm:w-48 text-[16px] font-gantari font-normal text-[#353535]">
+                                                    Actual Start Date
+                                                </span>
+                                                <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                                <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                    {formatDate(selectedProject.start_date)}
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-col sm:flex-row sm:items-center">
+                                                <span className="w-full sm:w-48 text-[16px] font-gantari font-normal text-[#353535]">
+                                                    Total Project Hours
+                                                </span>
+                                                <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                                <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                    {selectedProject.totalhours ? `${selectedProject.totalhours}hrs` : "N/A"}
+                                                </span>
+                                            </div>
+                                            {userRole === "Vendor" && (
+                                                <>
+                                                    <div className="flex flex-col sm:flex-row sm:items-center">
+                                                        <span className="w-full sm:w-48 text-[16px] font-gantari font-normal text-[#353535]">
+                                                            Budget
+                                                        </span>
+                                                        <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                            {selectedProject.budget ? `${selectedProject.budget}$` : "N/A"}
+                                                        </span>
+                                                    </div>
+                                                </>
+                                            )}
+                                            <div className="flex flex-col sm:flex-row sm:items-center">
+                                                <span className="w-full sm:w-48 text-[16px] font-gantari font-normal text-[#353535]">
+                                                    Total Resources Available
+                                                </span>
+                                                <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                                <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                    {selectedProject.resources || selectedProject.no_resource || "N/A"}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4 md:space-y-5">
+                                            <div className="flex flex-col sm:flex-row sm:items-center">
+                                                <span className="w-full sm:w-48 text-[16px] font-gantari font-normal text-[#353535]">
+                                                    Location
+                                                </span>
+                                                <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                                <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                    {selectedProject.location || "N/A"}
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-col sm:flex-row sm:items-center">
+                                                <span className="w-full sm:w-48 text-[16px] font-gantari font-normal text-[#353535]">
+                                                    Actual End Date
+                                                </span>
+                                                <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                                <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                    {formatDate(selectedProject.end_date || selectedProject.due_date)}
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-col sm:flex-row sm:items-center">
+                                                <span className="w-full sm:w-48 text-[16px] font-gantari font-normal text-[#353535]">
+                                                    Hours/Day
+                                                </span>
+                                                <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                                <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                    {selectedProject.per_day || selectedProject.perday ? `${selectedProject.per_day || selectedProject.perday}hrs` : "N/A"}
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-col sm:flex-row sm:items-center">
+                                                <span className="w-full sm:w-48 text-[16px] font-gantari font-normal text-[#353535]">
+                                                    Required Resources
+                                                </span>
+                                                <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                                <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                    {selectedProject.required_resources || selectedProject.no_resources_required || "N/A"}
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-col sm:flex-row sm:items-center">
+                                                <span className="w-full sm:w-48 text-[16px] font-gantari font-normal text-[#353535]">
+                                                    Project Document
+                                                </span>
+                                                <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {selectedProject.document_attachment ? (
+                                                        selectedProject.document_attachment
+                                                            .split(",")
+                                                            .map((file) => file.trim())
+                                                            .filter(Boolean)
+                                                            .map((fileName, idx) => {
+                                                                const isOutsource = selectedProject.source === "Outsource";
+                                                                const url = isOutsource
+                                                                    ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
+                                                                    : `${api.defaults.baseURL}uploads/${fileName}`;
+
+                                                                return (
+                                                                    <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-2 rounded-xl border border-slate-200 w-full md:max-w-xs mt-1">
+                                                                        <div className="p-1.5 bg-white rounded-lg shadow-sm">
+                                                                            <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                                                                        </div>
+                                                                        <span className="text-[13px] font-bold text-[#353535] line-clamp-1 flex-1">
+                                                                            {fileName.split("_").pop() || "Document"}
+                                                                        </span>
+                                                                        <div className="flex gap-1">
+                                                                            <a
+                                                                                href={url}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                className="p-1 hover:bg-white rounded"
+                                                                                title="View"
+                                                                            >
+                                                                                <img
+                                                                                    src={viewIcon}
+                                                                                    alt="View"
+                                                                                    className="w-[16px] h-[16px] opacity-70 hover:opacity-100"
+                                                                                />
+                                                                            </a>
+                                                                            <a
+                                                                                href={url}
+                                                                                download
+                                                                                className="p-1 hover:bg-white rounded"
+                                                                                title="Download"
+                                                                            >
+                                                                                <FiUploadCloud className="w-[16px] h-[16px] rotate-180 text-slate-500 hover:text-[#DD4342]" />
+                                                                            </a>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })
+                                                    ) : (
+                                                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                            No Document Available
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+
+
                             </div>
-
-
                         </div>
                     </div>
                 ) : showMilestones && milestonesProject ? (
                     /* Milestones View */
                     <div className="flex flex-col h-full bg-white">
-                        <div className="flex items-center justify-between px-10 py-8">
-                            <div className="flex items-center gap-6">
-                                <button type="button" onClick={() => setShowMilestones(false)}
-                                    className="p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
-                                    title="Go back"
-                                >
-                                    <img src={backIcon} alt="Back" className="w-5 h-5" />
-                                </button>
-                                <div>
-                                    <h3 className="text-[26px] font-bold">Payment Milestones</h3>
-                                    <p className="text-[16px] font-bold text-[#999999]">{milestonesProject.project_name}</p>
-                                </div>
+                        <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
+                            <button
+                                type="button"
+                                onClick={() => setShowMilestones(false)}
+                                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] transition-colors cursor-pointer"
+                                title="Back"
+                            >
+                                <img src={backIcon} alt="Back" className="w-5 h-5" />
+                            </button>
+                            <div className="text-center">
+                                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
+                                    Payment Milestones
+                                </h3>
+                                <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
+                                    {milestonesProject.project_name}
+                                </p>
                             </div>
                         </div>
-                        <div className="flex-1 flex flex-col items-center justify-center text-center p-10">
-                            <h4 className="text-[22px] font-bold text-[#353535] mb-2">No Payment Milestones Found</h4>
-                            <p className="text-[15px] font-bold text-[#999999] mb-10">Add your first payment to get started with payment tracking</p>
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col py-10 px-4 md:px-10 custom-scrollbar">
+                            <div className="flex-1 border border-[#E5E7EB] rounded-[8px] bg-white flex flex-col items-center justify-center text-center py-20">
+                                <h4 className="text-[20px] font-Gantari font-bold text-[#353535] mb-3">
+                                    No Payment Milestones Found
+                                </h4>
+                                <p className="text-[16px] font-Gantari text-[#666666]">
+                                    Add your First Payment to get started with payment tracking
+                                </p>
+                            </div>
                         </div>
                     </div>
                 ) : (
                     /* Project List */
                     <>
                         <div className="flex items-center justify-between pb-6">
-                            <h2 className="text-[24px] font-semibold text-[#000000]">Projects</h2>
-                            {/* <button onClick={() => { setShowCreateModal(true); setSelectedMemberIds([]); }}
-                                className="flex items-center gap-2 bg-[#DD4342] text-white px-5 py-2.5 rounded-lg hover:opacity-90 transition-all font-semibold shadow-sm text-sm">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
-                                Create Project
-                            </button> */}
+                            <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
+                                Projects
+                            </h2>
                         </div>
                         <div className="flex-1 overflow-y-auto pt-4 pb-4 px-4 space-y-8 custom-scrollbar">
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -1692,8 +1754,6 @@ export default function ProjectsV() {
                                         const progress = Math.round(Number(p.progress) || 0);
                                         const memberIds = p.members ? p.members.split(",").filter(Boolean).map(Number) : [];
                                         const radius = 28;
-                                        const circumference = 2 * Math.PI * radius;
-                                        const strokeOffset = circumference - (progress / 100) * circumference;
                                         const isHighPri =
                                             (p.priority || "").toLowerCase() === "high" ||
                                             (p.priority || "").toLowerCase() === "urgent";
@@ -1704,27 +1764,26 @@ export default function ProjectsV() {
                                                     setSelectedProject(p);
                                                     setShowProjectView(true);
                                                 }}
-                                                className="bg-white rounded-2xl border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                                                className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                                             >
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <div className="relative flex items-center justify-center shrink-0 mt-3 ml-2">
-
-                                                        <svg className="w-20 h-20 transform -rotate-90">
-                                                            <circle cx="40" cy="40" r={radius} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
+                                                <div className="flex items-start justify-between mb-4 mt-2 pr-0">
+                                                    <div className="relative flex items-center justify-center shrink-0">
+                                                        <svg className="w-12 h-12 md:w-16 md:h-16 transform -rotate-90">
+                                                            <circle cx="50%" cy="50%" r={22} stroke="#f1f5f9" strokeWidth="4" fill="transparent" />
                                                             <circle
-                                                                cx="40"
-                                                                cy="40"
-                                                                r={radius}
+                                                                cx="50%"
+                                                                cy="50%"
+                                                                r={22}
                                                                 stroke="#0a9344"
-                                                                strokeWidth="6"
+                                                                strokeWidth="4"
                                                                 fill="transparent"
-                                                                strokeDasharray={circumference}
-                                                                strokeDashoffset={strokeOffset}
+                                                                strokeDasharray={2 * Math.PI * 22}
+                                                                strokeDashoffset={(2 * Math.PI * 22) - (progress / 100) * (2 * Math.PI * 22)}
                                                                 strokeLinecap="round"
                                                                 style={{ transition: "stroke-dashoffset 0.8s ease-in-out" }}
                                                             />
                                                         </svg>
-                                                        <span className="absolute text-[16px] font-Gantari font-bold text-[#353535]">
+                                                        <span className="absolute text-[12px] font-Gantari font-bold text-[#353535]">
                                                             {progress}%
                                                         </span>
                                                     </div>
@@ -1753,14 +1812,14 @@ export default function ProjectsV() {
                                                                     setSelectedProject(p);
                                                                     setShowProjectView(true);
                                                                 }}
-                                                                className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                                className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                                                             >
                                                                 <img
                                                                     src={viewIcon}
                                                                     alt="view"
                                                                     className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                                                 />
-                                                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                                                <span className="text-[14px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                                                                     View
                                                                 </span>
                                                             </button>
@@ -1770,14 +1829,14 @@ export default function ProjectsV() {
                                                                     setOpenMenuProjectId(null);
                                                                     openEdit(p);
                                                                 }}
-                                                                className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                                className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                                                             >
                                                                 <img
                                                                     src={editIcon}
                                                                     alt="edit"
                                                                     className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                                                 />
-                                                                <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                                                <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                                                     Edit
                                                                 </span>
                                                             </button>
@@ -1788,51 +1847,25 @@ export default function ProjectsV() {
                                                                     setMilestonesProject(p);
                                                                     setShowMilestones(true);
                                                                 }}
-                                                                className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                                className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                                                             >
                                                                 <img
                                                                     src={paymentMilestoneIcon}
                                                                     alt="payment milestone"
                                                                     className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                                                 />
-                                                                <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                                                <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari whitespace-nowrap">
                                                                     Payment Milestones
                                                                 </span>
-                                                            </button>
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setOpenMenuProjectId(null);
-                                                                    setDeleteId(p.id);
-                                                                }}
-                                                                className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer bg-transparent border-none"
-                                                            >
-                                                                {/* <img
-                                                                        src={deleteIcon}
-                                                                        alt="delete"
-                                                                        className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                                                    />
-                                                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
-                                                                        Delete
-                                                                    </span> */}
                                                             </button>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="mb-4 ml-6 -mt-2">
-                                                    <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                                                <div className="mb-2 ml-6 -mt-2 min-h-[45px] flex flex-col justify-center">
+                                                    <h3 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] leading-tight">
                                                         {p.project_name ?? "Untitled Project"}
                                                     </h3>
-                                                    {/* {(userRole === "Vendor") && (
-                                                        <div className="mt-1 space-y-0.5">
-                                                            {p.budget_ceiling && (
-                                                                <p className="text-[13px] font-Gantari font-medium text-[#666666]">
-                                                                    Outsourcing Budget: <span className="font-bold text-[#353535]">{p.budget_ceiling}</span>
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    )} */}
                                                 </div>
 
 
@@ -1951,7 +1984,7 @@ export default function ProjectsV() {
                         {/* Modal Header */}
                         <div className="relative flex items-center justify-center px-10 py-8 border-b border-slate-50">
                             <button type="button" onClick={() => setShowCreateModal(false)}
-                                className="absolute left-10 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
+                                className="absolute left-10 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
                                 title="Go back"
                             >
                                 <img src={backIcon} alt="Back" className="w-5 h-5" />
@@ -1966,7 +1999,7 @@ export default function ProjectsV() {
 
                                 <div className="flex justify-center gap-6 pt-6 pb-4">
                                     <button type="button" onClick={() => { setShowCreateModal(false); setCreateError(""); }}
-                                        className="px-12 py-4 rounded-xl bg-[#F1F1F1] text-[#666666] font-bold hover:bg-gray-200 transition-colors">Discard</button>
+                                        className="px-12 py-4 rounded-xl bg-[#F1F1F1] text-[#666666] font-medium transition-colors">Discard</button>
                                     <button type="submit" disabled={createSubmitting}
                                         className="px-12 py-4 rounded-xl bg-[#DD4342] text-white font-bold hover:opacity-90 shadow-lg shadow-red-100 transition-all disabled:opacity-50">
                                         {createSubmitting ? "Creating..." : "Submit"}
@@ -1987,7 +2020,7 @@ export default function ProjectsV() {
                 <div className="fixed inset-0 z-[220] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full max-h-[80vh] overflow-hidden">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-                            <h3 className="text-[28px] font-semibold text-[#1A1A1A] font-Gantari">All Members ({allMembersList.length})</h3>
+                            <h3 className="text-[28px] font-bold text-[#1A1A1A] font-Gantari">All Members ({allMembersList.length})</h3>
                             <button type="button" onClick={() => setShowAllMembersModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer" aria-label="Close">
                                 <img src={closeBtnIcon} alt="close" className="w-6 h-6" />
                             </button>
@@ -2007,7 +2040,7 @@ export default function ProjectsV() {
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <p className="text-[16px] font-semibold text-[#1A1A1A] font-Gantari">{member.full_name || "Unknown"}</p>
+                                                    <p className="text-[16px] font-bold text-[#1A1A1A] font-Gantari">{member.full_name || "Unknown"}</p>
                                                     {member.email && <p className="text-[14px] text-[#8B8B8B] font-Gantari">{member.email}</p>}
                                                 </div>
                                             </div>
@@ -2028,8 +2061,8 @@ export default function ProjectsV() {
                 <div className="fixed inset-0 z-[230] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                     <div className="bg-white rounded-[2rem] shadow-2xl max-w-xl w-full max-h-[80vh] flex flex-col overflow-hidden">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-                            <h3 className="text-[28px] font-semibold text-[#1A1A1A] font-Gantari">View Details</h3>
-                            <button type="button" onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }} className="p-2 rounded-[5px] bg-[#F2F2F2] cursor-pointer">
+                            <h3 className="text-[28px] font-bold text-[#1A1A1A] font-Gantari">View Details</h3>
+                            <button type="button" onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }} className="p-2 rounded-md bg-[#F2F2F2] cursor-pointer">
                                 <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
                             </button>
                         </div>

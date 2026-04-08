@@ -8,6 +8,7 @@ import {
 import toast from "react-hot-toast";
 import api from "../../lib/api";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
+import { useAuth } from "../../contexts/AuthContext";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg"
@@ -215,6 +216,9 @@ interface Task {
   uploader_full_name?: string;
   assigned_to?: number;
   uploaderid?: number;
+  uploadedid?: number;
+  uploader_id?: number;
+  created_by?: number | string;
   assigned_profile_picture?: string;
   uploader_profile_picture?: string;
   Approval?: string;
@@ -498,6 +502,7 @@ const PERIOD_OPTIONS = [
 export default function MyTasksPM() {
   const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
+  const { user } = useAuth();
   const isTeam =
     searchParams.get("condition") === "1" || pathname.endsWith("/team");
   const statusFilter =
@@ -627,9 +632,9 @@ export default function MyTasksPM() {
   useEffect(() => {
     const params: Record<string, string> = {};
     if (statusFilter) params.status = statusFilter;
+    params.employeeid = "all";
     if (isTeam) {
       params.condition = "1";
-      params.employeeid = "all";
     }
 
     const taskParams: Record<string, string> = { ...params };
@@ -671,7 +676,60 @@ export default function MyTasksPM() {
   }, [employees, projects, selectedProject]);
   const projectOptions = ["Select Projects", ...projects.map(p => p.project_name)];
 
-  const allTasks = list.filter((t) => {
+  const involvedTasks = useMemo(() => {
+    if (isTeam) return list;
+    const uid = user?.id;
+    const fullName = (user?.full_name || "").trim().toLowerCase();
+    if (!uid && !fullName) return list;
+    return list.filter((t) => {
+      const legacy = t as unknown as Record<string, unknown>;
+      const assignedIds = [
+        t.assigned_to,
+        legacy.assigned_to,
+        legacy.assign_to,
+        legacy.assignedto,
+      ].filter((v) => v != null && String(v).trim() !== "");
+      const uploaderIds = [
+        t.uploaderid,
+        t.uploadedid,
+        t.uploader_id,
+        t.created_by,
+        legacy.uploaderid,
+        legacy.uploadedid,
+        legacy.uploader_id,
+        legacy.uploaded_id,
+        legacy.created_by,
+        legacy.createdby,
+      ].filter((v) => v != null && String(v).trim() !== "");
+
+      const assignedNames = [
+        t.assigned_full_name,
+        t.assign_to,
+        String(legacy.assigned_full_name || ""),
+        String(legacy.assign_to_name || ""),
+      ]
+        .map((v) => String(v || "").trim().toLowerCase())
+        .filter(Boolean);
+      const uploaderNames = [
+        t.uploader_full_name,
+        String(legacy.uploader_full_name || ""),
+        String(legacy.uploader_name || ""),
+        String(legacy.uploaded_by_name || ""),
+      ]
+        .map((v) => String(v || "").trim().toLowerCase())
+        .filter(Boolean);
+
+      const assignedToMatches =
+        (uid != null && assignedIds.some((v) => String(v) === String(uid))) ||
+        (fullName ? assignedNames.some((v) => v === fullName) : false);
+      const uploaderMatches =
+        (uid != null && uploaderIds.some((v) => String(v) === String(uid))) ||
+        (fullName ? uploaderNames.some((v) => v === fullName) : false);
+      return assignedToMatches || uploaderMatches;
+    });
+  }, [isTeam, list, user?.id, user?.full_name]);
+
+  const allTasks = involvedTasks.filter((t) => {
     // Employee filter
     if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
       if (t.assigned_full_name !== selectedEmployee) return false;

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
@@ -1154,6 +1155,9 @@ export default function ProjectsTD() {
                 {/* Scrollable Content Below KPI Cards */}
                 <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 px-4 md:px-2 pb-10 pt-4">
                   <div className="border border-slate-200 rounded-md md:rounded-md p-6 md:p-8 lg:p-2">
+                    <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">
+                      Modules
+                    </h4>
                     <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
                       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-4">
                         {loadingTaskStats ? (
@@ -2089,11 +2093,15 @@ export default function ProjectsTD() {
                                 api
                                   .post(`/api/milestones/${m.id}/mark-paid`)
                                   .then(
-                                    () =>
+                                    () => {
+                                      toast.success("Milestone marked as paid!");
                                       currentProject?.id &&
-                                      fetchMilestones(currentProject.id),
+                                      fetchMilestones(currentProject.id);
+                                    }
                                   )
-                                  .catch(() => { });
+                                  .catch(() => {
+                                    toast.error("Failed to mark milestone as paid");
+                                  });
                               }}
                               className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
                               title="Mark as Paid"
@@ -2123,11 +2131,15 @@ export default function ProjectsTD() {
                                 api
                                   .delete(`/api/milestones/${m.id}`)
                                   .then(
-                                    () =>
+                                    () => {
+                                      toast.success("Milestone deleted successfully!");
                                       currentProject?.id &&
-                                      fetchMilestones(currentProject.id),
+                                      fetchMilestones(currentProject.id);
+                                    }
                                   )
-                                  .catch(() => { });
+                                  .catch(() => {
+                                    toast.error("Failed to delete milestone");
+                                  });
                               }
                             }}
                             className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors cursor-pointer"
@@ -2663,6 +2675,7 @@ export default function ProjectsTD() {
                     })
                     .then(({ data }) => {
                       if (data.success) {
+                        toast.success("Project created successfully!");
                         setShowCreateModal(false);
                         setCreateName("");
                         setCreateBudget("");
@@ -2747,12 +2760,11 @@ export default function ProjectsTD() {
                           .catch(() => { });
                       }
                     })
-                    .catch((err) =>
-                      setCreateError(
-                        err.response?.data?.message ||
-                        "Failed to create project",
-                      ),
-                    )
+                    .catch((err) => {
+                      const msg = err.response?.data?.message || "Failed to create project";
+                      setCreateError(msg);
+                      toast.error(msg);
+                    })
                     .finally(() => setCreateSubmitting(false));
                 }}
                 className="space-y-6"
@@ -3214,10 +3226,13 @@ export default function ProjectsTD() {
                             setList([...p1, ...p2]);
                           })
                           .catch(() => { });
+                        toast.success("Project deleted successfully!");
                         setDeleteProject(null);
                       }
                     })
-                    .catch(() => { });
+                    .catch(() => {
+                      toast.error("Failed to delete project");
+                    });
                 }}
                 className="px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
@@ -3262,6 +3277,7 @@ export default function ProjectsTD() {
                     action: "add",
                   })
                   .then(() => {
+                    toast.success("Milestone added successfully!");
                     setShowAddMilestoneModal(false);
                     setMilestoneName("");
                     setMilestoneAmount("");
@@ -3269,7 +3285,9 @@ export default function ProjectsTD() {
                     setMilestoneNotes("");
                     fetchMilestones(currentProject.id);
                   })
-                  .catch(() => { });
+                  .catch((err) => {
+                    toast.error(err.response?.data?.message || "Failed to add milestone");
+                  });
               }}
               className="space-y-6 px-1"
             >
@@ -3482,6 +3500,7 @@ export default function ProjectsTD() {
                     })
                     .then(({ data }) => {
                       if ((data as { success?: boolean }).success) {
+                        toast.success("Project details updated successfully!");
                         setShowEditModal(false);
                         setEditDropdownOpen(null);
                         setCreateBudgetCeiling("");
@@ -3499,7 +3518,9 @@ export default function ProjectsTD() {
                           .catch(() => { });
                       }
                     })
-                    .catch(() => { })
+                    .catch((err) => {
+                      toast.error(err.response?.data?.message || "Failed to update project details");
+                    })
                     .finally(() => setIsEditSubmitting(false));
                 }}
                 className="space-y-8"

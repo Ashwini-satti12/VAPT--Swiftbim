@@ -47,6 +47,12 @@ interface Employee {
   name?: string;
 }
 
+interface VendorProjectRow {
+  id?: number;
+  project_name?: string;
+  main_project_id?: number | null;
+}
+
 function parseTaskPayload(data: unknown): Task | null {
   if (!data || typeof data !== "object") return null;
   const d = data as { task?: Task } & Task;
@@ -196,6 +202,7 @@ export default function MyTaskViewEV() {
   const [vendorResourceProfiles, setVendorResourceProfiles] = useState<
     Employee[]
   >([]);
+  const [vendorProjects, setVendorProjects] = useState<VendorProjectRow[]>([]);
 
   const listPath = `/ve/mytasks${location.search || ""}`;
 
@@ -275,6 +282,17 @@ export default function MyTaskViewEV() {
   }, []);
 
   useEffect(() => {
+    api
+      .get<{ projects?: VendorProjectRow[] }>("/api/vendors/vendor-projects")
+      .then(({ data }) => {
+        setVendorProjects(data.projects ?? []);
+      })
+      .catch(() => {
+        setVendorProjects([]);
+      });
+  }, []);
+
+  useEffect(() => {
     return () => {
       if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
     };
@@ -342,6 +360,30 @@ export default function MyTaskViewEV() {
     }
   };
 
+  const resolvedProjectName = useMemo(() => {
+    if (!task) return "";
+    const tr = task as unknown as Record<string, unknown>;
+    const direct = String(task.project_name ?? tr.project_name ?? "").trim();
+    if (direct) return direct;
+    const pid =
+      task.projectid ??
+      task.project_id ??
+      tr.projectid ??
+      tr.project_id;
+    const n = typeof pid === "number" ? pid : Number(pid);
+    if (Number.isNaN(n) || vendorProjects.length === 0) return "";
+    const byMain = vendorProjects.find(
+      (p) =>
+        p.main_project_id != null && Number(p.main_project_id) === n,
+    );
+    const nmMain = byMain?.project_name?.trim();
+    if (nmMain) return nmMain;
+    const byVpId = vendorProjects.find((p) => Number(p.id) === n);
+    const nmVp = byVpId?.project_name?.trim();
+    if (nmVp) return nmVp;
+    return "";
+  }, [task, vendorProjects]);
+
   if (loading) {
     return (
       <div className="flex flex-1 min-h-0 items-center justify-center py-12">
@@ -404,7 +446,7 @@ export default function MyTaskViewEV() {
   };
 
   const displayModule = (): string => {
-    const v = String(
+    const raw = String(
       task.modules_name ??
         task.module ??
         task.modules ??
@@ -412,7 +454,21 @@ export default function MyTaskViewEV() {
         taskRecord.modules ??
         "",
     ).trim();
-    return v || "—";
+    if (!raw) return "—";
+    try {
+      if (raw.startsWith("[") && raw.endsWith("]")) {
+        const parsed = JSON.parse(raw) as unknown;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const first = String(parsed[0]).trim();
+          if (first) return first;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    const partial = /^\["([^"]*)/.exec(raw);
+    if (partial?.[1]?.trim()) return partial[1].trim();
+    return raw;
   };
 
   const resolveAssignedName = (): string => {
@@ -447,7 +503,7 @@ export default function MyTaskViewEV() {
           <img src={backIcon} alt="Back" className="w-5 h-5" />
         </button>
         <h1 className="flex-1 text-center text-[20px] sm:text-2xl font-semibold text-[#353535] font-Gantari px-2">
-          {task.project_name || task.task_name || "Task"}
+          {resolvedProjectName || task.task_name || "Task"}
         </h1>
         <div className="w-9" />
       </div>
@@ -532,7 +588,9 @@ export default function MyTaskViewEV() {
             <div className="flex gap-2">
               <span className="text-black shrink-0 w-28">Project Name</span>
               <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">{task.project_name || "—"}</span>
+              <span className="text-[#616161]">
+                {resolvedProjectName || "—"}
+              </span>
             </div>
             <div className="flex gap-2">
               <span className="text-black shrink-0 lg:whitespace-nowrap w-28">

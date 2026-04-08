@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { FiChevronDown } from 'react-icons/fi';
 import api from '../../lib/api';
@@ -166,12 +167,17 @@ export default function AddConsultantTD() {
       )
       .then(({ data }) => {
         if (data.success) {
+          toast.success('Consultant added successfully!');
           navigate('/td/consultants');
         } else {
           setAddError(data.message || 'Failed to add employee/trainee.');
         }
       })
-      .catch((err) => setAddError(err.response?.data?.message || 'Failed to add consultant.'))
+      .catch((err) => {
+        const msg = err.response?.data?.message || 'Failed to add consultant.';
+        setAddError(msg);
+        toast.error(msg);
+      })
       .finally(() => setAddSubmitting(false));
   }
 

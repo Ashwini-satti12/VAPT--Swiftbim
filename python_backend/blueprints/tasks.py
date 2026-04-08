@@ -30,6 +30,19 @@ def _serialize_row(d):
     return out
 
 
+def _task_row_merge_joined_project_name(row_dict):
+    """
+    SELECT t.*, p.project_name yields duplicate keys in some MySQL clients:
+    tasks.project_name may be NULL while projects.project_name is set.
+    Prefer the explicit join column when present.
+    """
+    d = dict(row_dict)
+    join_name = d.pop("_join_project_name", None)
+    if join_name is not None and str(join_name).strip() != "":
+        d["project_name"] = join_name
+    return d
+
+
 # Roles that see all company projects and tasks
 MANAGEMENT_ROLES = ("Technical Director", "CEO")
 
@@ -149,14 +162,20 @@ def list_tasks():
                     )""")
                 params.extend([g.user_id, g.user_id, g.user_id, g.user_id, g.user_id, g.user_id])
     else:
-        # My task / employee view: only tasks assigned to me or created by me
-        employee_id = employeeid_param or g.user_id
+        # My task / employee view: only tasks assigned to me or created by me.
+        # Legacy frontend may send employeeid=all even for My Task. In that case,
+        # default to current user instead of filtering by literal string "all".
+        if employeeid_param is None or str(employeeid_param).strip() == "" or str(employeeid_param).strip().lower() == "all":
+            employee_id = g.user_id
+        else:
+            employee_id = employeeid_param
         where.append("(t.assigned_to = %s OR t.uploaderid = %s)")
         params.extend([employee_id, employee_id])
 
     if status:
         if status == 'todo':
-            where.append("t.status = 'Todo'")
+            # Backward compatibility: old rows may use "To Do", "Todo", or NULL.
+            where.append("(t.status IN ('Todo', 'To Do') OR t.status IS NULL OR TRIM(t.status) = '')")
         elif status == 'in_progress':
             where.append(
                 "(t.status IN ('InProgress', 'Started')) AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))"
@@ -182,7 +201,7 @@ def list_tasks():
 
     sql = f"""SELECT t.*, e_assigned.full_name AS assigned_full_name, e_uploader.full_name AS uploader_full_name,
               e_assigned.profile_picture AS assigned_profile_picture, e_uploader.profile_picture AS uploader_profile_picture,
-              p.project_name
+              p.project_name AS _join_project_name
               FROM tasks t
               LEFT JOIN employee e_assigned ON t.assigned_to = e_assigned.id
               LEFT JOIN employee e_uploader ON t.uploaderid = e_uploader.id
@@ -191,7 +210,7 @@ def list_tasks():
               ORDER BY t.created_at DESC"""
     cur.execute(sql, params)
     rows = cur.fetchall()
-    tasks = [_serialize_row(dict(r)) for r in rows]
+    tasks = [_serialize_row(_task_row_merge_joined_project_name(dict(r))) for r in rows]
     return jsonify({"tasks": tasks})
 
 
@@ -345,7 +364,7 @@ def get_task(task_id):
     cur = conn.cursor()
     cur.execute(
         """SELECT t.*, e_assigned.full_name AS assigned_full_name, e_uploader.full_name AS uploader_full_name,
-              p.project_name FROM tasks t
+              p.project_name AS _join_project_name FROM tasks t
               LEFT JOIN employee e_assigned ON t.assigned_to = e_assigned.id
               LEFT JOIN employee e_uploader ON t.uploaderid = e_uploader.id
               LEFT JOIN projects p ON t.projectid = p.id
@@ -355,7 +374,8 @@ def get_task(task_id):
     row = cur.fetchone()
     if not row:
         return jsonify({"success": False, "message": "Task not found"}), 404
-    return jsonify(_serialize_row(dict(row)))
+    merged = _task_row_merge_joined_project_name(dict(row))
+    return jsonify(_serialize_row(merged))
 
 
 @bp.route("/<int:task_id>", methods=["PUT", "PATCH"])

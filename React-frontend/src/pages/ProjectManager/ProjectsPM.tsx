@@ -57,6 +57,21 @@ const nameToId = (name: string, employeesList: Employee[]) => {
   return emp ? emp.id : undefined;
 };
 
+const nameOrCsvToIdCsv = (value: string, employeesList: Employee[]): string => {
+  if (!value) return "";
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      if (/^\d+$/.test(item)) return item;
+      const id = nameToId(item, employeesList);
+      return id != null ? String(id) : "";
+    })
+    .filter(Boolean)
+    .join(",");
+};
+
 const idToName = (id: string | number | undefined, employeesList: Employee[]) => {
   if (!id) return '';
   const emp = employeesList.find((e) => String(e.id) === String(id));
@@ -838,6 +853,9 @@ export default function ProjectsPM() {
             <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 px-4 md:px-6 pb-6">
               {/* Tower Progress Grid */}
             <div className="border border-[#AEACAC52] rounded-md ">
+              <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] px-6 md:px-8 lg:px-2 pt-6 md:pt-8 lg:pt-2">
+                Modules
+              </h4>
               <div className="max-h-[220px] overflow-y-auto custom-scrollbar p-6 md:p-8 lg:p-2">
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-4 ">
                   {(selectedProjectForView.module_name ? selectedProjectForView.module_name.split(',').map(m => m.trim()).filter(Boolean) : []).length > 0 ? (
@@ -1521,14 +1539,14 @@ export default function ProjectsPM() {
                 const clientId = clientsList.find(c => c.full_name === createClientName)?.id;
                 if (clientId) formData.append('client_id', String(clientId));
 
-                const pmId = nameToId(createProjectManager, allEmployees);
-                if (pmId) formData.append('project_manager_id', String(pmId));
+                const pmIds = nameOrCsvToIdCsv(createProjectManager, allEmployees);
+                if (pmIds) formData.append('project_manager_id', pmIds);
 
-                const leadId = nameToId(createBIMLead, allEmployees);
-                if (leadId) formData.append('lead_id', String(leadId));
+                const leadIds = nameOrCsvToIdCsv(createBIMLead, allEmployees);
+                if (leadIds) formData.append('lead_id', leadIds);
 
-                const bcId = nameToId(createBIMCoOrdinator, allEmployees);
-                if (bcId) formData.append('bim_coordinator_id', String(bcId));
+                const bcIds = nameOrCsvToIdCsv(createBIMCoOrdinator, allEmployees);
+                if (bcIds) formData.append('bim_coordinator_id', bcIds);
 
                 if (selectedMemberIds.length > 0) formData.append('members', selectedMemberIds.join(','));
                 if (createDepartment) formData.append('department', createDepartment);
@@ -2134,14 +2152,14 @@ export default function ProjectsPM() {
                 const client = clientsList.find(c => String(c.id) === String(createClientName) || c.full_name === createClientName);
                 if (client) formData.append('client_id', String(client.id));
 
-                const pmId = nameToId(createProjectManager, allEmployees);
-                if (pmId) formData.append('project_manager_id', String(pmId));
+                const pmIds = nameOrCsvToIdCsv(createProjectManager, allEmployees);
+                if (pmIds) formData.append('project_manager_id', pmIds);
 
-                const leadId = nameToId(createBIMLead, allEmployees);
-                if (leadId) formData.append('lead_id', String(leadId));
+                const leadIds = nameOrCsvToIdCsv(createBIMLead, allEmployees);
+                if (leadIds) formData.append('lead_id', leadIds);
 
-                const bcId = nameToId(createBIMCoOrdinator, allEmployees);
-                if (bcId) formData.append('bim_coordinator_id', String(bcId));
+                const bcIds = nameOrCsvToIdCsv(createBIMCoOrdinator, allEmployees);
+                if (bcIds) formData.append('bim_coordinator_id', bcIds);
 
                 if (selectedMemberIds.length > 0) formData.append('members', selectedMemberIds.join(','));
                 else if (editMember) formData.append('members', editMember);
