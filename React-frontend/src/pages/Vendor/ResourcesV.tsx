@@ -563,18 +563,34 @@ export default function ResourcesV() {
             <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 py-1 overflow-visible">
               {canAdd && (
                 <>
-                  <button
-                    onClick={() => setViewMode("table")}
-                    className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === "table" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
-                  >
-                    <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode("card")}
-                    className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === "card" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
-                  >
-                    <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
-                  </button>
+                  <div className="group relative">
+                    <button
+                      onClick={() => setViewMode("table")}
+                      className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === "table" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"} border-0 shadow-none`}
+                    >
+                      <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </button>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
+                        <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">List</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="group relative">
+                    <button
+                      onClick={() => setViewMode("card")}
+                      className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === "card" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"} border-0 shadow-none`}
+                    >
+                      <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </button>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
+                        <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Grid</span>
+                      </div>
+                    </div>
+                  </div>
                   {/* <button
                     onClick={() => setActiveView("add")}
                     className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
@@ -894,12 +910,20 @@ export default function ResourcesV() {
           <div className="bg-white rounded-md w-full max-w-3xl relative flex flex-col max-h-[80vh] overflow-hidden">
             <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between p-5 sm:p-8 shrink-0 gap-4">
               <div className="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-4">
+              <div className="group relative order-1">
                 <button
                   onClick={() => setShowDetailsModal(false)}
-                  className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer order-1"
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer border-0 shadow-none"
                 >
                   <FiX className="w-5 h-5" />
                 </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Close</span>
+                  </div>
+                </div>
+              </div>
                 <span
                   className={`px-4 py-1 rounded-full text-[12px] font-medium shrink-0 sm:hidden ${selectedEmployee.active === "active" ? "bg-[#E0FFE8] text-[#008F22]" : "bg-[#FFEEEE] text-[#E00100]"}`}
                 >
@@ -1053,16 +1077,24 @@ export default function ResourcesV() {
         <div className="flex-1 overflow-y-auto p-2 sm:p-4 bg-white custom-scrollbar">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-8">
-              <button
-                type="button"
-                onClick={() => {
-                  setInviteShowSuccess(false);
-                  setActiveView("list");
-                }}
-                className="p-2 rounded-md bg-[#F2F2F2] text-[#353535] cursor-pointer"
-              >
-                <img src={backIcon} alt="close" />
-              </button>
+              <div className="group relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInviteShowSuccess(false);
+                    setActiveView("list");
+                  }}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#353535] cursor-pointer border-0 shadow-none"
+                >
+                  <img src={backIcon} alt="close" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Go Back</span>
+                  </div>
+                </div>
+              </div>
               <h3 className="sm:text-[24px] font-gantari font-medium text-[#000000]">
                 {activeView === "add"
                   ? "Add New Worker"

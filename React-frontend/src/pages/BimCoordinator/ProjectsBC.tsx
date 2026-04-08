@@ -694,18 +694,27 @@ export default function ProjectsBC() {
           <div className="flex flex-col h-full bg-white">
             {/* Project View Header */}
             <div className="relative flex items-center justify-center px-4 md:px-6 py-2 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowProjectView(false);
-                  setSelectedProjectForView(null);
-                  setSearchParams({}, { replace: true });
-                }}
-                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
-                title="Back"
-              >
-                <img src={backIcon} alt="Back" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-4 group">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProjectView(false);
+                    setSelectedProjectForView(null);
+                    setSearchParams({}, { replace: true });
+                  }}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
+                >
+                  <img src={backIcon} alt="Back" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Go Back
+                    </span>
+                  </div>
+                </div>
+              </div>
               <div className="text-center">
                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
                   {selectedProjectForView.project_name ?? "Loading..."}
@@ -1615,14 +1624,23 @@ export default function ProjectsBC() {
           <div className="flex flex-col h-full bg-white">
             {/* Milestones Header */}
             <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => setShowMilestones(false)}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-                title="Close"
-              >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-4 group">
+                <button
+                  type="button"
+                  onClick={() => setShowMilestones(false)}
+                  className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+                >
+                  <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <div className="text-center">
                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                   Payment Milestones
@@ -1863,17 +1881,26 @@ export default function ProjectsBC() {
           <div className="flex flex-col h-full bg-white">
             {/* Create Project Header */}
             <div className="relative flex items-center justify-center px-4 md:px-4 py-2 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setCreateError("");
-                }}
-                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer"
-                title="Close"
-              >
-                <img src={backIcon} alt="Close" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-4 group">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setCreateError("");
+                  }}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer"
+                >
+                  <img src={backIcon} alt="Close" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Go Back
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">
                 Add New Project
               </h3>
@@ -2668,14 +2695,23 @@ export default function ProjectsBC() {
           <div className="flex flex-col h-full bg-white">
             {/* Edit Project Header */}
             <div className="relative flex items-center justify-center px-4 py-2 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => setShowEditModal(false)}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
-                title="Close"
-              >
-                <img src={backIcon} alt="Close" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-4 group">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
+                >
+                  <img src={backIcon} alt="Close" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Go Back
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">
                 Edit Project Details
               </h3>
@@ -3976,14 +4012,23 @@ export default function ProjectsBC() {
             <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full flex flex-col p-10">
               {/* Modal Header */}
               <div className="relative flex items-center justify-center mb-6 md:mb-10">
-                <button
-                  type="button"
-                  onClick={() => setShowAddMilestoneModal(false)}
-                  className="absolute left-0 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
-                  title="Close"
-                >
-                  <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-                </button>
+                <div className="absolute left-0 group">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddMilestoneModal(false)}
+                    className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+                  >
+                    <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center px-12">
                   Add Payment Milestone
                 </h3>
@@ -4117,13 +4162,23 @@ export default function ProjectsBC() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[85vh]">
               <div className="relative flex items-center justify-center p-6 border-b border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setShowAllMembersModal(false)}
-                  className="absolute left-6 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
-                >
-                  <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-                </button>
+                <div className="absolute left-6 group">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllMembersModal(false)}
+                    className="p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+                  >
+                    <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <h3 className="text-[22px] font-Gantari font-semibold text-[#1A1A1A]">
                   Team Members
                 </h3>
@@ -4178,13 +4233,23 @@ export default function ProjectsBC() {
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full flex flex-col items-center overflow-hidden">
               <div className="w-full relative h-32 bg-slate-100 flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={() => setShowMemberProfileModal(false)}
-                  className="absolute left-6 top-6 p-2 rounded-[5px] bg-white/80 backdrop-blur-md text-gray-800 transition-colors z-10"
-                >
-                  <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-                </button>
+                <div className="absolute left-6 top-6 z-10 group">
+                  <button
+                    type="button"
+                    onClick={() => setShowMemberProfileModal(false)}
+                    className="p-2 rounded-[5px] bg-white/80 backdrop-blur-md text-gray-800 transition-colors cursor-pointer"
+                  >
+                    <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <div className="absolute -bottom-16 w-32 h-32 rounded-full border-4 border-white overflow-hidden shadow-lg bg-white">
                   {selectedMember.profile_picture ? (
                     <img

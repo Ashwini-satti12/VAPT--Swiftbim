@@ -408,12 +408,20 @@ export default function CreateteamPMV() {
             {showAddModal && (
                 <div className="fixed inset-0 z-[150] flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
                     <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-visible my-auto">
-                        <button
-                            onClick={() => setShowAddModal(false)}
-                            className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
-                        >
-                            <XMarkIcon className="w-5 h-5 text-black stroke-[2]" />
-                        </button>
+                        <div className="group absolute top-8 left-8 z-10">
+                            <button
+                                onClick={() => setShowAddModal(false)}
+                                className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer border-0 shadow-none"
+                            >
+                                <XMarkIcon className="w-5 h-5 text-black stroke-[2]" />
+                            </button>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
+                                    <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Close</span>
+                                </div>
+                            </div>
+                        </div>
 
                         <div className="text-center mb-10">
                             <h3 className="text-[24px] font-semibold text-[#000000]">
@@ -657,12 +665,20 @@ export default function CreateteamPMV() {
             {showEditModal && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
                     <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-visible my-auto">
-                        <button
-                            onClick={() => setShowEditModal(false)}
-                            className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
-                        >
-                            <XMarkIcon className="w-5 h-5 text-black stroke-[2]" />
-                        </button>
+                        <div className="group absolute top-8 left-8 z-10">
+                            <button
+                                onClick={() => setShowEditModal(false)}
+                                className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer border-0 shadow-none"
+                            >
+                                <XMarkIcon className="w-5 h-5 text-black stroke-[2]" />
+                            </button>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
+                                    <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Close</span>
+                                </div>
+                            </div>
+                        </div>
                         <div className="p-8">
                             <div className="text-center mb-10">
                                 <h3 className="text-[24px] font-semibold text-[#000000]">Edit Team</h3>
@@ -775,12 +791,20 @@ export default function CreateteamPMV() {
             {showDetailsModal && selectedTeam && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
                     <div className="bg-white rounded-lg shadow-2xl max-w-[500px] w-full animate-in fade-in zoom-in duration-200 relative">
-                        <button
-                            onClick={() => setShowDetailsModal(false)}
-                            className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
-                        >
-                            <XMarkIcon className="w-5 h-5 text-black stroke-[2]" />
-                        </button>
+                        <div className="group absolute top-8 left-8 z-10">
+                            <button
+                                onClick={() => setShowDetailsModal(false)}
+                                className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer border-0 shadow-none"
+                            >
+                                <XMarkIcon className="w-5 h-5 text-black stroke-[2]" />
+                            </button>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
+                                    <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Close</span>
+                                </div>
+                            </div>
+                        </div>
                         <div className="p-8">
                             <div className="text-center mb-6">
                                 <h3 className="text-[22px] font-medium text-[#1E293B] px-12">Team Details</h3>
