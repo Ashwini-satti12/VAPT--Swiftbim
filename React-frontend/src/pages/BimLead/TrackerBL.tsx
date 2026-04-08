@@ -282,16 +282,26 @@ export default function TrackerBL() {
             {/* Row 1: Title and Download button for mobile/tablet */}
             <div className="flex flex-row items-center justify-between w-full">
                 <h2 className="text-[20px] sm:text-[24px] font-bold text-gray-900">Employee Tracking</h2>
-                <button
-                    onClick={handleDownload}
-                    disabled={filteredList.length === 0}
-                    className="sm:hidden flex items-center justify-center gap-2 px-4 py-1.5 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
-                >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <span className="text-[13px]">Download</span>
-                </button>
+                <div className="relative group">
+                    <button
+                        onClick={handleDownload}
+                        disabled={filteredList.length === 0}
+                        className="sm:hidden flex items-center justify-center gap-2 px-4 py-1.5 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span className="text-[13px]">Download</span>
+                    </button>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                            <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                Download
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 w-full sm:w-auto">
@@ -382,16 +392,26 @@ export default function TrackerBL() {
                     {/* Show entries removed */}
 
                     {/* Desktop Download Button */}
-                    <button
-                        onClick={handleDownload}
-                        disabled={filteredList.length === 0}
-                        className="hidden sm:flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                        <span className="text-[16px]">Download</span>
-                    </button>
+                    <div className="relative group">
+                        <button
+                            onClick={handleDownload}
+                            disabled={filteredList.length === 0}
+                            className="hidden sm:flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            <span className="text-[16px]">Download</span>
+                        </button>
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                            <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                    Download
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -769,17 +769,15 @@ export default function MytaskBL() {
                         <h1 className="text-[20px] sm:text-[24px] font-semibold text-[#000000] font-Gantari whitespace-nowrap">
                             {isTeam ? "Team Task" : "My Task"}
                         </h1>
-                        <div className="lg:hidden">
-                            <button
-                                type="button"
-                                onClick={() => navigate("/bl/mytasks/add")}
-                                className="inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] h-[36px] min-h-[36px] px-3 sm:px-4 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer hover:bg-[#c33a39] transition-all duration-200"
-                            >
-                                <img src={AddBtn} alt="Add" className="h-4 w-4 sm:h-5 sm:w-5" />
-                                <span className="hidden sm:inline whitespace-nowrap">Add task</span>
-                                <span className="sm:hidden whitespace-nowrap">Add</span>
-                            </button>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={() => navigate("/bl/mytasks/add")}
+                            className="lg:hidden inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] h-[36px] min-h-[36px] px-3 sm:px-4 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer hover:bg-[#c33a39] transition-all duration-200"
+                        >
+                            <img src={AddBtn} alt="Add" className="h-4 w-4 sm:h-5 sm:w-5" />
+                            <span className="hidden sm:inline whitespace-nowrap">Add task</span>
+                            <span className="sm:hidden whitespace-nowrap">Add</span>
+                        </button>
                     </div>
 
                     {/* Row 2: Dropdown Filters & Desktop Add Task Button */}
@@ -849,16 +847,14 @@ export default function MytaskBL() {
                             narrow
                             maxVisibleItems={4}
                         />
-                        <div className="hidden lg:block ml-2">
-                            <button
-                                type="button"
-                                onClick={() => navigate("/bl/mytasks/add")}
-                                className="inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] h-[36px] min-h-[36px] px-4 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer hover:bg-[#c33a39] transition-all duration-200"
-                            >
-                                <img src={AddBtn} alt="Add" className="h-5 w-5" />
-                                <span className="whitespace-nowrap">Add task</span>
-                            </button>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={() => navigate("/bl/mytasks/add")}
+                            className="hidden lg:inline-flex ml-2 items-center justify-center gap-2 rounded-md bg-[#DD4342] h-[36px] min-h-[36px] px-4 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer hover:bg-[#c33a39] transition-all duration-200"
+                        >
+                            <img src={AddBtn} alt="Add" className="h-5 w-5" />
+                            <span className="whitespace-nowrap">Add task</span>
+                        </button>
                     </div>
                 </div>
             </div>

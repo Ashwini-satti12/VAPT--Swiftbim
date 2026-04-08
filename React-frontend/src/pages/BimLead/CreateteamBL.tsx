@@ -215,13 +215,23 @@ function TeamCard({ team, employees, getEmpName, onEdit, onDelete, onViewDetails
                         );
                     })()}
                 </div>
-                <button
-                    onClick={() => onViewDetails(team)}
-                    className="flex items-center gap-2 text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] transition-colors pr-2 cursor-pointer group/details"
-                >
-                    Details
-                    <img src={upArrow} alt="Up" className="w-5 h-5 object-contain transition-all duration-200 group-hover/details:brightness-0 group-hover/details:invert-[20%]" />
-                </button>
+                <div className="relative group">
+                    <button
+                        onClick={() => onViewDetails(team)}
+                        className="flex items-center gap-2 text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] transition-colors pr-2 cursor-pointer group/details"
+                    >
+                        Details
+                        <img src={upArrow} alt="Up" className="w-5 h-5 object-contain transition-all duration-200 group-hover/details:brightness-0 group-hover/details:invert-[20%]" />
+                    </button>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                            <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                More Details
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -541,13 +551,23 @@ export default function CreateteamBL() {
                             </div>
                         )}
                     </div>
-                    <button
-                        onClick={() => { setShowLeaderDropdown(false); setShowMemberDropdown(false); setShowAddModal(true); }}
-                        className="flex items-center justify-center gap-2 px-6 py-2 bg-[#DD4342] text-[#F2F2F2] rounded-md transition-all font-medium text-[14px] shadow-sm cursor-pointer whitespace-nowrap w-1/2 sm:w-auto"
-                    >
-                        <PlusIcon className="w-5 h-5 stroke-[2.5]" />
-                        New Team
-                    </button>
+                    <div className="relative group">
+                        <button
+                            onClick={() => { setShowLeaderDropdown(false); setShowMemberDropdown(false); setShowAddModal(true); }}
+                            className="flex items-center justify-center gap-2 px-6 py-2 bg-[#DD4342] text-[#F2F2F2] rounded-md transition-all font-medium text-[14px] shadow-sm cursor-pointer whitespace-nowrap w-full"
+                        >
+                            <PlusIcon className="w-5 h-5 stroke-[2.5]" />
+                            New Team
+                        </button>
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                            <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                    New Team
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -594,12 +614,22 @@ export default function CreateteamBL() {
             {showAddModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
                     <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-visible my-auto">
-                        <button
-                            onClick={() => setShowAddModal(false)}
-                            className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
-                        >
-                            <XMarkIcon className="w-5 h-5 stroke-[2.5]" />
-                        </button>
+                        <div className="relative group absolute top-8 left-8">
+                            <button
+                                onClick={() => setShowAddModal(false)}
+                                className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
+                            >
+                                <XMarkIcon className="w-5 h-5 stroke-[2.5]" />
+                            </button>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                        Close
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
 
                         <div className="text-center mb-10">
                             <h3 className="text-[24px] font-semibold text-[#000000]">Create New Team</h3>
@@ -751,12 +781,22 @@ export default function CreateteamBL() {
             {showEditModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
                     <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-visible my-auto">
-                        <button
-                            onClick={() => setShowEditModal(false)}
-                            className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
-                        >
-                            <XMarkIcon className="w-5 h-5 stroke-[2.5]" />
-                        </button>
+                        <div className="relative group absolute top-8 left-8">
+                            <button
+                                onClick={() => setShowEditModal(false)}
+                                className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
+                            >
+                                <XMarkIcon className="w-5 h-5 stroke-[2.5]" />
+                            </button>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                        Close
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
 
                         <div className="text-center mb-10">
                             <h3 className="text-[24px] font-semibold text-[#000000]">Edit Team Details</h3>
