@@ -85,6 +85,20 @@ function taskOutputFileUrl(storedName: string): string {
   return `${getApiBase()}/uploads/task/${encodeURIComponent(name)}`;
 }
 
+function isImageFile(nameOrType?: string): boolean {
+  const v = String(nameOrType || "").toLowerCase();
+  return (
+    v.startsWith("image/") ||
+    v.endsWith(".png") ||
+    v.endsWith(".jpg") ||
+    v.endsWith(".jpeg") ||
+    v.endsWith(".gif") ||
+    v.endsWith(".webp") ||
+    v.endsWith(".bmp") ||
+    v.endsWith(".svg")
+  );
+}
+
 function normalizeStatus(s: string | undefined, approval?: string): StatusKey {
   if (approval?.toLowerCase() === "approved") return "approved";
   if (approval?.toLowerCase() === "rejected") return "rejected";
@@ -188,10 +202,10 @@ export default function MytaskViewV() {
 
   const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
+    if (!file) return;
     setSelectedImage(file);
     if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
-    setSelectedImagePreview(URL.createObjectURL(file));
+    setSelectedImagePreview(isImageFile(file.type) ? URL.createObjectURL(file) : null);
     e.target.value = "";
   };
 
@@ -211,15 +225,13 @@ export default function MytaskViewV() {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    
+
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("image/")) {
+    if (file) {
       setSelectedImage(file);
       if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
-      setSelectedImagePreview(URL.createObjectURL(file));
+      setSelectedImagePreview(isImageFile(file.type) ? URL.createObjectURL(file) : null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-    } else if (file) {
-      toast.error("Please drop an image file");
     }
   };
 
@@ -276,9 +288,9 @@ export default function MytaskViewV() {
   const refreshTaskFromApi = (taskId?: number) => {
     const tid = taskId || task?.id || Number(id);
     if (!tid) return;
-    
+
     if (fromTeamTask) {
-       api
+      api
         .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: { condition: "1" } })
         .then((res) => {
           const found = (res.data.tasks ?? []).find((t) => t.id === tid);
@@ -309,15 +321,21 @@ export default function MytaskViewV() {
       await api.post(
         `/api/vendors/vendor-tasks/${task.id}/output-files`,
         formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
       );
       toast.success("Work submitted successfully");
       setSelectedImage(null);
       if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
       setSelectedImagePreview(null);
       refreshTaskFromApi();
-    } catch (error) {
-      console.error("Error submitting work:", error);
-      toast.error("Failed to submit work");
+    } catch (error: any) {
+      const backendMsg =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "Failed to submit work";
+      console.error("Error submitting work:", error?.response?.data || error);
+      toast.error(String(backendMsg));
     } finally {
       setSubmittingWork(false);
     }
@@ -380,11 +398,12 @@ export default function MytaskViewV() {
     <div className="h-full flex flex-col overflow-y-auto custom-scrollbar pb-10">
       <div className="flex items-center justify-between px-6 py-4">
         <button
+          type="button"
           onClick={() => navigate(-1)}
-          className="p-2 rounded-md bg-[#F2F2F2] text-black cursor-pointer"
-          aria-label="Close"
+          className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer border-0 shadow-none"
+          title="Back"
         >
-          <FiX className="w-5 h-5 text-black" />
+          <img src={backIcon} alt="Back" className="w-5 h-5" />
         </button>
         <h1 className="flex-1 text-center text-2xl font-semibold text-black">
           {task.project_name || task.task_name || "Task Name"}
@@ -434,27 +453,27 @@ export default function MytaskViewV() {
                     opt.value,
                   );
                   return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    role="option"
-                    aria-disabled={disabled}
-                    disabled={disabled}
-                    aria-selected={statusDisplay === opt.value}
-                    onClick={() => handleStatusUpdate(opt.value)}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 ${disabled
+                    <button
+                      key={opt.value}
+                      type="button"
+                      role="option"
+                      aria-disabled={disabled}
+                      disabled={disabled}
+                      aria-selected={statusDisplay === opt.value}
+                      onClick={() => handleStatusUpdate(opt.value)}
+                      className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 ${disabled
                         ? "text-slate-300 cursor-not-allowed opacity-60"
                         : "hover:bg-[#F2F2F2]"
-                      } ${statusDisplay === opt.value && !disabled
-                        ? "bg-[#F2F2F2] font-medium"
-                        : ""
-                      }`}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`}
-                    />
-                    {opt.label}
-                  </button>
+                        } ${statusDisplay === opt.value && !disabled
+                          ? "bg-[#F2F2F2] font-medium"
+                          : ""
+                        }`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`}
+                      />
+                      {opt.label}
+                    </button>
                   );
                 })}
               </div>
@@ -554,20 +573,19 @@ export default function MytaskViewV() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="*/*"
               className="sr-only"
-              aria-label="Select image"
+              aria-label="Select file"
               onChange={handleSelectImage}
             />
             <div
-              className={`rounded-sm flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] relative transition-all duration-200 border-2 border-dashed ${
-                isDragging ? "bg-sky-50 border-sky-400" : "bg-[#FFFFFF] border-slate-200"
-              }`}
+              className={`rounded-sm flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] relative transition-all duration-200 border-2 border-dashed ${isDragging ? "bg-sky-50 border-sky-400" : "bg-[#FFFFFF] border-slate-200"
+                }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
-              {selectedImagePreview ? (
+              {selectedImage && selectedImagePreview ? (
                 <>
                   <button
                     onClick={() => {
@@ -584,10 +602,15 @@ export default function MytaskViewV() {
                     className="max-h-48 max-w-full object-contain rounded"
                   />
                 </>
+              ) : selectedImage ? (
+                <>
+                  <img src={ImageIcon} alt="File" className="w-7 h-7" />
+                  <span className="text-xs mt-2 text-[#353535] break-all text-center">{selectedImage.name}</span>
+                </>
               ) : (
                 <>
                   <img src={ImageIcon} alt="Image" className="w-7 h-7" />
-                  <span className="text-xs mt-2 text-[#616161]">No Image Selected</span>
+                  <span className="text-xs mt-2 text-[#616161]">No File Selected</span>
                   <span className="text-[10px] mt-1 text-[#8B8B8B]">Drag and drop file here</span>
                 </>
               )}
@@ -600,7 +623,7 @@ export default function MytaskViewV() {
                 className="inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-3 text-xs text-black hover:bg-[#D5E6FF] whitespace-nowrap disabled:opacity-50"
               >
                 <img src={Upload} alt="Upload" className="w-3 h-3 mr-1" />
-                <span className="mr-2">Select Image</span>
+                <span className="mr-2">Select File</span>
               </button>
               <button
                 type="button"
@@ -609,13 +632,13 @@ export default function MytaskViewV() {
                 className="inline-flex items-center gap-1 rounded-sm bg-[#E1F6EB] px-4 py-3 text-xs text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap disabled:opacity-50"
               >
                 <FiCheck className="w-4 h-4 text-[#008F22]" />
-                {submittingWork ? "Submitting..." : "Submit Image"}
+                {submittingWork ? "Submitting..." : "Submit File"}
               </button>
             </div>
             {submittedOutputFiles.length > 0 && (
               <div className="mt-6 border-t border-slate-200 pt-4">
                 <p className="text-xs font-semibold text-black mb-2">
-                  Submitted images (saved)
+                  Submitted files (saved)
                 </p>
                 <div className="flex flex-wrap gap-3">
                   {submittedOutputFiles.map((fname) => {
@@ -628,12 +651,18 @@ export default function MytaskViewV() {
                         rel="noopener noreferrer"
                         className="block rounded border border-slate-200 overflow-hidden bg-white max-w-[140px]"
                       >
-                        <img
-                          src={src}
-                          alt={fname}
-                          className="max-h-28 w-full object-contain"
-                          loading="lazy"
-                        />
+                        {isImageFile(fname) ? (
+                          <img
+                            src={src}
+                            alt={fname}
+                            className="max-h-28 w-full object-contain"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="px-3 py-3 text-xs text-[#353535] break-all">
+                            {fname}
+                          </div>
+                        )}
                       </a>
                     );
                   })}

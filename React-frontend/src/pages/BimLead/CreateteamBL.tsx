@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import api from '../../lib/api';
 import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import threeDotsIcon from '../../assets/ProjectManager/CreateTeam/three dots.svg';
@@ -248,7 +249,6 @@ export default function CreateteamBL() {
     const [submitting, setSubmitting] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [teamToDelete, setTeamToDelete] = useState<number | null>(null);
-    const [deleteSuccess, setDeleteSuccess] = useState(false);
     const memberDropdownRef = useRef<HTMLDivElement>(null);
     const leaderDropdownRef = useRef<HTMLDivElement>(null);
     const [searchParams] = useSearchParams();
@@ -338,13 +338,18 @@ export default function CreateteamBL() {
         })
             .then(({ data }) => {
                 if (data.success) {
+                    toast.success("Team created successfully!");
                     setShowAddModal(false);
                     // Refresh data instead of page reload for better UX
                     api.get<{ teams?: Team[] }>('/api/teams').then(res => setTeams(res.data.teams ?? []));
                     setForm({ leader: '', employee: [], project_lead: '', project_id: '', team_name: '' });
+                } else {
+                    toast.error(data.message || "Failed to create team.");
                 }
             })
-            .catch(() => { })
+            .catch((err) => {
+                toast.error(err.response?.data?.message || "Failed to create team.");
+            })
             .finally(() => setSubmitting(false));
     };
 
@@ -404,11 +409,15 @@ export default function CreateteamBL() {
                     setTeams(teams.filter(t => t.team_id !== teamToDelete));
                     setShowDeleteModal(false);
                     setTeamToDelete(null);
-                    setDeleteSuccess(true);
-                    setTimeout(() => setDeleteSuccess(false), 2000);
+                    toast.success("Team deleted successfully!");
+                } else {
+                    toast.error(data.message || "Failed to delete team.");
                 }
             })
-            .catch(console.error)
+            .catch((err) => {
+                toast.error(err.response?.data?.message || "Failed to delete team.");
+                console.error(err);
+            })
             .finally(() => setSubmitting(false));
     };
 
@@ -426,11 +435,16 @@ export default function CreateteamBL() {
         })
             .then(({ data }) => {
                 if (data.success) {
+                    toast.success("Team updated successfully!");
                     setShowEditModal(false);
                     api.get<{ teams?: Team[] }>('/api/teams').then(res => setTeams(res.data.teams ?? []));
+                } else {
+                    toast.error(data.message || "Failed to update team.");
                 }
             })
-            .catch(() => { })
+            .catch((err) => {
+                toast.error(err.response?.data?.message || "Failed to update team.");
+            })
             .finally(() => setSubmitting(false));
     };
 
@@ -537,14 +551,6 @@ export default function CreateteamBL() {
                 </div>
             </div>
 
-            {deleteSuccess && (
-                <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm transition-all duration-300">
-                    <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold shrink-0">✓</div>
-                    <div className="flex-1">
-                        <p className="mt-0.5 text-[14px] leading-snug font-medium font-Gantari">Deleted successfully!</p>
-                    </div>
-                </div>
-            )}
 
             <div className="flex-1 min-h-0 overflow-y-auto px-2 sm:px-0 custom-scrollbar">
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">

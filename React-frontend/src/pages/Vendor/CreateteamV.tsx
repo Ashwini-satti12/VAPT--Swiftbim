@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api from '../../lib/api';
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 import { PlusIcon } from '@heroicons/react/24/outline';
@@ -342,6 +343,7 @@ export default function CreateteamV() {
         })
             .then(({ data }) => {
                 if (data.success) {
+                    toast.success('Team created successfully');
                     setShowAddModal(false);
                     api.get<{ teams?: Team[] }>('/api/vendors/vendor-teams').then(res => setTeams(res.data.teams ?? []));
                     setForm({ leader: '', employee: [], project_lead: '', project_id: '', team_name: '' });
@@ -415,6 +417,7 @@ export default function CreateteamV() {
         })
             .then(({ data }) => {
                 if (data.success) {
+                    toast.success('Team updated successfully');
                     setShowEditModal(false);
                     api.get<{ teams?: Team[] }>('/api/vendors/vendor-teams').then(res => setTeams(res.data.teams ?? []));
                 }

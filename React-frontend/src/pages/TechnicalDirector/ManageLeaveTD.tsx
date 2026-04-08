@@ -657,7 +657,7 @@ export default function ManageLeave() {
                                       type="button"
                                       aria-label="Approve"
                                       onClick={() => setApproveLeave(row)}
-                                      className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
+                                      className="inline-flex items-center justify-center p-2 bg-[#E6F4EA] text-[#008F22] rounded-full font-medium active:scale-[0.98] transition-transform cursor-pointer"
                                     >
                                       <svg
                                         className="w-4 h-4 shrink-0"
@@ -700,7 +700,7 @@ export default function ManageLeave() {
                                       type="button"
                                       aria-label="Reject"
                                       onClick={() => setRejectLeave(row)}
-                                      className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
+                                      className="inline-flex items-center justify-center p-2 bg-[#FFD9D9] text-[#E00100] rounded-full font-medium active:scale-[0.98] transition-transform cursor-pointer"
                                     >
                                       <svg
                                         className="w-4 h-4 shrink-0"

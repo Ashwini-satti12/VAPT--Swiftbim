@@ -51,6 +51,52 @@ _TD_TASKS_EXCLUDE_OUTSOURCE_SQL = """NOT EXISTS (
     WHERE mp.id = t.projectid AND mp.Company_id = t.Company_id
 )"""
 
+def _count_vendor_projects_for_company(cur, company_id, only_completed=False):
+    """
+    Count outsource (vendor_projects) visible to a staff company.
+    Must match vendor.py staff visibility rules (projects join, vp.Company_id fallback, vendor_bidding->projects link).
+    """
+    status_sql = ""
+    if only_completed:
+        status_sql = """
+        AND (
+            LOWER(COALESCE(vp.status, '')) = 'completed'
+            OR (
+                vp.progress REGEXP '^[0-9]+(\\.[0-9]+)?$'
+                AND CAST(vp.progress AS DECIMAL(10,2)) >= 100
+            )
+        )
+        """
+    try:
+        cur.execute(
+            f"""
+            SELECT COUNT(*) AS cnt
+            FROM snh6_swiftproject.vendor_projects vp
+            LEFT JOIN snh6_swiftproject.projects p
+              ON (
+                (vp.main_project_id IS NOT NULL AND p.id = vp.main_project_id)
+                OR (p.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci)
+              )
+            WHERE (
+                p.Company_id = %s
+                OR vp.Company_id = %s
+                OR EXISTS (
+                    SELECT 1
+                    FROM snh6_swiftproject.vendor_bidding vb2
+                    JOIN snh6_swiftproject.projects p2 ON p2.id = vb2.project_id
+                    WHERE vb2.id = vp.opportunity_id
+                      AND p2.Company_id = %s
+                )
+            )
+            {status_sql}
+            """,
+            (company_id, company_id, company_id),
+        )
+        row = cur.fetchone() or {}
+        return int(row.get("cnt") or 0)
+    except Exception:
+        return 0
+
 
 @bp.route("/stats", methods=["GET"])
 @project_app_required
@@ -223,7 +269,14 @@ def stats():
     completed_tasks = get_tasks_in_my_projects(user_id, "Completed")
     new_tasks = get_tasks_in_my_projects(user_id, "Todo")
 
-    # Team Task PM merges /api/vendors/vendor-tasks (company outsource); include those counts here.
+    # Include outsource (vendor_*) counts so dashboard matches the Projects/Team Task UI.
+    # Projects pages include outsource cards for staff views, so totals must include vendor_projects too.
+    outsource_total_projects = _count_vendor_projects_for_company(cur, company_id, only_completed=False)
+    outsource_completed_projects = _count_vendor_projects_for_company(cur, company_id, only_completed=True)
+    total_projects += outsource_total_projects
+    completed_projects += outsource_completed_projects
+
+    # Team Task PM merges /api/vendors/vendor-tasks (company outsource); include those task counts here.
     if user_role == "Project Manager":
         in_progress_tasks += _count_vendor_tasks_td(cur, company_id, "InProgress")
         completed_tasks += _count_vendor_tasks_td(cur, company_id, "Completed")

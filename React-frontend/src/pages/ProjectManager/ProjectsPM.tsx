@@ -546,13 +546,19 @@ export default function ProjectsPM() {
     const status = searchParams.get('status');
     Promise.all([
       api.get<{ projects?: Record<string, unknown>[] }>('/api/projects', { params: { status: status || undefined } }),
-      api.get<{ projects?: Record<string, unknown>[] }>('/api/vendors/vendor-projects')
+      api.get<{ projects?: Record<string, unknown>[] }>('/api/vendors/vendor-projects', { params: { status: status || undefined } })
     ])
       .then(([res1, res2]) => {
         const p1 = (res1.data.projects ?? []).map((r) => ({ ...mapApiProjectToProject(r), source: "In House" }));
         const p2 = (res2.data.projects ?? []).map((r) => ({ ...mapApiProjectToProject(r), source: "Outsource" }));
 
         const allProjects = [...p1, ...p2];
+        // When dashboard KPI sends status filter (e.g. ?status=Completed),
+        // backend already scopes by role + status. Avoid extra frontend pruning.
+        if (status) {
+          setList(allProjects);
+          return;
+        }
         const userId = user?.id != null ? String(user.id) : '';
         const userName = user?.full_name ?? '';
         const filtered = userId

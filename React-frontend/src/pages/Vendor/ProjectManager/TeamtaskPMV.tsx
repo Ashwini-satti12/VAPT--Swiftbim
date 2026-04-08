@@ -42,6 +42,7 @@ interface Task {
     uploader_full_name?: string;
     Approval?: string;
     projectid?: number;
+    project_id?: number;
     created_at?: string;
     assigned_to?: number;
     uploaderid?: number;
@@ -365,11 +366,63 @@ export default function TeamtaskPMV() {
     const periodTriggerRef = useRef<HTMLButtonElement>(null);
     const periodMenuRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        api.get("/api/vendors/vendor-tasks").then(res => setList(res.data.tasks ?? []));
-        api.get("/api/vendors/vendor-resource-profiles").then(res => setEmployees(res.data.data ?? []));
-        api.get("/api/vendors/vendor-projects").then(res => setProjects(res.data.data ?? []));
+    const uniqueById = <T extends { id?: number | string }>(rows: T[]): T[] => {
+        const seen = new Set<string>();
+        const out: T[] = [];
+        for (const row of rows) {
+            const key = String(row?.id ?? "");
+            if (!key || seen.has(key)) continue;
+            seen.add(key);
+            out.push(row);
+        }
+        return out;
+    };
 
+    const loadScopedTeamData = () => {
+        return Promise.all([
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks"),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", {
+                params: { condition: "1", employeeid: "all" },
+            }),
+            api.get<{ resources?: Employee[] }>("/api/vendors/vendor-resource-profiles"),
+            api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
+        ]).then(([myTasksRes, allTasksRes, resourcesRes, projectsRes]) => {
+            const myTasks = myTasksRes.data.tasks ?? [];
+            const allTasks = allTasksRes.data.tasks ?? [];
+            const allProjects = projectsRes.data.projects ?? [];
+
+            const involvedProjectIds = new Set<number>(
+                myTasks
+                    .map((t) => Number(t.project_id ?? t.projectid))
+                    .filter((id) => !Number.isNaN(id) && id > 0),
+            );
+
+            const scopedTasks = involvedProjectIds.size > 0
+                ? allTasks.filter((t) => {
+                    const pid = Number(t.project_id ?? t.projectid);
+                    return !Number.isNaN(pid) && involvedProjectIds.has(pid);
+                })
+                : [];
+
+            const scopedProjects = involvedProjectIds.size > 0
+                ? allProjects.filter((p) => involvedProjectIds.has(Number(p.id)))
+                : [];
+
+            setList(uniqueById(scopedTasks));
+            setProjects(uniqueById(scopedProjects));
+            setEmployees(resourcesRes.data.resources ?? []);
+        }).catch(() => {
+            setList([]);
+            setProjects([]);
+            setEmployees([]);
+        });
+    };
+
+    useEffect(() => {
+        loadScopedTeamData();
+    }, []);
+
+    useEffect(() => {
         const handleClick = (e: MouseEvent) => {
             if (openDropdown === "employee" && !empTriggerRef.current?.contains(e.target as Node) && !empMenuRef.current?.contains(e.target as Node)) setOpenDropdown(null);
             if (openDropdown === "projects" && !projTriggerRef.current?.contains(e.target as Node) && !projMenuRef.current?.contains(e.target as Node)) setOpenDropdown(null);
@@ -428,7 +481,7 @@ export default function TeamtaskPMV() {
         }
         const sMap = { todo: "Todo", in_progress: "InProgress", completed: "Completed" };
         api.patch(`/api/vendors/vendor-tasks/${id}/status`, { status: (sMap as any)[status] })
-            .then(() => api.get("/api/vendors/vendor-tasks").then(res => setList(res.data.tasks ?? [])))
+            .then(() => loadScopedTeamData())
             .catch(() => toast.error("Failed to update status"));
     };
 
