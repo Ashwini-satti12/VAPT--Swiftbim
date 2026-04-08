@@ -166,6 +166,25 @@ function toInputDate(v: unknown): string {
   return "";
 }
 
+/** Backend sometimes stores modules as a JSON array string, e.g. `["Module A"]`. */
+function normalizeModuleString(raw: string): string {
+  const s = raw.trim();
+  if (!s) return "";
+  try {
+    const parsed = JSON.parse(s) as unknown;
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return String(parsed[0]).trim();
+    }
+  } catch {
+    /* not JSON */
+  }
+  return s;
+}
+
+function normalizeCategoryForApi(category: string): string {
+  return category.trim().toLowerCase();
+}
+
 function taskToFormValues(task: Task | Record<string, unknown>): {
   projectName: string;
   module: string;
@@ -189,8 +208,8 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
   };
   return {
     projectName: str(t.project_name ?? t.projectName ?? ""),
-    module: str(
-      t.module ?? t.modules_name ?? t.modules ?? t.modulesName ?? "",
+    module: normalizeModuleString(
+      str(t.module ?? t.modules_name ?? t.modules ?? t.modulesName ?? ""),
     ),
     taskName: str(t.task_name ?? t.taskName ?? ""),
     type: str(t.type ?? t.category ?? ""),
@@ -219,11 +238,7 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
         "",
     ),
     assignTo: str(
-      t.assign_to ??
-        t.assignTo ??
-        t.assigned_to ??
-        t.assigned_full_name ??
-        "",
+      t.assign_to ?? t.assignTo ?? t.assigned_to ?? t.assigned_full_name ?? "",
     ),
     description: str(t.description ?? ""),
     checklist: str(t.checklist ?? ""),
@@ -314,7 +329,8 @@ export default function AddEditTaskEV() {
     checklist: "",
   });
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
-  const [openFormDropdown, setOpenFormDropdown] = useState<FormDropdownId>(null);
+  const [openFormDropdown, setOpenFormDropdown] =
+    useState<FormDropdownId>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formProjectTriggerRef = useRef<HTMLButtonElement>(null);
   const formProjectMenuRef = useRef<HTMLDivElement>(null);
@@ -389,9 +405,7 @@ export default function AddEditTaskEV() {
       return;
     }
 
-    setAddTaskForm(
-      buildFormFromTask(fetchedTaskForEditRef.current, employees),
-    );
+    setAddTaskForm(buildFormFromTask(fetchedTaskForEditRef.current, employees));
     setFormReady(true);
   }, [isEdit, editingTaskId, loadingMeta, employees, isTeamTasksRoute]);
 
@@ -424,13 +438,18 @@ export default function AddEditTaskEV() {
 
   const employeesForAssignDropdown = useMemo(() => {
     const all = Array.isArray(employees) ? employees : [];
-    const meta = projects.find((p) => p?.project_name === addTaskForm.projectName);
+    const meta = projects.find(
+      (p) => p?.project_name === addTaskForm.projectName,
+    );
     const raw = (meta?.members || "").trim();
     if (!raw) return all;
-    const tokens = raw.split(",").map((s) => s.trim()).filter(Boolean);
+    const tokens = raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     if (tokens.length === 0) return all;
     return all.filter(isEmployeeActiveForProjectAssignment).filter((emp) => {
-      const name = ((emp.full_name || emp.name) || "").trim();
+      const name = (emp.full_name || emp.name || "").trim();
       const idStr = String(emp.id);
       return tokens.some((t) => {
         const tl = t.toLowerCase();
@@ -440,10 +459,6 @@ export default function AddEditTaskEV() {
   }, [employees, projects, addTaskForm.projectName]);
 
   const todayInputDate = getTodayInputDate();
-  const sameCalendarDay =
-    Boolean(addTaskForm.actualStartDate) &&
-    Boolean(addTaskForm.actualEndDate) &&
-    addTaskForm.actualStartDate === addTaskForm.actualEndDate;
 
   const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.currentTarget;
@@ -470,15 +485,16 @@ export default function AddEditTaskEV() {
     window.open(url, "_blank");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeTaskSave = () => {
+    const moduleValue = normalizeModuleString(addTaskForm.module);
+    const categoryValue = normalizeCategoryForApi(addTaskForm.type);
 
     // Required field validation
     if (!addTaskForm.projectName.trim()) {
       toast.error("Please fill in the Project Name.");
       return;
     }
-    if (!addTaskForm.module.trim()) {
+    if (!moduleValue) {
       toast.error("Please fill in the Module.");
       return;
     }
@@ -486,7 +502,7 @@ export default function AddEditTaskEV() {
       toast.error("Please fill in the Task Name.");
       return;
     }
-    if (!addTaskForm.type.trim()) {
+    if (!categoryValue) {
       toast.error("Please select the Type.");
       return;
     }
@@ -516,6 +532,7 @@ export default function AddEditTaskEV() {
     }
 
     if (
+      !isEdit &&
       addTaskForm.actualStartDate &&
       addTaskForm.actualStartDate < todayInputDate
     ) {
@@ -523,6 +540,7 @@ export default function AddEditTaskEV() {
       return;
     }
     if (
+      !isEdit &&
       addTaskForm.actualEndDate &&
       addTaskForm.actualEndDate < todayInputDate
     ) {
@@ -546,18 +564,31 @@ export default function AddEditTaskEV() {
     const projectId =
       projects.find((p) => p.project_name === addTaskForm.projectName)?.id ??
       null;
-    const assigneeId = employees.find(
-      (emp) => (emp.full_name || emp.name) === addTaskForm.assignTo,
-    )?.id;
-    const assignedToVal =
+    const assignTrim = addTaskForm.assignTo.trim();
+    const assigneeId = employees.find((emp) => {
+      const n = (emp.full_name || emp.name || "").trim();
+      return (
+        n === assignTrim ||
+        n.toLowerCase() === assignTrim.toLowerCase()
+      );
+    })?.id;
+    let assignedToVal: number | string =
       assigneeId != null && !Number.isNaN(Number(assigneeId))
         ? assigneeId
         : addTaskForm.assignTo;
 
+    if (isTeamTasksRoute) {
+      if (assigneeId == null || Number.isNaN(Number(assigneeId))) {
+        toast.error("Please select Assign To from the list.");
+        return;
+      }
+      assignedToVal = assigneeId;
+    }
+
     const payload = {
       projectid: projectId ?? addTaskForm.projectName,
       taskName: addTaskForm.taskName,
-      category: addTaskForm.type,
+      category: categoryValue,
       startdate: addTaskForm.actualStartDate,
       dueDate: addTaskForm.actualEndDate,
       startTime: addTaskForm.startTime,
@@ -565,7 +596,7 @@ export default function AddEditTaskEV() {
       assignedTo: assignedToVal,
       description: addTaskForm.description,
       checklist: addTaskForm.checklist,
-      modules: addTaskForm.module,
+      modules: moduleValue,
     };
 
     const handleFiles = (taskId: number | string) => {
@@ -592,13 +623,14 @@ export default function AddEditTaskEV() {
             start_date: addTaskForm.actualStartDate || undefined,
             start_time: addTaskForm.startTime || undefined,
             end_time: addTaskForm.dueTime || undefined,
-            category: addTaskForm.type,
-            modules: addTaskForm.module,
+            category: categoryValue,
+            modules: moduleValue,
             description: addTaskForm.description,
             checklist: addTaskForm.checklist,
           })
           .then(() => {
             handleFiles(editingTaskId);
+            toast.success("Task updated successfully");
             goBackToList();
           })
           .catch(() => {
@@ -610,16 +642,17 @@ export default function AddEditTaskEV() {
             task_name: addTaskForm.taskName,
             assigned_to: assignedToVal,
             due_date: addTaskForm.actualEndDate || undefined,
-            category: addTaskForm.type,
+            category: categoryValue,
             description: addTaskForm.description,
             checklist: addTaskForm.checklist,
-            modules_name: addTaskForm.module,
+            modules_name: moduleValue,
             Actual_start_time: addTaskForm.actualStartDate || undefined,
             perferstart_time: addTaskForm.startTime || undefined,
             perferend_time: addTaskForm.dueTime || undefined,
           })
           .then(() => {
             handleFiles(editingTaskId);
+            toast.success("Task updated successfully");
             goBackToList();
           })
           .catch(() => {
@@ -633,6 +666,7 @@ export default function AddEditTaskEV() {
           const taskId = res.data?.task_id ?? res.data?.id;
           if (res.data?.success && taskId != null) {
             handleFiles(taskId);
+            toast.success("Task updated");
             goBackToList();
           } else {
             toast.error("Could not create task");
@@ -647,6 +681,7 @@ export default function AddEditTaskEV() {
         .then((res) => {
           if (res.data.success && res.data.task_id) {
             handleFiles(res.data.task_id);
+            toast.success("Task updated");
             goBackToList();
           } else {
             toast.error("Could not create task");
@@ -656,6 +691,11 @@ export default function AddEditTaskEV() {
           toast.error("Failed to create task");
         });
     }
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    executeTaskSave();
   };
 
   if (loadingMeta || (isEdit && !formReady)) {
@@ -685,7 +725,8 @@ export default function AddEditTaskEV() {
 
       <form
         className="flex-1 overflow-y-auto p-6 custom-scrollbar"
-        onSubmit={handleSubmit}
+        noValidate
+        onSubmit={handleFormSubmit}
       >
         <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
@@ -737,9 +778,7 @@ export default function AddEditTaskEV() {
                 })),
               ]}
               value={addTaskForm.module}
-              onChange={(v) =>
-                setAddTaskForm((f) => ({ ...f, module: v }))
-              }
+              onChange={(v) => setAddTaskForm((f) => ({ ...f, module: v }))}
               isOpen={openFormDropdown === "module"}
               onToggle={() =>
                 setOpenFormDropdown((d) => (d === "module" ? null : "module"))
@@ -763,7 +802,6 @@ export default function AddEditTaskEV() {
                   setAddTaskForm((f) => ({
                     ...f,
                     taskName: e.target.value,
-                    required: true,
                   }))
                 }
                 placeholder="Enter Task / Select Task"
@@ -796,9 +834,7 @@ export default function AddEditTaskEV() {
                   { value: "other", label: "Other" },
                 ]}
                 value={addTaskForm.type}
-                onChange={(v) =>
-                  setAddTaskForm((f) => ({ ...f, type: v }))
-                }
+                onChange={(v) => setAddTaskForm((f) => ({ ...f, type: v }))}
                 isOpen={openFormDropdown === "type"}
                 onToggle={() =>
                   setOpenFormDropdown((d) => (d === "type" ? null : "type"))
@@ -815,7 +851,7 @@ export default function AddEditTaskEV() {
               </label>
               <input
                 type="date"
-                min={todayInputDate}
+                min={isEdit ? undefined : todayInputDate}
                 value={addTaskForm.actualStartDate}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -837,7 +873,11 @@ export default function AddEditTaskEV() {
               </label>
               <input
                 type="date"
-                min={addTaskForm.actualStartDate || todayInputDate}
+                min={
+                  isEdit
+                    ? addTaskForm.actualStartDate || undefined
+                    : addTaskForm.actualStartDate || todayInputDate
+                }
                 value={addTaskForm.actualEndDate}
                 onChange={(e) =>
                   setAddTaskForm((f) => ({
@@ -882,11 +922,6 @@ export default function AddEditTaskEV() {
               </label>
               <input
                 type="time"
-                min={
-                  sameCalendarDay && addTaskForm.startTime
-                    ? addTaskForm.startTime
-                    : undefined
-                }
                 value={addTaskForm.dueTime}
                 onChange={(e) =>
                   setAddTaskForm((f) => ({
@@ -908,8 +943,7 @@ export default function AddEditTaskEV() {
                   { value: "", label: "Select Assign To" },
                   ...employeesForAssignDropdown
                     .filter(
-                      (emp) =>
-                        (emp.full_name || emp.name || "").trim() !== "",
+                      (emp) => (emp.full_name || emp.name || "").trim() !== "",
                     )
                     .map((emp) => {
                       const label = emp.full_name || emp.name || "";
@@ -917,9 +951,7 @@ export default function AddEditTaskEV() {
                     }),
                 ]}
                 value={addTaskForm.assignTo}
-                onChange={(v) =>
-                  setAddTaskForm((f) => ({ ...f, assignTo: v }))
-                }
+                onChange={(v) => setAddTaskForm((f) => ({ ...f, assignTo: v }))}
                 isOpen={openFormDropdown === "assignTo"}
                 onToggle={() =>
                   setOpenFormDropdown((d) =>
@@ -1014,7 +1046,10 @@ export default function AddEditTaskEV() {
                         key={`${file.name}-${index}`}
                         className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] group"
                       >
-                        <span className="truncate min-w-0 font-medium" title={file.name}>
+                        <span
+                          className="truncate min-w-0 font-medium"
+                          title={file.name}
+                        >
                           {file.name}
                         </span>
                         <div className="flex items-center gap-2">
@@ -1064,8 +1099,9 @@ export default function AddEditTaskEV() {
             Discard
           </button>
           <button
-            type="submit"
-            className="rounded-md bg-[#DBE9FE] px-5 py-2 text-[14px] font-medium text-[#353535] font-gantari"
+            type="button"
+            onClick={executeTaskSave}
+            className="rounded-md bg-[#DBE9FE] px-5 py-2 text-[14px] font-medium text-[#353535] font-gantari cursor-pointer"
           >
             Submit
           </button>

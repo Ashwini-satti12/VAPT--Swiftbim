@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import api from "../../../lib/api";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
@@ -151,16 +152,40 @@ export default function VendorBimLeadCreateTeam() {
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
         setCreateSubmitting(true);
+        const selectedProject = projects.find(
+            (p) => String(p.id) === String(createForm.project_id),
+        );
         api.post("/api/vendors/vendor-teams", {
             team_name: createForm.team_name,
-            project_id: createForm.project_id || undefined,
+            project_id: createForm.project_id
+                ? Number(createForm.project_id)
+                : undefined,
+            project_name: selectedProject?.project_name ?? "",
             leader: createForm.leader_id ? Number(createForm.leader_id) : undefined,
             employee: createForm.employee.join(","),
         })
-            .then(() => {
-                setShowCreateModal(false);
-                setCreateForm({ team_name: "", project_id: "", leader_id: "", employee: [] });
-                fetchData();
+            .then(({ data }) => {
+                if (data?.success) {
+                    toast.success("Team created successfully");
+                    setShowCreateModal(false);
+                    setCreateForm({
+                        team_name: "",
+                        project_id: "",
+                        leader_id: "",
+                        employee: [],
+                    });
+                    fetchData();
+                } else {
+                    toast.error(
+                        (data as { message?: string })?.message ||
+                            "Failed to create team",
+                    );
+                }
+            })
+            .catch((err: { response?: { data?: { message?: string } } }) => {
+                toast.error(
+                    err.response?.data?.message || "Failed to create team",
+                );
             })
             .finally(() => setCreateSubmitting(false));
     };
@@ -211,15 +236,32 @@ export default function VendorBimLeadCreateTeam() {
         setCreateSubmitting(true);
         // Use team_id specifically if available, matching CreateteamV pattern
         const teamId = selectedTeam.team_id ?? selectedTeam.id;
+        const editSelectedProject = projects.find(
+            (p) => String(p.id) === String(editForm.project_id),
+        );
         api.patch(`/api/vendors/vendor-teams/${teamId}`, {
             team_name: editForm.team_name,
             project_id: editForm.project_id ? Number(editForm.project_id) : undefined,
+            project_name: editSelectedProject?.project_name ?? "",
             leader: editForm.leader_id ? Number(editForm.leader_id) : undefined,
             employee: editForm.employee.join(","),
         })
-            .then(() => {
-                setShowEditModal(false);
-                fetchData();
+            .then(({ data }) => {
+                if (data?.success) {
+                    toast.success("Team updated successfully");
+                    setShowEditModal(false);
+                    fetchData();
+                } else {
+                    toast.error(
+                        (data as { message?: string })?.message ||
+                            "Failed to update team",
+                    );
+                }
+            })
+            .catch((err: { response?: { data?: { message?: string } } }) => {
+                toast.error(
+                    err.response?.data?.message || "Failed to update team",
+                );
             })
             .finally(() => setCreateSubmitting(false));
     };
