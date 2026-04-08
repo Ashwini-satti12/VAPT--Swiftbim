@@ -391,6 +391,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           { name: "Team Task", path: "/vpm/teamtasks", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },
           { name: "Create Team", path: "/vpm/createteam", iconSrc: createTeamIcon, activeIconSrc: whiteCreateTeamIcon, isVisible: true },
           { name: "Resources", path: "/vpm/resources", iconSrc: consultantIcon, activeIconSrc: whiteConsultantIcon, isVisible: true },
+          {name: "Company Profile", path: "/vpm/company-profile", iconSrc: consultantIcon, activeIconSrc: whiteConsultantIcon, isVisible: true },
           // { name: "Bidding", path: "/vpm/opportunities", iconSrc: blackBiddingIcon, activeIconSrc: redBiddingIcon, isVisible: true },
           // { name: "Communication Hub", path: "/vpm/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
         ];

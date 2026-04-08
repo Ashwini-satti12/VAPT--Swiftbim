@@ -255,6 +255,25 @@ def _hydrate_vendor_projects_phase1(vendor_cur, project_dicts: list[dict]):
             if enq: p["_hydrated_enq"] = enq
 
             # Hydrate fields
+            # 0. Proposal-selected currency only when proposal linkage is reliable.
+            prop_sel_currency = _first_nonempty_val(prop, ["selected_currency"])
+            linked_prop_id = con.get("proposal_id") if isinstance(con, dict) else None
+            try:
+                linked_prop_id = int(linked_prop_id) if linked_prop_id is not None and str(linked_prop_id).isdigit() else None
+            except Exception:
+                linked_prop_id = None
+            current_prop_id = prop.get("id") if isinstance(prop, dict) else None
+            try:
+                current_prop_id = int(current_prop_id) if current_prop_id is not None and str(current_prop_id).isdigit() else None
+            except Exception:
+                current_prop_id = None
+            has_reliable_proposal_link = (
+                bool(prop_id) or
+                (linked_prop_id is not None and (current_prop_id is None or current_prop_id == linked_prop_id))
+            )
+            if prop_sel_currency and has_reliable_proposal_link:
+                p["selected_currency"] = prop_sel_currency
+
             # 1. Resources
             prop_res = _first_nonempty_val(prop, proposal_res_cols)
             if prop_res:

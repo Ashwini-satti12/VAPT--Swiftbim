@@ -394,6 +394,7 @@ interface Project {
   source?: string;
   document_attachment?: string;
   currency?: string;
+  currency_locked?: boolean;
 }
 
 interface Milestone {
@@ -652,7 +653,12 @@ export default function ProjectsTD() {
       description: str(r.description),
       source: str(r.source),
       document_attachment: str(r.document_attachment),
-      currency: str(r.currency) || "INR",
+      currency:
+        (r.selected_currency != null && String(r.selected_currency).trim().length > 0)
+          ? String(r.selected_currency)
+          : str(r.currency) || "INR",
+      currency_locked:
+        r.selected_currency != null && String(r.selected_currency).trim().length > 0,
     };
   };
 
@@ -1767,15 +1773,32 @@ export default function ProjectsTD() {
 
                           <div className="flex flex-col sm:flex-row sm:items-center">
                             <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                              Outsourcing Budget
+                              Budget
                             </span>
                             <span className="hidden sm:inline text-[#616161] mr-4">
                               :
                             </span>
                             <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                              {selectedProjectForView.budget_ceiling || "N/A"}
+                              {selectedProjectForView.budget
+                                ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget}`
+                                : "N/A"}
                             </span>
                           </div>
+                          {selectedProjectForView.source === "Outsource" && (
+                            <div className="flex flex-col sm:flex-row sm:items-center">
+                              <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                Outsourcing Budget
+                              </span>
+                              <span className="hidden sm:inline text-[#616161] mr-4">
+                                :
+                              </span>
+                              <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                {selectedProjectForView.budget_ceiling
+                                  ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget_ceiling}`
+                                  : "N/A"}
+                              </span>
+                            </div>
+                          )}
                           <div className="flex flex-col sm:flex-row sm:items-center">
                             <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                               Total Resources Available
@@ -2798,8 +2821,11 @@ export default function ProjectsTD() {
                       <div className="relative w-1/3">
                         <button
                           type="button"
-                          onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
-                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-md transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] cursor-pointer ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
+                          onClick={() => {
+                            if (selectedProjectForEdit?.currency_locked) return;
+                            setCurrencyDropdownOpen(!currencyDropdownOpen);
+                          }}
+                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-md transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] ${selectedProjectForEdit?.currency_locked ? "cursor-not-allowed opacity-80" : "cursor-pointer"} ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
                         >
                           <span className="text-[14px] text-[#353535] font-medium truncate">
                             {CURRENCIES.find(c => c.code === createCurrency)?.symbol} {createCurrency}
@@ -2810,7 +2836,7 @@ export default function ProjectsTD() {
                             className={`w-3.5 h-3.5 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
                           />
                         </button>
-                        {currencyDropdownOpen && (
+                        {currencyDropdownOpen && !selectedProjectForEdit?.currency_locked && (
                           <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
                             {CURRENCIES.map((c) => (
                               <button
@@ -3561,8 +3587,11 @@ export default function ProjectsTD() {
                       <div className="relative w-1/3">
                         <button
                           type="button"
-                          onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
-                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-md transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] cursor-pointer ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
+                          onClick={() => {
+                            if (selectedProjectForEdit?.currency_locked) return;
+                            setCurrencyDropdownOpen(!currencyDropdownOpen);
+                          }}
+                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-md transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] ${selectedProjectForEdit?.currency_locked ? "cursor-not-allowed opacity-80" : "cursor-pointer"} ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
                         >
                           <span className="text-[14px] text-[#353535] font-medium truncate">
                             {CURRENCIES.find(c => c.code === createCurrency)?.symbol} {createCurrency}
@@ -3573,7 +3602,7 @@ export default function ProjectsTD() {
                             className={`w-3.5 h-3.5 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
                           />
                         </button>
-                        {currencyDropdownOpen && (
+                        {currencyDropdownOpen && !selectedProjectForEdit?.currency_locked && (
                           <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
                             {CURRENCIES.map((c) => (
                               <button

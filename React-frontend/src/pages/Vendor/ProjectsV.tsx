@@ -24,6 +24,8 @@ interface Project {
     total_tasks?: number;
     completed_tasks?: number;
     budget?: string;
+    currency?: string;
+    selected_currency?: string;
     modules?: string;
     client_id?: string;
     client_name?: string;
@@ -186,6 +188,7 @@ export default function ProjectsV() {
 
     const [createName, setCreateName] = useState("");
     const [createBudget, setCreateBudget] = useState("");
+    const [createCurrency, setCreateCurrency] = useState("INR");
     const [createModuleName, setCreateModuleName] = useState("");
     const [createFile, setCreateFile] = useState<File | null>(null);
     const [currentAttachments, setCurrentAttachments] = useState<string>("");
@@ -237,6 +240,15 @@ export default function ProjectsV() {
         }
         return (days * per).toFixed(2);
     }, [createStartDate, createEndDate, createPerDay]);
+
+    const getCurrencySymbol = (code?: string) => {
+        const c = (code || "").toUpperCase();
+        if (c === "USD") return "$";
+        if (c === "EUR") return "EUR";
+        if (c === "GBP") return "GBP";
+        if (c === "AED") return "AED";
+        return "₹";
+    };
 
     const [searchParams] = useSearchParams();
     const statusFilter = searchParams.get("status");
@@ -415,7 +427,6 @@ export default function ProjectsV() {
         e.preventDefault();
         if (
             !createName.trim() ||
-            !createClientName ||
             !createStartDate ||
             !createEndDate ||
             !createPerDay ||
@@ -432,7 +443,6 @@ export default function ProjectsV() {
             project_name: createName,
             budget: createBudget,
             modules: createModuleName,
-            client_id: getClientIdByName(createClientName), // send numeric client id expected by backend
             project_manager_id: nameToId(createProjectManager, projectManagers),
             lead_id: nameToId(createBIMLead, bimLeads),
             bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
@@ -462,7 +472,7 @@ export default function ProjectsV() {
 
                     setShowCreateModal(false);
                     // Reset fields
-                    setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
+                    setCreateName(""); setCreateBudget(""); setCreateCurrency("INR"); setCreateModuleName(""); setCreateClientName("");
                     setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate("");
                     setCreatePerDay(""); setCreateBIMLead("");
                     setCreateBIMCoOrdinator(""); setSelectedMemberIds([]); setCreateResources("");
@@ -487,6 +497,7 @@ export default function ProjectsV() {
         setCreateName(p.project_name || "");
         // Prefer budget_ceiling (final agreed budget) when editing; fall back to budget
         setCreateBudget(p.budget_ceiling || p.budget || "");
+        setCreateCurrency((p.currency || p.selected_currency || "INR").toUpperCase());
         setCreateModuleName(p.modules || "");
         // Prefer hydrated client_name from backend; otherwise resolve via id
         setCreateClientName(
@@ -536,7 +547,6 @@ export default function ProjectsV() {
         if (!editId) return;
         if (
             !createName.trim() ||
-            !createClientName ||
             !createStartDate ||
             !createEndDate ||
             !createPerDay ||
@@ -553,7 +563,6 @@ export default function ProjectsV() {
             project_name: createName,
             budget: createBudget,
             modules: createModuleName,
-            client_id: getClientIdByName(createClientName),
             project_manager_id: nameToId(createProjectManager, projectManagers),
             lead_id: nameToId(createBIMLead, bimLeads),
             bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
@@ -583,7 +592,7 @@ export default function ProjectsV() {
 
                     setShowEditModal(false);
                     // Reset fields
-                    setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
+                    setCreateName(""); setCreateBudget(""); setCreateCurrency("INR"); setCreateModuleName(""); setCreateClientName("");
                     setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate("");
                     setCreatePerDay(""); setCreateBIMLead("");
                     setCreateBIMCoOrdinator(""); setSelectedMemberIds([]); setCreateResources("");
@@ -782,18 +791,7 @@ export default function ProjectsV() {
                         onChange={(e) => setCreateName(e.target.value)}
                     />
                 </div>
-                <div className="space-y-2">
-                    <label className="block text-[16px] font-medium text-[#000000]">
-                        Client Name <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                        type="text"
-                        className="w-full px-5 py-2 bg-[#F2F2F2] border-none rounded-md focus:ring-2 focus:ring-[#AEACAC52] transition-all font-normal text-[#353535] placeholder:text-[14px] placeholder:font-normal placeholder-gray-400"
-                        placeholder="Enter Client Name"
-                        value={createClientName}
-                        onChange={(e) => setCreateClientName(e.target.value)}
-                    />
-                </div>
+                {/* Client Name intentionally disabled for Vendor panel (V/PMV/VBL parity). */}
 
                 {/* Row 2: Client Budget (read-only), Outsourcing Budget */}
                 {userRole === "Vendor" && (
@@ -801,13 +799,21 @@ export default function ProjectsV() {
                         <label className="block text-[16px] font-medium text-[#000000]">
                             Budget
                         </label>
-                        <input
-                            type="text"
-                            readOnly
-                            className="w-full px-5 py-2 bg-[#F2F2F2] border-none rounded-md font-medium text-[#616161] cursor-not-allowed placeholder:text-[14px] placeholder:font-normal"
-                            placeholder="Auto-fetched from contract"
-                            value={createBudget}
-                        />
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                readOnly
+                                className="w-[120px] px-4 py-2 bg-[#F2F2F2] border-none rounded-md font-medium text-[#616161] cursor-not-allowed"
+                                value={`${getCurrencySymbol(createCurrency)} ${createCurrency}`}
+                            />
+                            <input
+                                type="text"
+                                readOnly
+                                className="flex-1 px-5 py-2 bg-[#F2F2F2] border-none rounded-md font-medium text-[#616161] cursor-not-allowed placeholder:text-[14px] placeholder:font-normal"
+                                placeholder="Auto-fetched from contract"
+                                value={createBudget}
+                            />
+                        </div>
                     </div>
                 )}
 
@@ -1235,7 +1241,7 @@ export default function ProjectsV() {
                                     setShowEditModal(false);
                                     setEditDropdownOpen(null);
                                     // Reset all form fields
-                                    setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
+                                    setCreateName(""); setCreateBudget(""); setCreateCurrency("INR"); setCreateModuleName(""); setCreateClientName("");
                                     setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate("");
                                     setCreatePerDay(""); setCreateBIMLead("");
                                     setCreateBIMCoOrdinator(""); setCreateResources(""); setCreateRequiredResources("");

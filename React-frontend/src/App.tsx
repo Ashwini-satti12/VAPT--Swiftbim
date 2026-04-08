@@ -138,6 +138,7 @@ import TeamtaskPMV from './pages/Vendor/ProjectManager/TeamtaskPMV';
 import CreateteamPMV from './pages/Vendor/ProjectManager/CreateteamPMV';
 import ChatPMV from './pages/Vendor/ProjectManager/ChatPMV';
 import ProposalsPMV from './pages/Vendor/ProjectManager/ProposalsPMV';
+import CompanyProfileEditPMV from './pages/Vendor/ProjectManager/CompanyProfileEditPMV';
 
 
 
@@ -317,6 +318,8 @@ function App() {
             <Route path="vpm/createteam" element={<CreateteamPMV />} />
             <Route path="vpm/resources" element={<ResourcesV />} />
             <Route path="vpm/communication" element={<ChatPMV />} />
+            <Route path="vpm/company-profile" element={<CompanyProfileV />} />
+            <Route path="vpm/company-profile/edit" element={<CompanyProfileEditPMV />} />
 
             {/* Vendor Employee Routes */}
             <Route path="ve/dashboard" element={<DashboardEV />} />
