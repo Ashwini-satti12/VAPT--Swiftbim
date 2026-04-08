@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import api from "../../lib/api";
 import type { BiddingEntry } from "./BiddingTD";
 import viewIcon from "../../assets/ProjectManager/Client/whiteviewicon.svg";
@@ -82,10 +83,6 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
     {},
   );
   const [viewLoading, setViewLoading] = useState<Record<number, boolean>>({});
-  const [actionToast, setActionToast] = useState<{
-    msg: string;
-    type: "success" | "error";
-  } | null>(null);
 
   const [selectedShowEntries, setSelectedShowEntries] = useState(
     showEntriesOptions[0].value,
@@ -189,10 +186,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
     });
   };
 
-  const showToast = (msg: string, type: "success" | "error") => {
-    setActionToast({ msg, type });
-    setTimeout(() => setActionToast(null), 3500);
-  };
+
 
   const hasAcceptedBid = bids.some((b) => b.status === "shortlisted");
 
@@ -206,10 +200,10 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
       if (data.vendor?.id) {
         navigate(`/td/partner/${data.vendor.id}`);
       } else {
-        showToast("Vendor onboarding profile not found.", "error");
+        toast.error("Vendor onboarding profile not found.");
       }
     } catch {
-      showToast("Failed to load vendor profile.", "error");
+      toast.error("Failed to load vendor profile.");
     } finally {
       setViewLoading((prev) => ({ ...prev, [bid.id]: false }));
     }
@@ -231,9 +225,8 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
             ),
           ),
         );
-        showToast(
+        toast.success(
           `${bid.vendor_name} accepted — redirecting to Proposals...`,
-          "success",
         );
         setTimeout(() => {
           navigate("/td/proposals", {
@@ -245,16 +238,16 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
           });
         }, 1400);
       } else {
-        showToast("Failed to accept bid.", "error");
+        toast.error("Failed to accept bid.");
       }
     } catch {
-      showToast("Error accepting bid.", "error");
+      toast.error("Error accepting bid.");
     } finally {
       setActionLoading((prev) => ({ ...prev, [bid.id]: false }));
     }
   };
 
-  // ── Reject → move to bottom, increment other ranks ──
+  // ── Reject ──
   const handleReject = async (bid: VendorBid) => {
     if (hasAcceptedBid && bid.status !== "shortlisted") return;
     setActionLoading((prev) => ({ ...prev, [bid.id]: true }));
@@ -263,21 +256,19 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
         `/api/vendors/bidding/${project.id}/bids/${bid.id}/reject`,
       );
       if (data.success) {
-        // Rerank: rejected → bottom, others reordered
         setBids((prev) =>
           rerank(
             prev.map((b) => (b.id === bid.id ? { ...b, status: "lost" } : b)),
           ),
         );
-        showToast(
+        toast.success(
           `${bid.vendor_name}'s bid rejected and moved to bottom.`,
-          "success",
         );
       } else {
-        showToast("Failed to reject bid.", "error");
+        toast.error("Failed to reject bid.");
       }
     } catch {
-      showToast("Error rejecting bid.", "error");
+      toast.error("Error rejecting bid.");
     } finally {
       setActionLoading((prev) => ({ ...prev, [bid.id]: false }));
     }
@@ -313,42 +304,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
   return (
     <div className="h-full flex flex-col px-2 pt-1 pb-0 font-gantari bg-white">
       {/* Toast */}
-      {actionToast && (
-        <div
-          className={`fixed top-5 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl font-gantari text-sm font-medium min-w-[280px] transition-all ${actionToast.type === "success" ? "bg-[#1A8A47] text-white" : "bg-[#D93025] text-white"}`}
-        >
-          {actionToast.type === "success" ? (
-            <svg
-              className="w-5 h-5 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2.5}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          ) : (
-            <svg
-              className="w-5 h-5 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          )}
-          <span>{actionToast.msg}</span>
-        </div>
-      )}
+
 
       {/* ── Page Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 mb-6">
@@ -643,7 +599,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                           bids.length,
                         ),
                     )
-                    .map((bid, index) => {
+                    .map((bid, index, array) => {
                       const isRejected = bid.status === "lost";
                       const busy = !!actionLoading[bid.id];
                       const viewBusy = !!viewLoading[bid.id];
@@ -653,6 +609,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                           bid.status !== "shortlisted" &&
                           bid.status !== "lost");
                       const slNo = (index + 1).toString().padStart(2, "0");
+                      const isLastRow = index === array.length - 1;
 
                       return (
                         <tr
@@ -737,15 +694,62 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                             ) : (
                               <div className="flex items-center justify-center gap-2">
                                 {/* Accept — icon only circle */}
-                                <button
-                                  disabled={disableActionsForBid}
-                                  onClick={() => handleAccept(bid)}
-                                  title="Accept bid"
-                                  className="flex items-center justify-center w-8 h-8 rounded-full bg-[#E6F4EA] text-[#1E7E34] transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-                                >
-                                  {busy ? (
-                                    <span className="animate-spin w-3 h-3 border-b-2 border-current rounded-full inline-block" />
+                                <div className="relative group inline-flex shrink-0">
+                                  <button
+                                    disabled={disableActionsForBid}
+                                    onClick={() => handleAccept(bid)}
+                                    className="flex items-center justify-center w-8 h-8 rounded-full bg-[#E6F4EA] text-[#1E7E34] transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                                  >
+                                    {busy ? (
+                                      <span className="animate-spin w-3 h-3 border-b-2 border-current rounded-full inline-block" />
+                                    ) : (
+                                      <svg
+                                        className="w-4 h-4"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2.5}
+                                          d="M5 13l4 4L19 7"
+                                        />
+                                      </svg>
+                                    )}
+                                  </button>
+                                  {isLastRow ? (
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                      <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
+                                        <span className="font-gantari text-xs font-medium text-[#1E7E34] text-center block">
+                                          Accept
+                                        </span>
+                                      </div>
+                                      <div className="relative z-10 -mt-[1px]">
+                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]" />
+                                      </div>
+                                    </div>
                                   ) : (
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                      <div className="relative z-10">
+                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]" />
+                                      </div>
+                                      <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
+                                        <span className="font-gantari text-xs font-medium text-[#1E7E34] text-center block">
+                                          Accept
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Reject — icon only circle */}
+                                <div className="relative group inline-flex shrink-0">
+                                  <button
+                                    disabled={disableActionsForBid}
+                                    onClick={() => handleReject(bid)}
+                                    className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FCE8E8] text-[#D93025] transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                                  >
                                     <svg
                                       className="w-4 h-4"
                                       fill="none"
@@ -755,33 +759,35 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                                       <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
-                                        strokeWidth={2.5}
-                                        d="M5 13l4 4L19 7"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
                                       />
                                     </svg>
+                                  </button>
+                                  {isLastRow ? (
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                      <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
+                                        <span className="font-gantari text-xs font-medium text-[#D93025] text-center block">
+                                          Reject
+                                        </span>
+                                      </div>
+                                      <div className="relative z-10 -mt-[1px]">
+                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]" />
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                      <div className="relative z-10">
+                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]" />
+                                      </div>
+                                      <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
+                                        <span className="font-gantari text-xs font-medium text-[#D93025] text-center block">
+                                          Reject
+                                        </span>
+                                      </div>
+                                    </div>
                                   )}
-                                </button>
-                                {/* Reject — icon only circle */}
-                                <button
-                                  disabled={disableActionsForBid}
-                                  onClick={() => handleReject(bid)}
-                                  title="Reject bid"
-                                  className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FCE8E8] text-[#D93025] transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-                                >
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M6 18L18 6M6 6l12 12"
-                                    />
-                                  </svg>
-                                </button>
+                                </div>
                               </div>
                             )}
                           </td>

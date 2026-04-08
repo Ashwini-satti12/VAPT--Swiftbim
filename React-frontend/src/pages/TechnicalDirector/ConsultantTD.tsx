@@ -613,13 +613,11 @@ export default function ConsultantTD() {
           setActiveView('list');
           setdeactiveIds([]);
         } else {
-          console.error('Failed to deactivate employees:', response.data?.message);
-          alert(`Failed to deactivate employees: ${response.data?.message || 'Unknown error'}`);
+          toast.error(response.data?.message || 'Failed to deactivate consultants');
         }
       })
       .catch((err) => {
-        console.error('Failed to deactivate employees:', err);
-        alert(`Failed to deactivate employees: ${err.response?.data?.message || err.message || 'Network error'}`);
+        toast.error(err.response?.data?.message || err.message || 'Failed to deactivate consultants');
       })
       .finally(() => setdeactiveSubmitting(false));
   }
@@ -805,18 +803,15 @@ export default function ConsultantTD() {
           }));
           toast.success(`Status updated to ${newStatus} successfully!`);
         } else {
-          // API returned failure - revert to previous state
           setList(previousList);
-          console.error('Status update failed:', response.data?.message || 'Unknown error');
-          alert(`Failed to update status: ${response.data?.message || 'Unknown error'}`);
+          toast.error(response.data?.message || 'Failed to update status');
         }
       })
       .catch((err) => {
-        console.error('Failed to update status:', err);
         // Revert to previous state on error
         setList(previousList);
         // Show error message to user
-        alert(`Failed to update status: ${err.response?.data?.message || err.message || 'Network error'}`);
+        toast.error(err.response?.data?.message || err.message || 'Failed to update status');
       });
   }
 

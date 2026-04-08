@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import api from "../../lib/api";
 import viewIcon from '../../assets/ProjectManager/project/viewIcon.svg';
 // import editIcon from '../../assets/ProjectManager/project/editIcon.svg';
@@ -42,7 +43,6 @@ export default function ProposalTD() {
   const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [bids, setBids] = useState<AcceptedBid[]>([]);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [selectedShowEntries, setSelectedShowEntries] = useState('');
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
@@ -58,10 +58,15 @@ export default function ProposalTD() {
   useEffect(() => {
     const state: any = (location && (location as any).state) || {};
     if (state?.acceptedBid) {
-      setSuccessMsg(`${state.acceptedBid.vendor_name || "Vendor"} accepted — create a proposal below.`);
-      setTimeout(() => setSuccessMsg(null), 4000);
+      toast.success(`${state.acceptedBid.vendor_name || "Vendor"} accepted — create a proposal below.`);
+    } else if (state?.created || state?.updated) {
+      toast.success(state.msg || "Proposal submitted successfully!");
     }
-  }, []);
+    // Clean up state so toast doesn't re-appear on refresh
+    if (location.state) {
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   useEffect(() => {
     api.get<{ bids: AcceptedBid[] }>("/api/vendors/bidding/accepted-bids")
@@ -126,16 +131,6 @@ export default function ProposalTD() {
 
   return (
     <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
-      {/* Toast */}
-      {successMsg && (
-        <div className="fixed top-5 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl bg-[#1A8A47] text-white font-gantari text-sm font-medium min-w-[280px]">
-          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-          </svg>
-          <span>{successMsg}</span>
-        </div>
-      )}
-
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0 px-4 py-2">
         <div className="flex items-center justify-between w-full sm:w-auto">
@@ -278,7 +273,7 @@ export default function ProposalTD() {
                                 title={clarificationEdit ? "Edit proposal" : "Create proposal"}
                                 className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${!canOpenCreateOrEdit
                                   ? 'cursor-not-allowed opacity-50'
-                                  : 'hover:bg-[#c33a39]'
+                                  : ''
                                   }`}
                               >
                                 <img src={viewIcon} alt="" className="w-4 h-4 object-contain brightness-0 invert" />
