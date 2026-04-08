@@ -703,29 +703,59 @@ export default function TeamtaskEV() {
     }, [openDropdown]);
 
     useEffect(() => {
-        const params: Record<string, string> = {};
+        // IMPORTANT:
+        // - Involvement detection must NOT be status-filtered, otherwise clicking KPI links
+        //   like ?status=in_progress can hide tasks by emptying involvedProjectIds.
+        // - Only the team-board list fetch should apply the status filter.
+        const myScopeParams: Record<string, string> = {};
+
+        const allParams: Record<string, string> = {};
         const apiStatus = toApiTaskStatusParam(statusFilter);
-        if (apiStatus) params.status = apiStatus;
+        if (apiStatus) allParams.status = apiStatus;
         if (isTeam) {
-            params.condition = "1";
-            params.employeeid = "all";
+            allParams.condition = "1";
+            allParams.employeeid = "all";
         }
 
         // Vendor employee team board uses vendor_task (same as TeamtaskV). /api/tasks omits
         // outsource-linked projects, so tasks added from /ve/teamtasks/add would not appear.
         Promise.all([
-            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params }),
+            // My-scope tasks (created/assigned/involved) → used to determine involved projects
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: myScopeParams }),
+            // Full task list (team board) → later scoped to involved projects only
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: allParams }),
             api.get<{ success?: boolean; resources?: Employee[] }>(
                 "/api/vendors/vendor-resource-profiles",
             ),
             api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
         ])
-            .then(([tasksRes, resourcesRes, projRes]) => {
+            .then(([myTasksRes, allTasksRes, resourcesRes, projRes]) => {
                 const projectRows = projRes.data.projects ?? [];
-                const rawTasks = tasksRes.data.tasks ?? [];
-                setList(enrichTasksWithProjectNames(rawTasks, projectRows));
+                const myTasks = myTasksRes.data.tasks ?? [];
+                const allTasks = allTasksRes.data.tasks ?? [];
+
+                const involvedProjectIds = new Set<number>(
+                    myTasks
+                        .map((t) => Number(t.project_id ?? t.projectid))
+                        .filter((id) => !Number.isNaN(id) && id > 0),
+                );
+
+                const scopedTasks =
+                    involvedProjectIds.size > 0
+                        ? allTasks.filter((t) => {
+                            const pid = Number(t.project_id ?? t.projectid);
+                            return !Number.isNaN(pid) && involvedProjectIds.has(pid);
+                        })
+                        : myTasks;
+
+                const scopedProjects =
+                    involvedProjectIds.size > 0
+                        ? projectRows.filter((p) => involvedProjectIds.has(Number(p.id)))
+                        : [];
+
+                setList(enrichTasksWithProjectNames(scopedTasks, projectRows));
                 setEmployees(resourcesRes.data.resources ?? []);
-                setProjects(projectRows);
+                setProjects(scopedProjects);
             })
             .catch(() => {
                 setList([]);

@@ -160,10 +160,10 @@ export default function AddEditTaskPMV() {
       setServerAttachmentDeleting(true);
       const next = existingAttachmentNames.filter((n) => n !== fileName);
       const newPath = next.length > 0 ? next.join(",") : "";
-      
+
       try {
-        await api.patch(`/api/vendors/vendor-tasks/${editingTaskId}`, { 
-          outputfilepath: newPath 
+        await api.patch(`/api/vendors/vendor-tasks/${editingTaskId}`, {
+          outputfilepath: newPath
         });
         setExistingAttachmentNames(next);
         setPendingAttachmentDelete(null);
@@ -209,9 +209,9 @@ export default function AddEditTaskPMV() {
   };
 
   const totalAttachmentCount = attachmentFiles.length + existingAttachmentNames.length;
-  const pendingDeleteFileName = 
-    pendingAttachmentDelete?.type === "local" 
-      ? attachmentFiles[pendingAttachmentDelete.index!]?.name 
+  const pendingDeleteFileName =
+    pendingAttachmentDelete?.type === "local"
+      ? attachmentFiles[pendingAttachmentDelete.index!]?.name
       : displayNameFromStoredFilename(pendingAttachmentDelete?.name || "");
 
   const fetchRecentTasks = () => {
@@ -550,8 +550,8 @@ export default function AddEditTaskPMV() {
                 />
                 <div className="flex bg-[#F2F3F4] rounded-[5px] overflow-hidden">
                   <div className="flex-1 px-4 py-2 text-[14px] text-[#979797] truncate min-w-0">
-                    {totalAttachmentCount > 0 
-                      ? `${totalAttachmentCount} file(s) attached` 
+                    {totalAttachmentCount > 0
+                      ? `${totalAttachmentCount} file(s) attached`
                       : "Choose file"}
                   </div>
                   <button
