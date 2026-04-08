@@ -18,7 +18,7 @@ import {
   toInputDate,
   getTodayInputDate,
   isEndTimeBeforeStartOnSameDay,
-  buildFormFromTask
+  buildFormFromTask,
 } from "./MytaskV";
 
 const initialForm = {
@@ -48,8 +48,11 @@ export default function AddTaskV() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [addTaskForm, setAddTaskForm] = useState(initialForm);
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
-  const [existingAttachmentNames, setExistingAttachmentNames] = useState<string[]>([]);
-  const [openFormDropdown, setOpenFormDropdown] = useState<FormDropdownId>(null);
+  const [existingAttachmentNames, setExistingAttachmentNames] = useState<
+    string[]
+  >([]);
+  const [openFormDropdown, setOpenFormDropdown] =
+    useState<FormDropdownId>(null);
   const [tasklistOpen, setTasklistOpen] = useState(false);
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
   const [loadingRecentTasks, setLoadingRecentTasks] = useState(false);
@@ -60,7 +63,8 @@ export default function AddTaskV() {
     index?: number;
     name?: string;
   } | null>(null);
-  const [serverAttachmentDeleting, setServerAttachmentDeleting] = useState(false);
+  const [serverAttachmentDeleting, setServerAttachmentDeleting] =
+    useState(false);
   const formProjectTriggerRef = useRef<HTMLButtonElement>(null);
   const formProjectMenuRef = useRef<HTMLDivElement>(null);
   const formModuleTriggerRef = useRef<HTMLButtonElement>(null);
@@ -75,14 +79,18 @@ export default function AddTaskV() {
 
   useEffect(() => {
     Promise.all([
-      api.get<{ success?: boolean; resources?: Employee[] }>("/api/vendors/vendor-resource-profiles"),
+      api.get<{ success?: boolean; resources?: Employee[] }>(
+        "/api/vendors/vendor-resource-profiles",
+      ),
       api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
-    ]).then(([resourcesRes, projRes]) => {
-      setEmployees(resourcesRes.data.resources ?? []);
-      setProjects(projRes.data.projects ?? []);
-    }).catch(() => {
-      toast.error("Failed to fetch initial data");
-    });
+    ])
+      .then(([resourcesRes, projRes]) => {
+        setEmployees(resourcesRes.data.resources ?? []);
+        setProjects(projRes.data.projects ?? []);
+      })
+      .catch(() => {
+        toast.error("Failed to fetch initial data");
+      });
   }, []);
 
   useEffect(() => {
@@ -94,7 +102,7 @@ export default function AddTaskV() {
         String(editingTask.outputfilepath || "")
           .split(",")
           .map((s) => s.trim())
-          .filter(Boolean)
+          .filter(Boolean),
       );
     }
   }, [editingTask, employees]);
@@ -121,7 +129,10 @@ export default function AddTaskV() {
   useEffect(() => {
     if (!tasklistOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (tasklistRef.current && !tasklistRef.current.contains(e.target as Node)) {
+      if (
+        tasklistRef.current &&
+        !tasklistRef.current.contains(e.target as Node)
+      ) {
         setTasklistOpen(false);
       }
     };
@@ -165,7 +176,7 @@ export default function AddTaskV() {
 
       try {
         await api.patch(`/api/vendors/vendor-tasks/${editingTaskId}`, {
-          outputfilepath: newPath
+          outputfilepath: newPath,
         });
         setExistingAttachmentNames(next);
         setPendingAttachmentDelete(null);
@@ -181,7 +192,10 @@ export default function AddTaskV() {
   const displayNameFromStoredFilename = (stored: string) => {
     if (!stored) return "Unknown File";
     // backend puts {uuid}_{orig} or just {orig}
-    const m = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_(.+)$/i.exec(stored);
+    const m =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_(.+)$/i.exec(
+        stored,
+      );
     return m ? m[1] : stored;
   };
 
@@ -210,7 +224,8 @@ export default function AddTaskV() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const totalAttachmentCount = attachmentFiles.length + existingAttachmentNames.length;
+  const totalAttachmentCount =
+    attachmentFiles.length + existingAttachmentNames.length;
   const pendingDeleteFileName =
     pendingAttachmentDelete?.type === "local"
       ? attachmentFiles[pendingAttachmentDelete.index!]?.name
@@ -222,7 +237,8 @@ export default function AddTaskV() {
       return;
     }
     setLoadingRecentTasks(true);
-    api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks")
+    api
+      .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks")
       .then((res) => {
         setRecentTasks((res.data.tasks ?? []).slice(0, 10));
         setTasklistOpen(true);
@@ -235,8 +251,16 @@ export default function AddTaskV() {
     setAddError("");
 
     const requiredFields: (keyof typeof addTaskForm)[] = [
-      "projectName", "module", "taskName", "type", "actualStartDate",
-      "actualEndDate", "startTime", "dueTime", "assignTo", "description"
+      "projectName",
+      "module",
+      "taskName",
+      "type",
+      "actualStartDate",
+      "actualEndDate",
+      "startTime",
+      "dueTime",
+      "assignTo",
+      "description",
     ];
 
     for (const field of requiredFields) {
@@ -256,15 +280,29 @@ export default function AddTaskV() {
       return;
     }
 
-    if (isEndTimeBeforeStartOnSameDay(addTaskForm.actualStartDate, addTaskForm.actualEndDate, addTaskForm.startTime, addTaskForm.dueTime)) {
+    if (
+      isEndTimeBeforeStartOnSameDay(
+        addTaskForm.actualStartDate,
+        addTaskForm.actualEndDate,
+        addTaskForm.startTime,
+        addTaskForm.dueTime,
+      )
+    ) {
       toast.error("End time must be after start time on the same day.");
       return;
     }
 
     setAddSubmitting(true);
-    const targetRedirect = fromState === "teamtasks" || fromState === "teamtask" ? "/v/teamtasks" : "/v/mytasks";
-    const projectId = projects.find((p) => p.project_name === addTaskForm.projectName)?.id;
-    const assigneeId = employees.find((e) => e.full_name === addTaskForm.assignTo)?.id;
+    const targetRedirect =
+      fromState === "teamtasks" || fromState === "teamtask"
+        ? "/v/teamtasks"
+        : "/v/mytasks";
+    const projectId = projects.find(
+      (p) => p.project_name === addTaskForm.projectName,
+    )?.id;
+    const assigneeId = employees.find(
+      (e) => e.full_name === addTaskForm.assignTo,
+    )?.id;
     const assignedToVal = assigneeId ?? addTaskForm.assignTo;
 
     const payload = {
@@ -282,63 +320,92 @@ export default function AddTaskV() {
     };
 
     if (editingTaskId) {
-      api.patch(`/api/vendors/vendor-tasks/${editingTaskId}`, {
-        task_name: addTaskForm.taskName,
-        project_id: projectId,
-        due_date: addTaskForm.actualEndDate,
-        start_date: addTaskForm.actualStartDate,
-        start_time: addTaskForm.startTime,
-        end_time: addTaskForm.dueTime,
-        category: addTaskForm.type,
-        modules: addTaskForm.module,
-        assigned_to: assignedToVal,
-        description: addTaskForm.description,
-        checklist: addTaskForm.checklist,
-      }).then(async () => {
-        if (attachmentFiles.length > 0) {
-          const formData = new FormData();
-          attachmentFiles.forEach((f) => formData.append("image", f));
-          await api.post(`/api/vendors/vendor-tasks/${editingTaskId}/output-files`, formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-          });
-        }
-        toast.success("Task updated");
-        navigate(targetRedirect);
-      }).catch((err) => {
-        setAddError(err.response?.data?.message || "Failed to update task");
-      }).finally(() => setAddSubmitting(false));
-    } else {
-      api.post("/api/vendors/vendor-tasks", payload).then(async (res) => {
-        if (res.data.success && res.data.task_id) {
+      api
+        .patch(`/api/vendors/vendor-tasks/${editingTaskId}`, {
+          task_name: addTaskForm.taskName,
+          project_id: projectId,
+          due_date: addTaskForm.actualEndDate,
+          start_date: addTaskForm.actualStartDate,
+          start_time: addTaskForm.startTime,
+          end_time: addTaskForm.dueTime,
+          category: addTaskForm.type,
+          modules: addTaskForm.module,
+          assigned_to: assignedToVal,
+          description: addTaskForm.description,
+          checklist: addTaskForm.checklist,
+        })
+        .then(async () => {
           if (attachmentFiles.length > 0) {
             const formData = new FormData();
             attachmentFiles.forEach((f) => formData.append("image", f));
-            await api.post(`/api/vendors/vendor-tasks/${res.data.task_id}/output-files`, formData, {
-              headers: { "Content-Type": "multipart/form-data" },
-            });
+            await api.post(
+              `/api/vendors/vendor-tasks/${editingTaskId}/output-files`,
+              formData,
+              {
+                headers: { "Content-Type": "multipart/form-data" },
+              },
+            );
           }
-          toast.success("Task created");
+          toast.success("Task updated");
           navigate(targetRedirect);
-        }
-      }).catch((err) => {
-        setAddError(err.response?.data?.message || "Failed to create task");
-      }).finally(() => setAddSubmitting(false));
+        })
+        .catch((err) => {
+          setAddError(err.response?.data?.message || "Failed to update task");
+        })
+        .finally(() => setAddSubmitting(false));
+    } else {
+      api
+        .post("/api/vendors/vendor-tasks", payload)
+        .then(async (res) => {
+          if (res.data.success && res.data.task_id) {
+            if (attachmentFiles.length > 0) {
+              const formData = new FormData();
+              attachmentFiles.forEach((f) => formData.append("image", f));
+              await api.post(
+                `/api/vendors/vendor-tasks/${res.data.task_id}/output-files`,
+                formData,
+                {
+                  headers: { "Content-Type": "multipart/form-data" },
+                },
+              );
+            }
+            toast.success("Task created");
+            navigate(targetRedirect);
+          }
+        })
+        .catch((err) => {
+          setAddError(err.response?.data?.message || "Failed to create task");
+        })
+        .finally(() => setAddSubmitting(false));
     }
   };
 
   const dynamicModuleOptions = useMemo(() => {
-    const proj = projects.find((p) => p.project_name === addTaskForm.projectName);
-    return (proj?.modules || "").split(",").map((m) => m.trim()).filter(Boolean);
+    const proj = projects.find(
+      (p) => p.project_name === addTaskForm.projectName,
+    );
+    return (proj?.modules || "")
+      .split(",")
+      .map((m) => m.trim())
+      .filter(Boolean);
   }, [projects, addTaskForm.projectName]);
 
   const employeesForAssignDropdown = useMemo(() => {
-    const meta = projects.find((p) => p.project_name === addTaskForm.projectName);
-    const members = (meta?.members || "").split(",").map((s) => s.trim()).filter(Boolean);
+    const meta = projects.find(
+      (p) => p.project_name === addTaskForm.projectName,
+    );
+    const members = (meta?.members || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     if (members.length === 0) return employees;
-    return employees.filter((e) => members.includes(String(e.id)) || members.includes(e.full_name));
+    return employees.filter(
+      (e) => members.includes(String(e.id)) || members.includes(e.full_name),
+    );
   }, [employees, projects, addTaskForm.projectName]);
 
-  const sameCalendarDay = addTaskForm.actualStartDate === addTaskForm.actualEndDate;
+  const sameCalendarDay =
+    addTaskForm.actualStartDate === addTaskForm.actualEndDate;
 
   return (
     <div className="flex-1 min-h-0 bg-white overflow-hidden font-Gantari">
@@ -362,21 +429,44 @@ export default function AddTaskV() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {addError && (
               <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
-                <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
-                <div className="flex-1"><p className="text-[13px]">{addError}</p></div>
+                <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
+                  !
+                </div>
+                <div className="flex-1">
+                  <p className="text-[13px]">{addError}</p>
+                </div>
               </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
               <div className="md:col-span-2">
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2">Project Name <span className="text-[#DD4342]">*</span></label>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2">
+                  Project Name <span className="text-[#DD4342]">*</span>
+                </label>
                 <FormDropdown
                   label="Select Project name"
-                  options={[{ value: "", label: "Select Project name" }, ...projects.map((p) => ({ value: p.project_name, label: p.project_name }))]}
+                  options={[
+                    { value: "", label: "Select Project name" },
+                    ...projects.map((p) => ({
+                      value: p.project_name,
+                      label: p.project_name,
+                    })),
+                  ]}
                   value={addTaskForm.projectName}
-                  onChange={(v) => setAddTaskForm((f) => ({ ...f, projectName: v, module: "", assignTo: "" }))}
+                  onChange={(v) =>
+                    setAddTaskForm((f) => ({
+                      ...f,
+                      projectName: v,
+                      module: "",
+                      assignTo: "",
+                    }))
+                  }
                   isOpen={openFormDropdown === "project"}
-                  onToggle={() => setOpenFormDropdown((d) => (d === "project" ? null : "project"))}
+                  onToggle={() =>
+                    setOpenFormDropdown((d) =>
+                      d === "project" ? null : "project",
+                    )
+                  }
                   onClose={() => setOpenFormDropdown(null)}
                   triggerRef={formProjectTriggerRef}
                   dropdownRef={formProjectMenuRef}
@@ -385,14 +475,26 @@ export default function AddTaskV() {
               </div>
 
               <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2">Select Module <span className="text-[#DD4342]">*</span></label>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2">
+                  Select Module <span className="text-[#DD4342]">*</span>
+                </label>
                 <FormDropdown
                   label="Select Module"
-                  options={[{ value: "", label: "Select Module" }, ...dynamicModuleOptions.map((m) => ({ value: m, label: m }))]}
+                  options={[
+                    { value: "", label: "Select Module" },
+                    ...dynamicModuleOptions.map((m) => ({
+                      value: m,
+                      label: m,
+                    })),
+                  ]}
                   value={addTaskForm.module}
                   onChange={(v) => setAddTaskForm((f) => ({ ...f, module: v }))}
                   isOpen={openFormDropdown === "module"}
-                  onToggle={() => setOpenFormDropdown((d) => (d === "module" ? null : "module"))}
+                  onToggle={() =>
+                    setOpenFormDropdown((d) =>
+                      d === "module" ? null : "module",
+                    )
+                  }
                   onClose={() => setOpenFormDropdown(null)}
                   triggerRef={formModuleTriggerRef}
                   dropdownRef={formModuleMenuRef}
@@ -401,20 +503,33 @@ export default function AddTaskV() {
               </div>
 
               <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2">Task Name <span className="text-[#DD4342]">*</span></label>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2">
+                  Task Name <span className="text-[#DD4342]">*</span>
+                </label>
                 <div className="relative flex min-h-[42px] items-stretch overflow-hidden rounded-[5px] border border-transparent bg-[#F2F3F4] transition-colors focus-within:border-[#AEACAC52]">
                   <input
                     type="text"
                     value={addTaskForm.taskName}
-                    onChange={(e) => setAddTaskForm((f) => ({ ...f, taskName: e.target.value }))}
+                    onChange={(e) =>
+                      setAddTaskForm((f) => ({
+                        ...f,
+                        taskName: e.target.value,
+                      }))
+                    }
                     placeholder="Enter Task / Select Task"
                     className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B]"
                   />
                   {!editingTaskId && (
-                    <div className="relative flex items-center" ref={tasklistRef}>
+                    <div
+                      className="relative flex items-center"
+                      ref={tasklistRef}
+                    >
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); fetchRecentTasks(); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fetchRecentTasks();
+                        }}
                         className="h-full bg-[#E2E2E2] px-5 py-2 text-[#8B8B8B] text-[14px] font-medium cursor-pointer transition-colors shrink-0 font-Gantari border-0"
                       >
                         {loadingRecentTasks ? "..." : "Tasklist"}
@@ -425,7 +540,10 @@ export default function AddTaskV() {
                             <button
                               key={t.id}
                               type="button"
-                              onClick={() => { setAddTaskForm(buildFormFromTask(t, employees)); setTasklistOpen(false); }}
+                              onClick={() => {
+                                setAddTaskForm(buildFormFromTask(t, employees));
+                                setTasklistOpen(false);
+                              }}
                               className="w-full px-4 py-2 text-left text-sm text-[#353535] hover:bg-slate-100 font-Gantari"
                             >
                               {t.task_name}
@@ -440,7 +558,9 @@ export default function AddTaskV() {
 
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
                 <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2">Type <span className="text-[#DD4342]">*</span></label>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2">
+                    Type <span className="text-[#DD4342]">*</span>
+                  </label>
                   <FormDropdown
                     label="Select Type"
                     options={[
@@ -452,7 +572,9 @@ export default function AddTaskV() {
                     value={addTaskForm.type}
                     onChange={(v) => setAddTaskForm((f) => ({ ...f, type: v }))}
                     isOpen={openFormDropdown === "type"}
-                    onToggle={() => setOpenFormDropdown((d) => (d === "type" ? null : "type"))}
+                    onToggle={() =>
+                      setOpenFormDropdown((d) => (d === "type" ? null : "type"))
+                    }
                     onClose={() => setOpenFormDropdown(null)}
                     triggerRef={formTypeTriggerRef}
                     dropdownRef={formTypeMenuRef}
@@ -460,22 +582,36 @@ export default function AddTaskV() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2">Actual Start Date <span className="text-[#DD4342]">*</span></label>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2">
+                    Actual Start Date <span className="text-[#DD4342]">*</span>
+                  </label>
                   <input
                     type="date"
                     min={todayInputDate}
                     value={addTaskForm.actualStartDate}
-                    onChange={(e) => setAddTaskForm((f) => ({ ...f, actualStartDate: e.target.value }))}
+                    onChange={(e) =>
+                      setAddTaskForm((f) => ({
+                        ...f,
+                        actualStartDate: e.target.value,
+                      }))
+                    }
                     className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder-[#8B8B8B] focus:border-[#AEACAC52]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2">Actual End Date <span className="text-[#DD4342]">*</span></label>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2">
+                    Actual End Date <span className="text-[#DD4342]">*</span>
+                  </label>
                   <input
                     type="date"
                     min={addTaskForm.actualStartDate || todayInputDate}
                     value={addTaskForm.actualEndDate}
-                    onChange={(e) => setAddTaskForm((f) => ({ ...f, actualEndDate: e.target.value }))}
+                    onChange={(e) =>
+                      setAddTaskForm((f) => ({
+                        ...f,
+                        actualEndDate: e.target.value,
+                      }))
+                    }
                     className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder-[#8B8B8B] focus:border-[#AEACAC52]"
                   />
                 </div>
@@ -483,36 +619,58 @@ export default function AddTaskV() {
 
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
                 <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2">Select Start Time <span className="text-[#DD4342]">*</span></label>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2">
+                    Select Start Time <span className="text-[#DD4342]">*</span>
+                  </label>
                   <input
                     type="time"
                     value={addTaskForm.startTime}
-                    onChange={(e) => setAddTaskForm((f) => ({ ...f, startTime: e.target.value }))}
+                    onChange={(e) =>
+                      setAddTaskForm((f) => ({
+                        ...f,
+                        startTime: e.target.value,
+                      }))
+                    }
                     className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder-[#8B8B8B] focus:border-[#AEACAC52]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2">Select End Time <span className="text-[#DD4342]">*</span></label>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2">
+                    Select End Time <span className="text-[#DD4342]">*</span>
+                  </label>
                   <input
                     type="time"
                     min={sameCalendarDay ? addTaskForm.startTime : undefined}
                     value={addTaskForm.dueTime}
-                    onChange={(e) => setAddTaskForm((f) => ({ ...f, dueTime: e.target.value }))}
+                    onChange={(e) =>
+                      setAddTaskForm((f) => ({ ...f, dueTime: e.target.value }))
+                    }
                     className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder-[#8B8B8B] focus:border-[#AEACAC52]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2">Assign To <span className="text-[#DD4342]">*</span></label>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2">
+                    Assign To <span className="text-[#DD4342]">*</span>
+                  </label>
                   <FormDropdown
                     label="Select Assign To"
                     options={[
                       { value: "", label: "Select Assign To" },
-                      ...employeesForAssignDropdown.map((e) => ({ value: e.full_name, label: e.full_name }))
+                      ...employeesForAssignDropdown.map((e) => ({
+                        value: e.full_name,
+                        label: e.full_name,
+                      })),
                     ]}
                     value={addTaskForm.assignTo}
-                    onChange={(v) => setAddTaskForm((f) => ({ ...f, assignTo: v }))}
+                    onChange={(v) =>
+                      setAddTaskForm((f) => ({ ...f, assignTo: v }))
+                    }
                     isOpen={openFormDropdown === "assignTo"}
-                    onToggle={() => setOpenFormDropdown((d) => (d === "assignTo" ? null : "assignTo"))}
+                    onToggle={() =>
+                      setOpenFormDropdown((d) =>
+                        d === "assignTo" ? null : "assignTo",
+                      )
+                    }
                     onClose={() => setOpenFormDropdown(null)}
                     triggerRef={formAssignTriggerRef}
                     dropdownRef={formAssignMenuRef}
@@ -522,10 +680,17 @@ export default function AddTaskV() {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2">Description <span className="text-[#DD4342]">*</span></label>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2">
+                  Description <span className="text-[#DD4342]">*</span>
+                </label>
                 <textarea
                   value={addTaskForm.description}
-                  onChange={(e) => setAddTaskForm((f) => ({ ...f, description: e.target.value }))}
+                  onChange={(e) =>
+                    setAddTaskForm((f) => ({
+                      ...f,
+                      description: e.target.value,
+                    }))
+                  }
                   placeholder="Enter Description..."
                   rows={4}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder-[#8B8B8B] resize-none focus:border-[#AEACAC52]"
@@ -533,18 +698,24 @@ export default function AddTaskV() {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2">Checklist</label>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2">
+                  Checklist
+                </label>
                 <input
                   type="text"
                   value={addTaskForm.checklist}
-                  onChange={(e) => setAddTaskForm((f) => ({ ...f, checklist: e.target.value }))}
+                  onChange={(e) =>
+                    setAddTaskForm((f) => ({ ...f, checklist: e.target.value }))
+                  }
                   placeholder="Enter Reference Link"
                   className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder-[#8B8B8B] focus:border-[#AEACAC52]"
                 />
               </div>
 
               <div className="md:col-span-2 space-y-2">
-                <span className="block text-[16px] font-semibold text-[#000000] font-Gantari">Attachments</span>
+                <span className="block text-[16px] font-semibold text-[#000000] font-Gantari">
+                  Attachments
+                </span>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -580,10 +751,15 @@ export default function AddTaskV() {
                         className="flex items-center gap-2 rounded-[5px] bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827]"
                       >
                         <div className="min-w-0 flex-1">
-                          <span className="block truncate font-Gantari" title={displayNameFromStoredFilename(stored)}>
+                          <span
+                            className="block truncate font-Gantari"
+                            title={displayNameFromStoredFilename(stored)}
+                          >
                             {displayNameFromStoredFilename(stored)}
                           </span>
-                          <span className="text-xs text-[#8B8B8B]">Saved on task</span>
+                          <span className="text-xs text-[#8B8B8B]">
+                            Saved on task
+                          </span>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
                           <button
@@ -597,7 +773,12 @@ export default function AddTaskV() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => setPendingAttachmentDelete({ type: "server", name: stored })}
+                            onClick={() =>
+                              setPendingAttachmentDelete({
+                                type: "server",
+                                name: stored,
+                              })
+                            }
                             className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
                             title="Remove"
                             aria-label={`Remove ${displayNameFromStoredFilename(stored)}`}
@@ -613,10 +794,15 @@ export default function AddTaskV() {
                         className="flex items-center gap-2 rounded-[5px] bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827]"
                       >
                         <div className="min-w-0 flex-1">
-                          <span className="block truncate font-Gantari" title={file.name}>
+                          <span
+                            className="block truncate font-Gantari"
+                            title={file.name}
+                          >
                             {file.name}
                           </span>
-                          <span className="text-xs text-[#8B8B8B]">{formatFileSize(file.size)}</span>
+                          <span className="text-xs text-[#8B8B8B]">
+                            {formatFileSize(file.size)}
+                          </span>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
                           <button
@@ -630,7 +816,12 @@ export default function AddTaskV() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => setPendingAttachmentDelete({ type: "local", index })}
+                            onClick={() =>
+                              setPendingAttachmentDelete({
+                                type: "local",
+                                index,
+                              })
+                            }
                             className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
                             title="Remove"
                             aria-label={`Remove ${file.name}`}
@@ -668,7 +859,9 @@ export default function AddTaskV() {
       {pendingAttachmentDelete !== null && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
-          onClick={() => !serverAttachmentDeleting && setPendingAttachmentDelete(null)}
+          onClick={() =>
+            !serverAttachmentDeleting && setPendingAttachmentDelete(null)
+          }
           role="presentation"
         >
           <div
@@ -685,10 +878,19 @@ export default function AddTaskV() {
                 className="absolute left-0 top-0 shrink-0 rounded-lg p-1 bg-transparent cursor-pointer disabled:opacity-50"
                 aria-label="Close"
               >
-                <img src={closeButtonIcon} alt="" className="h-5 w-5" aria-hidden />
+                <img
+                  src={closeButtonIcon}
+                  alt=""
+                  className="h-5 w-5"
+                  aria-hidden
+                />
               </button>
               <p className="mx-auto max-w-full px-10 text-center text-[16px] leading-relaxed text-[#353535]">
-                Are you sure you want to delete <strong className="font-semibold text-[#353535]">{pendingDeleteFileName}</strong>?
+                Are you sure you want to delete{" "}
+                <strong className="font-semibold text-[#353535]">
+                  {pendingDeleteFileName}
+                </strong>
+                ?
               </p>
             </div>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">

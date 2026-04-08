@@ -1201,10 +1201,30 @@ def update_project(project_id):
 def delete_project(project_id):
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("DELETE FROM projects WHERE id = %s AND Company_id = %s", (project_id, g.company_id))
-    if cur.rowcount:
-        return jsonify({"success": True})
-    return jsonify({"success": False, "message": "Project not found"}), 404
+    try:
+        # Cascade delete related data for in-house project deletion.
+        # Keep this scoped by Company_id to avoid cross-company deletes.
+        cur.execute(
+            "DELETE FROM tasks WHERE projectid = %s AND Company_id = %s",
+            (project_id, g.company_id),
+        )
+        cur.execute(
+            "DELETE FROM payment_milestones WHERE project_id = %s AND Company_id = %s",
+            (project_id, g.company_id),
+        )
+
+        cur.execute(
+            "DELETE FROM projects WHERE id = %s AND Company_id = %s",
+            (project_id, g.company_id),
+        )
+        if cur.rowcount:
+            conn.commit()
+            return jsonify({"success": True})
+        conn.rollback()
+        return jsonify({"success": False, "message": "Project not found"}), 404
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
 
 
 # Member filter endpoints (from memberfiler.php)

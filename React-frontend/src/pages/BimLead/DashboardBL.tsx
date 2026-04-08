@@ -350,24 +350,24 @@ export default function DashboardBL() {
         <div className="flex flex-col lg:h-full lg:overflow-hidden text-[#353535]">
             {/* Header and KPI Cards */}
             <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
-                <h1 className="text-xl font-medium font-gantari text-slate-800 mb-6">Dashboard</h1>
+                <h1 className="text-[24px] font-medium font-gantari text-slate-800 mb-6">Dashboard</h1>
                 {/* KPI Grid — same style as DashboardTD */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    <Link to="/bl/projects" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
-                        <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Total Projects</h3>
-                        <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
+                    <Link to="/bl/projects" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                        <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">Total Projects</h3>
+                        <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
                     </Link>
-                    <Link to="/bl/projects?status=Completed" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
-                        <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Projects</h3>
-                        <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
+                    <Link to="/bl/projects?status=Completed" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                        <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">Completed Projects</h3>
+                        <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
                     </Link>
-                    <Link to="/bl/teamtasks?status=in_progress" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
-                        <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">In Progress Tasks</h3>
-                        <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
+                    <Link to="/bl/teamtasks?status=in_progress" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                        <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">In Progress Tasks</h3>
+                        <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
                     </Link>
-                    <Link to="/bl/teamtasks?status=completed" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
-                        <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Tasks</h3>
-                        <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
+                    <Link to="/bl/teamtasks?status=completed" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                        <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">Completed Tasks</h3>
+                        <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
                     </Link>
                 </div>
             </div>
@@ -376,11 +376,11 @@ export default function DashboardBL() {
                 {/* Today's Priority — projects with today's tasks (same as DashboardTD) */}
                 <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
                     <div className="mb-4 shrink-0">
-                        <h2 className="text-xl font-semibold text-[#353535] font-gantari">Today's Priority</h2>
+                        <h2 className="text-[18px] font-medium text-[#353535] font-gantari">Today's Priority</h2>
                     </div>
                     <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
                         {filteredPriorityTasks.length === 0 ? (
-                            <p className="text-[#717171] text-sm font-gantari py-4">No priority tasks for today.</p>
+                            <p className="text-[#717171] text-medium font-gantari">No priority tasks for today.</p>
                         ) : (
                             <>
                                 <div className="flex items-center justify-between mb-3">
