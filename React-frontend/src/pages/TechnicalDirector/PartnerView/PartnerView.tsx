@@ -80,15 +80,25 @@ const PartnerView = () => {
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div className="flex-1 min-h-0 flex flex-col p-2">
                     {/* Header */}
-                    <div className="flex items-center gap-4 mb-6 md:mb-8 shrink-0 px-2 md:px-0">
+                    <div className="flex items-center gap-4 mb-6 md:mb-8 shrink-0 px-2 md:px-5">
                         {/* Left: Back button */}
-                        <button
-                            type="button"
-                            onClick={() => navigate(-1)}
-                            className="flex items-center justify-center p-2 rounded-[5px] bg-[#F2F2F2] transition-colors w-9 h-9 md:w-10 md:h-10 cursor-pointer shrink-0"
-                        >
-                            <img src={backIcon} alt="Back" className="w-5 h-5 object-contain" />
-                        </button>
+                        <div className="relative group inline-flex shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => navigate(-1)}
+                                className="flex items-center justify-center rounded-[5px] bg-[#F2F2F2] transition-colors w-9 h-9 md:w-10 md:h-10 cursor-pointer shrink-0"
+                            >
+                                <img src={backIcon} alt="Back" className="w-5 h-5 object-contain" />
+                            </button>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                        Go Back
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
 
                         {/* Centre: Title */}
                         <div className="flex-1 text-center">
