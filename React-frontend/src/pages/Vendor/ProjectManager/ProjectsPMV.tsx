@@ -516,6 +516,7 @@ export default function ProjectsPMV() {
             project_manager_id: nameToId(createProjectManager, projectManagers),
             start_date: createStartDate,
             due_date: createEndDate,
+            // due_date: createEndDate,
             totalhours: createTotalHours,
             perday: createPerDay,
             lead_id: nameToId(createBIMLead, bimLeads),
