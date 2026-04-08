@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
-import toast from 'react-hot-toast';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import threeDotsIcon from '../../assets/ProjectManager/CreateTeam/three dots.svg';
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
@@ -371,6 +370,7 @@ export default function CreateteamBC() {
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [deleteTeamId, setDeleteTeamId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
   const memberDropdownRef = useRef<HTMLDivElement>(null);
   const leaderDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -444,25 +444,8 @@ export default function CreateteamBC() {
       .then(({ data }) => {
         if (data.success) {
           setShowAddModal(false);
-          toast.success('New team created!', {
-            duration: 3000,
-            position: 'top-center',
-            style: {
-              background: '#fff',
-              color: '#353535',
-              fontFamily: 'Gantari, sans-serif',
-              fontSize: '15px',
-              fontWeight: '600',
-              borderRadius: '10px',
-              padding: '14px 24px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-              border: '1px solid #E5E7EB',
-            },
-            iconTheme: {
-              primary: '#22c55e',
-              secondary: '#fff',
-            },
-          });
+          setSuccessMsg('Team Created Successfully');
+          setTimeout(() => setSuccessMsg(''), 3000);
           // Refresh data instead of page reload for better UX
           api
             .get<{ teams?: Team[] }>("/api/teams")
@@ -560,25 +543,8 @@ export default function CreateteamBC() {
       .then(({ data }) => {
         if (data.success) {
           setShowEditModal(false);
-          toast.success('Team updated successfully!', {
-            duration: 3000,
-            position: 'top-center',
-            style: {
-              background: '#fff',
-              color: '#353535',
-              fontFamily: 'Gantari, sans-serif',
-              fontSize: '15px',
-              fontWeight: '600',
-              borderRadius: '10px',
-              padding: '14px 24px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-              border: '1px solid #E5E7EB',
-            },
-            iconTheme: {
-              primary: '#22c55e',
-              secondary: '#fff',
-            },
-          });
+          setSuccessMsg('Team Updated Successfully');
+          setTimeout(() => setSuccessMsg(''), 3000);
           api
             .get<{ teams?: Team[] }>("/api/teams")
             .then((res) => setTeams(res.data.teams ?? []));
@@ -623,7 +589,17 @@ export default function CreateteamBC() {
   }
 
   return (
-    <div className="h-full min-h-0 flex flex-col overflow-hidden p-2">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden p-2 relative">
+      {successMsg && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-3 px-5 py-3 rounded-lg bg-white shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-gray-100 min-w-[300px] animate-in fade-in slide-in-from-top-2 duration-300 font-Gantari">
+          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#58D662]">
+            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <span className="text-[16px] font-medium text-[#2D2D2D]">{successMsg}</span>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-8 flex-shrink-0">
         <h2 className="text-[24px] font-semibold text-[#000000] font-Gantari">
           Team Workspace
