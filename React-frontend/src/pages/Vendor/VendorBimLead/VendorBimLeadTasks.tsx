@@ -261,7 +261,11 @@ export default function VendorBimLeadTasks() {
         });
         if (taskId && attachmentFiles.length > 0) {
           const formData = new FormData();
-          attachmentFiles.forEach((f) => formData.append("image", f));
+          attachmentFiles.forEach((f) => {
+            // Backend accepts both keys; keep both for compatibility.
+            formData.append("image", f);
+            formData.append("image[]", f);
+          });
           api
             .post(
               `/api/vendors/vendor-tasks/${taskId}/output-files`,
@@ -327,7 +331,11 @@ export default function VendorBimLeadTasks() {
       .then(() => {
         if (editAttachmentFiles.length > 0) {
           const formData = new FormData();
-          editAttachmentFiles.forEach((f) => formData.append("image", f));
+          editAttachmentFiles.forEach((f) => {
+            // Backend accepts both keys; keep both for compatibility.
+            formData.append("image", f);
+            formData.append("image[]", f);
+          });
           api
             .post(
               `/api/vendors/vendor-tasks/${selectedTask.id}/output-files`,
@@ -1146,7 +1154,7 @@ export default function VendorBimLeadTasks() {
 
                 <div>
                   <label className="block text-[16px] font-medium text-[#353535] mb-1">
-                    Attach File <span className="text-[#DD4342]">*</span>
+                    Attach File <span className="text-[#DD4342]"></span>
                   </label>
                   <input
                     ref={fileInputRef}

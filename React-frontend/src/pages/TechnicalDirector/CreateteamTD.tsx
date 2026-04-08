@@ -813,19 +813,27 @@ export default function CreateteamTD() {
       {showAddModal && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
           <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full max-h-[90vh] flex flex-col p-6 animate-in zoom-in-95 duration-200 relative overflow-hidden my-auto">
-            <div className="shrink-0 relative mb-10">
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="absolute top-0 left-2 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
-              >
-                <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
-              </button>
-
-              <div className="text-center">
-                <h3 className="text-[24px] font-semibold text-[#000000]">
-                  Create New Team
-                </h3>
+            <div className="relative mb-10 flex items-center justify-center min-h-[40px] w-full">
+              <div className="group absolute left-0 z-10 top-1/2 -translate-y-1/2">
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
+                >
+                  <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
               </div>
+
+              <h3 className="text-[24px] font-semibold text-[#000000]">
+                Create New Team
+              </h3>
             </div>
 
             <div className="flex-1 overflow-y-auto px-1 custom-scrollbar">
@@ -1151,20 +1159,27 @@ export default function CreateteamTD() {
       {showEditModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
           <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full max-h-[90vh] flex flex-col p-6 animate-in zoom-in-95 duration-200 relative overflow-hidden my-auto">
-            <div className="shrink-0 relative mb-10">
-              {/* Close button in top left as per image */}
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="absolute top-0 left-2 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
-              >
-                <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
-              </button>
-
-              <div className="text-center">
-                <h3 className="text-[24px] font-semibold text-[#000000]">
-                  Edit Team Details
-                </h3>
+            <div className="relative mb-10 flex items-center justify-center min-h-[40px] w-full">
+              <div className="group absolute left-0 z-10 top-1/2 -translate-y-1/2">
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
+                >
+                  <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
               </div>
+
+              <h3 className="text-[24px] font-semibold text-[#000000]">
+                Edit Team Details
+              </h3>
             </div>
 
             <div className="flex-1 overflow-y-auto px-1 custom-scrollbar">
@@ -1476,21 +1491,33 @@ export default function CreateteamTD() {
       {showDetailsModal && selectedTeam && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
           <div className="bg-white rounded-md shadow-2xl max-w-[600px] w-full max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 relative overflow-hidden">
-            <button
-              onClick={() => setShowDetailsModal(false)}
-              className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-20"
-            >
-              <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
-            </button>
+            <div className="p-8 pb-4 relative flex items-center justify-center min-h-[40px] w-full">
+              <div className="group absolute left-8 z-20 top-1/2 -translate-y-1/2">
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
+                >
+                  <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-            <div className="p-8 pb-4 shrink-0 text-center">
-              <h3 className="text-[20px] font-semibold text-slate-800 font-Gantari px-12">
-                {selectedTeam.team_name ||
-                  selectedTeam.teamname ||
-                  selectedTeam.leader_name ||
-                  getEmpName(selectedTeam.leader)}
-              </h3>
-              <p className="text-[16px] text-slate-500 mt-1">Team Details</p>
+              <div className="text-center">
+                <h3 className="text-[20px] font-semibold text-slate-800 font-Gantari px-12 truncate max-w-full">
+                  {selectedTeam.team_name ||
+                    selectedTeam.teamname ||
+                    selectedTeam.leader_name ||
+                    getEmpName(selectedTeam.leader)}
+                </h3>
+                <p className="text-[16px] text-slate-500 mt-1">Team Details</p>
+              </div>
             </div>
 
             <div className="p-8 pt-0 flex-1 overflow-y-auto custom-scrollbar">
@@ -1602,26 +1629,35 @@ export default function CreateteamTD() {
           <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100 shrink-0">
-              <button
-                type="button"
-                onClick={() => setShowAllMembersModal(false)}
-                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors cursor-pointer"
-                title="Close"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <div className="group relative inline-flex shrink-0 absolute left-10">
+                <button
+                  type="button"
+                  onClick={() => setShowAllMembersModal(false)}
+                  className="p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors cursor-pointer"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                 All Members ({allMembersList.length})
               </h3>
@@ -1699,29 +1735,38 @@ export default function CreateteamTD() {
           <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col my-auto animate-in zoom-in-95 duration-200 shrink-0">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100 shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowMemberProfileModal(false);
-                  setSelectedMember(null);
-                }}
-                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors cursor-pointer"
-                title="Close"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <div className="group relative inline-flex shrink-0 absolute left-10">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMemberProfileModal(false);
+                    setSelectedMember(null);
+                  }}
+                  className="p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors cursor-pointer"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                 Member Profile
               </h3>
@@ -1867,15 +1912,25 @@ export default function CreateteamTD() {
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-md shadow-2xl max-w-[500px] w-full p-8 flex flex-col items-center animate-in zoom-in-95 duration-200 relative overflow-hidden">
             <div className="relative flex items-center justify-center w-full mb-4">
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setTeamToDelete(null);
-                }}
-                className="absolute left-0 p-1.5 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
-              >
-                <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
-              </button>
+              <div className="group relative inline-flex shrink-0 absolute left-0">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setTeamToDelete(null);
+                  }}
+                  className="p-1.5 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
+                >
+                  <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[18px] font-semibold text-[#020202] font-Gantari">
                 Delete Team
               </h3>

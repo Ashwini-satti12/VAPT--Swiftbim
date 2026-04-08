@@ -11,7 +11,7 @@ body {
   overflow: hidden;
 }
 
-/* Vendor project view: keep long / rich-text descriptions inside the card */
+/* Vendor project view: keep long / rich-text descriptions inside the card
 .project-description-html,
 .project-description-html * {
   overflow-wrap: anywhere;
@@ -20,4 +20,4 @@ body {
 .project-description-html * {
   white-space: normal !important;
 }
-
+ */

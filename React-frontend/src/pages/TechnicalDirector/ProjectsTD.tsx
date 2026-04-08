@@ -17,6 +17,7 @@ import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import plusIcon from "../../assets/ProjectManager/Client/plusicon.svg";
+import downloadIcon from "../../assets/TechnicalDirector/download icon.svg";
 
 const CURRENCIES = [
   { code: "INR", symbol: "₹", label: "Indian Rupee" },
@@ -394,6 +395,7 @@ interface Project {
   source?: string;
   document_attachment?: string;
   currency?: string;
+  currency_locked?: boolean;
 }
 
 interface Milestone {
@@ -652,7 +654,12 @@ export default function ProjectsTD() {
       description: str(r.description),
       source: str(r.source),
       document_attachment: str(r.document_attachment),
-      currency: str(r.currency) || "INR",
+      currency:
+        (r.selected_currency != null && String(r.selected_currency).trim().length > 0)
+          ? String(r.selected_currency)
+          : str(r.currency) || "INR",
+      currency_locked:
+        r.selected_currency != null && String(r.selected_currency).trim().length > 0,
     };
   };
 
@@ -1020,28 +1027,32 @@ export default function ProjectsTD() {
           <div className="flex flex-col h-full bg-white">
             {/* Project View Header */}
             <div className="relative flex items-center justify-center px-4 md:px-6 py-6 border-b border-slate-50 mt-[-20px]">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowProjectView(false);
-                  setSelectedProjectForView(null);
-                  setSearchParams({}, { replace: true });
-                }}
-                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
-                title="Close"
-              >
-                <img src={backIcon} alt="Back" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-6 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProjectView(false);
+                    setSelectedProjectForView(null);
+                    setSearchParams({}, { replace: true });
+                  }}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
+                >
+                  <img src={backIcon} alt="Back" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Go Back
+                    </span>
+                  </div>
+                </div>
+              </div>
               <div className="text-center">
                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A]">
                   {selectedProjectForView?.project_name ?? "Loading..."}
                 </h3>
-                <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
-                  <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#353535]"></span>
-                  <p className="text-[14px] md:text-[14px] font-gantari font-semibold text-[#353535]">
-                    Overall Progress Tracker
-                  </p>
-                </div>
+                
               </div>
             </div>
 
@@ -1055,110 +1066,109 @@ export default function ProjectsTD() {
             ) : (
               /* Project View Content */
               <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Fixed KPI Cards at top */}
-                <div className="px-4 md:px-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
-                    {/* To Do Tasks */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        navigate(
-                          "/td/teamtasks?status=todo" +
-                          (selectedProjectForView?.project_name
-                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                            : ""),
-                        )
-                      }
-                      className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
-                    >
-                      <div className="flex items-center justify-left mb-2">
-                        <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
-                          To Do Tasks
+                {/* Scrollable Content Including KPI Cards */}
+                <div className="flex-1 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden space-y-4 px-4 md:px-6 pb-10 pt-4">
+                  {/* KPI Cards */}
+                  <div className="">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+                      {/* To Do Tasks */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            "/td/teamtasks?status=todo" +
+                            (selectedProjectForView?.project_name
+                              ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                              : ""),
+                          )
+                        }
+                        className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                      >
+                        <div className="flex items-center justify-left mb-2">
+                          <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
+                            To Do Tasks
+                          </p>
+                        </div>
+                        <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
+                          {loadingTaskStats ? "..." : taskStats.todo}
                         </p>
-                      </div>
-                      <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
-                        {loadingTaskStats ? "..." : taskStats.todo}
-                      </p>
-                    </button>
+                      </button>
 
-                    {/* In Progress Tasks */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        navigate(
-                          "/td/teamtasks?status=in_progress" +
-                          (selectedProjectForView?.project_name
-                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                            : ""),
-                        )
-                      }
-                      className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
-                          In Progress Tasks
+                      {/* In Progress Tasks */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            "/td/teamtasks?status=in_progress" +
+                            (selectedProjectForView?.project_name
+                              ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                              : ""),
+                          )
+                        }
+                        className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
+                            In Progress Tasks
+                          </p>
+                        </div>
+                        <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
+                          {loadingTaskStats ? "..." : taskStats.inProgress}
                         </p>
-                      </div>
-                      <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
-                        {loadingTaskStats ? "..." : taskStats.inProgress}
-                      </p>
-                    </button>
+                      </button>
 
-                    {/* Paused Tasks */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        navigate(
-                          "/td/teamtasks?status=paused" +
-                          (selectedProjectForView?.project_name
-                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                            : ""),
-                        )
-                      }
-                      className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
-                          Paused Tasks
+                      {/* Paused Tasks */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            "/td/teamtasks?status=paused" +
+                            (selectedProjectForView?.project_name
+                              ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                              : ""),
+                          )
+                        }
+                        className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
+                            Paused Tasks
+                          </p>
+                        </div>
+                        <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
+                          {loadingTaskStats ? "..." : taskStats.paused}
                         </p>
-                      </div>
-                      <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
-                        {loadingTaskStats ? "..." : taskStats.paused}
-                      </p>
-                    </button>
+                      </button>
 
-                    {/* Completed Tasks */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        navigate(
-                          "/td/teamtasks?status=completed" +
-                          (selectedProjectForView?.project_name
-                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                            : ""),
-                        )
-                      }
-                      className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
-                          Completed Tasks
+                      {/* Completed Tasks */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            "/td/teamtasks?status=completed" +
+                            (selectedProjectForView?.project_name
+                              ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                              : ""),
+                          )
+                        }
+                        className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
+                            Completed Tasks
+                          </p>
+                        </div>
+                        <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
+                          {loadingTaskStats ? "..." : taskStats.completed}
                         </p>
-                      </div>
-                      <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
-                        {loadingTaskStats ? "..." : taskStats.completed}
-                      </p>
-                    </button>
+                      </button>
+                    </div>
                   </div>
-                </div>
-
-                {/* Scrollable Content Below KPI Cards */}
-                <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 px-4 md:px-2 pb-10 pt-4">
-                  <div className="border border-slate-200 rounded-md md:rounded-md p-6 md:p-8 lg:p-2">
+                  <div className="border border-slate-200 rounded-md md:rounded-md p-6 md:p-8 lg:p-4">
                     <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">
                       Modules
                     </h4>
-                    <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                    <div className="max-h-[220px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-4">
                         {loadingTaskStats ? (
                           <div className="col-span-full text-center py-8 text-gray-500">
@@ -1733,7 +1743,7 @@ export default function ProjectsTD() {
                         <div className="space-y-4 md:space-y-5">
 
                           <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                            <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
                               Actual Start Date
                             </span>
                             <span className="hidden sm:inline text-[#616161] mr-4">
@@ -1752,7 +1762,7 @@ export default function ProjectsTD() {
                             </span>
                           </div>
                           <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                            <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
                               Total Project Hours
                             </span>
                             <span className="hidden sm:inline text-[#616161] mr-4">
@@ -1767,17 +1777,34 @@ export default function ProjectsTD() {
 
                           <div className="flex flex-col sm:flex-row sm:items-center">
                             <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                              Outsourcing Budget
+                              Budget
                             </span>
                             <span className="hidden sm:inline text-[#616161] mr-4">
                               :
                             </span>
                             <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                              {selectedProjectForView.budget_ceiling || "N/A"}
+                              {selectedProjectForView.budget
+                                ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget}`
+                                : "N/A"}
                             </span>
                           </div>
+                          {selectedProjectForView.source === "Outsource" && (
+                            <div className="flex flex-col sm:flex-row sm:items-center">
+                              <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                Outsourcing Budget
+                              </span>
+                              <span className="hidden sm:inline text-[#616161] mr-4">
+                                :
+                              </span>
+                              <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                {selectedProjectForView.budget_ceiling
+                                  ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget_ceiling}`
+                                  : "N/A"}
+                              </span>
+                            </div>
+                          )}
                           <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                            <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
                               Total Resources Available
                             </span>
                             <span className="hidden sm:inline text-[#616161] mr-4">
@@ -1787,64 +1814,8 @@ export default function ProjectsTD() {
                               {selectedProjectForView.resources || "N/A"}
                             </span>
                           </div>
-                        </div>
-                        <div className="space-y-4 md:space-y-5">
                           <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                              Location
-                            </span>
-                            <span className="hidden sm:inline text-[#616161] mr-4">
-                              :
-                            </span>
-                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                              {selectedProjectForView.location || "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                              Actual End Date
-                            </span>
-                            <span className="hidden sm:inline text-[#616161] mr-4">
-                              :
-                            </span>
-                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                              {selectedProjectForView.end_date
-                                ? new Date(
-                                  selectedProjectForView.end_date,
-                                ).toLocaleDateString("en-GB", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                })
-                                : "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                              Hours/Day
-                            </span>
-                            <span className="hidden sm:inline text-[#616161] mr-4">
-                              :
-                            </span>
-                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                              {selectedProjectForView.per_day
-                                ? `${selectedProjectForView.per_day}hrs`
-                                : "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                              Required Resources
-                            </span>
-                            <span className="hidden sm:inline text-[#616161] mr-4">
-                              :
-                            </span>
-                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                              {selectedProjectForView.required_resources || "N/A"}
-                            </span>
-                          </div>
-                          <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                            <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
                               Project Document
                             </span>
                             <span className="hidden sm:inline text-[#616161] mr-4">
@@ -1863,35 +1834,55 @@ export default function ProjectsTD() {
                                       : `${api.defaults.baseURL}uploads/${fileName}`;
 
                                     return (
-                                      <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-2 rounded-xl border border-slate-200 w-full md:max-w-xs mt-1">
-                                        <div className="p-1.5 bg-white rounded-lg shadow-sm">
-                                          <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                                        </div>
-                                        <span className="text-[13px] font-bold text-[#353535] line-clamp-1 flex-1">
+                                      <div key={idx} className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-slate-200 w-full md:max-w-md mt-1">
+                                        <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1 font-gantari">
                                           {fileName.split("_").pop() || "Document"}
                                         </span>
-                                        <div className="flex gap-1">
-                                          <a
-                                            href={url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="p-1 hover:bg-white rounded"
-                                            title="View"
-                                          >
-                                            <img
-                                              src={viewIcon}
-                                              alt="View"
-                                              className="w-[16px] h-[16px] opacity-70 hover:opacity-100"
-                                            />
-                                          </a>
-                                          <a
-                                            href={url}
-                                            download
-                                            className="p-1 hover:bg-white rounded"
-                                            title="Download"
-                                          >
-                                            <FiUploadCloud className="w-[16px] h-[16px] rotate-180 text-slate-500 hover:text-[#DD4342]" />
-                                          </a>
+                                        <div className="flex gap-2.5">
+                                          <div className="relative group/tooltip inline-flex shrink-0">
+                                            <a
+                                              href={url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="p-1 rounded transition-colors"
+                                            >
+                                              <img
+                                                src={viewIcon}
+                                                alt="View"
+                                                className="w-4 h-4"
+                                              />
+                                            </a>
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                                <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                                  View
+                                                </span>
+                                              </div>
+                                              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                            </div>
+                                          </div>
+
+                                          <div className="relative group/tooltip inline-flex shrink-0">
+                                            <a
+                                              href={url}
+                                              download
+                                              className="p-1 hover:bg-white rounded transition-colors"
+                                            >
+                                              <img
+                                                src={downloadIcon}
+                                                alt="Download"
+                                                className="w-4 h-4"
+                                              />
+                                            </a>
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                                <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                                  Download
+                                                </span>
+                                              </div>
+                                              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                            </div>
+                                          </div>
                                         </div>
                                       </div>
                                     );
@@ -1902,6 +1893,62 @@ export default function ProjectsTD() {
                                 </span>
                               )}
                             </div>
+                          </div>
+                        </div>
+                        <div className="space-y-4 md:space-y-5">
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
+                              Location
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">
+                              :
+                            </span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                              {selectedProjectForView.location || "N/A"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
+                              Actual End Date
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">
+                              :
+                            </span>
+                            <span className="text-md font-Gantari font-medium text-[#666666]">
+                              {selectedProjectForView.end_date
+                                ? new Date(
+                                  selectedProjectForView.end_date,
+                                ).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })
+                                : "N/A"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
+                              Hours/Day
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">
+                              :
+                            </span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                              {selectedProjectForView.per_day
+                                ? `${selectedProjectForView.per_day}hrs`
+                                : "N/A"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
+                              Required Resources
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">
+                              :
+                            </span>
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                              {selectedProjectForView.required_resources || "N/A"}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1915,14 +1962,23 @@ export default function ProjectsTD() {
           <div className="flex flex-col h-full bg-white">
             {/* Milestones Header */}
             <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => setShowMilestones(false)}
-                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] transition-colors cursor-pointer"
-                title="Back"
-              >
-                <img src={backIcon} alt="Back" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-4 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowMilestones(false)}
+                  className="p-2 rounded-md bg-[#F2F2F2] transition-colors cursor-pointer"
+                >
+                  <img src={backIcon} alt="Back" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Go Back
+                    </span>
+                  </div>
+                </div>
+              </div>
               <div className="text-center">
                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                   Payment Milestones
@@ -2245,7 +2301,7 @@ export default function ProjectsTD() {
                         .map(Number)
                       : [];
 
-                    const radius = 22;
+                    const radius = 28;
                     const circumference = 2 * Math.PI * radius;
                     const offset =
                       circumference - (progress / 100) * circumference;
@@ -2258,7 +2314,7 @@ export default function ProjectsTD() {
                         <div>
                           <div className="flex items-start justify-between mb-4 mt-2 pr-0">
                             <div className="relative flex items-center justify-center">
-                              <svg className="w-12 h-12 md:w-16 md:h-16 transform -rotate-90">
+                              <svg className="w-16 h-16 md:w-20 md:h-20 transform -rotate-90">
                                 <circle
                                   cx="50%"
                                   cy="50%"
@@ -2283,7 +2339,7 @@ export default function ProjectsTD() {
                                   }}
                                 />
                               </svg>
-                              <span className="absolute text-[12px] font-Gantari font-bold text-[#353535]">
+                              <span className="absolute text-[14px] md:text-[18px] font-Gantari font-bold text-[#353535]">
                                 {progress}%
                               </span>
                             </div>
@@ -2591,18 +2647,27 @@ export default function ProjectsTD() {
           <div className="bg-white rounded-md border-2 border-gray-100 max-w-4xl w-full flex flex-col max-h-[85vh] overflow-hidden shadow-xl">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-8 py-6 border-b border-gray-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setCreateError("");
-                  setCurrencyDropdownOpen(false);
-                }}
-                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
-                title="Close"
-              >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-4 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setCreateError("");
+                    setCurrencyDropdownOpen(false);
+                  }}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
+                >
+                  <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-Gantari font-semibold text-[#000000]">
                 Add New Project
               </h3>
@@ -2798,8 +2863,11 @@ export default function ProjectsTD() {
                       <div className="relative w-1/3">
                         <button
                           type="button"
-                          onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
-                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-md transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] cursor-pointer ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
+                          onClick={() => {
+                            if (selectedProjectForEdit?.currency_locked) return;
+                            setCurrencyDropdownOpen(!currencyDropdownOpen);
+                          }}
+                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-md transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] ${selectedProjectForEdit?.currency_locked ? "cursor-not-allowed opacity-80" : "cursor-pointer"} ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
                         >
                           <span className="text-[14px] text-[#353535] font-medium truncate">
                             {CURRENCIES.find(c => c.code === createCurrency)?.symbol} {createCurrency}
@@ -2810,7 +2878,7 @@ export default function ProjectsTD() {
                             className={`w-3.5 h-3.5 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
                           />
                         </button>
-                        {currencyDropdownOpen && (
+                        {currencyDropdownOpen && !selectedProjectForEdit?.currency_locked && (
                           <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
                             {CURRENCIES.map((c) => (
                               <button
@@ -3143,14 +3211,23 @@ export default function ProjectsTD() {
               Delete Project
             </h3>
 
-            <button
-              type="button"
-              onClick={() => setDeleteProject(null)}
-              className="absolute left-4 top-4 p-2 rounded-md bg-[#F2F2F2] text-gray-800 transition-colors"
-              title="Close"
-            >
-              <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-            </button>
+            <div className="absolute left-4 top-4 group inline-flex shrink-0">
+              <button
+                type="button"
+                onClick={() => setDeleteProject(null)}
+                className="p-2 rounded-md bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+              >
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Close
+                  </span>
+                </div>
+              </div>
+            </div>
             {/* </div> */}
             {/* Content */}
 
@@ -3249,14 +3326,23 @@ export default function ProjectsTD() {
           <div className="bg-white rounded-md shadow-2xl max-w-2xl w-full flex flex-col p-10">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center mb-10">
-              <button
-                type="button"
-                onClick={() => setShowAddMilestoneModal(false)}
-                className="absolute left-0 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-                title="Close"
-              >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-0 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowAddMilestoneModal(false)}
+                  className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+                >
+                  <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                 Add Payment Milestone
               </h3>
@@ -3394,40 +3480,45 @@ export default function ProjectsTD() {
           <div className="bg-white rounded-md shadow-2xl max-w-3xl w-full flex flex-col max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-10 py-8 border-b border-gray-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditDropdownOpen(null);
-                  setCreateBudgetCeiling("");
-                  setCreateBiddingEndDate("");
-                  setCurrencyDropdownOpen(false);
-                  // Reset all form fields
-                  setCreateName("");
-                  setCreateBudget("");
-                  setCreateCurrency("INR");
-                  setCreateModuleName("");
-                  setCreateClientName("");
-                  setCreateProjectManager([]);
-                  setCreateStartDate("");
-                  setCreateEndDate("");
-                  setCreateTotalHours("");
-                  setCreatePerDay("");
-                  setCreateDepartment("");
-                  setCreateBIMLead([]);
-                  setCreateBIMCoOrdinator([]);
-                  setCreateMember("");
-                  setCreateResources("");
-                  setCreateRequiredResources("");
-                  setCreatePriority("");
-                  setCreateLocation("");
-                  setCreateDescription("");
-                }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                title="Close"
-              >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-8 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setSelectedProjectForEdit(null);
+                    setCreateName("");
+                    setCreateBudget("");
+                    setCreateCurrency("INR");
+                    setCreateModuleName("");
+                    setCreateClientName("");
+                    setCreateProjectManager([]);
+                    setCreateStartDate("");
+                    setCreateEndDate("");
+                    setCreateTotalHours("");
+                    setCreatePerDay("");
+                    setCreateDepartment("");
+                    setCreateBIMLead([]);
+                    setCreateBIMCoOrdinator([]);
+                    setCreateMember("");
+                    setCreateResources("");
+                    setCreateRequiredResources("");
+                    setCreatePriority("");
+                    setCreateLocation("");
+                    setCreateDescription("");
+                  }}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+                >
+                  <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px] "></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-Gantari font-semibold text-[#000000]">
                 Edit Project Details
               </h3>
@@ -3561,8 +3652,11 @@ export default function ProjectsTD() {
                       <div className="relative w-1/3">
                         <button
                           type="button"
-                          onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
-                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-md transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] cursor-pointer ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
+                          onClick={() => {
+                            if (selectedProjectForEdit?.currency_locked) return;
+                            setCurrencyDropdownOpen(!currencyDropdownOpen);
+                          }}
+                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-md transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] ${selectedProjectForEdit?.currency_locked ? "cursor-not-allowed opacity-80" : "cursor-pointer"} ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
                         >
                           <span className="text-[14px] text-[#353535] font-medium truncate">
                             {CURRENCIES.find(c => c.code === createCurrency)?.symbol} {createCurrency}
@@ -3573,7 +3667,7 @@ export default function ProjectsTD() {
                             className={`w-3.5 h-3.5 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
                           />
                         </button>
-                        {currencyDropdownOpen && (
+                        {currencyDropdownOpen && !selectedProjectForEdit?.currency_locked && (
                           <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
                             {CURRENCIES.map((c) => (
                               <button
@@ -3903,14 +3997,23 @@ export default function ProjectsTD() {
           <div className="bg-white rounded-md shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowAllMembersModal(false)}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-                title="Close"
-              >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-4 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowAllMembersModal(false)}
+                  className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+                >
+                  <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                 All Members ({allMembersList.length})
               </h3>
@@ -3987,17 +4090,26 @@ export default function ProjectsTD() {
           <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col my-auto shrink-0">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100 shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowMemberProfileModal(false);
-                  setSelectedMember(null);
-                }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-                title="Close"
-              >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-4 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMemberProfileModal(false);
+                    setSelectedMember(null);
+                  }}
+                  className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+                >
+                  <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                 View Details
               </h3>

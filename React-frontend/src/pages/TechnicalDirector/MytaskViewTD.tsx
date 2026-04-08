@@ -313,12 +313,22 @@ export default function MytaskViewTD() {
     <div className="flex-1 flex flex-col min-h-0 bg-white">
       {/* Header */}
       <div className="flex items-center justify-between px-6 pt-4 shrink-0">
-        <Link
-          to={backToUrl}
-          className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
-        >
-          <img src={backIcon} alt="Back" className="w-5 h-5" />
-        </Link>
+        <div className="group relative inline-flex shrink-0">
+          <Link
+            to={backToUrl}
+            className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
+          >
+            <img src={backIcon} alt="Back" className="w-5 h-5" />
+          </Link>
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+            <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+              <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                Go Back
+              </span>
+            </div>
+          </div>
+        </div>
         <h1 className="flex-1 text-center text-[24px] font-semibold text-black">
           {task.task_name || "Task Name"}
         </h1>
@@ -470,6 +480,24 @@ export default function MytaskViewTD() {
                 <span className="text-[#616161]">
                   {task.perferend_time || task.due_time || task.end_time
                     ? formatTimeAMPM(task.perferend_time || task.due_time || task.end_time)
+                    : "-NIL-"}
+                </span>
+              </div>
+              <div className="flex gap-2 text-sm">
+                <span className="text-[#020202] font-medium shrink-0 w-32">Attachments</span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161] break-all">
+                  {task.outputfilepath
+                    ? task.outputfilepath
+                        .split(",")
+                        .map((f) => f.trim())
+                        .filter(Boolean)
+                        .map((f) => {
+                          const base = f.split("/").pop() || f;
+                          const idx = base.indexOf("_");
+                          return idx > 8 ? base.slice(idx + 1) : base;
+                        })
+                        .join(", ")
                     : "-NIL-"}
                 </span>
               </div>

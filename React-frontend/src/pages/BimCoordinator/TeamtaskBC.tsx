@@ -147,8 +147,8 @@ export default function TeamtaskBC() {
 
         // Backend update
         const isOutsource = task?.source === "Outsource";
-        const endpoint = isOutsource 
-            ? `/api/vendors/vendor-tasks/${taskId}/status` 
+        const endpoint = isOutsource
+            ? `/api/vendors/vendor-tasks/${taskId}/status`
             : `/api/tasks/${taskId}/status`;
 
         api.patch(endpoint, {
@@ -193,7 +193,7 @@ export default function TeamtaskBC() {
 
     useEffect(() => {
         api.get<{ employees: Employee[] }>("/api/employees").then(res => setEmployees((res.data.employees || []).filter(isEmployeeActiveForProjectAssignment)));
-        
+
         Promise.all([
             api.get<{ projects: Project[] }>("/api/projects"),
             api.get<{ projects: Project[] }>("/api/vendors/vendor-projects")
@@ -207,7 +207,7 @@ export default function TeamtaskBC() {
     useEffect(() => {
         const params: Record<string, string> = { condition: "1", employeeid: "all" };
         if (statusFilter) params.status = statusFilter;
-        
+
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
             api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params })
@@ -230,8 +230,8 @@ export default function TeamtaskBC() {
         if (deleteTask === null) return;
         try {
             const isOutsource = deleteTask.source === "Outsource";
-            const endpoint = isOutsource 
-                ? `/api/vendors/vendor-tasks/${deleteTask.id}` 
+            const endpoint = isOutsource
+                ? `/api/vendors/vendor-tasks/${deleteTask.id}`
                 : `/api/tasks/${deleteTask.id}`;
 
             await api.delete(endpoint);
@@ -521,9 +521,16 @@ export default function TeamtaskBC() {
                         <button
                             type="button"
                             onClick={() => setDeleteTask(null)}
-                            className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                            title="Close"
+                            className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer group"
                         >
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                        Close
+                                    </span>
+                                </div>
+                            </div>
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>

@@ -103,6 +103,29 @@ function taskOutputFileUrl(storedName: string): string {
   return `${getApiBase()}/uploads/task/${encodeURIComponent(name)}`;
 }
 
+function isImageFile(nameOrType?: string): boolean {
+  const v = String(nameOrType || "").toLowerCase();
+  return (
+    v.startsWith("image/") ||
+    v.endsWith(".png") ||
+    v.endsWith(".jpg") ||
+    v.endsWith(".jpeg") ||
+    v.endsWith(".gif") ||
+    v.endsWith(".webp") ||
+    v.endsWith(".bmp") ||
+    v.endsWith(".svg")
+  );
+}
+
+function displayStoredFileName(stored: string): string {
+  const raw = String(stored || "").trim();
+  if (!raw) return "";
+  const base = raw.split("/").pop() || raw;
+  const idx = base.indexOf("_");
+  if (idx > 8) return base.slice(idx + 1); // strip UUID prefix
+  return base;
+}
+
 function normalizeStatus(s: string | undefined, approval?: string): StatusKey {
   if (approval?.toLowerCase() === "approved") return "approved";
   if (approval?.toLowerCase() === "rejected") return "rejected";
@@ -648,6 +671,21 @@ export default function MyTaskViewEV() {
               <span className="text-black shrink-0">:</span>
               <span className="text-[#616161]">{displayEndTime()}</span>
             </div>
+            <div className="flex gap-2">
+              <span className="text-black shrink-0 w-28">Attachments</span>
+              <span className="text-black shrink-0">:</span>
+              <span className="text-[#616161] break-all">
+                {submittedOutputFiles.length > 0
+                  ? submittedOutputFiles
+                      .map((f) => {
+                        const base = f.split("/").pop() || f;
+                        const idx = base.indexOf("_");
+                        return idx > 8 ? base.slice(idx + 1) : base;
+                      })
+                      .join(", ")
+                  : "—"}
+              </span>
+            </div>
           </div>
 
           <div className="rounded-sm bg-[#F2F7FF] p-4 h-fit">
@@ -701,25 +739,33 @@ export default function MyTaskViewEV() {
             {submittedOutputFiles.length > 0 && (
               <div className="mt-6 border-t border-slate-200 pt-4">
                 <p className="text-xs font-semibold text-black mb-2">
-                  Submitted images (saved)
+                  Submitted files (saved)
                 </p>
                 <div className="flex flex-wrap gap-3">
                   {submittedOutputFiles.map((fname) => {
                     const src = taskOutputFileUrl(fname);
+                    const label = displayStoredFileName(fname);
                     return (
                       <a
                         key={fname}
                         href={src}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block rounded border border-slate-200 overflow-hidden bg-white max-w-[140px]"
+                        className="block rounded border border-slate-200 overflow-hidden bg-white max-w-[180px]"
+                        title={label}
                       >
-                        <img
-                          src={src}
-                          alt={fname}
-                          className="max-h-28 w-full object-contain"
-                          loading="lazy"
-                        />
+                        {isImageFile(fname) ? (
+                          <img
+                            src={src}
+                            alt={label}
+                            className="max-h-28 w-full object-contain"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="px-3 py-3 text-xs text-[#353535] break-all">
+                            {label}
+                          </div>
+                        )}
                       </a>
                     );
                   })}
