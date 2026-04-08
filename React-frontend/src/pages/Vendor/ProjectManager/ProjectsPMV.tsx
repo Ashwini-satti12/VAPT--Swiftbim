@@ -46,8 +46,7 @@ interface Project {
     description?: string;
     deliverables?: string;
     budget_ceiling?: string;
-    bidding_end_date?: string;
-    end_date?: string;
+    bidding_due_date?: string;
     proposal_id?: number;
     opportunity_id?: number;
     document_attachment?: string;
@@ -92,6 +91,15 @@ function hasProjectDescriptionContent(raw?: string): boolean {
     return text.length > 0;
 }
 
+function getApiBaseUrlForStatic(): string {
+    const raw = String(import.meta.env.VITE_API_URL || api.defaults.baseURL || "http://127.0.0.1:5000/api").trim();
+    return raw.replace(/\/api\/?$/, "");
+}
+
+function vendorDocUrl(fileName: string): string {
+    return `${getApiBaseUrlForStatic()}/static/uploads/vendor_docs/${encodeURIComponent(fileName)}`;
+}
+
 export default function ProjectsPMV() {
     const navigate = useNavigate();
     const [list, setList] = useState<Project[]>([]);
@@ -117,6 +125,7 @@ export default function ProjectsPMV() {
     // File & Document State
     const [createFile, setCreateFile] = useState<File | null>(null);
     const [currentAttachments, setCurrentAttachments] = useState<string>("");
+    const [removedAttachments, setRemovedAttachments] = useState<string[]>([]);
 
     const [createClientName, setCreateClientName] = useState("");
     const [createProjectManager, setCreateProjectManager] = useState("");
@@ -431,7 +440,7 @@ export default function ProjectsPMV() {
             idToName(p.project_manager_id, allEmployees),
         );
         setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
-        setCreateEndDate(p.end_date || p.due_date || "");
+        setCreateEndDate(p.due_date || p.due_date || "");
         setCreateTotalHours(p.totalhours || "");
         setCreatePerDay(p.per_day || p.perday || "");
         setCreateBIMLead(
@@ -449,6 +458,7 @@ export default function ProjectsPMV() {
         setCreateDescription(p.description || "");
         setCreateDeliverables(p.deliverables || "");
         setCurrentAttachments(p.document_attachment || "");
+        setRemovedAttachments([]);
         setShowEditModal(true);
     };
 
@@ -457,16 +467,13 @@ export default function ProjectsPMV() {
         if (!editId) return;
         if (
             !createName.trim() ||
-            !createBudget.trim() ||
             !createModuleName.trim() ||
-            !createClientName.trim() ||
             !createProjectManager.trim() ||
             !createStartDate.trim() ||
             !createEndDate.trim() ||
             !createPerDay.trim() ||
             !createTotalHours.trim() ||
             !createBIMLead.trim() ||
-            !createBIMCoOrdinator.trim() ||
             selectedMemberIds.length === 0 ||
             !createResources.trim() ||
             !createRequiredResources.trim() ||
@@ -486,7 +493,7 @@ export default function ProjectsPMV() {
             client_name: getClientIdByName(createClientName),
             project_manager_id: nameToId(createProjectManager, projectManagers),
             start_date: createStartDate,
-            end_date: createEndDate,
+            due_date: createEndDate,
             due_date: createEndDate,
             totalhours: createTotalHours,
             perday: createPerDay,
@@ -499,7 +506,7 @@ export default function ProjectsPMV() {
             location: createLocation,
             description: createDescription,
             deliverables: createDeliverables,
-            document_attachment: currentAttachments,
+            removed_files: removedAttachments.join(","),
         })
             .then(async ({ data }) => {
                 if (data.success) {
@@ -842,7 +849,7 @@ export default function ProjectsPMV() {
                 {currentAttachments && (
                     <div className="flex flex-wrap gap-3 mb-4">
                         {currentAttachments.split(",").map(file => file.trim()).filter(Boolean).map((fileName, idx) => {
-                            const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
+                            const url = vendorDocUrl(fileName);
                             return (
                                 <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
                                     <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
@@ -850,9 +857,13 @@ export default function ProjectsPMV() {
                                         {fileName.split("_").pop()}
                                     </span>
                                     <div className="flex gap-1.5">
-                                        <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-slate-50 rounded transition-colors">
+                                        <button
+                                            type="button"
+                                            onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+                                            className="p-1 hover:bg-slate-50 rounded transition-colors cursor-pointer"
+                                        >
                                             <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
-                                        </a>
+                                        </button>
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -861,6 +872,9 @@ export default function ProjectsPMV() {
                                                     .filter(f => f !== fileName)
                                                     .join(",");
                                                 setCurrentAttachments(remaining);
+                                                setRemovedAttachments((prev) =>
+                                                    prev.includes(fileName) ? prev : [...prev, fileName],
+                                                );
                                             }}
                                             className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
                                         >
@@ -1312,7 +1326,7 @@ export default function ProjectsPMV() {
                                             </span>
                                             <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                                             <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                                {formatDate(selectedProject.end_date || selectedProject.due_date)}
+                                                {formatDate(selectedProject.due_date || selectedProject.due_date)}
                                             </span>
                                         </div>
                                         <div className="flex flex-col sm:flex-row sm:items-center">
@@ -1346,25 +1360,34 @@ export default function ProjectsPMV() {
                                                 .map((file) => file.trim())
                                                 .filter(Boolean)
                                                 .map((fileName, idx) => {
-                                                    const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
+                                                    const url = vendorDocUrl(fileName);
                                                     return (
                                                         <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-slate-200 md:max-w-md w-full">
-                                                            <div className="p-2 bg-white rounded-lg shadow-sm">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+                                                                className="p-2 bg-white rounded-lg shadow-sm cursor-pointer"
+                                                                title="View Document"
+                                                            >
                                                                 <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                                                            </div>
-                                                            <span className="text-[14px] font-bold text-[#353535] line-clamp-1 flex-1">
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+                                                                className="text-[14px] font-bold text-[#353535] line-clamp-1 flex-1 text-left cursor-pointer"
+                                                                title="View Document"
+                                                            >
                                                                 {fileName.split("_").pop() || "Document"}
-                                                            </span>
+                                                            </button>
                                                             <div className="flex gap-2">
-                                                                <a
-                                                                    href={url}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+                                                                    className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow cursor-pointer"
                                                                     title="View Details"
                                                                 >
                                                                     <img src={viewIcon} alt="View" className="w-[18px] h-[18px] object-contain opacity-70 hover:opacity-100" />
-                                                                </a>
+                                                                </button>
                                                                 <a
                                                                     href={url}
                                                                     download

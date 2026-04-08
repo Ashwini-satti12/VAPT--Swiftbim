@@ -5280,12 +5280,28 @@ def upload_vendor_project_document(project_id):
         
         # Save to database (append for multi-file support)
         conn = get_db()
-        cur = conn.cursor()
+        cur = conn.cursor(dictionary=True)
         try:
+            # Ensure attachment column can hold long/multiple filenames.
+            try:
+                cur.execute(
+                    "SHOW COLUMNS FROM snh6_swiftproject.vendor_projects LIKE 'document_attachment'"
+                )
+                col = cur.fetchone() or {}
+                col_type = str(col.get("Type") or "").lower()
+                if "varchar" in col_type:
+                    cur.execute(
+                        "ALTER TABLE snh6_swiftproject.vendor_projects MODIFY COLUMN document_attachment TEXT NULL"
+                    )
+            except Exception:
+                # Continue even if schema introspection is unavailable.
+                pass
+
             # First fetch existing attachments
             cur.execute("SELECT document_attachment FROM snh6_swiftproject.vendor_projects WHERE id = %s", (project_id,))
             row = cur.fetchone()
-            existing = row[0] if row and row[0] else ""
+            existing = row.get("document_attachment") if row else ""
+            existing = existing or ""
             
             # Append new filename
             new_value = f"{existing}, {unique_filename}" if existing else unique_filename

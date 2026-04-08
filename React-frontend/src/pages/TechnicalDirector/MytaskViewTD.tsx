@@ -473,6 +473,24 @@ export default function MytaskViewTD() {
                     : "-NIL-"}
                 </span>
               </div>
+              <div className="flex gap-2 text-sm">
+                <span className="text-[#020202] font-medium shrink-0 w-32">Attachments</span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161] break-all">
+                  {task.outputfilepath
+                    ? task.outputfilepath
+                        .split(",")
+                        .map((f) => f.trim())
+                        .filter(Boolean)
+                        .map((f) => {
+                          const base = f.split("/").pop() || f;
+                          const idx = base.indexOf("_");
+                          return idx > 8 ? base.slice(idx + 1) : base;
+                        })
+                        .join(", ")
+                    : "-NIL-"}
+                </span>
+              </div>
 
             </div>
 

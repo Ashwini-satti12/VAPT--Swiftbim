@@ -468,6 +468,24 @@ export default function MytaskViewBC() {
                   : "-NIL-"}
               </span>
             </div>
+            <div className="flex gap-2">
+              <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">Attachments</span>
+              <span className="text-[#020202] shrink-0">:</span>
+              <span className="text-[#616161] break-all">
+                {task.outputfilepath
+                  ? task.outputfilepath
+                      .split(",")
+                      .map((f) => f.trim())
+                      .filter(Boolean)
+                      .map((f) => {
+                        const base = f.split("/").pop() || f;
+                        const idx = base.indexOf("_");
+                        return idx > 8 ? base.slice(idx + 1) : base;
+                      })
+                      .join(", ")
+                  : "-NIL-"}
+              </span>
+            </div>
           </div>
 
           <div className="rounded-sm bg-[#F2F7FF] p-4 h-fit">
