@@ -172,6 +172,28 @@ export default function ProjectsPMV() {
     const [searchParams] = useSearchParams();
     const statusFilter = searchParams.get("status");
 
+    const resolveVendorDocUrl = (rawPath: string) => {
+        const cleaned = (rawPath || "").trim();
+        if (!cleaned) return "";
+        if (/^https?:\/\//i.test(cleaned)) return cleaned;
+        const base = String(api.defaults.baseURL || "").replace(/\/+$/, "");
+        if (cleaned.startsWith("/uploads/")) {
+            const rest = cleaned.replace(/^\/+/, ""); // uploads/<...>
+            if (/^uploads\/[^/]+$/i.test(rest)) {
+                const fileOnly = rest.replace(/^uploads\//i, "");
+                return `${base}/static/uploads/vendor_docs/${fileOnly}`;
+            }
+            return `${base}${cleaned}`;
+        }
+        if (cleaned.startsWith("/uploads/") || cleaned.startsWith("/static/uploads/")) {
+            return `${base}${cleaned}`;
+        }
+        if (cleaned.startsWith("uploads/") || cleaned.startsWith("static/uploads/")) {
+            return `${base}/${cleaned}`;
+        }
+        return `${base}/static/uploads/vendor_docs/${cleaned}`;
+    };
+
     const uniqueById = <T extends { id?: number | string }>(rows: T[]): T[] => {
         const seen = new Set<string>();
         const out: T[] = [];
@@ -849,7 +871,11 @@ export default function ProjectsPMV() {
                 {currentAttachments && (
                     <div className="flex flex-wrap gap-3 mb-4">
                         {currentAttachments.split(",").map(file => file.trim()).filter(Boolean).map((fileName, idx) => {
+<<<<<<< HEAD
                             const url = vendorDocUrl(fileName);
+=======
+                            const url = resolveVendorDocUrl(fileName);
+>>>>>>> 03fa47bda6b77fc13cc97b735fd6bf190b8d4051
                             return (
                                 <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
                                     <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
@@ -924,16 +950,23 @@ export default function ProjectsPMV() {
                                     </p>
                                 </div>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setCreateFile(null)}
-                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                title="Remove file"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                            <div className="group relative">
+                                <button
+                                    type="button"
+                                    onClick={() => setCreateFile(null)}
+                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer border-0 shadow-none bg-transparent"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Remove</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -967,24 +1000,31 @@ export default function ProjectsPMV() {
                 {showEditModal ? (
                     <div className="flex flex-col h-full bg-white">
                         <div className="relative flex items-center justify-center px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setShowEditModal(false);
-                                    setEditDropdownOpen(null);
-                                    // Reset all form fields
-                                    setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
-                                    setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate("");
-                                    setCreateTotalHours(""); setCreatePerDay(""); setCreateBIMLead("");
-                                    setCreateBIMCoOrdinator(""); setCreateResources(""); setCreateRequiredResources("");
-                                    setCreatePriority(""); setCreateLocation(""); setCreateDescription("");
-                                    setCreateDeliverables(""); setSelectedMemberIds([]); setCreateFile(null);
-                                }}
-                                className="absolute left-6 md:left-10 p-3 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-                                title="Back"
-                            >
-                                <img src={backIcon} alt="Back" className="w-5 h-5" />
-                            </button>
+                            <div className="absolute left-6 md:left-10 group">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setEditDropdownOpen(null);
+                                        // Reset all form fields
+                                        setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
+                                        setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate("");
+                                        setCreateTotalHours(""); setCreatePerDay(""); setCreateBIMLead("");
+                                        setCreateBIMCoOrdinator(""); setCreateResources(""); setCreateRequiredResources("");
+                                        setCreatePriority(""); setCreateLocation(""); setCreateDescription("");
+                                        setCreateDeliverables(""); setSelectedMemberIds([]); setCreateFile(null);
+                                    }}
+                                    className="p-3 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+                                >
+                                    <img src={backIcon} alt="Back" className="w-5 h-5" />
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Go Back</span>
+                                    </div>
+                                </div>
+                            </div>
                             <div className="text-center min-w-0">
                                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#020202] truncate">
                                     Edit Project Details
@@ -1026,11 +1066,19 @@ export default function ProjectsPMV() {
                 ) : showProjectView && selectedProject ? (
                     <div className="flex flex-col h-full bg-white">
                         <div className="relative flex items-center justify-center px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
-                            <button type="button" onClick={() => setShowProjectView(false)}
-                                className="absolute left-6 md:left-10 p-3 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-                                title="Back">
-                                <img src={backIcon} alt="Back" className="w-5 h-5" />
-                            </button>
+                            <div className="absolute left-6 md:left-10 group">
+                                <button type="button" onClick={() => setShowProjectView(false)}
+                                    className="p-3 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+                                >
+                                    <img src={backIcon} alt="Back" className="w-5 h-5" />
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Go Back</span>
+                                    </div>
+                                </div>
+                            </div>
                             <div className="text-center min-w-0">
                                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] truncate">
                                     {selectedProject.project_name ?? "Untitled Project"}
@@ -1360,7 +1408,7 @@ export default function ProjectsPMV() {
                                                 .map((file) => file.trim())
                                                 .filter(Boolean)
                                                 .map((fileName, idx) => {
-                                                    const url = vendorDocUrl(fileName);
+                                                    const url = resolveVendorDocUrl(fileName);
                                                     return (
                                                         <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-slate-200 md:max-w-md w-full">
                                                             <button
@@ -1390,7 +1438,8 @@ export default function ProjectsPMV() {
                                                                 </button>
                                                                 <a
                                                                     href={url}
-                                                                    download
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
                                                                     className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
                                                                     title="Download File"
                                                                 >
@@ -1412,11 +1461,19 @@ export default function ProjectsPMV() {
                     /* Milestones View */
                     <div className="flex flex-col h-full bg-white">
                         <div className="relative flex items-center justify-center px-10 py-8 border-b border-slate-50">
-                            <button type="button" onClick={() => setShowMilestones(false)}
-                                className="absolute left-10 p-3 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-                                title="Back">
-                                <img src={backIcon} alt="Back" className="w-5 h-5" />
-                            </button>
+                            <div className="absolute left-10 group">
+                                <button type="button" onClick={() => setShowMilestones(false)}
+                                    className="p-3 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+                                >
+                                    <img src={backIcon} alt="Back" className="w-5 h-5" />
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Go Back</span>
+                                    </div>
+                                </div>
+                            </div>
                             <div className="text-center">
                                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">Payment Milestones</h3>
                                 <p className="text-[14px] font-Gantari font-bold text-[#999999] mt-0.5">{milestonesProject.project_name}</p>
@@ -1653,9 +1710,17 @@ export default function ProjectsPMV() {
                         <div className="p-8 md:p-10 overflow-y-auto custom-scrollbar flex-1">
                             <div className="flex justify-between items-center mb-8">
                                 <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">New Project</h3>
-                                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg bg-[#F2F2F2] cursor-pointer">
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                                </button>
+                                <div className="group relative">
+                                    <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg bg-[#F2F2F2] cursor-pointer">
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                            <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Close</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <form onSubmit={handleCreate}>
                                 {renderFormFields()}
@@ -1692,9 +1757,17 @@ export default function ProjectsPMV() {
                     <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full max-h-[80vh] overflow-hidden">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
                             <h3 className="text-[28px] font-semibold text-[#1A1A1A] font-Gantari">All Members ({allMembersList.length})</h3>
-                            <button type="button" onClick={() => setShowAllMembersModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer" aria-label="Close">
-                                <img src={closeBtnIcon} alt="close" className="w-6 h-6" />
-                            </button>
+                            <div className="group relative">
+                                <button type="button" onClick={() => setShowAllMembersModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer" aria-label="Close">
+                                    <img src={closeBtnIcon} alt="close" className="w-6 h-6" />
+                                </button>
+                                <div className="absolute top-full right-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px] ml-auto mr-3"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Close</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
                             {allMembersList.length > 0 ? (
@@ -1733,9 +1806,17 @@ export default function ProjectsPMV() {
                     <div className="bg-white rounded-[2rem] shadow-2xl max-w-xl w-full max-h-[80vh] flex flex-col overflow-hidden">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
                             <h3 className="text-[28px] font-semibold text-[#1A1A1A] font-Gantari">View Details</h3>
-                            <button type="button" onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }} className="p-2 rounded-[5px] bg-[#F2F2F2] cursor-pointer">
-                                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-                            </button>
+                            <div className="group relative">
+                                <button type="button" onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }} className="p-2 rounded-[5px] bg-[#F2F2F2] cursor-pointer">
+                                    <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                                </button>
+                                <div className="absolute top-full right-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px] ml-auto mr-3"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Close</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div className="overflow-y-auto px-8 py-6 custom-scrollbar space-y-4">
                             <p className="text-[20px] font-Gantari font-bold text-[#1A1A1A]">{selectedMember.full_name || "Not Available"}</p>

@@ -171,6 +171,27 @@ export default function VendorBimLeadProjects() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [editError, setEditError] = useState("");
+  const resolveVendorDocUrl = (rawPath: string) => {
+    const cleaned = (rawPath || "").trim();
+    if (!cleaned) return "";
+    if (/^https?:\/\//i.test(cleaned)) return cleaned;
+    const base = String(api.defaults.baseURL || "").replace(/\/+$/, "");
+    if (cleaned.startsWith("/uploads/")) {
+      const rest = cleaned.replace(/^\/+/, ""); // uploads/<...>
+      if (/^uploads\/[^/]+$/i.test(rest)) {
+        const fileOnly = rest.replace(/^uploads\//i, "");
+        return `${base}/static/uploads/vendor_docs/${fileOnly}`;
+      }
+      return `${base}${cleaned}`;
+    }
+    if (cleaned.startsWith("/uploads/") || cleaned.startsWith("/static/uploads/")) {
+      return `${base}${cleaned}`;
+    }
+    if (cleaned.startsWith("uploads/") || cleaned.startsWith("static/uploads/")) {
+      return `${base}/${cleaned}`;
+    }
+    return `${base}/static/uploads/vendor_docs/${cleaned}`;
+  };
   const resolveVendorMember = (id: string | number) =>
     vendorResourceProfiles.find((e) => Number(e.id) === Number(id)) ||
     allEmployees.find((e) => Number(e.id) === Number(id));
@@ -932,7 +953,7 @@ export default function VendorBimLeadProjects() {
                 </div>
                 <div className="flex items-center gap-2">
                     <a
-                        href={`${api.defaults.baseURL}static/uploads/vendor_docs/${existingDoc}`}
+                        href={resolveVendorDocUrl(existingDoc)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-2 text-slate-400 hover:text-[#DD4342] hover:bg-red-50 rounded-lg transition-all"
@@ -941,8 +962,9 @@ export default function VendorBimLeadProjects() {
                         <img src={viewIcon} alt="View" className="w-5 h-5" />
                     </a>
                     <a
-                        href={`${api.defaults.baseURL}static/uploads/vendor_docs/${existingDoc}`}
-                        download
+                        href={resolveVendorDocUrl(existingDoc)}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="p-2 text-slate-400 hover:text-[#DD4342] hover:bg-red-50 rounded-lg transition-all"
                         title="Download document"
                     >
@@ -1494,7 +1516,7 @@ export default function VendorBimLeadProjects() {
                           .map((file) => file.trim())
                           .filter(Boolean)
                           .map((fileName, idx) => {
-                            const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
+                            const url = resolveVendorDocUrl(fileName);
                             return (
                               <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-slate-200 md:max-w-md w-full">
                                 <div className="p-2 bg-white rounded-lg shadow-sm">
@@ -1515,7 +1537,8 @@ export default function VendorBimLeadProjects() {
                                   </a>
                                   <a
                                     href={url}
-                                    download
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
                                     title="Download File"
                                   >
