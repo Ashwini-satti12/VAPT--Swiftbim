@@ -335,20 +335,20 @@ export default function ManageLeave() {
   const handleApproveBackend = async (row: LeaveEntry) => {
     try {
       await api.post(`/api/leave/applications/${row.id}/approve`);
-      toast.success("Approved successfully");
+      toast.success("Leave application approved successfully");
       updateLeaveStatus(row.id, "Approved");
     } catch (err) {
-      toast.error("Failed to approve leave. Please try again.");
+      toast.error("Failed to approve leave application");
     }
   };
 
   const handleRejectBackend = async (row: LeaveEntry) => {
     try {
       await api.post(`/api/leave/applications/${row.id}/reject`);
-      toast.error("Rejected successfully");
+      toast.success("Leave application rejected successfully");
       updateLeaveStatus(row.id, "Rejected");
     } catch (err) {
-      toast.error("Failed to reject leave. Please try again.");
+      toast.error("Failed to reject leave application");
     }
   };
 
@@ -769,22 +769,31 @@ export default function ManageLeave() {
               className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E5E5E5]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="relative flex items-center justify-center px-6 py-5 ">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewModalOpen(false);
-                    setSelectedLeave(null);
-                  }}
-                  className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] transition-colors"
-                  aria-label="Close"
-                >
-                  <img
-                    src={closeIcon}
-                    alt=""
-                    className="w-5 h-5 object-contain"
-                  />
-                </button>
+              <div className="relative flex items-center justify-center p-5 w-full">
+                <div className="group absolute left-5 top-1/2 -translate-y-1/2 z-10">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewModalOpen(false);
+                      setSelectedLeave(null);
+                    }}
+                    className="cursor-pointer p-2 rounded-md bg-[#F2F2F2] transition-colors"
+                  >
+                    <img
+                      src={closeIcon}
+                      alt=""
+                      className="w-5 h-5 object-contain"
+                    />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <h3 className="text-[24px] font-semibold text-[#000000]">
                   Leave Details
                 </h3>
@@ -878,29 +887,40 @@ export default function ManageLeave() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
             <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
               {/* Close */}
-              <button
-                type="button"
-                onClick={() => setApproveLeave(null)}
-                className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                title="Close"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-              <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
-                Approve Leave
-              </h3>
+              <div className="relative flex items-center justify-center p-4 w-full">
+                <div className="group absolute left-4 top-1/2 -translate-y-1/2 z-10">
+                  <button
+                    type="button"
+                    onClick={() => setApproveLeave(null)}
+                    className="p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <h3 className="text-[18px] font-gantari font-semibold text-[#020202]">
+                  Approve Leave
+                </h3>
+              </div>
               <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
                 Are you sure, you want to Approve this?
               </p>
@@ -931,29 +951,40 @@ export default function ManageLeave() {
       {rejectLeave !== null && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
-            <button
-              type="button"
-              onClick={() => setRejectLeave(null)}
-              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-              title="Close"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-            <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
-              Reject Leave
-            </h3>
+            <div className="relative flex items-center justify-center p-4 w-full">
+              <div className="group absolute left-4 top-1/2 -translate-y-1/2 z-10">
+                <button
+                  type="button"
+                  onClick={() => setRejectLeave(null)}
+                  className="p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <h3 className="text-[18px] font-gantari font-semibold text-[#020202]">
+                Reject Leave
+              </h3>
+            </div>
             <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
               Are you sure, you want to Reject this?
             </p>
