@@ -163,12 +163,39 @@ export default function ProjectsPMV() {
     const [searchParams] = useSearchParams();
     const statusFilter = searchParams.get("status");
 
+    const uniqueById = <T extends { id?: number | string }>(rows: T[]): T[] => {
+        const seen = new Set<string>();
+        const out: T[] = [];
+        for (const row of rows) {
+            const key = String(row?.id ?? "");
+            if (!key || seen.has(key)) continue;
+            seen.add(key);
+            out.push(row);
+        }
+        return out;
+    };
+
     const fetchProjects = (status?: string | null) => {
         const params: any = {};
         if (status) params.status = status;
 
-        api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects", { params })
-            .then(({ data }) => setList(data.projects ?? []))
+        Promise.all([
+            api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects", { params }),
+            api.get<{ tasks?: Array<{ projectid?: number; project_id?: number }> }>("/api/vendors/vendor-tasks"),
+        ])
+            .then(([projectsRes, myTasksRes]) => {
+                const allProjects = projectsRes.data.projects ?? [];
+                const myTasks = myTasksRes.data.tasks ?? [];
+                const involvedProjectIds = new Set<number>(
+                    myTasks
+                        .map((t) => Number(t.projectid ?? t.project_id))
+                        .filter((id) => !Number.isNaN(id) && id > 0),
+                );
+                const involvedProjects = involvedProjectIds.size > 0
+                    ? allProjects.filter((p) => involvedProjectIds.has(Number(p.id)))
+                    : [];
+                setList(uniqueById(involvedProjects));
+            })
             .catch(() => setList([]))
             .finally(() => setLoading(false));
     };
@@ -214,7 +241,7 @@ export default function ProjectsPMV() {
         api.get<{ clients?: any[] }>("/api/clients")
             .then(({ data }) => setClientsList(data.clients ?? []))
             .catch(() => setClientsList([]));
-    }, []);
+    }, [statusFilter]);
 
     useEffect(() => {
         if (!showProjectView || !selectedProject) return;

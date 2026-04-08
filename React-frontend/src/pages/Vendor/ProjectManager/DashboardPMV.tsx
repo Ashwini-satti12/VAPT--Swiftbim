@@ -118,7 +118,6 @@ export default function DashboardPMV() {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<DashboardStats>(defaultStats);
     const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
-    const [projects, setProjects] = useState<any[]>([]); // To handle Math.max fallback
     const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
     const [nowMs, setNowMs] = useState(() => Date.now());
 
@@ -140,45 +139,67 @@ export default function DashboardPMV() {
     };
 
     const normalizeVendorTaskStatus = (t: any): { isInProgress: boolean; isCompleted: boolean } => {
-        const s = String(t?.status ?? '').trim().toLowerCase().replace(/-/g, '_').replace(/\s+/g, '_');
-        const isCompleted = s === 'completed' || s === 'done';
-        const isInProgress = s === 'inprogress' || s === 'in_progress' || s === 'active' || s === 'started' || s === 'progress';
+        const s = String(t?.status ?? '').trim().toLowerCase();
+        const approval = String(t?.Approval ?? '').trim().toLowerCase();
+        const isCompleted =
+            approval === 'approved' ||
+            approval === 'rejected' ||
+            s.includes('complete') ||
+            s === 'done';
+        const isInProgress = !isCompleted && s.includes('progress');
         return { isInProgress, isCompleted };
     };
 
-    // GET stats → KPI cards (with safe fallback to compute from lists)
+    const uniqueById = <T extends { id?: number | string }>(rows: T[]): T[] => {
+        const seen = new Set<string>();
+        const out: T[] = [];
+        for (const row of rows) {
+            const key = String(row?.id ?? "");
+            if (!key || seen.has(key)) continue;
+            seen.add(key);
+            out.push(row);
+        }
+        return out;
+    };
+
+    // Compute KPI cards from the same involvement scope used in Projects/Team Task pages
     useEffect(() => {
         let cancelled = false;
 
         const fetchAll = async () => {
             try {
-                const [statsResp, projectsResp, tasksResp] = await Promise.all([
-                    api.get<any>('/api/vendors/dashboard/project-stats').catch(() => ({ data: null } as any)),
+                const [projectsResp, myTasksResp, allTasksResp] = await Promise.all([
                     api.get<{ projects?: any[] }>('/api/vendors/vendor-projects').catch(() => ({ data: { projects: [] } } as any)),
                     api.get<{ tasks?: any[] }>('/api/vendors/vendor-tasks').catch(() => ({ data: { tasks: [] } } as any)),
+                    api.get<{ tasks?: any[] }>('/api/vendors/vendor-tasks', {
+                        params: { condition: '1', employeeid: 'all' },
+                    }).catch(() => ({ data: { tasks: [] } } as any)),
                 ]);
 
                 const projectsList = Array.isArray(projectsResp?.data?.projects) ? projectsResp.data.projects : [];
-                const tasksList = Array.isArray(tasksResp?.data?.tasks) ? tasksResp.data.tasks : [];
+                const myTasks = Array.isArray(myTasksResp?.data?.tasks) ? myTasksResp.data.tasks : [];
+                const allTasks = Array.isArray(allTasksResp?.data?.tasks) ? allTasksResp.data.tasks : [];
 
-                const computedTotalProjects = projectsList.length;
-                const computedCompletedProjects = projectsList.filter((p) => normalizeVendorProjectStatus(p).isCompleted).length;
-                const computedInProgressTasks = tasksList.filter((t) => normalizeVendorTaskStatus(t).isInProgress).length;
-                const computedCompletedTasks = tasksList.filter((t) => normalizeVendorTaskStatus(t).isCompleted).length;
-
-                const apiStats = statsResp?.data;
-                const apiTotal = Number(apiStats?.totalProjects);
-                const apiCompletedProjects = Number(apiStats?.completedProjects);
-                const apiInProgressTasks = Number(apiStats?.inProgressTasks);
-                const apiCompletedTasks = Number(apiStats?.completedTasks);
+                const involvedProjectIds = new Set<number>(
+                    myTasks
+                        .map((t: any) => Number(t?.projectid ?? t?.project_id))
+                        .filter((id: number) => !Number.isNaN(id) && id > 0),
+                );
+                const involvedProjects = involvedProjectIds.size > 0
+                    ? projectsList.filter((p: any) => involvedProjectIds.has(Number(p?.id)))
+                    : [];
+                const uniqueInvolvedProjects = uniqueById(involvedProjects);
+                const scopedTasks = involvedProjectIds.size > 0
+                    ? allTasks.filter((t: any) => involvedProjectIds.has(Number(t?.projectid ?? t?.project_id)))
+                    : [];
+                const uniqueScopedTasks = uniqueById(scopedTasks);
 
                 if (!cancelled) {
-                    setProjects(projectsList);
                     setStats({
-                        total_projects: Math.max(Number.isFinite(apiTotal) ? apiTotal : 0, computedTotalProjects),
-                        completed_projects: Math.max(Number.isFinite(apiCompletedProjects) ? apiCompletedProjects : 0, computedCompletedProjects),
-                        in_progress_tasks: Math.max(Number.isFinite(apiInProgressTasks) ? apiInProgressTasks : 0, computedInProgressTasks),
-                        completed_tasks: Math.max(Number.isFinite(apiCompletedTasks) ? apiCompletedTasks : 0, computedCompletedTasks),
+                        total_projects: uniqueInvolvedProjects.length,
+                        completed_projects: uniqueInvolvedProjects.filter((p: any) => normalizeVendorProjectStatus(p).isCompleted).length,
+                        in_progress_tasks: uniqueScopedTasks.filter((t: any) => normalizeVendorTaskStatus(t).isInProgress).length,
+                        completed_tasks: uniqueScopedTasks.filter((t: any) => normalizeVendorTaskStatus(t).isCompleted).length,
                     });
                 }
             } finally {
@@ -294,7 +315,7 @@ export default function DashboardPMV() {
 
     // KPI card definitions + deep links
     const kpiCards = [
-        { label: 'Total Projects', value: Math.max(stats.total_projects, projects.length), link: '/vpm/projects' },
+        { label: 'Total Projects', value: stats.total_projects, link: '/vpm/projects' },
         { label: 'Completed Projects', value: stats.completed_projects || 0, link: '/vpm/projects?status=completed' },
         { label: 'Inprogress Tasks', value: stats.in_progress_tasks || 0, link: '/vpm/teamtasks?status=in_progress' },
         { label: 'Completed Tasks', value: stats.completed_tasks || 0, link: '/vpm/teamtasks?status=completed' },

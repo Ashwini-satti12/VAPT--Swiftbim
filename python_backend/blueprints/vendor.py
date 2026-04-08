@@ -4383,37 +4383,68 @@ def list_vendor_projects():
     #   projects.client_id      -> new_swiftbim.users.id
     #   projects.budget(_ceiling) -> exposed as budget / budget_ceiling for vendor view
     status_sql = ""
+    has_vp_status = False
+    try:
+        cur.execute("SHOW COLUMNS FROM snh6_swiftproject.vendor_projects LIKE 'status'")
+        has_vp_status = cur.fetchone() is not None
+    except Exception:
+        has_vp_status = False
     if status_filter in {"completed", "complete", "done"}:
-        status_sql = """
-        AND (
-            LOWER(COALESCE(vp.status, '')) = 'completed'
-            OR (
+        if has_vp_status:
+            status_sql = """
+            AND (
+                LOWER(COALESCE(vp.status, '')) = 'completed'
+                OR (
+                    vp.progress REGEXP '^[0-9]+(\\.[0-9]+)?$'
+                    AND CAST(vp.progress AS DECIMAL(10,2)) >= 100
+                )
+            )
+            """
+        else:
+            status_sql = """
+            AND (
                 vp.progress REGEXP '^[0-9]+(\\.[0-9]+)?$'
                 AND CAST(vp.progress AS DECIMAL(10,2)) >= 100
             )
-        )
-        """
+            """
     elif status_filter in {"inprogress", "in_progress", "in-progress", "active", "ongoing"}:
-        status_sql = """
-        AND (
-            LOWER(COALESCE(vp.status, '')) IN ('inprogress', 'in progress', 'active', 'ongoing')
-            OR (
+        if has_vp_status:
+            status_sql = """
+            AND (
+                LOWER(COALESCE(vp.status, '')) IN ('inprogress', 'in progress', 'active', 'ongoing')
+                OR (
+                    vp.progress REGEXP '^[0-9]+(\\.[0-9]+)?$'
+                    AND CAST(vp.progress AS DECIMAL(10,2)) > 0
+                    AND CAST(vp.progress AS DECIMAL(10,2)) < 100
+                )
+            )
+            """
+        else:
+            status_sql = """
+            AND (
                 vp.progress REGEXP '^[0-9]+(\\.[0-9]+)?$'
                 AND CAST(vp.progress AS DECIMAL(10,2)) > 0
                 AND CAST(vp.progress AS DECIMAL(10,2)) < 100
             )
-        )
-        """
+            """
     elif status_filter in {"todo", "pending", "not_started", "not-started"}:
-        status_sql = """
-        AND (
-            LOWER(COALESCE(vp.status, '')) IN ('todo', 'pending', 'not started', 'not_started')
-            OR (
+        if has_vp_status:
+            status_sql = """
+            AND (
+                LOWER(COALESCE(vp.status, '')) IN ('todo', 'pending', 'not started', 'not_started')
+                OR (
+                    vp.progress REGEXP '^[0-9]+(\\.[0-9]+)?$'
+                    AND CAST(vp.progress AS DECIMAL(10,2)) <= 0
+                )
+            )
+            """
+        else:
+            status_sql = """
+            AND (
                 vp.progress REGEXP '^[0-9]+(\\.[0-9]+)?$'
                 AND CAST(vp.progress AS DECIMAL(10,2)) <= 0
             )
-        )
-        """
+            """
 
     if is_vendor_user:
         # Vendor user: filter by vendor employee IDs
