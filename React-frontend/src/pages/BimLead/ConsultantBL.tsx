@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { FiGrid, FiMenu, FiX } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
+import { toast } from "react-hot-toast";
 import api from "../../lib/api";
 
 // Get API base URL for image URLs
@@ -538,11 +539,14 @@ export default function ConsultantBL() {
     api
       .post("/api/employees/invite", { emails, message: inviteMessage })
       .then(() => {
+        toast.success("Invites sent successfully!");
         setShowInviteModal(false);
         setInviteEmails("");
         setInviteMessage("");
       })
-      .catch(() => { })
+      .catch((err) => {
+        toast.error(err.response?.data?.message || "Failed to send invites.");
+      })
       .finally(() => setInviteSubmitting(false));
   }
 
@@ -555,6 +559,7 @@ export default function ConsultantBL() {
         action: "inactive",
       })
       .then(() => {
+        toast.success("Employees deactivated successfully!");
         setList((prev) =>
           prev.map((e) =>
             inactiveIds.includes(e.id) ? { ...e, active: "inactive" } : e,
@@ -563,7 +568,9 @@ export default function ConsultantBL() {
         setShowInactiveModal(false);
         setInactiveIds([]);
       })
-      .catch(() => { })
+      .catch((err) => {
+        toast.error(err.response?.data?.message || "Failed to update status.");
+      })
       .finally(() => setInactiveSubmitting(false));
   }
 
@@ -576,6 +583,7 @@ export default function ConsultantBL() {
     api
       .post("/api/employees/bulk-status", { ids: [id], action: status })
       .catch((err) => {
+        toast.error(err.response?.data?.message || "Failed to update status.");
         console.error("Failed to update status:", err);
       });
   }
@@ -606,7 +614,7 @@ export default function ConsultantBL() {
                   <button
                     type="button"
                     onClick={() => navigate("/bl/consultants/add")}
-                    className="shrink-0 h-[36px] min-h-[36px] flex items-center justify-center px-3 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm active:scale-95 transition-all duration-200"
+                    className="shrink-0 h-[36px] min-h-[36px] flex items-center justify-center px-3 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
                     Add Consultant
                   </button>
@@ -632,7 +640,7 @@ export default function ConsultantBL() {
                   aria-label="Card view"
                   className={`shrink-0 p-2 sm:p-2.5 rounded-full transition-all duration-200 cursor-pointer shadow-sm ${viewMode === "card"
                     ? "bg-[#DD4342] text-[#F2F2F2] scale-105"
-                    : "bg-[#E0E0E0] text-[#000000] hover:bg-[#D4D4D4]"
+                    : "bg-[#E0E0E0] text-[#000000]"
                     }`}
                 >
                   <FiGrid className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -650,7 +658,7 @@ export default function ConsultantBL() {
                   <button
                     type="button"
                     onClick={() => navigate("/bl/consultants/add")}
-                    className="shrink-0 h-[36px] min-h-[36px] flex items-center justify-center px-3 sm:px-4 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer hover:bg-[#c33a39] transition-all duration-200"
+                    className="shrink-0 h-[36px] min-h-[36px] flex items-center justify-center px-3 sm:px-4 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
                     Add Consultant
                   </button>
@@ -661,14 +669,14 @@ export default function ConsultantBL() {
                   <button
                     type="button"
                     onClick={() => setShowInviteModal(true)}
-                    className="shrink-0 h-[36px] min-h-[36px] flex items-center justify-center px-3 sm:px-4 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer hover:bg-[#c33a39] transition-all duration-200"
+                    className="shrink-0 h-[36px] min-h-[36px] flex items-center justify-center px-3 sm:px-4 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
                     Invite
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowInactiveModal(true)}
-                    className="shrink-0 h-[36px] min-h-[36px] flex items-center justify-center px-3 sm:px-4 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer hover:bg-[#c33a39] transition-all duration-200"
+                    className="shrink-0 h-[36px] min-h-[36px] flex items-center justify-center px-3 sm:px-4 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
                     Manage Deactive
                   </button>
@@ -756,7 +764,7 @@ export default function ConsultantBL() {
                               setSelectedShowEntries("");
                               setShowEntriesOpen(false);
                             }}
-                            className="w-full text-left px-4 py-2 text-[12px] sm:text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                            className="w-full text-left px-4 py-2 text-[12px] sm:text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535]"
                           >
                             All Entries
                           </button>
@@ -1090,7 +1098,7 @@ export default function ConsultantBL() {
                                       "_blank",
                                     )
                                   }
-                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF] cursor-pointer"
+                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
                                 >
                                   <img
                                     src={mailIcon}
@@ -1101,7 +1109,7 @@ export default function ConsultantBL() {
                                 <button
                                   type="button"
                                   onClick={() => navigate("/chat")}
-                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF] cursor-pointer"
+                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
                                 >
                                   <img
                                     src={messageIcon}
@@ -1114,7 +1122,7 @@ export default function ConsultantBL() {
                                   onClick={() =>
                                     (window.location.href = `tel:${emp.phone_number || ""}`)
                                   }
-                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF] cursor-pointer"
+                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colorsr"
                                 >
                                   <img
                                     src={callIcon}

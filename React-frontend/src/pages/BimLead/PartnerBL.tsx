@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import api from '../../lib/api';
 import type { Vendor } from '../TechnicalDirector/PartnerView/types';
 import upArrow from '../../assets/TechnicalDirector/upArrow.svg';

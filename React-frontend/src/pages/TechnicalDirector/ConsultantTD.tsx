@@ -842,7 +842,7 @@ export default function ConsultantTD() {
                       <button
                         type="button"
                         onClick={() => navigate('/td/consultants/add')}
-                        className="shrink-0 px-2.5 py-1.5 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm hover:brightness-110"
+                        className="shrink-0 px-2.5 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
                       >
                         Add Consultant
                       </button>
@@ -850,22 +850,47 @@ export default function ConsultantTD() {
                   )}
                   {/* View Toggles (Priority on mobile) */}
                   <div className="flex items-center gap-1 sm:gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('table')}
-                      aria-label="Table view"
-                      className={`shrink-0 p-1.5 sm:p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
-                    >
-                      <FiMenu className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('card')}
-                      aria-label="Card view"
-                      className={`shrink-0 p-1.5 sm:p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
-                    >
-                      <FiGrid className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
+                    {/* Tooltip for List view toggle */}
+                    <div className="relative group inline-flex shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('table')}
+                        aria-label="Table view"
+                        className={`shrink-0 p-1.5 sm:p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'
+                          }`}
+                      >
+                        <FiMenu className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </button>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                          <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                            List
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tooltip for Grid view toggle */}
+                    <div className="relative group inline-flex shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('card')}
+                        aria-label="Card view"
+                        className={`shrink-0 p-1.5 sm:p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'
+                          }`}
+                      >
+                        <FiGrid className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </button>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                          <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                            Grid
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -873,25 +898,50 @@ export default function ConsultantTD() {
               {/* Right side: Action buttons + Filters */}
               <div className="flex flex-col sm:flex-row flex-1 items-stretch sm:items-center justify-end gap-3 min-w-0 overflow-visible">
                 {/* Scrollable Action Buttons Group */}
-                <div className="flex flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 px-0.5 custom-scrollbar min-w-0">
+                <div className="flex flex-nowrap items-center justify-end gap-2 xl:overflow-visible overflow-x-auto overflow-y-visible py-1 px-0.5 custom-scrollbar min-w-0">
                   {/* Desktop toggles - only visible on xl screens (>= 1280px) */}
                   <div className="hidden xl:flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('table')}
-                      aria-label="Table view"
-                      className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
-                    >
-                      <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('card')}
-                      aria-label="Card view"
-                      className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
-                    >
-                      <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
-                    </button>
+                    {/* Tooltip for List view toggle */}
+                    <div className="relative group inline-flex shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('table')}
+                        aria-label="Table view"
+                        className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'
+                          }`}
+                      >
+                        <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
+                      </button>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                          <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                            List
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tooltip for Grid view toggle */}
+                    <div className="relative group inline-flex shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('card')}
+                        aria-label="Card view"
+                        className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'
+                          }`}
+                      >
+                        <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
+                      </button>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                          <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                            Grid
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {canAdd && (
@@ -900,21 +950,21 @@ export default function ConsultantTD() {
                       <button
                         type="button"
                         onClick={() => navigate('/td/consultants/add')}
-                        className="hidden sm:block shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm hover:brightness-110"
+                        className="hidden sm:block shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
                       >
                         Add Consultant
                       </button>
                       <button
                         type="button"
                         onClick={() => setActiveView('invite')}
-                        className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm hover:brightness-110"
+                        className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
                       >
                         Invite
                       </button>
                       <button
                         type="button"
                         onClick={() => setActiveView('deactive')}
-                        className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm hover:brightness-110"
+                        className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm "
                       >
                         Manage Deactive
                       </button>
@@ -1342,19 +1392,28 @@ export default function ConsultantTD() {
         <div className="flex-1 overflow-y-auto p-2 bg-white">
           <div className="max-w-[1174px] mx-auto">
             <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
-              <button
-                type="button"
-                onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
-                className="p-2 rounded-md bg-[#F2F2F2] text-[#616161] transition-all cursor-pointer"
-                title="Back"
-              >
-                <img src={backIcon} alt="Back" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-6 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#616161] transition-all cursor-pointer"
+                >
+                  <img src={backIcon} alt="Back" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Go Back
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Edit Consultant Details</h3>
               <div className="w-10" /> {/* Spacer to center title */}
             </div>
 
-            <form onSubmit={handleEditSubmit} className="space-y-6">
+            <form onSubmit={handleEditSubmit} className="space-y-6 p-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                 {/* Column 1 */}
                 <div className="space-y-5">
@@ -1596,13 +1655,23 @@ export default function ConsultantTD() {
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-black/20 backdrop-blur-[2px]">
           <div className="bg-white rounded-[20px] max-w-[813px] w-full max-h-[90vh] overflow-hidden p-5 sm:p-10 relative shadow-2xl flex flex-col font-Gantari animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-center mb-6 sm:mb-8 relative shrink-0 pt-2 sm:pt-0">
-              <button
-                type="button"
-                onClick={() => { setActiveView('list'); setInviteEmails(''); setInviteMessage(''); }}
-                className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
-              >
-                <FiX className="w-5 h-5 font-bold" />
-              </button>
+              <div className="absolute left-5 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setActiveView('list'); setInviteEmails(''); setInviteMessage(''); }}
+                  className="p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer hover:bg-[#E8E8E8]"
+                >
+                  <FiX className="w-5 h-5 font-bold" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-semibold text-[#020202] text-center">Invite New Consultant</h3>
             </div>
 
@@ -1656,13 +1725,23 @@ export default function ConsultantTD() {
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]">
           <div className="bg-white rounded-[20px] max-w-[950px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
             <div className="flex items-center justify-center mb-8 relative shrink-0">
-              <button
-                type="button"
-                onClick={() => { setActiveView('list'); setdeactiveIds([]); }}
-                className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
-              >
-                <FiX className="w-5 h-5 font-bold" />
-              </button>
+              <div className="absolute left-5 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setActiveView('list'); setdeactiveIds([]); }}
+                  className="p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer hover:bg-[#E8E8E8]"
+                >
+                  <FiX className="w-5 h-5 font-bold" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-3 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-semibold text-[#020202] text-center">Manage In-active Consultants</h3>
             </div>
 
@@ -1750,13 +1829,23 @@ export default function ConsultantTD() {
           <div className="bg-white rounded-md max-w-[520px] w-full overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="flex items-center justify-center relative shrink-0">
-              <button
-                type="button"
-                onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
-                className="absolute left-0 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer hover:bg-[#E8E8E8]"
-              >
-                <FiX className="w-5 h-5 font-bold" />
-              </button>
+              <div className="absolute left-5 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
+                  className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer hover:bg-[#E8E8E8]"
+                >
+                  <FiX className="w-5 h-5 font-bold" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">View Details</h3>
             </div>
 

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiChevronDown } from 'react-icons/fi';
+import { toast } from 'react-hot-toast';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import { getPhoneLength } from '../../utils/countryCodes';
@@ -177,12 +178,19 @@ export default function AddConsultantBL() {
       )
       .then(({ data }) => {
         if (data.success) {
+          toast.success('Consultant added successfully!');
           navigate('/bl/consultants');
         } else {
-          setAddError(data.message || 'Failed to add employee/trainee.');
+          const msg = data.message || 'Failed to add employee/trainee.';
+          setAddError(msg);
+          toast.error(msg);
         }
       })
-      .catch((err) => setAddError(err.response?.data?.message || 'Failed to add employee/trainee.'))
+      .catch((err) => {
+        const msg = err.response?.data?.message || 'Failed to add employee/trainee.';
+        setAddError(msg);
+        toast.error(msg);
+      })
       .finally(() => setAddSubmitting(false));
   }
 

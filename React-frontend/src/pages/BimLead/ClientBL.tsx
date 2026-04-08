@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'react-hot-toast';
 import api from '../../lib/api';
 import cardBg from '../../assets/cardbg.jpg';
 import viewIcon from '../../assets/ProjectManager/Client/whiteviewicon.svg';
@@ -120,6 +121,7 @@ export default function ClientBL() {
             })
             .then(({ data }) => {
                 if (data.success) {
+                    toast.success('Client added successfully!');
                     setShowAddModal(false);
                     setForm({
                         fullName: '',
@@ -136,10 +138,16 @@ export default function ClientBL() {
                     });
                     setList((prev) => [...prev, { id: data.id!, fullName: form.fullName, email: form.email, phoneNumber: form.phoneNumber }]);
                 } else {
-                    setAddError(data.message || 'Failed to add client.');
+                    const msg = data.message || 'Failed to add client.';
+                    setAddError(msg);
+                    toast.error(msg);
                 }
             })
-            .catch((err) => setAddError(err.response?.data?.message || 'Failed to add client.'))
+            .catch((err) => {
+                const msg = err.response?.data?.message || 'Failed to add client.';
+                setAddError(msg);
+                toast.error(msg);
+            })
             .finally(() => setAddSubmitting(false));
     }
 
@@ -189,7 +197,14 @@ export default function ClientBL() {
             totalHours: editForm.totalHours || undefined,
             companyGstNumber: editForm.companyGstNumber || undefined,
             resourceInvolved: editForm.resourceInvolved || undefined
-        }).then(() => { setList((prev) => prev.map((c) => (c.id === editId ? { ...c, ...editForm } : c))); setEditId(null); setSearchParams({}); }).catch(() => { }).finally(() => setEditSubmitting(false));
+        }).then(() => {
+            toast.success('Client updated successfully!');
+            setList((prev) => prev.map((c) => (c.id === editId ? { ...c, ...editForm } : c)));
+            setEditId(null);
+            setSearchParams({});
+        }).catch((err) => {
+            toast.error(err.response?.data?.message || 'Failed to update client.');
+        }).finally(() => setEditSubmitting(false));
     }
 
     const filteredClients = useMemo(() => {
