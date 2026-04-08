@@ -46,8 +46,7 @@ interface Project {
     description?: string;
     deliverables?: string;
     budget_ceiling?: string;
-    bidding_end_date?: string;
-    end_date?: string;
+    bidding_due_date?: string;
     proposal_id?: number;
     opportunity_id?: number;
     document_attachment?: string;
@@ -92,6 +91,15 @@ function hasProjectDescriptionContent(raw?: string): boolean {
     return text.length > 0;
 }
 
+function getApiBaseUrlForStatic(): string {
+    const raw = String(import.meta.env.VITE_API_URL || api.defaults.baseURL || "http://127.0.0.1:5000/api").trim();
+    return raw.replace(/\/api\/?$/, "");
+}
+
+function vendorDocUrl(fileName: string): string {
+    return `${getApiBaseUrlForStatic()}/static/uploads/vendor_docs/${encodeURIComponent(fileName)}`;
+}
+
 export default function ProjectsPMV() {
     const navigate = useNavigate();
     const [list, setList] = useState<Project[]>([]);
@@ -117,6 +125,7 @@ export default function ProjectsPMV() {
     // File & Document State
     const [createFile, setCreateFile] = useState<File | null>(null);
     const [currentAttachments, setCurrentAttachments] = useState<string>("");
+    const [removedAttachments, setRemovedAttachments] = useState<string[]>([]);
 
     const [createClientName, setCreateClientName] = useState("");
     const [createProjectManager, setCreateProjectManager] = useState("");
@@ -163,12 +172,61 @@ export default function ProjectsPMV() {
     const [searchParams] = useSearchParams();
     const statusFilter = searchParams.get("status");
 
+    const resolveVendorDocUrl = (rawPath: string) => {
+        const cleaned = (rawPath || "").trim();
+        if (!cleaned) return "";
+        if (/^https?:\/\//i.test(cleaned)) return cleaned;
+        const base = String(api.defaults.baseURL || "").replace(/\/+$/, "");
+        if (cleaned.startsWith("/uploads/")) {
+            const rest = cleaned.replace(/^\/+/, ""); // uploads/<...>
+            if (/^uploads\/[^/]+$/i.test(rest)) {
+                const fileOnly = rest.replace(/^uploads\//i, "");
+                return `${base}/static/uploads/vendor_docs/${fileOnly}`;
+            }
+            return `${base}${cleaned}`;
+        }
+        if (cleaned.startsWith("/uploads/") || cleaned.startsWith("/static/uploads/")) {
+            return `${base}${cleaned}`;
+        }
+        if (cleaned.startsWith("uploads/") || cleaned.startsWith("static/uploads/")) {
+            return `${base}/${cleaned}`;
+        }
+        return `${base}/static/uploads/vendor_docs/${cleaned}`;
+    };
+
+    const uniqueById = <T extends { id?: number | string }>(rows: T[]): T[] => {
+        const seen = new Set<string>();
+        const out: T[] = [];
+        for (const row of rows) {
+            const key = String(row?.id ?? "");
+            if (!key || seen.has(key)) continue;
+            seen.add(key);
+            out.push(row);
+        }
+        return out;
+    };
+
     const fetchProjects = (status?: string | null) => {
         const params: any = {};
         if (status) params.status = status;
 
-        api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects", { params })
-            .then(({ data }) => setList(data.projects ?? []))
+        Promise.all([
+            api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects", { params }),
+            api.get<{ tasks?: Array<{ projectid?: number; project_id?: number }> }>("/api/vendors/vendor-tasks"),
+        ])
+            .then(([projectsRes, myTasksRes]) => {
+                const allProjects = projectsRes.data.projects ?? [];
+                const myTasks = myTasksRes.data.tasks ?? [];
+                const involvedProjectIds = new Set<number>(
+                    myTasks
+                        .map((t) => Number(t.projectid ?? t.project_id))
+                        .filter((id) => !Number.isNaN(id) && id > 0),
+                );
+                const involvedProjects = involvedProjectIds.size > 0
+                    ? allProjects.filter((p) => involvedProjectIds.has(Number(p.id)))
+                    : [];
+                setList(uniqueById(involvedProjects));
+            })
             .catch(() => setList([]))
             .finally(() => setLoading(false));
     };
@@ -214,7 +272,7 @@ export default function ProjectsPMV() {
         api.get<{ clients?: any[] }>("/api/clients")
             .then(({ data }) => setClientsList(data.clients ?? []))
             .catch(() => setClientsList([]));
-    }, []);
+    }, [statusFilter]);
 
     useEffect(() => {
         if (!showProjectView || !selectedProject) return;
@@ -404,7 +462,7 @@ export default function ProjectsPMV() {
             idToName(p.project_manager_id, allEmployees),
         );
         setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
-        setCreateEndDate(p.end_date || p.due_date || "");
+        setCreateEndDate(p.due_date || p.due_date || "");
         setCreateTotalHours(p.totalhours || "");
         setCreatePerDay(p.per_day || p.perday || "");
         setCreateBIMLead(
@@ -422,6 +480,7 @@ export default function ProjectsPMV() {
         setCreateDescription(p.description || "");
         setCreateDeliverables(p.deliverables || "");
         setCurrentAttachments(p.document_attachment || "");
+        setRemovedAttachments([]);
         setShowEditModal(true);
     };
 
@@ -430,16 +489,13 @@ export default function ProjectsPMV() {
         if (!editId) return;
         if (
             !createName.trim() ||
-            !createBudget.trim() ||
             !createModuleName.trim() ||
-            !createClientName.trim() ||
             !createProjectManager.trim() ||
             !createStartDate.trim() ||
             !createEndDate.trim() ||
             !createPerDay.trim() ||
             !createTotalHours.trim() ||
             !createBIMLead.trim() ||
-            !createBIMCoOrdinator.trim() ||
             selectedMemberIds.length === 0 ||
             !createResources.trim() ||
             !createRequiredResources.trim() ||
@@ -459,7 +515,7 @@ export default function ProjectsPMV() {
             client_name: getClientIdByName(createClientName),
             project_manager_id: nameToId(createProjectManager, projectManagers),
             start_date: createStartDate,
-            end_date: createEndDate,
+            due_date: createEndDate,
             due_date: createEndDate,
             totalhours: createTotalHours,
             perday: createPerDay,
@@ -472,7 +528,7 @@ export default function ProjectsPMV() {
             location: createLocation,
             description: createDescription,
             deliverables: createDeliverables,
-            document_attachment: currentAttachments,
+            removed_files: removedAttachments.join(","),
         })
             .then(async ({ data }) => {
                 if (data.success) {
@@ -815,7 +871,11 @@ export default function ProjectsPMV() {
                 {currentAttachments && (
                     <div className="flex flex-wrap gap-3 mb-4">
                         {currentAttachments.split(",").map(file => file.trim()).filter(Boolean).map((fileName, idx) => {
-                            const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
+<<<<<<< HEAD
+                            const url = vendorDocUrl(fileName);
+=======
+                            const url = resolveVendorDocUrl(fileName);
+>>>>>>> 03fa47bda6b77fc13cc97b735fd6bf190b8d4051
                             return (
                                 <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
                                     <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
@@ -823,9 +883,13 @@ export default function ProjectsPMV() {
                                         {fileName.split("_").pop()}
                                     </span>
                                     <div className="flex gap-1.5">
-                                        <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-slate-50 rounded transition-colors">
+                                        <button
+                                            type="button"
+                                            onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+                                            className="p-1 hover:bg-slate-50 rounded transition-colors cursor-pointer"
+                                        >
                                             <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
-                                        </a>
+                                        </button>
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -834,6 +898,9 @@ export default function ProjectsPMV() {
                                                     .filter(f => f !== fileName)
                                                     .join(",");
                                                 setCurrentAttachments(remaining);
+                                                setRemovedAttachments((prev) =>
+                                                    prev.includes(fileName) ? prev : [...prev, fileName],
+                                                );
                                             }}
                                             className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
                                         >
@@ -883,16 +950,23 @@ export default function ProjectsPMV() {
                                     </p>
                                 </div>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setCreateFile(null)}
-                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                title="Remove file"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                            <div className="group relative">
+                                <button
+                                    type="button"
+                                    onClick={() => setCreateFile(null)}
+                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer border-0 shadow-none bg-transparent"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Remove</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -926,24 +1000,31 @@ export default function ProjectsPMV() {
                 {showEditModal ? (
                     <div className="flex flex-col h-full bg-white">
                         <div className="relative flex items-center justify-center px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setShowEditModal(false);
-                                    setEditDropdownOpen(null);
-                                    // Reset all form fields
-                                    setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
-                                    setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate("");
-                                    setCreateTotalHours(""); setCreatePerDay(""); setCreateBIMLead("");
-                                    setCreateBIMCoOrdinator(""); setCreateResources(""); setCreateRequiredResources("");
-                                    setCreatePriority(""); setCreateLocation(""); setCreateDescription("");
-                                    setCreateDeliverables(""); setSelectedMemberIds([]); setCreateFile(null);
-                                }}
-                                className="absolute left-6 md:left-10 p-3 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-                                title="Back"
-                            >
-                                <img src={backIcon} alt="Back" className="w-5 h-5" />
-                            </button>
+                            <div className="absolute left-6 md:left-10 group">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setEditDropdownOpen(null);
+                                        // Reset all form fields
+                                        setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
+                                        setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate("");
+                                        setCreateTotalHours(""); setCreatePerDay(""); setCreateBIMLead("");
+                                        setCreateBIMCoOrdinator(""); setCreateResources(""); setCreateRequiredResources("");
+                                        setCreatePriority(""); setCreateLocation(""); setCreateDescription("");
+                                        setCreateDeliverables(""); setSelectedMemberIds([]); setCreateFile(null);
+                                    }}
+                                    className="p-3 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+                                >
+                                    <img src={backIcon} alt="Back" className="w-5 h-5" />
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Go Back</span>
+                                    </div>
+                                </div>
+                            </div>
                             <div className="text-center min-w-0">
                                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#020202] truncate">
                                     Edit Project Details
@@ -985,11 +1066,19 @@ export default function ProjectsPMV() {
                 ) : showProjectView && selectedProject ? (
                     <div className="flex flex-col h-full bg-white">
                         <div className="relative flex items-center justify-center px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
-                            <button type="button" onClick={() => setShowProjectView(false)}
-                                className="absolute left-6 md:left-10 p-3 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-                                title="Back">
-                                <img src={backIcon} alt="Back" className="w-5 h-5" />
-                            </button>
+                            <div className="absolute left-6 md:left-10 group">
+                                <button type="button" onClick={() => setShowProjectView(false)}
+                                    className="p-3 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+                                >
+                                    <img src={backIcon} alt="Back" className="w-5 h-5" />
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Go Back</span>
+                                    </div>
+                                </div>
+                            </div>
                             <div className="text-center min-w-0">
                                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] truncate">
                                     {selectedProject.project_name ?? "Untitled Project"}
@@ -1285,7 +1374,7 @@ export default function ProjectsPMV() {
                                             </span>
                                             <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                                             <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                                {formatDate(selectedProject.end_date || selectedProject.due_date)}
+                                                {formatDate(selectedProject.due_date || selectedProject.due_date)}
                                             </span>
                                         </div>
                                         <div className="flex flex-col sm:flex-row sm:items-center">
@@ -1319,28 +1408,38 @@ export default function ProjectsPMV() {
                                                 .map((file) => file.trim())
                                                 .filter(Boolean)
                                                 .map((fileName, idx) => {
-                                                    const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
+                                                    const url = resolveVendorDocUrl(fileName);
                                                     return (
                                                         <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-slate-200 md:max-w-md w-full">
-                                                            <div className="p-2 bg-white rounded-lg shadow-sm">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+                                                                className="p-2 bg-white rounded-lg shadow-sm cursor-pointer"
+                                                                title="View Document"
+                                                            >
                                                                 <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                                                            </div>
-                                                            <span className="text-[14px] font-bold text-[#353535] line-clamp-1 flex-1">
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+                                                                className="text-[14px] font-bold text-[#353535] line-clamp-1 flex-1 text-left cursor-pointer"
+                                                                title="View Document"
+                                                            >
                                                                 {fileName.split("_").pop() || "Document"}
-                                                            </span>
+                                                            </button>
                                                             <div className="flex gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+                                                                    className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow cursor-pointer"
+                                                                    title="View Details"
+                                                                >
+                                                                    <img src={viewIcon} alt="View" className="w-[18px] h-[18px] object-contain opacity-70 hover:opacity-100" />
+                                                                </button>
                                                                 <a
                                                                     href={url}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
-                                                                    className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
-                                                                    title="View Details"
-                                                                >
-                                                                    <img src={viewIcon} alt="View" className="w-[18px] h-[18px] object-contain opacity-70 hover:opacity-100" />
-                                                                </a>
-                                                                <a
-                                                                    href={url}
-                                                                    download
                                                                     className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
                                                                     title="Download File"
                                                                 >
@@ -1362,11 +1461,19 @@ export default function ProjectsPMV() {
                     /* Milestones View */
                     <div className="flex flex-col h-full bg-white">
                         <div className="relative flex items-center justify-center px-10 py-8 border-b border-slate-50">
-                            <button type="button" onClick={() => setShowMilestones(false)}
-                                className="absolute left-10 p-3 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-                                title="Back">
-                                <img src={backIcon} alt="Back" className="w-5 h-5" />
-                            </button>
+                            <div className="absolute left-10 group">
+                                <button type="button" onClick={() => setShowMilestones(false)}
+                                    className="p-3 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+                                >
+                                    <img src={backIcon} alt="Back" className="w-5 h-5" />
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Go Back</span>
+                                    </div>
+                                </div>
+                            </div>
                             <div className="text-center">
                                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">Payment Milestones</h3>
                                 <p className="text-[14px] font-Gantari font-bold text-[#999999] mt-0.5">{milestonesProject.project_name}</p>
@@ -1603,9 +1710,17 @@ export default function ProjectsPMV() {
                         <div className="p-8 md:p-10 overflow-y-auto custom-scrollbar flex-1">
                             <div className="flex justify-between items-center mb-8">
                                 <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">New Project</h3>
-                                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg bg-[#F2F2F2] cursor-pointer">
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                                </button>
+                                <div className="group relative">
+                                    <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg bg-[#F2F2F2] cursor-pointer">
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                            <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Close</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <form onSubmit={handleCreate}>
                                 {renderFormFields()}
@@ -1642,9 +1757,17 @@ export default function ProjectsPMV() {
                     <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full max-h-[80vh] overflow-hidden">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
                             <h3 className="text-[28px] font-semibold text-[#1A1A1A] font-Gantari">All Members ({allMembersList.length})</h3>
-                            <button type="button" onClick={() => setShowAllMembersModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer" aria-label="Close">
-                                <img src={closeBtnIcon} alt="close" className="w-6 h-6" />
-                            </button>
+                            <div className="group relative">
+                                <button type="button" onClick={() => setShowAllMembersModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer" aria-label="Close">
+                                    <img src={closeBtnIcon} alt="close" className="w-6 h-6" />
+                                </button>
+                                <div className="absolute top-full right-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px] ml-auto mr-3"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Close</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
                             {allMembersList.length > 0 ? (
@@ -1683,9 +1806,17 @@ export default function ProjectsPMV() {
                     <div className="bg-white rounded-[2rem] shadow-2xl max-w-xl w-full max-h-[80vh] flex flex-col overflow-hidden">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
                             <h3 className="text-[28px] font-semibold text-[#1A1A1A] font-Gantari">View Details</h3>
-                            <button type="button" onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }} className="p-2 rounded-[5px] bg-[#F2F2F2] cursor-pointer">
-                                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-                            </button>
+                            <div className="group relative">
+                                <button type="button" onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }} className="p-2 rounded-[5px] bg-[#F2F2F2] cursor-pointer">
+                                    <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                                </button>
+                                <div className="absolute top-full right-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px] ml-auto mr-3"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Close</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div className="overflow-y-auto px-8 py-6 custom-scrollbar space-y-4">
                             <p className="text-[20px] font-Gantari font-bold text-[#1A1A1A]">{selectedMember.full_name || "Not Available"}</p>

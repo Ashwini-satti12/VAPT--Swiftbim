@@ -24,6 +24,29 @@ def _get_vendor_db():
     return conn
 
 
+def _ensure_projects_currency_column(cur):
+    """
+    Ensure `projects.currency` exists so project-level currency can be stored
+    for non-proposal flows (e.g. manually created in-house projects).
+    """
+    try:
+        cur.execute(
+            """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'projects'
+              AND COLUMN_NAME = 'currency'
+            LIMIT 1
+            """
+        )
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE projects ADD COLUMN currency VARCHAR(10) NULL")
+    except Exception:
+        # Non-fatal: keep old behavior if schema changes are restricted.
+        pass
+
+
 def _ensure_vendor_bidding_table(vendor_conn):
     """Create vendor_bidding table if it doesn't exist."""
     cur = vendor_conn.cursor()
@@ -76,6 +99,7 @@ def list_projects():
 
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+    _ensure_projects_currency_column(cur)
 
     # Base WHERE clauses
     where_clauses = ["Company_id = %s"]
@@ -603,8 +627,30 @@ def _hydrate_project_phase1_fields(project_dicts: list[dict]):
 
         for p in project_dicts:
             project_name = (p.get("project_name") or "").strip()
+            source_val = str(p.get("source") or "").strip().lower()
+            department_val = str(p.get("department") or "").strip()
+            is_outsource_project = (
+                source_val == "outsource" or department_val == "Submission Deadline"
+            )
+
+            # Do not pull phase-1 proposal/contract data for regular in-house projects.
+            # This prevents accidental leakage of dates/resources from other projects of the same client.
+            if not is_outsource_project:
+                continue
 
             enq_row, prop_row, con_row = fetch_phase1_chain_for_project(p)
+
+            # Currency source-of-truth only when proposal linkage is reliable.
+            # This avoids incorrectly locking currency for unrelated projects.
+            sel_cur = _first_nonempty(prop_row, ["selected_currency"])
+            linked_prop_id = _as_int_id(con_row.get("proposal_id")) if con_row else None
+            current_prop_id = _as_int_id(prop_row.get("id")) if prop_row else None
+            has_reliable_proposal_link = (
+                linked_prop_id is not None and
+                (current_prop_id is None or current_prop_id == linked_prop_id)
+            )
+            if sel_cur and has_reliable_proposal_link:
+                p["selected_currency"] = sel_cur
 
             # Resources + Required Resources: from proposals.resources when available
             prop_resources = _first_nonempty(prop_row, [c for c in proposal_res_cols if c in prop_row])
@@ -706,6 +752,7 @@ def _hydrate_project_phase1_fields(project_dicts: list[dict]):
 def get_project(project_id):
     conn = get_db()
     cur = conn.cursor()
+    _ensure_projects_currency_column(cur)
     cur.execute(
         "SELECT * FROM projects WHERE id = %s AND Company_id = %s",
         (project_id, g.company_id),
@@ -927,6 +974,7 @@ def create_project():
     due_date = data.get("due_date")
     priority = data.get("priority") or "Low"
     budget = data.get("budget") or "0"
+    currency = data.get("currency") or "INR"
     modules = data.get("modules") or ""
     raw_client = data.get("client_id") or None
     raw_pm = data.get("project_manager_id") or None
@@ -965,6 +1013,7 @@ def create_project():
 
     conn = get_db()
     cur = conn.cursor()
+    _ensure_projects_currency_column(cur)
     # Resolve names to IDs
     client_id = _resolve_client_id(cur, g.company_id, raw_client)
     project_manager_id = _resolve_employee_id(cur, g.company_id, raw_pm)
@@ -973,10 +1022,10 @@ def create_project():
     department = _resolve_project_department(cur, g.company_id, department)
 
     cur.execute(
-        """INSERT INTO projects (project_name, uploaderid, members, department, due_date, priority, budget, modules,
+        """INSERT INTO projects (project_name, uploaderid, members, department, due_date, priority, budget, currency, modules,
            progress, Company_id, client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date, no_resource, no_resources_requried, tasks, document_attachment, budget_ceiling, bidding_end_date)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-        (project_name, g.user_id, members, department, due_date, priority, budget, modules, g.company_id,
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+        (project_name, g.user_id, members, department, due_date, priority, budget, currency, modules, g.company_id,
          client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date,
          resources, required_resources, tasks, document_attachment, budget_ceiling, bidding_end_date),
     )
@@ -1067,6 +1116,7 @@ def update_project(project_id):
 
     conn = get_db()
     cur = conn.cursor()
+    _ensure_projects_currency_column(cur)
     # MySQL may report rowcount=0 when an UPDATE doesn't change any values.
     # So we check existence up front to avoid returning a false 404.
     cur.execute("SELECT 1 FROM projects WHERE id = %s AND Company_id = %s", (project_id, g.company_id))
@@ -1125,7 +1175,7 @@ def update_project(project_id):
     if data.get("required_resources") is not None and data.get("no_resources_requried") is None:
         data["no_resources_requried"] = data.get("required_resources")
 
-    allowed = ("project_name", "members", "department", "due_date", "priority", "budget", "modules", "progress",
+    allowed = ("project_name", "members", "department", "due_date", "priority", "budget", "currency", "modules", "progress",
                "client_id", "project_manager_id", "lead_id", "bim_coordinator_id", "totalhours", "perday", "location", "description", "start_date",
                "budget_ceiling", "bidding_end_date", "no_resource", "no_resources_requried", "tasks", "document_attachment")
     sets = []

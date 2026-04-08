@@ -15,6 +15,16 @@ import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 
+const CURRENCIES = [
+  { code: "INR", symbol: "₹" },
+  { code: "USD", symbol: "$" },
+  { code: "EUR", symbol: "€" },
+  { code: "GBP", symbol: "£" },
+  { code: "AED", symbol: "د.إ" },
+  { code: "SAR", symbol: "﷼" },
+  { code: "QAR", symbol: "﷼" },
+];
+
 interface Employee {
   id: number;
   full_name: string;
@@ -174,6 +184,7 @@ interface Project {
   document_attachment?: string;
   budget_ceiling?: string;
   source?: "In House" | "Outsource";
+  currency?: string;
 }
 
 interface Milestone {
@@ -457,6 +468,12 @@ export default function ProjectsBL() {
     document_attachment:
       r.document_attachment != null ? String(r.document_attachment) : undefined,
     budget_ceiling: r.budget_ceiling != null ? String(r.budget_ceiling) : undefined,
+    currency:
+      r.selected_currency != null && String(r.selected_currency).trim().length > 0
+        ? String(r.selected_currency)
+        : r.currency != null
+          ? String(r.currency)
+          : "INR",
     source:
       r.source != null && String(r.source) !== "undefined"
         ? (String(r.source) as "In House" | "Outsource")
@@ -1199,10 +1216,25 @@ export default function ProjectsBL() {
                       <span className="text-[16px] font-Gantari font-medium text-[#616161]">{selectedProjectForView.total_hours ? `${selectedProjectForView.total_hours}hrs` : "N/A"}</span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Outsourcing Budget</span>
+                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Budget</span>
                       <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-medium text-[#616161]">{selectedProjectForView.budget_ceiling || "N/A"}</span>
+                      <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                        {selectedProjectForView.budget
+                          ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget}`
+                          : "N/A"}
+                      </span>
                     </div>
+                    {selectedProjectForView.source === "Outsource" && (
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Outsourcing Budget</span>
+                        <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                        <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                          {selectedProjectForView.budget_ceiling
+                            ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget_ceiling}`
+                            : "N/A"}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex flex-col sm:flex-row sm:items-center">
                       <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Resources Available</span>
                       <span className="hidden sm:inline text-[#616161] mr-4">:</span>

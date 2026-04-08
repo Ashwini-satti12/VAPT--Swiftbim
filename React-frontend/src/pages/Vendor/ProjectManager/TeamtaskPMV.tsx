@@ -42,6 +42,7 @@ interface Task {
     uploader_full_name?: string;
     Approval?: string;
     projectid?: number;
+    project_id?: number;
     created_at?: string;
     assigned_to?: number;
     uploaderid?: number;
@@ -365,11 +366,63 @@ export default function TeamtaskPMV() {
     const periodTriggerRef = useRef<HTMLButtonElement>(null);
     const periodMenuRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        api.get("/api/vendors/vendor-tasks").then(res => setList(res.data.tasks ?? []));
-        api.get("/api/vendors/vendor-resource-profiles").then(res => setEmployees(res.data.data ?? []));
-        api.get("/api/vendors/vendor-projects").then(res => setProjects(res.data.data ?? []));
+    const uniqueById = <T extends { id?: number | string }>(rows: T[]): T[] => {
+        const seen = new Set<string>();
+        const out: T[] = [];
+        for (const row of rows) {
+            const key = String(row?.id ?? "");
+            if (!key || seen.has(key)) continue;
+            seen.add(key);
+            out.push(row);
+        }
+        return out;
+    };
 
+    const loadScopedTeamData = () => {
+        return Promise.all([
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks"),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", {
+                params: { condition: "1", employeeid: "all" },
+            }),
+            api.get<{ resources?: Employee[] }>("/api/vendors/vendor-resource-profiles"),
+            api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
+        ]).then(([myTasksRes, allTasksRes, resourcesRes, projectsRes]) => {
+            const myTasks = myTasksRes.data.tasks ?? [];
+            const allTasks = allTasksRes.data.tasks ?? [];
+            const allProjects = projectsRes.data.projects ?? [];
+
+            const involvedProjectIds = new Set<number>(
+                myTasks
+                    .map((t) => Number(t.project_id ?? t.projectid))
+                    .filter((id) => !Number.isNaN(id) && id > 0),
+            );
+
+            const scopedTasks = involvedProjectIds.size > 0
+                ? allTasks.filter((t) => {
+                    const pid = Number(t.project_id ?? t.projectid);
+                    return !Number.isNaN(pid) && involvedProjectIds.has(pid);
+                })
+                : [];
+
+            const scopedProjects = involvedProjectIds.size > 0
+                ? allProjects.filter((p) => involvedProjectIds.has(Number(p.id)))
+                : [];
+
+            setList(uniqueById(scopedTasks));
+            setProjects(uniqueById(scopedProjects));
+            setEmployees(resourcesRes.data.resources ?? []);
+        }).catch(() => {
+            setList([]);
+            setProjects([]);
+            setEmployees([]);
+        });
+    };
+
+    useEffect(() => {
+        loadScopedTeamData();
+    }, []);
+
+    useEffect(() => {
         const handleClick = (e: MouseEvent) => {
             if (openDropdown === "employee" && !empTriggerRef.current?.contains(e.target as Node) && !empMenuRef.current?.contains(e.target as Node)) setOpenDropdown(null);
             if (openDropdown === "projects" && !projTriggerRef.current?.contains(e.target as Node) && !projMenuRef.current?.contains(e.target as Node)) setOpenDropdown(null);
@@ -428,7 +481,7 @@ export default function TeamtaskPMV() {
         }
         const sMap = { todo: "Todo", in_progress: "InProgress", completed: "Completed" };
         api.patch(`/api/vendors/vendor-tasks/${id}/status`, { status: (sMap as any)[status] })
-            .then(() => api.get("/api/vendors/vendor-tasks").then(res => setList(res.data.tasks ?? [])))
+            .then(() => loadScopedTeamData())
             .catch(() => toast.error("Failed to update status"));
     };
 
@@ -504,13 +557,21 @@ export default function TeamtaskPMV() {
 
             {deleteTaskId && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden font-Gantari">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md font-Gantari overflow-visible">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-50">
                             <span className="w-9" />
                             <h3 className="text-lg font-semibold text-[#353535]">Delete Task</h3>
-                            <button onClick={() => setDeleteTaskId(null)} className="p-1 rounded bg-gray-100 hover:bg-gray-200 border-0 cursor-pointer">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
+                            <div className="group relative">
+                                <button onClick={() => setDeleteTaskId(null)} className="p-1 rounded bg-gray-100 hover:bg-gray-200 border-0 cursor-pointer">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                                <div className="absolute top-full right-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px] ml-auto mr-1"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Close</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div className="p-10 text-center text-lg text-[#353535]">Are you sure you want to delete this task?</div>
                         <div className="flex justify-center gap-4 p-6 bg-slate-50/50">

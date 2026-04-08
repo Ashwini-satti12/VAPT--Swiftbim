@@ -384,7 +384,7 @@ export default function AddTaskBL() {
         if (pendingAttachmentDelete.type === "local") {
             removeAttachment(pendingAttachmentDelete.index);
             setPendingAttachmentDelete(null);
-            toast.error("Deleted successfully");
+            toast.success("Deleted successfully");
             return;
         }
         const stored = pendingAttachmentDelete.stored;
@@ -419,10 +419,12 @@ export default function AddTaskBL() {
             .then(() => {
                 setExistingOutputFilenames(next);
                 setPendingAttachmentDelete(null);
-                toast.error("Deleted successfully");
+                toast.success("Deleted successfully");
             })
-            .catch(() => {
-                setAddError("Failed to remove attachment. Please try again.");
+            .catch((err) => {
+                const msg = err.response?.data?.message || "Failed to remove attachment.";
+                setAddError(msg);
+                toast.error(msg);
             })
             .finally(() => setServerAttachmentDeleting(false));
     };
@@ -616,7 +618,9 @@ export default function AddTaskBL() {
             navigate(location.state?.from === "teamtasks" ? "/bl/teamtasks" : "/bl/mytasks");
         } catch (err: unknown) {
             const ax = err as { response?: { data?: { message?: string } } };
-            setAddError(ax.response?.data?.message || "Failed to save task.");
+            const msg = ax.response?.data?.message || "Failed to save task.";
+            setAddError(msg);
+            toast.error(msg);
         } finally {
             setAddSubmitting(false);
         }

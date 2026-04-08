@@ -202,18 +202,18 @@ function CustomDropdown({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`w-full flex items-center justify-between gap-2 transition-all outline-none font-gantari min-w-0 cursor-pointer ${styleType === "header"
-            ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
-            : styleType === "table"
-              ? `px-4 py-2 min-w-[140px] rounded-md border font-gantari font-medium text-[14px] ${value === "Active" ? "bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]" : "bg-[#FFE5E5] border-[#FECACA] text-[#E00100]"}`
-              : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+          ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
+          : styleType === "table"
+            ? `px-4 py-2 min-w-[140px] rounded-md border font-gantari font-medium text-[14px] ${value === "Active" ? "bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]" : "bg-[#FFE5E5] border-[#FECACA] text-[#E00100]"}`
+            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
           }`}
       >
         <span
           className={`min-w-0 flex-1 truncate overflow-hidden text-left ${styleType === "header" || styleType === "form"
-              ? isPlaceholder
-                ? "text-[#8B8B8B]"
-                : "text-[#353535]"
-              : ""
+            ? isPlaceholder
+              ? "text-[#8B8B8B]"
+              : "text-[#353535]"
+            : ""
             }`}
         >
           {styleType === "header" && value && !isPlaceholder ? (
@@ -273,10 +273,10 @@ function CustomDropdown({
                     }
                   }}
                   className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${isPlaceholder &&
-                      placeholder !== "Show" &&
-                      placeholder !== "Show entries"
-                      ? "text-[#353535] bg-[#F2F2F2]"
-                      : "text-[#8B8B8B] bg-[#FFFFFF]"
+                    placeholder !== "Show" &&
+                    placeholder !== "Show entries"
+                    ? "text-[#353535] bg-[#F2F2F2]"
+                    : "text-[#8B8B8B] bg-[#FFFFFF]"
                     }`}
                 >
                   {placeholder}
@@ -645,25 +645,46 @@ export default function ConsultantBC() {
           {/* Tight gap between action buttons and Show Entries / Status (inner), title spacing unchanged */}
           <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-visible">
             {/* Scroll only the action buttons — avoids clipping dropdown panels */}
-            <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 pr-0.5 custom-scrollbar">
+            <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-2 xl:overflow-visible overflow-x-auto overflow-y-visible py-1 px-0.5 custom-scrollbar">
               {canAdd && (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("table")}
-                    aria-label="Table view"
-                    className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === "table" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
-                  >
-                    <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode("card")}
-                    aria-label="Card view"
-                    className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === "card" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
-                  >
-                    <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
-                  </button>
+                  <div className="relative group inline-flex shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("table")}
+                      aria-label="Table view"
+                      className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === "table" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
+                    >
+                      <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </button>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                          List
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="relative group inline-flex shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("card")}
+                      aria-label="Card view"
+                      className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === "card" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
+                    >
+                      <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </button>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                          Grid
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={() => navigate("/bc/consultants/add")}
@@ -704,8 +725,8 @@ export default function ConsultantBC() {
                   >
                     <span
                       className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
-                          ? "text-[#8B8B8B]"
-                          : "text-[#353535]"
+                        ? "text-[#8B8B8B]"
+                        : "text-[#353535]"
                         }`}
                     >
                       {selectedShowEntries === "" ? (
@@ -763,8 +784,8 @@ export default function ConsultantBC() {
                                 setShowEntriesOpen(false);
                               }}
                               className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
-                                  ? "text-[#353535] bg-[#F2F2F2]"
-                                  : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                ? "text-[#353535] bg-[#F2F2F2]"
+                                : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
                                 }`}
                             >
                               <span className="truncate min-w-0">{opt.label}</span>
@@ -1193,9 +1214,17 @@ export default function ConsultantBC() {
                     setShowAddModal(false);
                     setAddError("");
                   }}
-                  className="absolute left-0 p-2 rounded-md bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
+                  className="absolute left-0 p-2 rounded-md bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer group"
                 >
                   <FiX className="w-5 h-5 font-bold" />
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
                 </button>
                 <h3 className="text-[24px] font-medium text-[#000000] font-Gantari">
                   Add New Consultant
@@ -1491,9 +1520,17 @@ export default function ConsultantBC() {
                     setInviteEmails("");
                     setInviteMessage("");
                   }}
-                  className="absolute left-0 p-2 rounded-md bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
+                  className="absolute left-0 p-2 rounded-md bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer group"
                 >
                   <FiX className="w-5 h-5 font-bold" />
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
                 </button>
                 <h3 className="text-[24px] font-semibold text-[#020202] font-Gantari text-center">
                   Invite New Consultant
@@ -1557,9 +1594,17 @@ export default function ConsultantBC() {
                     setShowInactiveModal(false);
                     setInactiveIds([]);
                   }}
-                  className="absolute left-0 p-2 rounded-md bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
+                  className="absolute left-0 p-2 rounded-md bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer group"
                 >
                   <FiX className="w-5 h-5 font-bold" />
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
                 </button>
                 <h3 className="text-[24px] font-medium text-[#000000] font-Gantari">
                   Manage In-active Consultants
@@ -1689,9 +1734,17 @@ export default function ConsultantBC() {
                     setShowDetailsModal(false);
                     setSelectedEmployee(null);
                   }}
-                  className="absolute left-0 p-2 rounded-md bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
+                  className="absolute left-0 p-2 rounded-md bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer group"
                 >
                   <FiX className="w-5 h-5 font-bold" />
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
                 </button>
                 <h3 className="text-[24px] font-medium text-[#000000]">
                   View Details
