@@ -163,6 +163,28 @@ export default function ProjectsPMV() {
     const [searchParams] = useSearchParams();
     const statusFilter = searchParams.get("status");
 
+    const resolveVendorDocUrl = (rawPath: string) => {
+        const cleaned = (rawPath || "").trim();
+        if (!cleaned) return "";
+        if (/^https?:\/\//i.test(cleaned)) return cleaned;
+        const base = String(api.defaults.baseURL || "").replace(/\/+$/, "");
+        if (cleaned.startsWith("/uploads/")) {
+            const rest = cleaned.replace(/^\/+/, ""); // uploads/<...>
+            if (/^uploads\/[^/]+$/i.test(rest)) {
+                const fileOnly = rest.replace(/^uploads\//i, "");
+                return `${base}/static/uploads/vendor_docs/${fileOnly}`;
+            }
+            return `${base}${cleaned}`;
+        }
+        if (cleaned.startsWith("/uploads/") || cleaned.startsWith("/static/uploads/")) {
+            return `${base}${cleaned}`;
+        }
+        if (cleaned.startsWith("uploads/") || cleaned.startsWith("static/uploads/")) {
+            return `${base}/${cleaned}`;
+        }
+        return `${base}/static/uploads/vendor_docs/${cleaned}`;
+    };
+
     const uniqueById = <T extends { id?: number | string }>(rows: T[]): T[] => {
         const seen = new Set<string>();
         const out: T[] = [];
@@ -842,7 +864,7 @@ export default function ProjectsPMV() {
                 {currentAttachments && (
                     <div className="flex flex-wrap gap-3 mb-4">
                         {currentAttachments.split(",").map(file => file.trim()).filter(Boolean).map((fileName, idx) => {
-                            const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
+                            const url = resolveVendorDocUrl(fileName);
                             return (
                                 <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
                                     <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
@@ -1346,7 +1368,7 @@ export default function ProjectsPMV() {
                                                 .map((file) => file.trim())
                                                 .filter(Boolean)
                                                 .map((fileName, idx) => {
-                                                    const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
+                                                    const url = resolveVendorDocUrl(fileName);
                                                     return (
                                                         <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-slate-200 md:max-w-md w-full">
                                                             <div className="p-2 bg-white rounded-lg shadow-sm">
@@ -1367,7 +1389,8 @@ export default function ProjectsPMV() {
                                                                 </a>
                                                                 <a
                                                                     href={url}
-                                                                    download
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
                                                                     className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
                                                                     title="Download File"
                                                                 >

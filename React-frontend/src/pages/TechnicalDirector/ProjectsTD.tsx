@@ -1909,7 +1909,8 @@ export default function ProjectsTD() {
                                           </a>
                                           <a
                                             href={url}
-                                            download
+                                            target="_blank"
+                                            rel="noopener noreferrer"
                                             className="p-1 hover:bg-white rounded"
                                             title="Download"
                                           >

@@ -250,6 +250,28 @@ export default function ProjectsV() {
         return "₹";
     };
 
+    const resolveVendorDocUrl = (rawPath: string) => {
+        const cleaned = (rawPath || "").trim();
+        if (!cleaned) return "";
+        if (/^https?:\/\//i.test(cleaned)) return cleaned;
+        const base = String(api.defaults.baseURL || "").replace(/\/+$/, "");
+        if (cleaned.startsWith("/uploads/")) {
+            const rest = cleaned.replace(/^\/+/, ""); // uploads/<...>
+            if (/^uploads\/[^/]+$/i.test(rest)) {
+                const fileOnly = rest.replace(/^uploads\//i, "");
+                return `${base}/static/uploads/vendor_docs/${fileOnly}`;
+            }
+            return `${base}${cleaned}`;
+        }
+        if (cleaned.startsWith("/uploads/") || cleaned.startsWith("/static/uploads/")) {
+            return `${base}${cleaned}`;
+        }
+        if (cleaned.startsWith("uploads/") || cleaned.startsWith("static/uploads/")) {
+            return `${base}/${cleaned}`;
+        }
+        return `${base}/static/uploads/vendor_docs/${cleaned}`;
+    };
+
     const [searchParams] = useSearchParams();
     const statusFilter = searchParams.get("status");
 
@@ -1115,7 +1137,7 @@ export default function ProjectsV() {
                     {currentAttachments && currentAttachments.split(",").map(f => f.trim()).filter(Boolean).length > 0 && (
                         <div className="flex flex-col gap-2 mb-4">
                             {currentAttachments.split(",").map(f => f.trim()).filter(Boolean).map((fileName, idx) => {
-                                const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
+                                const url = resolveVendorDocUrl(fileName);
                                 return (
                                     <div key={idx} className="flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-md">
                                         <div className="flex items-center gap-3 min-w-0">
@@ -1655,10 +1677,7 @@ export default function ProjectsV() {
                                                             .map((file) => file.trim())
                                                             .filter(Boolean)
                                                             .map((fileName, idx) => {
-                                                                const isOutsource = selectedProject.source === "Outsource";
-                                                                const url = isOutsource
-                                                                    ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
-                                                                    : `${api.defaults.baseURL}uploads/${fileName}`;
+                                                                const url = resolveVendorDocUrl(fileName);
 
                                                                 return (
                                                                     <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-2 rounded-xl border border-slate-200 w-full md:max-w-xs mt-1">
@@ -1684,7 +1703,8 @@ export default function ProjectsV() {
                                                                             </a>
                                                                             <a
                                                                                 href={url}
-                                                                                download
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
                                                                                 className="p-1 hover:bg-white rounded"
                                                                                 title="Download"
                                                                             >

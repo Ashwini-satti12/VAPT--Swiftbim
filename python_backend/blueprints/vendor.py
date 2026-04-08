@@ -5304,7 +5304,12 @@ def upload_vendor_project_document(project_id):
             # First fetch existing attachments
             cur.execute("SELECT document_attachment FROM snh6_swiftproject.vendor_projects WHERE id = %s", (project_id,))
             row = cur.fetchone()
-            existing = row[0] if row and row[0] else ""
+            existing = ""
+            if row:
+                if isinstance(row, dict):
+                    existing = row.get("document_attachment") or ""
+                else:
+                    existing = row[0] if len(row) > 0 and row[0] else ""
             
             # Append new filename
             new_value = f"{existing}, {unique_filename}" if existing else unique_filename

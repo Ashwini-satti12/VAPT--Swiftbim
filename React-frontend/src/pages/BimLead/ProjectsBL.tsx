@@ -1492,7 +1492,7 @@ export default function ProjectsBL() {
                                   <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-white rounded" title="View">
                                     <img src={viewIcon} alt="View" className="w-[16px] h-[16px] opacity-70 hover:opacity-100" />
                                   </a>
-                                  <a href={url} download className="p-1 hover:bg-white rounded" title="Download">
+                                  <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-white rounded" title="Download">
                                     <FiUploadCloud className="w-[16px] h-[16px] rotate-180 text-slate-500 hover:text-[#DD4342]" />
                                   </a>
                                 </div>
