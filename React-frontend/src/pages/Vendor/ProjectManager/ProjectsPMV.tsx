@@ -871,11 +871,7 @@ export default function ProjectsPMV() {
                 {currentAttachments && (
                     <div className="flex flex-wrap gap-3 mb-4">
                         {currentAttachments.split(",").map(file => file.trim()).filter(Boolean).map((fileName, idx) => {
-<<<<<<< HEAD
-                            const url = vendorDocUrl(fileName);
-=======
                             const url = resolveVendorDocUrl(fileName);
->>>>>>> 03fa47bda6b77fc13cc97b735fd6bf190b8d4051
                             return (
                                 <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
                                     <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
