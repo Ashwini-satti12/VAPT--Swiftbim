@@ -71,6 +71,7 @@ export default function AddConsultantTD() {
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
+  const [successMsg, setSuccessMsg] = useState('');
   const [form, setForm] = useState({
     full_name: '',
     dob: '',
@@ -167,8 +168,11 @@ export default function AddConsultantTD() {
       )
       .then(({ data }) => {
         if (data.success) {
-          toast.success('Consultant added successfully!');
-          navigate('/td/consultants');
+          setSuccessMsg('Consultant added successfully!');
+          setTimeout(() => {
+            setSuccessMsg('');
+            navigate('/td/consultants');
+          }, 2000);
         } else {
           setAddError(data.message || 'Failed to add employee/trainee.');
         }
@@ -182,7 +186,29 @@ export default function AddConsultantTD() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-2 bg-white">
+    <div className="flex-1 overflow-y-auto p-2 bg-white relative">
+      {successMsg && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-3 px-5 py-3 rounded-lg bg-white shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-gray-100 min-w-[300px] animate-in fade-in slide-in-from-top-2 duration-300 font-Gantari">
+          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#58D662]">
+            <svg
+              className="w-3.5 h-3.5 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={4}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
+          <span className="text-[16px] font-medium text-[#2D2D2D]">
+            {successMsg}
+          </span>
+        </div>
+      )}
       <div className="max-w-[1174px] mx-auto">
         <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
           <button

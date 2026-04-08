@@ -22,7 +22,7 @@ interface Project {
     completed_tasks?: number;
     budget?: string;
     modules?: string;
-    client_id?: string;
+    client_name?: string;
     project_manager_id?: string;
     start_date?: string;
     due_date?: string;
@@ -345,7 +345,7 @@ export default function ProjectsPMV() {
             project_name: createName,
             budget: createBudget,
             modules: createModuleName,
-            client_id: getClientIdByName(createClientName),
+            client_name: getClientIdByName(createClientName),
             project_manager_id: nameToId(createProjectManager, projectManagers),
             start_date: createStartDate,
             due_date: createEndDate,
@@ -397,7 +397,7 @@ export default function ProjectsPMV() {
         setCreateBudget(p.budget || "");
         setCreateModuleName(p.modules || "");
         setCreateClientName(
-            getClientNameById(p.client_id) || (p.client_id ? String(p.client_id) : "")
+            getClientNameById(p.client_name) || (p.client_name ? String(p.client_name) : "")
         );
         setCreateProjectManager(
             idToName(p.project_manager_id, projectManagers) ||
@@ -456,7 +456,7 @@ export default function ProjectsPMV() {
             project_name: createName,
             budget: createBudget,
             modules: createModuleName,
-            client_id: getClientIdByName(createClientName),
+            client_name: getClientIdByName(createClientName),
             project_manager_id: nameToId(createProjectManager, projectManagers),
             start_date: createStartDate,
             end_date: createEndDate,
