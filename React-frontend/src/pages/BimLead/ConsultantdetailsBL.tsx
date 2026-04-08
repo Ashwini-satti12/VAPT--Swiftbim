@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 
@@ -27,7 +28,13 @@ export default function ConsultantdetailsBL() {
 
     useEffect(() => {
         if (!id) return;
-        api.get<EmployeeDetailType>(`/api/employees/${id}`).then(({ data }) => setEmp(data)).catch(() => setEmp(null)).finally(() => setLoading(false));
+        api.get<EmployeeDetailType>(`/api/employees/${id}`)
+            .then(({ data }) => setEmp(data))
+            .catch((err) => {
+                toast.error(err.response?.data?.message || 'Failed to load consultant.');
+                setEmp(null);
+            })
+            .finally(() => setLoading(false));
     }, [id]);
 
     if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" /></div>;
