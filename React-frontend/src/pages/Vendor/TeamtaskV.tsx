@@ -235,17 +235,6 @@ function normalizeStatus(
     return "todo";
 }
 
-function toApiTaskStatusParam(
-    statusFilter: string | null | undefined,
-): string | undefined {
-    if (!statusFilter) return undefined;
-    const s = statusFilter.toLowerCase().trim();
-    if (s === "in_progress" || s === "inprogress") return "InProgress";
-    if (s === "completed" || s === "complete" || s === "done") return "Completed";
-    if (s === "todo" || s === "to_do" || s === "to-do") return "Todo";
-    return statusFilter;
-}
-
 function TaskCard({
     task,
     status,
@@ -624,13 +613,11 @@ export default function TeamtaskV() {
     }, [openDropdown]);
 
     useEffect(() => {
-        const params: Record<string, string> = {};
-        const apiStatus = toApiTaskStatusParam(statusFilter);
-        if (apiStatus) params.status = apiStatus;
-        if (isTeam) {
-            params.condition = "1";
-            params.employeeid = "all";
-        }
+        const params: Record<string, string> = {
+            // Team task page must load all vendor_task rows for this vendor scope.
+            condition: "1",
+            employeeid: "all",
+        };
 
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params }),
@@ -646,7 +633,7 @@ export default function TeamtaskV() {
                 setList([]);
             })
             .finally(() => setLoading(false));
-    }, [isTeam, statusFilter]);
+    }, [isTeam]);
 
     const getEmployeeOptions = () => {
         if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
