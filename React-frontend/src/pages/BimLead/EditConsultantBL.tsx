@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FiChevronDown, FiCheck } from 'react-icons/fi';
+import { toast } from 'react-hot-toast';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import { getPhoneLength } from '../../utils/countryCodes';
@@ -86,7 +87,6 @@ export default function EditConsultantBL() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [editError, setEditError] = useState('');
-    const [editSuccess, setEditSuccess] = useState(false);
     const [editSubmitting, setEditSubmitting] = useState(false);
     const [roles, setRoles] = useState<string[]>([]);
     const [departments, setDepartments] = useState<string[]>([]);
@@ -239,10 +239,14 @@ export default function EditConsultantBL() {
 
             api.patch(`/api/employees/${employeeId}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
                 .then(() => {
-                    setEditSuccess(true);
+                    toast.success('Updated successfully!');
                     setTimeout(() => navigate('/bl/consultants'), 2000);
                 })
-                .catch((err) => setEditError(err.response?.data?.message || 'Failed to update.'))
+                .catch((err) => {
+                    const msg = err.response?.data?.message || 'Failed to update.';
+                    setEditError(msg);
+                    toast.error(msg);
+                })
                 .finally(() => setEditSubmitting(false));
         } else {
             const payload = {
@@ -263,10 +267,14 @@ export default function EditConsultantBL() {
             };
             api.patch(`/api/employees/${employeeId}`, payload)
                 .then(() => {
-                    setEditSuccess(true);
+                    toast.success('Updated successfully!');
                     setTimeout(() => navigate('/bl/consultants'), 2000);
                 })
-                .catch((err) => setEditError(err.response?.data?.message || 'Failed to update.'))
+                .catch((err) => {
+                    const msg = err.response?.data?.message || 'Failed to update.';
+                    setEditError(msg);
+                    toast.error(msg);
+                })
                 .finally(() => setEditSubmitting(false));
         }
     }
@@ -308,17 +316,6 @@ export default function EditConsultantBL() {
                             <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
                             <div className="flex-1">
                                 <p className="mt-0.5 text-[13px] leading-snug">{editError}</p>
-                            </div>
-                        </div>
-                    )}
-                    {editSuccess && (
-                        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all">
-                            <div className="bg-white rounded-[15px] p-8 max-w-[350px] w-full text-center shadow-2xl scale-100">
-                                <div className="w-16 h-16 bg-[#E8F5E9] text-[#2E7D32] rounded-full flex items-center justify-center mx-auto mb-5 shadow-sm">
-                                    <FiCheck className="w-8 h-8" strokeWidth={3} />
-                                </div>
-                                <h3 className="text-[20px] font-bold text-[#000000] font-Gantari mb-2">Updated Successfully!</h3>
-                                <p className="text-[14px] text-[#616161] font-Gantari">Redirecting to consultants list...</p>
                             </div>
                         </div>
                     )}

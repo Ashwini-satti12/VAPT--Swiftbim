@@ -759,23 +759,47 @@ export default function EmployeesPM() {
               {/* Tight gap between action buttons and Show Entries / Status (inner), title spacing unchanged */}
               <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-visible">
                 {/* Scroll only the action buttons — avoids clipping dropdown panels */}
-                <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 pr-0.5 custom-scrollbar">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('table')}
-                    aria-label="Table view"
-                    className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
-                  >
-                    <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('card')}
-                    aria-label="Card view"
-                    className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
-                  >
-                    <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
-                  </button>
+                <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-2 xl:overflow-visible overflow-x-auto overflow-y-visible py-1 pr-0.5 custom-scrollbar">
+                  <div className="relative group inline-flex shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('table')}
+                      aria-label="Table view"
+                      className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                    >
+                      <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </button>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                      <div className="relative z-10">
+                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                      </div>
+                      <div className="bg-[#FFFFFF] border border-[#C1C1C1]/50 rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-3 py-1 -mt-[1px]">
+                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                          List
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="relative group inline-flex shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('card')}
+                      aria-label="Card view"
+                      className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                    >
+                      <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </button>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                      <div className="relative z-10">
+                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                      </div>
+                      <div className="bg-[#FFFFFF] border border-[#C1C1C1]/50 rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-3 py-1 -mt-[1px]">
+                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                          Grid
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                   {canAdd && (
                     <>
                       <button
@@ -1420,14 +1444,25 @@ export default function EmployeesPM() {
         <div className="flex-1 overflow-y-auto p-2 bg-white">
           <div className="max-w-[1174px] mx-auto">
             <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
-              <button
-                type="button"
-                onClick={() => { setActiveView('list'); setEditId(null); }}
-                className="p-2 rounded-md bg-[#F2F2F2] text-[#616161] transition-all cursor-pointer"
-                title="Back"
-              >
-                <img src={backIcon} alt="Back" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-2 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setActiveView('list'); setEditId(null); }}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#616161] transition-all cursor-pointer hover:bg-[#E8E8E8]"
+                >
+                  <img src={backIcon} alt="Back" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="relative z-10">
+                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                  </div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1]/50 rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-3 py-1 -mt-[1px]">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Back
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Edit Consultant Details</h3>
               <div className="w-10" />
             </div>
@@ -1647,13 +1682,25 @@ export default function EmployeesPM() {
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]">
           <div className="bg-white rounded-[10px] max-w-[813px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
             <div className="flex items-center justify-center mb-8 relative">
-              <button
-                type="button"
-                onClick={() => { setActiveView('list'); setInviteEmails(''); setInviteMessage(''); }}
-                className="absolute left-0 p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer"
-              >
-                <FiX className="w-5 h-5 font-bold" />
-              </button>
+              <div className="absolute left-5 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setActiveView('list'); setInviteEmails(''); setInviteMessage(''); }}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer hover:bg-[#E8E8E8]"
+                >
+                  <FiX className="w-5 h-5 font-bold" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="relative z-10">
+                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                  </div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1]/50 rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-3 py-1 -mt-[1px]">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h1 className="text-[24px] font-medium text-[#000000] text-center">Invite New Consultant</h1>
             </div>
 
@@ -1700,13 +1747,25 @@ export default function EmployeesPM() {
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]">
           <div className="bg-white rounded-[10px] max-w-[950px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
             <div className="flex items-center justify-center mb-8 relative shrink-0">
-              <button
-                type="button"
-                onClick={() => { setActiveView('list'); setInactiveIds([]); }}
-                className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
-              >
-                <FiX className="w-5 h-5 font-bold" />
-              </button>
+              <div className="absolute left-5 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setActiveView('list'); setInactiveIds([]); }}
+                  className="p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer hover:bg-[#E8E8E8]"
+                >
+                  <FiX className="w-5 h-5 font-bold" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="relative z-10">
+                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                  </div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1]/50 rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-3 py-1 -mt-[1px]">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-medium text-[#000000] text-center">Manage In-active Consultants</h3>
             </div>
 
@@ -1794,13 +1853,25 @@ export default function EmployeesPM() {
           <div className="bg-white rounded-lg max-w-[520px] w-full overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
             {/* Header */}
             <div className="flex items-center justify-center relative shrink-0">
-              <button
-                type="button"
-                onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
-                className="absolute left-0 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
-              >
-                <FiX className="w-5 h-5 font-bold" />
-              </button>
+              <div className="absolute left-5 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
+                  className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer hover:bg-[#E8E8E8]"
+                >
+                  <FiX className="w-5 h-5 font-bold" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="relative z-10">
+                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                  </div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1]/50 rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-3 py-1 -mt-[1px]">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">View Details</h3>
             </div>
 
