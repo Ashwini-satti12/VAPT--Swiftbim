@@ -255,6 +255,25 @@ def _hydrate_vendor_projects_phase1(vendor_cur, project_dicts: list[dict]):
             if enq: p["_hydrated_enq"] = enq
 
             # Hydrate fields
+            # 0. Proposal-selected currency only when proposal linkage is reliable.
+            prop_sel_currency = _first_nonempty_val(prop, ["selected_currency"])
+            linked_prop_id = con.get("proposal_id") if isinstance(con, dict) else None
+            try:
+                linked_prop_id = int(linked_prop_id) if linked_prop_id is not None and str(linked_prop_id).isdigit() else None
+            except Exception:
+                linked_prop_id = None
+            current_prop_id = prop.get("id") if isinstance(prop, dict) else None
+            try:
+                current_prop_id = int(current_prop_id) if current_prop_id is not None and str(current_prop_id).isdigit() else None
+            except Exception:
+                current_prop_id = None
+            has_reliable_proposal_link = (
+                bool(prop_id) or
+                (linked_prop_id is not None and (current_prop_id is None or current_prop_id == linked_prop_id))
+            )
+            if prop_sel_currency and has_reliable_proposal_link:
+                p["selected_currency"] = prop_sel_currency
+
             # 1. Resources
             prop_res = _first_nonempty_val(prop, proposal_res_cols)
             if prop_res:
@@ -4383,37 +4402,68 @@ def list_vendor_projects():
     #   projects.client_id      -> new_swiftbim.users.id
     #   projects.budget(_ceiling) -> exposed as budget / budget_ceiling for vendor view
     status_sql = ""
+    has_vp_status = False
+    try:
+        cur.execute("SHOW COLUMNS FROM snh6_swiftproject.vendor_projects LIKE 'status'")
+        has_vp_status = cur.fetchone() is not None
+    except Exception:
+        has_vp_status = False
     if status_filter in {"completed", "complete", "done"}:
-        status_sql = """
-        AND (
-            LOWER(COALESCE(vp.status, '')) = 'completed'
-            OR (
+        if has_vp_status:
+            status_sql = """
+            AND (
+                LOWER(COALESCE(vp.status, '')) = 'completed'
+                OR (
+                    vp.progress REGEXP '^[0-9]+(\\.[0-9]+)?$'
+                    AND CAST(vp.progress AS DECIMAL(10,2)) >= 100
+                )
+            )
+            """
+        else:
+            status_sql = """
+            AND (
                 vp.progress REGEXP '^[0-9]+(\\.[0-9]+)?$'
                 AND CAST(vp.progress AS DECIMAL(10,2)) >= 100
             )
-        )
-        """
+            """
     elif status_filter in {"inprogress", "in_progress", "in-progress", "active", "ongoing"}:
-        status_sql = """
-        AND (
-            LOWER(COALESCE(vp.status, '')) IN ('inprogress', 'in progress', 'active', 'ongoing')
-            OR (
+        if has_vp_status:
+            status_sql = """
+            AND (
+                LOWER(COALESCE(vp.status, '')) IN ('inprogress', 'in progress', 'active', 'ongoing')
+                OR (
+                    vp.progress REGEXP '^[0-9]+(\\.[0-9]+)?$'
+                    AND CAST(vp.progress AS DECIMAL(10,2)) > 0
+                    AND CAST(vp.progress AS DECIMAL(10,2)) < 100
+                )
+            )
+            """
+        else:
+            status_sql = """
+            AND (
                 vp.progress REGEXP '^[0-9]+(\\.[0-9]+)?$'
                 AND CAST(vp.progress AS DECIMAL(10,2)) > 0
                 AND CAST(vp.progress AS DECIMAL(10,2)) < 100
             )
-        )
-        """
+            """
     elif status_filter in {"todo", "pending", "not_started", "not-started"}:
-        status_sql = """
-        AND (
-            LOWER(COALESCE(vp.status, '')) IN ('todo', 'pending', 'not started', 'not_started')
-            OR (
+        if has_vp_status:
+            status_sql = """
+            AND (
+                LOWER(COALESCE(vp.status, '')) IN ('todo', 'pending', 'not started', 'not_started')
+                OR (
+                    vp.progress REGEXP '^[0-9]+(\\.[0-9]+)?$'
+                    AND CAST(vp.progress AS DECIMAL(10,2)) <= 0
+                )
+            )
+            """
+        else:
+            status_sql = """
+            AND (
                 vp.progress REGEXP '^[0-9]+(\\.[0-9]+)?$'
                 AND CAST(vp.progress AS DECIMAL(10,2)) <= 0
             )
-        )
-        """
+            """
 
     if is_vendor_user:
         # Vendor user: filter by vendor employee IDs

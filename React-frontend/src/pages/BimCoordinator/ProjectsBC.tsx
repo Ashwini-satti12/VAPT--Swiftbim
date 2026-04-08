@@ -117,6 +117,24 @@ const hasProjectDescriptionContent = (raw?: string): boolean => {
   return text.length > 0;
 };
 
+const getProjectDurationDays = (start: string, end: string): number | null => {
+  if (!start || !end) return null;
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || endDate < startDate) return null;
+  const diffMs = endDate.getTime() - startDate.getTime();
+  const diffDays = (diffMs / (1000 * 60 * 60 * 24)) + 1;
+  return diffDays > 0 ? diffDays : null;
+};
+
+const calculateTotalHours = (perDay: string, start: string, end: string): string => {
+  const perDayNum = Number(perDay);
+  if (Number.isNaN(perDayNum) || perDayNum <= 0) return "";
+  const durationDays = getProjectDurationDays(start, end);
+  if (!durationDays) return "";
+  return (perDayNum * durationDays).toFixed(2);
+};
+
 function FormSelect({
   placeholder,
   options,
@@ -224,6 +242,7 @@ interface Project {
   document_attachment?: string;
   source?: "In House" | "Outsource";
   currency?: string;
+  currency_locked?: boolean;
 }
 
 interface Milestone {
@@ -293,6 +312,11 @@ export default function ProjectsBC() {
     completed: 0,
   });
   const [pmTaskStatsLoading, setPmTaskStatsLoading] = useState(false);
+
+  useEffect(() => {
+    const computedTotal = calculateTotalHours(createPerDay, createStartDate, createEndDate);
+    if (computedTotal) setCreateTotalHours(computedTotal);
+  }, [createPerDay, createStartDate, createEndDate]);
 
   // Add Project Form State (Restoring used ones)
   const [createResources, setCreateResources] = useState("");
@@ -421,7 +445,14 @@ export default function ProjectsBC() {
     priority: r.priority ?? "Normal",
     budget: r.budget,
     budget_ceiling: r.budget_ceiling != null ? String(r.budget_ceiling) : undefined,
-    currency: r.currency != null ? String(r.currency) : "INR",
+    currency:
+      r.selected_currency != null && String(r.selected_currency).trim().length > 0
+        ? String(r.selected_currency)
+        : r.currency != null
+          ? String(r.currency)
+          : "INR",
+    currency_locked:
+      r.selected_currency != null && String(r.selected_currency).trim().length > 0,
     module_name: r.modules,
     client_name: r.client_name,
     project_manager:
@@ -1475,10 +1506,25 @@ export default function ProjectsBC() {
                         </span>
                         <span className="text-md font-Gantari font-medium text-[#666666]">
                           {selectedProjectForView.budget
-                            ? `${selectedProjectForView.budget}$`
+                            ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget}`
                             : "N/A"}
                         </span>
                       </div>
+                      {selectedProjectForView.source === "Outsource" && (
+                        <div className="flex flex-col sm:flex-row sm:items-center">
+                          <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                            Outsourcing Budget
+                          </span>
+                          <span className="hidden sm:inline text-[#999999] mr-4">
+                            :
+                          </span>
+                          <span className="text-md font-Gantari font-medium text-[#666666]">
+                            {selectedProjectForView.budget_ceiling
+                              ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget_ceiling}`
+                              : "N/A"}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex flex-col sm:flex-row sm:items-center">
                         <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
                           Task Name
@@ -2053,8 +2099,11 @@ export default function ProjectsBC() {
                       <div className="relative w-1/3">
                         <button
                           type="button"
-                          onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
-                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-[5px] transition-all focus:outline-none border border-transparent focus:border-[#AEACAC52] cursor-pointer ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
+                          onClick={() => {
+                            if (selectedProjectForEdit?.currency_locked) return;
+                            setCurrencyDropdownOpen(!currencyDropdownOpen);
+                          }}
+                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-[5px] transition-all focus:outline-none border border-transparent focus:border-[#AEACAC52] ${selectedProjectForEdit?.currency_locked ? "cursor-not-allowed opacity-80" : "cursor-pointer"} ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
                         >
                           <span className="text-[14px] text-[#353535] font-medium truncate">
                             {CURRENCIES.find((c) => c.code === createCurrency)?.symbol}{" "}{createCurrency}
@@ -2065,7 +2114,7 @@ export default function ProjectsBC() {
                             className={`w-3.5 h-3.5 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
                           />
                         </button>
-                        {currencyDropdownOpen && (
+                        {currencyDropdownOpen && !selectedProjectForEdit?.currency_locked && (
                           <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
                             {CURRENCIES.map((c) => (
                               <button

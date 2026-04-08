@@ -213,7 +213,11 @@ export function buildFormFromTask(task: Task, employeeList: Employee[]) {
 
 function normalizeStatus(
   s: string | undefined,
+  approval?: string | undefined,
 ): "todo" | "in_progress" | "completed" {
+  if (approval?.toLowerCase() === "approved" || approval?.toLowerCase() === "rejected") {
+    return "completed";
+  }
   if (!s) return "todo";
   const lower = s.toLowerCase().replace(/\s+/g, "_");
   if (lower.includes("progress") || lower === "in_progress")
@@ -724,20 +728,60 @@ export default function MytaskPMV() {
   const periodTriggerRef = useRef<HTMLButtonElement>(null);
   const periodMenuRef = useRef<HTMLDivElement>(null);
 
+  const uniqueById = <T extends { id?: number | string }>(rows: T[]): T[] => {
+    const seen = new Set<string>();
+    const out: T[] = [];
+    for (const row of rows) {
+      const key = String(row?.id ?? "");
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(row);
+    }
+    return out;
+  };
+
   useEffect(() => {
-    const params: Record<string, string> = {};
-    if (statusFilter) params.status = statusFilter;
-    if (isTeam) params.condition = "1";
+    const myScopeParams: Record<string, string> = {};
+    const taskParams: Record<string, string> = {};
+    if (statusFilter) taskParams.status = statusFilter;
+    if (isTeam) {
+      taskParams.condition = "1";
+      taskParams.employeeid = "all";
+    }
 
     setLoading(true);
     Promise.all([
-      api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params }),
+      api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: myScopeParams }),
+      api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: taskParams }),
       api.get<{ resources?: Employee[] }>("/api/vendors/vendor-resource-profiles"),
       api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
-    ]).then(([tasksRes, resourcesRes, projRes]) => {
-      setList(tasksRes.data.tasks ?? []);
+    ]).then(([myTasksRes, allTasksRes, resourcesRes, projRes]) => {
+      const myTasks = myTasksRes.data.tasks ?? [];
+      const allTasks = allTasksRes.data.tasks ?? [];
+      const allProjects = projRes.data.projects ?? [];
+
+      const involvedProjectIds = new Set<number>(
+        myTasks
+          .map((t) => Number(t.project_id ?? t.projectid))
+          .filter((id) => !Number.isNaN(id) && id > 0),
+      );
+
+      const scopedTasks =
+        involvedProjectIds.size > 0
+          ? allTasks.filter((t) => {
+            const pid = Number(t.project_id ?? t.projectid);
+            return !Number.isNaN(pid) && involvedProjectIds.has(pid);
+          })
+          : [];
+
+      const scopedProjects =
+        involvedProjectIds.size > 0
+          ? allProjects.filter((p) => involvedProjectIds.has(Number(p.id)))
+          : [];
+
+      setList(uniqueById(scopedTasks));
       setEmployees(resourcesRes.data.resources ?? []);
-      setProjects(projRes.data.projects ?? []);
+      setProjects(uniqueById(scopedProjects));
     }).catch(() => {
       toast.error("Failed to load tasks");
     }).finally(() => setLoading(false));
@@ -788,7 +832,7 @@ export default function MytaskPMV() {
   });
 
   const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" =>
-    normalizeStatus(t.status);
+    normalizeStatus(t.status, t.Approval);
 
 
 

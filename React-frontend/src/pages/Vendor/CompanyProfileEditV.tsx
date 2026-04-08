@@ -32,7 +32,7 @@ function stringifyList(arr: string[]): string {
 const SECTOR_OPTIONS = ['Construction', 'Architecture', 'MEP', 'Structural', 'Infrastructure', 'Interior Design', 'Real Estate', 'Smart Buildings', 'Sustainability'];
 const SERVICE_OPTIONS = ['BIM Modeling', 'Clash Detection', 'Quantity Surveying', 'Project Management', 'Drafting', 'Rendering', '4D/5D BIM', 'Scan to BIM', 'Consultancy'];
 
-export default function CompanyProfileEditV() {
+export function CompanyProfileEdit({ basePath }: { basePath: string }) {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -68,7 +68,7 @@ export default function CompanyProfileEditV() {
                 keywords: stringifyList(keywords),
             });
             setSuccessMsg('Profile updated successfully!');
-            setTimeout(() => navigate('/v/company-profile'), 1500);
+            setTimeout(() => navigate(`${basePath}/company-profile`), 1500);
         } catch {
             setErrorMsg('Failed to save. Please try again.');
         } finally {
@@ -102,7 +102,7 @@ export default function CompanyProfileEditV() {
             <div className="shrink-0 mb-5 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <Link
-                        to="/v/company-profile"
+                        to={`${basePath}/company-profile`}
                         className="flex items-center text-[#353535] hover:text-[#DE3D3A] font-medium font-gantari"
                     >
                         ← Back to Company Profile
@@ -239,4 +239,8 @@ export default function CompanyProfileEditV() {
             </div>
         </div>
     );
+}
+
+export default function CompanyProfileEditV() {
+    return <CompanyProfileEdit basePath="/v" />;
 }

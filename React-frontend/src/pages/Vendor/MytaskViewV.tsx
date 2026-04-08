@@ -85,6 +85,20 @@ function taskOutputFileUrl(storedName: string): string {
   return `${getApiBase()}/uploads/task/${encodeURIComponent(name)}`;
 }
 
+function isImageFile(nameOrType?: string): boolean {
+  const v = String(nameOrType || "").toLowerCase();
+  return (
+    v.startsWith("image/") ||
+    v.endsWith(".png") ||
+    v.endsWith(".jpg") ||
+    v.endsWith(".jpeg") ||
+    v.endsWith(".gif") ||
+    v.endsWith(".webp") ||
+    v.endsWith(".bmp") ||
+    v.endsWith(".svg")
+  );
+}
+
 function normalizeStatus(s: string | undefined, approval?: string): StatusKey {
   if (approval?.toLowerCase() === "approved") return "approved";
   if (approval?.toLowerCase() === "rejected") return "rejected";
@@ -188,10 +202,10 @@ export default function MytaskViewV() {
 
   const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
+    if (!file) return;
     setSelectedImage(file);
     if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
-    setSelectedImagePreview(URL.createObjectURL(file));
+    setSelectedImagePreview(isImageFile(file.type) ? URL.createObjectURL(file) : null);
     e.target.value = "";
   };
 
@@ -213,13 +227,11 @@ export default function MytaskViewV() {
     setIsDragging(false);
 
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("image/")) {
+    if (file) {
       setSelectedImage(file);
       if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
-      setSelectedImagePreview(URL.createObjectURL(file));
+      setSelectedImagePreview(isImageFile(file.type) ? URL.createObjectURL(file) : null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-    } else if (file) {
-      toast.error("Please drop an image file");
     }
   };
 
@@ -309,15 +321,21 @@ export default function MytaskViewV() {
       await api.post(
         `/api/vendors/vendor-tasks/${task.id}/output-files`,
         formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
       );
       toast.success("Work submitted successfully");
       setSelectedImage(null);
       if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
       setSelectedImagePreview(null);
       refreshTaskFromApi();
-    } catch (error) {
-      console.error("Error submitting work:", error);
-      toast.error("Failed to submit work");
+    } catch (error: any) {
+      const backendMsg =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "Failed to submit work";
+      console.error("Error submitting work:", error?.response?.data || error);
+      toast.error(String(backendMsg));
     } finally {
       setSubmittingWork(false);
     }
@@ -562,9 +580,9 @@ export default function MytaskViewV() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="*/*"
               className="sr-only"
-              aria-label="Select image"
+              aria-label="Select file"
               onChange={handleSelectImage}
             />
             <div
@@ -574,7 +592,7 @@ export default function MytaskViewV() {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
-              {selectedImagePreview ? (
+              {selectedImage && selectedImagePreview ? (
                 <>
                   <div className="group absolute top-2 right-2 z-10">
                     <button
@@ -599,10 +617,15 @@ export default function MytaskViewV() {
                     className="max-h-48 max-w-full object-contain rounded"
                   />
                 </>
+              ) : selectedImage ? (
+                <>
+                  <img src={ImageIcon} alt="File" className="w-7 h-7" />
+                  <span className="text-xs mt-2 text-[#353535] break-all text-center">{selectedImage.name}</span>
+                </>
               ) : (
                 <>
                   <img src={ImageIcon} alt="Image" className="w-7 h-7" />
-                  <span className="text-xs mt-2 text-[#616161]">No Image Selected</span>
+                  <span className="text-xs mt-2 text-[#616161]">No File Selected</span>
                   <span className="text-[10px] mt-1 text-[#8B8B8B]">Drag and drop file here</span>
                 </>
               )}
@@ -615,7 +638,7 @@ export default function MytaskViewV() {
                 className="inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-3 text-xs text-black hover:bg-[#D5E6FF] whitespace-nowrap disabled:opacity-50"
               >
                 <img src={Upload} alt="Upload" className="w-3 h-3 mr-1" />
-                <span className="mr-2">Select Image</span>
+                <span className="mr-2">Select File</span>
               </button>
               <button
                 type="button"
@@ -624,13 +647,13 @@ export default function MytaskViewV() {
                 className="inline-flex items-center gap-1 rounded-sm bg-[#E1F6EB] px-4 py-3 text-xs text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap disabled:opacity-50"
               >
                 <FiCheck className="w-4 h-4 text-[#008F22]" />
-                {submittingWork ? "Submitting..." : "Submit Image"}
+                {submittingWork ? "Submitting..." : "Submit File"}
               </button>
             </div>
             {submittedOutputFiles.length > 0 && (
               <div className="mt-6 border-t border-slate-200 pt-4">
                 <p className="text-xs font-semibold text-black mb-2">
-                  Submitted images (saved)
+                  Submitted files (saved)
                 </p>
                 <div className="flex flex-wrap gap-3">
                   {submittedOutputFiles.map((fname) => {
@@ -643,12 +666,18 @@ export default function MytaskViewV() {
                         rel="noopener noreferrer"
                         className="block rounded border border-slate-200 overflow-hidden bg-white max-w-[140px]"
                       >
-                        <img
-                          src={src}
-                          alt={fname}
-                          className="max-h-28 w-full object-contain"
-                          loading="lazy"
-                        />
+                        {isImageFile(fname) ? (
+                          <img
+                            src={src}
+                            alt={fname}
+                            className="max-h-28 w-full object-contain"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="px-3 py-3 text-xs text-[#353535] break-all">
+                            {fname}
+                          </div>
+                        )}
                       </a>
                     );
                   })}
