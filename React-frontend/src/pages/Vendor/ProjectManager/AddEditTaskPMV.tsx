@@ -342,14 +342,21 @@ export default function AddEditTaskPMV() {
     <div className="flex-1 min-h-0 bg-white overflow-hidden font-Gantari">
       <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col pt-6 px-6">
         <div className="flex items-center justify-between mb-10 flex-shrink-0">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer border-0 shadow-none"
-            title="Back"
-          >
-            <img src={backIcon} alt="Back" className="w-5 h-5" />
-          </button>
+          <div className="group relative">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer border-0 shadow-none"
+            >
+              <img src={backIcon} alt="Back" className="w-5 h-5" />
+            </button>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Go Back</span>
+              </div>
+            </div>
+          </div>
           <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] text-center flex-1 font-Gantari">
             {editingTaskId ? "Edit Task" : "Add New Task"}
           </h3>
@@ -580,24 +587,38 @@ export default function AddEditTaskPMV() {
                           <span className="text-xs text-[#8B8B8B]">Saved on task</span>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openServerOutputInNewTab(stored)}
-                            className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer border-0 bg-transparent shadow-none"
-                            title="View in new tab"
-                            aria-label={`View ${displayNameFromStoredFilename(stored)} in new tab`}
-                          >
-                            <img src={viewIcon} alt="" className="h-5 w-5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPendingAttachmentDelete({ type: "server", name: stored })}
-                            className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer border-0 bg-transparent shadow-none"
-                            title="Remove"
-                            aria-label={`Remove ${displayNameFromStoredFilename(stored)}`}
-                          >
-                            <img src={deleteIcon} alt="" className="h-5 w-5" />
-                          </button>
+                          <div className="group relative">
+                            <button
+                              type="button"
+                              onClick={() => openServerOutputInNewTab(stored)}
+                              className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer border-0 bg-transparent shadow-none"
+                              aria-label={`View ${displayNameFromStoredFilename(stored)} in new tab`}
+                            >
+                              <img src={viewIcon} alt="" className="h-5 w-5" />
+                            </button>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
+                                <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">View in new tab</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="group relative">
+                            <button
+                              type="button"
+                              onClick={() => setPendingAttachmentDelete({ type: "server", name: stored })}
+                              className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer border-0 bg-transparent shadow-none"
+                              aria-label={`Remove ${displayNameFromStoredFilename(stored)}`}
+                            >
+                              <img src={deleteIcon} alt="" className="h-5 w-5" />
+                            </button>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
+                                <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Remove</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -613,24 +634,38 @@ export default function AddEditTaskPMV() {
                           <span className="text-xs text-[#8B8B8B]">{formatFileSize(file.size)}</span>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openAttachmentInNewTab(file)}
-                            className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer border-0 bg-transparent shadow-none"
-                            title="View in new tab"
-                            aria-label={`View ${file.name} in new tab`}
-                          >
-                            <img src={viewIcon} alt="" className="h-5 w-5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPendingAttachmentDelete({ type: "local", index })}
-                            className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer border-0 bg-transparent shadow-none"
-                            title="Remove"
-                            aria-label={`Remove ${file.name}`}
-                          >
-                            <img src={deleteIcon} alt="" className="h-5 w-5" />
-                          </button>
+                          <div className="group relative">
+                            <button
+                              type="button"
+                              onClick={() => openAttachmentInNewTab(file)}
+                              className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer border-0 bg-transparent shadow-none"
+                              aria-label={`View ${file.name} in new tab`}
+                            >
+                              <img src={viewIcon} alt="" className="h-5 w-5" />
+                            </button>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
+                                <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">View in new tab</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="group relative">
+                            <button
+                              type="button"
+                              onClick={() => setPendingAttachmentDelete({ type: "local", index })}
+                              className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer border-0 bg-transparent shadow-none"
+                              aria-label={`Remove ${file.name}`}
+                            >
+                              <img src={deleteIcon} alt="" className="h-5 w-5" />
+                            </button>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
+                                <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Remove</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}

@@ -963,13 +963,21 @@ export default function MytaskPMV() {
 
       {deleteTaskId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 font-Gantari">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-visible">
             <div className="flex items-center justify-between px-6 py-4 border-0">
               <div className="w-9" />
               <h3 className="flex-1 text-center text-lg font-semibold text-[#353535]">Delete Task</h3>
-              <button type="button" onClick={() => setDeleteTaskId(null)} className="p-1 rounded-sm text-black bg-[#F0F0F0] cursor-pointer border-0">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+              <div className="group relative">
+                <button type="button" onClick={() => setDeleteTaskId(null)} className="p-1 rounded-sm text-black bg-[#F0F0F0] cursor-pointer border-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+                <div className="absolute top-full right-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px] ml-auto mr-1"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Close</span>
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="px-6 py-10 text-center text-black">Are you sure, you want to Delete this Task?</div>
             <div className="flex justify-center gap-3 px-6 py-6">
