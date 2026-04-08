@@ -282,40 +282,90 @@ export default function ClientBL() {
                                 <div className="p-6 space-y-6 flex-1 flex flex-col">
                                     {/* Quick Action Block Buttons */}
                                     <div className="grid grid-cols-3 gap-3">
-                                        <button className="flex items-center justify-center gap-2 py-3 rounded-lg bg-[#DBE9FE] hover:bg-[#c9deff] transition-colors cursor-pointer" title="Mail">
-                                            <img src={mailIcon} alt="Mail" className="w-5 h-5 object-contain" />
-                                            <span className="text-sm font-bold text-[#12141D]">Mail</span>
-                                        </button>
-                                        <button className="flex items-center justify-center gap-2 py-3 rounded-lg bg-[#DBE9FE] hover:bg-[#c9deff] transition-colors cursor-pointer" title="Message">
-                                            <img src={messageIcon} alt="Message" className="w-5 h-5 object-contain" />
-                                            <span className="text-sm font-bold text-[#12141D]">Message</span>
-                                        </button>
-                                        <button className="flex items-center justify-center gap-2 py-3 rounded-lg bg-[#DBE9FE] hover:bg-[#c9deff] transition-colors cursor-pointer" title="Call">
-                                            <img src={callIcon} alt="Call" className="w-5 h-5 object-contain" />
-                                            <span className="text-sm font-bold text-[#12141D]">Call</span>
-                                        </button>
+                                        <div className="relative group">
+                                            <button className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-[#DBE9FE] hover:bg-[#c9deff] transition-colors cursor-pointer">
+                                                <img src={mailIcon} alt="Mail" className="w-5 h-5 object-contain" />
+                                                <span className="text-sm font-bold text-[#12141D]">Mail</span>
+                                            </button>
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                                        Mail
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="relative group">
+                                            <button className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-[#DBE9FE] hover:bg-[#c9deff] transition-colors cursor-pointer">
+                                                <img src={messageIcon} alt="Message" className="w-5 h-5 object-contain" />
+                                                <span className="text-sm font-bold text-[#12141D]">Message</span>
+                                            </button>
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                                        Message
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="relative group">
+                                            <button className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-[#DBE9FE] hover:bg-[#c9deff] transition-colors cursor-pointer">
+                                                <img src={callIcon} alt="Call" className="w-5 h-5 object-contain" />
+                                                <span className="text-sm font-bold text-[#12141D]">Call</span>
+                                            </button>
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                                        Call
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div className="h-px bg-gray-100" />
 
                                     {/* Primary Actions */}
                                     <div className="grid grid-cols-2 gap-3 mt-auto">
-                                        <button
-                                            type="button"
-                                            onClick={() => openView(c.id)}
-                                            className="flex items-center justify-center gap-2 py-3.5 rounded-md bg-[#DD4342] text-[#F2F2F2] font-gantari text-sm transition shadow-sm cursor-pointer"
-                                        >
-                                            <img src={viewIcon} alt="View" className="w-5 h-5 object-contain" />
-                                            View
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openEdit(c.id)}
-                                            className="flex items-center justify-center gap-2 py-3.5 rounded-md bg-[#F2F2F2] text-[#353535] font-gantari text-sm transition border border-transparent cursor-pointer"
-                                        >
-                                            <img src={editIcon} alt="Edit" className="w-5 h-5 object-contain" />
-                                            Edit
-                                        </button>
+                                        <div className="relative group">
+                                            <button
+                                                type="button"
+                                                onClick={() => openView(c.id)}
+                                                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-md bg-[#DD4342] text-[#F2F2F2] font-gantari text-sm transition shadow-sm cursor-pointer"
+                                            >
+                                                <img src={viewIcon} alt="View" className="w-5 h-5 object-contain" />
+                                                View
+                                            </button>
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                                        View Details
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="relative group">
+                                            <button
+                                                type="button"
+                                                onClick={() => openEdit(c.id)}
+                                                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-md bg-[#F2F2F2] text-[#353535] font-gantari text-sm transition border border-transparent cursor-pointer"
+                                            >
+                                                <img src={editIcon} alt="Edit" className="w-5 h-5 object-contain" />
+                                                Edit
+                                            </button>
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                                        Edit Details
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -329,13 +379,23 @@ export default function ClientBL() {
                     <div className="bg-white rounded-[20px] shadow-2xl max-w-3xl w-full transition-all animate-in fade-in zoom-in duration-200 max-h-[95vh] overflow-y-auto hide-scrollbar">
                         {/* Header */}
                         <div className="relative p-5">
+                        <div className="relative group absolute left-6 top-6">
                             <button
                                 type="button"
                                 onClick={() => { setShowAddModal(false); setAddError(''); }}
-                                className="absolute left-6 top-6 w-7 h-7 flex items-center justify-center transition hover:opacity-80 cursor-pointer"
+                                className="w-7 h-7 flex items-center justify-center transition hover:opacity-80 cursor-pointer"
                             >
                                 <img src={closeIcon} alt="Close" className="w-full h-full object-contain" />
                             </button>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                        Close
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                             <h3 className="text-center text-xl font-gantari font-semibold text-[#020202]">Add New Client</h3>
                         </div>
 
@@ -501,13 +561,23 @@ export default function ClientBL() {
                     <div className="bg-white rounded-[20px] shadow-2xl max-w-3xl w-full transition-all animate-in fade-in zoom-in duration-200 max-h-[95vh] overflow-y-auto hide-scrollbar">
                         {/* Header */}
                         <div className="relative p-5">
+                        <div className="relative group absolute left-6 top-6">
                             <button
                                 type="button"
                                 onClick={() => { setEditId(null); setSearchParams({}); }}
-                                className="absolute left-6 top-6 w-7 h-7 flex items-center justify-center transition hover:opacity-80 cursor-pointer"
+                                className="w-7 h-7 flex items-center justify-center transition hover:opacity-80 cursor-pointer"
                             >
                                 <img src={closeIcon} alt="Close" className="w-full h-full object-contain" />
                             </button>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                        Close
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                             <h3 className="text-center text-xl font-gantari font-semibold text-[#020202]">Edit Client Details</h3>
                         </div>
 
@@ -671,13 +741,23 @@ export default function ClientBL() {
                     <div className="bg-white rounded-[20px] shadow-2xl max-w-xl w-full transition-all animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto hide-scrollbar">
                         {/* Header */}
                         <div className="relative p-6">
+                        <div className="relative group absolute left-6 top-6">
                             <button
                                 type="button"
                                 onClick={() => { setViewId(null); setViewClient(null); }}
-                                className="absolute left-6 top-6 w-8 h-8 flex items-center justify-center transition hover:opacity-80 cursor-pointer"
+                                className="w-8 h-8 flex items-center justify-center transition hover:opacity-80 cursor-pointer"
                             >
                                 <img src={closeIcon} alt="Close" className="w-full h-full object-contain" />
                             </button>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                        Close
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                             <h3 className="text-center text-xl font-gantari font-semibold text-[#020202]">View Client Details</h3>
                         </div>
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import toast from "react-hot-toast";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import api from "../../lib/api";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
@@ -13,7 +14,7 @@ import threedot from "../../assets/ProjectManager/project/threedot.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
-import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
+import { FiUploadCloud, FiPaperclip, FiX } from "react-icons/fi";
 
 const CURRENCIES = [
   { code: 'USD', symbol: '$' },
@@ -817,20 +818,29 @@ export default function ProjectsBL() {
       {showProjectView && selectedProjectForView ? (
         <div className="flex flex-col h-full bg-white">
           {/* Project View Header */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 py-2 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => {
-                setShowProjectView(false);
-                setSelectedProjectForView(null);
-                setSearchParams({}, { replace: true });
-              }}
-              className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
-              title="Back"
-            >
-              <img src={backIcon} alt="Back" className="w-5 h-5" />
-            </button>
-            <div className="text-center">
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
+            <div className="relative group absolute left-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProjectView(false);
+                  setSelectedProjectForView(null);
+                  setSearchParams({}, { replace: true });
+                }}
+                className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
+              >
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Go back
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="text-center px-12 md:px-16">
               <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
                 {selectedProjectForView?.project_name ?? "Loading..."}
               </h3>
@@ -1569,17 +1579,29 @@ export default function ProjectsBL() {
             {showAllMembersModal && (
               <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                 <div className="bg-white rounded-[2rem] shadow-2xl max-w-3xl w-full p-6 md:p-10 relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowAllMembersModal(false)}
+                  <div className="relative flex items-center justify-center w-full mb-6 py-2">
+                    <div className="relative group absolute left-0 top-1/2 -translate-y-1/2">
+                      <button
+                        type="button"
+                        onClick={() => setShowAllMembersModal(false)}
                     className="absolute left-4 top-4 md:top-6 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
                     title="Back"
-                  >
+                      >
                     <img src={backIcon} alt="Back" className="w-5 h-5" />
-                  </button>
-                  <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center">
-                    All Members ({allMembersList.length})
-                  </h3>
+                      </button>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                          <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                            Close
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center px-12">
+                      All Members ({allMembersList.length})
+                    </h3>
+                  </div>
 
                   <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
                     {allMembersList.map((m) => (
@@ -1635,15 +1657,24 @@ export default function ProjectsBL() {
         <div className="flex flex-col h-full bg-white">
           {/* Milestones Header */}
           <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => setShowMilestones(false)}
-              className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-              title="Back"
-            >
-              <img src={backIcon} alt="Back" className="w-5 h-5" />
-            </button>
-            <div className="text-center">
+            <div className="relative group absolute left-4 mt-0">
+              <button
+                type="button"
+                onClick={() => setShowMilestones(false)}
+                className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+              >
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Go back
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="text-center px-12 md:px-16">
               <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                 Payment Milestones
               </h3>
@@ -1877,19 +1908,28 @@ export default function ProjectsBL() {
       ) : showCreateModal ? (
         <div className="flex flex-col h-full bg-white">
           {/* Create Project Header */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => {
-                setShowCreateModal(false);
-                setCreateError("");
-              }}
-              className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer"
-              title="Back"
-            >
-              <img src={backIcon} alt="Back" className="w-5 h-5" />
-            </button>
-            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
+            <div className="relative group absolute left-4 mt-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setCreateError("");
+                }}
+                className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer"
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Close
+                  </span>
+                </div>
+              </div>
+            </div>
+            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center px-12 md:px-16">
               Add New Project
             </h3>
           </div>
@@ -2539,26 +2579,47 @@ export default function ProjectsBL() {
                             </p>
                           </div>
                           <div className="flex gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => window.open(URL.createObjectURL(file), '_blank')}
-                              className="p-1 hover:bg-slate-50 rounded transition-colors"
-                            >
-                              <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setCreateFiles((prev) =>
-                                  prev.filter((_, i) => i !== idx),
-                                )
-                              }
-                              className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
+                            <div className="relative group">
+                              <button
+                                type="button"
+                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                                className="p-1 hover:bg-slate-50 rounded transition-colors"
+                              >
+                                <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
+                              </button>
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                    View
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="relative group">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setCreateFiles((prev) =>
+                                    prev.filter((_, i) => i !== idx),
+                                  )
+                                }
+                                className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                    Remove
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -2619,20 +2680,29 @@ export default function ProjectsBL() {
       ) : showEditModal ? (
         <div className="flex flex-col h-full bg-white">
           {/* Edit Project Header */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-2 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => {
-                setShowEditModal(false);
-                setEditError("");
-                resetFormFields();
-              }}
-              className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer"
-              title="Back"
-            >
-              <img src={backIcon} alt="Back" className="w-5 h-5" />
-            </button>
-            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
+            <div className="relative group absolute left-4 mt-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditError("");
+                  resetFormFields();
+                }}
+                className="p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer"
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Close
+                  </span>
+                </div>
+              </div>
+            </div>
+            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center px-12 md:px-16">
               Edit Project Details
             </h3>
           </div>
@@ -2745,13 +2815,19 @@ export default function ProjectsBL() {
 
                     createTasksPromise
                       .then(() => {
+                        toast.success("Project updated successfully!");
                         setShowEditModal(false);
                         setSelectedProjectForEdit(null);
                         fetchProjects();
                       })
-                      .catch(() => undefined);
+                      .catch(() => {
+                        toast.error("Failed to update project tasks.");
+                      });
                   })
-                  .catch(err => setEditError(err.response?.data?.message || 'Failed to update project'))
+                  .catch(err => {
+                    toast.error(err.response?.data?.message || 'Failed to update project');
+                    setEditError(err.response?.data?.message || 'Failed to update project');
+                  })
                   .finally(() => setIsEditSubmitting(false));
               }}
               className="mx-auto px-4 space-y-6 md:space-y-8"
@@ -3273,26 +3349,47 @@ export default function ProjectsBL() {
                               <p className="text-[11px] text-slate-500">Existing File</p>
                             </div>
                             <div className="flex gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => window.open(url, '_blank')}
-                                className="p-1 hover:bg-slate-50 rounded transition-colors"
-                              >
-                                <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const file = existingFiles[idx];
-                                  setExistingFiles((prev) => prev.filter((_, i) => i !== idx));
-                                  setRemovedFiles((prev) => [...prev, file]);
-                                }}
-                                className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
+                              <div className="relative group">
+                                <button
+                                  type="button"
+                                  onClick={() => window.open(url, '_blank')}
+                                  className="p-1 hover:bg-slate-50 rounded transition-colors"
+                                >
+                                  <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                      View
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="relative group">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const file = existingFiles[idx];
+                                    setExistingFiles((prev) => prev.filter((_, i) => i !== idx));
+                                    setRemovedFiles((prev) => [...prev, file]);
+                                  }}
+                                  className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                      Remove
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         );
@@ -3309,26 +3406,47 @@ export default function ProjectsBL() {
                             <p className="text-[11px] text-blue-400">New Upload</p>
                           </div>
                           <div className="flex gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => window.open(URL.createObjectURL(file), '_blank')}
-                              className="p-1 hover:bg-slate-50 rounded transition-colors"
-                            >
-                              <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setCreateFiles((prev) =>
-                                  prev.filter((_, i) => i !== idx),
-                                )
-                              }
-                              className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
+                            <div className="relative group">
+                              <button
+                                type="button"
+                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                                className="p-1 hover:bg-slate-50 rounded transition-colors"
+                              >
+                                <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
+                              </button>
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                    View
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="relative group">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setCreateFiles((prev) =>
+                                    prev.filter((_, i) => i !== idx),
+                                  )
+                                }
+                                className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                    Remove
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -3398,17 +3516,19 @@ export default function ProjectsBL() {
               {title}
             </h2>
             {canCreate && (
-              <button
-                type="button"
-                onClick={() => {
-                  resetFormFields();
-                  setShowCreateModal(true);
-                }}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all cursor-pointer"
-              >
-                <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
-                Create Project
-              </button>
+              <div className="relative group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetFormFields();
+                    setShowCreateModal(true);
+                  }}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all cursor-pointer"
+                >
+                  <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
+                  Create Project
+                </button>
+              </div>
             )}
           </div>
 
@@ -3755,10 +3875,13 @@ export default function ProjectsBL() {
 
                   api.delete(baseEndpoint)
                     .then(() => {
+                      toast.success("Project deleted successfully");
                       setList(prev => prev.filter(p => p.id !== deleteProject.id));
                       setDeleteProject(null);
                     })
-                    .catch(() => { });
+                    .catch((err) => {
+                      toast.error(err.response?.data?.message || "Failed to delete project");
+                    });
                 }}
                 className="flex-1 px-6 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all font-Gantari shadow-lg shadow-red-200 cursor-pointer"
               >
@@ -3773,16 +3896,25 @@ export default function ProjectsBL() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full flex flex-col p-10">
             {/* Modal Header */}
-            <div className="relative flex items-center justify-center mb-6 md:mb-10">
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50 mb-6 md:mb-10">
+            <div className="relative group absolute left-4 mt-0">
               <button
                 type="button"
                 onClick={() => setShowAddMilestoneModal(false)}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-all cursor-pointer"
-                title="Back"
+                className="p-2 rounded-[5px] bg-[#F2F2F2] transition-all cursor-pointer"
               >
-                <img src={backIcon} alt="Back" className="w-5 h-5" />
+                <FiX className="w-5 h-5" />
               </button>
-              <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center px-12">
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Close
+                  </span>
+                </div>
+              </div>
+            </div>
+              <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center px-12 md:px-16">
                 Add Payment Milestone
               </h3>
             </div>
@@ -3802,6 +3934,7 @@ export default function ProjectsBL() {
                     action: "add",
                   })
                   .then(() => {
+                    toast.success("Milestone added successfully");
                     setShowAddMilestoneModal(false);
                     setMilestoneName("");
                     setMilestoneAmount("");
@@ -3809,7 +3942,9 @@ export default function ProjectsBL() {
                     setMilestoneNotes("");
                     fetchMilestones(currentProject.id);
                   })
-                  .catch(() => { });
+                  .catch((err) => {
+                    toast.error(err.response?.data?.message || "Failed to add milestone");
+                  });
               }}
               className="max-w-5xl mx-auto px-6"
             >

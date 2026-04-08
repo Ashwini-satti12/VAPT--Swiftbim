@@ -936,8 +936,11 @@ export default function TeamtaskBL() {
         api.patch(endpoint, {
             status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
             projectId
-        }).catch(err => {
+        })
+        .then(() => toast.success(`Task moved to ${label} successfully!`))
+        .catch(err => {
             console.error("Failed to update task status:", err);
+            toast.error(err.response?.data?.message || "Failed to update task status.");
             // Optionally revert local state on error
         });
     };
@@ -1180,7 +1183,6 @@ export default function TeamtaskBL() {
                                     })
                                 }
                                 className={`inline-flex items-center justify-center gap-2 rounded-md px-3 sm:px-4 h-[36px] min-h-[36px] text-[14px] font-medium shadow-sm cursor-pointer transition-all ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-[#F2F2F2] hover:bg-[#c33a39]"}`}
-                                title={isOutsourceProjectSelected ? "Cannot add tasks to Outsource projects" : "Add task"}
                             >
                                 <img src={AddBtn} alt="Add" className="h-4 w-4 sm:h-5 sm:w-5" />
                                 <span className="hidden sm:inline whitespace-nowrap">Add task</span>
@@ -1193,6 +1195,7 @@ export default function TeamtaskBL() {
                         ref={dropdownsContainerRef}
                         className="grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-start lg:justify-end gap-2 w-full lg:w-auto overflow-visible"
                     >
+                        {/* ... dropdowns ... */}
                         <TaskDropdown
                             label="Select Employee"
                             options={employeeOptions}
@@ -1256,22 +1259,19 @@ export default function TeamtaskBL() {
                             maxVisibleItems={4}
                         />
                         {/* Desktop Add Task Button */}
-                        <div className="hidden lg:block ml-2">
-                            <button
-                                type="button"
-                                disabled={isOutsourceProjectSelected}
-                                onClick={() =>
-                                    navigate("/bl/teamtasks/add", {
-                                        state: { from: "teamtasks" },
-                                    })
-                                }
-                                className={`inline-flex items-center justify-center gap-2 rounded-md px-4 h-[36px] min-h-[36px] text-[14px] font-medium shadow-sm cursor-pointer transition-all ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-[#F2F2F2] hover:bg-[#c33a39]"}`}
-                                title={isOutsourceProjectSelected ? "Cannot add tasks to Outsource projects" : "Add task"}
-                            >
-                                <img src={AddBtn} alt="Add" className="h-5 w-5" />
-                                <span className="whitespace-nowrap">Add task</span>
-                            </button>
-                        </div>
+                        <button
+                            type="button"
+                            disabled={isOutsourceProjectSelected}
+                            onClick={() =>
+                                navigate("/bl/teamtasks/add", {
+                                    state: { from: "teamtasks" },
+                                })
+                            }
+                            className={`hidden lg:inline-flex ml-2 items-center justify-center gap-2 rounded-md px-4 h-[36px] min-h-[36px] text-[14px] font-medium shadow-sm cursor-pointer transition-all ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-[#F2F2F2] hover:bg-[#c33a39]"}`}
+                        >
+                            <img src={AddBtn} alt="Add" className="h-5 w-5" />
+                            <span className="whitespace-nowrap">Add task</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1402,16 +1402,25 @@ export default function TeamtaskBL() {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                     <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
                         {/* Close */}
-                        <button
-                            type="button"
-                            onClick={() => setDeleteTask(null)}
-                            className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                            title="Close"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                        <div className="relative group absolute left-4 top-4">
+                            <button
+                                type="button"
+                                onClick={() => setDeleteTask(null)}
+                                className="p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                        Close
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                         <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
                             Delete Task
                         </h3>
@@ -1443,26 +1452,36 @@ export default function TeamtaskBL() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                     <div className="bg-[#FFFFFF] rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-                            <button
-                                type="button"
-                                onClick={resetTaskFormAndClose}
-                                className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
-                                aria-label="Close"
-                            >
-                                <svg
-                                    className="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
+                            <div className="relative group">
+                                <button
+                                    type="button"
+                                    onClick={resetTaskFormAndClose}
+                                    className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+                                    aria-label="Close"
                                 >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
+                                    <svg
+                                        className="w-5 h-5"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M6 18L18 6M6 6l12 12"
+                                        />
+                                    </svg>
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                            Close
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                             <h3 className="text-lg font-semibold text-black">
                                 {editingTaskId !== null ? "Edit Task" : "Add New Task"}
                             </h3>
@@ -1514,21 +1533,29 @@ export default function TeamtaskBL() {
                                         start_time: payload.startTime,
                                         due_time: payload.dueTime
                                     }).then(() => {
+                                        toast.success("Task updated successfully!");
                                         handleFiles(existing.id);
                                         const params: Record<string, string> = { condition: isTeam ? "1" : "0" };
                                         if (statusFilter) params.status = statusFilter;
                                         api.get<{ tasks?: Task[] }>("/api/tasks", { params })
                                             .then(res => setList(res.data.tasks ?? []));
+                                    }).catch((err) => {
+                                        toast.error(err.response?.data?.message || "Failed to update task.");
                                     });
                                 } else {
-                                    api.post<{ success: boolean; task_id: number }>('/api/tasks', payload).then(res => {
+                                    api.post<{ success: boolean; task_id?: number; message?: string }>('/api/tasks', payload).then(res => {
                                         if (res.data.success && res.data.task_id) {
+                                            toast.success("Task created successfully!");
                                             handleFiles(res.data.task_id);
                                             const params: Record<string, string> = { condition: isTeam ? "1" : "0" };
                                             if (statusFilter) params.status = statusFilter;
                                             api.get<{ tasks?: Task[] }>("/api/tasks", { params })
                                                 .then(r => setList(r.data.tasks ?? []));
+                                        } else {
+                                            toast.error(res.data.message || "Failed to create task.");
                                         }
+                                    }).catch((err) => {
+                                        toast.error(err.response?.data?.message || "Failed to create task.");
                                     });
                                 }
                                 resetTaskFormAndClose();
