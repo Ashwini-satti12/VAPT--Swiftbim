@@ -148,6 +148,7 @@ import MyTaskViewEV from './pages/Vendor/Employee/MyTaskViewEV';
 import AddEditTaskEV from './pages/Vendor/Employee/AddEditTaskEV';
 import TeamtaskEV from './pages/Vendor/Employee/TeamtaskEV';
 import ChatEV from './pages/Vendor/Employee/ChatEV';
+import ProjectEV from './pages/Vendor/Employee/ProjectEV';
 
 /* Vendor BIM Lead */
 import VendorBimLeadDashboard from './pages/Vendor/VendorBimLead/VendorBimLeadDashboard';
@@ -320,6 +321,8 @@ function App() {
 
             {/* Vendor Employee Routes */}
             <Route path="ve/dashboard" element={<DashboardEV />} />
+            <Route path="ve/projects" element={<ProjectEV />} />
+            <Route path="ve/projects/:id" element={<ProjectDetailPM />} />
             <Route path="ve/mytasks/add" element={<AddEditTaskEV />} />
             <Route path="ve/mytasks/view/:id" element={<MyTaskViewEV />} />
             <Route path="ve/mytasks/edit/:id" element={<AddEditTaskEV />} />

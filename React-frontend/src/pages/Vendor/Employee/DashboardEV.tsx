@@ -127,7 +127,6 @@ export default function DashboardEV() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>(defaultStats);
   const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
-  const [projects, setProjects] = useState<any[]>([]); // To handle Math.max fallback
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
@@ -166,10 +165,6 @@ export default function DashboardEV() {
     api.get<{ tasks: PriorityTask[] }>('/api/vendors/dashboard/priority-tasks')
         .then(({ data }) => setPriorityTasks(Array.isArray(data.tasks) ? data.tasks : []))
         .catch(() => setPriorityTasks([]));
-
-    api.get<{ projects?: any[] }>('/api/vendors/vendor-projects')
-        .then(({ data }) => setProjects(Array.isArray(data.projects) ? data.projects : []))
-        .catch(() => setProjects([]));
   }, []);
 
   // Celebrations
@@ -299,10 +294,10 @@ export default function DashboardEV() {
 
   // KPI card definitions + deep links
   const kpiCards = [
-    { label: 'Total Projects', value: Math.max(stats.total_projects, projects.length) },
-    { label: 'Completed Projects', value: stats.completed_projects || 0 },
-    { label: 'Inprogress Tasks', value: stats.in_progress_tasks || 0, link: '/ve/mytasks?status=in_progress' },
-    { label: 'Completed Tasks', value: stats.completed_tasks || 0, link: '/ve/mytasks?status=completed' },
+    { label: 'Total Projects', value: stats.total_projects, link: '/ve/projects' },
+    { label: 'Completed Projects', value: stats.completed_projects || 0, link: '/ve/projects?status=completed' },
+    { label: 'Inprogress Tasks', value: stats.in_progress_tasks || 0, link: '/ve/teamtasks?status=in_progress' },
+    { label: 'Completed Tasks', value: stats.completed_tasks || 0, link: '/ve/teamtasks?status=completed' },
   ];
 
   if (loading) {
