@@ -932,7 +932,7 @@ export default function ResourcesV() {
                     label: "Phone Number",
                     value: selectedEmployee.phone_number,
                   },
-                  { label: "Login Role", value: selectedEmployee.user_role },
+                  { label: "Role", value: selectedEmployee.user_role },
                   { label: "Designation", value: selectedEmployee.designation },
                   { label: "Discipline", value: selectedEmployee.discipline },
                   {
