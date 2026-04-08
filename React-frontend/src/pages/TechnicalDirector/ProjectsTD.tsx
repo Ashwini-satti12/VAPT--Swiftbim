@@ -1725,7 +1725,7 @@ export default function ProjectsTD() {
                     </div>
 
                     {/* Project Details Section */}
-                    <div className="rounded-lg border border-slate-200 p-6 md:p-4">
+                    <div className="rounded-md border border-slate-200 p-6 md:p-4">
                       <h4 className="text-[20px] font-Gantari font-semibold text-[#1A1A1A] mb-6">
                         Project Details
                       </h4>
@@ -1918,7 +1918,7 @@ export default function ProjectsTD() {
               <button
                 type="button"
                 onClick={() => setShowMilestones(false)}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] transition-colors cursor-pointer"
                 title="Back"
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
@@ -1934,7 +1934,7 @@ export default function ProjectsTD() {
               </div>
               <button
                 onClick={() => setShowAddMilestoneModal(true)}
-                className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors cursor-pointer"
+                className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-md bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors cursor-pointer"
                 title="Add Milestone"
               >
                 <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
@@ -2012,7 +2012,7 @@ export default function ProjectsTD() {
                   </p>
                   <button
                     onClick={() => setShowAddMilestoneModal(true)}
-                    className="flex items-center gap-2 px-6 py-2 rounded-[5px] bg-[#DD4342] text-white font-Gantari font-medium text-[16px] hover:bg-[#c93a39] transition-colors cursor-pointer"
+                    className="flex items-center gap-2 px-6 py-2 rounded-md bg-[#DD4342] text-white font-Gantari font-medium text-[16px] hover:bg-[#c93a39] transition-colors cursor-pointer"
                   >
                     <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
                     Add Milestone
@@ -2564,7 +2564,7 @@ export default function ProjectsTD() {
                           <div className="flex items-center gap-3">
                             {p.priority && (
                               <div
-                                className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
+                                className={`px-3.5 py-1 rounded-md text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
                                   ? "bg-[#DD4342]"
                                   : "bg-[#94D6F2]"
                                   }`}
@@ -2588,7 +2588,7 @@ export default function ProjectsTD() {
       {/* Create Project Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
-          <div className="bg-white rounded-2xl border-2 border-gray-100 max-w-4xl w-full flex flex-col max-h-[85vh] overflow-hidden shadow-xl">
+          <div className="bg-white rounded-md border-2 border-gray-100 max-w-4xl w-full flex flex-col max-h-[85vh] overflow-hidden shadow-xl">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-8 py-6 border-b border-gray-100">
               <button
@@ -2598,7 +2598,7 @@ export default function ProjectsTD() {
                   setCreateError("");
                   setCurrencyDropdownOpen(false);
                 }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
+                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
                 title="Close"
               >
                 <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
@@ -2785,7 +2785,7 @@ export default function ProjectsTD() {
                       type="text"
                       value={createName}
                       onChange={(e) => setCreateName(e.target.value)}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-md transition-all focus:outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Your Project Name"
                       required
                     />
@@ -2799,7 +2799,7 @@ export default function ProjectsTD() {
                         <button
                           type="button"
                           onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
-                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-[5px] transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] cursor-pointer ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
+                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-md transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] cursor-pointer ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
                         >
                           <span className="text-[14px] text-[#353535] font-medium truncate">
                             {CURRENCIES.find(c => c.code === createCurrency)?.symbol} {createCurrency}
@@ -2811,7 +2811,7 @@ export default function ProjectsTD() {
                           />
                         </button>
                         {currencyDropdownOpen && (
-                          <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                          <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
                             {CURRENCIES.map((c) => (
                               <button
                                 key={c.code}
@@ -2836,7 +2836,7 @@ export default function ProjectsTD() {
                           const parts = val.split(".");
                           if (parts.length <= 2) setCreateBudget(val);
                         }}
-                        className="flex-1 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                        className="flex-1 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-md transition-all focus:outline-none focus:border-[#AEACAC52]"
                         placeholder="Enter Project Budget"
                       />
                     </div>
@@ -2867,7 +2867,7 @@ export default function ProjectsTD() {
                         type="text"
                         value={otherClientValue}
                         onChange={(e) => setOtherClientValue(e.target.value)}
-                        className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                        className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-md transition-all focus:outline-none focus:border-[#AEACAC52]"
                         placeholder="Enter Client Name"
                       />
                     )}
@@ -2884,7 +2884,7 @@ export default function ProjectsTD() {
                             o === "source" ? null : "source",
                           )
                         }
-                        className={`w-full flex items-center justify-between px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-left cursor-pointer ${editDropdownOpen === "source" ? "!border-[#AEACAC52]" : ""}`}
+                        className={`w-full flex items-center justify-between px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-md focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-left cursor-pointer ${editDropdownOpen === "source" ? "!border-[#AEACAC52]" : ""}`}
                       >
                         <span
                           className={
@@ -2915,7 +2915,7 @@ export default function ProjectsTD() {
                         </svg>
                       </button>
                       {editDropdownOpen === "source" && (
-                        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg bg-white border border-[#E0E0E0] shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-md bg-white border border-[#E0E0E0] shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
                           <button
                             type="button"
                             onClick={() => {
@@ -2979,7 +2979,7 @@ export default function ProjectsTD() {
                             type="text"
                             value={otherPMValue}
                             onChange={(e) => setOtherPMValue(e.target.value)}
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-md transition-all focus:outline-none focus:border-[#AEACAC52]"
                             placeholder="Enter Project Manager Name"
                           />
                         )}
@@ -3012,7 +3012,7 @@ export default function ProjectsTD() {
                             onChange={(e) =>
                               setOtherBIMLeadValue(e.target.value)
                             }
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-md transition-all focus:outline-none focus:border-[#AEACAC52]"
                             placeholder="Enter BIM Lead Name"
                           />
                         )}
@@ -3044,7 +3044,7 @@ export default function ProjectsTD() {
                             onChange={(e) =>
                               setOtherBIMCoordValue(e.target.value)
                             }
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-md transition-all focus:outline-none focus:border-[#AEACAC52]"
                             placeholder="Enter BIM Coordinator Name"
                           />
                         )}
@@ -3061,7 +3061,7 @@ export default function ProjectsTD() {
                         </label>
                         <input
                           type="text"
-                          className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-[5px] focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
+                          className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-md focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
                             const clientNum = parseBudgetValue(createBudget);
                             const outsourceNum =
                               parseBudgetValue(createBudgetCeiling);
@@ -3099,7 +3099,7 @@ export default function ProjectsTD() {
                         </label>
                         <input
                           type="date"
-                          className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B]"
+                          className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-md focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B]"
                           value={createBiddingEndDate}
                           onChange={(e) =>
                             setCreateBiddingEndDate(e.target.value)
@@ -3115,14 +3115,14 @@ export default function ProjectsTD() {
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="px-10 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold transition-all cursor-pointer"
+                    className="px-10 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-semibold transition-all cursor-pointer"
                   >
                     Discard
                   </button>
                   <button
                     type="submit"
                     disabled={createSubmitting}
-                    className="px-10 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold transition-all cursor-pointer"
+                    className="px-10 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold transition-all cursor-pointer"
                   >
                     {createSubmitting ? "Creating..." : "Submit"}
                   </button>
@@ -3246,7 +3246,7 @@ export default function ProjectsTD() {
       {/* Add Payment Milestone Modal */}
       {showAddMilestoneModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full flex flex-col p-10">
+          <div className="bg-white rounded-md shadow-2xl max-w-2xl w-full flex flex-col p-10">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center mb-10">
               <button
@@ -3299,7 +3299,7 @@ export default function ProjectsTD() {
                   type="text"
                   value={milestoneName}
                   onChange={(e) => setMilestoneName(e.target.value)}
-                  className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
+                  className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-md focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
                   placeholder="Enter Milestone name"
                   required
                 />
@@ -3314,7 +3314,7 @@ export default function ProjectsTD() {
                   step="0.01"
                   value={milestoneAmount}
                   onChange={(e) => setMilestoneAmount(e.target.value)}
-                  className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
+                  className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-md focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
                   placeholder="Enter Amount"
                   required
                 />
@@ -3333,7 +3333,7 @@ export default function ProjectsTD() {
                     type="date"
                     value={milestoneDueDate}
                     onChange={(e) => setMilestoneDueDate(e.target.value)}
-                    className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
+                    className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-md focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
                     required
                   />
                   <div className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
@@ -3362,7 +3362,7 @@ export default function ProjectsTD() {
                   value={milestoneNotes}
                   onChange={(e) => setMilestoneNotes(e.target.value)}
                   rows={4}
-                  className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400 resize-none"
+                  className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-md focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400 resize-none"
                   placeholder="Type Your Notes..."
                 />
               </div>
@@ -3372,13 +3372,13 @@ export default function ProjectsTD() {
                 <button
                   type="button"
                   onClick={() => setShowAddMilestoneModal(false)}
-                  className="px-12 py-3.5 rounded-[5px] bg-[#F1F1F1] text-[#666666] font-Gantari font-bold text-[16px] transition-all cursor-pointer"
+                  className="px-12 py-3.5 rounded-md bg-[#F1F1F1] text-[#666666] font-Gantari font-bold text-[16px] transition-all cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
-                  className="px-12 py-3.5 rounded-lg bg-[#E2EEFF] text-[#1D7AFC] font-Gantari font-medium text-md transition-all cursor-pointer"
+                  className="px-12 py-3.5 rounded-md bg-[#E2EEFF] text-[#1D7AFC] font-Gantari font-medium text-md transition-all cursor-pointer"
                 >
                   Add Milestone
                 </button>
@@ -3391,7 +3391,7 @@ export default function ProjectsTD() {
       {/* Edit Project Details Modal */}
       {showEditModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full flex flex-col max-h-[90vh] overflow-hidden">
+          <div className="bg-white rounded-md shadow-2xl max-w-3xl w-full flex flex-col max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-10 py-8 border-b border-gray-100">
               <button
@@ -3533,7 +3533,7 @@ export default function ProjectsTD() {
                     </label>
                     <input
                       type="text"
-                      className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-lg focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B]"
+                      className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-md focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B]"
                       placeholder="Enter Project name"
                       value={createName}
                       onChange={(e) => setCreateName(e.target.value)}
@@ -3546,7 +3546,7 @@ export default function ProjectsTD() {
                     <input
                       type="text"
                       readOnly
-                      className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-lg font-Gantari font-medium text-[#353535] cursor-not-allowed focus:outline-none focus:border-[#AEACAC52]"
+                      className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-md font-Gantari font-medium text-[#353535] cursor-not-allowed focus:outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Client Name"
                       value={createClientName}
                     />
@@ -3562,7 +3562,7 @@ export default function ProjectsTD() {
                         <button
                           type="button"
                           onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
-                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-[5px] transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] cursor-pointer ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
+                          className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-md transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] cursor-pointer ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
                         >
                           <span className="text-[14px] text-[#353535] font-medium truncate">
                             {CURRENCIES.find(c => c.code === createCurrency)?.symbol} {createCurrency}
@@ -3574,7 +3574,7 @@ export default function ProjectsTD() {
                           />
                         </button>
                         {currencyDropdownOpen && (
-                          <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                          <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
                             {CURRENCIES.map((c) => (
                               <button
                                 key={c.code}
@@ -3594,7 +3594,7 @@ export default function ProjectsTD() {
                       <input
                         type="text"
                         readOnly
-                        className="flex-1 px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-lg font-Gantari font-medium text-[#353535] cursor-not-allowed focus:outline-none focus:border-[#AEACAC52]"
+                        className="flex-1 px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-md font-Gantari font-medium text-[#353535] cursor-not-allowed focus:outline-none focus:border-[#AEACAC52]"
                         placeholder="Auto-fetched from contract"
                         value={createBudget}
                       />
@@ -3612,7 +3612,7 @@ export default function ProjectsTD() {
                             o === "source" ? null : "source",
                           )
                         }
-                        className={`w-full flex items-center justify-between px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-left cursor-pointer ${editDropdownOpen === "source" ? "!border-[#AEACAC52]" : ""}`}
+                        className={`w-full flex items-center justify-between px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-md focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-left cursor-pointer ${editDropdownOpen === "source" ? "!border-[#AEACAC52]" : ""}`}
                       >
                         <span
                           className={
@@ -3643,7 +3643,7 @@ export default function ProjectsTD() {
                         </svg>
                       </button>
                       {editDropdownOpen === "source" && (
-                        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg bg-white border border-[#E0E0E0] shadow-lg py-1 max-h-48 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-md bg-white border border-[#E0E0E0] shadow-lg py-1 max-h-48 overflow-y-auto">
                           <button
                             type="button"
                             onClick={() => {
@@ -3713,7 +3713,7 @@ export default function ProjectsTD() {
                             type="text"
                             value={otherPMValue}
                             onChange={(e) => setOtherPMValue(e.target.value)}
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-md transition-all focus:outline-none focus:border-[#AEACAC52]"
                             placeholder="Enter Project Manager Name"
                           />
                         )}
@@ -3742,7 +3742,7 @@ export default function ProjectsTD() {
                             onChange={(e) =>
                               setOtherBIMLeadValue(e.target.value)
                             }
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-md transition-all focus:outline-none focus:border-[#AEACAC52]"
                             placeholder="Enter BIM Lead Name"
                           />
                         )}
@@ -3771,7 +3771,7 @@ export default function ProjectsTD() {
                             onChange={(e) =>
                               setOtherBIMCoordValue(e.target.value)
                             }
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-md transition-all focus:outline-none focus:border-[#AEACAC52]"
                             placeholder="Enter BIM Coordinator Name"
                           />
                         )}
@@ -3788,7 +3788,7 @@ export default function ProjectsTD() {
                         </label>
                         <input
                           type="text"
-                          className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-lg focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
+                          className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-md focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
                             const clientNum = parseBudgetValue(createBudget);
                             const outsourceNum =
                               parseBudgetValue(createBudgetCeiling);
@@ -3828,7 +3828,7 @@ export default function ProjectsTD() {
                         </label>
                         <input
                           type="date"
-                          className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-lg focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B]"
+                          className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-md focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B]"
                           value={createBiddingEndDate}
                           onChange={(e) =>
                             setCreateBiddingEndDate(e.target.value)
@@ -3871,7 +3871,7 @@ export default function ProjectsTD() {
                       setCreateLocation("");
                       setCreateDescription("");
                     }}
-                    className="px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-Gantari font-semibold text-[16px] transition-all cursor-pointer"
+                    className="px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-Gantari font-semibold text-[16px] transition-all cursor-pointer"
                   >
                     Discard
                   </button>
@@ -3886,7 +3886,7 @@ export default function ProjectsTD() {
                           parseBudgetValue(createBudget))
                       )
                     }
-                    className="px-8 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-Gantari font-semibold text-[16px] transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                    className="px-8 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-Gantari font-semibold text-[16px] transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {isEditSubmitting ? "Updating..." : "Update Project"}
                   </button>
@@ -3900,7 +3900,7 @@ export default function ProjectsTD() {
       {/* All Members Modal */}
       {showAllMembersModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+          <div className="bg-white rounded-md shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">
               <button
