@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import api from "../../../lib/api";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
+import { useAuth } from "../../../contexts/AuthContext";
 
 const MONTH_NAMES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((m) =>
   new Date(2000, m, 1).toLocaleString("default", { month: "long" }),
@@ -54,6 +55,139 @@ const defaultStats: DashboardStats = {
   in_progress_tasks: 0,
   completed_tasks: 0,
 };
+
+type VendorTaskScopeRow = {
+  id: number;
+  project_id?: number;
+  projectid?: number;
+  status?: string | null;
+  Approval?: string | null;
+};
+
+type VendorResourceProfileRow = {
+  id: number;
+  vendor_employee_id?: number | null;
+  full_name?: string;
+  name?: string;
+};
+
+type VendorProjectScopeRow = Record<string, unknown> & {
+  id: number;
+  project_name?: string;
+  members?: string | null;
+  members_names?: string | string[] | null;
+  project_manager_name?: string | null;
+  lead_name?: string | null;
+  bim_coordinator_name?: string | null;
+  uploader_name?: string | null;
+  project_manager_id?: number | string | null;
+  lead_id?: number | string | null;
+  bim_coordinator_id?: number | string | null;
+  status?: string | null;
+  progress?: number | string | null;
+};
+
+function normName(s: string | undefined | null): string {
+  return (s || "").trim().toLowerCase();
+}
+
+function filterInvolvedVendorProjects(
+  allProjects: VendorProjectScopeRow[],
+  myTasks: { project_id?: number; projectid?: number }[],
+  user: { id: number; full_name?: string } | null | undefined,
+  resourceProfiles: VendorResourceProfileRow[] = [],
+): VendorProjectScopeRow[] {
+  if (!user) return [];
+
+  const uid = String(user.id);
+  const name = normName(user.full_name);
+
+  const profileIdStrs = new Set<string>();
+  for (const r of resourceProfiles) {
+    if (
+      r.vendor_employee_id != null &&
+      Number(r.vendor_employee_id) === Number(user.id)
+    ) {
+      profileIdStrs.add(String(r.id));
+    }
+  }
+
+  const taskProjectIds = new Set(
+    myTasks
+      .map((t) => Number(t.project_id ?? t.projectid))
+      .filter((id) => !Number.isNaN(id) && id > 0),
+  );
+
+  return allProjects.filter((p) => {
+    const pid = Number(p.id);
+    if (!Number.isNaN(pid) && pid > 0 && taskProjectIds.has(pid)) return true;
+
+    const tokens = String(p.members || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    for (const t of tokens) {
+      if (t === uid || profileIdStrs.has(t)) return true;
+      if (name && normName(t) === name) return true;
+    }
+
+    let memberNames: string[] = [];
+    if (Array.isArray(p.members_names)) memberNames = p.members_names.map(String);
+    else if (typeof p.members_names === "string" && p.members_names.trim()) {
+      memberNames = p.members_names
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    if (name && memberNames.some((n) => normName(n) === name)) return true;
+
+    const cmp = (v?: string | null) => name && normName(v) === name;
+    if (
+      cmp(p.project_manager_name) ||
+      cmp(p.lead_name) ||
+      cmp(p.bim_coordinator_name) ||
+      cmp(p.uploader_name)
+    ) {
+      return true;
+    }
+
+    const pm = p.project_manager_id != null ? String(p.project_manager_id) : "";
+    const ld = p.lead_id != null ? String(p.lead_id) : "";
+    const bc = p.bim_coordinator_id != null ? String(p.bim_coordinator_id) : "";
+    return pm === uid || ld === uid || bc === uid;
+  });
+}
+
+function normalizeProjectStatus(project: VendorProjectScopeRow): "in_progress" | "completed" {
+  const status = String(project.status || "").toLowerCase().trim();
+  const progressNum =
+    typeof project.progress === "number"
+      ? project.progress
+      : Number(String(project.progress || "0"));
+  if (
+    status.includes("complete") ||
+    status === "done" ||
+    (!Number.isNaN(progressNum) && progressNum >= 100)
+  ) {
+    return "completed";
+  }
+  return "in_progress";
+}
+
+function normalizeTaskStatus(
+  statusRaw: string | null | undefined,
+  approvalRaw: string | null | undefined,
+): "todo" | "in_progress" | "completed" {
+  // Must match `TeamtaskEV.tsx` normalizeStatus exactly so KPI counts match board.
+  const approval = String(approvalRaw || "").toLowerCase().trim();
+  if (approval === "approved" || approval === "rejected") return "completed";
+  const s = String(statusRaw || "").trim();
+  if (!s) return "todo";
+  const lower = s.toLowerCase().replace(/\s+/g, "_");
+  if (lower.includes("progress") || lower === "in_progress") return "in_progress";
+  if (lower.includes("complete") || lower === "done") return "completed";
+  return "todo";
+}
 
 function formatDateOnly(isoOrDate: string | null | undefined): string {
   if (!isoOrDate) return "—";
@@ -124,6 +258,7 @@ function taskProgressAndCountdown(
 const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 36;
 
 export default function DashboardEV() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>(defaultStats);
   const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
@@ -148,17 +283,72 @@ export default function DashboardEV() {
         .catch(() => {})
         .finally(() => setLoading(false));
 
-    // Vendor project/task stats (vendor_projects + vendor_task for this vendor company)
-    api.get<any>('/api/vendors/dashboard/project-stats')
-        .then(({ data }) => setStats(prev => ({
-            ...prev,
-            total_projects: Number(data?.totalProjects) || 0,
-            completed_projects: Number(data?.completedProjects) || 0,
-            in_progress_tasks: Number(data?.inProgressTasks) || 0,
-            completed_tasks: Number(data?.completedTasks) || 0,
-        })))
-        .catch(() => {});
+    // Project + task KPI counts are computed below (scoped to involved projects).
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    Promise.all([
+      api.get<{ projects?: VendorProjectScopeRow[] }>("/api/vendors/vendor-projects"),
+      api.get<{ tasks?: { project_id?: number; projectid?: number }[] }>(
+        "/api/vendors/vendor-tasks",
+      ),
+      api.get<{ success?: boolean; resources?: VendorResourceProfileRow[] }>(
+        "/api/vendors/vendor-resource-profiles",
+      ),
+      api.get<{ tasks?: VendorTaskScopeRow[] }>("/api/vendors/vendor-tasks", {
+        params: { condition: "1", employeeid: "all" },
+      }),
+    ])
+      .then(([projRes, myTasksRes, resRes, allTasksRes]) => {
+        const allProjects = projRes.data.projects ?? [];
+        const myTasks = myTasksRes.data.tasks ?? [];
+        const profiles = resRes.data.resources ?? [];
+        const involvedProjects = filterInvolvedVendorProjects(
+          allProjects,
+          myTasks,
+          user,
+          profiles,
+        );
+
+        // IMPORTANT: Team Task board scopes tasks by my-scope task project ids.
+        // Use the same ID set so KPI task counts match the board.
+        const involvedProjectIds = new Set<number>(
+          (myTasks ?? [])
+            .map((t) => Number(t.project_id ?? t.projectid))
+            .filter((id) => !Number.isNaN(id) && id > 0),
+        );
+
+        const completedProjects = involvedProjects.filter(
+          (p) => normalizeProjectStatus(p) === "completed",
+        ).length;
+
+        const allVendorTasks = allTasksRes.data.tasks ?? [];
+        const scopedTasks = involvedProjectIds.size
+          ? allVendorTasks.filter((t) => {
+              const pid = Number(t.project_id ?? t.projectid);
+              return !Number.isNaN(pid) && involvedProjectIds.has(pid);
+            })
+          : [];
+
+        const inProgressCount = scopedTasks.filter(
+          (t) => normalizeTaskStatus(t.status, t.Approval) === "in_progress",
+        ).length;
+        const completedCount = scopedTasks.filter(
+          (t) => normalizeTaskStatus(t.status, t.Approval) === "completed",
+        ).length;
+
+        setStats((prev) => ({
+          ...prev,
+          total_projects: involvedProjects.length,
+          completed_projects: completedProjects,
+          in_progress_tasks: inProgressCount,
+          completed_tasks: completedCount,
+        }));
+      })
+      .catch(() => {});
+  }, [user]);
 
   // GET /api/vendors/dashboard/priority-tasks → Today's Priority tasks
   useEffect(() => {
