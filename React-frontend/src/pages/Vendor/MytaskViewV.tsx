@@ -211,7 +211,7 @@ export default function MytaskViewV() {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    
+
     const file = e.dataTransfer.files?.[0];
     if (file && file.type.startsWith("image/")) {
       setSelectedImage(file);
@@ -276,9 +276,9 @@ export default function MytaskViewV() {
   const refreshTaskFromApi = (taskId?: number) => {
     const tid = taskId || task?.id || Number(id);
     if (!tid) return;
-    
+
     if (fromTeamTask) {
-       api
+      api
         .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: { condition: "1" } })
         .then((res) => {
           const found = (res.data.tasks ?? []).find((t) => t.id === tid);
@@ -380,11 +380,12 @@ export default function MytaskViewV() {
     <div className="h-full flex flex-col overflow-y-auto custom-scrollbar pb-10">
       <div className="flex items-center justify-between px-6 py-4">
         <button
+          type="button"
           onClick={() => navigate(-1)}
-          className="p-2 rounded-md bg-[#F2F2F2] text-black cursor-pointer"
-          aria-label="Close"
+          className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer border-0 shadow-none"
+          title="Back"
         >
-          <FiX className="w-5 h-5 text-black" />
+          <img src={backIcon} alt="Back" className="w-5 h-5" />
         </button>
         <h1 className="flex-1 text-center text-2xl font-semibold text-black">
           {task.project_name || task.task_name || "Task Name"}
@@ -434,27 +435,27 @@ export default function MytaskViewV() {
                     opt.value,
                   );
                   return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    role="option"
-                    aria-disabled={disabled}
-                    disabled={disabled}
-                    aria-selected={statusDisplay === opt.value}
-                    onClick={() => handleStatusUpdate(opt.value)}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 ${disabled
+                    <button
+                      key={opt.value}
+                      type="button"
+                      role="option"
+                      aria-disabled={disabled}
+                      disabled={disabled}
+                      aria-selected={statusDisplay === opt.value}
+                      onClick={() => handleStatusUpdate(opt.value)}
+                      className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 ${disabled
                         ? "text-slate-300 cursor-not-allowed opacity-60"
                         : "hover:bg-[#F2F2F2]"
-                      } ${statusDisplay === opt.value && !disabled
-                        ? "bg-[#F2F2F2] font-medium"
-                        : ""
-                      }`}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`}
-                    />
-                    {opt.label}
-                  </button>
+                        } ${statusDisplay === opt.value && !disabled
+                          ? "bg-[#F2F2F2] font-medium"
+                          : ""
+                        }`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`}
+                      />
+                      {opt.label}
+                    </button>
                   );
                 })}
               </div>
@@ -560,9 +561,8 @@ export default function MytaskViewV() {
               onChange={handleSelectImage}
             />
             <div
-              className={`rounded-sm flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] relative transition-all duration-200 border-2 border-dashed ${
-                isDragging ? "bg-sky-50 border-sky-400" : "bg-[#FFFFFF] border-slate-200"
-              }`}
+              className={`rounded-sm flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] relative transition-all duration-200 border-2 border-dashed ${isDragging ? "bg-sky-50 border-sky-400" : "bg-[#FFFFFF] border-slate-200"
+                }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}

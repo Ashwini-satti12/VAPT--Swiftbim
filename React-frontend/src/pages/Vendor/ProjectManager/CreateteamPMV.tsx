@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import api from "../../../lib/api";
+import toast from "react-hot-toast";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import threeDotsIcon from "../../../assets/ProjectManager/CreateTeam/three dots.svg";
 import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
@@ -252,6 +253,25 @@ export default function CreateteamPMV() {
             .then(({ data }) => {
                 if (data.success) {
                     setShowAddModal(false);
+                    toast.success('New team created!', {
+                        duration: 3000,
+                        position: 'top-center',
+                        style: {
+                            background: '#fff',
+                            color: '#353535',
+                            fontFamily: 'Gantari, sans-serif',
+                            fontSize: '15px',
+                            fontWeight: '600',
+                            borderRadius: '10px',
+                            padding: '14px 24px',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                            border: '1px solid #E5E7EB',
+                        },
+                        iconTheme: {
+                            primary: '#22c55e',
+                            secondary: '#fff',
+                        },
+                    });
                     // Refresh data instead of page reload for better UX
                     api.get<{ teams?: Team[] }>('/api/vendors/vendor-teams').then(res => setTeams(res.data.teams ?? []));
                     setForm({ leader: '', employee: [], project_lead: '', project_id: '', team_name: '' });
@@ -316,6 +336,25 @@ export default function CreateteamPMV() {
             .then(({ data }) => {
                 if (data.success) {
                     setShowEditModal(false);
+                    toast.success('Team updated successfully!', {
+                        duration: 3000,
+                        position: 'top-center',
+                        style: {
+                            background: '#fff',
+                            color: '#353535',
+                            fontFamily: 'Gantari, sans-serif',
+                            fontSize: '15px',
+                            fontWeight: '600',
+                            borderRadius: '10px',
+                            padding: '14px 24px',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                            border: '1px solid #E5E7EB',
+                        },
+                        iconTheme: {
+                            primary: '#22c55e',
+                            secondary: '#fff',
+                        },
+                    });
                     api.get<{ teams?: Team[] }>('/api/vendors/vendor-teams').then(res => setTeams(res.data.teams ?? []));
                 }
             })
