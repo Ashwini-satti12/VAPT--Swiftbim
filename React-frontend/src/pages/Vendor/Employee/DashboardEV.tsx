@@ -299,8 +299,8 @@ export default function DashboardEV() {
 
   // KPI card definitions + deep links
   const kpiCards = [
-    { label: 'Total Projects', value: Math.max(stats.total_projects, projects.length), link: '/ve/projects' },
-    { label: 'Completed Projects', value: stats.completed_projects || 0, link: '/ve/projects?status=completed' },
+    { label: 'Total Projects', value: Math.max(stats.total_projects, projects.length) },
+    { label: 'Completed Projects', value: stats.completed_projects || 0 },
     { label: 'Inprogress Tasks', value: stats.in_progress_tasks || 0, link: '/ve/mytasks?status=in_progress' },
     { label: 'Completed Tasks', value: stats.completed_tasks || 0, link: '/ve/mytasks?status=completed' },
   ];

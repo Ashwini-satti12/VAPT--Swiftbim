@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 // @ts-ignore
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
@@ -42,10 +43,6 @@ export default function CreateProposalTD() {
   const [paymentRows, setPaymentRows] = useState([{ basis: "", terms: "", timeline: "" }]);
 
   const [submitting, setSubmitting] = useState(false);
-  const [notification, setNotification] = useState<{ visible: boolean; message: string; error?: boolean }>({
-    visible: false,
-    message: "",
-  });
 
   const applyLoadedProposal = useCallback((base: any) => {
     if (!base) return;
@@ -251,8 +248,7 @@ export default function CreateProposalTD() {
 
   const handleCreate = async () => {
     if (!executiveSummary || !aboutUs || !scopeDescription || !deliverablesIntro || !exclusionsContent) {
-      setNotification({ visible: true, message: "Please fill in all required fields (*)", error: true });
-      setTimeout(() => setNotification({ visible: false, message: "" }), 3000);
+      toast.error("Please fill in all required fields (*)");
       return;
     }
 
@@ -281,21 +277,21 @@ export default function CreateProposalTD() {
         ? await api.put<{ success: boolean; message?: string }>(`/api/vendors/proposals/td/${proposalIdEdit}`, payload)
         : await api.post<{ success: boolean; message?: string }>("/api/vendors/proposals/td-create", payload);
       if (data.success) {
-        setNotification({
-          visible: true,
-          message: editProposal ? "Proposal updated successfully!" : "Proposal created successfully!",
-        });
+        toast.success(editProposal ? "Proposal updated successfully!" : "Proposal created successfully!");
         setTimeout(() => {
-          setNotification({ visible: false, message: "" });
-          navigate("/td/proposals", { state: { created: true } });
-        }, 1600);
+          navigate("/td/proposals", { 
+            state: { 
+              created: true, 
+              updated: editProposal,
+              msg: editProposal ? "Proposal updated successfully!" : "Proposal created successfully!" 
+            } 
+          });
+        }, 1200);
       } else {
-        setNotification({ visible: true, message: data.message || (editProposal ? "Failed to update proposal." : "Failed to create proposal."), error: true });
-        setTimeout(() => setNotification({ visible: false, message: "" }), 3000);
+        toast.error(data.message || (editProposal ? "Failed to update proposal." : "Failed to create proposal."));
       }
     } catch (err: any) {
-      setNotification({ visible: true, message: editProposal ? "Error updating proposal. Please try again." : "Error creating proposal. Please try again.", error: true });
-      setTimeout(() => setNotification({ visible: false, message: "" }), 3000);
+      toast.error(editProposal ? "Error updating proposal. Please try again." : "Error creating proposal. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -314,28 +310,7 @@ export default function CreateProposalTD() {
   const inputCls = "w-full px-4 py-3 rounded-md bg-[#F2F2F2] font-gantari text-[#353535] text-base placeholder:text-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2]";
 
   return (
-    <div className="px-1 pt-1 space-y-8 flex flex-col min-h-full bg-white font-gantari overflow-y-auto">
-      {/* Toast */}
-      {notification.visible && (
-        <div className="fixed top-6 right-6 z-[9999] animate-fade-in">
-          <div
-            className={`flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl font-gantari text-sm font-medium min-w-[280px] ${notification.error ? "bg-red-600 text-white" : "bg-[#1A8A47] text-white"}`}
-            style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}
-          >
-            {notification.error ? (
-              <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
-            )}
-            <span>{notification.message}</span>
-          </div>
-        </div>
-      )}
-
+    <div className="px-1 pt-1 space-y-6 flex flex-col min-h-full bg-white font-gantari overflow-y-auto">
       {/* Page Header */}
       <div className="flex items-center justify-between px-2 ">
         <button
@@ -350,7 +325,7 @@ export default function CreateProposalTD() {
         <div className="w-10"></div>
       </div>
 
-      <div className="flex-1 space-y-8 px-2">
+      <div className="flex-1 space-y-6 px-2">
         {/* Pre-filled Bid Summary Banner */}
         {bid && (
           <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-4 sm:py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-4">
@@ -377,7 +352,7 @@ export default function CreateProposalTD() {
           </div>
         )}
 
-        <div className="space-y-10">
+        <div className="space-y-6">
           {/* Section: Basic Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-4">
@@ -545,7 +520,7 @@ export default function CreateProposalTD() {
           </div>
 
           {/* 6. PAYMENT TERMS */}
-          <div className="space-y-4 pb-10">
+          <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <h2 className="font-bold text-lg text-[#020202]">6. Payment Terms</h2>
               <button onClick={handleAddPaymentRow} className="w-full sm:w-auto text-sm bg-[#DD4342] text-white px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer"> Add Term</button>
@@ -586,7 +561,7 @@ export default function CreateProposalTD() {
         </div>
 
         {/* Footer Actions */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pb-6">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pb-2">
           <button
             onClick={handleDiscard}
             disabled={submitting}

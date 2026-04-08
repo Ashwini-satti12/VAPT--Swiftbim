@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
@@ -218,7 +219,6 @@ export default function BiddingV() {
   const [oppTab, setOppTab] = useState<OppTab>("all");
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   const [detailOpp, setDetailOpp] = useState<Opportunity | null>(null);
-  const [bidSuccess, setBidSuccess] = useState<number | null>(null);
   const [bidError, setBidError] = useState<string | null>(null);
   const [bidAmountError, setBidAmountError] = useState<string | null>(null);
   const [bidSubmitting, setBidSubmitting] = useState(false);
@@ -329,7 +329,7 @@ export default function BiddingV() {
         timeline: bidForm.timeline,
         team_size: Number(bidForm.team_size) || 0,
       });
-      setBidSuccess(selectedOpp.id);
+      toast.success("Your bid has been submitted successfully!");
       setOpportunities((prev) =>
         prev.map((o) =>
           o.id === selectedOpp.id ? { ...o, already_bid: true } : o,
@@ -568,7 +568,7 @@ export default function BiddingV() {
                 <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
                   Submission Status
                 </h3>
-                {detailOpp.already_bid || bidSuccess === detailOpp.id ? (
+                {detailOpp.already_bid ? (
                   <div className="bg-[#EAFDF5] border border-[#16A34A]/20 rounded-xl p-4 mb-4 text-[#16A34A]">
                     <div className="flex items-center gap-2 font-bold text-[14px] mb-1 font-gantari">
                       <svg
@@ -969,21 +969,6 @@ export default function BiddingV() {
       {mainTab === "opportunities" ? (
         /* OPPORTUNITIES VIEW */
         <div className="flex-1 flex flex-col min-h-0">
-          {bidSuccess !== null && (
-            <div className="mb-4 p-4 bg-[#F0FDF4] border border-[#22C55E]/30 rounded-xl flex items-center gap-3 shrink-0">
-              <span className="text-xl">✅</span>
-              <p className="font-medium text-[#14532D] text-sm">
-                Your bid has been submitted successfully!
-              </p>
-              <button
-                onClick={() => setBidSuccess(null)}
-                className="ml-auto text-[#14532D] hover:text-[#166534]"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
             {filteredOpps.length === 0 ? (
               <div className="bg-white rounded-2xl p-16 text-center text-slate-500 border border-[#EBEBEB]">
@@ -1003,7 +988,7 @@ export default function BiddingV() {
                   const name = opp.project_name || "Unnamed Project";
                   const avatarBg = getAvatarColor(name);
                   const initials = getInitials(name);
-                  const alreadyBid = opp.already_bid || bidSuccess === opp.id;
+                  const alreadyBid = opp.already_bid;
 
                   return (
                     <div

@@ -30,6 +30,19 @@ def _serialize_row(d):
     return out
 
 
+def _task_row_merge_joined_project_name(row_dict):
+    """
+    SELECT t.*, p.project_name yields duplicate keys in some MySQL clients:
+    tasks.project_name may be NULL while projects.project_name is set.
+    Prefer the explicit join column when present.
+    """
+    d = dict(row_dict)
+    join_name = d.pop("_join_project_name", None)
+    if join_name is not None and str(join_name).strip() != "":
+        d["project_name"] = join_name
+    return d
+
+
 # Roles that see all company projects and tasks
 MANAGEMENT_ROLES = ("Technical Director", "CEO")
 
@@ -188,7 +201,7 @@ def list_tasks():
 
     sql = f"""SELECT t.*, e_assigned.full_name AS assigned_full_name, e_uploader.full_name AS uploader_full_name,
               e_assigned.profile_picture AS assigned_profile_picture, e_uploader.profile_picture AS uploader_profile_picture,
-              p.project_name
+              p.project_name AS _join_project_name
               FROM tasks t
               LEFT JOIN employee e_assigned ON t.assigned_to = e_assigned.id
               LEFT JOIN employee e_uploader ON t.uploaderid = e_uploader.id
@@ -197,7 +210,7 @@ def list_tasks():
               ORDER BY t.created_at DESC"""
     cur.execute(sql, params)
     rows = cur.fetchall()
-    tasks = [_serialize_row(dict(r)) for r in rows]
+    tasks = [_serialize_row(_task_row_merge_joined_project_name(dict(r))) for r in rows]
     return jsonify({"tasks": tasks})
 
 
@@ -351,7 +364,7 @@ def get_task(task_id):
     cur = conn.cursor()
     cur.execute(
         """SELECT t.*, e_assigned.full_name AS assigned_full_name, e_uploader.full_name AS uploader_full_name,
-              p.project_name FROM tasks t
+              p.project_name AS _join_project_name FROM tasks t
               LEFT JOIN employee e_assigned ON t.assigned_to = e_assigned.id
               LEFT JOIN employee e_uploader ON t.uploaderid = e_uploader.id
               LEFT JOIN projects p ON t.projectid = p.id
@@ -361,7 +374,8 @@ def get_task(task_id):
     row = cur.fetchone()
     if not row:
         return jsonify({"success": False, "message": "Task not found"}), 404
-    return jsonify(_serialize_row(dict(row)))
+    merged = _task_row_merge_joined_project_name(dict(row))
+    return jsonify(_serialize_row(merged))
 
 
 @bp.route("/<int:task_id>", methods=["PUT", "PATCH"])

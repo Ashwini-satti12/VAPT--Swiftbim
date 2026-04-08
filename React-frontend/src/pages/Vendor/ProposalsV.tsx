@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import addressIcon from '../../assets/TechnicalDirector/Vector.svg';
@@ -55,7 +56,6 @@ export default function ProposalsV() {
     const navigate = useNavigate();
     const [clarNote, setClarNote] = useState('');
     const [submitting, setSubmitting] = useState(false);
-    const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [showRequestInput, setShowRequestInput] = useState(false);
     const [showEntries, setShowEntries] = useState('show');
     const [showDropdownOpen, setShowDropdownOpen] = useState(false);
@@ -101,9 +101,9 @@ export default function ProposalsV() {
             const reason = action === 'clarification' ? clarNote : '';
             await api.post(`/api/vendors/proposals/${proposalId}/respond`, { action, reason });
             if (action === 'accept') {
-                setSuccessMsg('Successfully accepted');
+                toast.success('Successfully accepted');
             } else {
-                setSuccessMsg('Clarification request sent successfully.');
+                toast.success('Clarification request sent successfully.');
             }
             setSelected(null);
             setClarNote('');
@@ -112,8 +112,9 @@ export default function ProposalsV() {
             if (action === 'accept') {
                 setTimeout(() => navigate('/v/projects'), 1500);
             }
-            setTimeout(() => setSuccessMsg(null), 4000);
-        } catch { }
+        } catch { 
+            toast.error(action === 'accept' ? 'Failed to accept proposal' : 'Failed to send clarification request');
+        }
         finally { setSubmitting(false); }
     };
 
@@ -135,14 +136,6 @@ export default function ProposalsV() {
 
         return (
             <div className="w-full min-w-0 px-0 pt-1 pb-6 space-y-8 flex flex-col min-h-full bg-white font-gantari relative overflow-y-auto custom-scrollbar">
-                {successMsg && (
-                    <div className="fixed top-5 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl bg-[#1A8A47] text-white font-gantari text-sm font-medium min-w-[280px]" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>
-                        <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span>{successMsg}</span>
-                    </div>
-                )}
                 {/* Page header — aligned with CreateProposalTD */}
                 <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 w-full flex-shrink-0">
                     <button
@@ -426,15 +419,6 @@ export default function ProposalsV() {
     // --- TABLE LIST VIEW ---
     return (
         <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
-            {/* Toast */}
-            {successMsg && (
-                <div className="fixed top-5 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl bg-[#1A8A47] text-white font-gantari text-sm font-medium min-w-[280px]">
-                    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>{successMsg}</span>
-                </div>
-            )}
 
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0">

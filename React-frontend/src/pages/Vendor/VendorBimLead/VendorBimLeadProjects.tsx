@@ -198,22 +198,30 @@ export default function VendorBimLeadProjects() {
     api
       .get<{ employees?: Employee[] }>("/api/employees")
       .then(({ data }) => {
-        const emps = data.employees ?? [];
-        setAllEmployees(emps);
-        setProjectManagers(
-          emps.filter((e) => e.user_role === "Project Manager"),
-        );
-        setBimLeads(emps.filter((e) => e.user_role === "BIM Lead"));
+        const allEmp = data.employees ?? [];
+        setAllEmployees(allEmp);
         setBimCoordinators(
-          emps.filter((e) => e.user_role === "BIM Coordinator"),
+          allEmp.filter((e) =>
+            ["BIM Coordinator", "FrontEnd Developer"].includes(e.user_role || ""),
+          ),
         );
       })
       .catch(() => {
         setAllEmployees([]);
-        setProjectManagers([]);
-        setBimLeads([]);
         setBimCoordinators([]);
       });
+    api
+      .get<{ success: boolean; employees?: Employee[] }>(
+        "/api/vendors/vendor-by-role?role=Vendor PM",
+      )
+      .then(({ data }) => setProjectManagers(data.employees ?? []))
+      .catch(() => setProjectManagers([]));
+    api
+      .get<{ success: boolean; employees?: Employee[] }>(
+        "/api/vendors/vendor-by-role?role=Vendor Bim Lead",
+      )
+      .then(({ data }) => setBimLeads(data.employees ?? []))
+      .catch(() => setBimLeads([]));
     api
       .get<{ resources?: Employee[] }>("/api/vendors/vendor-resource-profiles")
       .then(({ data }) => setVendorResourceProfiles(data.resources ?? []))
@@ -341,13 +349,19 @@ export default function VendorBimLeadProjects() {
     setCreateBudget(p.budget || "");
     setCreateModuleName(p.modules || "");
     setCreateClientName(idToNameClients(p.client_id, clientsList));
-    setCreateProjectManager(idToName(p.project_manager_id, allEmployees));
+    setCreateProjectManager(
+      idToName(p.project_manager_id, projectManagers) ||
+        idToName(p.project_manager_id, allEmployees),
+    );
     setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
     setCreateEndDate(p.end_date || p.due_date || "");
     setCreateTotalHours(p.totalhours || "");
     setCreatePerDay(p.per_day || p.perday || "");
-    setCreateBIMLead(idToName(p.lead_id, allEmployees));
-    setCreateBIMCoOrdinator(idToName(p.bim_coordinator_id, allEmployees));
+    setCreateBIMLead(idToName(p.lead_id, bimLeads) || idToName(p.lead_id, allEmployees));
+    setCreateBIMCoOrdinator(
+      idToName(p.bim_coordinator_id, bimCoordinators) ||
+        idToName(p.bim_coordinator_id, allEmployees),
+    );
     setCreateResources(p.resources || p.no_resource || "");
     setCreateRequiredResources(
       p.required_resources || p.no_resources_required || "",
@@ -371,7 +385,6 @@ export default function VendorBimLeadProjects() {
 
     if (
       !createName.trim() ||
-      !createClientName ||
       !createStartDate ||
       !createEndDate ||
       !createPriority ||
@@ -563,7 +576,7 @@ export default function VendorBimLeadProjects() {
         </div>
         {editDropdownOpen === "members" && (
           <div className="absolute z-[200] left-0 right-0 mt-2 bg-white border border-[#E2E8F0] rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar p-2">
-            {allEmployees.map((emp) => (
+            {vendorResourceProfiles.map((emp) => (
               <div
                 key={emp.id}
                 onClick={() => toggleMember(emp.id)}
@@ -619,20 +632,22 @@ export default function VendorBimLeadProjects() {
             onChange={(e) => setCreateName(e.target.value)}
           />
         </div>
-        <div className="space-y-2">
-          <label className="block text-[16px] font-medium text-[#353535]">
-            Client Name <span className="text-[#DD4342]">*</span>
-          </label>
-          <input
-            type="text"
-            className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-            placeholder="Enter Client Name"
-            value={createClientName}
-            onChange={(e) => setCreateClientName(e.target.value)}
-          />
-        </div>
+        {!showEditModal && (
+          <div className="space-y-2">
+            <label className="block text-[16px] font-medium text-[#353535]">
+              Client Name <span className="text-[#DD4342]">*</span>
+            </label>
+            <input
+              type="text"
+              className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+              placeholder="Enter Client Name"
+              value={createClientName}
+              onChange={(e) => setCreateClientName(e.target.value)}
+            />
+          </div>
+        )}
 
-        <div className="md:col-span-2 space-y-3">
+        <div className="space-y-2">
           <label className="block text-[16px] font-medium text-[#020202]">
             Modules Name <span className="text-[#DD4342]">*</span>
           </label>
@@ -1015,7 +1030,7 @@ export default function VendorBimLeadProjects() {
         {/* Project View (In-Page) */}
         {showEditModal ? (
           <div className="flex flex-col h-full bg-white">
-            <div className="flex items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50 cursor-pointer">
+            <div className="flex items-center gap-4 md:gap-6 px-6 py-2 md:px-6 md:py-4 border-b border-slate-50 cursor-pointer">
               <button
                 type="button"
                 onClick={() => {
@@ -1052,9 +1067,7 @@ export default function VendorBimLeadProjects() {
                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A] truncate">
                   Edit Project Details
                 </h3>
-                <p className="text-[14px] font-Gantari font-semibold text-[#999999]">
-                  Update your project information
-                </p>
+                
               </div>
             </div>
             <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 pt-6 md:pt-8 custom-scrollbar">
@@ -1110,358 +1123,163 @@ export default function VendorBimLeadProjects() {
                 </p>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-10 pt-6 md:pt-8 custom-scrollbar space-y-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-                {[
-                  {
-                    label: "To Do Tasks",
-                    value: taskStats.todo,
-                    status: "todo",
-                  },
-                  {
-                    label: "In Progress",
-                    value: taskStats.inProgress,
-                    status: "in_progress",
-                  },
-                  {
-                    label: "Paused",
-                    value: taskStats.paused,
-                    status: "paused",
-                  },
-                  {
-                    label: "Completed",
-                    value: taskStats.completed,
-                    status: "completed",
-                  },
-                ].map((stat, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        "/vendor-bim-lead/teamtasks?status=" +
-                          stat.status +
-                          (selectedProject?.project_name
-                            ? `&project=${encodeURIComponent(selectedProject.project_name)}`
-                            : ""),
-                      )
-                    }
-                    className="text-left bg-[#F2F2F2] p-3 md:p-4 rounded-md flex flex-col h-[70px] md:h-[90px] hover:bg-[#DD4342] focus:outline-none cursor-pointer transition-all group"
-                  >
-                    <p className="text-[#353535] group-hover:text-white text-[14px] md:text-[16px] font-medium">
-                      {stat.label}
-                    </p>
-                    <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[22px] font-bold leading-none mt-auto self-end">
-                      {stat.value}
-                    </p>
-                  </button>
-                ))}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Fixed KPI Cards at top */}
+              <div className="px-4 md:px-10 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+                  {[
+                    {
+                      label: "To Do Tasks",
+                      value: taskStats.todo,
+                      status: "todo",
+                    },
+                    {
+                      label: "In Progress",
+                      value: taskStats.inProgress,
+                      status: "in_progress",
+                    },
+                    {
+                      label: "Paused",
+                      value: taskStats.paused,
+                      status: "paused",
+                    },
+                    {
+                      label: "Completed",
+                      value: taskStats.completed,
+                      status: "completed",
+                    },
+                  ].map((stat, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          "/vendor-bim-lead/teamtasks?status=" +
+                            stat.status +
+                            (selectedProject?.project_name
+                              ? `&project=${encodeURIComponent(selectedProject.project_name)}`
+                              : ""),
+                        )
+                      }
+                      className="text-left bg-[#F2F2F2] p-3 md:p-4 rounded-md flex flex-col h-[70px] md:h-[90px] hover:bg-[#DD4342] focus:outline-none cursor-pointer transition-all group border-1 border-slate-200"
+                    >
+                      <p className="text-[#353535] group-hover:text-white text-[14px] md:text-[16px] font-medium">
+                        {stat.label}
+                      </p>
+                      <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[22px] font-bold leading-none mt-auto self-center lg:self-center">
+                        {stat.value}
+                      </p>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8">
-                <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">
-                  Modules
-                </h4>
-                <div className="max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
-                    {loadingTaskStats ? (
-                      <div className="col-span-full py-10 flex flex-col items-center justify-center gap-3">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#DD4342]" />
-                        <p className="text-gray-500 font-medium">Loading module analysis...</p>
-                      </div>
-                    ) : towerData.length > 0 ? (
-                      towerData.map((tower) => {
-                        const statusColor =
-                          tower.status === "Approved" ? "#008F22" :
-                            tower.status === "Pending" ? "#EB7200" : "#E00100";
-                        const statusBg =
-                          tower.status === "Approved" ? "bg-[#E0FFE8]" :
-                            tower.status === "Pending" ? "bg-[#FFEAD6]" : "bg-[#FFD9D9]";
 
-                        return (
-                          <div key={tower.id} className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[150px]">
-                            <div className="flex justify-between items-start mb-2">
-                              <h5 className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">{tower.name}</h5>
-                              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md shrink-0 ${statusBg}`}>
-                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }}></span>
-                                <span className="text-[11px] font-bold font-Gantari" style={{ color: statusColor }}>{tower.status}</span>
+              {/* Scrollable Content Below KPI Cards */}
+              <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-10 pt-4 md:pt-6 custom-scrollbar space-y-8">
+                {/* Modules */}
+                <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-4">
+                  <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">
+                    Modules
+                  </h4>
+                  <div className="max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+                      {loadingTaskStats ? (
+                        <div className="col-span-full py-10 flex flex-col items-center justify-center gap-3">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#DD4342]" />
+                          <p className="text-gray-500 font-medium">Loading module analysis...</p>
+                        </div>
+                      ) : towerData.length > 0 ? (
+                        towerData.map((tower) => {
+                          const statusColor =
+                            tower.status === "Approved" ? "#008F22" :
+                              tower.status === "Pending" ? "#EB7200" : "#E00100";
+                          const statusBg =
+                            tower.status === "Approved" ? "bg-[#E0FFE8]" :
+                              tower.status === "Pending" ? "bg-[#FFEAD6]" : "bg-[#FFD9D9]";
+
+                          return (
+                            <div key={tower.id} className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[150px]">
+                              <div className="flex justify-between items-start mb-2">
+                                <h5 className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">{tower.name}</h5>
+                                <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md shrink-0 ${statusBg}`}>
+                                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }}></span>
+                                  <span className="text-[11px] font-bold font-Gantari" style={{ color: statusColor }}>{tower.status}</span>
+                                </div>
                               </div>
-                            </div>
-                            <div className="flex items-center justify-between mt-auto">
-                              <div className="relative flex items-center justify-center w-16 h-16">
-                                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
-                                  <circle cx="32" cy="32" r="26" stroke="#F2F3F5" strokeWidth="5" fill="transparent" />
-                                  <circle cx="32" cy="32" r="26" stroke={statusColor} strokeWidth="5" fill="transparent"
-                                    strokeDasharray={163.36}
-                                    strokeDashoffset={163.36 - (tower.progress / 100) * 163.36}
-                                    strokeLinecap="round"
-                                    style={{ transition: "stroke-dashoffset 1s ease-in-out" }}
-                                  />
-                                </svg>
-                                <span className="absolute text-[14px] font-bold text-[#353535] font-Gantari">{tower.progress}%</span>
-                              </div>
-                              <div className="flex flex-col items-end">
-                                <p className="text-[12px] font-medium text-[#8B8B8B] font-Gantari mb-1">Tasks Done</p>
-                                <div className="flex items-baseline">
-                                  <p className="text-[18px] font-bold text-[#353535] font-Gantari">{tower.completedTasks}</p>
-                                  <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari">/{tower.totalTasks}</p>
+                              <div className="flex items-center justify-between mt-auto">
+                                <div className="relative flex items-center justify-center w-16 h-16">
+                                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
+                                    <circle cx="32" cy="32" r="26" stroke="#F2F3F5" strokeWidth="5" fill="transparent" />
+                                    <circle cx="32" cy="32" r="26" stroke={statusColor} strokeWidth="5" fill="transparent"
+                                      strokeDasharray={163.36}
+                                      strokeDashoffset={163.36 - (tower.progress / 100) * 163.36}
+                                      strokeLinecap="round"
+                                      style={{ transition: "stroke-dashoffset 1s ease-in-out" }}
+                                    />
+                                  </svg>
+                                  <span className="absolute text-[14px] font-bold text-[#353535] font-Gantari">{tower.progress}%</span>
+                                </div>
+                                <div className="flex flex-col items-end">
+                                  <p className="text-[12px] font-medium text-[#8B8B8B] font-Gantari mb-1">Tasks Done</p>
+                                  <div className="flex items-baseline">
+                                    <p className="text-[18px] font-bold text-[#353535] font-Gantari">{tower.completedTasks}</p>
+                                    <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari">/{tower.totalTasks}</p>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="col-span-full py-10 text-center text-gray-500 font-medium bg-slate-50 border border-dashed border-slate-200 rounded-xl">
-                        No module progress available yet.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="border border-slate-200 rounded-lg p-4 md:p-6">
-                <h4 className="text-[20px] font-Gantari font-medium text-[#000000] mb-4">
-                  Project Details
-                </h4>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
-                  <div className="space-y-4 md:space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                        Actual Start Date
-                      </span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">
-                        :
-                      </span>
-                      <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                        {formatDate(selectedProject.start_date)}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                        Total Project Hours
-                      </span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">
-                        :
-                      </span>
-                      <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                        {selectedProject.totalhours ||
-                        (selectedProject as any).total_hours
-                          ? `${selectedProject.totalhours || (selectedProject as any).total_hours}hrs`
-                          : "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                        Outsourcing Budget
-                      </span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">
-                        :
-                      </span>
-                      <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                        {selectedProject.budget_ceiling || "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                        Total Resources Available
-                      </span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">
-                        :
-                      </span>
-                      <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                        {selectedProject.resources ||
-                          selectedProject.no_resource ||
-                          "N/A"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4 md:space-y-5">
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                        Location
-                      </span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">
-                        :
-                      </span>
-                      <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                        {selectedProject.location || "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                        Actual End Date
-                      </span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">
-                        :
-                      </span>
-                      <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                        {formatDate(
-                          selectedProject.end_date || selectedProject.due_date,
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                        Hours/Day
-                      </span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">
-                        :
-                      </span>
-                      <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                        {selectedProject.per_day || selectedProject.perday
-                          ? `${selectedProject.per_day || selectedProject.perday}hrs`
-                          : "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                        Required Resources
-                      </span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">
-                        :
-                      </span>
-                      <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                        {selectedProject.required_resources ||
-                          selectedProject.no_resources_required ||
-                          "N/A"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Document Attachment display */}
-                <div className="mt-8 border-t border-slate-100 pt-6">
-                    <p className="text-[16px] font-bold text-[#353535] mb-4 tracking-wide uppercase">Project Document</p>
-                    {selectedProject.document_attachment ? (
-                        <div className="flex flex-wrap gap-3">
-                            {selectedProject.document_attachment
-                                .split(",")
-                                .map((file) => file.trim())
-                                .filter(Boolean)
-                                .map((fileName, idx) => {
-                                    const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
-                                    return (
-                                        <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-slate-200 md:max-w-md w-full">
-                                            <div className="p-2 bg-white rounded-lg shadow-sm">
-                                                <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                                            </div>
-                                            <span className="text-[14px] font-bold text-[#353535] line-clamp-1 flex-1">
-                                                {fileName.split("_").pop() || "Document"}
-                                            </span>
-                                            <div className="flex gap-2">
-                                                <a
-                                                    href={url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
-                                                    title="View Details"
-                                                >
-                                                    <img src={viewIcon} alt="View" className="w-[18px] h-[18px] object-contain opacity-70 hover:opacity-100" />
-                                                </a>
-                                                <a
-                                                    href={url}
-                                                    download
-                                                    className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
-                                                    title="Download File"
-                                                >
-                                                    <FiUploadCloud className="w-[18px] h-[18px] rotate-180 object-contain text-slate-500 hover:text-[#DD4342]" />
-                                                </a>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                        </div>
-                    ) : (
-                        <span className="text-[16px] font-medium text-[#616161]">No Document Available</span>
-                    )}
-                </div>
-              </div>
-
-              <div className="border border-slate-200 rounded-[10px] p-6 md:p-8">
-                <h4 className="text-[18px] md:text-[20px] font-semibold text-[#000000]">
-                  Project Description
-                </h4>
-                {hasProjectDescriptionContent(selectedProject.description) ? (
-                  <div
-                    className="text-[16px] font-medium text-[#666666] mt-4 leading-relaxed break-words quill-content"
-                    dangerouslySetInnerHTML={{
-                      __html: normalizeProjectDescriptionHtml(selectedProject.description),
-                    }}
-                  />
-                ) : (
-                  <p className="text-[16px] font-medium text-[#666666] mt-4 leading-relaxed break-words">
-                    No description available
-                  </p>
-                )}
-              </div>
-
-              {/* Team Roles Section - aligned with Vendor overview style */}
-              <div className="border border-slate-200 rounded-[10px] p-6 md:p-8 space-y-6">
-                <h4 className="text-[18px] md:text-[20px] font-semibold text-[#000000]">
-                  Team Overview
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  {[
-                    { label: "Project Manager", id: selectedProject.project_manager_id },
-                    { label: "BIM Lead", id: selectedProject.lead_id },
-                  ].map((role) => (
-                    <div key={role.label} className="space-y-3">
-                      <p className="text-[16px] font-bold text-[#000000]">{role.label}</p>
-                      <div className="flex items-center gap-4">
-                        {(() => {
-                          const emp = resolveVendorMember(role.id || "");
-                          const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                          return (
-                            <>
-                              <div
-                                role="button"
-                                tabIndex={0}
-                                className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                onClick={() => openMemberProfile(emp)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    openMemberProfile(emp);
-                                  }
-                                }}
-                              >
-                                {profileUrl ? (
-                                  <img src={profileUrl} alt={role.label} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                ) : (
-                                  <img src={ProfileIcon} alt={role.label} className="w-full h-full object-cover p-1" />
-                                )}
-                              </div>
-                              <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
-                                {getEmployeeName(role.id) || "Not assigned"}
-                              </p>
-                            </>
                           );
-                        })()}
-                      </div>
+                        })
+                      ) : (
+                        <div className="col-span-full py-10 text-center text-gray-500 font-medium bg-slate-50 border border-dashed border-slate-200 rounded-xl">
+                          No module progress available yet.
+                        </div>
+                      )}
                     </div>
-                  ))}
-                  <div className="space-y-3">
-                    <p className="text-[16px] font-bold text-[#000000]">Members Involved</p>
-                    {(() => {
-                      const memberIds = (selectedProject.members || "").split(",").filter(Boolean).map((id) => Number(id));
-                      const projectMembers = memberIds
-                        .map((id) => resolveVendorMember(id))
-                        .filter(Boolean) as Employee[];
-                      if (!projectMembers.length) {
-                        return <div className="h-10 flex items-center text-[14px] font-bold text-[#666666]">N/A</div>;
-                      }
-                      const visibleMembers = projectMembers.slice(0, 3);
-                      const remainingCount = Math.max(0, projectMembers.length - 3);
-                      return (
-                        <div className="flex items-center -space-x-3">
-                          {visibleMembers.map((emp) => {
-                            const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                  </div>
+                </div>
+
+                {/* Project Description */}
+                <div className="border border-slate-200 rounded-[10px] p-6 md:p-8">
+                  <h4 className="text-[18px] md:text-[20px] font-semibold text-[#000000]">
+                    Project Description
+                  </h4>
+                  {hasProjectDescriptionContent(selectedProject.description) ? (
+                    <div
+                      className="text-[16px] font-medium text-[#666666] mt-4 leading-relaxed break-words quill-content"
+                      dangerouslySetInnerHTML={{
+                        __html: normalizeProjectDescriptionHtml(selectedProject.description),
+                      }}
+                    />
+                  ) : (
+                    <p className="text-[16px] font-medium text-[#666666] mt-4 leading-relaxed break-words">
+                      No description available
+                    </p>
+                  )}
+                </div>
+
+                {/* Team Roles Section */}
+                <div className="border border-slate-200 rounded-[10px] p-6 md:p-8 space-y-6">
+                  <h4 className="text-[18px] md:text-[20px] font-semibold text-[#000000]">
+                    Team Overview
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    {[
+                      { label: "Project Manager", id: selectedProject.project_manager_id },
+                      { label: "BIM Lead", id: selectedProject.lead_id },
+                    ].map((role) => (
+                      <div key={role.label} className="space-y-3">
+                        <p className="text-[16px] font-bold text-[#000000]">{role.label}</p>
+                        <div className="flex items-center gap-4">
+                          {(() => {
+                            const emp = resolveVendorMember(role.id || "");
+                            const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
                             return (
-                              <div key={emp.id} className="relative group shrink-0">
+                              <>
                                 <div
                                   role="button"
                                   tabIndex={0}
-                                  className="w-10 h-10 rounded-full bg-white flex items-center justify-center border-2 border-white overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                  className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
                                   onClick={() => openMemberProfile(emp)}
                                   onKeyDown={(e) => {
                                     if (e.key === "Enter" || e.key === " ") {
@@ -1471,40 +1289,246 @@ export default function VendorBimLeadProjects() {
                                   }}
                                 >
                                   {profileUrl ? (
-                                    <img src={profileUrl} className="w-full h-full object-cover" alt={emp.full_name || "Member"} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                    <img src={profileUrl} alt={role.label} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
                                   ) : (
-                                    <img src={ProfileIcon} className="w-full h-full object-cover p-1" alt={emp.full_name || "Member"} />
+                                    <img src={ProfileIcon} alt={role.label} className="w-full h-full object-cover p-1" />
                                   )}
                                 </div>
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                  {emp.full_name || "Unknown"}
+                                <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                                  {getEmployeeName(role.id) || "Not assigned"}
+                                </p>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="space-y-3">
+                      <p className="text-[16px] font-bold text-[#000000]">Members Involved</p>
+                      {(() => {
+                        const memberIds = (selectedProject.members || "").split(",").filter(Boolean).map((id) => Number(id));
+                        const projectMembers = memberIds
+                          .map((id) => resolveVendorMember(id))
+                          .filter(Boolean) as Employee[];
+                        if (!projectMembers.length) {
+                          return <div className="h-10 flex items-center text-[14px] font-bold text-[#666666]">N/A</div>;
+                        }
+                        const visibleMembers = projectMembers.slice(0, 3);
+                        const remainingCount = Math.max(0, projectMembers.length - 3);
+                        return (
+                          <div className="flex items-center -space-x-3">
+                            {visibleMembers.map((emp) => {
+                              const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                              return (
+                                <div key={emp.id} className="relative group shrink-0">
+                                  <div
+                                    role="button"
+                                    tabIndex={0}
+                                    className="w-10 h-10 rounded-full bg-white flex items-center justify-center border-2 border-white overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                    onClick={() => openMemberProfile(emp)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        openMemberProfile(emp);
+                                      }
+                                    }}
+                                  >
+                                    {profileUrl ? (
+                                      <img src={profileUrl} className="w-full h-full object-cover" alt={emp.full_name || "Member"} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                    ) : (
+                                      <img src={ProfileIcon} className="w-full h-full object-cover p-1" alt={emp.full_name || "Member"} />
+                                    )}
+                                  </div>
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                    {emp.full_name || "Unknown"}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {remainingCount > 0 && (
+                              <div
+                                role="button"
+                                tabIndex={0}
+                                className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                                onClick={() => {
+                                  setAllMembersList(projectMembers);
+                                  setShowAllMembersModal(true);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    setAllMembersList(projectMembers);
+                                    setShowAllMembersModal(true);
+                                  }
+                                }}
+                              >
+                                +{remainingCount}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Project Details */}
+                <div className="border border-slate-200 rounded-lg p-4 md:p-6">
+                  <h4 className="text-[20px] font-Gantari font-medium text-[#000000] mb-4">
+                    Project Details
+                  </h4>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
+                    <div className="space-y-4 md:space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                          Actual Start Date
+                        </span>
+                        <span className="hidden sm:inline text-[#616161] mr-4">
+                          :
+                        </span>
+                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                          {formatDate(selectedProject.start_date)}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                          Total Project Hours
+                        </span>
+                        <span className="hidden sm:inline text-[#616161] mr-4">
+                          :
+                        </span>
+                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                          {selectedProject.totalhours ||
+                          (selectedProject as any).total_hours
+                            ? `${selectedProject.totalhours || (selectedProject as any).total_hours}hrs`
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                          Outsourcing Budget
+                        </span>
+                        <span className="hidden sm:inline text-[#616161] mr-4">
+                          :
+                        </span>
+                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                          {selectedProject.budget_ceiling || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                          Total Resources Available
+                        </span>
+                        <span className="hidden sm:inline text-[#616161] mr-4">
+                          :
+                        </span>
+                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                          {selectedProject.resources ||
+                            selectedProject.no_resource ||
+                            "N/A"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 md:space-y-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                          Location
+                        </span>
+                        <span className="hidden sm:inline text-[#616161] mr-4">
+                          :
+                        </span>
+                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                          {selectedProject.location || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                          Actual End Date
+                        </span>
+                        <span className="hidden sm:inline text-[#616161] mr-4">
+                          :
+                        </span>
+                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                          {formatDate(
+                            selectedProject.end_date || selectedProject.due_date,
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                          Hours/Day
+                        </span>
+                        <span className="hidden sm:inline text-[#616161] mr-4">
+                          :
+                        </span>
+                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                          {selectedProject.per_day || selectedProject.perday
+                            ? `${selectedProject.per_day || selectedProject.perday}hrs`
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                          Required Resources
+                        </span>
+                        <span className="hidden sm:inline text-[#616161] mr-4">
+                          :
+                        </span>
+                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                          {selectedProject.required_resources ||
+                            selectedProject.no_resources_required ||
+                            "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Document Attachment display */}
+                  <div className="mt-8 border-t border-slate-100 pt-6">
+                    <p className="text-[16px] font-bold text-[#353535] mb-4 tracking-wide uppercase">Project Document</p>
+                    {selectedProject.document_attachment ? (
+                      <div className="flex flex-wrap gap-3">
+                        {selectedProject.document_attachment
+                          .split(",")
+                          .map((file) => file.trim())
+                          .filter(Boolean)
+                          .map((fileName, idx) => {
+                            const url = `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`;
+                            return (
+                              <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-slate-200 md:max-w-md w-full">
+                                <div className="p-2 bg-white rounded-lg shadow-sm">
+                                  <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                                </div>
+                                <span className="text-[14px] font-bold text-[#353535] line-clamp-1 flex-1">
+                                  {fileName.split("_").pop() || "Document"}
+                                </span>
+                                <div className="flex gap-2">
+                                  <a
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
+                                    title="View Details"
+                                  >
+                                    <img src={viewIcon} alt="View" className="w-[18px] h-[18px] object-contain opacity-70 hover:opacity-100" />
+                                  </a>
+                                  <a
+                                    href={url}
+                                    download
+                                    className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
+                                    title="Download File"
+                                  >
+                                    <FiUploadCloud className="w-[18px] h-[18px] rotate-180 object-contain text-slate-500 hover:text-[#DD4342]" />
+                                  </a>
                                 </div>
                               </div>
                             );
                           })}
-                          {remainingCount > 0 && (
-                            <div
-                              role="button"
-                              tabIndex={0}
-                              className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                              onClick={() => {
-                                setAllMembersList(projectMembers);
-                                setShowAllMembersModal(true);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  setAllMembersList(projectMembers);
-                                  setShowAllMembersModal(true);
-                                }
-                              }}
-                            >
-                              +{remainingCount}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
+                      </div>
+                    ) : (
+                      <span className="text-[16px] font-medium text-[#616161]">No Document Available</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1572,29 +1596,29 @@ export default function VendorBimLeadProjects() {
                           setSelectedProject(p);
                           setShowProjectView(true);
                         }}
-                        className="bg-white rounded-[20px] border border-[#AEACAC52] p-6 pt-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                        className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
                         <div>
                           <div className="flex items-start justify-between mb-4 mt-2 pr-0">
-                            <div className="relative flex items-center justify-center">
-                              <svg className="w-20 h-20 transform -rotate-90">
+                            <div className="relative flex items-center justify-center shrink-0">
+                              <svg className="w-12 h-12 md:w-16 md:h-16 transform -rotate-90">
                                 <circle
-                                  cx="40"
-                                  cy="40"
-                                  r={radius}
+                                  cx="50%"
+                                  cy="50%"
+                                  r={22}
                                   stroke="#f1f5f9"
-                                  strokeWidth="6"
+                                  strokeWidth="4"
                                   fill="transparent"
                                 />
                                 <circle
-                                  cx="40"
-                                  cy="40"
-                                  r={radius}
+                                  cx="50%"
+                                  cy="50%"
+                                  r={22}
                                   stroke="#0a9344"
-                                  strokeWidth="6"
+                                  strokeWidth="4"
                                   fill="transparent"
-                                  strokeDasharray={circumference}
-                                  strokeDashoffset={offset}
+                                  strokeDasharray={2 * Math.PI * 22}
+                                  strokeDashoffset={(2 * Math.PI * 22) - (progress / 100) * (2 * Math.PI * 22)}
                                   strokeLinecap="round"
                                   style={{
                                     transition:
@@ -1602,7 +1626,7 @@ export default function VendorBimLeadProjects() {
                                   }}
                                 />
                               </svg>
-                              <span className="absolute text-[16px] font-Gantari font-bold text-[#353535]">
+                              <span className="absolute text-[12px] font-Gantari font-bold text-[#353535]">
                                 {progress}%
                               </span>
                             </div>
@@ -1683,15 +1707,15 @@ export default function VendorBimLeadProjects() {
                             </div>
                           </div>
 
-                          <div className="mb-4 ml-4 -mt-4">
-                            <h3 className="text-[18px] md:text-[20px] font-Gantari font-medium text-[#000000]">
+                          <div className="mb-2 ml-6 -mt-2 min-h-[45px] flex flex-col justify-center">
+                            <h3 className="text-[18px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
                               {p.project_name ?? "Untitled Project"}
                             </h3>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
-                          <div className="flex -space-x-4">
+                          <div className="flex items-center min-w-0">
                             {(() => {
                               const projectEmployees = memberIds
                                 .map((id) => resolveVendorMember(id))
@@ -1783,12 +1807,16 @@ export default function VendorBimLeadProjects() {
                               );
                             })()}
                           </div>
-                          {p.priority && (
-                            <span
-                              className={`px-2.5 py-1 rounded-md text-[12px] font-Gantari font-semibold tracking-wider ${p.priority === "High" || p.priority === "Urgent" ? "bg-red-200 text-red-600 border border-red-100" : p.priority === "Medium" ? "bg-orange-200 text-orange-600 border border-orange-100" : "bg-green-200 text-green-600 border border-green-100"}`}
+                          {p.priority ? (
+                            <div
+                              className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm shrink-0 ${(p.priority || "").toLowerCase() === "high" || (p.priority || "").toLowerCase() === "urgent" ? "bg-[#DD4342]" : "bg-[#94D6F2]"}`}
                             >
                               {p.priority}
-                            </span>
+                            </div>
+                          ) : (
+                            <div className="min-w-[2.75rem] h-9 flex items-center justify-center rounded-lg bg-sky-100 border border-sky-200/90 text-black text-[13px] px-4 py-2 font-Gantari shrink-0">
+                              Low
+                            </div>
                           )}
                         </div>
                       </div>
@@ -1801,60 +1829,7 @@ export default function VendorBimLeadProjects() {
         )}
       </div>
 
-      {/* Create Modal removed - vendors cannot create projects */}
-      {/* {showCreateModal && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2rem] shadow-2xl max-w-4xl w-full flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300">
-            {/* Modal Header */}
-      {/* <div className="relative flex items-center justify-center px-10 py-8 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => setShowCreateModal(false)}
-                className="absolute left-10 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-              <h3 className="text-[24px] font-medium text-[#000000]">
-                Add New Project
-              </h3>
-            </div>
 
-            <div className="flex-1 overflow-y-auto px-10 py-8 custom-scrollbar">
-              <form onSubmit={handleCreate} className="space-y-10">
-                {renderFormFields()}
-                <div className="flex justify-center gap-6 pt-6 pb-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="px-6 py-2 rounded-md sm:text-[14px] bg-[#F2F2F2] text-[#353535] font-medium cursor-pointer"
-                  >
-                    Discard
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={createSubmitting}
-                    className="px-6 py-2 rounded-md bg-[#DBE9FE] text-[#353535] text-[14px] font-medium cursor-pointer"
-                  >
-                    {createSubmitting ? "Creating..." : "Submit"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )} */}
 
       {showAllMembersModal && (
         <div className="fixed inset-0 z-[220] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
