@@ -591,7 +591,7 @@ export default function MyTasksPM() {
       await api.delete(endpoint);
       setList((prev) => prev.filter((t) => t.id !== deleteTask.id));
       setDeleteTask(null);
-      toast.error("Deleted successfully");
+      toast.success("Task Deleted successfully");
     } catch (error) {
       console.error("Error deleting task:", error);
     }

@@ -210,6 +210,7 @@ function App() {
             <Route path="projects/:id" element={<ProjectDetailPM />} />
             <Route path="tasks" element={<MyTasksPM />} />
             <Route path="tasks/add" element={<AddTaskPM />} />
+            <Route path="teamtask/add" element={<AddTaskPM />} />
             <Route path="tasks/taskview" element={<MytaskViewPM />} />
             <Route path="tasks/team" element={<MyTasksPM />} />
             <Route path="tasks/:id" element={<TaskDetailPM />} />
