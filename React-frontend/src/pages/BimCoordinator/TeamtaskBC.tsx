@@ -239,7 +239,7 @@ export default function TeamtaskBC() {
             setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTask.id));
             setDeletedIds((prev) => [...prev, deleteTask.id]);
             setDeleteTask(null);
-            toast.error("Deleted successfully");
+            toast.success("Deleted successfully");
         } catch (error) {
             console.error("Error deleting task:", error);
         }

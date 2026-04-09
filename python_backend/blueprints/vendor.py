@@ -2481,13 +2481,21 @@ def _current_vendor_onboarding_id():
     Returns None if not found.
     """
     cur = vendor_cursor()
-    if getattr(g, "user_type", None) == "vendor":
-        cid = getattr(g, "company_id", None)
-        if cid is not None:
-            cur.execute("SELECT id FROM vendor_onboarding WHERE id = %s LIMIT 1", (cid,))
-            row = cur.fetchone()
-            if row:
-                return row["id"]
+    cid = getattr(g, "company_id", None)
+    if getattr(g, "user_type", None) == "vendor" and cid is not None:
+        cur.execute("SELECT id FROM vendor_onboarding WHERE id = %s LIMIT 1", (cid,))
+        row = cur.fetchone()
+        if row:
+            return row["id"]
+        # Backward-compat fallback:
+        # Some environments have vendor_resource_profiles rows but no matching
+        # vendor_onboarding row. In that case, use company_id directly.
+        cur.execute(
+            "SELECT 1 FROM vendor_resource_profiles WHERE vendor_id = %s LIMIT 1",
+            (cid,),
+        )
+        if cur.fetchone():
+            return int(cid)
     email = getattr(g, "user_email", None)
     if email:
         cur.execute(
@@ -2497,6 +2505,15 @@ def _current_vendor_onboarding_id():
         row = cur.fetchone()
         if row:
             return row["id"]
+    # Final fallback for token-based sessions where company_id is already the
+    # vendor id used in vendor_resource_profiles.
+    if cid is not None:
+        cur.execute(
+            "SELECT 1 FROM vendor_resource_profiles WHERE vendor_id = %s LIMIT 1",
+            (cid,),
+        )
+        if cur.fetchone():
+            return int(cid)
     return None
 
 

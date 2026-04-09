@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
@@ -732,7 +733,23 @@ export default function ProjectsPM() {
       </div>
     );
   }
-
+  const confirmDeleteProject = async () => {
+    if (deleteProject === null) return;
+    try {
+      const isOutsource = deleteProject.source === "Outsource";
+      const baseEndpoint = isOutsource 
+        ? `/api/vendors/vendor-projects/${deleteProject.id}` 
+        : `/api/projects/${deleteProject.id}`;
+      
+      await api.delete(baseEndpoint);
+      setList(prev => prev.filter(p => p.id !== deleteProject.id));
+      toast.success("Project deleted successfully!");
+      setDeleteProject(null);
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      toast.error("Failed to delete project");
+    }
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden">
@@ -742,17 +759,26 @@ export default function ProjectsPM() {
             <div className="flex flex-col h-full bg-white">
           {/* Project View Header */}
           <div className="relative flex items-center justify-center px-4 md:px-6 py-2 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => {
-                setShowProjectView(false);
-                setSearchParams({}, { replace: true });
-              }}
-              className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
-              title="Close"
-            >
-              <img src={backIcon} alt="Close" className="w-5 h-5" />
-            </button>
+            <div className="absolute left-6 group">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProjectView(false);
+                  setSearchParams({}, { replace: true });
+                }}
+                className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
+              >
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Go Back
+                  </span>
+                </div>
+              </div>
+            </div>
             <div className="text-center">
               <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
                 {selectedProjectForView.project_name ?? "Untitled Project"}
@@ -1391,14 +1417,23 @@ export default function ProjectsPM() {
         <div className="flex flex-col h-full bg-white">
           {/* Milestones Header */}
           <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => setShowMilestones(false)}
-              className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-              title="Back"
-            >
-              <img src={backIcon} alt="Back" className="w-5 h-5" />
-            </button>
+            <div className="absolute left-6 group">
+              <button
+                type="button"
+                onClick={() => setShowMilestones(false)}
+                className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+              >
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Go Back
+                  </span>
+                </div>
+              </div>
+            </div>
             <div className="text-center">
               <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#000000]">
                 Payment Milestones
@@ -1542,14 +1577,23 @@ export default function ProjectsPM() {
         <div className="flex flex-col h-full bg-white">
           {/* Create Project Header */}
           <div className="relative flex items-center justify-center px-4 md:px-6 py-2 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => { setShowCreateModal(false); setCreateError(''); }}
-              className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
-              title="Close"
-            >
-             <img src={backIcon} alt="Close" className="w-5 h-5" />
-            </button>
+            <div className="absolute left-6 group">
+              <button
+                type="button"
+                onClick={() => { setShowCreateModal(false); setCreateError(''); }}
+                className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
+              >
+               <img src={backIcon} alt="Close" className="w-5 h-5" />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Go Back
+                  </span>
+                </div>
+              </div>
+            </div>
             <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">Add New Project</h3>
           </div>
           <div className="flex-1 overflow-y-auto py-4 md:py-6 px-4 custom-scrollbar">
@@ -1599,7 +1643,7 @@ export default function ProjectsPM() {
                 formData.append('department', createDepartment);
                 const baseEndpoint = isOutsource ? '/api/vendors/vendor-projects' : '/api/projects';
 
-                api.post<{ success?: boolean; project_id?: number }>(baseEndpoint, formData, {
+                api.post<{ success?: boolean; project_id?: number; message?: string }>(baseEndpoint, formData, {
                   headers: { 'Content-Type': 'multipart/form-data' }
                 })
                   .then(({ data }) => {
@@ -1607,9 +1651,16 @@ export default function ProjectsPM() {
                       setShowCreateModal(false);
                       resetFormFields();
                       fetchProjects();
+                      toast.success('Project created successfully!');
+                    } else {
+                      toast.error(data.message || 'Failed to create project');
                     }
                   })
-                  .catch(err => setCreateError(err.response?.data?.message || 'Failed to create project'))
+                  .catch(err => {
+                    const msg = err.response?.data?.message || 'Failed to create project';
+                    setCreateError(msg);
+                    toast.error(msg);
+                  })
                   .finally(() => setCreateSubmitting(false));
               }}
               className="max-w-5xl mx-auto px-0 py-5 space-y-6 md:space-y-8"
@@ -2127,19 +2178,28 @@ export default function ProjectsPM() {
           <div className="flex flex-col h-full bg-white">
             {/* Edit Project Header */}
             <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditError('');
-                  resetFormFields();
-                }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
-                title="Close"
-              >
-                <img src={backIcon} alt="Close" className="w-5 h-5" />
-              </button>
-              <h1 className="text-[20px] sm:text-[24px] font-semibold text-[#000000] font-Gantari">Edit Details</h1>
+              <div className="absolute left-6 group">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditError('');
+                    resetFormFields();
+                  }}
+                  className="p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
+                >
+                  <img src={backIcon} alt="Close" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                     Go Back
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <h1 className="text-[20px] sm:text-[24px] font-semibold text-[#000000] font-Gantari">Edit Project Details</h1>
             </div>
           <div className="flex-1 overflow-y-auto py-4 md:py-6 lg:py-10 px-0 custom-scrollbar">
             <form
@@ -2221,11 +2281,14 @@ export default function ProjectsPM() {
                 const isOutsource = selectedProjectForEdit?.source === "Outsource";
                 const baseEndpoint = isOutsource ? `/api/vendors/vendor-projects/${selectedProjectForEdit?.id}` : `/api/projects/${selectedProjectForEdit?.id}`;
 
-                api.put<{ success?: boolean }>(baseEndpoint, formData, {
+                api.put<{ success?: boolean; message?: string }>(baseEndpoint, formData, {
                   headers: { 'Content-Type': 'multipart/form-data' }
                 })
                   .then(({ data }) => {
-                    if (!data.success) return;
+                    if (!data.success) {
+                      toast.error(data.message || 'Failed to update project');
+                      return;
+                    }
 
                     const createTasksPromise =
                       editTaskTags.length > 0
@@ -2244,10 +2307,15 @@ export default function ProjectsPM() {
                         setShowEditModal(false);
                         setSelectedProjectForEdit(null);
                         fetchProjects();
+                        toast.success('Project updated successfully!');
                       })
                       .catch(() => undefined);
                   })
-                  .catch(err => setEditError(err.response?.data?.message || 'Failed to update project'))
+                  .catch(err => {
+                    const msg = err.response?.data?.message || 'Failed to update project';
+                    setEditError(msg);
+                    toast.error(msg);
+                  })
                   .finally(() => setIsEditSubmitting(false));
               }}
               className="max-w-5xl mx-auto px-6"
@@ -3007,40 +3075,51 @@ export default function ProjectsPM() {
 
       {/* Delete confirmation */}
       {deleteProject !== null && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-[20px] shadow-2xl max-w-sm w-full p-8 text-center border border-gray-100">
-            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2 font-Gantari">Delete Project</h3>
-            <p className="text-gray-500 mb-8 font-Gantari">Are you sure you want to delete this project? This action cannot be undone.</p>
-            <div className="flex gap-3 justify-center">
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+            {/* Close Button */}
+            <h3 className="text-[18px] font-Gantari font-semibold text-[#020202] mt-[12px] mb-3">
+              Delete Project
+            </h3>
+
+            <div className="absolute left-4 top-4 group inline-flex shrink-0">
               <button
                 type="button"
                 onClick={() => setDeleteProject(null)}
-                className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-all font-Gantari cursor-pointer"
+                className="p-2 rounded-md bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
               >
-                Cancel
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Close
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-10 text-center">
+              Are you sure, you want to Delete this?
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
+              <button
+                type="button"
+                onClick={() => setDeleteProject(null)}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-Gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Discard
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  if (deleteProject === null) return;
-                  const isOutsource = deleteProject.source === "Outsource";
-                  const baseEndpoint = isOutsource ? `/api/vendors/vendor-projects/${deleteProject.id}` : `/api/projects/${deleteProject.id}`;
-                  
-                  api.delete(baseEndpoint)
-                    .then(() => {
-                      setList(prev => prev.filter(p => p.id !== deleteProject.id));
-                      setDeleteProject(null);
-                    })
-                    .catch(() => { });
-                }}
-                className="flex-1 px-6 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all font-Gantari shadow-lg shadow-red-200 cursor-pointer"
+                onClick={confirmDeleteProject}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-Gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
-                Delete
+                Yes, Delete
               </button>
             </div>
           </div>
@@ -3052,14 +3131,23 @@ export default function ProjectsPM() {
         <div className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen overflow-y-auto p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col my-auto shrink-0">
             <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100 shrink-0">
-              <button
-                type="button"
-                onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                title="Close"
-              >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-4 group">
+                <button
+                  type="button"
+                  onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }}
+                  className="p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+                >
+                  <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">Member Profile</h3>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-10 py-8 custom-scrollbar">
@@ -3118,14 +3206,23 @@ export default function ProjectsPM() {
           <div className="bg-white rounded-[10px] max-w-[640px] w-full flex flex-col max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-8 md:px-10 py-6 md:py-8 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => setShowAddMilestoneModal(false)}
-                className="absolute left-8 md:left-10 p-2 rounded-md bg-[#F2F2F2] transition-colors cursor-pointer"
-                title="Back"
-              >
-                <img src={backIcon} alt="Back" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-8 md:left-10 group">
+                <button
+                  type="button"
+                  onClick={() => setShowAddMilestoneModal(false)}
+                  className="p-2 rounded-md bg-[#F2F2F2] transition-colors cursor-pointer"
+                >
+                  <img src={backIcon} alt="Back" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Go Back
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[20px] md:text-[24px] font-Gantari font-medium text-[#000000] text-center px-12">Add Payment Milestone</h3>
             </div>
 
@@ -3244,14 +3341,23 @@ export default function ProjectsPM() {
         <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
             <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowAllMembersModal(false)}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                title="Back"
-              >
-                <img src={backIcon} alt="Back" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-4 group">
+                <button
+                  type="button"
+                  onClick={() => setShowAllMembersModal(false)}
+                  className="p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+                >
+                  <img src={backIcon} alt="Back" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Go Back
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                 All Members ({allMembersList.length})
               </h3>

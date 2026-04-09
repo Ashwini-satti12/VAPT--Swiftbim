@@ -820,8 +820,7 @@ export default function TeamtaskTD() {
           setDeletedIds((prev) =>
             prev.includes(deleteTask.id) ? prev : [...prev, deleteTask.id],
           );
-          setSuccessMsg("Task Deleted Successfully");
-          setTimeout(() => setSuccessMsg(""), 3000);
+          toast.success("Task Deleted Successfully");
         })
         .finally(() => {
           setDeleteTask(null);
@@ -975,28 +974,6 @@ export default function TeamtaskTD() {
 
   return (
     <div className="h-full min-h-0 flex flex-col overflow-y-auto lg:overflow-hidden bg-white custom-scrollbar relative">
-      {successMsg && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-3 px-5 py-3 rounded-lg bg-white shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-gray-100 min-w-[300px] animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#58D662]">
-            <svg
-              className="w-3.5 h-3.5 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={4}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          </div>
-          <span className="text-[16px] font-Gantari font-medium text-[#2D2D2D]">
-            {successMsg}
-          </span>
-        </div>
-      )}
       <div className="bg-white flex-shrink-0 px-1 sm:px-0 pt-0 sm:pt-0 sm:mt-2">
         {/* Row 1: Title and Add Task button for mobile only */}
         <div className="flex flex-row items-center justify-between w-full mb-4 lg:hidden">

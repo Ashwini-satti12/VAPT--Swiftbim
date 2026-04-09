@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { toast } from 'react-hot-toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
@@ -38,7 +39,6 @@ const showEntriesOptions: {
     { value: '251-300', label: '251-300', start: 250, end: 300 },
     { value: 'all', label: 'All', start: 0, end: null },
   ];
-const PER_PAGE = 10;
 interface Employee {
   id: number;
   full_name: string;
@@ -141,19 +141,11 @@ const PANEL_ACCESS_OPTIONS = [
 
 const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #979797;
-    border-radius: 10px;
+    display: none;
   }
   .custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: #979797 transparent;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 `;
 
@@ -307,7 +299,6 @@ export default function EmployeesPM() {
   const [list, setList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
-  const [currentPage, setCurrentPage] = useState(1);
 
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [addError, setAddError] = useState('');
@@ -455,7 +446,6 @@ export default function EmployeesPM() {
   const searchQueryKey = searchParams.get('q') ?? '';
 
   useEffect(() => {
-    setCurrentPage(1);
   }, [selectedShowEntries, typeFilter, statusFilter, searchQueryKey]);
 
   const filteredList = list.filter((emp: Employee) => {
@@ -499,12 +489,7 @@ export default function EmployeesPM() {
       : Math.min(selectedRange.end, filteredList.length);
   const listInRange = filteredList.slice(rangeStart, rangeEnd);
   const totalInRange = listInRange.length;
-  const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
-  const safePage = Math.min(Math.max(1, currentPage), totalPages);
-  const displayedListTable = listInRange.slice(
-    (safePage - 1) * PER_PAGE,
-    safePage * PER_PAGE,
-  );
+  const displayedListTable = listInRange;
   const displayedListCard = listInRange;
 
 
@@ -597,9 +582,11 @@ export default function EmployeesPM() {
         }));
         setEditId(null);
         setActiveView('list');
+        toast.success('Consultant updated successfully');
       })
       .catch((err) => {
         console.error('Update failed:', err);
+        toast.error(err.response?.data?.message || 'Update failed');
       })
       .finally(() => setEditSubmitting(false));
   }
@@ -731,11 +718,17 @@ export default function EmployeesPM() {
               profile_picture: data.profile_picture || undefined,
             },
           ]);
+          toast.success('Consultant added successfully');
         } else {
           setAddError(data.message || 'Failed to add consultant.');
+          toast.error(data.message || 'Failed to add consultant.');
         }
       })
-      .catch((err) => setAddError(err.response?.data?.message || 'Failed to add consultant.'))
+      .catch((err) => {
+        const msg = err.response?.data?.message || 'Failed to add consultant.';
+        setAddError(msg);
+        toast.error(msg);
+      })
       .finally(() => setAddSubmitting(false));
   }
 
@@ -749,6 +742,7 @@ export default function EmployeesPM() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-white">
+      <style>{SCROLLBAR_STYLE}</style>
       {(activeView === 'list' || activeView === 'invite' || activeView === 'inactive') && (
         <>
           <div className="sticky z-50 bg-white mb-4 mt-2 overflow-visible">
@@ -770,10 +764,8 @@ export default function EmployeesPM() {
                       <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                      <div className="relative z-10">
-                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                      </div>
-                      <div className="bg-[#FFFFFF] border border-[#C1C1C1]/50 rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-3 py-1 -mt-[1px]">
+                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
                         <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                           List
                         </span>
@@ -790,10 +782,8 @@ export default function EmployeesPM() {
                       <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                      <div className="relative z-10">
-                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                      </div>
-                      <div className="bg-[#FFFFFF] border border-[#C1C1C1]/50 rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-3 py-1 -mt-[1px]">
+                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
                         <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                           Grid
                         </span>
@@ -1075,117 +1065,117 @@ export default function EmployeesPM() {
                 )}
               </div>
             ) : (
-              <div className=" sticky top-0 z-40 border border-[#AEACAC52] rounded-md overflow-hidden bg-white">
+              <div className="border border-[#AEACAC52] rounded-md overflow-hidden bg-white">
                 <div className="overflow-x-auto custom-scrollbar">
                   <table className="min-w-full border-separate border-spacing-0">
-                    <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                      <tr className="bg-white">
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535]">
-                          Sl.No
-                        </th>
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Contact Info</th>
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Status</th>
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Action</th>
+                  <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                    <tr className="bg-white">
+                      <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535]">
+                        Sl.No
+                      </th>
+                      <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
+                      <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
+                      <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
+                      <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Contact Info</th>
+                      <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Status</th>
+                      <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {displayedListTable.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-Gantari">
+                          No consultants found.
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {displayedListTable.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-Gantari">
-                            No consultants found.
-                          </td>
-                        </tr>
-                      ) : (
-                        displayedListTable.map((emp, idx) => {
-                          const baseIndex =
-                            rangeStart + (safePage - 1) * PER_PAGE + idx;
-                          const slNo = baseIndex + 1;
-                          const slNoDisplay = String(slNo).padStart(2, '0');
-                          return (
-                            <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
-                              <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#6B6B6B]">
-                                {slNoDisplay}
-                              </td>
+                    ) : (
+                      displayedListTable.map((emp, idx) => {
+                        const baseIndex = rangeStart + idx;
+                        const slNo = baseIndex + 1;
+                        const slNoDisplay = String(slNo).padStart(2, '0');
+                        return (
+                          <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
+                            <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#6B6B6B]">
+                              {slNoDisplay}
+                            </td>
 
 
-                              <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#6B6B6B] whitespace-nowrap">
-                                {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
-                              </td>
+                            <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#6B6B6B] whitespace-nowrap">
+                              {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
+                            </td>
 
-                              <td className="px-6 py-5">
-                                <div className="flex items-center justify-center gap-4 min-w-0">
-                                  <div className="relative shrink-0">
-                                    <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
-                                      {emp.profile_picture && emp.profile_picture.trim() ? (
-                                        <img
-                                          src={getProfileUrl(emp.profile_picture)}
-                                          alt={emp.full_name}
-                                          className="w-full h-full object-cover"
-                                          onError={(e) => {
-                                            // Hide broken image; the status dot + name still show
-                                            (e.target as HTMLImageElement).style.display = 'none';
-                                          }}
-                                        />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                          <span className="text-[14px] font-Gantari text-[#1A1A1A]">
-                                            {toCamelCase(emp.full_name).charAt(0) || 'U'}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                    <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
+                            <td className="px-6 py-5">
+                              <div className="flex items-center justify-center gap-4 min-w-0">
+                                <div className="relative shrink-0">
+                                  <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
+                                    {emp.profile_picture && emp.profile_picture.trim() ? (
+                                      <img
+                                        src={getProfileUrl(emp.profile_picture)}
+                                        alt={emp.full_name}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          // Hide broken image; the status dot + name still show
+                                          (e.target as HTMLImageElement).style.display = 'none';
+                                        }}
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center">
+                                        <span className="text-[14px] font-Gantari text-[#1A1A1A]">
+                                          {toCamelCase(emp.full_name).charAt(0) || 'U'}
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
-                                  <span
-                                    className={`text-[14px] font-semibold font-Gantari text-[#353535] min-w-0 ${nameExceedsThreeWords(toCamelCase(emp.full_name))
-                                      ? 'line-clamp-2 break-words'
-                                      : 'whitespace-nowrap'
-                                      }`}
-                                  >
-                                    {toCamelCase(emp.full_name)}
-                                  </span>
+                                  <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
                                 </div>
-                              </td>
-                              <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#353535]">{emp.email}</td>
-                              <td className="px-6 py-5 text-center">
-                                <div className="flex items-center justify-center gap-3">
-                                  <button
-                                    onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
-                                  >
-                                    <img src={mailIcon} className="w-5 h-5" alt="Mail" />
-                                  </button>
-                                  <button
-                                    onClick={() => navigate('/chat')}
-                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
-                                  >
-                                    <img src={messageIcon} className="w-5 h-5" alt="Message" />
-                                  </button>
-                                  <button
-                                    onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
-                                  >
-                                    <img src={callIcon} className="w-5 h-5" alt="Call" />
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="px-6 py-5 text-center">
-                                <div className="inline-block min-w-[140px]">
-                                  <CustomDropdown
-                                    options={['Active', 'Deactivate']}
-                                    className="cursor-pointer"
-                                    value={emp.active === 'active' ? 'Active' : 'Deactivate'}
-                                    onChange={(val) => handleStatusToggle(emp.id, val)}
-                                    placeholder="Status"
-                                    styleType="table"
-                                  />
-                                </div>
-                              </td>
-                              <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
-                                <div className="flex items-center justify-center gap-3">
+                                <span
+                                  className={`text-[14px] font-semibold font-Gantari text-[#353535] min-w-0 ${nameExceedsThreeWords(toCamelCase(emp.full_name))
+                                    ? 'line-clamp-2 break-words'
+                                    : 'whitespace-nowrap'
+                                    }`}
+                                >
+                                  {toCamelCase(emp.full_name)}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#353535]">{emp.email}</td>
+                            <td className="px-6 py-5 text-center">
+                              <div className="flex items-center justify-center gap-3">
+                                <button
+                                  onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
+                                >
+                                  <img src={mailIcon} className="w-5 h-5" alt="Mail" />
+                                </button>
+                                <button
+                                  onClick={() => navigate('/chat')}
+                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
+                                >
+                                  <img src={messageIcon} className="w-5 h-5" alt="Message" />
+                                </button>
+                                <button
+                                  onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
+                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
+                                >
+                                  <img src={callIcon} className="w-5 h-5" alt="Call" />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="px-6 py-5 text-center">
+                              <div className="inline-block min-w-[140px]">
+                                <CustomDropdown
+                                  options={['Active', 'Deactivate']}
+                                  className="cursor-pointer"
+                                  value={emp.active === 'active' ? 'Active' : 'Deactivate'}
+                                  onChange={(val) => handleStatusToggle(emp.id, val)}
+                                  placeholder="Status"
+                                  styleType="table"
+                                />
+                              </div>
+                            </td>
+                            <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-3">
+                                <div className="relative group inline-flex shrink-0">
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -1197,7 +1187,17 @@ export default function EmployeesPM() {
                                   >
                                     <img src={projectViewIcon} className="w-4 h-4 brightness-0 invert" alt="" aria-hidden />
                                   </button>
-                                  {canAdd && (
+                                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                        View
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                {canAdd && (
+                                  <div className="relative group inline-flex shrink-0">
                                     <button
                                       type="button"
                                       onClick={() => openEditModel(emp)}
@@ -1206,54 +1206,26 @@ export default function EmployeesPM() {
                                     >
                                       <img src={projectEditIcon} className="w-4 h-4" alt="" aria-hidden />
                                     </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-auto pt-4 bg-white sticky bottom-0 border-t border-slate-100">
-                    <div className="text-[14px] font-semibold text-[#353535] font-Gantari">
-                      Showing{' '}
-                      {totalInRange === 0
-                        ? 0
-                        : (safePage - 1) * PER_PAGE + 1}{' '}
-                      to {Math.min(safePage * PER_PAGE, totalInRange)} of{' '}
-                      {totalInRange} entries
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={safePage === 1}
-                        className="p-2.5 rounded-[5px] border border-[#E0E0E0] disabled:opacity-50 hover:bg-slate-50 transition-colors cursor-pointer"
-                      >
-                        <FiChevronDown className="w-5 h-5 rotate-90" />
-                      </button>
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`w-10 h-10 rounded-[5px] border font-semibold font-Gantari transition-all cursor-pointer ${safePage === page ? 'bg-[#DD4342] border-[#DD4342] text-white' : 'border-[#E0E0E0] text-[#353535] hover:bg-slate-50'}`}
-                        >
-                          {String(page).padStart(2, '0')}
-                        </button>
-                      ))}
-                      <button
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={safePage === totalPages}
-                        className="p-2.5 rounded-[5px] border border-[#E0E0E0] disabled:opacity-50 hover:bg-slate-50 transition-colors cursor-pointer"
-                      >
-                        <FiChevronDown className="w-5 h-5 -rotate-90" />
-                      </button>
-                    </div>
-                  </div>
-                )}
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                          Edit
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
+            </div>
 
             )}
           </div>
@@ -1265,15 +1237,24 @@ export default function EmployeesPM() {
       {activeView === 'add' && (
         <div className="flex-1 overflow-y-auto p-2 bg-white">
           <div className="max-w-[1174px] mx-auto">
-            <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
-              <button
-                type="button"
-                onClick={() => { setActiveView('list'); setAddError(''); }}
-                className="p-2 rounded-md bg-[#F2F2F2] text-[#616161] transition-all cursor-pointer"
-                title="Back"
-              >
-                <img src={backIcon} alt="Back" className="w-5 h-5" />
-              </button>
+            <div className="flex left-6 items-center justify-between mb-8 sm:mb-10 relative">
+              <div className="relative group">
+                <button
+                  type="button"
+                  onClick={() => { setActiveView('list'); setAddError(''); }}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#616161] transition-all cursor-pointer"
+                >
+                  <img src={backIcon} alt="Back" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Go Back
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Add New Consultant</h3>
               <div className="w-10" />
             </div>
@@ -1443,8 +1424,8 @@ export default function EmployeesPM() {
       {activeView === 'edit' && (
         <div className="flex-1 overflow-y-auto p-2 bg-white">
           <div className="max-w-[1174px] mx-auto">
-            <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
-              <div className="absolute left-2 group inline-flex shrink-0">
+            <div className="flex left-5 items-center justify-between mb-8 sm:mb-10 relative">
+              <div className="relative group">
                 <button
                   type="button"
                   onClick={() => { setActiveView('list'); setEditId(null); }}
@@ -1453,12 +1434,10 @@ export default function EmployeesPM() {
                   <img src={backIcon} alt="Back" className="w-5 h-5" />
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                  <div className="relative z-10">
-                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                  </div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1]/50 rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-3 py-1 -mt-[1px]">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
                     <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                      Back
+                      Go Back
                     </span>
                   </div>
                 </div>
@@ -1682,7 +1661,7 @@ export default function EmployeesPM() {
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]">
           <div className="bg-white rounded-[10px] max-w-[813px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
             <div className="flex items-center justify-center mb-8 relative">
-              <div className="absolute left-5 group inline-flex shrink-0">
+              <div className="relative group inline-flex shrink-0">
                 <button
                   type="button"
                   onClick={() => { setActiveView('list'); setInviteEmails(''); setInviteMessage(''); }}
@@ -1691,17 +1670,15 @@ export default function EmployeesPM() {
                   <FiX className="w-5 h-5 font-bold" />
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                  <div className="relative z-10">
-                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                  </div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1]/50 rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-3 py-1 -mt-[1px]">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
                     <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                       Close
                     </span>
                   </div>
                 </div>
               </div>
-              <h1 className="text-[24px] font-medium text-[#000000] text-center">Invite New Consultant</h1>
+              <h1 className="text-[24px] font-medium text-[#000000] text-center flex-1">Invite New Consultant</h1>
             </div>
 
             <form onSubmit={handleInvite} className="space-y-8 overflow-y-auto custom-scrollbar pr-2">
@@ -1747,7 +1724,7 @@ export default function EmployeesPM() {
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]">
           <div className="bg-white rounded-[10px] max-w-[950px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
             <div className="flex items-center justify-center mb-8 relative shrink-0">
-              <div className="absolute left-5 group inline-flex shrink-0">
+              <div className="relative group inline-flex shrink-0">
                 <button
                   type="button"
                   onClick={() => { setActiveView('list'); setInactiveIds([]); }}
@@ -1756,17 +1733,15 @@ export default function EmployeesPM() {
                   <FiX className="w-5 h-5 font-bold" />
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                  <div className="relative z-10">
-                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                  </div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1]/50 rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-3 py-1 -mt-[1px]">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
                     <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                       Close
                     </span>
                   </div>
                 </div>
               </div>
-              <h3 className="text-[24px] font-medium text-[#000000] text-center">Manage In-active Consultants</h3>
+              <h3 className="text-[24px] font-medium text-[#000000] text-center flex-1">Manage In-active Consultants</h3>
             </div>
 
             <div className="shrink-0 mb-8 px-4">
@@ -1853,7 +1828,7 @@ export default function EmployeesPM() {
           <div className="bg-white rounded-lg max-w-[520px] w-full overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
             {/* Header */}
             <div className="flex items-center justify-center relative shrink-0">
-              <div className="absolute left-5 group inline-flex shrink-0">
+              <div className="relative group inline-flex shrink-0">
                 <button
                   type="button"
                   onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
@@ -1862,17 +1837,15 @@ export default function EmployeesPM() {
                   <FiX className="w-5 h-5 font-bold" />
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                  <div className="relative z-10">
-                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                  </div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1]/50 rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-3 py-1 -mt-[1px]">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
                     <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                       Close
                     </span>
                   </div>
                 </div>
               </div>
-              <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">View Details</h3>
+              <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari flex-1 text-center">View Details</h3>
             </div>
 
             {/* Profile Section */}
