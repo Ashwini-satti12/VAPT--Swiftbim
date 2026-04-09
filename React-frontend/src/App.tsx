@@ -161,7 +161,30 @@ import VendorBimLeadCommunication from "./pages/Vendor/VendorBimLead/VendorBimLe
 function App() {
   return (
     <AuthProvider>
-      <Toaster position="top-center" reverseOrder={false} />
+      <Toaster
+        position="top-center"
+        reverseOrder={false}
+        containerStyle={{ top: 12 }}
+        toastOptions={{
+          success: {
+            duration: 3500,
+            style: {
+              background: "#ffffff",
+              color: "#1A1A1A",
+              border: "1px solid #E8E8E8",
+              borderRadius: "10px",
+              boxShadow: "0 4px 14px rgba(0, 0, 0, 0.08)",
+              padding: "12px 16px",
+              fontSize: "14px",
+              fontWeight: 500,
+            },
+            iconTheme: {
+              primary: "#22C55E",
+              secondary: "#ffffff",
+            },
+          },
+        }}
+      />
       <BrowserRouter>
         <Routes>
           {/* <Route path="/" element={<Login />} /> */}

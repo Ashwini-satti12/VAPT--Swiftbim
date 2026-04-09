@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import api from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
@@ -164,8 +165,7 @@ export default function ProjectsV() {
             .then(({ data }) => {
                 if (data.success) {
                     setDeleteId(null);
-                    setSuccessMsg("Project deleted!");
-                    setTimeout(() => setSuccessMsg(null), 3000);
+                    toast.success("Project deleted successfully");
                     fetchProjects();
                 }
             })
@@ -221,7 +221,6 @@ export default function ProjectsV() {
     const [showMilestones, setShowMilestones] = useState(false);
     const [milestonesProject, setMilestonesProject] = useState<Project | null>(null);
 
-    const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [showAllMembersModal, setShowAllMembersModal] = useState(false);
     const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
     const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
@@ -501,8 +500,7 @@ export default function ProjectsV() {
                     setCreateRequiredResources(""); setCreatePriority(""); setCreateLocation("");
                     setCreateDescription(""); setCreateDeliverables(""); setCreateFile(null);
 
-                    setSuccessMsg("Project created!");
-                    setTimeout(() => setSuccessMsg(null), 3000);
+                    toast.success("Project created successfully");
                     fetchProjects();
                 } else {
                     setCreateError(data.message || "Failed to create project.");
@@ -622,8 +620,7 @@ export default function ProjectsV() {
                     setCreateDescription(""); setCreateDeliverables(""); setCreateFile(null);
                     setCurrentAttachments("");
 
-                    setSuccessMsg("Project updated!");
-                    setTimeout(() => setSuccessMsg(null), 3000);
+                    toast.success("Project updated successfully");
                     fetchProjects();
                 } else {
                     setEditError(data.message || "Failed to edit project.");
@@ -1243,16 +1240,6 @@ export default function ProjectsV() {
     return (
         <div className="bg-white min-h-screen">
             <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden">
-                {/* Toast */}
-                {successMsg && (
-                    <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 px-6 py-2.5 rounded-xl shadow-xl bg-[#1A8A47] text-white font-gantari text-[14px] font-medium min-w-[300px] animate-in fade-in slide-in-from-top-4 duration-300">
-                        <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span>{successMsg}</span>
-                    </div>
-                )}
-
                 {/* Project View (In-Page) */}
                 {showEditModal ? (
                     <div className="flex flex-col h-full bg-white">
