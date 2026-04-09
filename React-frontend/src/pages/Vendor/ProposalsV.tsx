@@ -241,10 +241,12 @@ export default function ProposalsV() {
 
                         {/* 3. Scope of Work */}
                         {selected.scope_of_work && (
-                            <div className="space-y-4">
+                            <div className="space-y-4 min-w-0 w-full max-w-full">
                                 <h2 className="font-bold text-[16px] text-[#020202]">3. Scope of Work</h2>
-                                <div className="bg-[#F2F2F2] rounded-md px-4 py-3 text-[14px] text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] [&_h2]:text-[16px] [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-[14px] [&_h3]:font-bold [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
-                                    dangerouslySetInnerHTML={{ __html: selected.scope_of_work }} />
+                                <div
+                                    className="bg-[#F2F2F2] rounded-md px-4 py-3 text-[14px] text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] min-w-0 w-full max-w-full [overflow-wrap:anywhere] [&_h2]:text-[16px] [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-[14px] [&_h3]:font-bold [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                                    dangerouslySetInnerHTML={{ __html: selected.scope_of_work }}
+                                />
                             </div>
                         )}
 
@@ -281,8 +283,10 @@ export default function ProposalsV() {
                         {selected.deliverables && (
                             <div className="space-y-4">
                                 <h2 className="font-bold text-[16px] text-[#020202]">4. Deliverables</h2>
-                                <div className="bg-[#F2F2F2] rounded-md px-4 py-3 text-[14px] text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] [&_h2]:text-[16px] [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
-                                    dangerouslySetInnerHTML={{ __html: selected.deliverables }} />
+                                <div
+                                    className="bg-[#F2F2F2] rounded-md px-4 py-3 text-[14px] text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] min-w-0 w-full max-w-full [overflow-wrap:anywhere] [&_h2]:text-[16px] [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                                    dangerouslySetInnerHTML={{ __html: selected.deliverables }}
+                                />
                             </div>
                         )}
 
@@ -290,8 +294,10 @@ export default function ProposalsV() {
                         {selected.exclusions && stripHtml(selected.exclusions) && (
                             <div className="space-y-4">
                                 <h2 className="font-bold text-[16px] text-[#020202]">5. Exclusions</h2>
-                                <div className="bg-[#F2F2F2] rounded-md px-4 py-3 text-[14px] text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] [&_h2]:text-[16px] [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
-                                    dangerouslySetInnerHTML={{ __html: selected.exclusions }} />
+                                <div
+                                    className="bg-[#F2F2F2] rounded-md px-4 py-3 text-[14px] text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] min-w-0 w-full max-w-full [overflow-wrap:anywhere] [&_h2]:text-[16px] [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                                    dangerouslySetInnerHTML={{ __html: selected.exclusions }}
+                                />
                             </div>
                         )}
 
