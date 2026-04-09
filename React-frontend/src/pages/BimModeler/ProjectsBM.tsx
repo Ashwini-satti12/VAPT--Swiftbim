@@ -673,18 +673,29 @@ export default function ProjectsBL() {
         <div className="flex flex-col flex-1 min-h-0 bg-white">
           {/* Project View Header */}
           <div className="relative flex items-center justify-center px-4 md:px-6 py-2 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => {
-                setShowProjectView(false);
-                setSelectedProjectForView(null);
-                setSearchParams({}, { replace: true });
-              }}
-              className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
-              title="Back"
-            >
-              <img src={backIcon} alt="Back" className="w-5 h-5" />
-            </button>
+            <div className="absolute left-4 z-10">
+              <div className="relative group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProjectView(false);
+                    setSelectedProjectForView(null);
+                    setSearchParams({}, { replace: true });
+                  }}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
+                >
+                  <img src={backIcon} alt="Back" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.1)] px-4 py-1 relative z-10">
+                    <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Back
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div className="text-center">
               <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
                 {selectedProjectForView?.project_name ?? "Loading..."}
