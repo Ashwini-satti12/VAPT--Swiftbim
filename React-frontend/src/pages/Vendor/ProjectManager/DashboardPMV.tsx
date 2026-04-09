@@ -185,13 +185,15 @@ export default function DashboardPMV() {
                         .map((t: any) => Number(t?.projectid ?? t?.project_id))
                         .filter((id: number) => !Number.isNaN(id) && id > 0),
                 );
+                // If task endpoints don't return assignments yet, fall back to all vendor projects
+                // so dashboard KPI cards still reflect backend project data.
                 const involvedProjects = involvedProjectIds.size > 0
                     ? projectsList.filter((p: any) => involvedProjectIds.has(Number(p?.id)))
-                    : [];
+                    : projectsList;
                 const uniqueInvolvedProjects = uniqueById(involvedProjects);
                 const scopedTasks = involvedProjectIds.size > 0
                     ? allTasks.filter((t: any) => involvedProjectIds.has(Number(t?.projectid ?? t?.project_id)))
-                    : [];
+                    : allTasks;
                 const uniqueScopedTasks = uniqueById(scopedTasks);
 
                 if (!cancelled) {

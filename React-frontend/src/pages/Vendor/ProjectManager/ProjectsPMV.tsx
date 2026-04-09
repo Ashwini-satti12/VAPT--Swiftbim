@@ -224,7 +224,7 @@ export default function ProjectsPMV() {
                 );
                 const involvedProjects = involvedProjectIds.size > 0
                     ? allProjects.filter((p) => involvedProjectIds.has(Number(p.id)))
-                    : [];
+                    : allProjects;
                 setList(uniqueById(involvedProjects));
             })
             .catch(() => setList([]))
