@@ -402,11 +402,11 @@ export default function TeamtaskPMV() {
                     const pid = Number(t.project_id ?? t.projectid);
                     return !Number.isNaN(pid) && involvedProjectIds.has(pid);
                 })
-                : [];
+                : allTasks;
 
             const scopedProjects = involvedProjectIds.size > 0
                 ? allProjects.filter((p) => involvedProjectIds.has(Number(p.id)))
-                : [];
+                : allProjects;
 
             setList(uniqueById(scopedTasks));
             setProjects(uniqueById(scopedProjects));
