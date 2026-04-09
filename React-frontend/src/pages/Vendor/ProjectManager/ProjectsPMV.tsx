@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../../lib/api";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../contexts/AuthContext";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 import { RiDeleteBin5Fill } from "react-icons/ri";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
@@ -101,6 +102,7 @@ function vendorDocUrl(fileName: string): string {
 }
 
 export default function ProjectsPMV() {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const [list, setList] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
@@ -217,15 +219,27 @@ export default function ProjectsPMV() {
             .then(([projectsRes, myTasksRes]) => {
                 const allProjects = projectsRes.data.projects ?? [];
                 const myTasks = myTasksRes.data.tasks ?? [];
+                const userId = user?.id != null ? String(user.id) : "";
+                const hasCsvId = (csvLike: unknown, target: string) =>
+                    String(csvLike ?? "")
+                        .split(",")
+                        .map((v) => v.trim())
+                        .filter(Boolean)
+                        .includes(target);
                 const involvedProjectIds = new Set<number>(
                     myTasks
                         .map((t) => Number(t.projectid ?? t.project_id))
                         .filter((id) => !Number.isNaN(id) && id > 0),
                 );
+                const pmAssignedProjects = userId
+                    ? allProjects.filter((p) => hasCsvId(p.project_manager_id, userId))
+                    : [];
                 const involvedProjects = involvedProjectIds.size > 0
                     ? allProjects.filter((p) => involvedProjectIds.has(Number(p.id)))
                     : allProjects;
-                setList(uniqueById(involvedProjects));
+                const scopedProjects =
+                    pmAssignedProjects.length > 0 ? pmAssignedProjects : involvedProjects;
+                setList(uniqueById(scopedProjects));
             })
             .catch(() => setList([]))
             .finally(() => setLoading(false));
@@ -272,7 +286,7 @@ export default function ProjectsPMV() {
         api.get<{ clients?: any[] }>("/api/clients")
             .then(({ data }) => setClientsList(data.clients ?? []))
             .catch(() => setClientsList([]));
-    }, [statusFilter]);
+    }, [statusFilter, user?.id]);
 
     useEffect(() => {
         if (!showProjectView || !selectedProject) return;

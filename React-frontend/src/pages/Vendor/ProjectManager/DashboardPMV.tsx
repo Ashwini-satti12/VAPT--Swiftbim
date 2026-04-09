@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import api from "../../../lib/api";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
+import { useAuth } from "../../../contexts/AuthContext";
 
 const MONTH_NAMES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((m) =>
     new Date(2000, m, 1).toLocaleString('default', { month: 'long' })
@@ -115,6 +116,7 @@ function taskProgressAndCountdown(
 const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 36;
 
 export default function DashboardPMV() {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<DashboardStats>(defaultStats);
     const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
@@ -179,19 +181,37 @@ export default function DashboardPMV() {
                 const projectsList = Array.isArray(projectsResp?.data?.projects) ? projectsResp.data.projects : [];
                 const myTasks = Array.isArray(myTasksResp?.data?.tasks) ? myTasksResp.data.tasks : [];
                 const allTasks = Array.isArray(allTasksResp?.data?.tasks) ? allTasksResp.data.tasks : [];
+                const userId = user?.id != null ? String(user.id) : "";
+                const hasCsvId = (csvLike: unknown, target: string) =>
+                    String(csvLike ?? "")
+                        .split(",")
+                        .map((v) => v.trim())
+                        .filter(Boolean)
+                        .includes(target);
+                const pmAssignedProjects = userId
+                    ? projectsList.filter((p: any) => hasCsvId(p?.project_manager_id, userId))
+                    : [];
+                const pmAssignedProjectIds = new Set<number>(
+                    pmAssignedProjects
+                        .map((p: any) => Number(p?.id))
+                        .filter((id: number) => !Number.isNaN(id) && id > 0),
+                );
 
                 const involvedProjectIds = new Set<number>(
                     myTasks
                         .map((t: any) => Number(t?.projectid ?? t?.project_id))
                         .filter((id: number) => !Number.isNaN(id) && id > 0),
                 );
-                // If task endpoints don't return assignments yet, fall back to all vendor projects
-                // so dashboard KPI cards still reflect backend project data.
                 const involvedProjects = involvedProjectIds.size > 0
                     ? projectsList.filter((p: any) => involvedProjectIds.has(Number(p?.id)))
                     : projectsList;
-                const uniqueInvolvedProjects = uniqueById(involvedProjects);
-                const scopedTasks = involvedProjectIds.size > 0
+                const scopedProjects = pmAssignedProjects.length > 0
+                    ? pmAssignedProjects
+                    : involvedProjects;
+                const uniqueInvolvedProjects = uniqueById(scopedProjects);
+                const scopedTasks = pmAssignedProjectIds.size > 0
+                    ? allTasks.filter((t: any) => pmAssignedProjectIds.has(Number(t?.projectid ?? t?.project_id)))
+                    : involvedProjectIds.size > 0
                     ? allTasks.filter((t: any) => involvedProjectIds.has(Number(t?.projectid ?? t?.project_id)))
                     : allTasks;
                 const uniqueScopedTasks = uniqueById(scopedTasks);
@@ -211,7 +231,7 @@ export default function DashboardPMV() {
 
         fetchAll();
         return () => { cancelled = true; };
-    }, []);
+    }, [user?.id]);
 
     // GET /api/vendors/dashboard/priority-tasks → Today's Priority tasks
     useEffect(() => {
