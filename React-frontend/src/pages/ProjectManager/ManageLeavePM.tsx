@@ -556,7 +556,7 @@ export default function ManageLeavePM() {
               : "Pending",
       }));
       setLeaves(mapped);
-      toast.error("Deleted successfully");
+      toast.success("Deleted successfully");
       setDeleteLeave(null);
     } catch (err: any) {
       console.error("Delete leave failed", err);
@@ -1000,28 +1000,37 @@ export default function ManageLeavePM() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative flex items-center justify-center px-6 py-5 border-b border-[#EEEEEE] bg-[#FAFAFA]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewModalOpen(false);
-                    setSelectedLeave(null);
-                  }}
-                  className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#EEEEEE] hover:bg-[#E0E0E0] transition-colors text-[#353535]"
-                  aria-label="Close"
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 group">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewModalOpen(false);
+                      setSelectedLeave(null);
+                    }}
+                    className="cursor-pointer p-2 rounded-lg bg-[#EEEEEE] hover:bg-[#E0E0E0] transition-colors text-[#353535]"
                   >
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                </button>
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <h3 className="text-xl font-bold text-[#353535]">
                   Leave Details
                 </h3>
@@ -1113,26 +1122,35 @@ export default function ManageLeavePM() {
       {deleteLeave !== null && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
-            <button
-              type="button"
-              onClick={() => setDeleteLeave(null)}
-              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-              title="Close"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <div className="absolute left-4 top-4 group">
+              <button
+                type="button"
+                onClick={() => setDeleteLeave(null)}
+                className="p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Close
+                  </span>
+                </div>
+              </div>
+            </div>
             <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
               Delete Leave
             </h3>
@@ -1171,14 +1189,23 @@ export default function ManageLeavePM() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative flex items-center justify-center px-6 py-5 ">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="hover:cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] transition-colors"
-                  aria-label="Close"
-                >
-                  <img src={closeIcon} alt="" className="w-5 h-5 object-contain" />
-                </button>
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 group">
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="hover:cursor-pointer p-2 rounded-md bg-[#F2F2F2] transition-colors"
+                  >
+                    <img src={closeIcon} alt="" className="w-5 h-5 object-contain" />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <h3 className="text-[24px] font-semibold text-[#000000]">
                   Apply Leave
                 </h3>
@@ -1450,14 +1477,23 @@ export default function ManageLeavePM() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative flex items-center justify-center px-6 py-5">
-                <button
-                  type="button"
-                  onClick={handleCloseEditModal}
-                  className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] transition-colors"
-                  aria-label="Close"
-                >
-                  <img src={closeIcon} alt="" className="w-5 h-5 object-contain" />
-                </button>
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 group">
+                  <button
+                    type="button"
+                    onClick={handleCloseEditModal}
+                    className="cursor-pointer p-2 rounded-md bg-[#F2F2F2] transition-colors"
+                  >
+                    <img src={closeIcon} alt="" className="w-5 h-5 object-contain" />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <h3 className="text-[24px] font-medium text-[#000000]">Edit Leave</h3>
               </div>
               <form onSubmit={handleSubmitEdit} className="px-6 py-6 space-y-4">

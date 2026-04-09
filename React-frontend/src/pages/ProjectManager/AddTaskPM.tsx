@@ -300,7 +300,7 @@ export default function AddTaskPM() {
       api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects"),
     ]).then(([empRes, projRes1, projRes2]) => {
       setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
-      
+
       const mapProj = (r: Record<string, any>, defaultSource: string) => ({
         id: Number(r.id),
         project_name: String(r.project_name || ""),
@@ -316,7 +316,7 @@ export default function AddTaskPM() {
       });
       const p1 = (projRes1.data.projects ?? []).map(r => mapProj(r, "In House"));
       const p2 = (projRes2.data.projects ?? []).map(r => mapProj(r, "Outsource"));
-      
+
       setProjects([...p1, ...p2]);
     });
   }, []);
@@ -383,7 +383,7 @@ export default function AddTaskPM() {
             }
             applyRow(data as Record<string, unknown>, true);
           })
-          .catch(() => {});
+          .catch(() => { });
       });
 
     return () => {
@@ -408,16 +408,16 @@ export default function AddTaskPM() {
       const name = addTaskForm.projectName;
       const sourceHint =
         editingTaskId != null &&
-        editingTask &&
-        String(editingTask.project_name || "") === name
+          editingTask &&
+          String(editingTask.project_name || "") === name
           ? editingTask.source
           : undefined;
 
       const selectedProj =
         (sourceHint
           ? projects.find(
-              (p) => p.project_name === name && p.source === sourceHint,
-            )
+            (p) => p.project_name === name && p.source === sourceHint,
+          )
           : undefined) ?? projects.find((p) => p.project_name === name);
 
       if (!selectedProj) {
@@ -544,15 +544,15 @@ export default function AddTaskPM() {
     const name = addTaskForm.projectName;
     const sourceHint =
       editingTaskId != null &&
-      editingTask &&
-      String(editingTask.project_name || "") === name
+        editingTask &&
+        String(editingTask.project_name || "") === name
         ? editingTask.source
         : undefined;
     const selectedProj =
       (sourceHint
         ? projects.find(
-            (p) => p.project_name === name && p.source === sourceHint,
-          )
+          (p) => p.project_name === name && p.source === sourceHint,
+        )
         : undefined) ?? projects.find((p) => p.project_name === name);
     const isOutsourceTask =
       editingTask?.source === "Outsource" ||
@@ -587,9 +587,9 @@ export default function AddTaskPM() {
     )?.tasks;
     const options = taskListStr
       ? taskListStr
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean)
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
       : [];
     return ["Select Task", ...options];
   }, [projects, addTaskForm.projectName]);
@@ -641,15 +641,15 @@ export default function AddTaskPM() {
       const name = addTaskForm.projectName;
       const sourceHint =
         editingTaskId != null &&
-        editingTask &&
-        String(editingTask.project_name || "") === name
+          editingTask &&
+          String(editingTask.project_name || "") === name
           ? editingTask.source
           : undefined;
       const selectedProj =
         (sourceHint
           ? projects.find(
-              (p) => p.project_name === name && p.source === sourceHint,
-            )
+            (p) => p.project_name === name && p.source === sourceHint,
+          )
           : undefined) ?? projects.find((p) => p.project_name === name);
 
       const assignedId = employees.find(
@@ -785,7 +785,7 @@ export default function AddTaskPM() {
     }
 
     const involvedNames = new Set<string>();
-    
+
     const addNames = (val: string | undefined | null) => {
       if (!val) return;
       val.split(",").forEach(n => {
@@ -817,18 +817,18 @@ export default function AddTaskPM() {
     <div className="h-full flex-1 min-h-0 p-2 bg-white overflow-hidden overflow-y-hidden">
       <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col overflow-hidden overflow-y-hidden">
         <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
-            <button
-              type="button"
-              onClick={goBack}
-              className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
-              title="Back"
-            >
-              <img src={backIcon} alt="Back" className="w-5 h-5" />
-            </button>
-            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
-              {editingTaskId !== null ? "Edit Task" : "Add New Task"}
-            </h3>
-            <div className="w-10" />
+          <button
+            type="button"
+            onClick={goBack}
+            className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
+            title="Back"
+          >
+            <img src={backIcon} alt="Back" className="w-5 h-5" />
+          </button>
+          <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
+            {editingTaskId !== null ? "Edit Task" : "Add New Task"}
+          </h3>
+          <div className="w-10" />
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-6">

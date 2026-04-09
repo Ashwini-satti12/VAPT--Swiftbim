@@ -262,7 +262,7 @@ export default function AddTaskTD() {
         if (pendingAttachmentDelete.type === "local") {
             removeAttachment(pendingAttachmentDelete.index);
             setPendingAttachmentDelete(null);
-            toast.error("Deleted successfully");
+            toast.success("Deleted successfully");
             return;
         }
         const stored = pendingAttachmentDelete.stored;
@@ -284,7 +284,7 @@ export default function AddTaskTD() {
             .then(() => {
                 setExistingOutputFilenames(next);
                 setPendingAttachmentDelete(null);
-                toast.error("Deleted successfully");
+                toast.success("Deleted successfully");
             })
             .catch(() => {
                 setAddError("Failed to remove attachment. Please try again.");

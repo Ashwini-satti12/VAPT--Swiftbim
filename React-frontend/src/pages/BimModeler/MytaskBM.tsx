@@ -786,7 +786,7 @@ export default function MytaskBM() {
             await api.delete(endpoint);
             setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
             setDeleteTaskId(null);
-            toast.error("Deleted successfully");
+            toast.success("Deleted successfully");
         } catch (err) {
             console.error("Error deleting task:", err);
         }
