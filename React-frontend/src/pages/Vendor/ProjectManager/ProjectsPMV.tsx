@@ -516,7 +516,7 @@ export default function ProjectsPMV() {
             project_manager_id: nameToId(createProjectManager, projectManagers),
             start_date: createStartDate,
             due_date: createEndDate,
-            due_date: createEndDate,
+            // due_date: createEndDate,
             totalhours: createTotalHours,
             perday: createPerDay,
             lead_id: nameToId(createBIMLead, bimLeads),
@@ -871,7 +871,7 @@ export default function ProjectsPMV() {
                 {currentAttachments && (
                     <div className="flex flex-wrap gap-3 mb-4">
                         {currentAttachments.split(",").map(file => file.trim()).filter(Boolean).map((fileName, idx) => {
-                            const url = vendorDocUrl(fileName);
+                            const url = resolveVendorDocUrl(fileName);
                             return (
                                 <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
                                     <FiPaperclip className="w-4 h-4 text-[#DD4342]" />

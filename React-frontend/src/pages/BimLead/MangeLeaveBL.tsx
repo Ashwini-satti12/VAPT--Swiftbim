@@ -589,7 +589,7 @@ export default function ManageLeave() {
         message?: string;
       }>("/api/leave/applications", payload);
       if (data.success === false) {
-        alert(data.message || "Failed to apply leave.");
+        toast.error(data.message || "Failed to apply leave.");
         return;
       }
 
@@ -888,19 +888,19 @@ export default function ManageLeave() {
               <h1 className="text-[20px] sm:text-[24px] font-gantari font-semibold text-[#000000]">
                 Manage Leave
               </h1>
-              <button
-                type="button"
-                onClick={() => {
-                  const displayName = user
-                    ? `${user.full_name}${user.user_role ? ` - ${user.user_role}` : ""}`
-                    : "";
-                  setEmployeeName(displayName);
-                  setApplyModalOpen(true);
-                }}
-                className="sm:hidden mt-2 px-4 py-1.5 bg-[#DD4342] text-white rounded-md text-[13px] font-gantari font-medium transition-all cursor-pointer whitespace-nowrap shadow-sm active:scale-[0.98]"
-              >
-                Apply Leave
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const displayName = user
+                      ? `${user.full_name}${user.user_role ? ` - ${user.user_role}` : ""}`
+                      : "";
+                    setEmployeeName(displayName);
+                    setApplyModalOpen(true);
+                  }}
+                  className="px-4 py-1.5 bg-[#DD4342] text-white rounded-md text-[13px] font-gantari font-medium transition-all cursor-pointer whitespace-nowrap shadow-sm active:scale-[0.98] mt-2 sm:hidden"
+                >
+                  Apply Leave
+                </button>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between sm:gap-3 w-full">
               <div className="hidden sm:block h-px w-px" /> {/* Spacer for desktop justify-between if needed */}
@@ -1301,36 +1301,54 @@ export default function ManageLeave() {
 
                               {canEditLeave(row) && (
                                 <>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleEdit(row)}
-                                    className={`inline-flex items-center justify-center p-1.5 sm:p-2 rounded-md cursor-pointer ${index % 2 === 0
-                                      ? "bg-[#F2F2F2]"
-                                      : "bg-[#FFFFFF]"
-                                      }`}
-                                    title="Edit"
-                                  >
-                                    <img
-                                      src={editIcon}
-                                      alt=""
-                                      className="w-4 h-4"
-                                    />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => openDeleteLeave(row)}
-                                    className={`inline-flex items-center justify-center p-1.5 sm:p-2 rounded-md text-[#353535] transition-colors shrink-0 cursor-pointer ${index % 2 === 0
-                                      ? "bg-[#F2F2F2]"
-                                      : "bg-[#FFFFFF]"
-                                      }`}
-                                    title="Delete"
-                                  >
-                                    <img
-                                      src={deleteIcon}
-                                      alt=""
-                                      className="w-4 h-4"
-                                    />
-                                  </button>
+                                  <div className="relative group">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEdit(row)}
+                                      className={`inline-flex items-center justify-center p-1.5 sm:p-2 rounded-md cursor-pointer ${index % 2 === 0
+                                        ? "bg-[#F2F2F2]"
+                                        : "bg-[#FFFFFF]"
+                                        }`}
+                                    >
+                                      <img
+                                        src={editIcon}
+                                        alt=""
+                                        className="w-4 h-4"
+                                      />
+                                    </button>
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                          Edit
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="relative group">
+                                    <button
+                                      type="button"
+                                      onClick={() => openDeleteLeave(row)}
+                                      className={`inline-flex items-center justify-center p-1.5 sm:p-2 rounded-md text-[#353535] transition-colors shrink-0 cursor-pointer ${index % 2 === 0
+                                        ? "bg-[#F2F2F2]"
+                                        : "bg-[#FFFFFF]"
+                                        }`}
+                                    >
+                                      <img
+                                        src={deleteIcon}
+                                        alt=""
+                                        className="w-4 h-4"
+                                      />
+                                    </button>
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                          Delete
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </>
                               )}
                             </div>

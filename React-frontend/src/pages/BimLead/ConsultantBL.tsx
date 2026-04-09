@@ -582,6 +582,13 @@ export default function ConsultantBL() {
     );
     api
       .post("/api/employees/bulk-status", { ids: [id], action: status })
+      .then((response) => {
+        if (response.data?.success) {
+          toast.success(`Status updated to ${newStatus} successfully!`);
+        } else {
+          toast.success(`Status updated successfully!`);
+        }
+      })
       .catch((err) => {
         toast.error(err.response?.data?.message || "Failed to update status.");
         console.error("Failed to update status:", err);
@@ -599,30 +606,18 @@ export default function ConsultantBL() {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-white">
       {/* Header Section */}
-      <div className="sticky top-0 z-50 bg-white pt-2 pb-4 overflow-visible px-2 sm:px-4 border-b border-[#F0F0F0]">
-        <div className="flex flex-col gap-3 sm:gap-4 overflow-visible">
-          {/* Row 1: Title and Toggles (with Add Button on Mobile) */}
-          <div className="flex items-center justify-between gap-2 overflow-visible">
-            <h1 className="text-[20px] sm:text-[24px] font-medium text-[#000000] font-Gantari shrink-0">
-              Consultants
-            </h1>
+      <div className="sticky top-0 z-50 bg-white pt-2 pb-4 overflow-visible px-2 sm:px-4">
+        <div className="flex items-center justify-between flex-wrap gap-4 overflow-visible">
+          {/* Left side: Title */}
+          <h1 className="text-[20px] sm:text-[24px] font-medium text-[#000000] font-Gantari shrink-0">
+            Consultants
+          </h1>
 
-            <div className="flex items-center gap-2 sm:gap-3 overflow-visible">
-              {/* Add Consultant - Only shown here on mobile (<640px) */}
-              <div className="flex sm:hidden overflow-visible">
-                {canAdd && (
-                  <button
-                    type="button"
-                    onClick={() => navigate("/bl/consultants/add")}
-                    className="shrink-0 h-[36px] min-h-[36px] flex items-center justify-center px-3 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
-                  >
-                    Add Consultant
-                  </button>
-                )}
-              </div>
-
-              {/* View Toggles (List/Grid) - Separate Rounded Buttons */}
-              <div className="flex items-center gap-2 overflow-visible">
+          {/* Right side: All Actions & Toggles in one row */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 overflow-visible ml-auto">
+            {/* View Toggles (List/Grid) */}
+            <div className="flex items-center gap-2 overflow-visible">
+              <div className="relative group inline-flex shrink-0">
                 <button
                   type="button"
                   onClick={() => setViewMode("table")}
@@ -634,6 +629,17 @@ export default function ConsultantBL() {
                 >
                   <FiMenu className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      List
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative group inline-flex shrink-0">
                 <button
                   type="button"
                   onClick={() => setViewMode("card")}
@@ -645,16 +651,21 @@ export default function ConsultantBL() {
                 >
                   <FiGrid className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Grid
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Row 2: Action Buttons and Dropdowns */}
-          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 overflow-visible">
-            <div className="flex flex-nowrap items-center gap-2 overflow-visible">
-              {/* Add Consultant - Shown here on tablet/desktop (>=640px) */}
-              <div className="hidden sm:flex overflow-visible">
-                {canAdd && (
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 sm:gap-3 overflow-visible">
+              {canAdd && (
+                <>
                   <button
                     type="button"
                     onClick={() => navigate("/bl/consultants/add")}
@@ -662,10 +673,7 @@ export default function ConsultantBL() {
                   >
                     Add Consultant
                   </button>
-                )}
-              </div>
-              {canAdd && (
-                <>
+
                   <button
                     type="button"
                     onClick={() => setShowInviteModal(true)}
@@ -673,6 +681,7 @@ export default function ConsultantBL() {
                   >
                     Invite
                   </button>
+
                   <button
                     type="button"
                     onClick={() => setShowInactiveModal(true)}
@@ -684,8 +693,8 @@ export default function ConsultantBL() {
               )}
             </div>
 
-            {/* Dropdowns (Type, Status, Show Entries) */}
-            <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
+            {/* Dropdowns */}
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 overflow-visible">
               {viewMode === "card" && (
                 <CustomDropdown
                   options={["All", "Employee", "Trainee"]}
@@ -1152,38 +1161,58 @@ export default function ConsultantBL() {
                             </td>
                             <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
                               <div className="flex items-center justify-center gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedEmployee(emp);
-                                    setShowDetailsModal(true);
-                                  }}
-                                  aria-label="View consultant"
-                                  className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#DD4342] text-white rounded-md transition-all cursor-pointer"
-                                >
-                                  <img
-                                    src={projectViewIcon}
-                                    className="w-4 h-4 brightness-0 invert"
-                                    alt=""
-                                    aria-hidden
-                                  />
-                                </button>
-                                {canAdd && (
+                                <div className="relative group">
                                   <button
                                     type="button"
-                                    onClick={() =>
-                                      navigate(`/bl/consultants/${emp.id}/edit`)
-                                    }
-                                    aria-label="Edit consultant"
-                                    className={`flex py-2 px-2 shrink-0 items-center justify-center rounded-md transition-all cursor-pointer ${idx % 2 === 1 ? "bg-[#FFFFFF]" : "bg-[#F2F2F2]"}`}
+                                    onClick={() => {
+                                      setSelectedEmployee(emp);
+                                      setShowDetailsModal(true);
+                                    }}
+                                    aria-label="View consultant"
+                                    className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#DD4342] text-white rounded-md transition-all cursor-pointer"
                                   >
                                     <img
-                                      src={projectEditIcon}
-                                      className="w-4 h-4"
+                                      src={eyeIcon}
+                                      className="w-4 h-4 sm:w-5 sm:h-5 shrink-0"
                                       alt=""
                                       aria-hidden
                                     />
                                   </button>
+                                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                        View
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                {canAdd && (
+                                  <div className="relative group">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        navigate(`/bl/consultants/${emp.id}/edit`)
+                                      }
+                                      aria-label="Edit consultant"
+                                      className={`flex py-2 px-2 shrink-0 items-center justify-center rounded-md transition-all cursor-pointer ${idx % 2 === 1 ? "bg-[#FFFFFF]" : "bg-[#F2F2F2]"}`}
+                                    >
+                                      <img
+                                        src={projectEditIcon}
+                                        className="w-4 h-4 sm:w-5 sm:h-5 shrink-0"
+                                        alt=""
+                                        aria-hidden
+                                      />
+                                    </button>
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                          Edit
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
                                 )}
                               </div>
                             </td>
@@ -1203,18 +1232,28 @@ export default function ConsultantBL() {
         createPortal(
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]">
             <div className="bg-white rounded-[20px] max-w-[813px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
-              <div className="flex items-center justify-center mb-8 relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowInviteModal(false);
-                    setInviteEmails("");
-                    setInviteMessage("");
-                  }}
-                  className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
-                >
-                  <FiX className="w-5 h-5 font-bold" />
-                </button>
+              <div className="flex items-center justify-center mb-8 relative w-full">
+                <div className="group absolute left-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowInviteModal(false);
+                      setInviteEmails("");
+                      setInviteMessage("");
+                    }}
+                    className="p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
+                  >
+                    <FiX className="w-5 h-5 font-bold" />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <h3 className="text-[24px] font-semibold text-[#020202] text-center">
                   Invite New Consultant
                 </h3>
@@ -1261,14 +1300,14 @@ export default function ConsultantBL() {
                       setInviteEmails("");
                       setInviteMessage("");
                     }}
-                    className="w-full sm:w-auto px-10 py-2 sm:py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-semibold text-[14px] sm:text-[16px] transition-all min-w-[150px] cursor-pointer"
+                    className="w-full sm:w-auto px-5 py-2 sm:py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-medium text-[14px] sm:text-[16px] transition-all cursor-pointer"
                   >
                     Discard
                   </button>
                   <button
                     type="submit"
                     disabled={inviteSubmitting}
-                    className="w-full sm:w-auto px-10 py-2 sm:py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-semibold text-[14px] sm:text-[16px] disabled:opacity-50 transition-all min-w-[200px] cursor-pointer disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto px-5 py-2 sm:py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-medium text-[14px] sm:text-[16px] disabled:opacity-50 transition-all cursor-pointer disabled:cursor-not-allowed"
                   >
                     {inviteSubmitting ? "Sending..." : "Send Invitations"}
                   </button>
@@ -1283,17 +1322,27 @@ export default function ConsultantBL() {
         createPortal(
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]">
             <div className="bg-white rounded-[20px] max-w-[950px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
-              <div className="flex items-center justify-center mb-8 relative shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowInactiveModal(false);
-                    setInactiveIds([]);
-                  }}
-                  className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
-                >
-                  <FiX className="w-5 h-5 font-bold" />
-                </button>
+              <div className="flex items-center justify-center mb-8 relative shrink-0 w-full">
+                <div className="group absolute left-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowInactiveModal(false);
+                      setInactiveIds([]);
+                    }}
+                    className="p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
+                  >
+                    <FiX className="w-5 h-5 font-bold" />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <h3 className="text-[24px] font-semibold text-[#020202] text-center">
                   Manage In-active Consultants
                 </h3>
@@ -1391,7 +1440,7 @@ export default function ConsultantBL() {
                     setShowInactiveModal(false);
                     setInactiveIds([]);
                   }}
-                  className="w-full sm:w-auto px-10 py-2 sm:py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-semibold text-[14px] sm:text-[16px] transition-all min-w-[150px] cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-2 sm:py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-medium text-[14px] sm:text-[16px] transition-all cursor-pointer"
                 >
                   Discard
                 </button>
@@ -1399,7 +1448,7 @@ export default function ConsultantBL() {
                   type="button"
                   onClick={handleInactive}
                   disabled={!inactiveIds.length || inactiveSubmitting}
-                  className="w-full sm:w-auto px-10 py-2 sm:py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-semibold text-[14px] sm:text-[16px] disabled:opacity-50 transition-all min-w-[180px] cursor-pointer disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto px-5 py-2 sm:py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-medium text-[14px] sm:text-[16px] disabled:opacity-50 transition-all cursor-pointer disabled:cursor-not-allowed"
                 >
                   {inactiveSubmitting ? "Updating..." : "Update Status"}
                 </button>
@@ -1416,17 +1465,27 @@ export default function ConsultantBL() {
             <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/10 backdrop-blur-[3px]">
               <div className="bg-white rounded-lg max-w-[520px] w-full overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
                 {/* Header */}
-                <div className="flex items-center justify-center relative shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowDetailsModal(false);
-                      setSelectedEmployee(null);
-                    }}
-                    className="absolute left-0 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
-                  >
-                    <FiX className="w-5 h-5 font-bold" />
-                  </button>
+                <div className="flex items-center justify-center relative shrink-0 w-full mb-2">
+                  <div className="group absolute left-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowDetailsModal(false);
+                        setSelectedEmployee(null);
+                      }}
+                      className="p-2 rounded-md bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
+                    >
+                      <FiX className="w-5 h-5 font-bold" />
+                    </button>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                          Close
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                   <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">
                     View Details
                   </h3>
