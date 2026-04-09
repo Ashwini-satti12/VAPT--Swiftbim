@@ -44,9 +44,19 @@ export default function ConsultantdetailsBL() {
 
     return (
         <div className="space-y-4">
-            <Link to="/bl/consultants" className="w-fit p-2 bg-[#F2F2F2] rounded-md text-[#3d3399] hover:underline text-[14px] flex items-center gap-2 font-medium cursor-pointer">
+        <div className="relative group w-fit">
+            <Link to="/bl/consultants" className="p-2 bg-[#F2F2F2] rounded-md text-[#3d3399] transition-all flex items-center gap-2 font-medium cursor-pointer hover:bg-[#E8E8E8]">
                 <img src={backIcon} alt="Back" className="w-5 h-5 translate-y-[1px]" />
             </Link>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Go back
+                    </span>
+                </div>
+            </div>
+        </div>
             <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                     <div className="flex items-center gap-3">

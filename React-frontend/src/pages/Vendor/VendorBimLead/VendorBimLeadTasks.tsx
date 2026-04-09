@@ -241,7 +241,15 @@ export default function VendorBimLeadTasks() {
     api
       .post("/api/vendors/vendor-tasks", payload)
       .then((res) => {
+        if (!res.data?.success) {
+          toast.error(
+            (res.data as { message?: string })?.message ||
+              "Failed to create task",
+          );
+          return;
+        }
         const taskId = res.data?.task_id ?? res.data?.id;
+        toast.success("Task created successfully");
         setShowCreateModal(false);
         setAttachmentFiles([]);
         setCreateForm({
@@ -277,6 +285,9 @@ export default function VendorBimLeadTasks() {
             .catch(() => toast.error("Failed to upload attachments"));
         }
         fetchTasks();
+      })
+      .catch(() => {
+        toast.error("Failed to create task");
       })
       .finally(() => setCreateSubmitting(false));
   };

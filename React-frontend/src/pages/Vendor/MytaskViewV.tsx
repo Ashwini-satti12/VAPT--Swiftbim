@@ -569,6 +569,21 @@ export default function MytaskViewV() {
                 {formatTimeDisplay(task.due_time ?? task.end_time)}
               </span>
             </div>
+            <div className="flex gap-2">
+              <span className="text-black shrink-0 w-28">Attachments</span>
+              <span className="text-black shrink-0">:</span>
+              <span className="text-[#616161] break-all">
+                {submittedOutputFiles.length > 0
+                  ? submittedOutputFiles
+                      .map((f) => {
+                        const base = f.split("/").pop() || f;
+                        const idx = base.indexOf("_");
+                        return idx > 8 ? base.slice(idx + 1) : base;
+                      })
+                      .join(", ")
+                  : "—"}
+              </span>
+            </div>
           </div>
 
           <div className="rounded-sm bg-[#F2F7FF] p-4 h-fit">

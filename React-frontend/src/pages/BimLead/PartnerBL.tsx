@@ -90,13 +90,16 @@ export default function PartnerBL() {
                                                 ? `${partner.num_employees}+ Employees`
                                                 : '—'}
                                         </span>
-                                        <Link
-                                            to={`/bl/partner/${partner.id}`}
-                                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] hover:text-[#353535] transition-colors shrink-0 pr-2 cursor-pointer"
-                                        >
-                                            Details
-                                            <img src={upArrow} alt="Up" className="w-5 h-5 object-contain" />
-                                        </Link>
+                                        <div className="relative group">
+                                            <Link
+                                                to={`/bl/partner/${partner.id}`}
+                                                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] hover:text-[#353535] transition-colors shrink-0 pr-2 cursor-pointer"
+                                            >
+                                                Details
+                                                <img src={upArrow} alt="Up" className="w-5 h-5 object-contain" />
+                                            </Link>
+
+                                        </div>
                                     </div>
                                 </div>
                             </div>
