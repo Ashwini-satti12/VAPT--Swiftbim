@@ -11,6 +11,7 @@ import api from "../../../lib/api";
 import toast from "react-hot-toast";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
+import { VendorBimLeadBackTooltipWrap } from "../VendorBimLead/VendorBimLeadGoBackButton";
 import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 import { EyeIcon } from "@heroicons/react/24/outline";
 
@@ -709,14 +710,17 @@ export default function AddEditTaskEV() {
   return (
     <div className="min-h-0 flex-1 flex flex-col bg-white overflow-hidden">
       <div className="flex items-center justify-between px-6 py-4  shrink-0">
-        <button
-          type="button"
-          onClick={goBackToList}
-          className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-          aria-label="Back"
-        >
-          <img src={backIcon} alt="Back" className="w-5 h-5" />
-        </button>
+        <VendorBimLeadBackTooltipWrap>
+          <button
+            type="button"
+            onClick={goBackToList}
+            className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+            aria-label="Back"
+            title="Back"
+          >
+            <img src={backIcon} alt="Back" className="w-5 h-5" />
+          </button>
+        </VendorBimLeadBackTooltipWrap>
         <h1 className="text-[24px] font-medium text-[#353535]">
           {isEdit ? "Edit Task Details" : "Add Task Details"}
         </h1>
