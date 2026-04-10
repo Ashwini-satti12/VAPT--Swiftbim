@@ -361,6 +361,8 @@ function FormSelect({
 }
 
 interface Project {
+  // Change note: Task Name should be read from backend (tasks table -> tasks column)
+  // as `task_name` in project payload when this page maps API data.
   id: number;
   project_name?: string;
   progress?: number;
@@ -616,6 +618,8 @@ export default function ProjectsTD() {
   };
 
   const mapApiProjectToProject = (r: Record<string, unknown>): Project => {
+    // Change note: map backend `task_name` here once available in response.
+    // Example: task_name: str(r.task_name) ?? str(r.tasks),
     const num = (v: unknown) =>
       v === null || v === undefined ? undefined : Number(v);
     const str = (v: unknown) => (v != null ? String(v) : undefined);
@@ -1741,6 +1745,15 @@ export default function ProjectsTD() {
                       </h4>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
                         <div className="space-y-4 md:space-y-5">
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            {/* Change note: render selectedProjectForView.task_name in this row */}
+                            <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
+                              Task Name
+                            </span>
+                            <span className="hidden sm:inline text-[#616161] mr-4">
+                              :
+                            </span>
+                          </div>
 
                           <div className="flex flex-col sm:flex-row sm:items-center">
                             <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
@@ -1834,7 +1847,7 @@ export default function ProjectsTD() {
                                       : `${api.defaults.baseURL}uploads/${fileName}`;
 
                                     return (
-                                      <div key={idx} className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-slate-200 w-full md:max-w-md mt-1">
+                                      <div key={idx} className="flex items-center gap-3 px-4 py-2.5 rounded-md border border-slate-200 w-full md:max-w-md mt-1">
                                         <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1 font-gantari">
                                           {fileName.split("_").pop() || "Document"}
                                         </span>
