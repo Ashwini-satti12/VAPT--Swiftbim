@@ -466,19 +466,29 @@ export default function BiddingV() {
 
   if (viewMode === "opportunity-detail" && detailOpp) {
     return (
-      <div className="h-full flex flex-col font-gantari animate-in fade-in duration-300">
-        <div className="flex items-center gap-4 mb-8 shrink-0">
-          <button
-            onClick={closeDetail}
-            className="p-2 border-none bg-[#F2F2F2] rounded-md transition-opacity"
-          >
-            <img src={backIcon} alt="back" className="w-5 h-5" />
-          </button>
-          <div>
+      <div className="h-full flex flex-col font-gantari animate-in fade-in duration-300 px-6">
+        <div className="flex items-center justify-between mb-8 shrink-0">
+          <div className="relative group">
+            <button
+              onClick={closeDetail}
+              className="p-2 border-none bg-[#F2F2F2] rounded-md transition-opacity cursor-pointer flex items-center justify-center font-gantari"
+            >
+              <img src={backIcon} alt="back" className="w-5 h-5" />
+            </button>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                  Back
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 text-center">
             <h2 className="text-[24px] font-medium text-[#000000] font-gantari">
               {detailOpp.project_name}
             </h2>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center justify-center gap-2 mt-1">
               <span
                 className={`px-2.5 py-1 rounded-md text-[12px] font-medium font-gantari ${detailOpp.status === "active" ? "bg-[#E8F9E8] text-[#16A34A]" : "bg-[#FFE5E5] text-[#DE3D3A]"}`}
               >
@@ -489,6 +499,7 @@ export default function BiddingV() {
               {/* <span className="text-[#AEACAC] text-[13px] font-medium font-gantari">Project ID: #{detailOpp.id}</span> */}
             </div>
           </div>
+          <div className="w-10"></div>
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 pb-10">
@@ -644,19 +655,29 @@ export default function BiddingV() {
 
   if (viewMode === "bid-detail" && detailBid) {
     return (
-      <div className="h-full flex flex-col font-gantari animate-in fade-in duration-300">
-        <div className="flex items-center gap-4 mb-8 shrink-0">
-          <button
-            onClick={closeDetail}
-            className="p-2 border-none bg-[#F2F2F2] rounded-md transition-opacity"
-          >
-            <img src={backIcon} alt="back" className="w-5 h-5" />
-          </button>
-          <div>
+      <div className="h-full flex flex-col font-gantari animate-in fade-in duration-300 px-6">
+        <div className="flex items-center justify-between mb-8 shrink-0">
+          <div className="relative group">
+            <button
+              onClick={closeDetail}
+              className="p-2 border-none bg-[#F2F2F2] rounded-md transition-opacity cursor-pointer flex items-center justify-center font-gantari"
+            >
+              <img src={backIcon} alt="back" className="w-5 h-5" />
+            </button>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                  Back
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 text-center">
             <h2 className="text-[24px] font-medium text-[#000000] font-gantari">
               {detailBid.project_name || `Bid Submission #${detailBid.id}`}
             </h2>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center justify-center gap-2 mt-1">
               <span
                 className={`px-2.5 py-1 rounded-full text-[12px] font-medium font-gantari ${getStatusBadge(detailBid.status)}`}
               >
@@ -665,6 +686,7 @@ export default function BiddingV() {
               {/* <span className="text-[#AEACAC] text-[13px] font-medium font-gantari">Opportunity ID: #{detailBid.opportunity_id}</span> */}
             </div>
           </div>
+          <div className="w-10" />
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 pb-10">
@@ -742,7 +764,7 @@ export default function BiddingV() {
                 </div>
                 <div className="space-y-2">
                   <span className="text-[#8B8B8B] text-[14px] font-medium font-gantari uppercase tracking-wider">
-                    Proposal Notes / Approach
+                    Additional Notes / Approach
                   </span>
                   <div className="text-[#353535] leading-relaxed whitespace-pre-wrap bg-[#F9F9F9] p-4 rounded-md border border-[#F0F0F0] text-[14px] font-gantari">
                     {detailBid.notes ||
@@ -796,9 +818,9 @@ export default function BiddingV() {
   }
 
   return (
-    <div className="h-full flex flex-col font-gantari bg-white p-2 overflow-hidden">
-      <div className="flex items-center justify-between mb-6 shrink-0 px-2">
-        <h2 className="text-[24px] font-medium text-[#000000]">
+    <div className="h-full flex flex-col font-gantari bg-white px-4 overflow-hidden">
+      <div className="flex items-center justify-between mb-6 shrink-0">
+        <h2 className="text-[24px] font-medium text-[#000000] flex-1">
           {mainTab === "opportunities" ? "Bidding Console" : "My Submissions"}
         </h2>
 
@@ -843,24 +865,45 @@ export default function BiddingV() {
                     className="fixed inset-0 z-10"
                     onClick={() => setStatusDropdownOpen(false)}
                   />
-                  <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-[#E5E5E5] rounded-xl shadow-xl z-20 py-0 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-[#E5E5E5] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-20 py-0 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
                     {[
                       { key: "all" as const, label: "All Opportunities" },
                       { key: "active" as const, label: "Active" },
                       { key: "bid" as const, label: "Bid Submitted" },
                       { key: "closed" as const, label: "Closed" },
-                    ].map((tab) => (
-                      <button
-                        key={tab.key}
-                        onClick={() => {
-                          setOppTab(tab.key);
-                          setStatusDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-4 py-3 text-[14px] transition-all font-gantari text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] ${oppTab === tab.key ? "font-bold" : "font-medium"}`}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
+                    ].map((tab) => {
+                      const isChosen = oppTab === tab.key;
+                      return (
+                        <button
+                          key={tab.key}
+                          onClick={() => {
+                            setOppTab(tab.key);
+                            setStatusDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between gap-2 px-4 py-3 text-left text-[14px] transition-all font-gantari ${isChosen
+                              ? "text-[#353535] bg-[#F2F2F2] font-medium"
+                              : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2] font-medium"
+                            }`}
+                        >
+                          <span>{tab.label}</span>
+                          {isChosen && (
+                            <svg
+                              className="w-4 h-4 shrink-0 text-[#353535]"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2.5}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </>
               )}
@@ -875,7 +918,7 @@ export default function BiddingV() {
               >
                 {showEntries === "show" ? (
                   <span className="text-sm font-medium text-[#616161]">
-                    Show
+                    Show 
                   </span>
                 ) : (
                   <span className="text-sm font-medium text-[#353535]">
@@ -1096,11 +1139,11 @@ export default function BiddingV() {
 
                         <button
                           onClick={() => openOppDetail(opp)}
-                          className="text-[14px] font-medium text-[#717171] hover:text-[#353535] flex items-center gap-1.5 transition-colors group"
+                          className="text-[14px] font-medium text-[#717171] hover:text-[#353535] flex items-center gap-1.5 transition-colors group/btn"
                         >
                           Details
                           <svg
-                            className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                            className="w-3.5 h-3.5 transition-transform"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1210,17 +1253,20 @@ export default function BiddingV() {
                         </td>
                         <td className="px-4 py-6 text-center">
                           <div className="flex justify-center">
-                            <button
-                              onClick={() => openBidDetail(bid)}
-                              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#DE3D3A] text-white rounded-md hover:bg-[#c93d3d] transition-all font-medium font-gantari text-[14px] whitespace-nowrap"
-                            >
-                              <img
-                                src={viewIcon}
-                                alt="view"
-                                className="w-4 h-4 brightness-0 invert"
-                              />
-                              View
-                            </button>
+                            <div className="relative group">
+                              <button
+                                onClick={() => openBidDetail(bid)}
+                                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#DD4342] text-white rounded-md transition-all font-medium font-gantari text-[14px] whitespace-nowrap cursor-pointer"
+                              >
+                                <img
+                                  src={viewIcon}
+                                  alt="view"
+                                  className="w-4 h-4 brightness-0 invert"
+                                />
+                                View
+                              </button>
+                              
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -1238,13 +1284,23 @@ export default function BiddingV() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-md p-6 sm:p-8 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="relative flex items-center justify-center mb-8">
-              <button
-                type="button"
-                onClick={closeSubmitBidModal}
-                className="absolute left-0 p-2 bg-[#F2F2F2] rounded-md transition-colors cursor-pointer"
-              >
-                <img src={closeIcon} alt="close" className="w-5 h-5" />
-              </button>
+              <div className="absolute left-0 relative group">
+                <button
+                  type="button"
+                  onClick={closeSubmitBidModal}
+                  className="p-2 bg-[#F2F2F2] rounded-md transition-colors cursor-pointer flex items-center justify-center"
+                >
+                  <img src={closeIcon} alt="close" className="w-5 h-5" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-gantari font-medium text-[#000000]">Submit Bid</h3>
             </div>
             <p className="text-sm font-medium text-[#353535] mb-6 bg-[#F8F8F8] p-4 rounded-xl border border-gray-100">
@@ -1377,7 +1433,7 @@ export default function BiddingV() {
               </div>
               <div>
                 <label className="block text-[16px] font-medium text-[#353535] mb-2 font-gantari">
-                  Proposal Notes
+                  Additional Notes
                 </label>
                 <textarea
                   value={bidForm.notes}

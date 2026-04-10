@@ -11,6 +11,7 @@ import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
 import ProfileIcon from "../../../assets/ProductNavbarIcons/Profile.svg";
 import closeBtnIcon from "../../../assets/ProductNavbarIcons/close button.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
+import { VendorBimLeadBackTooltipWrap } from "./VendorBimLeadGoBackButton";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 
 interface Project {
@@ -94,7 +95,10 @@ function normalizeProjectDescriptionHtml(raw?: string): string {
 
 function hasProjectDescriptionContent(raw?: string): boolean {
   const normalized = normalizeProjectDescriptionHtml(raw);
-  const text = normalized.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/gi, " ").trim();
+  const text = normalized
+    .replace(/<[^>]*>?/gm, "")
+    .replace(/&nbsp;/gi, " ")
+    .trim();
   return text.length > 0;
 }
 
@@ -196,10 +200,16 @@ export default function VendorBimLeadProjects() {
       }
       return `${base}${cleaned}`;
     }
-    if (cleaned.startsWith("/uploads/") || cleaned.startsWith("/static/uploads/")) {
+    if (
+      cleaned.startsWith("/uploads/") ||
+      cleaned.startsWith("/static/uploads/")
+    ) {
       return `${base}${cleaned}`;
     }
-    if (cleaned.startsWith("uploads/") || cleaned.startsWith("static/uploads/")) {
+    if (
+      cleaned.startsWith("uploads/") ||
+      cleaned.startsWith("static/uploads/")
+    ) {
       return `${base}/${cleaned}`;
     }
     return `${base}/static/uploads/vendor_docs/${cleaned}`;
@@ -235,7 +245,9 @@ export default function VendorBimLeadProjects() {
         setAllEmployees(allEmp);
         setBimCoordinators(
           allEmp.filter((e) =>
-            ["BIM Coordinator", "FrontEnd Developer"].includes(e.user_role || ""),
+            ["BIM Coordinator", "FrontEnd Developer"].includes(
+              e.user_role || "",
+            ),
           ),
         );
       })
@@ -279,7 +291,8 @@ export default function VendorBimLeadProjects() {
 
   useEffect(() => {
     let cancelled = false;
-    const projectId = showProjectView && selectedProject?.id ? selectedProject.id : null;
+    const projectId =
+      showProjectView && selectedProject?.id ? selectedProject.id : null;
 
     if (!projectId) {
       setTaskStats({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
@@ -390,7 +403,9 @@ export default function VendorBimLeadProjects() {
     setCreateEndDate(p.end_date || p.due_date || "");
     setCreateTotalHours(p.totalhours || "");
     setCreatePerDay(p.per_day || p.perday || "");
-    setCreateBIMLead(idToName(p.lead_id, bimLeads) || idToName(p.lead_id, allEmployees));
+    setCreateBIMLead(
+      idToName(p.lead_id, bimLeads) || idToName(p.lead_id, allEmployees),
+    );
     setCreateBIMCoOrdinator(
       idToName(p.bim_coordinator_id, bimCoordinators) ||
         idToName(p.bim_coordinator_id, allEmployees),
@@ -456,11 +471,15 @@ export default function VendorBimLeadProjects() {
             const formData = new FormData();
             formData.append("file", createFile);
             try {
-              await api.post(`/api/vendors/vendor-projects/${editId}/upload-document`, formData, {
+              await api.post(
+                `/api/vendors/vendor-projects/${editId}/upload-document`,
+                formData,
+                {
                   headers: { "Content-Type": "multipart/form-data" },
-              });
+                },
+              );
             } catch (err) {
-                console.error("Failed to upload document", err);
+              console.error("Failed to upload document", err);
             }
           }
 
@@ -509,8 +528,7 @@ export default function VendorBimLeadProjects() {
     });
   };
 
-  const getEmployeeName = (id: any) =>
-    resolveVendorMember(id)?.full_name || "";
+  const getEmployeeName = (id: any) => resolveVendorMember(id)?.full_name || "";
   const formatDate = (d: any) =>
     d
       ? new Date(d).toLocaleDateString("en-US", {
@@ -539,7 +557,10 @@ export default function VendorBimLeadProjects() {
         // Not valid JSON or not an array, fall through
       }
     }
-    return raw.split(",").map((m: string) => m.trim()).filter(Boolean);
+    return raw
+      .split(",")
+      .map((m: string) => m.trim())
+      .filter(Boolean);
   }, [createModuleName]);
 
   const addModule = (name: string) => {
@@ -707,20 +728,37 @@ export default function VendorBimLeadProjects() {
             />
           </div>
           <p className="flex items-center gap-2 text-[#666666] text-[12px] font-medium">
-            <span className="w-4 h-4 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-[10px] font-bold">i</span>
+            <span className="w-4 h-4 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-[10px] font-bold">
+              i
+            </span>
             Please enter names, separated by commas, and then press enter
           </p>
           <div className="flex flex-wrap gap-3 mt-4">
             {modulesList.map((mod: string, idx: number) => (
-              <div key={idx} className="flex items-center gap-2 px-4 py-2 bg-[#F2F2F2] rounded-full border border-slate-100 group hover:border-[#DD4342]/20 transition-all">
-                <span className="text-[13px] font-bold text-[#353535]">{mod}</span>
+              <div
+                key={idx}
+                className="flex items-center gap-2 px-4 py-2 bg-[#F2F2F2] rounded-full border border-slate-100 group hover:border-[#DD4342]/20 transition-all"
+              >
+                <span className="text-[13px] font-bold text-[#353535]">
+                  {mod}
+                </span>
                 <button
                   type="button"
                   onClick={() => removeModule(mod)}
                   className="p-0.5 text-gray-400 hover:text-[#DD4342] transition-colors cursor-pointer"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -953,41 +991,45 @@ export default function VendorBimLeadProjects() {
           />
           {existingDoc && !createFile ? (
             <div className="flex items-center justify-between p-4 bg-[#F8FAFC] border border-[#DD4342]/20 rounded-2xl animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-white rounded-xl shadow-sm">
-                        <FiPaperclip className="w-5 h-5 text-[#DD4342]" />
-                    </div>
-                    <div className="min-w-0">
-                        <p className="text-sm font-bold text-[#1E293B] truncate max-w-[200px] md:max-w-md">
-                            {existingDoc.split('_').pop() || "Document"}
-                        </p>
-                    </div>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-white rounded-xl shadow-sm">
+                  <FiPaperclip className="w-5 h-5 text-[#DD4342]" />
                 </div>
-                <div className="flex items-center gap-2">
-                    <a
-                        href={resolveVendorDocUrl(existingDoc)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 text-slate-400 hover:text-[#DD4342] hover:bg-red-50 rounded-lg transition-all"
-                        title="View document"
-                    >
-                        <img src={viewIcon} alt="View" className="w-5 h-5" />
-                    </a>
-                    <a
-                        href={resolveVendorDocUrl(existingDoc)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 text-slate-400 hover:text-[#DD4342] hover:bg-red-50 rounded-lg transition-all"
-                        title="Download document"
-                    >
-                        <FiUploadCloud className="w-5 h-5 rotate-180" />
-                    </a>
-                    <label htmlFor="edit-file-upload" className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all cursor-pointer" title="Replace file">
-                        <img src={editIcon} alt="Replace" className="w-5 h-5" />
-                    </label>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-[#1E293B] truncate max-w-[200px] md:max-w-md">
+                    {existingDoc.split("_").pop() || "Document"}
+                  </p>
                 </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={resolveVendorDocUrl(existingDoc)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 text-slate-400 hover:text-[#DD4342] hover:bg-red-50 rounded-lg transition-all"
+                  title="View document"
+                >
+                  <img src={viewIcon} alt="View" className="w-5 h-5" />
+                </a>
+                <a
+                  href={resolveVendorDocUrl(existingDoc)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 text-slate-400 hover:text-[#DD4342] hover:bg-red-50 rounded-lg transition-all"
+                  title="Download document"
+                >
+                  <FiUploadCloud className="w-5 h-5 rotate-180" />
+                </a>
+                <label
+                  htmlFor="edit-file-upload"
+                  className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
+                  title="Replace file"
+                >
+                  <img src={editIcon} alt="Replace" className="w-5 h-5" />
+                </label>
+              </div>
             </div>
-        ) : !createFile ? (
+          ) : !createFile ? (
             <label
               htmlFor="edit-file-upload"
               className="flex flex-col items-center justify-center w-full h-32 bg-[#F2F3F4] border-2 border-dashed border-slate-200 rounded-md cursor-pointer hover:border-[#DD4342]/20 transition-all"
@@ -1065,43 +1107,44 @@ export default function VendorBimLeadProjects() {
         {showEditModal ? (
           <div className="flex flex-col h-full bg-white">
             <div className="flex items-center gap-4 md:gap-6 px-6 py-2 md:px-6 md:py-4 border-b border-slate-50 cursor-pointer">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditDropdownOpen(null);
-                  setEditError("");
-                  // Reset all form fields
-                  setCreateName("");
-                  setCreateBudget("");
-                  setCreateModuleName("");
-                  setCreateClientName("");
-                  setCreateProjectManager("");
-                  setCreateStartDate("");
-                  setCreateEndDate("");
-                  setCreateTotalHours("");
-                  setCreatePerDay("");
-                  setCreateBIMLead("");
-                  setCreateBIMCoOrdinator("");
-                  setCreateResources("");
-                  setCreateRequiredResources("");
-                  setCreatePriority("");
-                  setCreateLocation("");
-                  setCreateDescription("");
-                  setCreateDeliverables("");
-                  setSelectedMemberIds([]);
-                  setCreateFile(null);
-                }}
-                className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-colors cursor-pointer"
-                title="Back"
-              >
-                <img src={backIcon} alt="Back" className="w-5 h-5" />
-              </button>
+              <VendorBimLeadBackTooltipWrap>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditDropdownOpen(null);
+                    setEditError("");
+                    // Reset all form fields
+                    setCreateName("");
+                    setCreateBudget("");
+                    setCreateModuleName("");
+                    setCreateClientName("");
+                    setCreateProjectManager("");
+                    setCreateStartDate("");
+                    setCreateEndDate("");
+                    setCreateTotalHours("");
+                    setCreatePerDay("");
+                    setCreateBIMLead("");
+                    setCreateBIMCoOrdinator("");
+                    setCreateResources("");
+                    setCreateRequiredResources("");
+                    setCreatePriority("");
+                    setCreateLocation("");
+                    setCreateDescription("");
+                    setCreateDeliverables("");
+                    setSelectedMemberIds([]);
+                    setCreateFile(null);
+                  }}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-colors cursor-pointer"
+                  title="Back"
+                >
+                  <img src={backIcon} alt="Back" className="w-5 h-5" />
+                </button>
+              </VendorBimLeadBackTooltipWrap>
               <div className="min-w-0">
                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A] truncate">
                   Edit Project Details
                 </h3>
-                
               </div>
             </div>
             <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 pt-6 md:pt-8 custom-scrollbar">
@@ -1141,13 +1184,16 @@ export default function VendorBimLeadProjects() {
         ) : showProjectView && selectedProject ? (
           <div className="flex flex-col h-full bg-white">
             <div className="flex items-center gap-4 md:gap-6 px-4 md:px-10 py-4 md:py-6 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => setShowProjectView(false)}
-                className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-colors cursor-pointer"
-              >
-                <img src={backIcon} alt="Back" className="w-5 h-5" />
-              </button>
+              <VendorBimLeadBackTooltipWrap>
+                <button
+                  type="button"
+                  onClick={() => setShowProjectView(false)}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-colors cursor-pointer"
+                  title="Back"
+                >
+                  <img src={backIcon} alt="Back" className="w-5 h-5" />
+                </button>
+              </VendorBimLeadBackTooltipWrap>
               <div className="min-w-0">
                 <h3 className="text-[18px] md:text-[24px] font-medium text-[#000000] truncate">
                   {selectedProject.project_name ?? "Untitled Project"}
@@ -1220,44 +1266,96 @@ export default function VendorBimLeadProjects() {
                       {loadingTaskStats ? (
                         <div className="col-span-full py-10 flex flex-col items-center justify-center gap-3">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#DD4342]" />
-                          <p className="text-gray-500 font-medium">Loading module analysis...</p>
+                          <p className="text-gray-500 font-medium">
+                            Loading module analysis...
+                          </p>
                         </div>
                       ) : towerData.length > 0 ? (
                         towerData.map((tower) => {
                           const statusColor =
-                            tower.status === "Approved" ? "#008F22" :
-                              tower.status === "Pending" ? "#EB7200" : "#E00100";
+                            tower.status === "Approved"
+                              ? "#008F22"
+                              : tower.status === "Pending"
+                                ? "#EB7200"
+                                : "#E00100";
                           const statusBg =
-                            tower.status === "Approved" ? "bg-[#E0FFE8]" :
-                              tower.status === "Pending" ? "bg-[#FFEAD6]" : "bg-[#FFD9D9]";
+                            tower.status === "Approved"
+                              ? "bg-[#E0FFE8]"
+                              : tower.status === "Pending"
+                                ? "bg-[#FFEAD6]"
+                                : "bg-[#FFD9D9]";
 
                           return (
-                            <div key={tower.id} className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[150px]">
+                            <div
+                              key={tower.id}
+                              className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[150px]"
+                            >
                               <div className="flex justify-between items-start mb-2">
-                                <h5 className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">{tower.name}</h5>
-                                <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md shrink-0 ${statusBg}`}>
-                                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }}></span>
-                                  <span className="text-[11px] font-bold font-Gantari" style={{ color: statusColor }}>{tower.status}</span>
+                                <h5 className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
+                                  {tower.name}
+                                </h5>
+                                <div
+                                  className={`flex items-center gap-1.5 px-2 py-1 rounded-md shrink-0 ${statusBg}`}
+                                >
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full"
+                                    style={{ backgroundColor: statusColor }}
+                                  ></span>
+                                  <span
+                                    className="text-[11px] font-bold font-Gantari"
+                                    style={{ color: statusColor }}
+                                  >
+                                    {tower.status}
+                                  </span>
                                 </div>
                               </div>
                               <div className="flex items-center justify-between mt-auto">
                                 <div className="relative flex items-center justify-center w-16 h-16">
-                                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
-                                    <circle cx="32" cy="32" r="26" stroke="#F2F3F5" strokeWidth="5" fill="transparent" />
-                                    <circle cx="32" cy="32" r="26" stroke={statusColor} strokeWidth="5" fill="transparent"
+                                  <svg
+                                    className="w-full h-full transform -rotate-90"
+                                    viewBox="0 0 64 64"
+                                  >
+                                    <circle
+                                      cx="32"
+                                      cy="32"
+                                      r="26"
+                                      stroke="#F2F3F5"
+                                      strokeWidth="5"
+                                      fill="transparent"
+                                    />
+                                    <circle
+                                      cx="32"
+                                      cy="32"
+                                      r="26"
+                                      stroke={statusColor}
+                                      strokeWidth="5"
+                                      fill="transparent"
                                       strokeDasharray={163.36}
-                                      strokeDashoffset={163.36 - (tower.progress / 100) * 163.36}
+                                      strokeDashoffset={
+                                        163.36 - (tower.progress / 100) * 163.36
+                                      }
                                       strokeLinecap="round"
-                                      style={{ transition: "stroke-dashoffset 1s ease-in-out" }}
+                                      style={{
+                                        transition:
+                                          "stroke-dashoffset 1s ease-in-out",
+                                      }}
                                     />
                                   </svg>
-                                  <span className="absolute text-[14px] font-bold text-[#353535] font-Gantari">{tower.progress}%</span>
+                                  <span className="absolute text-[14px] font-bold text-[#353535] font-Gantari">
+                                    {tower.progress}%
+                                  </span>
                                 </div>
                                 <div className="flex flex-col items-end">
-                                  <p className="text-[12px] font-medium text-[#8B8B8B] font-Gantari mb-1">Tasks Done</p>
+                                  <p className="text-[12px] font-medium text-[#8B8B8B] font-Gantari mb-1">
+                                    Tasks Done
+                                  </p>
                                   <div className="flex items-baseline">
-                                    <p className="text-[18px] font-bold text-[#353535] font-Gantari">{tower.completedTasks}</p>
-                                    <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari">/{tower.totalTasks}</p>
+                                    <p className="text-[18px] font-bold text-[#353535] font-Gantari">
+                                      {tower.completedTasks}
+                                    </p>
+                                    <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari">
+                                      /{tower.totalTasks}
+                                    </p>
                                   </div>
                                 </div>
                               </div>
@@ -1282,7 +1380,9 @@ export default function VendorBimLeadProjects() {
                     <div
                       className="text-[16px] font-medium text-[#666666] mt-4 leading-relaxed break-words quill-content"
                       dangerouslySetInnerHTML={{
-                        __html: normalizeProjectDescriptionHtml(selectedProject.description),
+                        __html: normalizeProjectDescriptionHtml(
+                          selectedProject.description,
+                        ),
                       }}
                     />
                   ) : (
@@ -1299,15 +1399,22 @@ export default function VendorBimLeadProjects() {
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     {[
-                      { label: "Project Manager", id: selectedProject.project_manager_id },
+                      {
+                        label: "Project Manager",
+                        id: selectedProject.project_manager_id,
+                      },
                       { label: "BIM Lead", id: selectedProject.lead_id },
                     ].map((role) => (
                       <div key={role.label} className="space-y-3">
-                        <p className="text-[16px] font-bold text-[#000000]">{role.label}</p>
+                        <p className="text-[16px] font-bold text-[#000000]">
+                          {role.label}
+                        </p>
                         <div className="flex items-center gap-4">
                           {(() => {
                             const emp = resolveVendorMember(role.id || "");
-                            const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                            const profileUrl = emp?.profile_picture
+                              ? getGlobalProfileUrl(emp.id, emp.profile_picture)
+                              : null;
                             return (
                               <>
                                 <div
@@ -1323,9 +1430,21 @@ export default function VendorBimLeadProjects() {
                                   }}
                                 >
                                   {profileUrl ? (
-                                    <img src={profileUrl} alt={role.label} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                    <img
+                                      src={profileUrl}
+                                      alt={role.label}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src =
+                                          ProfileIcon;
+                                      }}
+                                    />
                                   ) : (
-                                    <img src={ProfileIcon} alt={role.label} className="w-full h-full object-cover p-1" />
+                                    <img
+                                      src={ProfileIcon}
+                                      alt={role.label}
+                                      className="w-full h-full object-cover p-1"
+                                    />
                                   )}
                                 </div>
                                 <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
@@ -1338,23 +1457,43 @@ export default function VendorBimLeadProjects() {
                       </div>
                     ))}
                     <div className="space-y-3">
-                      <p className="text-[16px] font-bold text-[#000000]">Members Involved</p>
+                      <p className="text-[16px] font-bold text-[#000000]">
+                        Members Involved
+                      </p>
                       {(() => {
-                        const memberIds = (selectedProject.members || "").split(",").filter(Boolean).map((id) => Number(id));
+                        const memberIds = (selectedProject.members || "")
+                          .split(",")
+                          .filter(Boolean)
+                          .map((id) => Number(id));
                         const projectMembers = memberIds
                           .map((id) => resolveVendorMember(id))
                           .filter(Boolean) as Employee[];
                         if (!projectMembers.length) {
-                          return <div className="h-10 flex items-center text-[14px] font-bold text-[#666666]">N/A</div>;
+                          return (
+                            <div className="h-10 flex items-center text-[14px] font-bold text-[#666666]">
+                              N/A
+                            </div>
+                          );
                         }
                         const visibleMembers = projectMembers.slice(0, 3);
-                        const remainingCount = Math.max(0, projectMembers.length - 3);
+                        const remainingCount = Math.max(
+                          0,
+                          projectMembers.length - 3,
+                        );
                         return (
                           <div className="flex items-center -space-x-3">
                             {visibleMembers.map((emp) => {
-                              const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                              const profileUrl = emp.profile_picture
+                                ? getGlobalProfileUrl(
+                                    emp.id,
+                                    emp.profile_picture,
+                                  )
+                                : null;
                               return (
-                                <div key={emp.id} className="relative group shrink-0">
+                                <div
+                                  key={emp.id}
+                                  className="relative group shrink-0"
+                                >
                                   <div
                                     role="button"
                                     tabIndex={0}
@@ -1368,9 +1507,21 @@ export default function VendorBimLeadProjects() {
                                     }}
                                   >
                                     {profileUrl ? (
-                                      <img src={profileUrl} className="w-full h-full object-cover" alt={emp.full_name || "Member"} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                      <img
+                                        src={profileUrl}
+                                        className="w-full h-full object-cover"
+                                        alt={emp.full_name || "Member"}
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).src =
+                                            ProfileIcon;
+                                        }}
+                                      />
                                     ) : (
-                                      <img src={ProfileIcon} className="w-full h-full object-cover p-1" alt={emp.full_name || "Member"} />
+                                      <img
+                                        src={ProfileIcon}
+                                        className="w-full h-full object-cover p-1"
+                                        alt={emp.full_name || "Member"}
+                                      />
                                     )}
                                   </div>
                                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
@@ -1487,7 +1638,8 @@ export default function VendorBimLeadProjects() {
                         </span>
                         <span className="text-[16px] font-gantari font-medium text-[#616161]">
                           {formatDate(
-                            selectedProject.end_date || selectedProject.due_date,
+                            selectedProject.end_date ||
+                              selectedProject.due_date,
                           )}
                         </span>
                       </div>
@@ -1522,7 +1674,9 @@ export default function VendorBimLeadProjects() {
 
                   {/* Document Attachment display */}
                   <div className="mt-8 border-t border-slate-100 pt-6">
-                    <p className="text-[16px] font-bold text-[#353535] mb-4 tracking-wide uppercase">Project Document</p>
+                    <p className="text-[16px] font-bold text-[#353535] mb-4 tracking-wide uppercase">
+                      Project Document
+                    </p>
                     {selectedProject.document_attachment ? (
                       <div className="flex flex-wrap gap-3">
                         {selectedProject.document_attachment
@@ -1532,7 +1686,10 @@ export default function VendorBimLeadProjects() {
                           .map((fileName, idx) => {
                             const url = resolveVendorDocUrl(fileName);
                             return (
-                              <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-slate-200 md:max-w-md w-full">
+                              <div
+                                key={idx}
+                                className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-slate-200 md:max-w-md w-full"
+                              >
                                 <div className="p-2 bg-white rounded-lg shadow-sm">
                                   <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
                                 </div>
@@ -1547,7 +1704,11 @@ export default function VendorBimLeadProjects() {
                                     className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
                                     title="View Details"
                                   >
-                                    <img src={viewIcon} alt="View" className="w-[18px] h-[18px] object-contain opacity-70 hover:opacity-100" />
+                                    <img
+                                      src={viewIcon}
+                                      alt="View"
+                                      className="w-[18px] h-[18px] object-contain opacity-70 hover:opacity-100"
+                                    />
                                   </a>
                                   <a
                                     href={url}
@@ -1564,7 +1725,9 @@ export default function VendorBimLeadProjects() {
                           })}
                       </div>
                     ) : (
-                      <span className="text-[16px] font-medium text-[#616161]">No Document Available</span>
+                      <span className="text-[16px] font-medium text-[#616161]">
+                        No Document Available
+                      </span>
                     )}
                   </div>
                 </div>
@@ -1575,13 +1738,16 @@ export default function VendorBimLeadProjects() {
           <div className="flex flex-col h-full bg-white">
             <div className="flex items-center justify-between px-10 py-8 border-b border-slate-50">
               <div className="flex items-center gap-6">
-                <button
-                  type="button"
-                  onClick={() => setShowMilestones(false)}
-                  className="p-3 rounded-lg bg-[#F8F9FA] hover:bg-gray-100 transition-colors"
-                >
-                  <img src={backIcon} alt="Back" className="w-5 h-5" />
-                </button>
+                <VendorBimLeadBackTooltipWrap>
+                  <button
+                    type="button"
+                    onClick={() => setShowMilestones(false)}
+                    className="p-3 rounded-lg bg-[#F8F9FA] hover:bg-gray-100 transition-colors cursor-pointer"
+                    title="Back"
+                  >
+                    <img src={backIcon} alt="Back" className="w-5 h-5" />
+                  </button>
+                </VendorBimLeadBackTooltipWrap>
                 <div>
                   <h3 className="text-[26px] font-bold">Payment Milestones</h3>
                   <p className="text-[16px] font-bold text-[#999999]">
@@ -1655,7 +1821,10 @@ export default function VendorBimLeadProjects() {
                                   strokeWidth="4"
                                   fill="transparent"
                                   strokeDasharray={2 * Math.PI * 22}
-                                  strokeDashoffset={(2 * Math.PI * 22) - (progress / 100) * (2 * Math.PI * 22)}
+                                  strokeDashoffset={
+                                    2 * Math.PI * 22 -
+                                    (progress / 100) * (2 * Math.PI * 22)
+                                  }
                                   strokeLinecap="round"
                                   style={{
                                     transition:
@@ -1789,7 +1958,10 @@ export default function VendorBimLeadProjects() {
                                           openMemberProfile(emp);
                                         }}
                                         onKeyDown={(e) => {
-                                          if (e.key === "Enter" || e.key === " ") {
+                                          if (
+                                            e.key === "Enter" ||
+                                            e.key === " "
+                                          ) {
                                             e.preventDefault();
                                             e.stopPropagation();
                                             openMemberProfile(emp);
@@ -1829,7 +2001,10 @@ export default function VendorBimLeadProjects() {
                                         setShowAllMembersModal(true);
                                       }}
                                       onKeyDown={(e) => {
-                                        if (e.key === "Enter" || e.key === " ") {
+                                        if (
+                                          e.key === "Enter" ||
+                                          e.key === " "
+                                        ) {
                                           e.preventDefault();
                                           e.stopPropagation();
                                           setAllMembersList(projectEmployees);
@@ -1865,8 +2040,6 @@ export default function VendorBimLeadProjects() {
           </>
         )}
       </div>
-
-
 
       {showAllMembersModal && (
         <div className="fixed inset-0 z-[220] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">

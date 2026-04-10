@@ -735,11 +735,11 @@ function TaskCard({
               })()}
           </div>
         </div>
-        <Link
-          to={`/v/mytasks/view/${task.id}`}
-          state={{ task, from: "mytask" }}
+        <button
+          type="button"
+          onClick={() => onViewTask?.(task)}
           draggable={false}
-          className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 font-Gantari"
+          className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 font-Gantari cursor-pointer"
         >
           Details
           <img
@@ -747,7 +747,7 @@ function TaskCard({
             alt="Arrow"
             className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
           />
-        </Link>
+        </button>
       </div>
     </div>
   );
@@ -789,6 +789,7 @@ export default function MytaskV() {
   const [selectedShow, setSelectedShow] = useState<string | null>("Show Entries");
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+  const [viewTask, setViewTask] = useState<Task | null>(null);
   const navigate = useNavigate();
 
   const allTasks = list.filter((t: any) => {
@@ -874,7 +875,7 @@ export default function MytaskV() {
   };
 
   const openViewTask = (task: Task) => {
-    navigate(`/v/mytasks/view/${task.id}`, { state: { task } });
+    setViewTask(task);
   };
 
   const confirmDeleteTask = () => {
@@ -1216,13 +1217,13 @@ export default function MytaskV() {
 
       {/* Delete Task confirmation modal */}
       {deleteTaskId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4">
+            <div className="relative flex items-center justify-center px-6 py-4">
               <button
                 type="button"
                 onClick={() => setDeleteTaskId(null)}
-                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
+                className="absolute left-6 p-2 rounded-md text-black bg-[#F2F2F2] transition-colors cursor-pointer group"
                 aria-label="Close"
               >
                 <svg
@@ -1238,29 +1239,35 @@ export default function MytaskV() {
                     d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
+                {/* Tooltip */}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Close</span>
+                  </div>
+                </div>
               </button>
-              <h3 className="flex-1 text-center text-lg font-semibold text-[#353535]">
+              <h3 className="text-[20px] font-Gantari font-semibold text-[#020202]">
                 Delete Task
               </h3>
-              <div className="w-9" />
             </div>
-            <div className="px-6 py-5">
-              <p className="text-black text-center">
+            <div className="px-6 py-8">
+              <p className="text-black text-center font-Gantari font-medium text-[16px]">
                 Are you sure, you want to Delete this Task?
               </p>
             </div>
-            <div className="flex justify-center gap-3 px-6 py-4 bg-slate-50/50">
+            <div className="flex justify-center gap-4 px-6 pb-8">
               <button
                 type="button"
                 onClick={() => setDeleteTaskId(null)}
-                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black cursor-pointer"
+                className="rounded-md bg-[#F0F0F0] px-6 py-2 text-[14px] font-semibold text-[#353535] cursor-pointer font-Gantari transition-colors"
               >
                 Discard
               </button>
               <button
                 type="button"
                 onClick={confirmDeleteTask}
-                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] cursor-pointer"
+                className="rounded-md bg-[#FFD9D9] px-6 py-2 text-[14px] font-semibold text-[#E00100] cursor-pointer font-Gantari transition-colors "
               >
                 Yes, Delete
               </button>
@@ -1269,6 +1276,137 @@ export default function MytaskV() {
         </div>
       )}
 
+      {/* Task View Modal */}
+      {viewTask && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="relative flex items-center justify-center px-6 py-4 border-b border-slate-100 shrink-0 font-Gantari">
+              <button
+                type="button"
+                onClick={() => setViewTask(null)}
+                className="absolute left-6 p-2 rounded-md text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer group"
+                aria-label="Close"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+                {/* Tooltip */}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Close</span>
+                  </div>
+                </div>
+              </button>
+              <h3 className="text-[20px] font-Gantari font-bold text-[#1A1A1A]">
+                Task Details
+              </h3>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-1 font-Gantari">Task Name</p>
+                    <p className="text-[16px] font-semibold text-[#1A1A1A] font-Gantari">{viewTask.task_name || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-1 font-Gantari">Project Name</p>
+                    <p className="text-[15px] text-[#353535] font-Gantari">{viewTask.project_name || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-1 font-Gantari">Module</p>
+                    <p className="text-[15px] text-[#353535] font-Gantari">{viewTask.module || "—"}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between gap-4">
+                    <div>
+                      <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-1 font-Gantari">Start Date</p>
+                      <p className="text-[15px] text-[#353535] font-Gantari">
+                        {viewTask.start_date
+                          ? new Date(viewTask.start_date).toLocaleDateString("en-GB").replace(/\//g, "-")
+                          : viewTask.Actual_start_time
+                            ? new Date(viewTask.Actual_start_time).toLocaleDateString("en-GB").replace(/\//g, "-")
+                            : "—"}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-1 font-Gantari">Due Date</p>
+                      <p className="text-[15px] text-[#353535] font-Gantari">
+                        {viewTask.due_date
+                          ? new Date(viewTask.due_date).toLocaleDateString("en-GB").replace(/\//g, "-")
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-1 font-Gantari">Assigned By</p>
+                    <p className="text-[15px] text-[#353535] font-Gantari">{viewTask.uploader_full_name || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-1 font-Gantari">Status</p>
+                    <div className="mt-1">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold font-Gantari
+                        ${viewTask.status?.toLowerCase().includes("complete") ? "bg-emerald-100 text-emerald-800" :
+                          viewTask.status?.toLowerCase().includes("progress") ? "bg-sky-100 text-sky-800" :
+                            "bg-orange-100 text-orange-800"}`}>
+                        {viewTask.status || "Todo"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="pt-4 border-t border-slate-100">
+                <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-2 font-Gantari">Description</p>
+                <div className="rounded-lg bg-[#F8F9FA] p-4 text-[14px] text-[#4A4A4A] leading-relaxed min-h-[100px] font-Gantari">
+                  {viewTask.description ? (
+                    <div dangerouslySetInnerHTML={{ __html: viewTask.description }} />
+                  ) : (
+                    <p className="italic text-slate-400">No description provided.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Checklist */}
+              {viewTask.checklist && (
+                <div className="pt-2">
+                  <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-2 font-Gantari">Checklist / Reference</p>
+                  <div className="rounded-lg border border-slate-100 p-4 text-[14px] text-[#4A4A4A] leading-relaxed font-Gantari">
+                    <div dangerouslySetInnerHTML={{ __html: viewTask.checklist }} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setViewTask(null)}
+                className="px-6 py-2 rounded-lg bg-[#F0F0F0] text-[#353535] font-semibold text-[14px] hover:bg-slate-200 transition-colors cursor-pointer font-Gantari"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

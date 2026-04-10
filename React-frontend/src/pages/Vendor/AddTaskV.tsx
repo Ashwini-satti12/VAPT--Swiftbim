@@ -414,10 +414,17 @@ export default function AddTaskV() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
-            title="Back"
+            className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer group relative"
+            aria-label="Back"
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
+            {/* Tooltip */}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Go Back</span>
+              </div>
+            </div>
           </button>
           <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] text-center flex-1">
             {editingTaskId ? "Edit Task" : "Add New Task"}
@@ -875,7 +882,7 @@ export default function AddTaskV() {
                 type="button"
                 disabled={serverAttachmentDeleting}
                 onClick={() => setPendingAttachmentDelete(null)}
-                className="absolute left-0 top-0 shrink-0 rounded-lg p-1 bg-transparent cursor-pointer disabled:opacity-50"
+                className="absolute left-0 top-0 shrink-0 rounded-lg p-1 bg-transparent cursor-pointer disabled:opacity-50 group"
                 aria-label="Close"
               >
                 <img
@@ -884,6 +891,13 @@ export default function AddTaskV() {
                   className="h-5 w-5"
                   aria-hidden
                 />
+                {/* Tooltip */}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Close</span>
+                  </div>
+                </div>
               </button>
               <p className="mx-auto max-w-full px-10 text-center text-[16px] leading-relaxed text-[#353535]">
                 Are you sure you want to delete{" "}

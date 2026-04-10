@@ -32,7 +32,7 @@ const Resources = ({ vendor, editable, onAdd, onEdit, onDelete }: Props) => {
         const safe = sanitizeVendorVendorsFilename(first);
         const fileUrl = safe ? vendorVendorsFileUrl(safe) : '';
         return (
-            <div className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg gap-3">
+            <div className="flex items-center justify-between px-3 py-2 bg-white border border-gray-200 rounded-lg gap-3">
                 <span className="text-sm font-medium text-gray-700">{label}</span>
                 <div className="flex items-center gap-2 shrink-0">
                     <button

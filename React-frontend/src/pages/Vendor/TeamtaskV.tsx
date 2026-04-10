@@ -921,11 +921,11 @@ export default function TeamtaskV() {
             {deleteTaskId !== null && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-                        <div className="flex items-center justify-between px-6 py-4">
+                        <div className="relative flex items-center justify-center px-6 py-4">
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors"
+                                className="absolute left-6 p-2 rounded-md text-black bg-[#F2F2F2] transition-colors cursor-pointer group"
                                 aria-label="Close"
                             >
                                 <svg
@@ -941,11 +941,17 @@ export default function TeamtaskV() {
                                         d="M6 18L18 6M6 6l12 12"
                                     />
                                 </svg>
+                                {/* Tooltip */}
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                                        <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Close</span>
+                                    </div>
+                                </div>
                             </button>
-                            <h3 className="flex-1 text-center text-lg font-semibold text-[#353535]">
+                            <h3 className="text-[20px] font-Gantari font-semibold text-[#020202]">
                                 Delete Task
                             </h3>
-                            <div className="w-9" />
                         </div>
                         <div className="px-6 py-5">
                             <p className="text-black text-center">
@@ -956,14 +962,14 @@ export default function TeamtaskV() {
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0]"
+                                className="rounded-md bg-[#F0F0F0] px-6 py-2 text-[14px] text-[#353535] font-medium text-black "
                             >
                                 Discard
                             </button>
                             <button
                                 type="button"
                                 onClick={confirmDeleteTask}
-                                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3]"
+                                className="rounded-md bg-[#FFD9D9] px-6 py-2 text-[14px] font-medium text-[#E00100] "
                             >
                                 Yes, Delete
                             </button>

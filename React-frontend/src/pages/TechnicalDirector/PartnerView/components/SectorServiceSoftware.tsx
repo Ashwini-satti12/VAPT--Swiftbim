@@ -87,7 +87,7 @@ const SectorServiceSoftware = ({ vendor, editable = false, onChange }: Props) =>
                                                 if (!next.includes('Other')) patch.other_sector = '';
                                                 onChange?.(patch);
                                             }}
-                                            className={`px-3 py-1.5 rounded-full text-[12px] font-semibold font-gantari border transition-colors ${
+                                            className={`px-3 py-2 rounded-full text-[12px] font-semibold font-gantari border transition-colors ${
                                                 active ? 'bg-[#DE3D3A] text-white border-[#DE3D3A]' : 'bg-[#F8F8F8] text-[#353535] border-[#E5E5E5]'
                                             } hover:border-[#DE3D3A]`}
                                         >
@@ -144,7 +144,7 @@ const SectorServiceSoftware = ({ vendor, editable = false, onChange }: Props) =>
                                                 if (!next.includes('Other')) patch.other_service = '';
                                                 onChange?.(patch);
                                             }}
-                                            className={`px-3 py-1.5 rounded-full text-[12px] font-semibold font-gantari border transition-colors ${
+                                            className={`px-3 py-2 rounded-full text-[12px] font-semibold font-gantari border transition-colors ${
                                                 active ? 'bg-[#DE3D3A] text-white border-[#DE3D3A]' : 'bg-[#F8F8F8] text-[#353535] border-[#E5E5E5]'
                                             } hover:border-[#DE3D3A]`}
                                         >
@@ -201,7 +201,7 @@ const SectorServiceSoftware = ({ vendor, editable = false, onChange }: Props) =>
                                                 if (!next.includes('Other')) patch.other_software = '';
                                                 onChange?.(patch);
                                             }}
-                                            className={`px-3 py-1.5 rounded-full text-[12px] font-semibold font-gantari border transition-colors ${
+                                            className={`px-3 py-2 rounded-full text-[12px] font-semibold font-gantari border transition-colors ${
                                                 active ? 'bg-[#DE3D3A] text-white border-[#DE3D3A]' : 'bg-[#F8F8F8] text-[#353535] border-[#E5E5E5]'
                                             } hover:border-[#DE3D3A]`}
                                         >
