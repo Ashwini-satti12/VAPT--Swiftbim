@@ -121,19 +121,20 @@ const CURRENCIES = [
 
 function formatBudget(amount: number, currencyCode: string = "INR") {
   if (!amount) return "—";
-  
+
   if (currencyCode === "INR") {
     if (amount >= 10000000) return `₹ ${(amount / 10000000).toFixed(1)} Cr`;
     if (amount >= 100000) return `₹ ${(amount / 100000).toFixed(1)} L`;
     if (amount >= 1000) return `₹ ${(amount / 1000).toFixed(0)}K`;
     return `₹ ${amount.toLocaleString("en-IN")}`;
   }
-  
-  const symbol = CURRENCIES.find(c => c.code === currencyCode)?.symbol || currencyCode;
-  
+
+  const symbol =
+    CURRENCIES.find((c) => c.code === currencyCode)?.symbol || currencyCode;
+
   if (amount >= 1000000) return `${symbol} ${(amount / 1000000).toFixed(1)}M`;
   if (amount >= 1000) return `${symbol} ${(amount / 1000).toFixed(1)}K`;
-  
+
   return `${symbol} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
@@ -198,8 +199,11 @@ function extractApiErrorMessage(err: unknown): string | null {
 function isBidAmountFieldError(message: string, status?: number): boolean {
   const m = message.toLowerCase();
   if (status === 400 && m.includes("invalid bid")) return true;
-  if (status === 400 && (m.includes("bid") || m.includes("exceed"))) return true;
-  return m.includes("too high") || m.includes("exceed") || m.includes("maximum");
+  if (status === 400 && (m.includes("bid") || m.includes("exceed")))
+    return true;
+  return (
+    m.includes("too high") || m.includes("exceed") || m.includes("maximum")
+  );
 }
 
 const daysUntil = (dateStr: string) => {
@@ -349,10 +353,7 @@ export default function BiddingV() {
           : undefined;
       const apiMessage = extractApiErrorMessage(err);
       const fallback = "Failed to submit bid. Please try again.";
-      if (
-        apiMessage &&
-        isBidAmountFieldError(apiMessage, res?.status)
-      ) {
+      if (apiMessage && isBidAmountFieldError(apiMessage, res?.status)) {
         setBidAmountError(apiMessage);
         setBidError(null);
       } else {
@@ -477,9 +478,9 @@ export default function BiddingV() {
             </button>
             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
               <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
                 <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                  Back
+                  Go Back
                 </span>
               </div>
             </div>
@@ -519,9 +520,9 @@ export default function BiddingV() {
                     <span className="text-[18px] font-bold text-[#DE3D3A] font-gantari">
                       {formatBudget(
                         parseBudgetNumeric(detailOpp.budget_ceiling) ??
-                        parseBudgetNumeric(detailOpp.outsource_budget) ??
-                        0,
-                        detailOpp.currency
+                          parseBudgetNumeric(detailOpp.outsource_budget) ??
+                          0,
+                        detailOpp.currency,
                       )}
                     </span>
                   </div>
@@ -532,9 +533,9 @@ export default function BiddingV() {
                     <span className="text-[14px] font-medium text-[#353535] font-gantari">
                       {detailOpp.bid_deadline
                         ? new Date(detailOpp.bid_deadline).toLocaleDateString(
-                          "en-GB",
-                          { day: "2-digit", month: "long", year: "numeric" },
-                        )
+                            "en-GB",
+                            { day: "2-digit", month: "long", year: "numeric" },
+                          )
                         : "—"}
                     </span>
                   </div>
@@ -666,9 +667,9 @@ export default function BiddingV() {
             </button>
             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
               <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
                 <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                  Back
+                  Go Back
                 </span>
               </div>
             </div>
@@ -711,7 +712,10 @@ export default function BiddingV() {
                       Project Budget Ceiling
                     </span>
                     <span className="text-[24px] font-bold text-[#353535] font-gantari">
-                      {formatBudget(detailBid.outsource_budget || 0, detailBid.currency)}
+                      {formatBudget(
+                        detailBid.outsource_budget || 0,
+                        detailBid.currency,
+                      )}
                     </span>
                   </div>
                 </div>
@@ -880,10 +884,11 @@ export default function BiddingV() {
                             setOppTab(tab.key);
                             setStatusDropdownOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between gap-2 px-4 py-3 text-left text-[14px] transition-all font-gantari ${isChosen
+                          className={`w-full flex items-center justify-between gap-2 px-4 py-3 text-left text-[14px] transition-all font-gantari ${
+                            isChosen
                               ? "text-[#353535] bg-[#F2F2F2] font-medium"
                               : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2] font-medium"
-                            }`}
+                          }`}
                         >
                           <span>{tab.label}</span>
                           {isChosen && (
@@ -918,7 +923,7 @@ export default function BiddingV() {
               >
                 {showEntries === "show" ? (
                   <span className="text-sm font-medium text-[#616161]">
-                    Show 
+                    Show
                   </span>
                 ) : (
                   <span className="text-sm font-medium text-[#353535]">
@@ -1090,9 +1095,9 @@ export default function BiddingV() {
                           <p className="text-[18px] font-bold text-[#353535]">
                             {formatBudget(
                               parseBudgetNumeric(opp.budget_ceiling) ??
-                              parseBudgetNumeric(opp.outsource_budget) ??
-                              0,
-                              opp.currency
+                                parseBudgetNumeric(opp.outsource_budget) ??
+                                0,
+                              opp.currency,
                             )}
                           </p>
                           {opp.bids_count !== undefined && (
@@ -1237,7 +1242,10 @@ export default function BiddingV() {
                           {formatBudget(bid.bid_amount, bid.currency)}
                         </td>
                         <td className="px-4 py-6 text-center text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
-                          {formatBudget(bid.outsource_budget || 0, bid.currency)}
+                          {formatBudget(
+                            bid.outsource_budget || 0,
+                            bid.currency,
+                          )}
                         </td>
                         <td className="px-4 py-6 text-center text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
                           {bid.created_at
@@ -1265,7 +1273,6 @@ export default function BiddingV() {
                                 />
                                 View
                               </button>
-                              
                             </div>
                           </div>
                         </td>
@@ -1284,7 +1291,7 @@ export default function BiddingV() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-md p-6 sm:p-8 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="relative flex items-center justify-center mb-8">
-              <div className="absolute left-0 relative group">
+              <div className="absolute left-0 group">
                 <button
                   type="button"
                   onClick={closeSubmitBidModal}
@@ -1301,7 +1308,9 @@ export default function BiddingV() {
                   </div>
                 </div>
               </div>
-              <h3 className="text-[24px] font-gantari font-medium text-[#000000]">Submit Bid</h3>
+              <h3 className="text-[24px] font-gantari font-medium text-[#000000]">
+                Submit Bid
+              </h3>
             </div>
             <p className="text-sm font-medium text-[#353535] mb-6 bg-[#F8F8F8] p-4 rounded-xl border border-gray-100">
               Project:{" "}
@@ -1315,11 +1324,17 @@ export default function BiddingV() {
                   </label>
                   <button
                     type="button"
-                    onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
+                    onClick={() =>
+                      setCurrencyDropdownOpen(!currencyDropdownOpen)
+                    }
                     className="w-full rounded-md px-4 py-2.5 text-[14px] text-[#353535] bg-[#F2F3F4] focus:ring-1 focus:ring-[#AEACAC52] outline-none border-none flex items-center justify-between cursor-pointer"
                   >
                     <span>
-                      {CURRENCIES.find((c) => c.code === bidForm.currency)?.label} ({bidForm.currency})
+                      {
+                        CURRENCIES.find((c) => c.code === bidForm.currency)
+                          ?.label
+                      }{" "}
+                      ({bidForm.currency})
                     </span>
                     <img
                       src={ArrowDown}
@@ -1367,15 +1382,16 @@ export default function BiddingV() {
                       const max = maxBidAmountForOpportunity(selectedOpp);
                       const n = parseBidAmountInput(v);
                       if (max != null && n != null && n > max) {
-                        setBidAmountError(bidTooHighMessage(max, bidForm.currency));
+                        setBidAmountError(
+                          bidTooHighMessage(max, bidForm.currency),
+                        );
                       } else {
                         setBidAmountError(null);
                       }
                     }}
-                    className={`w-full rounded-md px-4 py-2.5 text-[14px] text-[#353535] bg-[#F2F3F4] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-1 focus:ring-[#AEACAC52] outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${bidAmountError
-                        ? "ring-2 ring-[#DE3D3A] bg-[#FFF8F8]"
-                        : ""
-                      }`}
+                    className={`w-full rounded-md px-4 py-2.5 text-[14px] text-[#353535] bg-[#F2F3F4] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-1 focus:ring-[#AEACAC52] outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                      bidAmountError ? "ring-2 ring-[#DE3D3A] bg-[#FFF8F8]" : ""
+                    }`}
                     placeholder="0.00"
                     min={0}
                     step="0.01"
@@ -1386,20 +1402,20 @@ export default function BiddingV() {
                   />
                 </div>
               </div>
-                {bidAmountError && (
-                  <p
-                    id="bid-amount-error"
-                    className="mt-2 text-sm font-semibold text-[#DE3D3A] leading-snug"
-                  >
-                    {bidAmountError}
-                  </p>
-                )}
-                {!bidAmountError && submitModalMaxBid != null && (
-                  <p className="mt-1.5 text-[14px] font-gantari text-[#666666]">
-                    Maximum bid for this opportunity:{" "}
-                    {formatBudget(submitModalMaxBid, bidForm.currency)}
-                  </p>
-                )}
+              {bidAmountError && (
+                <p
+                  id="bid-amount-error"
+                  className="mt-2 text-sm font-semibold text-[#DE3D3A] leading-snug"
+                >
+                  {bidAmountError}
+                </p>
+              )}
+              {!bidAmountError && submitModalMaxBid != null && (
+                <p className="mt-1.5 text-[14px] font-gantari text-[#666666]">
+                  Maximum bid for this opportunity:{" "}
+                  {formatBudget(submitModalMaxBid, bidForm.currency)}
+                </p>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>

@@ -1834,7 +1834,7 @@ export default function ProjectsTD() {
                                       : `${api.defaults.baseURL}uploads/${fileName}`;
 
                                     return (
-                                      <div key={idx} className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-slate-200 w-full md:max-w-md mt-1">
+                                      <div key={idx} className="flex items-center gap-3 px-4 py-2.5 rounded-md border border-slate-200 w-full md:max-w-md mt-1">
                                         <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1 font-gantari">
                                           {fileName.split("_").pop() || "Document"}
                                         </span>

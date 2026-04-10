@@ -3,7 +3,10 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import api from "../../lib/api";
-import { resolveVendorTaskAssigneeName, type Employee as VendorRosterEmployee } from "./MytaskV";
+import {
+  resolveVendorTaskAssigneeName,
+  type Employee as VendorRosterEmployee,
+} from "./MytaskV";
 import Upload from "../../assets/ProjectManager/MyTask/Upload.svg";
 import ImageIcon from "../../assets/ProjectManager/MyTask/image.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
@@ -144,7 +147,10 @@ const STATUS_STYLE: Record<
   },
 };
 
-const STATUS_OPTIONS: { value: "todo" | "in_progress" | "completed"; label: string }[] = [
+const STATUS_OPTIONS: {
+  value: "todo" | "in_progress" | "completed";
+  label: string;
+}[] = [
   { value: "todo", label: "To Do" },
   { value: "in_progress", label: "Inprogress" },
   { value: "completed", label: "Completed" },
@@ -178,7 +184,9 @@ export default function MytaskViewV() {
   const [task, setTask] = useState<Task | undefined>(initialTask);
 
   const [statusDisplay, setStatusDisplay] = useState<StatusKey>(() =>
-    initialTask ? normalizeStatus(initialTask.status, initialTask.Approval) : "todo",
+    initialTask
+      ? normalizeStatus(initialTask.status, initialTask.Approval)
+      : "todo",
   );
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
@@ -206,7 +214,9 @@ export default function MytaskViewV() {
     if (!file) return;
     setSelectedImage(file);
     if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
-    setSelectedImagePreview(isImageFile(file.type) ? URL.createObjectURL(file) : null);
+    setSelectedImagePreview(
+      isImageFile(file.type) ? URL.createObjectURL(file) : null,
+    );
     e.target.value = "";
   };
 
@@ -231,7 +241,9 @@ export default function MytaskViewV() {
     if (file) {
       setSelectedImage(file);
       if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
-      setSelectedImagePreview(isImageFile(file.type) ? URL.createObjectURL(file) : null);
+      setSelectedImagePreview(
+        isImageFile(file.type) ? URL.createObjectURL(file) : null,
+      );
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -254,9 +266,7 @@ export default function MytaskViewV() {
         status: backendStatus,
       });
       setStatusDisplay(newStatus);
-      setTask((prev) =>
-        prev ? { ...prev, status: backendStatus } : prev,
-      );
+      setTask((prev) => (prev ? { ...prev, status: backendStatus } : prev));
       toast.success(
         newStatus === "completed"
           ? "Task marked as completed"
@@ -292,12 +302,14 @@ export default function MytaskViewV() {
 
     if (fromTeamTask) {
       api
-        .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: { condition: "1" } })
+        .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", {
+          params: { condition: "1" },
+        })
         .then((res) => {
           const found = (res.data.tasks ?? []).find((t) => t.id === tid);
           if (found) setTask(found);
         })
-        .catch(() => { });
+        .catch(() => {});
     } else {
       api
         .get<Task>(`/api/vendors/vendor-tasks/${tid}`)
@@ -403,7 +415,6 @@ export default function MytaskViewV() {
             type="button"
             onClick={() => navigate(-1)}
             className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer border-0 shadow-none"
-            title="Back"
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
           </button>
@@ -464,13 +475,15 @@ export default function MytaskViewV() {
                       disabled={disabled}
                       aria-selected={statusDisplay === opt.value}
                       onClick={() => handleStatusUpdate(opt.value)}
-                      className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 ${disabled
-                        ? "text-slate-300 cursor-not-allowed opacity-60"
-                        : "hover:bg-[#F2F2F2]"
-                        } ${statusDisplay === opt.value && !disabled
+                      className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 ${
+                        disabled
+                          ? "text-slate-300 cursor-not-allowed opacity-60"
+                          : "hover:bg-[#F2F2F2]"
+                      } ${
+                        statusDisplay === opt.value && !disabled
                           ? "bg-[#F2F2F2] font-medium"
                           : ""
-                        }`}
+                      }`}
                     >
                       <span
                         className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`}
@@ -499,10 +512,10 @@ export default function MytaskViewV() {
               <span className="text-[#616161]">
                 {String(
                   taskRecord.modules_name ??
-                  task.module ??
-                  task.modules ??
-                  taskRecord.modules ??
-                  "—",
+                    task.module ??
+                    task.modules ??
+                    taskRecord.modules ??
+                    "—",
                 )}
               </span>
             </div>
@@ -512,10 +525,10 @@ export default function MytaskViewV() {
               <span className="text-[#616161]">
                 {String(
                   task.type ??
-                  task.category ??
-                  taskRecord.category ??
-                  taskRecord.type ??
-                  "—",
+                    task.category ??
+                    taskRecord.category ??
+                    taskRecord.type ??
+                    "—",
                 )}
               </span>
             </div>
@@ -537,9 +550,7 @@ export default function MytaskViewV() {
               </span>
               <span className="text-black shrink-0">:</span>
               <span className="text-[#616161]">
-                {task.start_date
-                  ? formatDateDDMMYYYY(task.start_date)
-                  : "—"}
+                {task.start_date ? formatDateDDMMYYYY(task.start_date) : "—"}
               </span>
             </div>
             <div className="flex gap-2">
@@ -553,9 +564,7 @@ export default function MytaskViewV() {
               <span className="text-black shrink-0 w-28">Actual End Date</span>
               <span className="text-black shrink-0">:</span>
               <span className="text-[#616161]">
-                {task.due_date
-                  ? formatDateDDMMYYYY(task.due_date)
-                  : "—"}
+                {task.due_date ? formatDateDDMMYYYY(task.due_date) : "—"}
               </span>
             </div>
             <div className="flex gap-2">
@@ -597,8 +606,11 @@ export default function MytaskViewV() {
               onChange={handleSelectImage}
             />
             <div
-              className={`rounded-sm flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] relative transition-all duration-200 border-2 border-dashed ${isDragging ? "bg-sky-50 border-sky-400" : "bg-[#FFFFFF] border-slate-200"
-                }`}
+              className={`rounded-sm flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] relative transition-all duration-200 border-2 border-dashed ${
+                isDragging
+                  ? "bg-sky-50 border-sky-400"
+                  : "bg-[#FFFFFF] border-slate-200"
+              }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
@@ -619,7 +631,9 @@ export default function MytaskViewV() {
                     <div className="absolute top-full right-0 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                       <div className="w-2 h-2 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px] ml-auto mr-1.5"></div>
                       <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-1 relative z-10">
-                        <span className="font-Gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Remove</span>
+                        <span className="font-Gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">
+                          Remove
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -632,13 +646,19 @@ export default function MytaskViewV() {
               ) : selectedImage ? (
                 <>
                   <img src={ImageIcon} alt="File" className="w-7 h-7" />
-                  <span className="text-xs mt-2 text-[#353535] break-all text-center">{selectedImage.name}</span>
+                  <span className="text-xs mt-2 text-[#353535] break-all text-center">
+                    {selectedImage.name}
+                  </span>
                 </>
               ) : (
                 <>
                   <img src={ImageIcon} alt="Image" className="w-7 h-7" />
-                  <span className="text-xs mt-2 text-[#616161]">No File Selected</span>
-                  <span className="text-[10px] mt-1 text-[#8B8B8B]">Drag and drop file here</span>
+                  <span className="text-xs mt-2 text-[#616161]">
+                    No File Selected
+                  </span>
+                  <span className="text-[10px] mt-1 text-[#8B8B8B]">
+                    Drag and drop file here
+                  </span>
                 </>
               )}
             </div>
@@ -702,9 +722,15 @@ export default function MytaskViewV() {
         {/* Task Description & Checklist */}
         <div className="mt-8 space-y-6 mb-10">
           <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
-            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">Task Description</h4>
+            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">
+              Task Description
+            </h4>
             <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 font-Gantari min-h-[80px]">
-              {task.description && task.description.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, '').trim().length > 0 ? (
+              {task.description &&
+              task.description
+                .replace(/<[^>]*>?/gm, "")
+                .replace(/&nbsp;/g, "")
+                .trim().length > 0 ? (
                 <div
                   className="prose prose-sm max-w-none prose-p:my-0"
                   dangerouslySetInnerHTML={{ __html: task.description }}
@@ -716,9 +742,15 @@ export default function MytaskViewV() {
           </div>
 
           <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
-            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">Checklist / Reference</h4>
+            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">
+              Checklist / Reference
+            </h4>
             <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 font-Gantari min-h-[80px]">
-              {task.checklist && task.checklist.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, '').trim().length > 0 ? (
+              {task.checklist &&
+              task.checklist
+                .replace(/<[^>]*>?/gm, "")
+                .replace(/&nbsp;/g, "")
+                .trim().length > 0 ? (
                 <div
                   className="prose prose-sm max-w-none prose-p:my-0"
                   dangerouslySetInnerHTML={{ __html: task.checklist }}
