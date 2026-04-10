@@ -272,8 +272,8 @@ export default function CompanyProfileV() {
 
                 {/* Right: Actions */}
                 <div className="flex items-center gap-4">
-                    <span className={`inline-flex items-center gap-1.5 text-[12px] font-bold px-3 py-1.5 rounded-full ${verified ? 'bg-[#E8F9E8] text-[#16A34A]' : 'bg-[#FFF3E0] text-[#E65100]'}`}>
-                        <span className={`w-2 h-2 rounded-full ${verified ? 'bg-[#16A34A]' : 'bg-[#E65100]'}`} />
+                    <span className={`inline-flex items-center gap-1.5 text-[12px] font-bold px-3 py-2 rounded-md ${verified ? 'bg-[#E8F9E8] text-[#16A34A]' : 'bg-[#FFF3E0] text-[#E65100]'}`}>
+                        <span className={`w-2 h-2 rounded-md ${verified ? 'bg-[#16A34A]' : 'bg-[#E65100]'}`} />
                         {verified ? 'Verified' : 'Unverified'}
                     </span>
                     
@@ -289,7 +289,7 @@ export default function CompanyProfileV() {
                             <button
                                 onClick={handleCancel}
                                 disabled={saving}
-                                className="px-4 py-2 text-sm font-semibold font-Gantari bg-white border border-gray-200 text-[#353535] rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60 cursor-pointer"
+                                className="px-4 py-2 text-[14px] font-semibold font-Gantari bg-[#F2F2F2] border border-[#AEACAC52] text-[#353535] rounded-md transition-colors disabled:opacity-60 cursor-pointer"
                             >
                                 Cancel
                             </button>

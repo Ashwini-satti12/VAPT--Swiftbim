@@ -4,6 +4,7 @@ import api from "../../lib/api";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 
 const SHOW_ENTRIES_PLACEHOLDER = "Show entries";
+const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
 
 /** Open native date picker — required on some browsers when the input is fully transparent / overlaid. */
 function openNativeDatePicker(input: HTMLInputElement | null) {
@@ -689,7 +690,7 @@ export default function TimesheetPM() {
                   SHOW_ENTRIES_PLACEHOLDER
                 ) : (
                   <>
-                    <span className="text-[14px]">{SHOW_ENTRIES_PLACEHOLDER}:</span>{" "}
+                    <span className="text-[14px]">{SHOW_ENTRIES_SELECTED_PREFIX}</span>{" "}
                     <span className="font-semibold">{selectedRange.label}</span>
                   </>
                 )}

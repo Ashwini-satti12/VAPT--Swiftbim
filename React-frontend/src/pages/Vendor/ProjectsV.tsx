@@ -1257,10 +1257,17 @@ export default function ProjectsV() {
                                     setCreatePriority(""); setCreateLocation(""); setCreateDescription("");
                                     setCreateDeliverables(""); setSelectedMemberIds([]); setCreateFile(null);
                                 }}
-                                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-colors cursor-pointer"
-                                title="Close"
+                                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-colors cursor-pointer group"
+                                aria-label="Go Back"
                             >
                                 <img src={backIcon} alt="Back" className="w-5 h-5" />
+                                {/* Tooltip */}
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                                        <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Go Back</span>
+                                    </div>
+                                </div>
                             </button>
 
                             <div className="text-center">
@@ -1307,21 +1314,23 @@ export default function ProjectsV() {
                             <button
                                 type="button"
                                 onClick={() => setShowProjectView(false)}
-                                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
-                                title="Close"
+                                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer group"
+                                aria-label="Go Back"
                             >
                                 <img src={backIcon} alt="Back" className="w-5 h-5" />
+                                {/* Tooltip */}
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                                        <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Go Back</span>
+                                    </div>
+                                </div>
                             </button>
                             <div className="text-center">
                                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                                     {selectedProject.project_name ?? "Untitled Project"}
                                 </h3>
-                                <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
-                                    <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#353535]"></span>
-                                    <p className="text-[14px] md:text-[14px] font-Gantari font-semibold text-[#353535]">
-                                        Overall Progress Tracker
-                                    </p>
-                                </div>
+                        
                             </div>
                         </div>
                         {/* Project View Content */}
@@ -1541,8 +1550,13 @@ export default function ProjectsV() {
                                                                             <img src={ProfileIcon} className="w-full h-full object-cover p-1" alt={member.full_name || "Member"} />
                                                                         )}
                                                                     </div>
-                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                                                        {member.full_name || "Unknown"}
+                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                                                                            <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                                                                {member.full_name || "Unknown"}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
                                                                     </div>
                                                                 </div>
                                                             );
@@ -1723,10 +1737,17 @@ export default function ProjectsV() {
                             <button
                                 type="button"
                                 onClick={() => setShowMilestones(false)}
-                                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] transition-colors cursor-pointer"
-                                title="Back"
+                                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] transition-colors cursor-pointer group"
+                                aria-label="Go Back"
                             >
                                 <img src={backIcon} alt="Back" className="w-5 h-5" />
+                                {/* Tooltip */}
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                                                                        <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Go Back</span>
+                                                                    </div>
+                                                                </div>
                             </button>
                             <div className="text-center">
                                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
@@ -1942,8 +1963,13 @@ export default function ProjectsV() {
                                                                                     </div>
                                                                                 )}
                                                                             </div>
-                                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                                                                {getEmployeeName(id) || "Unknown"}
+                                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                                                                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                                                                        {getEmployeeName(id) || "Unknown"}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
                                                                             </div>
                                                                         </div>
                                                                     );
@@ -1959,8 +1985,13 @@ export default function ProjectsV() {
                                                                         >
                                                                             +{memberIds.length - 3}
                                                                         </div>
-                                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                                                            {memberIds.length - 3} more
+                                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                                            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                                                                <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                                                                    {memberIds.length - 3} more
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
                                                                         </div>
                                                                     </div>
                                                                 )}
@@ -1997,10 +2028,17 @@ export default function ProjectsV() {
                         {/* Modal Header */}
                         <div className="relative flex items-center justify-center px-10 py-8 border-b border-slate-50">
                             <button type="button" onClick={() => setShowCreateModal(false)}
-                                className="absolute left-10 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
-                                title="Go back"
+                                className="absolute left-10 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer group"
+                                aria-label="Go Back"
                             >
                                 <img src={backIcon} alt="Back" className="w-5 h-5" />
+                                {/* Tooltip */}
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                        <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Go Back</span>
+                                    </div>
+                                </div>
                             </button>
                             <h3 className="text-2xl font-bold text-[#1A1A1A]">Add New Project</h3>
                         </div>
@@ -2034,8 +2072,15 @@ export default function ProjectsV() {
                     <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full max-h-[80vh] overflow-hidden">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
                             <h3 className="text-[28px] font-bold text-[#1A1A1A] font-Gantari">All Members ({allMembersList.length})</h3>
-                            <button type="button" onClick={() => setShowAllMembersModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer" aria-label="Close">
+                            <button type="button" onClick={() => setShowAllMembersModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer group relative" aria-label="Close">
                                 <img src={closeBtnIcon} alt="close" className="w-6 h-6" />
+                                {/* Tooltip */}
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                        <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Close</span>
+                                    </div>
+                                </div>
                             </button>
                         </div>
                         <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
@@ -2075,8 +2120,15 @@ export default function ProjectsV() {
                     <div className="bg-white rounded-[2rem] shadow-2xl max-w-xl w-full max-h-[80vh] flex flex-col overflow-hidden">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
                             <h3 className="text-[28px] font-bold text-[#1A1A1A] font-Gantari">View Details</h3>
-                            <button type="button" onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }} className="p-2 rounded-md bg-[#F2F2F2] cursor-pointer">
+                            <button type="button" onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }} className="relative p-2 rounded-md bg-[#F2F2F2] cursor-pointer group" aria-label="Close">
                                 <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                                {/* Tooltip */}
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                        <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Close</span>
+                                    </div>
+                                </div>
                             </button>
                         </div>
                         <div className="overflow-y-auto px-8 py-6 custom-scrollbar space-y-4">

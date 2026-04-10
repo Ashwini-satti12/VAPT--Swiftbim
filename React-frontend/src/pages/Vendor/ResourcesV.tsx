@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { FiGrid, FiMenu, FiX } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
@@ -447,9 +448,11 @@ export default function ResourcesV() {
     api
       .post("/api/employees/invite", { emails, message: inviteMessage })
       .then(() => {
+        toast.success("Invitations sent successfully!");
         setInviteEmails("");
         setInviteMessage("");
         setInviteShowSuccess(true);
+        setActiveView("list");
       })
       .catch(() => {})
       .finally(() => setInviteSubmitting(false));
@@ -464,6 +467,7 @@ export default function ResourcesV() {
         action: "inactive",
       })
       .then(() => {
+        toast.success("Resources deactivated successfully!");
         setList((prev) =>
           prev.map((e) =>
             inactiveIds.includes(e.id) ? { ...e, active: "inactive" } : e,
@@ -472,7 +476,9 @@ export default function ResourcesV() {
         setActiveView("list");
         setInactiveIds([]);
       })
-      .catch(() => {})
+      .catch(() => {
+        toast.error("Failed to deactivate resources.");
+      })
       .finally(() => setInactiveSubmitting(false));
   }
 
@@ -520,6 +526,7 @@ export default function ResourcesV() {
               : e,
           ),
         );
+        toast.success("Login assigned successfully!");
         setEditId(null);
         setActiveView("list");
         setSearchParams({});
@@ -541,7 +548,13 @@ export default function ResourcesV() {
     );
     api
       .post(VENDOR_RESOURCE_BULK_STATUS, { ids: [id], action: status })
-      .catch(console.error);
+      .then(() => {
+        toast.success("Status updated successfully!");
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error("Failed to update status.");
+      });
   }
 
   function handleAddSubmit(e: React.FormEvent) {
@@ -572,8 +585,8 @@ export default function ResourcesV() {
                     </button>
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                       <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
-                        <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">List</span>
+                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                        <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">List</span>
                       </div>
                     </div>
                   </div>
@@ -586,8 +599,8 @@ export default function ResourcesV() {
                     </button>
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                       <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
-                        <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Grid</span>
+                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                        <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Grid</span>
                       </div>
                     </div>
                   </div>
@@ -597,21 +610,27 @@ export default function ResourcesV() {
                   >
                     Add Worker
                   </button> */}
-                  <button
-                    onClick={() => {
-                      setInviteShowSuccess(false);
-                      setActiveView("invite");
-                    }}
-                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
-                  >
-                    Invite
-                  </button>
-                  <button
-                    onClick={() => setActiveView("inactive")}
-                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
-                  >
-                    Manage Inactive
-                  </button>
+                  <div className="group relative">
+                    <button
+                      onClick={() => {
+                        setInviteShowSuccess(false);
+                        setActiveView("invite");
+                      }}
+                      className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                    >
+                      Invite
+                    </button>
+                    
+                  </div>
+                  <div className="group relative">
+                    <button
+                      onClick={() => setActiveView("inactive")}
+                      className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                    >
+                      Manage Inactive
+                    </button>
+                    
+                  </div>
                 </>
               )}
             </div>
@@ -649,34 +668,39 @@ export default function ResourcesV() {
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         {viewMode === "card" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8 p-4 sm:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 p-3">
             {filteredList.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-slate-500">
+              <div className="col-span-full bg-white rounded-md border border-slate-200 p-8 sm:p-12 text-center text-slate-500 shadow-sm font-gantari">
                 No resources found.
               </div>
             ) : (
               filteredList.map((emp) => (
                 <div
                   key={emp.id}
-                  className="bg-white rounded-[10px] overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-all"
+                  className="bg-white rounded-[10px] overflow-hidden border border-slate-200 transition-all hover:shadow-md"
                 >
-                  <div className="relative h-[120px] overflow-hidden">
+                  <div className="relative h-[128px] overflow-hidden group">
                     <img
                       src={pmprofilebg}
-                      className="w-full h-full object-cover opacity-80"
+                      className="w-full h-full object-cover"
                     />
-                    <div className="absolute top-3 right-3">
+                    <div className="absolute inset-0 bg-black/30" />
+                    
+                    <div className="absolute top-3 right-3 z-10">
                       <div
-                        className={`px-2 py-0.5 rounded-full flex items-center gap-1 ${emp.active === "active" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"} text-[10px] font-medium border border-current/20`}
+                        className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === "active" ? "bg-[#E0FFE8] border-emerald-100" : "bg-[#FFEEEE] border-red-100"}`}
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${emp.active === "active" ? "bg-emerald-500" : "bg-red-500"}`}
+                          className={`w-2 h-2 rounded-full ${emp.active === "active" ? "bg-[#166534]" : "bg-[#E00100]"}`}
                         />
-                        {emp.active === "active" ? "Online" : "Offline"}
+                         <span className={`text-[14px] font-semibold font-gantari ${emp.active === "active" ? "text-[#008F22]" : "text-[#E00100]"}`}>
+                          {emp.active === "active" ? "Active" : "Deactivate"}
+                        </span>
                       </div>
                     </div>
-                    <div className="absolute inset-x-0 bottom-0 p-4 flex items-center gap-4 bg-gradient-to-t from-black/60 to-transparent">
-                      <div className="w-16 h-16 rounded-full border-2 border-white overflow-hidden bg-slate-100 shrink-0">
+                    
+                    <div className="absolute inset-x-0 bottom-0 px-3 py-3 sm:px-3 sm:py-4 flex items-center gap-4 z-10">
+                      <div className="w-14 h-14 sm:w-15 sm:h-15 rounded-full border-2 border-white overflow-hidden bg-white shrink-0 shadow-sm">
                         {emp.profile_picture ? (
                           <img
                             src={getGlobalProfileUrl(
@@ -686,82 +710,55 @@ export default function ResourcesV() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[#353535] font-bold">
-                            ?
+                          <div className="w-full h-full flex items-center justify-center bg-gray-200 text-[#8B8B8B] font-bold text-xs font-gantari">
+                            No Photo
                           </div>
                         )}
                       </div>
                       <div className="min-w-0">
-                        <h4 className="text-white font-medium text-[18px] font-gantari">
+                        <h3 className="text-[18px] sm:text-[20px] font-Gantari font-medium text-[#F2F2F2] leading-tight tracking-tight truncate">
                           {toCamelCase(emp.full_name)}
-                        </h4>
-                        <p className="text-white/80 text-[14px] font-gantari">
+                        </h3>
+                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 font-gantari">
                           {emp.user_role || "Not assigned"}
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="p-4 space-y-4">
-                    <div className="flex gap-2">
+                  
+                  <div className="px-2.5 py-4 sm:px-3 sm:py-5 space-y-4 sm:space-y-5">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => window.open(`mailto:${emp.email}`)}
-                        className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                       >
-                        <img src={mailIcon} className="w-3.5 h-3.5" />
+                        <img src={mailIcon} className="w-4 h-4" />
                         Mail
                       </button>
                       <button
                         onClick={() => navigate("/v/communication")}
-                        className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                       >
-                        <img src={messageIcon} className="w-3.5 h-3.5" />
+                        <img src={messageIcon} className="w-4 h-4" />
                         Message
                       </button>
                       <button
                         onClick={() => window.open(`tel:${emp.phone_number}`)}
-                        className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                       >
-                        <img src={callIcon} className="w-3.5 h-3.5" />
+                        <img src={callIcon} className="w-4 h-4" />
                         Call
                       </button>
                     </div>
+
+                    <hr className="border-slate-200" />
+
                     <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedEmployee(emp);
-                          setShowDetailsModal(true);
-                          // Pre-fill the edit form for the modal
-                          setEditForm({
-                            full_name: emp.full_name,
-                            email: emp.email,
-                            phone_number: emp.phone_number || "",
-                            user_role: emp.user_role || "",
-                            department: emp.department || "",
-                            address: emp.address || "",
-                            dob: emp.dob || "",
-                            password: "",
-                            user_type: emp.user_type || "",
-                            doj: emp.doj || "",
-                            salary: emp.salary || "",
-                            accountnumber: emp.accountnumber || "",
-                            roles: emp.Allpannel
-                              ? emp.Allpannel.split(",").map((r) => r.trim())
-                              : [],
-                            active:
-                              emp.active === "active" ? "Active" : "Deactivate",
-                            profile_picture: null,
-                          });
-                        }}
-                        className="py-2 bg-[#DD4342] text-white text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        <img src={eyeIcon} className="w-4 h-4" />
-                        View
-                      </button>
-                      {canAdd && (
+                       <div className="relative group">
                         <button
                           onClick={() => {
-                            setEditId(emp.id);
-                            setActiveView("edit");
+                            setSelectedEmployee(emp);
+                            setShowDetailsModal(true);
                             setEditForm({
                               full_name: emp.full_name,
                               email: emp.email,
@@ -779,17 +776,54 @@ export default function ResourcesV() {
                                 ? emp.Allpannel.split(",").map((r) => r.trim())
                                 : [],
                               active:
-                                emp.active === "active"
-                                  ? "Active"
-                                  : "Deactivate",
+                                emp.active === "active" ? "Active" : "Deactivate",
                               profile_picture: null,
                             });
                           }}
-                          className="py-2 bg-[#F2F2F2] text-[#353535] text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="w-full flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-md text-[12px] sm:text-[14px] font-medium font-gantari cursor-pointer"
                         >
-                          <img src={editIcon} className="w-4 h-4" />
-                          Edit Details
+                          <img src={eyeIcon} className="w-4 h-4 brightness-0 invert" />
+                          View
                         </button>
+                        
+                      </div>
+
+                      {canAdd && (
+                         <div className="relative group">
+                          <button
+                            onClick={() => {
+                              setEditId(emp.id);
+                              setActiveView("edit");
+                              setEditForm({
+                                full_name: emp.full_name,
+                                email: emp.email,
+                                phone_number: emp.phone_number || "",
+                                user_role: emp.user_role || "",
+                                department: emp.department || "",
+                                address: emp.address || "",
+                                dob: emp.dob || "",
+                                password: "",
+                                user_type: emp.user_type || "",
+                                doj: emp.doj || "",
+                                salary: emp.salary || "",
+                                accountnumber: emp.accountnumber || "",
+                                roles: emp.Allpannel
+                                  ? emp.Allpannel.split(",").map((r) => r.trim())
+                                  : [],
+                                active:
+                                  emp.active === "active"
+                                    ? "Active"
+                                    : "Deactivate",
+                                profile_picture: null,
+                              });
+                            }}
+                            className="w-full flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-md text-[12px] sm:text-[14px] font-medium font-gantari cursor-pointer"
+                          >
+                            <img src={editIcon} className="w-4 h-4" />
+                            Edit
+                          </button>
+                         
+                        </div>
                       )}
                     </div>
                   </div>
@@ -803,19 +837,19 @@ export default function ResourcesV() {
               <table className="min-w-full border-collapse">
                 <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                   <tr className="border-b border-gray-100 bg-white">
-                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
                       Sl.No
                     </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
                       Name
                     </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
                       Email
                     </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
                       Contact
                     </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
                       Status
                     </th>
                   </tr>
@@ -826,10 +860,10 @@ export default function ResourcesV() {
                       key={emp.id}
                       className={idx % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}
                     >
-                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle">
+                      <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle">
                         {(idx + 1).toString().padStart(2, "0")}
                       </td>
-                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle lg:min-w-[200px]">
+                      <td className="px-3 py-5 text-center whitespace-nowrap align-middle lg:min-w-[200px]">
                         <div className="flex items-center justify-center gap-3">
                           <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
                             {emp.profile_picture ? (
@@ -851,31 +885,55 @@ export default function ResourcesV() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle">
+                      <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle">
                         {emp.email}
                       </td>
-                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                      <td className="px-3 py-5 text-center whitespace-nowrap align-middle">
                         <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => window.open(`mailto:${emp.email}`)}
-                            className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
-                          >
-                            <img src={mailIcon} className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => navigate("/v/communication")}
-                            className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
-                          >
-                            <img src={messageIcon} className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() =>
-                              window.open(`tel:${emp.phone_number}`)
-                            }
-                            className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
-                          >
-                            <img src={callIcon} className="w-4 h-4" />
-                          </button>
+                          <div className="relative group">
+                            <button
+                              onClick={() => window.open(`mailto:${emp.email}`)}
+                              className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
+                            >
+                              <img src={mailIcon} className="w-4 h-4" />
+                            </button>
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Mail</span>
+                              </div>
+                              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                            </div>
+                          </div>
+                          <div className="relative group">
+                            <button
+                              onClick={() => navigate("/v/communication")}
+                              className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
+                            >
+                              <img src={messageIcon} className="w-4 h-4" />
+                            </button>
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Message</span>
+                              </div>
+                              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                            </div>
+                          </div>
+                          <div className="relative group">
+                            <button
+                              onClick={() =>
+                                window.open(`tel:${emp.phone_number}`)
+                              }
+                              className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
+                            >
+                              <img src={callIcon} className="w-4 h-4" />
+                            </button>
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Call</span>
+                              </div>
+                              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                            </div>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -919,8 +977,8 @@ export default function ResourcesV() {
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
-                    <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Close</span>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Close</span>
                   </div>
                 </div>
               </div>
@@ -1084,22 +1142,22 @@ export default function ResourcesV() {
                     setInviteShowSuccess(false);
                     setActiveView("list");
                   }}
-                  className="p-2 rounded-md bg-[#F2F2F2] text-[#353535] cursor-pointer border-0 shadow-none"
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#616161] transition-all cursor-pointer"
                 >
-                  <img src={backIcon} alt="close" />
+                  <img src={backIcon} alt="Back" className="w-5 h-5" />
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
-                    <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Go Back</span>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-2 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Go Back</span>
                   </div>
                 </div>
               </div>
-              <h3 className="sm:text-[24px] font-gantari font-medium text-[#000000]">
+              <h3 className="sm:text-[24px] font-gantari font-semibold text-[#020202] text-center flex-1">
                 {activeView === "add"
                   ? "Add New Worker"
                   : activeView === "edit"
-                    ? "Edit Details"
+                    ? "Edit Resource Details"
                     : activeView === "invite"
                       ? "Invite Team"
                       : "Manage Workers"}
