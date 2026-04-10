@@ -817,7 +817,7 @@ export default function CreateteamPMV() {
                                 </div>
 
                                 <div>
-                                    <label className="text-[16px] font-gantari block mb-1 font-medium">Project</label>
+                                    <label className="text-[16px] font-gantari block mb-1 font-medium">Project Name</label>
                                     <div className="text-[14px] font-gantari bg-[#F2F3F4] border-2 border-[#AEACAC52] py-3 px-2 rounded-lg">{selectedTeam.project_name || 'N/A'}</div>
                                 </div>
 

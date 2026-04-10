@@ -309,6 +309,13 @@ export default function ResourcesV() {
   // Vendor company admin should always be able to assign logins to resources
   const canAdd = user?.user_type === "vendor" || user?.panel_type === 1;
 
+  const getWhatsAppLink = (rawPhone?: string) => {
+    const digits = String(rawPhone || "").replace(/\D/g, "");
+    if (!digits) return "";
+    const normalized = digits.replace(/^00/, "").replace(/^0+/, "");
+    return normalized ? `https://wa.me/${normalized}` : "";
+  };
+
   useEffect(() => {
     // Vendor roles are fixed for assignment
     setRoleOptions(VENDOR_ROLE_OPTIONS);
@@ -338,6 +345,7 @@ export default function ResourcesV() {
           software?: string;
           certifications?: string;
           projects_worked_on?: string;
+          address?: string;
           active?: string;
         }>;
       }>("/api/vendors/profile/resource-profiles")
@@ -369,7 +377,7 @@ export default function ResourcesV() {
                 profile_picture: undefined,
                 Allpannel: "Vendor",
                 phone_number: resolvedPhone,
-                address: "",
+                address: (r.address || "").trim(),
                 doj: "",
                 dob: "",
                 designation: r.designation,
@@ -614,7 +622,7 @@ export default function ResourcesV() {
       <div className="sticky z-50 bg-white mb-4 mt-2 overflow-visible">
         <div className="flex flex-col sm:flex-row w-full min-h-[44px] items-start sm:items-center gap-3 sm:gap-3 overflow-visible">
           <h2 className="text-[20px] sm:text-[24px] font-medium text-[#000000] font-Gantari shrink-0 pr-1">
-            Resources
+            {isVpmRoute ? "Vendor Project Manager Resources" : "Resources"}
           </h2>
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:flex-1 sm:justify-end overflow-visible">
             <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 py-1 overflow-visible">
@@ -780,8 +788,12 @@ export default function ResourcesV() {
                         Mail
                       </button>
                       <button
-                        onClick={() => navigate("/v/communication")}
-                        className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
+                        onClick={() => {
+                          const waLink = getWhatsAppLink(emp.phone_number);
+                          if (waLink)
+                            window.open(waLink, "_blank", "noopener,noreferrer");
+                        }}
+                        className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <img src={messageIcon} className="w-4 h-4" />
                         Message
@@ -941,7 +953,15 @@ export default function ResourcesV() {
                             <img src={mailIcon} className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => navigate("/v/communication")}
+                            onClick={() => {
+                              const waLink = getWhatsAppLink(emp.phone_number);
+                              if (waLink)
+                                window.open(
+                                  waLink,
+                                  "_blank",
+                                  "noopener,noreferrer",
+                                );
+                            }}
                             className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
                           >
                             <img src={messageIcon} className="w-4 h-4" />
@@ -1049,6 +1069,7 @@ export default function ResourcesV() {
                     label: "Projects Worked On",
                     value: selectedEmployee.projects_worked_on,
                   },
+                  { label: "Address", value: selectedEmployee.address },
                 ].map(({ label, value }) =>
                   value ? (
                     <div
@@ -1068,19 +1089,6 @@ export default function ResourcesV() {
                   ) : null,
                 )}
                 {renderProfileCertificationsCard()}
-                {selectedEmployee.address ? (
-                  <div className="grid grid-cols-1 sm:flex sm:items-center py-2 gap-1 sm:gap-6">
-                    <span className="text-[#353535] font-gantari text-[14px] font-medium sm:w-52 shrink-0">
-                      Address
-                    </span>
-                    <span className="hidden sm:inline text-[#353535] font-gantari text-[14px] font-medium shrink-0">
-                      :
-                    </span>
-                    <span className="text-[#000000] font-gantari text-[14px] font-semibold break-words">
-                      {selectedEmployee.address}
-                    </span>
-                  </div>
-                ) : null}
               </div>
 
               {canAdd && (
