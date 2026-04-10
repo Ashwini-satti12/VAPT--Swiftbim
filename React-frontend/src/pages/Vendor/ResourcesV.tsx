@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { FiGrid, FiMenu, FiX } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
@@ -201,6 +201,7 @@ const ROLE_OPTIONS_FALLBACK = VENDOR_ROLE_OPTIONS;
 
 export default function ResourcesV() {
   const navigate = useNavigate();
+  const location = useLocation();
   useEffect(() => {
     const styleTag = document.createElement("style");
     styleTag.textContent = SCROLLBAR_STYLE;
@@ -276,6 +277,33 @@ export default function ResourcesV() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
+  const isVpmRoute = location.pathname.startsWith("/vpm/");
+
+  const openEmailClient = (email?: string) => {
+    const mail = (email || "").trim();
+    if (!mail) {
+      alert(
+        "Email is not assigned for this resource. Please open Edit Details and assign Login Email first.",
+      );
+      return;
+    }
+    const gmailComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(mail)}`;
+    const popup = window.open(gmailComposeUrl, "_blank", "noopener,noreferrer");
+    // If popup is blocked or Gmail cannot open, fall back to default mail app.
+    if (!popup) {
+      window.location.href = `mailto:${mail}`;
+    }
+  };
+
+  const openDialer = (phone?: string) => {
+    const raw = (phone || "").trim();
+    const sanitized = raw.replace(/[^\d+]/g, "");
+    if (!sanitized) {
+      alert("Phone number is not available for this resource.");
+      return;
+    }
+    window.location.href = `tel:${sanitized}`;
+  };
 
   // Vendor company admin should always be able to assign logins to resources
   const canAdd = user?.user_type === "vendor" || user?.panel_type === 1;
@@ -294,6 +322,12 @@ export default function ResourcesV() {
           id: number;
           name?: string;
           email?: string;
+          login_email?: string;
+          contact_email?: string;
+          phone_number?: string;
+          mobile?: string;
+          contact_number?: string;
+          phone?: string;
           login_role?: string;
           designation?: string;
           discipline?: string;
@@ -310,11 +344,20 @@ export default function ResourcesV() {
         const rows = data.resources ?? [];
         setList(
           rows.map(
-            (r) =>
-              ({
+            (r) => {
+              const resolvedEmail =
+                (r.email || "").trim() ||
+                (r.login_email || "").trim() ||
+                (r.contact_email || "").trim();
+              const resolvedPhone =
+                (r.phone_number || "").trim() ||
+                (r.mobile || "").trim() ||
+                (r.contact_number || "").trim() ||
+                (r.phone || "").trim();
+              return {
                 id: r.id,
                 full_name: r.name || "—",
-                email: r.email || "",
+                email: resolvedEmail,
                 user_role: r.login_role || "",
                 active:
                   String(r.active ?? "active").toLowerCase() === "inactive"
@@ -324,7 +367,7 @@ export default function ResourcesV() {
                 user_type: "vendor",
                 profile_picture: undefined,
                 Allpannel: "Vendor",
-                phone_number: "",
+                phone_number: resolvedPhone,
                 address: "",
                 doj: "",
                 dob: "",
@@ -336,7 +379,8 @@ export default function ResourcesV() {
                 software: r.software,
                 certifications: r.certifications,
                 projects_worked_on: r.projects_worked_on,
-              }) as Employee,
+              } as Employee;
+            },
           ),
         );
       })
@@ -704,7 +748,7 @@ export default function ResourcesV() {
                   <div className="p-4 space-y-4">
                     <div className="flex gap-2">
                       <button
-                        onClick={() => window.open(`mailto:${emp.email}`)}
+                        onClick={() => openEmailClient(emp.email)}
                         className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <img src={mailIcon} className="w-3.5 h-3.5" />
@@ -718,7 +762,7 @@ export default function ResourcesV() {
                         Message
                       </button>
                       <button
-                        onClick={() => window.open(`tel:${emp.phone_number}`)}
+                        onClick={() => openDialer(emp.phone_number)}
                         className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <img src={callIcon} className="w-3.5 h-3.5" />
@@ -857,7 +901,7 @@ export default function ResourcesV() {
                       <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
                         <div className="flex items-center justify-center gap-2">
                           <button
-                            onClick={() => window.open(`mailto:${emp.email}`)}
+                            onClick={() => openEmailClient(emp.email)}
                             className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
                           >
                             <img src={mailIcon} className="w-4 h-4" />
@@ -869,9 +913,7 @@ export default function ResourcesV() {
                             <img src={messageIcon} className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() =>
-                              window.open(`tel:${emp.phone_number}`)
-                            }
+                            onClick={() => openDialer(emp.phone_number)}
                             className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
                           >
                             <img src={callIcon} className="w-4 h-4" />
@@ -1175,29 +1217,43 @@ export default function ResourcesV() {
                     <div>
                       <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
                         Password{" "}
-                        {activeView === "edit" &&
-                          "(Leave blank to keep current)"}
+                        {activeView === "edit" && !isVpmRoute
+                          ? "(Leave blank to keep current)"
+                          : ""}
+                        {activeView === "edit" && isVpmRoute ? (
+                          <span className="text-red-500"> *</span>
+                        ) : null}
                       </label>
                       <input
                         type="password"
                         placeholder="••••••••"
                         placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
                         value={
-                          activeView === "add"
+                          activeView === "edit" && isVpmRoute
+                            ? "********"
+                            : activeView === "add"
                             ? form.password
                             : editForm.password
                         }
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          if (activeView === "edit" && isVpmRoute) return;
                           activeView === "add"
                             ? setForm({ ...form, password: e.target.value })
                             : setEditForm({
                                 ...editForm,
                                 password: e.target.value,
-                              })
-                        }
+                              });
+                        }}
                         className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
                         required={activeView === "add"}
+                        disabled={activeView === "edit" && isVpmRoute}
                       />
+                      {activeView === "edit" && isVpmRoute ? (
+                        <p className="mt-2 text-[13px] text-[#6B7280] font-gantari">
+                          Password is encrypted and cannot be viewed or edited
+                          here
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                   <div className="space-y-6 ">
