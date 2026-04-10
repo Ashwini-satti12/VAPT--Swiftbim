@@ -20,6 +20,8 @@ interface Project {
   total_tasks?: number;
   completed_tasks?: number;
   budget?: string;
+  currency?: string;
+  selected_currency?: string;
   modules?: string;
   client_id?: string;
   project_manager_id?: string;
@@ -97,6 +99,16 @@ function hasProjectDescriptionContent(raw?: string): boolean {
 }
 
 export default function VendorBimLeadProjects() {
+  const getCurrencySymbol = (code?: string) => {
+    const c = (code || "").toUpperCase();
+    if (c === "USD") return "$";
+    if (c === "EUR") return "EUR";
+    if (c === "GBP") return "GBP";
+    if (c === "AED") return "AED";
+    return "₹";
+  };
+  const projectCurrencyCode = (p?: Project | null) =>
+    ((p?.selected_currency || p?.currency || "INR") as string).toUpperCase();
   const navigate = useNavigate();
   const [list, setList] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1434,7 +1446,9 @@ export default function VendorBimLeadProjects() {
                           :
                         </span>
                         <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                          {selectedProject.budget_ceiling || "N/A"}
+                          {selectedProject.budget_ceiling
+                            ? `${getCurrencySymbol(projectCurrencyCode(selectedProject))} ${selectedProject.budget_ceiling}`
+                            : "N/A"}
                         </span>
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center">
