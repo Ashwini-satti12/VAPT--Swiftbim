@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
+import toast from "react-hot-toast";
 import { FiGrid, FiMenu, FiX } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
