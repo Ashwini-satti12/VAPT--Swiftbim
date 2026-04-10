@@ -177,14 +177,14 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-    { value: "1-50", label: "1-50", start: 0, end: 50 },
-    { value: "51-100", label: "51-100", start: 50, end: 100 },
-    { value: "101-150", label: "101-150", start: 100, end: 150 },
-    { value: "151-200", label: "151-200", start: 150, end: 200 },
-    { value: "201-250", label: "201-250", start: 200, end: 250 },
-    { value: "251-300", label: "251-300", start: 250, end: 300 },
-    { value: "all", label: "All", start: 0, end: null },
-  ];
+  { value: "1-50", label: "1-50", start: 0, end: 50 },
+  { value: "51-100", label: "51-100", start: 50, end: 100 },
+  { value: "101-150", label: "101-150", start: 100, end: 150 },
+  { value: "151-200", label: "151-200", start: 150, end: 200 },
+  { value: "201-250", label: "201-250", start: 200, end: 250 },
+  { value: "251-300", label: "251-300", start: 250, end: 300 },
+  { value: "all", label: "All", start: 0, end: null },
+];
 
 const PER_PAGE = 10;
 const PAGINATION_VISIBLE = 4;
@@ -204,20 +204,20 @@ function toInputDate(d: string | undefined): string {
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
 
   // DD/MM/YYYY -> YYYY-MM-DD
-  const slashParts = s.split('/');
+  const slashParts = s.split("/");
   if (slashParts.length === 3) {
     const [dd, mm, yy] = slashParts;
     if (dd && mm && yy) return `${yy}-${mm}-${dd}`;
   }
 
   // DD-MM-YYYY -> YYYY-MM-DD
-  const dashParts = s.split('-');
+  const dashParts = s.split("-");
   if (dashParts.length === 3) {
     const [dd, mm, yy] = dashParts;
     if (dd && mm && yy) return `${yy}-${mm}-${dd}`;
   }
 
-  return '';
+  return "";
 }
 /** Convert YYYY-MM-DD to DD/MM/YYYY for storage. */
 // function toStoredDate(d: string): string {
@@ -232,7 +232,7 @@ function formatApiDate(value: string | undefined | null): string {
   const s = String(value);
   // Avoid timezone shift for plain YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    const [yy, mm, dd] = s.split('-');
+    const [yy, mm, dd] = s.split("-");
     return `${dd}/${mm}/${yy}`;
   }
   // Already DD/MM/YYYY
@@ -252,8 +252,8 @@ function formatApiDate(value: string | undefined | null): string {
 function getTodayInputDate(): string {
   const d = new Date();
   const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
 
@@ -370,15 +370,17 @@ export default function ManageLeave() {
   // Load leave types (holiday table) so we can store the correct leave_type id in tblleaves.
   useEffect(() => {
     api
-      .get<{ leave_types?: Array<{ id?: number; title?: string }>; others_value?: string }>("/api/leave/types")
+      .get<{
+        leave_types?: Array<{ id?: number; title?: string }>;
+        others_value?: string;
+      }>("/api/leave/types")
       .then(({ data }) => {
-        const types =
-          (data.leave_types || [])
-            .map((t) => ({
-              id: typeof t.id === "number" ? t.id : Number(t.id),
-              title: String(t.title || ""),
-            }))
-            .filter((t) => Number.isFinite(t.id) && t.title);
+        const types = (data.leave_types || [])
+          .map((t) => ({
+            id: typeof t.id === "number" ? t.id : Number(t.id),
+            title: String(t.title || ""),
+          }))
+          .filter((t) => Number.isFinite(t.id) && t.title);
         setLeaveTypeOptions(types);
       })
       .catch(() => {
@@ -548,8 +550,10 @@ export default function ManageLeave() {
     if (!leaveFrom) err.leaveFrom = "Leave from date is required";
     if (!leaveTo) err.leaveTo = "Leave to date is required";
     if (!trimmedReason) err.reason = "Reason is required";
-    if (leaveFrom && leaveFrom < today) err.leaveFrom = "Leave from date cannot be in the past";
-    if (leaveTo && leaveTo < today) err.leaveTo = "Leave to date cannot be in the past";
+    if (leaveFrom && leaveFrom < today)
+      err.leaveFrom = "Leave from date cannot be in the past";
+    if (leaveTo && leaveTo < today)
+      err.leaveTo = "Leave to date cannot be in the past";
     if (leaveFrom && leaveTo && leaveFrom > leaveTo)
       err.leaveTo = "Leave to must be on or after leave from";
     setApplyFormErrors(err);
@@ -644,7 +648,7 @@ export default function ManageLeave() {
       console.error("Apply leave failed", err);
       toast.error(
         err?.response?.data?.message ||
-        "Failed to apply leave. Please try again.",
+          "Failed to apply leave. Please try again.",
       );
     }
   };
@@ -667,8 +671,10 @@ export default function ManageLeave() {
       row.role ? `${row.employeeName} - ${row.role}` : row.employeeName,
     );
     setLeaveType(row.leaveType);
-    const matchingType = leaveTypeOptions.find((t) => t.title === row.leaveType);
-    setLeaveTypeId(matchingType ? matchingType.id : row.leaveTypeId ?? null);
+    const matchingType = leaveTypeOptions.find(
+      (t) => t.title === row.leaveType,
+    );
+    setLeaveTypeId(matchingType ? matchingType.id : (row.leaveTypeId ?? null));
     setLeaveFrom(toInputDate(row.fromDate));
     setLeaveTo(toInputDate(row.toDate));
     setReason(row.description ?? "");
@@ -768,7 +774,7 @@ export default function ManageLeave() {
       console.error("Update leave failed", err);
       toast.error(
         err?.response?.data?.message ||
-        "Failed to update leave. Please try again.",
+          "Failed to update leave. Please try again.",
       );
     }
   };
@@ -810,10 +816,14 @@ export default function ManageLeave() {
         toDate: formatApiDate(app.to_date),
         description: app.description || "",
         currentStatus:
-          app.status === 1 ? "Approved" : app.status === 2 ? "Rejected" : "Pending",
+          app.status === 1
+            ? "Approved"
+            : app.status === 2
+              ? "Rejected"
+              : "Pending",
       }));
       setLeaves(mapped);
-      toast.error("Deleted successfully");
+      toast.success("Deleted successfully");
       setDeleteLeave(null);
     } catch (err) {
       console.error("Failed to delete leave", err);
@@ -847,7 +857,7 @@ export default function ManageLeave() {
     if (rejectLeave === null) return;
     try {
       await api.post(`/api/leave/applications/${rejectLeave.id}/reject`);
-      toast.error("Rejected successfully");
+      toast.success("Rejected successfully");
       updateLeaveStatus(rejectLeave.id, "Rejected");
       setRejectLeave(null);
     } catch (err) {
@@ -888,22 +898,23 @@ export default function ManageLeave() {
               <h1 className="text-[20px] sm:text-[24px] font-gantari font-semibold text-[#000000]">
                 Manage Leave
               </h1>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const displayName = user
-                      ? `${user.full_name}${user.user_role ? ` - ${user.user_role}` : ""}`
-                      : "";
-                    setEmployeeName(displayName);
-                    setApplyModalOpen(true);
-                  }}
-                  className="px-4 py-1.5 bg-[#DD4342] text-white rounded-md text-[13px] font-gantari font-medium transition-all cursor-pointer whitespace-nowrap shadow-sm active:scale-[0.98] mt-2 sm:hidden"
-                >
-                  Apply Leave
-                </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const displayName = user
+                    ? `${user.full_name}${user.user_role ? ` - ${user.user_role}` : ""}`
+                    : "";
+                  setEmployeeName(displayName);
+                  setApplyModalOpen(true);
+                }}
+                className="px-4 py-1.5 bg-[#DD4342] text-white rounded-md text-[13px] font-gantari font-medium transition-all cursor-pointer whitespace-nowrap shadow-sm active:scale-[0.98] mt-2 sm:hidden"
+              >
+                Apply Leave
+              </button>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between sm:gap-3 w-full">
-              <div className="hidden sm:block h-px w-px" /> {/* Spacer for desktop justify-between if needed */}
+              <div className="hidden sm:block h-px w-px" />{" "}
+              {/* Spacer for desktop justify-between if needed */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                 <button
                   type="button"
@@ -914,7 +925,7 @@ export default function ManageLeave() {
                     setEmployeeName(displayName);
                     setApplyModalOpen(true);
                   }}
-                  className="hidden sm:block px-6 py-2 bg-[#DD4346] text-white rounded-md text-[14px] font-gantari font-medium hover:bg-[#c43a39] transition-all cursor-pointer whitespace-nowrap w-full sm:w-auto shadow-sm active:scale-[0.98]"
+                  className="hidden sm:block px-6 py-2 bg-[#DD4346] text-white rounded-md text-[14px] font-gantari font-medium transition-all cursor-pointer whitespace-nowrap w-full sm:w-auto shadow-sm active:scale-[0.98]"
                 >
                   Apply Leave
                 </button>
@@ -932,10 +943,11 @@ export default function ManageLeave() {
                       className="w-full flex items-center justify-between gap-2 px-3 py-1.5 sm:py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                     >
                       <span
-                        className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedEmployee === ""
-                          ? "text-[#8B8B8B]"
-                          : "text-[#353535]"
-                          }`}
+                        className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                          selectedEmployee === ""
+                            ? "text-[#8B8B8B]"
+                            : "text-[#353535]"
+                        }`}
                       >
                         {selectedEmployee === "" ? (
                           EMPLOYEE_FILTER_PLACEHOLDER
@@ -955,11 +967,13 @@ export default function ManageLeave() {
                       <img
                         src={ArrowDown}
                         alt=""
-                        className={`w-4 h-4 shrink-0 transition-transform duration-200 ${employeeDropdownOpen ? "rotate-180" : ""
-                          } ${selectedEmployee === ""
+                        className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                          employeeDropdownOpen ? "rotate-180" : ""
+                        } ${
+                          selectedEmployee === ""
                             ? "opacity-60 grayscale"
                             : "opacity-90"
-                          }`}
+                        }`}
                         aria-hidden
                       />
                     </button>
@@ -991,10 +1005,11 @@ export default function ManageLeave() {
                                 setSelectedEmployee(name);
                                 setEmployeeDropdownOpen(false);
                               }}
-                              className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer truncate hover:text-[#353535] hover:bg-[#F2F2F2] ${selectedEmployee === name
-                                ? "text-[#353535] bg-[#F2F2F2]"
-                                : "text-[#8B8B8B] bg-transparent"
-                                }`}
+                              className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer truncate hover:text-[#353535] hover:bg-[#F2F2F2] ${
+                                selectedEmployee === name
+                                  ? "text-[#353535] bg-[#F2F2F2]"
+                                  : "text-[#8B8B8B] bg-transparent"
+                              }`}
                             >
                               {name}
                             </button>
@@ -1016,10 +1031,11 @@ export default function ManageLeave() {
                       className="w-full flex items-center justify-between gap-2 px-3 py-1.5 sm:py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                     >
                       <span
-                        className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
-                          ? "text-[#8B8B8B]"
-                          : "text-[#353535]"
-                          }`}
+                        className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                          selectedShowEntries === ""
+                            ? "text-[#8B8B8B]"
+                            : "text-[#353535]"
+                        }`}
                       >
                         {selectedShowEntries === "" ? (
                           SHOW_ENTRIES_PLACEHOLDER
@@ -1037,11 +1053,13 @@ export default function ManageLeave() {
                       <img
                         src={ArrowDown}
                         alt=""
-                        className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
-                          } ${selectedShowEntries === ""
+                        className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                          showEntriesOpen ? "rotate-180" : ""
+                        } ${
+                          selectedShowEntries === ""
                             ? "opacity-60 grayscale"
                             : "opacity-90"
-                          }`}
+                        }`}
                         aria-hidden
                       />
                     </button>
@@ -1075,12 +1093,15 @@ export default function ManageLeave() {
                                   setSelectedShowEntries(opt.value);
                                   setShowEntriesOpen(false);
                                 }}
-                                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
-                                  ? "text-[#353535] bg-[#F2F2F2]"
-                                  : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
-                                  }`}
+                                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${
+                                  isChosen
+                                    ? "text-[#353535] bg-[#F2F2F2]"
+                                    : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                }`}
                               >
-                                <span className="truncate min-w-0">{opt.label}</span>
+                                <span className="truncate min-w-0">
+                                  {opt.label}
+                                </span>
                                 {isChosen && (
                                   <svg
                                     className="w-4 h-4 shrink-0 text-[#353535]"
@@ -1188,19 +1209,20 @@ export default function ManageLeave() {
                           </td>
                           <td className="px-3 py-6 text-center text-[14px] whitespace-nowrap align-middle">
                             <div className="flex items-center justify-center gap-2 flex-nowrap">
-                              <button
-                                type="button"
-                                onClick={() => handleView(row)}
-                                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DD4242] text-white rounded-md font-medium text-[12px] cursor-pointer"
-                                title="View"
-                              >
-                                <img
-                                  src={viewIcon}
-                                  alt=""
-                                  className="w-3.5 h-3.5 shrink-0 [filter:brightness(0)_invert(1)]"
-                                />
-                                View
-                              </button>
+                              <div className="relative group">
+                                <button
+                                  type="button"
+                                  onClick={() => handleView(row)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DD4242] text-white rounded-md font-medium text-[12px] cursor-pointer"
+                                >
+                                  <img
+                                    src={viewIcon}
+                                    alt=""
+                                    className="w-3.5 h-3.5 shrink-0 [filter:brightness(0)_invert(1)]"
+                                  />
+                                  View
+                                </button>
+                              </div>
 
                               {row.currentStatus === "Pending" &&
                                 canActOnLeave(row) && (
@@ -1209,9 +1231,7 @@ export default function ManageLeave() {
                                       <button
                                         type="button"
                                         aria-label="Approve"
-                                        onClick={() =>
-                                          setApproveLeave(row)
-                                        }
+                                        onClick={() => setApproveLeave(row)}
                                         className="inline-flex items-center justify-center p-1.5 sm:p-2 bg-[#008F22] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
                                       >
                                         <svg
@@ -1226,38 +1246,38 @@ export default function ManageLeave() {
                                           <path d="M5 13l4 4L19 7" />
                                         </svg>
                                       </button>
-                                      {isLastRow ? (
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                          <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
-                                            <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
-                                              Approve
-                                            </span>
-                                          </div>
-                                          <div className="relative z-10 -mt-[1px]">
-                                            <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"></div>
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                          <div className="relative z-10">
-                                            <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                                          </div>
-                                          <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                            <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
-                                              Approve
-                                            </span>
-                                          </div>
-                                        </div>
-                                      )}
+                                      <div
+                                        className={`absolute ${
+                                          isLastRow ? "bottom-full mb-2" : "top-full mt-1"
+                                        } left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center`}
+                                      >
+                                        {isLastRow ? (
+                                          <>
+                                            <div className="bg-white border border-[#C1C1C1] rounded-md px-4 py-1 relative z-10">
+                                              <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block">
+                                                Approve
+                                              </span>
+                                            </div>
+                                            <div className="w-2.5 h-2.5 bg-white border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <div className="w-2.5 h-2.5 bg-white border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                            <div className="bg-white border border-[#C1C1C1] rounded-md px-4 py-1 relative z-10">
+                                              <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block">
+                                                Approve
+                                              </span>
+                                            </div>
+                                          </>
+                                        )}
+                                      </div>
                                     </div>
 
                                     <div className="relative group inline-flex shrink-0">
                                       <button
                                         type="button"
                                         aria-label="Reject"
-                                        onClick={() =>
-                                          setRejectLeave(row)
-                                        }
+                                        onClick={() => setRejectLeave(row)}
                                         className="inline-flex items-center justify-center p-1.5 sm:p-2 bg-[#C62828] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
                                       >
                                         <svg
@@ -1272,67 +1292,71 @@ export default function ManageLeave() {
                                           <path d="M18 6L6 18M6 6l12 12" />
                                         </svg>
                                       </button>
-                                      {isLastRow ? (
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                          <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
-                                            <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
-                                              Reject
-                                            </span>
-                                          </div>
-                                          <div className="relative z-10 -mt-[1px]">
-                                            <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"></div>
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                          <div className="relative z-10">
-                                            <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                                          </div>
-                                          <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                            <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
-                                              Reject
-                                            </span>
-                                          </div>
-                                        </div>
-                                      )}
+                                      <div
+                                        className={`absolute ${
+                                          isLastRow ? "bottom-full mb-2" : "top-full mt-1"
+                                        } left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center`}
+                                      >
+                                        {isLastRow ? (
+                                          <>
+                                            <div className="bg-white border border-[#C1C1C1] rounded-md px-4 py-1 relative z-10">
+                                              <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block">
+                                                Reject
+                                              </span>
+                                            </div>
+                                            <div className="w-2.5 h-2.5 bg-white border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <div className="w-2.5 h-2.5 bg-white border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                            <div className="bg-white border border-[#C1C1C1] rounded-md px-4 py-1 relative z-10">
+                                              <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block">
+                                                Reject
+                                              </span>
+                                            </div>
+                                          </>
+                                        )}
+                                      </div>
                                     </div>
                                   </>
                                 )}
 
                               {canEditLeave(row) && (
                                 <>
-                                  <div className="relative group">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleEdit(row)}
-                                      className={`inline-flex items-center justify-center p-1.5 sm:p-2 rounded-md cursor-pointer ${index % 2 === 0
-                                        ? "bg-[#F2F2F2]"
-                                        : "bg-[#FFFFFF]"
+                                    <div className="relative group">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleEdit(row)}
+                                        className={`inline-flex items-center justify-center p-1.5 sm:p-2 rounded-md cursor-pointer ${
+                                          index % 2 === 0
+                                            ? "bg-[#F2F2F2]"
+                                            : "bg-[#FFFFFF]"
                                         }`}
-                                    >
-                                      <img
-                                        src={editIcon}
-                                        alt=""
-                                        className="w-4 h-4"
-                                      />
-                                    </button>
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
-                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                          Edit
-                                        </span>
+                                      >
+                                        <img
+                                          src={editIcon}
+                                          alt=""
+                                          className="w-4 h-4"
+                                        />
+                                      </button>
+                                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-5 py-1 relative z-10">
+                                          <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                            Edit
+                                          </span>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
                                   <div className="relative group">
                                     <button
                                       type="button"
                                       onClick={() => openDeleteLeave(row)}
-                                      className={`inline-flex items-center justify-center p-1.5 sm:p-2 rounded-md text-[#353535] transition-colors shrink-0 cursor-pointer ${index % 2 === 0
-                                        ? "bg-[#F2F2F2]"
-                                        : "bg-[#FFFFFF]"
-                                        }`}
+                                      className={`inline-flex items-center justify-center p-1.5 sm:p-2 rounded-md text-[#353535] transition-colors shrink-0 cursor-pointer ${
+                                        index % 2 === 0
+                                          ? "bg-[#F2F2F2]"
+                                          : "bg-[#FFFFFF]"
+                                      }`}
                                     >
                                       <img
                                         src={deleteIcon}
@@ -1342,7 +1366,7 @@ export default function ManageLeave() {
                                     </button>
                                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                                       <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-5 py-1 relative z-10">
                                         <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                                           Delete
                                         </span>
@@ -1364,162 +1388,194 @@ export default function ManageLeave() {
         </div>
       </div>
 
-      {
-        deleteLeave !== null && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
-              <button
-                type="button"
-                onClick={() => setDeleteLeave(null)}
-                className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                title="Close"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-              <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
-                Delete Leave
-              </h3>
-              <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
-                Are you sure, you want to Delete this?
-              </p>
-              <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
+      {deleteLeave !== null && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+            <div className="w-full flex items-center justify-between px-4 py-3 relative group">
+              <div className="relative group">
                 <button
                   type="button"
                   onClick={() => setDeleteLeave(null)}
-                  className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+                  className="p-2 rounded-md text-black bg-[#F2F2F2]"
+                  aria-label="Close"
                 >
-                  Discard
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
                 </button>
-                <button
-                  type="button"
-                  onClick={confirmDeleteLeave}
-                  className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
-                >
-                  Yes, Delete
-                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[110] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-white border-t border-l border-[#C1C1C1] rotate-45 relative z-20 mb-[-5.5px]"></div>
+                  <div className="bg-white border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10 transition-all">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
               </div>
+              <h3 className="absolute left-1/2 -translate-x-1/2 text-[18px] font-gantari font-semibold text-[#020202] whitespace-nowrap">
+                Delete Leave
+              </h3>
+              <div className="w-8" />
             </div>
-          </div>
-        )
-      }
-
-      {
-        approveLeave !== null && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+              Are you sure, you want to Delete this?
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
               <button
                 type="button"
-                onClick={() => setApproveLeave(null)}
-                className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                title="Close"
+                onClick={() => setDeleteLeave(null)}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                Discard
               </button>
-              <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
-                Approve Leave
-              </h3>
-              <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
-                Are you sure, you want to Approve this?
-              </p>
-              <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
+              <button
+                type="button"
+                onClick={confirmDeleteLeave}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {approveLeave !== null && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+            <div className="w-full flex items-center justify-between px-4 py-3 relative group">
+              <div className="relative group">
                 <button
                   type="button"
                   onClick={() => setApproveLeave(null)}
-                  className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+                  className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
+                  aria-label="Close"
                 >
-                  Discard
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
                 </button>
-                <button
-                  type="button"
-                  onClick={confirmApproveLeave}
-                  className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E1F6EB] text-[#008F22] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
-                >
-                  Yes, Approve
-                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[110] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-white border-t border-l border-[#C1C1C1] rotate-45 relative z-20 mb-[-5.5px]"></div>
+                  <div className="bg-white border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10 transition-all">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
               </div>
+              <h3 className="absolute left-1/2 -translate-x-1/2 text-[18px] font-gantari font-semibold text-[#020202] whitespace-nowrap">
+                Approve Leave
+              </h3>
+              <div className="w-8" />
             </div>
-          </div>
-        )
-      }
-
-      {
-        rejectLeave !== null && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+              Are you sure, you want to Approve this?
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
               <button
                 type="button"
-                onClick={() => setRejectLeave(null)}
-                className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                title="Close"
+                onClick={() => setApproveLeave(null)}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                Discard
               </button>
-              <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
-                Reject Leave
-              </h3>
-              <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
-                Are you sure, you want to Reject this?
-              </p>
-              <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
+              <button
+                type="button"
+                onClick={confirmApproveLeave}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E1F6EB] text-[#008F22] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Yes, Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rejectLeave !== null && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+            <div className="w-full flex items-center justify-between px-4 py-3 relative group">
+              <div className="relative group">
                 <button
                   type="button"
                   onClick={() => setRejectLeave(null)}
-                  className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+                  className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
+                  aria-label="Close"
                 >
-                  Discard
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
                 </button>
-                <button
-                  type="button"
-                  onClick={confirmRejectLeave}
-                  className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
-                >
-                  Yes, Reject
-                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[110] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-white border-t border-l border-[#C1C1C1] rotate-45 relative z-20 mb-[-5.5px]"></div>
+                  <div className="bg-white border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10 transition-all">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
               </div>
+              <h3 className="absolute left-1/2 -translate-x-1/2 text-[18px] font-gantari font-semibold text-[#020202] whitespace-nowrap">
+                Reject Leave
+              </h3>
+              <div className="w-8" />
+            </div>
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+              Are you sure, you want to Reject this?
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
+              <button
+                type="button"
+                onClick={() => setRejectLeave(null)}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={confirmRejectLeave}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Yes, Reject
+              </button>
             </div>
           </div>
-        )
-      }
+        </div>
+      )}
 
       {/* Apply Leave Modal — shell aligned with BimModeler ManageLeave */}
-      {
-        applyModalOpen &&
+      {applyModalOpen &&
         createPortal(
           <div
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
@@ -1529,22 +1585,33 @@ export default function ManageLeave() {
               className="bg-white rounded-md shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col border border-[#E5E5E5]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="relative flex items-center justify-center px-6 py-2 flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] transition-colors"
-                  aria-label="Close"
-                >
-                  <img
-                    src={closeIcon}
-                    alt=""
-                    className="w-5 h-5 object-contain"
-                  />
-                </button>
-                <h3 className="text-[24px] font-medium text-[#000000]">
+              <div className="relative flex items-center justify-between px-6 py-4 flex-shrink-0">
+                <div className="relative group">
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="cursor-pointer p-2 rounded-md text-black bg-[#F0F0F0] transition-colors"
+                    aria-label="Close"
+                  >
+                    <img
+                      src={closeIcon}
+                      alt=""
+                      className="w-5 h-5 object-contain"
+                    />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[200] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-white border-t border-l border-[#C1C1C1] rotate-45 relative z-20 mb-[-5.5px]"></div>
+                    <div className="bg-white border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <h3 className="absolute left-1/2 -translate-x-1/2 text-[24px] font-medium text-[#000000] whitespace-nowrap">
                   Apply Leave
                 </h3>
+                <div className="w-8" />
               </div>
 
               <form
@@ -1566,10 +1633,11 @@ export default function ManageLeave() {
                     readOnly
                     disabled
                     placeholder="Employee name"
-                    className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none bg-[#F2F3F4] border-0 disabled:opacity-70 disabled:cursor-not-allowed placeholder-[#8B8B8B] ${applyFormErrors.employeeName
-                      ? "ring-1 ring-[#DD4342]"
-                      : ""
-                      }`}
+                    className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none bg-[#F2F3F4] border-0 disabled:opacity-70 disabled:cursor-not-allowed placeholder-[#8B8B8B] ${
+                      applyFormErrors.employeeName
+                        ? "ring-1 ring-[#DD4342]"
+                        : ""
+                    }`}
                   />
                   {applyFormErrors.employeeName && (
                     <p className="mt-1.5 text-sm text-[#DD4342]">
@@ -1707,7 +1775,13 @@ export default function ManageLeave() {
                         />
                         <line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" />
                         <line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" />
-                        <line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" />
+                        <line
+                          x1="3"
+                          y1="10"
+                          x2="21"
+                          y2="10"
+                          strokeWidth="1.5"
+                        />
                       </svg>
                     </div>
                     {applyFormErrors.leaveFrom && (
@@ -1753,7 +1827,13 @@ export default function ManageLeave() {
                         />
                         <line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" />
                         <line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" />
-                        <line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" />
+                        <line
+                          x1="3"
+                          y1="10"
+                          x2="21"
+                          y2="10"
+                          strokeWidth="1.5"
+                        />
                       </svg>
                     </div>
                     {applyFormErrors.leaveTo && (
@@ -1792,13 +1872,13 @@ export default function ManageLeave() {
                   <button
                     type="button"
                     onClick={handleCloseModal}
-                    className="cursor-pointer flex-1 px-4 py-2.5 rounded-lg font-medium text-[#616161] bg-[#F2F2F2] hover:bg-[#E5E5E5] transition-colors"
+                    className="cursor-pointer flex-1 px-5 py-2.5 rounded-md font-medium text-[#616161] bg-[#F2F2F2]"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="cursor-pointer flex-1 px-4 py-2.5 bg-[#DD4342] text-white rounded-lg font-semibold hover:bg-[#c43a39] active:scale-[0.98] transition-all shadow-sm"
+                    className="cursor-pointer flex-1 px-5 py-2.5 bg-[#DD4342] text-white rounded-md font-semibold"
                   >
                     Submit
                   </button>
@@ -1807,12 +1887,10 @@ export default function ManageLeave() {
             </div>
           </div>,
           document.body,
-        )
-      }
+        )}
 
       {/* Edit Leave Modal — shell aligned with BimModeler ManageLeave */}
-      {
-        editModalOpen &&
+      {editModalOpen &&
         editingLeave &&
         createPortal(
           <div
@@ -1823,22 +1901,33 @@ export default function ManageLeave() {
               className="bg-white rounded-md shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col border border-[#E5E5E5]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="relative flex items-center justify-center px-6 py-2 flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={handleCloseEditModal}
-                  className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] transition-colors"
-                  aria-label="Close"
-                >
-                  <img
-                    src={closeIcon}
-                    alt=""
-                    className="w-5 h-5 object-contain"
-                  />
-                </button>
-                <h3 className="text-[24px] font-medium text-[#000000]">
+              <div className="relative flex items-center justify-between px-6 py-4 flex-shrink-0">
+                <div className="relative group">
+                  <button
+                    type="button"
+                    onClick={handleCloseEditModal}
+                    className="cursor-pointer p-2 rounded-md text-black bg-[#F2F2F2]"
+                    aria-label="Close"
+                  >
+                    <img
+                      src={closeIcon}
+                      alt=""
+                      className="w-5 h-5 object-contain"
+                    />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[200] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-white border-t border-l border-[#C1C1C1] rotate-45 relative z-20 mb-[-5.5px]"></div>
+                    <div className="bg-white border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <h3 className="absolute left-1/2 -translate-x-1/2 text-[24px] font-medium text-[#000000] whitespace-nowrap">
                   Edit Leave
                 </h3>
+                <div className="w-8" />
               </div>
 
               <form
@@ -1860,10 +1949,11 @@ export default function ManageLeave() {
                     readOnly
                     disabled
                     placeholder="Employee name"
-                    className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none bg-[#F2F3F4] border-0 disabled:opacity-70 disabled:cursor-not-allowed placeholder-[#8B8B8B] ${applyFormErrors.employeeName
-                      ? "ring-1 ring-[#DD4342]"
-                      : ""
-                      }`}
+                    className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none bg-[#F2F3F4] border-0 disabled:opacity-70 disabled:cursor-not-allowed placeholder-[#8B8B8B] ${
+                      applyFormErrors.employeeName
+                        ? "ring-1 ring-[#DD4342]"
+                        : ""
+                    }`}
                   />
                   {applyFormErrors.employeeName && (
                     <p className="mt-1.5 text-sm text-[#DD4342]">
@@ -2001,7 +2091,13 @@ export default function ManageLeave() {
                         />
                         <line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" />
                         <line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" />
-                        <line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" />
+                        <line
+                          x1="3"
+                          y1="10"
+                          x2="21"
+                          y2="10"
+                          strokeWidth="1.5"
+                        />
                       </svg>
                     </div>
                     {applyFormErrors.leaveFrom && (
@@ -2047,7 +2143,13 @@ export default function ManageLeave() {
                         />
                         <line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" />
                         <line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" />
-                        <line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" />
+                        <line
+                          x1="3"
+                          y1="10"
+                          x2="21"
+                          y2="10"
+                          strokeWidth="1.5"
+                        />
                       </svg>
                     </div>
                     {applyFormErrors.leaveTo && (
@@ -2086,13 +2188,13 @@ export default function ManageLeave() {
                   <button
                     type="button"
                     onClick={handleCloseEditModal}
-                    className="cursor-pointer flex-1 px-4 py-2.5 rounded-md font-medium text-[#616161] bg-[#F2F2F2] transition-colors"
+                    className="cursor-pointer flex-1 px-5 py-2.5 rounded-md font-medium text-[#616161] bg-[#F2F2F2]"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="cursor-pointer flex-1 px-4 py-2.5 bg-[#DD4342] text-white rounded-md font-semibold active:scale-[0.98] transition-all shadow-sm"
+                    className="cursor-pointer flex-1 px-5 py-2.5 bg-[#DD4342] text-white rounded-md font-semibold"
                   >
                     Update
                   </button>
@@ -2101,12 +2203,10 @@ export default function ManageLeave() {
             </div>
           </div>,
           document.body,
-        )
-      }
+        )}
 
       {/* View Leave Modal */}
-      {
-        viewModalOpen &&
+      {viewModalOpen &&
         selectedLeave &&
         createPortal(
           <div
@@ -2120,25 +2220,36 @@ export default function ManageLeave() {
               className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E5E5E5]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="relative flex items-center justify-center px-6 py-5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewModalOpen(false);
-                    setSelectedLeave(null);
-                  }}
-                  className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] hover:bg-[#E8E8E8] transition-colors"
-                  aria-label="Close"
-                >
-                  <img
-                    src={closeIcon}
-                    alt=""
-                    className="w-5 h-5 object-contain"
-                  />
-                </button>
-                <h3 className="text-[24px] font-medium text-[#000000]">
+              <div className="relative flex items-center justify-between px-6 py-4 flex-shrink-0">
+                <div className="relative group">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewModalOpen(false);
+                      setSelectedLeave(null);
+                    }}
+                    className="cursor-pointer p-2 rounded-md text-black bg-[#F2F2F2]"
+                    aria-label="Close"
+                  >
+                    <img
+                      src={closeIcon}
+                      alt=""
+                      className="w-5 h-5 object-contain"
+                    />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[200] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-white border-t border-l border-[#C1C1C1] rotate-45 relative z-20 mb-[-5.5px]"></div>
+                    <div className="bg-white border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <h3 className="absolute left-1/2 -translate-x-1/2 text-[24px] font-medium text-[#000000] whitespace-nowrap">
                   Leave Details
                 </h3>
+                <div className="w-8" />
               </div>
               <div className="px-6 py-6">
                 <div className="space-y-4">
@@ -2221,8 +2332,7 @@ export default function ManageLeave() {
             </div>
           </div>,
           document.body,
-        )
-      }
-    </div >
+        )}
+    </div>
   );
 }

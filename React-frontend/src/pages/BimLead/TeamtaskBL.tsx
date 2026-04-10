@@ -217,7 +217,7 @@ function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-3 sm:px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer w-full transition-colors hover:bg-[#dfdfdf] ${narrow ? (label === "Period" ? "lg:min-w-[100px]" : "lg:min-w-[150px]") : "lg:min-w-[160px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-3 sm:px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer w-full transition-colors ${narrow ? (label === "Period" ? "lg:min-w-[100px]" : "lg:min-w-[150px]") : "lg:min-w-[160px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
@@ -1182,10 +1182,10 @@ export default function TeamtaskBL() {
                                         state: { from: "teamtasks" },
                                     })
                                 }
-                                className={`inline-flex items-center justify-center gap-2 rounded-md px-3 sm:px-4 h-[36px] min-h-[36px] text-[14px] font-medium shadow-sm cursor-pointer transition-all ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-[#F2F2F2] hover:bg-[#c33a39]"}`}
+                                className={`inline-flex items-center justify-center gap-2 rounded-md px-3 sm:px-4 h-[36px] min-h-[36px] text-[14px] font-medium shadow-sm cursor-pointer transition-all ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-[#F2F2F2]"}`}
                             >
                                 <img src={AddBtn} alt="Add" className="h-4 w-4 sm:h-5 sm:w-5" />
-                                <span className="hidden sm:inline whitespace-nowrap">Add task</span>
+                                <span className="hidden sm:inline whitespace-nowrap">Add Task</span>
                                 <span className="sm:hidden whitespace-nowrap">Add</span>
                             </button>
                         </div>
@@ -1267,10 +1267,10 @@ export default function TeamtaskBL() {
                                     state: { from: "teamtasks" },
                                 })
                             }
-                            className={`hidden lg:inline-flex ml-2 items-center justify-center gap-2 rounded-md px-4 h-[36px] min-h-[36px] text-[14px] font-medium shadow-sm cursor-pointer transition-all ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-[#F2F2F2] hover:bg-[#c33a39]"}`}
+                            className={`hidden lg:inline-flex ml-2 items-center justify-center gap-2 rounded-md px-4 h-[36px] min-h-[36px] text-[14px] font-medium shadow-sm cursor-pointer transition-all ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-[#F2F2F2]"}`}
                         >
                             <img src={AddBtn} alt="Add" className="h-5 w-5" />
-                            <span className="whitespace-nowrap">Add task</span>
+                            <span className="whitespace-nowrap">Add Task</span>
                         </button>
                     </div>
                 </div>
@@ -1399,49 +1399,54 @@ export default function TeamtaskBL() {
         </div>
 
             {deleteTask !== null && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
-                        {/* Close */}
-                        <div className="relative group absolute left-4 top-4">
-                            <button
-                                type="button"
-                                onClick={() => setDeleteTask(null)}
-                                className="p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
-                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                        Close
-                                    </span>
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 text-[14px]">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden translate-z-0">
+                        <div className="flex items-center justify-between px-6 py-4">
+                            <div className="relative group">
+                                <button
+                                    type="button"
+                                    onClick={() => setDeleteTask(null)}
+                                    className="p-2 rounded-md bg-[#F2F2F2] text-black transition-colors cursor-pointer"
+                                    aria-label="Close"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 mb-[-5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                                            Close
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
+                            <h3 className="flex-1 text-center text-[20px] font-medium text-[#353535]">
+                                Delete Task
+                            </h3>
+                            <div className="w-10" />
                         </div>
-                        <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
-                            Delete Task
-                        </h3>
-                        <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
-                            Are you sure, you want to Delete this?
-                        </p>
-                        <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
-                            <button
-                                type="button"
-                                onClick={() => setDeleteTask(null)}
-                                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
-                            >
-                                Discard
-                            </button>
-                            <button
-                                type="button"
-                                onClick={confirmDeleteTask}
-                                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
-                            >
-                                Yes, Delete
-                            </button>
+                        <div className="px-6 py-5">
+                            <p className="text-black text-center font-gantari font-semibold text-[14px]">
+                                Are you sure, you want to Delete this Task?
+                            </p>
+                            <div className="mt-8 mb-4 flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setDeleteTask(null)}
+                                    className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#353535] font-gantari font-medium text-[16px] transition-all cursor-pointer"
+                                >
+                                    Discard
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={confirmDeleteTask}
+                                    className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-medium text-[16px] transition-all cursor-pointer"
+                                >
+                                    Yes, Delete
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -6,6 +6,7 @@ import api from "../../../lib/api";
 import Upload from "../../../assets/ProjectManager/MyTask/Upload.svg";
 import ImageIcon from "../../../assets/ProjectManager/MyTask/image.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
+import { VendorBimLeadBackTooltipWrap } from "../VendorBimLead/VendorBimLeadGoBackButton";
 
 interface Task {
   id: number;
@@ -517,14 +518,17 @@ export default function MyTaskViewEV() {
   return (
     <div className="flex flex-1 min-h-0 flex-col overflow-y-auto bg-white pb-10 custom-scrollbar">
       <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-100">
-        <button
-          type="button"
-          onClick={goBackToList}
-          className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-          aria-label="Back"
-        >
-          <img src={backIcon} alt="Back" className="w-5 h-5" />
-        </button>
+        <VendorBimLeadBackTooltipWrap>
+          <button
+            type="button"
+            onClick={goBackToList}
+            className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+            aria-label="Back"
+            title="Back"
+          >
+            <img src={backIcon} alt="Back" className="w-5 h-5" />
+          </button>
+        </VendorBimLeadBackTooltipWrap>
         <h1 className="flex-1 text-center text-[20px] sm:text-2xl font-semibold text-[#353535] font-Gantari px-2">
           {resolvedProjectName || task.task_name || "Task"}
         </h1>
