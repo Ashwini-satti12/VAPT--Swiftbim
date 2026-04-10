@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { FiGrid, FiMenu, FiX } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
@@ -202,6 +203,7 @@ const ROLE_OPTIONS_FALLBACK = VENDOR_ROLE_OPTIONS;
 
 export default function ResourcesV() {
   const navigate = useNavigate();
+  const location = useLocation();
   useEffect(() => {
     const styleTag = document.createElement("style");
     styleTag.textContent = SCROLLBAR_STYLE;
@@ -277,6 +279,33 @@ export default function ResourcesV() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
+  const isVpmRoute = location.pathname.startsWith("/vpm/");
+
+  const openEmailClient = (email?: string) => {
+    const mail = (email || "").trim();
+    if (!mail) {
+      alert(
+        "Email is not assigned for this resource. Please open Edit Details and assign Login Email first.",
+      );
+      return;
+    }
+    const gmailComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(mail)}`;
+    const popup = window.open(gmailComposeUrl, "_blank", "noopener,noreferrer");
+    // If popup is blocked or Gmail cannot open, fall back to default mail app.
+    if (!popup) {
+      window.location.href = `mailto:${mail}`;
+    }
+  };
+
+  const openDialer = (phone?: string) => {
+    const raw = (phone || "").trim();
+    const sanitized = raw.replace(/[^\d+]/g, "");
+    if (!sanitized) {
+      alert("Phone number is not available for this resource.");
+      return;
+    }
+    window.location.href = `tel:${sanitized}`;
+  };
 
   // Vendor company admin should always be able to assign logins to resources
   const canAdd = user?.user_type === "vendor" || user?.panel_type === 1;
@@ -295,6 +324,12 @@ export default function ResourcesV() {
           id: number;
           name?: string;
           email?: string;
+          login_email?: string;
+          contact_email?: string;
+          phone_number?: string;
+          mobile?: string;
+          contact_number?: string;
+          phone?: string;
           login_role?: string;
           designation?: string;
           discipline?: string;
@@ -311,11 +346,20 @@ export default function ResourcesV() {
         const rows = data.resources ?? [];
         setList(
           rows.map(
-            (r) =>
-              ({
+            (r) => {
+              const resolvedEmail =
+                (r.email || "").trim() ||
+                (r.login_email || "").trim() ||
+                (r.contact_email || "").trim();
+              const resolvedPhone =
+                (r.phone_number || "").trim() ||
+                (r.mobile || "").trim() ||
+                (r.contact_number || "").trim() ||
+                (r.phone || "").trim();
+              return {
                 id: r.id,
                 full_name: r.name || "—",
-                email: r.email || "",
+                email: resolvedEmail,
                 user_role: r.login_role || "",
                 active:
                   String(r.active ?? "active").toLowerCase() === "inactive"
@@ -325,7 +369,7 @@ export default function ResourcesV() {
                 user_type: "vendor",
                 profile_picture: undefined,
                 Allpannel: "Vendor",
-                phone_number: "",
+                phone_number: resolvedPhone,
                 address: "",
                 doj: "",
                 dob: "",
@@ -337,7 +381,8 @@ export default function ResourcesV() {
                 software: r.software,
                 certifications: r.certifications,
                 projects_worked_on: r.projects_worked_on,
-              }) as Employee,
+              } as Employee;
+            },
           ),
         );
       })
@@ -729,7 +774,7 @@ export default function ResourcesV() {
                   <div className="px-2.5 py-4 sm:px-3 sm:py-5 space-y-4 sm:space-y-5">
                     <div className="flex flex-wrap items-center gap-2">
                       <button
-                        onClick={() => window.open(`mailto:${emp.email}`)}
+                        onClick={() => openEmailClient(emp.email)}
                         className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                       >
                         <img src={mailIcon} className="w-4 h-4" />
@@ -743,8 +788,8 @@ export default function ResourcesV() {
                         Message
                       </button>
                       <button
-                        onClick={() => window.open(`tel:${emp.phone_number}`)}
-                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
+                        onClick={() => openDialer(emp.phone_number)}
+                        className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <img src={callIcon} className="w-4 h-4" />
                         Call
@@ -890,50 +935,24 @@ export default function ResourcesV() {
                       </td>
                       <td className="px-3 py-5 text-center whitespace-nowrap align-middle">
                         <div className="flex items-center justify-center gap-2">
-                          <div className="relative group">
-                            <button
-                              onClick={() => window.open(`mailto:${emp.email}`)}
-                              className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
-                            >
-                              <img src={mailIcon} className="w-4 h-4" />
-                            </button>
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
-                                <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Mail</span>
-                              </div>
-                              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
-                            </div>
-                          </div>
-                          <div className="relative group">
-                            <button
-                              onClick={() => navigate("/v/communication")}
-                              className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
-                            >
-                              <img src={messageIcon} className="w-4 h-4" />
-                            </button>
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
-                                <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Message</span>
-                              </div>
-                              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
-                            </div>
-                          </div>
-                          <div className="relative group">
-                            <button
-                              onClick={() =>
-                                window.open(`tel:${emp.phone_number}`)
-                              }
-                              className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
-                            >
-                              <img src={callIcon} className="w-4 h-4" />
-                            </button>
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
-                                <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Call</span>
-                              </div>
-                              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
-                            </div>
-                          </div>
+                          <button
+                            onClick={() => openEmailClient(emp.email)}
+                            className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
+                          >
+                            <img src={mailIcon} className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => navigate("/v/communication")}
+                            className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
+                          >
+                            <img src={messageIcon} className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => openDialer(emp.phone_number)}
+                            className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
+                          >
+                            <img src={callIcon} className="w-4 h-4" />
+                          </button>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -1233,29 +1252,43 @@ export default function ResourcesV() {
                     <div>
                       <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
                         Password{" "}
-                        {activeView === "edit" &&
-                          "(Leave blank to keep current)"}
+                        {activeView === "edit" && !isVpmRoute
+                          ? "(Leave blank to keep current)"
+                          : ""}
+                        {activeView === "edit" && isVpmRoute ? (
+                          <span className="text-red-500"> *</span>
+                        ) : null}
                       </label>
                       <input
                         type="password"
                         placeholder="••••••••"
                         placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
                         value={
-                          activeView === "add"
+                          activeView === "edit" && isVpmRoute
+                            ? "********"
+                            : activeView === "add"
                             ? form.password
                             : editForm.password
                         }
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          if (activeView === "edit" && isVpmRoute) return;
                           activeView === "add"
                             ? setForm({ ...form, password: e.target.value })
                             : setEditForm({
                                 ...editForm,
                                 password: e.target.value,
-                              })
-                        }
+                              });
+                        }}
                         className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
                         required={activeView === "add"}
+                        disabled={activeView === "edit" && isVpmRoute}
                       />
+                      {activeView === "edit" && isVpmRoute ? (
+                        <p className="mt-2 text-[13px] text-[#6B7280] font-gantari">
+                          Password is encrypted and cannot be viewed or edited
+                          here
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                   <div className="space-y-6 ">

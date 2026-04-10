@@ -6,7 +6,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
-import { FiUploadCloud, FiPaperclip, FiArrowRight } from "react-icons/fi";
+import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import swifterzLogo from "../../assets/ProductNavbarIcons/swifterzlogo.png";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";

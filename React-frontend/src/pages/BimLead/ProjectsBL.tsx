@@ -849,8 +849,8 @@ export default function ProjectsBL() {
       {showProjectView && selectedProjectForView ? (
         <div className="flex flex-col h-full bg-white">
           {/* Project View Header */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
-            <div className="relative group absolute left-4">
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50 shrink-0">
+            <div className="absolute left-4 group z-20">
               <button
                 type="button"
                 onClick={() => {
@@ -858,13 +858,13 @@ export default function ProjectsBL() {
                   setSelectedProjectForView(null);
                   setSearchParams({}, { replace: true });
                 }}
-                className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
+                className="p-2 rounded-md bg-[#F2F2F2] flex items-center justify-center transition-colors cursor-pointer"
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                 <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-1 py-0.5 relative z-10">
                   <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                     Go back
                   </span>
@@ -872,7 +872,7 @@ export default function ProjectsBL() {
               </div>
             </div>
             <div className="text-center px-12 md:px-16">
-              <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
+              <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                 {selectedProjectForView?.project_name ?? "Loading..."}
               </h3>
               <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
@@ -1499,12 +1499,32 @@ export default function ProjectsBL() {
                                   {fileName.split('_').pop() || "Document"}
                                 </span>
                                 <div className="flex gap-1">
-                                  <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-white rounded" title="View">
-                                    <img src={viewIcon} alt="View" className="w-[16px] h-[16px] opacity-70 hover:opacity-100" />
-                                  </a>
-                                  <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-white rounded" title="Download">
-                                    <FiUploadCloud className="w-[16px] h-[16px] rotate-180 text-slate-500 hover:text-[#DD4342]" />
-                                  </a>
+                                  <div className="relative group">
+                                    <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 rounded block">
+                                      <img src={viewIcon} alt="View" className="w-[16px] h-[16px] opacity-70 hover:opacity-100" />
+                                    </a>
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                          View
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="relative group">
+                                    <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 rounded block">
+                                      <FiUploadCloud className="w-[16px] h-[16px] rotate-180 text-slate-500 hover:text-[#DD4342]" />
+                                    </a>
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                          Download
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             );
@@ -1523,19 +1543,28 @@ export default function ProjectsBL() {
             {showMemberProfileModal && selectedMember && (
               <div className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen overflow-y-auto p-4 bg-black/60 backdrop-blur-sm">
                 <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col my-auto shrink-0">
-                  <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowMemberProfileModal(false);
-                        setSelectedMember(null);
-                      }}
-                      className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                      title="Back"
-                    >
-                      <img src={backIcon} alt="Back" className="w-5 h-5" />
-                    </button>
-                    <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
+                  <div className="relative flex items-center justify-center px-3 py-6 shrink-0">
+                    <div className="absolute left-4 group">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowMemberProfileModal(false);
+                          setSelectedMember(null);
+                        }}
+                        className="p-2 rounded-md bg-[#F2F2F2] flex items-center justify-center transition-colors cursor-pointer"
+                      >
+                        <img src={backIcon} alt="Back" className="w-5 h-5" />
+                      </button>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-1 py-0.5 relative z-10">
+                          <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                            Go back
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center">
                       Member Profile
                     </h3>
                   </div>
@@ -1625,21 +1654,20 @@ export default function ProjectsBL() {
             {showAllMembersModal && (
               <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                 <div className="bg-white rounded-[2rem] shadow-2xl max-w-3xl w-full p-6 md:p-10 relative">
-                  <div className="relative flex items-center justify-center w-full mb-6 py-2">
-                    <div className="relative group absolute left-0 top-1/2 -translate-y-1/2">
+                  <div className="relative flex items-center justify-center w-full mb-6 py-4 px-4 border-b border-slate-50 shrink-0">
+                    <div className="absolute left-4 group">
                       <button
                         type="button"
                         onClick={() => setShowAllMembersModal(false)}
-                    className="absolute left-4 top-4 md:top-6 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                    title="Back"
+                        className="p-2 rounded-md bg-[#F2F2F2] flex items-center justify-center transition-colors cursor-pointer"
                       >
-                    <img src={backIcon} alt="Back" className="w-5 h-5" />
+                        <img src={backIcon} alt="Back" className="w-5 h-5" />
                       </button>
                       <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                         <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-1 py-0.5 relative z-10">
                           <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                            Close
+                            Go back
                           </span>
                         </div>
                       </div>
@@ -1702,18 +1730,18 @@ export default function ProjectsBL() {
       ) : showMilestones && currentProject ? (
         <div className="flex flex-col h-full bg-white">
           {/* Milestones Header */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
-            <div className="relative group absolute left-4 mt-0">
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50 shrink-0">
+            <div className="absolute left-4 group z-20">
               <button
                 type="button"
                 onClick={() => setShowMilestones(false)}
-                className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+                className="p-2 rounded-[5px] bg-[#F2F2F2] flex items-center justify-center transition-colors cursor-pointer"
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                 <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-1 py-0.5 relative z-10">
                   <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                     Go back
                   </span>
@@ -1725,12 +1753,12 @@ export default function ProjectsBL() {
                 Payment Milestones
               </h3>
               <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
-                {currentProject.project_name ?? "Prestige Park Grove"}_Tower 1 to 09
+                {currentProject.project_name ?? ""}_Tower 1 to 09
               </p>
             </div>
             <button
               onClick={() => setShowAddMilestoneModal(true)}
-              className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm hover:bg-[#c93a39] transition-colors cursor-pointer"
+              className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm hover:bg-[#c93a39] transition-colors cursor-pointer z-20"
               title="Add Milestone"
             >
               <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
@@ -1954,17 +1982,17 @@ export default function ProjectsBL() {
       ) : showCreateModal ? (
         <div className="flex flex-col h-full bg-white">
           {/* Create Project Header */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
-            <div className="relative group absolute left-4 mt-0">
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50 shrink-0">
+            <div className="absolute left-4 group">
               <button
                 type="button"
                 onClick={() => {
                   setShowCreateModal(false);
                   setCreateError("");
                 }}
-                className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer"
+                className="p-2 rounded-[5px] bg-[#F2F2F2] flex items-center justify-center transition-colors cursor-pointer"
               >
-                <FiX className="w-5 h-5" />
+                <FiX className="w-5 h-5 text-black" />
               </button>
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                 <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
@@ -1975,7 +2003,7 @@ export default function ProjectsBL() {
                 </div>
               </div>
             </div>
-            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center px-12 md:px-16">
+            <h3 className="text-[20px] sm:text-[24px] font-Gantari font-medium text-[#000000] text-center px-12 md:px-16">
               Add New Project
             </h3>
           </div>
@@ -2071,6 +2099,7 @@ export default function ProjectsBL() {
                   )
                   .then(({ data }) => {
                     if (data.success) {
+                      toast.success("Project created successfully!");
                       setShowCreateModal(false);
                       resetFormFields();
                       api
@@ -2638,7 +2667,7 @@ export default function ProjectsBL() {
                               </button>
                               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                                 <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-3 py-0.5 relative z-10">
                                   <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                                     View
                                   </span>
@@ -2729,8 +2758,8 @@ export default function ProjectsBL() {
       ) : showEditModal ? (
         <div className="flex flex-col h-full bg-white">
           {/* Edit Project Header */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
-            <div className="relative group absolute left-4 mt-0">
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 shrink-0">
+            <div className="absolute left-4 group">
               <button
                 type="button"
                 onClick={() => {
@@ -2738,9 +2767,9 @@ export default function ProjectsBL() {
                   setEditError("");
                   resetFormFields();
                 }}
-                className="p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer"
+                className="p-2 rounded-[5px] bg-[#F2F2F2] flex items-center justify-center transition-colors cursor-pointer"
               >
-                <FiX className="w-5 h-5" />
+                <FiX className="w-5 h-5 text-black" />
               </button>
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                 <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
@@ -2751,7 +2780,7 @@ export default function ProjectsBL() {
                 </div>
               </div>
             </div>
-            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center px-12 md:px-16">
+            <h3 className="text-[20px] sm:text-[24px] font-Gantari font-medium text-[#000000] text-center px-12 md:px-16">
               Edit Project Details
             </h3>
           </div>
@@ -3411,7 +3440,7 @@ export default function ProjectsBL() {
                                 </button>
                                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-3 py-0.5 relative z-10">
                                     <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                                       View
                                     </span>
@@ -3948,24 +3977,24 @@ export default function ProjectsBL() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full flex flex-col p-10">
             {/* Modal Header */}
-            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50 mb-6 md:mb-10">
-            <div className="relative group absolute left-4 mt-0">
-              <button
-                type="button"
-                onClick={() => setShowAddMilestoneModal(false)}
-                className="p-2 rounded-[5px] bg-[#F2F2F2] transition-all cursor-pointer"
-              >
-                <FiX className="w-5 h-5" />
-              </button>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 shrink-0">
+              <div className="absolute left-4 group">
+                <button
+                  type="button"
+                  onClick={() => setShowAddMilestoneModal(false)}
+                  className="p-2 rounded-[5px] bg-[#F2F2F2] flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <FiX className="w-5 h-5 text-black" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
                 <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
-                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                    Close
-                  </span>
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
               <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center px-12 md:px-16">
                 Add Payment Milestone
               </h3>
