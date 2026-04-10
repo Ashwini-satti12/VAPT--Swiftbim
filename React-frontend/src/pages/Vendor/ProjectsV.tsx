@@ -1613,7 +1613,9 @@ export default function ProjectsV() {
                                                         </span>
                                                         <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                                                         <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                                                            {selectedProject.budget ? `${selectedProject.budget}$` : "N/A"}
+                                                            {selectedProject.budget
+                                                                ? `${getCurrencySymbol((selectedProject.selected_currency || selectedProject.currency || "INR").toUpperCase())} ${selectedProject.budget}`
+                                                                : "N/A"}
                                                         </span>
                                                     </div>
                                                 </>

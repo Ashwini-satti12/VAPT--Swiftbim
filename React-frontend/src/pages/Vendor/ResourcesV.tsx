@@ -309,6 +309,13 @@ export default function ResourcesV() {
   // Vendor company admin should always be able to assign logins to resources
   const canAdd = user?.user_type === "vendor" || user?.panel_type === 1;
 
+  const getWhatsAppLink = (rawPhone?: string) => {
+    const digits = String(rawPhone || "").replace(/\D/g, "");
+    if (!digits) return "";
+    const normalized = digits.replace(/^00/, "").replace(/^0+/, "");
+    return normalized ? `https://wa.me/${normalized}` : "";
+  };
+
   useEffect(() => {
     // Vendor roles are fixed for assignment
     setRoleOptions(VENDOR_ROLE_OPTIONS);
@@ -781,8 +788,12 @@ export default function ResourcesV() {
                         Mail
                       </button>
                       <button
-                        onClick={() => navigate("/v/communication")}
-                        className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
+                        onClick={() => {
+                          const waLink = getWhatsAppLink(emp.phone_number);
+                          if (waLink)
+                            window.open(waLink, "_blank", "noopener,noreferrer");
+                        }}
+                        className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <img src={messageIcon} className="w-4 h-4" />
                         Message
@@ -942,7 +953,15 @@ export default function ResourcesV() {
                             <img src={mailIcon} className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => navigate("/v/communication")}
+                            onClick={() => {
+                              const waLink = getWhatsAppLink(emp.phone_number);
+                              if (waLink)
+                                window.open(
+                                  waLink,
+                                  "_blank",
+                                  "noopener,noreferrer",
+                                );
+                            }}
                             className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
                           >
                             <img src={messageIcon} className="w-4 h-4" />
