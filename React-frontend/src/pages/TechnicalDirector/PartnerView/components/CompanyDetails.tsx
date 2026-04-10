@@ -207,7 +207,7 @@ const CompanyDetails = ({ vendor, editable = false, onChange }: Props) => {
             Trade License Certificate
           </label>
           {vendor.trade_license_file ? (
-            <div className="flex items-center gap-2 p-3 bg-white border border-gray-200 rounded-lg">
+            <div className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg">
               <a
                 href={api.defaults.baseURL + `static/uploads/vendors/${vendor.trade_license_file}`}
                 target="_blank"
@@ -229,7 +229,7 @@ const CompanyDetails = ({ vendor, editable = false, onChange }: Props) => {
             GST Certificate
           </label>
           {vendor.gst_certificate_file ? (
-            <div className="flex items-center gap-2 p-3 bg-white border border-gray-200 rounded-lg">
+            <div className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg">
               <a
                 href={`http://localhost:5000/static/uploads/vendors/${vendor.gst_certificate_file}`}
                 target="_blank"

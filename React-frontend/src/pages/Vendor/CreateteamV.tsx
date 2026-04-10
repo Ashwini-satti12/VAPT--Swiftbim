@@ -93,7 +93,7 @@ function TeamCard({
                 <span className="text-[14px] font-medium text-[#8B8B8B] mb-1.5">
                     Team Name
                 </span>
-                <span className="text-[18px] font-semibold text-[#353535] pr-8 truncate">
+                <span className="text-[16px] sm:text-[18px] font-semibold text-[#353535] pr-8 truncate">
                     {team.team_name || team.teamname || "Untitled Team"}
                 </span>
             </div>
@@ -170,7 +170,7 @@ function TeamCard({
                 <span className="text-[14px] font-medium text-[#8B8B8B] mb-1.5">
                     Team Leader
                 </span>
-                <span className="text-[18px] font-semibold text-[#353535] truncate flex items-center gap-2">
+                <span className="text-[16px] sm:text-[18px] font-semibold text-[#353535] truncate flex items-center gap-2">
                     {team.leader_name || getEmp(team.leader)?.full_name || 'N/A'}
                 </span>
             </div>
@@ -447,6 +447,7 @@ export default function CreateteamV() {
         setDeleteSubmitting(true);
         api.delete(`/api/vendors/vendor-teams/${id}`)
             .then(() => {
+                toast.success('Team deleted successfully');
                 setTeams((prev) => prev.filter((t) => t.team_id !== id));
                 setTeamPendingDelete(null);
             })
@@ -588,30 +589,45 @@ export default function CreateteamV() {
 
             {/* Delete team confirmation */}
             {teamPendingDelete && (
-                <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 relative pt-14 pb-8 px-8 font-Gantari">
-                        <button
-                            type="button"
-                            onClick={() => !deleteSubmitting && setTeamPendingDelete(null)}
-                            className="absolute top-6 left-6 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
-                            aria-label="Close"
-                        >
-                            <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
-                        </button>
+                <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-md shadow-2xl max-w-[500px] w-full p-8 flex flex-col items-center animate-in zoom-in-95 duration-200 relative overflow-hidden font-Gantari">
+                        <div className="relative flex items-center justify-center w-full mb-6 min-h-[40px]">
+                            <div className="absolute left-0 z-10 top-1/2 -translate-y-1/2">
+                                <div className="group relative inline-flex shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => !deleteSubmitting && setTeamPendingDelete(null)}
+                                        className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
+                                        aria-label="Close"
+                                    >
+                                        <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
+                                    </button>
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                            <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Close</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <h3 className="text-[20px] font-Gantari font-semibold text-[#020202] text-center">
+                                Delete Team
+                            </h3>
+                        </div>
 
-                        <div className="text-center mb-8">
-                            <p className="text-[17px] font-medium text-slate-800 leading-relaxed px-2">
-                                Are you sure, you want to delete{" "}
-                                <span className="font-bold">{getTeamDisplayName(teamPendingDelete)}</span>?
+                        <div className="text-center w-full mb-10">
+                            <p className="text-[14px] text-[#020202]">
+                                Are you sure, you want to delete{"  "}
+                                <span className="font-bold text-[#E00100]">{getTeamDisplayName(teamPendingDelete)}</span>?
                             </p>
                         </div>
 
-                        <div className="flex justify-center gap-3">
+                        <div className="flex justify-center gap-4 w-full">
                             <button
                                 type="button"
                                 disabled={deleteSubmitting}
                                 onClick={() => setTeamPendingDelete(null)}
-                                className="rounded-lg bg-[#F2F2F2] px-8 py-2.5 text-sm font-bold text-[#353535] hover:bg-[#E5E7EB] cursor-pointer"
+                                className="px-8 py-2 bg-[#F2F2F2] text-[#353535] rounded-md text-[14px] font-medium transition-colors cursor-pointer"
                             >
                                 Discard
                             </button>
@@ -619,7 +635,7 @@ export default function CreateteamV() {
                                 type="button"
                                 disabled={deleteSubmitting}
                                 onClick={handleConfirmDelete}
-                                className="rounded-lg bg-[#DD4342] px-8 py-2.5 text-sm font-bold text-white hover:opacity-95 disabled:opacity-50 cursor-pointer shadow-sm"
+                                className="px-8 py-2 bg-[#FFE4E3] text-[#E00100] rounded-md text-[14px] font-medium transition-colors cursor-pointer disabled:opacity-50"
                             >
                                 {deleteSubmitting ? "Deleting..." : "Yes, Delete"}
                             </button>
@@ -630,22 +646,31 @@ export default function CreateteamV() {
 
             {showAddModal && (
                 <div className="fixed inset-0 z-100 flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
-                    <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-4 animate-in zoom-in-95 duration-200 relative overflow-visible my-auto font-Gantari">
-                        <button
-                            onClick={() => setShowAddModal(false)}
-                            className="absolute top-6 left-8 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
-                        >
-                            <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
-                        </button>
-
-                        <div className="text-center mb-10">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full max-h-[90vh] flex flex-col p-6 animate-in zoom-in-95 duration-200 relative overflow-hidden my-auto font-Gantari">
+                        <div className="relative mb-10 flex items-center justify-center min-h-[40px] w-full">
+                            <div className="group absolute left-0 z-10 top-1/2 -translate-y-1/2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAddModal(false)}
+                                    className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
+                                >
+                                    <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Close</span>
+                                    </div>
+                                </div>
+                            </div>
                             <h3 className="text-[24px] font-semibold text-[#000000]">
                                 Create New Team
                             </h3>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
+                        <div className="flex-1 overflow-y-auto px-1 custom-scrollbar">
+                            <form onSubmit={handleSubmit} className="space-y-6">
+                                <div>
                                 <label className="block text-[14px] font-medium text-[#353535] mb-3 font-Gantari">
                                     Team Name <span className="text-[#DD4342]">*</span>
                                 </label>
@@ -904,25 +929,35 @@ export default function CreateteamV() {
                         </form>
                     </div>
                 </div>
-            )}
+            </div>
+        )}
             {/* Edit Modal */}
             {showEditModal && (
                 <div className="fixed inset-0 z-100 flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
-                    <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-4 animate-in zoom-in-95 duration-200 relative overflow-visible my-auto font-Gantari">
-                        <button
-                            onClick={() => setShowEditModal(false)}
-                            className="absolute top-6 left-4 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
-                        >
-                            <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
-                        </button>
-
-                        <div className="text-center mb-10">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full max-h-[90vh] flex flex-col p-6 animate-in zoom-in-95 duration-200 relative overflow-hidden my-auto font-Gantari">
+                        <div className="relative mb-10 flex items-center justify-center min-h-[40px] w-full">
+                            <div className="group absolute left-0 z-10 top-1/2 -translate-y-1/2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEditModal(false)}
+                                    className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
+                                >
+                                    <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Close</span>
+                                    </div>
+                                </div>
+                            </div>
                             <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">
-                                Edit Team Details
+                                Edit Team details
                             </h3>
                         </div>
 
-                        <form onSubmit={handleUpdate} className="space-y-4">
+                        <div className="flex-1 overflow-y-auto px-1 custom-scrollbar">
+                            <form onSubmit={handleUpdate} className="space-y-6">
                             <div>
                                 <label className="block text-[14px] font-medium text-[#353535] mb-3 font-Gantari">
                                     Team Name <span className="text-[#DD4342]">*</span>
@@ -1152,23 +1187,24 @@ export default function CreateteamV() {
                                 </div>
                             </div>
 
-                            <div className="flex justify-center gap-6 pt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowEditModal(false)}
-                                    className="px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] text-[14px] font-medium transition-all active:scale-[0.98] cursor-pointer shadow-sm"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="px-12 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-medium transition-all disabled:opacity-50 cursor-pointer shadow-sm font-Gantari"
-                                >
-                                    {submitting ? "Updating..." : "Save Changes"}
-                                </button>
-                            </div>
-                        </form>
+                                <div className="flex justify-center gap-6 pt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowEditModal(false)}
+                                        className="px-6 py-2 rounded-md bg-[#F2F2F2] text-[#616161] text-[14px] font-medium transition-all active:scale-[0.98] cursor-pointer shadow-sm"
+                                    >
+                                        Discard
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="px-6 py-2 rounded-md bg-[#DBE9FE] text-[#101827] text-[14px] font-medium transition-all disabled:opacity-50 cursor-pointer shadow-sm font-Gantari"
+                                    >
+                                        {submitting ? "Updating..." : "Update"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             )}
@@ -1176,19 +1212,29 @@ export default function CreateteamV() {
             {/* Details Modal */}
             {showDetailsModal && selectedTeam && (
                 <div className="fixed inset-0 z-100 flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
-                    <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-visible my-auto font-Gantari">
-                        <button
-                            onClick={() => setShowDetailsModal(false)}
-                            className="absolute top-8 left-5 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-10"
-                        >
-                            <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
-                        </button>
-
-                        <div className="text-center mb-10">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full max-h-[90vh] flex flex-col p-6 animate-in zoom-in-95 duration-200 relative overflow-hidden my-auto font-Gantari">
+                        <div className="relative mb-10 flex items-center justify-center min-h-[40px] w-full">
+                            <div className="group absolute left-0 z-10 top-1/2 -translate-y-1/2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDetailsModal(false)}
+                                    className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
+                                >
+                                    <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Close</span>
+                                    </div>
+                                </div>
+                            </div>
                             <h3 className="text-[24px] font-semibold text-[#000000]">
-                                Team Details
+                                View Team Details
                             </h3>
                         </div>
+
+                        <div className="flex-1 overflow-y-auto px-1 custom-scrollbar">
 
                         <div className="space-y-6">
                             <div>
@@ -1254,7 +1300,8 @@ export default function CreateteamV() {
                         </div> */}
                     </div>
                 </div>
-            )}
+            </div>
+        )}
         </div>
     );
 }
