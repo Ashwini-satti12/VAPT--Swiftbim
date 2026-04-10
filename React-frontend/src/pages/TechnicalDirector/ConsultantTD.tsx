@@ -1389,10 +1389,10 @@ export default function ConsultantTD() {
       )}
 
       {activeView === 'edit' && (
-        <div className="flex-1 overflow-y-auto p-2 bg-white">
+        <div className="flex-1 overflow-y-auto px-5 py-2 bg-white">
           <div className="max-w-[1174px] mx-auto">
             <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
-              <div className="absolute left-6 group inline-flex shrink-0">
+              <div className="absolute left-1 group inline-flex shrink-0">
                 <button
                   type="button"
                   onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
@@ -1402,7 +1402,7 @@ export default function ConsultantTD() {
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-2 py-0.5 relative z-10">
                     <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                       Go Back
                     </span>
@@ -1630,18 +1630,18 @@ export default function ConsultantTD() {
               </div>
 
               {/* Form Actions */}
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8 border-t border-[#F0F0F0]">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8 ">
                 <button
                   type="button"
                   onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
-                  className="w-full sm:w-auto px-14 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px]transition-all cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-medium text-[14px] transition-all font-Gantari cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={editSubmitting}
-                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px]  transition-all cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-medium text-[14px] transition-all font-Gantari cursor-pointer disabled:opacity-50"
                 >
                   {editSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
@@ -1825,32 +1825,32 @@ export default function ConsultantTD() {
         </div>,
         document.body
       )}      {showDetailsModal && selectedEmployee && createPortal(
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-black/10 backdrop-blur-[3px]">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/10 backdrop-blur-[3px]">
           <div className="bg-white rounded-md max-w-[520px] w-full overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="flex items-center justify-center relative shrink-0">
-              <div className="absolute left-5 group inline-flex shrink-0">
+              <div className="absolute left-1 group inline-flex shrink-0">
                 <button
                   type="button"
                   onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
-                  className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer hover:bg-[#E8E8E8]"
+                  className="p-2 rounded-md bg-[#F2F2F2] transition-all cursor-pointer"
                 >
                   <FiX className="w-5 h-5 font-bold" />
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-3 py-0.5 relative z-10">
                     <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                       Close
                     </span>
                   </div>
                 </div>
               </div>
-              <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">View Details</h3>
+              <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">Consultant View Details</h3>
             </div>
 
             {/* Profile Section */}
-            <div className="flex items-center gap-4 px-4">
+            <div className="flex items-center gap-4 px-2">
               <div className="w-[38px] h-[38px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0 border border-slate-200 shadow-sm">
                 {selectedEmployee.profile_picture && selectedEmployee.profile_picture.trim() ? (
                   <img
@@ -1883,7 +1883,7 @@ export default function ConsultantTD() {
             </div>
 
             {/* Details Grid */}
-            <div className="px-4 sm:px-8 space-y-3 overflow-y-auto max-h-[60vh] custom-scrollbar">
+            <div className="px-2 sm:px-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
               {[
                 { label: 'Date of Birth', value: selectedEmployee.dob },
                 { label: 'Phone Number', value: selectedEmployee.phone_number },

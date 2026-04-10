@@ -36,7 +36,7 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-    { value: "show", label: "Show", start: 0, end: 50 },
+    { value: "show", label: "Show Entries", start: 0, end: 50 },
     { value: "1-50", label: "1-50", start: 0, end: 50 },
     { value: "51-100", label: "51-100", start: 50, end: 100 },
     { value: "101-150", label: "101-150", start: 100, end: 150 },
@@ -302,12 +302,12 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
         : "bg-gray-50 text-gray-500 border-gray-100";
 
   return (
-    <div className="h-full flex flex-col px-2 pt-1 pb-0 font-gantari bg-white">
+    <div className="h-full flex flex-col px-5 py-2 pt-1 pb-0 font-gantari bg-white">
       {/* Toast */}
 
 
       {/* ── Page Header ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 mb-6 ">
         <div className="flex items-center justify-between w-full md:w-auto">
           <div className="group relative inline-flex shrink-0">
             <button
@@ -318,7 +318,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
             </button>
             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
               <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
                 <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                   Go Back
                 </span>
@@ -327,7 +327,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
           </div>
           
           <h2 className="md:hidden text-xl font-gantari font-semibold text-[#000000] truncate px-2">
-            Bid Details
+            View Bid Details
           </h2>
 
           <div className="md:hidden flex items-center gap-2 shrink-0">
@@ -340,7 +340,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
         </div>
 
         <h2 className="hidden md:block text-2xl font-gantari font-semibold text-[#000000]">
-          Bid Details
+          View Bid Details
         </h2>
 
         <div className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto">
@@ -351,35 +351,45 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                 e.stopPropagation();
                 setShowEntriesOpen((o) => !o);
               }}
-              className="w-full md:w-auto flex items-center justify-between md:justify-start gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
+              className="w-full md:w-[150px] flex items-center justify-between md:justify-start gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 font-gantari text-[14px]"
             >
-              {selectedShowEntries === "show" ? (
-                <span className="text-sm font-medium text-[#616161] font-gantari">
-                  Show
-                </span>
-              ) : (
-                <div className="flex items-center gap-1 overflow-hidden">
-                  <span className="text-sm font-medium text-[#353535] font-gantari shrink-0">
-                    Show:
-                  </span>
-                  <span className="text-sm font-medium text-[#353535] font-gantari truncate">
-                    {
-                      showEntriesOptions.find(
-                        (o) => o.value === selectedShowEntries,
-                      )?.label
-                    }
-                  </span>
-                </div>
-              )}
+              <span
+                className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                  selectedShowEntries === "show"
+                    ? "text-[#8B8B8B]"
+                    : "text-[#353535]"
+                }`}
+              >
+                {selectedShowEntries === "show" ? (
+                  "Show Entries"
+                ) : (
+                  <>
+                    <span className="text-[14px]">Show:</span>{" "}
+                    <span className="font-semibold">
+                      {
+                        showEntriesOptions.find(
+                          (o) => o.value === selectedShowEntries,
+                        )?.label
+                      }
+                    </span>
+                  </>
+                )}
+              </span>
               <img
                 src={ArrowDown}
-                alt="arrow"
-                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
+                alt=""
+                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                  showEntriesOpen ? "rotate-180" : ""
+                } ${
+                  selectedShowEntries === "show"
+                    ? "opacity-60 grayscale"
+                    : "opacity-90"
+                }`}
               />
             </button>
             {showEntriesOpen && (
               <div
-                className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
+                className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-full py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
                 onMouseDown={(e) => e.preventDefault()}
               >
                 {showEntriesOptions.map((opt) => (
@@ -391,7 +401,11 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                       setSelectedShowEntries(opt.value);
                       setShowEntriesOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm font-medium cursor-pointer font-gantari transition-colors ${selectedShowEntries === opt.value ? "text-[#353535] bg-gray-100" : "text-[#616161] hover:text-[#353535] hover:bg-gray-50"}`}
+                    className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${
+                      selectedShowEntries === opt.value
+                        ? "text-[#353535] bg-[#F2F2F2]"
+                        : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                    }`}
                   >
                     {opt.label}
                   </button>

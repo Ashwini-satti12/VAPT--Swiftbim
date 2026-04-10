@@ -114,6 +114,8 @@ export interface FormDropdownProps {
   searchable?: boolean;
   /** Max option rows visible before scroll. Default 4. */
   maxVisibleRows?: number;
+  bgClass?: string;
+  fontClass?: string;
 }
 
 export function FormDropdown({
@@ -128,6 +130,8 @@ export function FormDropdown({
   dropdownRef,
   searchable = false,
   maxVisibleRows = 4,
+  bgClass = "bg-[#E8E8E8]",
+  fontClass = "font-semibold",
 }: FormDropdownProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const q = searchQuery.trim().toLowerCase();
@@ -155,7 +159,7 @@ export function FormDropdown({
   };
 
   const fieldShellClass =
-    "flex w-full items-center gap-2 rounded-md border border-transparent bg-[#E8E8E8] px-3 py-1.5 sm:py-2 text-left text-[14px] font-semibold font-Gantari transition-colors focus-within:border-[#AEACAC52]";
+    `flex w-full items-center gap-2 rounded-md border border-transparent ${bgClass} px-3 py-1.5 sm:py-2 text-left text-[14px] ${fontClass} font-Gantari transition-colors focus-within:border-[#AEACAC52]`;
 
   return (
     <div ref={setRootRef} className="relative w-full">
@@ -270,6 +274,8 @@ export interface TaskDropdownProps {
   menuUseFixedLayer?: boolean;
   /** Right segment of a compound field (same bar as text input); matches Attachments “Browse” styling. */
   triggerVariant?: "default" | "compositeEnd";
+  bgClass?: string;
+  fontClass?: string;
 }
 
 export function TaskDropdown({
@@ -289,6 +295,8 @@ export function TaskDropdown({
   menuAlign = "left",
   menuUseFixedLayer = false,
   triggerVariant = "default",
+  bgClass = "bg-[#E8E8E8]",
+  fontClass = "font-semibold",
 }: TaskDropdownProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [fixedPlacement, setFixedPlacement] = useState<{
@@ -376,7 +384,7 @@ export function TaskDropdown({
   const triggerButtonClass =
     triggerVariant === "compositeEnd"
       ? "inline-flex h-full min-h-[40px] w-auto shrink-0 items-center justify-between gap-2 border-0 border-l border-[#E0E0E0] bg-[#E2E2E2] px-4 py-2 text-[14px] font-Gantari text-[#8B8B8B] cursor-pointer outline-none transition-colors hover:bg-[#dadada] focus-visible:bg-[#dadada]"
-      : `inline-flex items-center justify-between rounded-md border border-transparent bg-[#E8E8E8] px-4 py-1.5 sm:py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`;
+      : `inline-flex items-center justify-between rounded-md border border-transparent ${bgClass} px-4 py-1.5 sm:py-2 text-[14px] ${fontClass} font-Gantari cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`;
 
   const triggerTextClass = `truncate font-Gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`;
 
@@ -450,7 +458,13 @@ export function TaskDropdown({
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${
+            isOpen ? "rotate-180" : ""
+          } ${
+            !(selected && selected !== label)
+              ? "opacity-60 grayscale"
+              : "opacity-90"
+          }`}
         />
       </button>
       {isOpen &&
@@ -726,10 +740,10 @@ function TaskCard({
     <div
       draggable={!isCompleted}
       onDragStart={handleDragStart}
-      className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative mx-auto w-full max-w-full lg:max-w-none ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+      className={`mt-2 rounded-md border border-[#AEACAC52] bg-white p-3 shadow-sm relative mx-auto w-full max-w-full lg:max-w-none ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <h4 className="font-semibold text-[#353535] text-[18px] truncate leading-tight">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <h4 className="font-medium text-[#353535] text-[20px] truncate leading-tight">
           {task.task_name || "Task Name"}
         </h4>
         <div className="relative" ref={menuRef}>
@@ -744,7 +758,7 @@ function TaskCard({
             aria-label="More options"
             aria-expanded={menuOpen}
           >
-            <img src={Dot} alt="Dot" className="w-5 h-5 text-slate-600" />
+            <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
           </button>
           {menuOpen && (
             <div
@@ -755,7 +769,7 @@ function TaskCard({
               <button
                 type="button"
                 role="menuitem"
-                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                 onClick={() => {
                   setMenuOpen(false);
                   onViewTask?.(task);
@@ -775,7 +789,7 @@ function TaskCard({
                   <button
                     type="button"
                     role="menuitem"
-                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                    className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                     onClick={() => {
                       setMenuOpen(false);
                       onEditTask?.(task);
@@ -793,7 +807,7 @@ function TaskCard({
                   <button
                     type="button"
                     role="menuitem"
-                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                    className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                     onClick={() => {
                       setMenuOpen(false);
                       onDeleteTask?.(task);
@@ -814,7 +828,7 @@ function TaskCard({
           )}
         </div>
       </div>
-      <div className="flex items-start justify-between gap-2 mb-2">
+      <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex flex-col ">
           <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
           <span className="text-[14px] font-medium text-[#8B8B8B]">
@@ -833,11 +847,11 @@ function TaskCard({
           </span>
         </div>
       </div>
-      <div className="flex items-center justify-between gap-2 mb-2">
+      <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-xs text-[#8B8B8B]">Progress</span>
         <span className="text-xs font-medium text-[#8B8B8B]">{progress}%</span>
       </div>
-      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
+      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
         <div
           className="h-full rounded-full bg-[#8B8B8B]"
           style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
@@ -867,7 +881,7 @@ function TaskCard({
                   .toUpperCase();
                 return (
                   <div
-                    className="w-7 h-7 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    className="w-8 h-8 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                     title={`Assigned To: ${task.assigned_full_name}`}
                   >
                     {src ? (
@@ -903,7 +917,7 @@ function TaskCard({
                   .toUpperCase();
                 return (
                   <div
-                    className="w-7 h-7 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                     title={`Assigned By: ${task.uploader_full_name}`}
                   >
                     {src ? (
@@ -1397,7 +1411,7 @@ export default function MytaskTD() {
 
   return (
     <div className="h-full min-h-0 flex flex-col overflow-y-auto lg:overflow-hidden bg-white custom-scrollbar relative">
-      <div className="bg-white flex-shrink-0 px-1 sm:px-0 pt-0 sm:pt-0 sm:mt-2">
+      <div className="bg-white flex-shrink-0 px-5 pt-0 sm:pt-0 sm:mt-2">
         {/* Row 1: Title and Add Task button for mobile only (hidden on lg) */}
         <div className="flex flex-row items-center justify-between w-full mb-4 lg:hidden">
           <h2 className="text-[20px] sm:text-[24px] font-semibold text-slate-800 font-Gantari">
@@ -1406,7 +1420,7 @@ export default function MytaskTD() {
           <button
             type="button"
             onClick={() => navigate("/td/mytasks/add")}
-            className="sm:hidden inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-4 py-1.5 text-[13px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all"
+            className="sm:hidden inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-2 py-1.5 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all"
           >
             <img src={AddBtn} alt="Add" className="h-4 w-4" />
             Add task
@@ -1494,7 +1508,7 @@ export default function MytaskTD() {
                 <img
                   src={ArrowDown}
                   alt=""
-                  className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                  className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
                     } ${selectedShowEntries === ""
                       ? "opacity-60 grayscale"
                       : "opacity-90"
@@ -1592,14 +1606,14 @@ export default function MytaskTD() {
       </div>
 
         {/* Status summary cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2 px-5">
           <Link
             to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-            className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
+            className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
           >
-            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">To Do</span>
+            <span className="text-[20px] font-bold text-[#0D1829]">To Do</span>
 
-            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">
+            <span className="text-[20px] font-bold text-[#0D1829]">
               ({counts.todo})
             </span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
@@ -1613,13 +1627,13 @@ export default function MytaskTD() {
                 ? pathname
                 : `${pathname}?status=in_progress`
             }
-            className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
+            className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
           >
-            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">
+            <span className="text-[20px] font-bold text-[#0D1829]">
               In Progress
             </span>
 
-            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">
+            <span className="text-[20px] font-bold text-[#0D1829]">
               ({counts.in_progress})
             </span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
@@ -1633,11 +1647,11 @@ export default function MytaskTD() {
                 ? pathname
                 : `${pathname}?status=completed`
             }
-            className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
+            className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
           >
-            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">Completed</span>
+            <span className="text-[20px] font-bold text-[#0D1829]">Completed</span>
 
-            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">
+            <span className="text-[20px] font-bold text-[#0D1829]">
               ({counts.completed})
             </span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
@@ -1646,10 +1660,10 @@ export default function MytaskTD() {
           </Link>
         </div>
         {/* Task columns area */}
-      <div className="flex-1 min-h-0 lg:overflow-y-auto lg:custom-scrollbar px-2 sm:px-0 pr-1 sm:pr-0 sm:mr-1">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4 justify-items-center">
+      <div className="flex-1 min-h-0 lg:overflow-y-auto lg:custom-scrollbar px-4 pr-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pb-4 justify-items-center">
           <div
-            className="flex flex-col items-center gap-3 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1 w-full max-w-md mx-auto"
+            className="flex flex-col items-center gap-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1 w-full max-w-md mx-auto"
             onDragOver={(e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = "move";
@@ -1672,7 +1686,7 @@ export default function MytaskTD() {
             ))}
           </div>
           <div
-            className="flex flex-col items-center gap-3 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1 w-full max-w-md mx-auto"
+            className="flex flex-col items-center gap-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1 w-full max-w-md mx-auto"
             onDragOver={(e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = "move";
@@ -1695,7 +1709,7 @@ export default function MytaskTD() {
             ))}
           </div>
           <div
-            className="flex flex-col items-center gap-3 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1 w-full max-w-md mx-auto"
+            className="flex flex-col items-center gap-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1 w-full max-w-md mx-auto"
             onDragOver={(e) => {
               e.preventDefault();
               e.dataTransfer.dropEffect = "move";

@@ -293,13 +293,19 @@ export default function MytaskViewPM() {
     <div className="flex-1 flex flex-col min-h-0 bg-white">
       {/* Header */}
       <div className="flex items-center justify-between px-6 ">
-        <Link
-          to={backTo}
-          className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
-          aria-label="Back"
-        >
-          <img src={backIcon} alt="Back" className="w-5 h-5" />
-        </Link>
+        <div className="relative group p-2">
+          <Link
+            to={backTo}
+            className="p-2 flex items-center justify-center rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+            aria-label="Back"
+          >
+            <img src={backIcon} alt="Back" className="w-5 h-5 object-contain" />
+          </Link>
+          {/* Tooltip */}
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-white text-[#353535] text-[14px] font-Gantari font-semibold rounded-md shadow-[0_4px_20px_rgba(0,0,0,0.15)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[100] after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-[6px] after:border-transparent after:border-t-white">
+            Back
+          </div>
+        </div>
         <h1 className="flex-1 text-center text-[24px] font-semibold text-black">
           {task.task_name || "Task Name"}
         </h1>

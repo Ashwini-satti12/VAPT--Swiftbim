@@ -93,10 +93,14 @@ export default function PartnerTD() {
                                         </span>
                                         <Link
                                             to={`/td/partner/${partner.id}`}
-                                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] hover:text-[#353535] transition-colors shrink-0 pr-2"
+                                            className="group inline-flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] hover:text-[#353535] transition-colors shrink-0 pr-2"
                                         >
                                             Details
-                                            <img src={upArrow} alt="Up" className="w-5 h-5 object-contain" />
+                                            <img 
+                                                src={upArrow} 
+                                                alt="Up" 
+                                                className="w-5 h-5 object-contain transition-all duration-200 brightness-0 invert-[54%] group-hover:invert-[21%]" 
+                                            />
                                         </Link>
                                     </div>
                                 </div>

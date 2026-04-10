@@ -100,7 +100,7 @@ function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-1.5 sm:py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-3 py-1.5 sm:py-2 text-[14px] font-semibold font-Gantari cursor-pointer border-0 outline-none transition-all ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
@@ -120,7 +120,11 @@ function TaskDropdown({
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""
+            } ${(!selected || selected === label)
+              ? "opacity-60 grayscale"
+              : "opacity-90"
+            }`}
         />
       </button>
       {isOpen && (
@@ -139,7 +143,7 @@ function TaskDropdown({
                 onClick={(e) => e.stopPropagation()}
                 onKeyDown={(e) => e.stopPropagation()}
                 placeholder={searchPlaceholder}
-                className="w-full rounded border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400"
+                className="w-full rounded-md border border-transparent bg-[#F2F3F4] px-3 py-2 text-sm font-Gantari text-[#353535] outline-none transition-colors placeholder-[#8B8B8B] focus:border-[#AEACAC52]"
                 aria-label={searchPlaceholder}
               />
             </div>
@@ -332,9 +336,9 @@ function TaskCard({
     <div
       draggable={!isCompleted && !isOutsource}
       onDragStart={handleDragStart}
-      className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative mx-auto w-full max-w-full lg:max-w-none ${isCompleted || isOutsource ? "cursor-default opacity-90" : "cursor-grab active:cursor-grabbing"}`}
+      className={`mt-2 rounded-md border border-slate-200 bg-white p-3 shadow-sm relative mx-auto w-full max-w-full lg:max-w-none ${isCompleted || isOutsource ? "cursor-default opacity-90" : "cursor-grab active:cursor-grabbing"}`}
     >
-      <div className="flex items-center justify-between gap-2 mb-2">
+      <div className="flex items-center justify-between gap-2 mb-3">
         <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[18px] truncate leading-tight">
           {task.task_name || "Task Name"}
         </h4>
@@ -350,7 +354,7 @@ function TaskCard({
             aria-label="More options"
             aria-expanded={menuOpen}
           >
-            <img src={Dot} alt="Dot" className="w-5 h-5 object-contain" />
+            <img src={Dot} alt="Dot" className="w-4 h-4 object-contain" />
           </button>
           {menuOpen && (
             <div
@@ -439,7 +443,7 @@ function TaskCard({
           </span>
         </div>
       </div>
-      <div className="flex items-center justify-between gap-2 mb-2">
+      <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-xs text-[#8B8B8B]">Progress</span>
         <span className="text-xs font-medium text-[#8B8B8B]">
           {progress}%
@@ -974,7 +978,7 @@ export default function TeamtaskTD() {
 
   return (
     <div className="h-full min-h-0 flex flex-col overflow-y-auto lg:overflow-hidden bg-white custom-scrollbar relative">
-      <div className="bg-white flex-shrink-0 px-1 sm:px-0 pt-0 sm:pt-0 sm:mt-2">
+      <div className="bg-white flex-shrink-0 px-1 sm:px-5 pt-0 sm:pt-0 sm:mt-2">
         {/* Row 1: Title and Add Task button for mobile only */}
         <div className="flex flex-row items-center justify-between w-full mb-4 lg:hidden">
           <h2 className="text-[20px] sm:text-[24px] font-semibold text-slate-800 font-Gantari">
@@ -1076,7 +1080,7 @@ export default function TeamtaskTD() {
                 <img
                   src={ArrowDown}
                   alt=""
-                  className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                  className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
                     } ${selectedShowEntries === ""
                       ? "opacity-60 grayscale"
                       : "opacity-90"
@@ -1230,7 +1234,7 @@ export default function TeamtaskTD() {
       </div>
 
       {/* Task columns area */}
-      <div className="flex-1 min-h-0 lg:overflow-y-auto lg:custom-scrollbar px-2 sm:px-0 pr-1 sm:pr-0 sm:mr-1">
+      <div className="flex-1 min-h-0 lg:overflow-y-auto lg:custom-scrollbar px-2 sm:px-4 pr-1 sm:pr-0">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4 justify-items-center">
           <div
             className="flex flex-col items-center gap-3 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1 w-full max-w-md mx-auto"

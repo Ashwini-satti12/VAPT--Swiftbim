@@ -4,7 +4,30 @@ import { useNavigate } from 'react-router-dom';
 import { FiChevronDown } from 'react-icons/fi';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
 import { getPhoneLength } from '../../utils/countryCodes';
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function openAttachmentInNewTab(file: File) {
+  const url = URL.createObjectURL(file);
+  const opened = window.open(url, "_blank", "noopener,noreferrer");
+  if (!opened) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+  window.setTimeout(() => URL.revokeObjectURL(url), 300_000);
+}
 
 const ROLE_OPTIONS: string[] = [];
 
@@ -86,6 +109,7 @@ export default function AddConsultantTD() {
     profile_picture: null as File | null,
   });
   const [countryCode, setCountryCode] = useState('+91');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const todayISO = new Date().toISOString().split('T')[0];
 
   const COUNTRY_CODES = ['+91', '+1', '+44', '+61', '+81', '+971'];
@@ -186,7 +210,7 @@ export default function AddConsultantTD() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-2 bg-white relative">
+    <div className="flex-1 overflow-y-auto px-5 py-2 bg-white relative">
       {successMsg && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-3 px-5 py-3 rounded-lg bg-white shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-gray-100 min-w-[300px] animate-in fade-in slide-in-from-top-2 duration-300 font-Gantari">
           <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#58D662]">
@@ -214,10 +238,17 @@ export default function AddConsultantTD() {
           <button
             type="button"
             onClick={() => navigate('/td/consultants')}
-            className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
-            title="Back"
+            className="p-2 rounded-md bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer group relative"
+            aria-label="Back"
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
+            {/* Tooltip */}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Go Back</span>
+              </div>
+            </div>
           </button>
           <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
             Add New Consultant
@@ -316,7 +347,7 @@ export default function AddConsultantTD() {
                   value={form.dob}
                   onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
                   max={todayISO}
-                  className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                  className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52] ${form.dob ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
                 />
               </div>
               <div>
@@ -345,25 +376,82 @@ export default function AddConsultantTD() {
                   type="date"
                   value={form.joining_date}
                   onChange={(e) => setForm((f) => ({ ...f, joining_date: e.target.value }))}
-                  className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                  className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] ${form.joining_date ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
                 />
               </div>
               <div className="space-y-2">
                 <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Upload Profile Picture</label>
                 <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
-                  <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
-                    {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
+                  <div className="flex-1 px-4 text-[14px] text-[#979797] truncate min-w-0 py-2">
+                    {form.profile_picture ? "1 file(s) attached" : "Choose file (JPEG or JPG only)"}
                   </div>
-                  <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept=".jpg,.jpeg"
+                    onChange={(e) => setForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-5 py-2 bg-[#E2E2E2] text-[#8B8B8B] text-[14px] cursor-pointer transition-colors shrink-0 font-Gantari border-0"
+                  >
                     Browse File
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept=".jpg,.jpeg"
-                      onChange={(e) => setForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
-                    />
-                  </label>
+                  </button>
                 </div>
+                {form.profile_picture && (
+                  <div className="mt-2 flex items-center gap-2 rounded-[5px] bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827]">
+                    <div className="min-w-0 flex-1">
+                      <span className="block truncate font-Gantari" title={form.profile_picture.name}>
+                        {form.profile_picture.name}
+                      </span>
+                      <span className="text-xs text-[#8B8B8B]">
+                        {formatFileSize(form.profile_picture.size)}
+                      </span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <div className="group relative">
+                        <button
+                          type="button"
+                          onClick={() => openAttachmentInNewTab(form.profile_picture!)}
+                          className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
+                          aria-label="View in new tab"
+                        >
+                          <img src={viewIcon} alt="view" className="h-5 w-5" />
+                        </button>
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                          <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-1 relative z-10">
+                            <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">View</span>
+                          </div>
+                          <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                        </div>
+                      </div>
+
+                      <div className="group relative">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForm((f) => ({ ...f, profile_picture: null }));
+                            if (fileInputRef.current) fileInputRef.current.value = '';
+                          }}
+                          className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
+                          aria-label="Remove"
+                        >
+                          <img src={deleteIcon} alt="delete" className="h-5 w-5" />
+                        </button>
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                          <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-1 relative z-10">
+                            <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Delete</span>
+                          </div>
+                          <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -383,14 +471,14 @@ export default function AddConsultantTD() {
             <button
               type="button"
               onClick={() => navigate('/td/consultants')}
-              className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
+              className="w-full sm:w-auto px-6 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-medium text-[14px] transition-all font-Gantari cursor-pointer"
             >
               Discard
             </button>
             <button
               type="submit"
               disabled={addSubmitting}
-              className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px] cursor-pointer"
+              className="w-full sm:w-auto px-6 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-medium text-[14px] disabled:opacity-50 transition-all font-Gantari cursor-pointer"
             >
               {addSubmitting ? 'Submitting...' : 'Submit'}
             </button>

@@ -67,6 +67,7 @@ function CustomDropdown({
   styleType = "form",
   menuMaxHeightClass = "max-h-[220px]",
   direction = "down",
+  selectedPrefix = "",
 }: {
   options: string[];
   value: string;
@@ -76,6 +77,7 @@ function CustomDropdown({
   styleType?: "form" | "header" | "table";
   menuMaxHeightClass?: string;
   direction?: "up" | "down";
+  selectedPrefix?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -141,10 +143,19 @@ function CustomDropdown({
       >
         <span
           className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-            isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535]"
+            isPlaceholder || isOpen ? "text-[#8B8B8B]" : "text-[#353535]"
           }`}
         >
-          {isPlaceholder ? placeholder : value}
+          {isPlaceholder || isOpen ? (
+            placeholder
+          ) : (
+            <>
+              {selectedPrefix && (
+                <span className="text-[14px] font-normal">{selectedPrefix}</span>
+              )}{" "}
+              <span>{value}</span>
+            </>
+          )}
         </span>
         <img
           src={ArrowDown}
@@ -168,7 +179,7 @@ function CustomDropdown({
           }}
         >
           <div
-            className={`flex flex-col py-1 overflow-y-auto ${menuMaxHeightClass} custom-scrollbar`}
+            className={`flex flex-col py-2 overflow-y-auto ${menuMaxHeightClass} custom-scrollbar`}
           >
             {options.map((option) => (
               <button
@@ -520,7 +531,7 @@ export default function ProjectsTD() {
   >([]);
 
   const [typeFilter, setTypeFilter] = useState<
-    "All" | "In House" | "Outsource"
+    "Type" | "All" | "In House" | "Outsource"
   >("All");
 
   // Profile modal state
@@ -1041,7 +1052,7 @@ export default function ProjectsTD() {
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
                     <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                       Go Back
                     </span>
@@ -2239,7 +2250,7 @@ export default function ProjectsTD() {
                       <button
                         type="button"
                         onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-1 sm:gap-2 shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
+                        className="flex items-center gap-1 sm:gap-2 shrink-0 px-2.5 py-2 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
                       >
                         <img
                           src={plusIcon}
@@ -2251,11 +2262,11 @@ export default function ProjectsTD() {
                     )}
                     <div className="shrink-0">
                       <CustomDropdown
-                        options={["All", "In House", "Outsource"]}
+                        options={["Type", "All", "In House", "Outsource"]}
                         value={typeFilter}
                         onChange={(val) =>
                           setTypeFilter(
-                            val as "All" | "In House" | "Outsource",
+                            val as any,
                           )
                         }
                         placeholder="Type"
@@ -2275,7 +2286,7 @@ export default function ProjectsTD() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(() => {
                   const displayList =
-                    typeFilter === "All"
+                    typeFilter === "All" || typeFilter === "Type"
                       ? filteredList
                       : filteredList.filter((p) => p.source === typeFilter);
 
@@ -2357,7 +2368,7 @@ export default function ProjectsTD() {
                                 <img
                                   src={threedot}
                                   alt="threeDots"
-                                  className="w-5 h-5 text-[#8B8B8B]"
+                                  className="w-4 h-4 text-[#8B8B8B]"
                                 />
                               </button>
                               <div
@@ -3476,10 +3487,10 @@ export default function ProjectsTD() {
 
       {/* Edit Project Details Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-5 py-2 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-md shadow-2xl max-w-3xl w-full flex flex-col max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
-            <div className="relative flex items-center justify-center px-10 py-8 border-b border-gray-100">
+            <div className="relative flex items-center justify-center px-10 py-8">
               <div className="absolute left-8 group inline-flex shrink-0">
                 <button
                   type="button"
@@ -3512,7 +3523,7 @@ export default function ProjectsTD() {
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px] "></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
                     <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                       Close
                     </span>
@@ -3965,7 +3976,7 @@ export default function ProjectsTD() {
                       setCreateLocation("");
                       setCreateDescription("");
                     }}
-                    className="px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-Gantari font-semibold text-[16px] transition-all cursor-pointer"
+                    className="px-6 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-Gantari font-medium text-[14px] transition-all cursor-pointer"
                   >
                     Discard
                   </button>
@@ -3980,7 +3991,7 @@ export default function ProjectsTD() {
                           parseBudgetValue(createBudget))
                       )
                     }
-                    className="px-8 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-Gantari font-semibold text-[16px] transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                    className="px-6 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-Gantari font-medium text-[14px] transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {isEditSubmitting ? "Updating..." : "Update Project"}
                   </button>
