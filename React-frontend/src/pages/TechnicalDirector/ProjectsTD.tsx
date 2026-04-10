@@ -3140,22 +3140,35 @@ export default function ProjectsTD() {
                         <label className="block text-[16px] font-medium text-[#000000]">
                           Outsourcing Budget <span className="text-[#DD4342]">*</span>
                         </label>
-                        <input
-                          type="text"
-                          className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-md focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
-                            const clientNum = parseBudgetValue(createBudget);
-                            const outsourceNum =
-                              parseBudgetValue(createBudgetCeiling);
-                            return outsourceNum > clientNum
-                              ? "border-[#DD4342] focus:border-[#DD4342]"
-                              : "border-transparent focus:border-[#AEACAC52]";
-                          })()}`}
-                          placeholder="Enter Outsourcing Budget"
-                          value={createBudgetCeiling}
-                          onChange={(e) =>
-                            setCreateBudgetCeiling(e.target.value)
-                          }
-                        />
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={createCurrency}
+                            onChange={(e) => setCreateCurrency(e.target.value)}
+                            className="w-[160px] px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-md focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535]"
+                          >
+                            {CURRENCIES.map((c) => (
+                              <option key={c.code} value={c.code}>
+                                {c.symbol} {c.code}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            className={`flex-1 px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-md focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
+                              const clientNum = parseBudgetValue(createBudget);
+                              const outsourceNum =
+                                parseBudgetValue(createBudgetCeiling);
+                              return outsourceNum > clientNum
+                                ? "border-[#DD4342] focus:border-[#DD4342]"
+                                : "border-transparent focus:border-[#AEACAC52]";
+                            })()}`}
+                            placeholder="Enter Outsourcing Budget"
+                            value={createBudgetCeiling}
+                            onChange={(e) =>
+                              setCreateBudgetCeiling(e.target.value)
+                            }
+                          />
+                        </div>
                         {(() => {
                           const clientNum = parseBudgetValue(createBudget);
                           const outsourceNum =
@@ -3550,7 +3563,14 @@ export default function ProjectsTD() {
                   }
                   const id = selectedProjectForEdit.id;
                   setIsEditSubmitting(true);
-                  const endpoint = selectedProjectForEdit.source === "Outsource" ? `/api/vendors/vendor-projects/${id}` : `/api/projects/${id}`;
+                  const primaryEndpoint =
+                    selectedProjectForEdit.source === "Outsource"
+                      ? `/api/vendors/vendor-projects/${id}`
+                      : `/api/projects/${id}`;
+                  const fallbackEndpoint =
+                    selectedProjectForEdit.source === "Outsource"
+                      ? `/api/projects/${id}`
+                      : `/api/vendors/vendor-projects/${id}`;
 
                   const formData = new FormData();
                   formData.append("project_name", createName.trim());
@@ -3598,9 +3618,27 @@ export default function ProjectsTD() {
                   createFiles.forEach((file) => formData.append("files", file));
                   removedFiles.forEach((file) => formData.append("removed_files", file));
 
-                  api
-                    .put(endpoint, formData, {
+                  const putPrimary = () =>
+                    api.put(primaryEndpoint, formData, {
                       headers: { "Content-Type": "multipart/form-data" },
+                    });
+                  const putFallback = () =>
+                    api.put(fallbackEndpoint, formData, {
+                      headers: { "Content-Type": "multipart/form-data" },
+                    });
+
+                  putPrimary()
+                    .catch((err) => {
+                      // Some merged-list rows can carry a mismatched source/id pair.
+                      // If primary endpoint says "Project not found", retry alternate endpoint.
+                      const message = String(
+                        err?.response?.data?.message || err?.response?.data?.error || "",
+                      ).toLowerCase();
+                      const status = Number(err?.response?.status || 0);
+                      const isNotFound =
+                        status === 404 || message.includes("project not found");
+                      if (!isNotFound) throw err;
+                      return putFallback();
                     })
                     .then(({ data }) => {
                       if ((data as { success?: boolean }).success) {
@@ -3893,24 +3931,37 @@ export default function ProjectsTD() {
                         <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
                           Outsourcing Budget
                         </label>
-                        <input
-                          type="text"
-                          className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-md focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
-                            const clientNum = parseBudgetValue(createBudget);
-                            const outsourceNum =
-                              parseBudgetValue(createBudgetCeiling);
-                            return outsourceNum > clientNum
-                              ? "border-[#DD4342] focus:border-[#DD4342]"
-                              : "border-transparent focus:border-[#AEACAC52]";
-                          })()}`}
-                          placeholder="Enter Outsourcing Budget"
-                          value={createBudgetCeiling}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9.]/g, "");
-                            const parts = val.split(".");
-                            if (parts.length <= 2) setCreateBudgetCeiling(val);
-                          }}
-                        />
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={createCurrency}
+                            onChange={(e) => setCreateCurrency(e.target.value)}
+                            className="w-[160px] px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-md focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535]"
+                          >
+                            {CURRENCIES.map((c) => (
+                              <option key={c.code} value={c.code}>
+                                {c.symbol} {c.code}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            className={`flex-1 px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-md focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
+                              const clientNum = parseBudgetValue(createBudget);
+                              const outsourceNum =
+                                parseBudgetValue(createBudgetCeiling);
+                              return outsourceNum > clientNum
+                                ? "border-[#DD4342] focus:border-[#DD4342]"
+                                : "border-transparent focus:border-[#AEACAC52]";
+                            })()}`}
+                            placeholder="Enter Outsourcing Budget"
+                            value={createBudgetCeiling}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9.]/g, "");
+                              const parts = val.split(".");
+                              if (parts.length <= 2) setCreateBudgetCeiling(val);
+                            }}
+                          />
+                        </div>
                         {(() => {
                           const clientNum = parseBudgetValue(createBudget);
                           const outsourceNum =

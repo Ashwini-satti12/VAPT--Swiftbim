@@ -88,6 +88,68 @@ def _serialize(value):
     return value
 
 
+# Static conversion rates against INR for quick backend-side bid conversions.
+# This keeps bid comparison deterministic without external API dependency.
+_FX_TO_INR = {
+    "INR": 1.0,
+    "USD": 83.0,
+    "EUR": 90.0,
+    "GBP": 105.0,
+    "AED": 22.6,
+    "SAR": 22.1,
+    "QAR": 22.8,
+    "OMR": 215.0,
+    "BHD": 220.0,
+    "KWD": 270.0,
+    "SGD": 61.5,
+    "AUD": 54.0,
+    "CAD": 60.0,
+    "JPY": 0.56,
+    "CNY": 11.5,
+    "MYR": 17.8,
+    "THB": 2.3,
+    "IDR": 0.0052,
+}
+
+
+def _normalize_currency(code):
+    c = (code or "INR").strip().upper()
+    return c if c in _FX_TO_INR else "INR"
+
+
+def _convert_currency(amount, from_currency, to_currency):
+    frm = _normalize_currency(from_currency)
+    to = _normalize_currency(to_currency)
+    amt = float(amount or 0)
+    in_inr = amt * _FX_TO_INR[frm]
+    converted = in_inr / _FX_TO_INR[to]
+    return round(converted, 2)
+
+
+def _ensure_vendor_bid_currency_columns(cur):
+    """Ensure vendor_bids can store vendor currency and converted amount."""
+    for col, ddl in (
+        ("bid_currency", "VARCHAR(10) DEFAULT 'INR'"),
+        ("bid_amount_original", "DECIMAL(15,2) NULL"),
+        ("opportunity_currency", "VARCHAR(10) DEFAULT 'INR'"),
+    ):
+        try:
+            cur.execute(
+                """
+                SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'vendor_bids'
+                  AND COLUMN_NAME = %s
+                LIMIT 1
+                """,
+                (col,),
+            )
+            if cur.fetchone() is None:
+                cur.execute(f"ALTER TABLE snh6_swiftproject.vendor_bids ADD COLUMN {col} {ddl}")
+        except Exception:
+            pass
+
+
 def _parse_iso_date(val):
     if not val:
         return None
@@ -1046,14 +1108,20 @@ def list_opportunities():
             already_bid = {r["opportunity_id"] for r in cur.fetchall()}
 
         cur.execute(
-            """SELECT * FROM vendor_bidding
-               WHERE status = 'active'
-               ORDER BY bid_deadline ASC"""
+            """
+            SELECT vb.*,
+                   COALESCE(NULLIF(TRIM(vb.currency), ''), NULLIF(TRIM(p.currency), ''), 'INR') AS currency
+            FROM vendor_bidding vb
+            LEFT JOIN projects p ON p.id = vb.project_id
+            WHERE vb.status = 'active'
+            ORDER BY vb.bid_deadline ASC
+            """
         )
         rows = cur.fetchall()
         opportunities = []
         for r in rows:
             item = {k: _serialize(v) for k, v in r.items()}
+            item["currency"] = _normalize_currency(item.get("currency") or "INR")
             item["already_bid"] = item["id"] in already_bid
             opportunities.append(item)
     except Exception:
@@ -1074,6 +1142,7 @@ def submit_bid(opportunity_id):
     """
     data = request.get_json(silent=True) or {}
     bid_amount = data.get("bid_amount")
+    selected_currency = data.get("selected_currency")
     notes = data.get("notes", "")
     timeline = data.get("timeline", "")
     team_size = data.get("team_size", 0)
@@ -1088,12 +1157,18 @@ def submit_bid(opportunity_id):
 
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+    _ensure_vendor_bid_currency_columns(cur)
 
     # Verify the opportunity exists and is still active
     try:
         cur.execute(
-            """SELECT id, project_name, bid_deadline, outsource_budget, budget_ceiling
-               FROM snh6_swiftproject.vendor_bidding WHERE id = %s AND status = 'active'""",
+            """
+            SELECT vb.id, vb.project_name, vb.bid_deadline, vb.outsource_budget, vb.budget_ceiling,
+                   COALESCE(NULLIF(TRIM(vb.currency), ''), NULLIF(TRIM(p.currency), ''), 'INR') AS currency
+            FROM snh6_swiftproject.vendor_bidding vb
+            LEFT JOIN projects p ON p.id = vb.project_id
+            WHERE vb.id = %s AND vb.status = 'active'
+            """,
             (opportunity_id,),
         )
         opp = cur.fetchone()
@@ -1128,6 +1203,10 @@ def submit_bid(opportunity_id):
     except (TypeError, ValueError):
         return jsonify({"success": False, "message": "Invalid bid amount"}), 400
 
+    opp_currency = _normalize_currency(opp.get("currency") or "INR")
+    vendor_currency = _normalize_currency(selected_currency or opp_currency)
+    converted_bid_val = _convert_currency(bid_val, vendor_currency, opp_currency)
+
     caps = []
     for key in ("outsource_budget", "budget_ceiling"):
         fv = _to_float_budget(opp.get(key))
@@ -1135,11 +1214,11 @@ def submit_bid(opportunity_id):
             caps.append(fv)
     if caps:
         max_bid = min(caps)
-        if bid_val > max_bid:
+        if converted_bid_val > max_bid:
             return jsonify(
                 {
                     "success": False,
-                    "message": f"Your bid amount is too high. It cannot exceed ₹{max_bid:,.2f} for this opportunity.",
+                    "message": f"Your bid amount is too high. It cannot exceed {opp_currency} {max_bid:,.2f} for this opportunity.",
                 }
             ), 400
 
@@ -1149,7 +1228,25 @@ def submit_bid(opportunity_id):
                VALUES (%s, %s, %s, %s, %s, %s, 'submitted', NOW())
                ON DUPLICATE KEY UPDATE bid_amount = VALUES(bid_amount), notes = VALUES(notes),
                timeline = VALUES(timeline), team_size = VALUES(team_size), status = 'submitted'""",
-            (vendor_id, opportunity_id, bid_amount, notes, timeline, team_size),
+            (
+                vendor_id,
+                opportunity_id,
+                converted_bid_val,
+                notes,
+                timeline,
+                team_size,
+            ),
+        )
+        # Persist vendor-entered currency and original amount for display/audit.
+        cur.execute(
+            """
+            UPDATE snh6_swiftproject.vendor_bids
+            SET bid_currency = %s,
+                bid_amount_original = %s,
+                opportunity_currency = %s
+            WHERE vendor_id = %s AND opportunity_id = %s
+            """,
+            (vendor_currency, bid_val, opp_currency, vendor_id, opportunity_id),
         )
         conn.commit()
     except Exception as e:
@@ -1233,7 +1330,8 @@ def my_bids():
     try:
         cur.execute(
             """SELECT vb.*, vbidding.project_name, vbidding.outsource_budget,
-                      vbidding.budget_ceiling, vbidding.bid_deadline
+                      vbidding.budget_ceiling, vbidding.bid_deadline,
+                      vbidding.currency AS opportunity_currency_display
                FROM snh6_swiftproject.vendor_bids vb
                LEFT JOIN vendor_bidding vbidding ON vbidding.id = vb.opportunity_id
                WHERE vb.vendor_id = %s
@@ -1241,7 +1339,17 @@ def my_bids():
             (vendor_id,),
         )
         rows = cur.fetchall()
-        bids = [{k: _serialize(v) for k, v in r.items()} for r in rows]
+        bids = []
+        for r in rows:
+            item = {k: _serialize(v) for k, v in r.items()}
+            # Keep existing frontend compatibility: `currency` reflects vendor-selected bid currency.
+            item["currency"] = _normalize_currency(
+                item.get("bid_currency")
+                or item.get("currency")
+                or item.get("opportunity_currency_display")
+                or "INR"
+            )
+            bids.append(item)
     except Exception:
         bids = []
 
@@ -1746,8 +1854,10 @@ def bidding_bids(bidding_id):
                    ve.full_name AS vendor_name,
                    ve.email AS vendor_email,
                    ve.phone_number AS vendor_phone,
-                   ve.full_name AS company_name
+                   ve.full_name AS company_name,
+                   b.currency AS opportunity_currency_display
             FROM snh6_swiftproject.vendor_bids vb
+            LEFT JOIN snh6_swiftproject.vendor_bidding b ON b.id = vb.opportunity_id
             LEFT JOIN snh6_swiftproject.vendor_employee ve ON ve.id = vb.vendor_id
             WHERE vb.opportunity_id = %s
             ORDER BY vb.bid_amount ASC

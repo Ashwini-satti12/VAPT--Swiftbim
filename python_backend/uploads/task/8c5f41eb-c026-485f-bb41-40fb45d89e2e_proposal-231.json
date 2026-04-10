@@ -1,0 +1,47 @@
+{
+  "about_us": "yyyyyyy",
+  "assigned_to": "technical team",
+  "commercial_offer": [
+    {
+      "duration": "",
+      "price": "",
+      "task": ""
+    }
+  ],
+  "created_at": "Mon, 16 Feb 2026 12:14:22 GMT",
+  "deliverables_intro": "<p>yyyyyyy</p>",
+  "deliverables_list": [],
+  "enquiry_company_name": "Mine",
+  "enquiry_email": "vaibhaviv80@gmail.com",
+  "enquiry_full_name": "Vibhavi",
+  "enquiry_project_location": "Albania",
+  "exclusions_list": [
+    {
+      "text": "<p>yyyyyyy</p>"
+    }
+  ],
+  "executive_summary": "yyyyyyy xxxxx",
+  "id": 39,
+  "location_address": "yyyyyyy",
+  "location_email": "yyyyyyy",
+  "location_website": "yyyyyyy",
+  "payment_terms": [
+    {
+      "basis": "",
+      "terms": "",
+      "timeline": ""
+    }
+  ],
+  "price": "55",
+  "rework": "rrrr",
+  "rework_reason": "rrrr",
+  "scope_of_work": "<p>yyyyyyy</p>",
+  "service_id": 23,
+  "technical_status": "Proposal Updated",
+  "technologies": [
+    {
+      "module": "yyyyyyy"
+    }
+  ],
+  "verification_status": "sent to client"
+}

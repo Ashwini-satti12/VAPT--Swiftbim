@@ -21,6 +21,10 @@ interface VendorBid {
   vendor_email: string;
   vendor_phone: string;
   company_name: string;
+  bid_currency?: string;
+  bid_amount_original?: number;
+  opportunity_currency?: string;
+  opportunity_currency_display?: string;
   rank: number;
   is_top4: boolean;
 }
@@ -170,10 +174,10 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showEntriesOpen]);
 
-  const formatCurrency = (amount: number) =>
+  const formatCurrency = (amount: number, currencyCode = "INR") =>
     new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
+      currency: currencyCode || "INR",
       maximumFractionDigits: 0,
     }).format(amount);
 
@@ -300,6 +304,10 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
       : computedStatus === "awarded"
         ? "bg-green-50 text-green-600 border-green-100"
         : "bg-gray-50 text-gray-500 border-gray-100";
+  const projectCurrency =
+    (String(opportunity.currency || opportunity.opportunity_currency_display || "INR")
+      .trim()
+      .toUpperCase()) || "INR";
 
   return (
     <div className="h-full flex flex-col px-2 pt-1 pb-0 font-gantari bg-white">
@@ -429,6 +437,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                   opportunity.budget_ceiling ||
                   opportunity.outsource_budget ||
                   0,
+                  projectCurrency,
                 )}
               </p>
             </div>
@@ -642,7 +651,22 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
 
                           {/* Bid Amount */}
                           <td className="px-3 py-6 text-center text-[14px] font-bold text-[#353535] font-gantari whitespace-nowrap align-middle">
-                            {formatCurrency(bid.bid_amount)}
+                            {formatCurrency(
+                              bid.bid_amount,
+                              bid.opportunity_currency ||
+                                bid.opportunity_currency_display ||
+                                projectCurrency,
+                            )}
+                            {bid.bid_amount_original &&
+                            bid.bid_currency &&
+                            (bid.bid_currency !==
+                              (bid.opportunity_currency ||
+                                bid.opportunity_currency_display ||
+                                projectCurrency)) ? (
+                              <div className="text-[11px] font-medium text-[#616161] mt-1">
+                                {formatCurrency(bid.bid_amount_original, bid.bid_currency)} (vendor)
+                              </div>
+                            ) : null}
                           </td>
 
                           {/* Timeline */}

@@ -119,6 +119,43 @@ const CURRENCIES = [
   { code: "IDR", symbol: "Rp", label: "Indonesian Rupiah" },
 ];
 
+const FX_TO_INR: Record<string, number> = {
+  INR: 1,
+  USD: 83,
+  EUR: 90,
+  GBP: 105,
+  AED: 22.6,
+  SAR: 22.1,
+  QAR: 22.8,
+  OMR: 215,
+  BHD: 220,
+  KWD: 270,
+  SGD: 61.5,
+  AUD: 54,
+  CAD: 60,
+  JPY: 0.56,
+  CNY: 11.5,
+  MYR: 17.8,
+  THB: 2.3,
+  IDR: 0.0052,
+};
+
+function normalizeCurrency(code?: string): string {
+  const c = String(code || "INR").trim().toUpperCase();
+  return FX_TO_INR[c] ? c : "INR";
+}
+
+function convertCurrency(
+  amount: number,
+  fromCurrency: string,
+  toCurrency: string,
+): number {
+  const from = normalizeCurrency(fromCurrency);
+  const to = normalizeCurrency(toCurrency);
+  const inInr = amount * FX_TO_INR[from];
+  return Number((inInr / FX_TO_INR[to]).toFixed(2));
+}
+
 function formatBudget(amount: number, currencyCode: string = "INR") {
   if (!amount) return "—";
   
@@ -313,9 +350,17 @@ export default function BiddingV() {
       return;
     }
     const maxBid = maxBidAmountForOpportunity(selectedOpp);
-    if (maxBid != null && amount > maxBid) {
+    const oppCurrency = normalizeCurrency(selectedOpp.currency || "INR");
+    const enteredCurrency = normalizeCurrency(bidForm.currency);
+    const enteredInOppCurrency = convertCurrency(
+      amount,
+      enteredCurrency,
+      oppCurrency,
+    );
+    if (maxBid != null && enteredInOppCurrency > maxBid) {
       setBidError(null);
-      setBidAmountError(bidTooHighMessage(maxBid, bidForm.currency));
+      const maxInEntered = convertCurrency(maxBid, oppCurrency, enteredCurrency);
+      setBidAmountError(bidTooHighMessage(maxInEntered, enteredCurrency));
       return;
     }
     setBidSubmitting(true);
@@ -387,10 +432,20 @@ export default function BiddingV() {
   const submitModalMaxBid =
     selectedOpp != null ? maxBidAmountForOpportunity(selectedOpp) : null;
   const submitBidParsed = parseBidAmountInput(bidForm.bid_amount);
+  const submitOppCurrency = normalizeCurrency(selectedOpp?.currency || "INR");
+  const submitEnteredCurrency = normalizeCurrency(bidForm.currency);
+  const submitBidParsedInOpp =
+    submitBidParsed != null
+      ? convertCurrency(submitBidParsed, submitEnteredCurrency, submitOppCurrency)
+      : null;
+  const submitModalMaxBidInEntered =
+    submitModalMaxBid != null
+      ? convertCurrency(submitModalMaxBid, submitOppCurrency, submitEnteredCurrency)
+      : null;
   const submitBidOverMax =
     submitModalMaxBid != null &&
-    submitBidParsed != null &&
-    submitBidParsed > submitModalMaxBid;
+    submitBidParsedInOpp != null &&
+    submitBidParsedInOpp > submitModalMaxBid;
 
   // Stats
   const totalOpps = opportunities.length;
@@ -1397,7 +1452,10 @@ export default function BiddingV() {
                 {!bidAmountError && submitModalMaxBid != null && (
                   <p className="mt-1.5 text-[14px] font-gantari text-[#666666]">
                     Maximum bid for this opportunity:{" "}
-                    {formatBudget(submitModalMaxBid, bidForm.currency)}
+                    {formatBudget(
+                      submitModalMaxBidInEntered ?? submitModalMaxBid,
+                      submitEnteredCurrency,
+                    )}
                   </p>
                 )}
 

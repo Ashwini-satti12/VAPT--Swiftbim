@@ -58,6 +58,7 @@ def _ensure_vendor_bidding_table(vendor_conn):
             description TEXT,
             outsource_budget DECIMAL(15,2),
             budget_ceiling DECIMAL(15,2),
+            currency VARCHAR(10) DEFAULT 'INR',
             bid_deadline DATE,
             status ENUM('active', 'closed') DEFAULT 'active',
             company_id INT,
@@ -79,6 +80,25 @@ def _ensure_vendor_bidding_table(vendor_conn):
             UNIQUE KEY uniq_vendor_opportunity (vendor_id, opportunity_id)
         )
     """)
+
+
+def _ensure_vendor_bidding_currency_column(cur):
+    """Backward compatibility for older DBs missing vendor_bidding.currency."""
+    try:
+        cur.execute(
+            """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'vendor_bidding'
+              AND COLUMN_NAME = 'currency'
+            LIMIT 1
+            """
+        )
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE vendor_bidding ADD COLUMN currency VARCHAR(10) DEFAULT 'INR'")
+    except Exception:
+        pass
 
 bp = Blueprint("projects", __name__, url_prefix="/api/projects")
 
@@ -930,8 +950,9 @@ def _sync_vendor_bidding_for_outsource_project(cur, company_id, project_id, depa
     if not is_outsource:
         return
     try:
+        _ensure_vendor_bidding_currency_column(cur)
         cur.execute(
-            "SELECT project_name, budget, description FROM projects WHERE id = %s AND Company_id = %s",
+            "SELECT project_name, budget, description, currency FROM projects WHERE id = %s AND Company_id = %s",
             (project_id, company_id),
         )
         proj = cur.fetchone()
@@ -940,20 +961,31 @@ def _sync_vendor_bidding_for_outsource_project(cur, company_id, project_id, depa
         project_name = proj["project_name"]
         outsource_budget = proj["budget"]
         description = proj.get("description") or ""
+        project_currency = (proj.get("currency") or "INR").strip() or "INR"
         cur.execute(
             """INSERT INTO vendor_bidding
-                 (project_id, project_name, description, outsource_budget, budget_ceiling, bid_deadline, status, company_id)
-               VALUES (%s, %s, %s, %s, %s, %s, 'active', %s)
+                 (project_id, project_name, description, outsource_budget, budget_ceiling, currency, bid_deadline, status, company_id)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, 'active', %s)
                ON DUPLICATE KEY UPDATE
                  project_name   = VALUES(project_name),
                  description    = VALUES(description),
                  outsource_budget = VALUES(outsource_budget),
                  budget_ceiling = VALUES(budget_ceiling),
+                 currency       = VALUES(currency),
                  bid_deadline   = VALUES(bid_deadline),
                  status         = 'active',
                  company_id     = VALUES(company_id)
             """,
-            (project_id, project_name, description, outsource_budget, budget_ceiling or outsource_budget, bidding_end_date, company_id),
+            (
+                project_id,
+                project_name,
+                description,
+                outsource_budget,
+                budget_ceiling or outsource_budget,
+                project_currency,
+                bidding_end_date,
+                company_id,
+            ),
         )
     except Exception:
         pass
