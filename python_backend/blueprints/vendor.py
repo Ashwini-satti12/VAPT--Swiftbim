@@ -2918,7 +2918,55 @@ def list_vendor_resource_profiles():
     cur = vendor_cursor()
     cur.execute("SELECT * FROM vendor_resource_profiles WHERE vendor_id = %s ORDER BY id", (vendor_id,))
     rows = cur.fetchall()
-    return jsonify({"resources": [{k: _serialize(v) for k, v in r.items()} for r in rows]})
+
+    # Enrich resource profiles with address from the main DB vendor_employee table.
+    # Address is stored on vendor_employee (snh6_swiftproject), while the resource
+    # profile lives in new_swiftbim and links via vendor_employee_id.
+    ve_ids = []
+    for r in rows or []:
+        ve_id = r.get("vendor_employee_id")
+        if ve_id is None:
+            continue
+        try:
+            ve_ids.append(int(ve_id))
+        except (TypeError, ValueError):
+            continue
+
+    address_by_ve_id = {}
+    if ve_ids:
+        try:
+            conn = get_db()
+            mcur = conn.cursor(dictionary=True)
+            placeholders = ",".join(["%s"] * len(ve_ids))
+            mcur.execute(
+                f"SELECT id, address FROM vendor_employee WHERE vendor_id = %s AND id IN ({placeholders})",
+                [vendor_id] + ve_ids,
+            )
+            for row in mcur.fetchall() or []:
+                try:
+                    address_by_ve_id[int(row["id"])] = row.get("address")
+                except Exception:
+                    continue
+        except Exception:
+            address_by_ve_id = {}
+
+    enriched = []
+    for r in rows or []:
+        ve_id = r.get("vendor_employee_id")
+        try:
+            ve_id_int = int(ve_id) if ve_id is not None else None
+        except (TypeError, ValueError):
+            ve_id_int = None
+
+        # Only set address if it's not already present on the profile row.
+        if ("address" not in r or not (r.get("address") or "").strip()) and ve_id_int:
+            addr = address_by_ve_id.get(ve_id_int)
+            if addr is not None:
+                r["address"] = addr
+
+        enriched.append({k: _serialize(v) for k, v in r.items()})
+
+    return jsonify({"resources": enriched})
 
 
 @bp.route("/profile/resource-profiles/bulk-status", methods=["POST"])
