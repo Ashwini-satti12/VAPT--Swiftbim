@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import toast from "react-hot-toast";
 import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
@@ -8,6 +9,7 @@ import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
 import upArrow from "../../assets/TechnicalDirector/upArrow.svg";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
+import CloseIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 
@@ -108,16 +110,6 @@ function TeamCard({
 
         {showMenu && (
           <div className="absolute right-0 mt-3 w-[158px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
-            {/* <button
-                            onClick={() => {
-                                onViewDetails(team);
-                                setShowMenu(false);
-                            }}
-                            className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
-                        >
-                            <img src={viewIcon} alt="View" className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
-                            <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">View</span>
-                        </button> */}
             <button
               onClick={() => {
                 onEdit(team);
@@ -380,6 +372,7 @@ export default function CreateTeamPM() {
       .then(({ data }) => {
         if (data.success) {
           setShowAddModal(false);
+          toast.success("Team created successfully");
           // Refresh data instead of page reload for better UX
           api
             .get<{ teams?: Team[] }>("/api/teams")
@@ -393,7 +386,9 @@ export default function CreateTeamPM() {
           });
         }
       })
-      .catch(() => { })
+      .catch((err) => {
+        toast.error(err.response?.data?.message || "Failed to create team");
+      })
       .finally(() => setSubmitting(false));
   };
 
@@ -458,9 +453,13 @@ export default function CreateTeamPM() {
           setTeams(teams.filter((t) => t.team_id !== teamToDelete));
           setShowDeleteModal(false);
           setTeamToDelete(null);
+          toast.success("Team deleted successfully");
         }
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err);
+        toast.error("Failed to delete team");
+      })
       .finally(() => setSubmitting(false));
   };
 
@@ -482,12 +481,15 @@ export default function CreateTeamPM() {
       .then(({ data }) => {
         if (data.success) {
           setShowEditModal(false);
+          toast.success("Team updated successfully");
           api
             .get<{ teams?: Team[] }>("/api/teams")
             .then((res) => setTeams(res.data.teams ?? []));
         }
       })
-      .catch(() => { })
+      .catch((err) => {
+        toast.error(err.response?.data?.message || "Failed to update team");
+      })
       .finally(() => setSubmitting(false));
   };
 
@@ -516,7 +518,7 @@ export default function CreateTeamPM() {
             setShowMemberDropdown(false);
             setShowAddModal(true);
           }}
-          className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md transition-all font-semibold shadow-red-200 active:scale-95"
+          className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md transition-all font-semibold shadow-red-200 active:scale-95 cursor-pointer"
         >
           <PlusIcon className="w-5 h-5 stroke-[3]" />
           New Team
@@ -569,12 +571,24 @@ export default function CreateTeamPM() {
       {showAddModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto overflow-x-hidden">
           <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-y-auto no-scrollbar my-auto shrink-0 max-h-[95vh]">
-            <button
-              onClick={() => setShowAddModal(false)}
-              className="absolute top-6 left-6 p-2 bg-[#F2F2F2] rounded-lg text-[#1E293B] transition-colors"
-            >
-              <XMarkIcon className="w-5 h-5 stroke-[2.5]" />
-            </button>
+            <div className="absolute top-6 left-6 z-10">
+              <div className="relative group inline-flex shrink-0">
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="p-2 bg-[#F2F2F2] rounded-lg text-[#1E293B] transition-colors cursor-pointer"
+                >
+                  <XMarkIcon className="w-5 h-5 stroke-[2.5]" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.1)] px-4 py-1 relative z-10">
+                    <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <div className="text-center mb-8">
               <h3 className="text-[24px] font-medium text-[#000000]">
@@ -934,12 +948,24 @@ export default function CreateTeamPM() {
       {showEditModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto overflow-x-hidden">
           <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-y-auto no-scrollbar my-auto shrink-0 max-h-[95vh]">
-            <button
-              onClick={() => setShowEditModal(false)}
-              className="absolute top-6 left-8 p-2 bg-[#F2F2F2] rounded-md text-[#000000] transition-colors cursor-pointer"
-            >
-              <XMarkIcon className="w-5 h-5 stroke-[2]" />
-            </button>
+            <div className="absolute top-6 left-8 z-10">
+              <div className="relative group inline-flex shrink-0">
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="p-2 bg-[#F2F2F2] rounded-md text-[#000000] transition-colors cursor-pointer"
+                >
+                  <XMarkIcon className="w-5 h-5 stroke-[2]" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.1)] px-4 py-1 relative z-10">
+                    <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <div className="text-center mb-8">
               <h3 className="text-[24px] font-medium text-[#000000] font-Gantari">
@@ -1306,115 +1332,70 @@ export default function CreateTeamPM() {
       )}
 
       {showDetailsModal && selectedTeam && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
-          <div className="bg-white rounded-[20px] shadow-2xl max-w-[600px] w-full p-8 animate-in zoom-in-95 duration-200 relative max-h-[90vh] flex flex-col my-auto shrink-0 overflow-y-auto no-scrollbar">
-            <button
-              onClick={() => setShowDetailsModal(false)}
-              className="absolute top-6 right-6 p-2 bg-slate-50 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
-            >
-              <XMarkIcon className="w-6 h-6 stroke-2" />
-            </button>
-
-            <div className="mb-8 pr-12">
-              <h3 className="text-2xl font-bold text-slate-800 font-sora">
-                {selectedTeam?.team_name ||
-                  selectedTeam?.teamname ||
-                  selectedTeam?.leader_name ||
-                  getEmpName(selectedTeam?.leader ?? "")}
-              </h3>
-              <p className="text-slate-500 mt-1">Team Details</p>
-            </div>
-
-            <div className="space-y-6">
-              <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
-                <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                  Project
-                </h4>
-                <p className="font-semibold text-slate-800">
-                  {selectedTeam.project_name || "N/A"}
-                </p>
-              </div>
-
-              <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
-                <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                  Leadership
-                </h4>
-                <div className="flex items-center gap-4">
-                  {(() => {
-                    const leaderEmp = employees.find(
-                      (e) => String(e.id) === String(selectedTeam.leader),
-                    );
-                    const leaderProfileUrl = leaderEmp?.profile_picture
-                      ? getGlobalProfileUrl(leaderEmp.id, leaderEmp.profile_picture)
-                      : null;
-                    return (
-                      <>
-                        <div className="w-12 h-12 bg-white rounded-full border border-slate-200 overflow-hidden flex items-center justify-center shadow-sm shrink-0">
-                          {leaderProfileUrl ? (
-                            <img
-                              src={leaderProfileUrl}
-                              alt=""
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = ProfileIcon;
-                              }}
-                            />
-                          ) : (
-                            <span className="text-lg font-bold text-slate-700">
-                              {(
-                                selectedTeam?.leader_name ||
-                                getEmpName(selectedTeam?.leader ?? "")
-                              )?.charAt(0) ?? "?"}
-                            </span>
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-slate-800">
-                            {selectedTeam?.leader_name ||
-                              getEmpName(selectedTeam?.leader ?? "")}
-                            {leaderEmp && !isEmployeeActiveForProjectAssignment(leaderEmp) && (
-                              <span className="text-xs font-normal text-red-500 ml-2">
-                                (Inactive)
-                              </span>
-                            )}
-                          </p>
-                          <p className="text-sm text-slate-500">Team Leader</p>
-                        </div>
-                      </>
-                    );
-                  })()}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
+          <div className="bg-white rounded-md shadow-2xl max-w-[600px] w-full max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 relative overflow-hidden">
+            <div className="p-8 pb-4 relative flex items-center justify-center min-h-[40px] w-full">
+              <div className="group absolute left-8 z-20 top-1/2 -translate-y-1/2">
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
+                >
+                  <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 pl-1">
-                  Team Members (
-                  {
-                    (selectedTeam?.employee ?? "").split(",").filter(Boolean)
-                      .length
-                  }
-                  )
-                </h4>
-                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm max-h-[300px] overflow-y-auto custom-scrollbar">
-                  {(selectedTeam?.employee ?? "")
-                    .split(",")
-                    .filter(Boolean)
-                    .map((eid, i) => {
-                      const empInfo = employees.find(
-                        (e) => String(e.id) === eid,
+              <div className="text-center">
+                <h3 className="text-[20px] font-semibold text-slate-800 font-Gantari px-12 truncate max-w-full">
+                  {selectedTeam.team_name ||
+                    selectedTeam.teamname ||
+                    selectedTeam.leader_name ||
+                    getEmpName(selectedTeam.leader)}
+                </h3>
+                <p className="text-[16px] text-slate-500 mt-1">Team Details</p>
+              </div>
+            </div>
+
+            <div className="p-8 pt-0 flex-1 overflow-y-auto custom-scrollbar">
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-[18px] font-semibold text-slate-800 mb-4">
+                    Project Name
+                  </h4>
+                </div>
+                <div className="bg-[#F2F2F2] rounded-md p-6 border border-[#AEACAC52]">
+                  <p className="font-semibold text-slate-800">
+                    {selectedTeam.project_name || "N/A"}
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="text-[18px] font-semibold text-slate-800 mb-4">
+                    Team Lead
+                  </h4>
+                </div>
+                <div className="bg-[#F2F2F2] rounded-md p-6 border border-[#AEACAC52]">
+                  <div className="flex items-center gap-4">
+                    {(() => {
+                      const leaderEmp = employees.find(
+                        (e) => String(e.id) === String(selectedTeam.leader),
                       );
-                      const profileUrl = empInfo?.profile_picture
-                        ? getGlobalProfileUrl(empInfo.id, empInfo.profile_picture)
+                      const leaderProfileUrl = leaderEmp?.profile_picture
+                        ? getGlobalProfileUrl(leaderEmp.id, leaderEmp.profile_picture)
                         : null;
                       return (
-                        <div
-                          key={eid}
-                          className={`flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors ${i !== 0 ? "border-t border-slate-100" : ""}`}
-                        >
-                          <div className="w-10 h-10 bg-slate-50 rounded-full border border-slate-100 overflow-hidden flex items-center justify-center shrink-0">
-                            {profileUrl ? (
+                        <>
+                          <div className="w-12 h-12 bg-white rounded-full border border-slate-200 overflow-hidden flex items-center justify-center shadow-sm shrink-0">
+                            {leaderProfileUrl ? (
                               <img
-                                src={profileUrl}
+                                src={leaderProfileUrl}
                                 alt=""
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
@@ -1422,29 +1403,92 @@ export default function CreateTeamPM() {
                                 }}
                               />
                             ) : (
-                              <span className="text-sm font-bold text-slate-600">
-                                {getEmpName(eid)?.charAt(0) ?? "?"}
+                              <span className="text-lg font-bold text-slate-700">
+                                {(
+                                  selectedTeam?.leader_name ||
+                                  getEmpName(selectedTeam?.leader ?? "")
+                                )?.charAt(0) ?? "?"}
                               </span>
                             )}
                           </div>
                           <div>
-                            <p className="font-medium text-slate-800">
-                              {getEmpName(eid)}
-                              {empInfo && !isEmployeeActiveForProjectAssignment(empInfo) && (
+                            <p className="font-semibold text-slate-800">
+                              {selectedTeam?.leader_name ||
+                                getEmpName(selectedTeam?.leader ?? "")}
+                              {leaderEmp && !isEmployeeActiveForProjectAssignment(leaderEmp) && (
                                 <span className="text-xs font-normal text-red-500 ml-2">
                                   (Inactive)
                                 </span>
                               )}
                             </p>
-                            {empInfo?.email && (
-                              <p className="text-sm text-slate-500">
-                                {empInfo.email}
-                              </p>
-                            )}
+                            <p className="text-[14px] text-slate-500">Team Leader</p>
                           </div>
-                        </div>
+                        </>
                       );
-                    })}
+                    })()}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-[18px] font-semibold text-slate-800 mb-4 pl-1">
+                    Team Members (
+                    {
+                      (selectedTeam?.employee ?? "").split(",").filter(Boolean)
+                        .length
+                    }
+                    )
+                  </h4>
+                  <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md overflow-hidden">
+                    {(selectedTeam?.employee ?? "")
+                      .split(",")
+                      .filter(Boolean)
+                      .map((eid, i) => {
+                        const empInfo = employees.find(
+                          (e) => String(e.id) === eid,
+                        );
+                        const profileUrl = empInfo?.profile_picture
+                          ? getGlobalProfileUrl(empInfo.id, empInfo.profile_picture)
+                          : null;
+                        return (
+                          <div
+                            key={eid}
+                            className={`flex items-center gap-4 p-4 transition-colors ${i !== 0 ? "border-t border-slate-100" : ""}`}
+                          >
+                            <div className="w-10 h-10 bg-white rounded-full border border-slate-100 overflow-hidden flex items-center justify-center shrink-0">
+                              {profileUrl ? (
+                                <img
+                                  src={profileUrl}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = ProfileIcon;
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-sm font-bold text-slate-600">
+                                  {getEmpName(eid)?.charAt(0) ?? "?"}
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-800">
+                                {getEmpName(eid)}
+                                {empInfo && !isEmployeeActiveForProjectAssignment(empInfo) && (
+                                  <span className="text-xs font-normal text-red-500 ml-2">
+                                    (Inactive)
+                                  </span>
+                                )}
+                              </p>
+                              {empInfo?.email && (
+                                <p className="text-[14px] text-slate-500">
+                                  {empInfo.email}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1457,26 +1501,37 @@ export default function CreateTeamPM() {
         <div className="fixed inset-0 z-[105] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
             <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowAllMembersModal(false)}
-                className="absolute left-10 p-2 rounded-lg bg-[#F2F2F2] hover:bg-gray-100 text-gray-800 transition-colors"
-                title="Close"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+              <div className="absolute left-10 z-10">
+                <div className="relative group inline-flex shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllMembersModal(false)}
+                    className="p-2 rounded-lg bg-[#F2F2F2] hover:bg-gray-100 text-gray-800 transition-colors cursor-pointer"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.1)] px-4 py-1 relative z-10">
+                      <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                 All Members ({allMembersList.length})
               </h3>
@@ -1564,29 +1619,40 @@ export default function CreateTeamPM() {
         <div className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen overflow-y-auto p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col my-auto animate-in zoom-in-95 duration-200 shrink-0">
             <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100 shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowMemberProfileModal(false);
-                  setSelectedMember(null);
-                }}
-                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
-                title="Close"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+              <div className="absolute left-10 z-10">
+                <div className="relative group inline-flex shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMemberProfileModal(false);
+                      setSelectedMember(null);
+                    }}
+                    className="p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors cursor-pointer"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.1)] px-4 py-1 relative z-10">
+                      <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                 Member Profile
               </h3>
@@ -1726,15 +1792,27 @@ export default function CreateTeamPM() {
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-md shadow-2xl max-w-[500px] w-full p-8 flex flex-col items-center animate-in zoom-in-95 duration-200 relative overflow-hidden">
             <div className="relative flex items-center justify-center w-full mb-4">
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setTeamToDelete(null);
-                }}
-                className="absolute left-0 p-1.5 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
-              >
-                <XMarkIcon className="w-5 h-5 stroke-[2.5] text-[#020202]" />
-              </button>
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
+              <div className="relative group inline-flex shrink-0">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setTeamToDelete(null);
+                  }}
+                  className="p-1.5 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
+                >
+                  <XMarkIcon className="w-5 h-5 stroke-[2.5] text-[#020202]" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.1)] px-4 py-1 relative z-10">
+                    <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
               <h3 className="text-[18px] font-semibold text-[#020202] font-Gantari">
                 Delete Team
               </h3>

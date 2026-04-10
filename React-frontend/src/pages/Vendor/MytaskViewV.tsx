@@ -615,10 +615,11 @@ export default function MytaskViewV() {
                     >
                       <FiX className="w-4 h-4 text-slate-600" />
                     </button>
-                    <div className="absolute top-full right-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px] ml-auto mr-1.5"></div>
-                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
-                        <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Remove</span>
+                    {/* Tooltip */}
+                    <div className="absolute top-full right-0 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                      <div className="w-2 h-2 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px] ml-auto mr-1.5"></div>
+                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-1 relative z-10">
+                        <span className="font-Gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Remove</span>
                       </div>
                     </div>
                   </div>

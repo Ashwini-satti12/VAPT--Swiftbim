@@ -999,7 +999,7 @@ export default function ManageLeavePM() {
               className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E5E5E5]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="relative flex items-center justify-center px-6 py-5 border-b border-[#EEEEEE] bg-[#FAFAFA]">
+              <div className="relative flex items-center justify-center px-6 py-5">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 group">
                   <button
                     type="button"
@@ -1007,7 +1007,7 @@ export default function ManageLeavePM() {
                       setViewModalOpen(false);
                       setSelectedLeave(null);
                     }}
-                    className="cursor-pointer p-2 rounded-lg bg-[#EEEEEE] hover:bg-[#E0E0E0] transition-colors text-[#353535]"
+                    className="cursor-pointer p-2 rounded-md bg-[#F2F2F2] transition-colors text-[#353535]"
                   >
                     <svg
                       width="18"
@@ -1031,7 +1031,7 @@ export default function ManageLeavePM() {
                     </div>
                   </div>
                 </div>
-                <h3 className="text-xl font-bold text-[#353535]">
+                <h3 className="text-[24px] font-medium text-[#353535]">
                   Leave Details
                 </h3>
               </div>
@@ -1270,7 +1270,7 @@ export default function ManageLeavePM() {
                   </button>
                   {leaveTypeOpen && (
                     <div
-                      className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg py-1.5"
+                      className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg py-1.5 max-h-[168px] overflow-y-auto custom-scrollbar"
                       onMouseDown={(e) => e.preventDefault()}
                     >
                       <button
@@ -1553,7 +1553,7 @@ export default function ManageLeavePM() {
                   </button>
                   {leaveTypeOpenEdit && (
                     <div
-                      className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg py-1.5"
+                      className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg py-1.5 max-h-[168px] overflow-y-auto custom-scrollbar"
                       onMouseDown={(e) => e.preventDefault()}
                     >
                       <button
