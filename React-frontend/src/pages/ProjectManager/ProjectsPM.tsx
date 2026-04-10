@@ -1382,10 +1382,7 @@ export default function ProjectsPM() {
                                 : `${api.defaults.baseURL}uploads/${fileName}`;
                                 
                             return (
-                                <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-2 rounded-xl border border-slate-200 w-full md:max-w-xs mt-1">
-                                  <div className="p-1.5 bg-white rounded-lg shadow-sm">
-                                    <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                                  </div>
+                                <div key={idx} className="flex items-center gap-3 w-full md:max-w-xs mt-1">
                                   <span className="text-[13px] font-bold text-[#353535] line-clamp-1 flex-1">
                                     {fileName.split('_').pop() || "Document"}
                                   </span>

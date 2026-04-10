@@ -1430,7 +1430,7 @@ export default function ProjectsBL() {
                       <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
                         Tasks
                       </span>
-                      <span className="hidden sm:inline text-[#616161] mr-4 mt-[2px]">:</span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                       <div className="flex flex-wrap gap-2">
                         {(selectedProjectForView.tasks || "")
                           .split(",")
@@ -1443,7 +1443,7 @@ export default function ProjectsBL() {
                             .map((t, idx) => (
                               <span
                                 key={`${t}-${idx}`}
-                                className="inline-flex items-center rounded-full bg-[#F2F3F4] px-3 py-1 text-[13px] font-Gantari font-medium text-[#353535] border border-[#AEACAC52]"
+                                className="text-[14px] font-Gantari font-medium text-[#353535] mt-[2px]"
                               >
                                 {t}
                               </span>
@@ -1491,11 +1491,8 @@ export default function ProjectsBL() {
                               : `${api.defaults.baseURL}uploads/${fileName}`;
 
                             return (
-                              <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-2 rounded-xl border border-slate-200 w-full md:max-w-xs mt-1">
-                                <div className="p-1.5 bg-white rounded-lg shadow-sm">
-                                  <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                                </div>
-                                <span className="text-[13px] font-bold text-[#353535] line-clamp-1 flex-1">
+                              <div key={idx} className="flex items-center gap-2 w-full md:max-w-xs mt-1">
+                                <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1">
                                   {fileName.split('_').pop() || "Document"}
                                 </span>
                                 <div className="flex gap-1">
@@ -3421,13 +3418,11 @@ export default function ProjectsBL() {
                           : `${api.defaults.baseURL}uploads/${fileName}`;
 
                         return (
-                          <div key={`exist-${idx}`} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
-                            <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                          <div key={`exist-${idx}`} className="flex items-center gap-3 bg-white p-1 rounded-md border border-[#AEACAC52] min-w-[900px]">
                             <div className="flex-1 min-w-0">
-                              <p className="text-[13px] font-bold text-[#353535] truncate">
+                              <p className="text-[14px] font-Gantari font-medium text-[#353535] truncate">
                                 {fileName}
                               </p>
-                              <p className="text-[11px] text-slate-500">Existing File</p>
                             </div>
                             <div className="flex gap-1.5">
                               <div className="relative group">

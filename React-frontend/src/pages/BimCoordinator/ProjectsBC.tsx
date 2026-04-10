@@ -15,6 +15,7 @@ import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+import downloadIcon from "../../assets/TechnicalDirector/download icon.svg";
 
 const CURRENCIES = [
   { code: "INR", symbol: "₹", label: "Indian Rupee" },
@@ -351,7 +352,8 @@ export default function ProjectsBC() {
   const [memberSearch, setMemberSearch] = useState("");
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const [departments, setDepartments] = useState<string[]>([]);
-  const priorityOptions = ["High", "Normal"];
+  const priorityOptions = ["High","Low", "Normal"];
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Fetch employees + departments once at mount so View modal can resolve names
   useEffect(() => {
@@ -688,6 +690,28 @@ export default function ProjectsBC() {
 
   return (
     <div className="bg-white h-full overflow-hidden">
+      {successMsg && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl bg-white border border-gray-100 min-w-[320px] animate-in fade-in slide-in-from-top-2 duration-300 font-gantari">
+          <div className="flex items-center justify-center w-7 h-7 rounded-full bg-[#1A8A47] shrink-0">
+            <svg
+              className="w-4 h-4 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={3}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
+          <span className="text-[16px] font-semibold text-[#353535]">
+            {successMsg}
+          </span>
+        </div>
+      )}
       <div className="flex flex-col h-full overflow-hidden min-h-0">
         {/* Main Content View Switcher */}
         {showProjectView && selectedProjectForView ? (
@@ -1610,9 +1634,82 @@ export default function ProjectsBC() {
                         <span className="hidden sm:inline text-[#999999] mr-4">
                           :
                         </span>
-                        <span className="text-md font-Gantari font-medium text-[#666666]">
-                          No Document Available
-                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedProjectForView.document_attachment ? (
+                            selectedProjectForView.document_attachment
+                              .split(",")
+                              .map((file) => file.trim())
+                              .filter(Boolean)
+                              .map((fileName, idx) => {
+                                const isOutsource =
+                                  selectedProjectForView.source === "Outsource";
+                                const url = isOutsource
+                                  ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
+                                  : `${api.defaults.baseURL}uploads/${fileName}`;
+
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-slate-200 w-full md:max-w-md mt-1"
+                                  >
+                                    <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1 font-gantari">
+                                      {fileName.split("_").pop() || "Document"}
+                                    </span>
+                                    <div className="flex gap-2.5">
+                                      <div className="relative group/tooltip inline-flex shrink-0">
+                                        <a
+                                          href={url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="p-1 rounded transition-colors"
+                                        >
+                                          <img
+                                            src={viewIcon}
+                                            alt="View"
+                                            className="w-4 h-4"
+                                          />
+                                        </a>
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                          <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                            <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                              View
+                                            </span>
+                                          </div>
+                                          <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                        </div>
+                                      </div>
+
+                                      <div className="relative group/tooltip inline-flex shrink-0">
+                                        <a
+                                          href={url}
+                                          download
+                                          className="p-1 hover:bg-white rounded transition-colors"
+                                        >
+                                          <img
+                                            src={downloadIcon}
+                                            alt="Download"
+                                            className="w-4 h-4"
+                                          />
+                                        </a>
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                          <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                            <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                              Download
+                                            </span>
+                                          </div>
+                                          <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                          ) : (
+                            <span className="text-md font-Gantari font-medium text-[#666666] mt-1">
+                              No Document Available
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2032,6 +2129,8 @@ export default function ProjectsBC() {
                         setCreateFiles([]);
                         setExistingFiles([]);
                         setRemovedFiles([]);
+                        setSuccessMsg("Project created successfully!");
+                        setTimeout(() => setSuccessMsg(null), 3000);
                         api
                           .get<{ projects?: Record<string, unknown>[] }>(
                             "/api/projects",
@@ -2817,6 +2916,8 @@ export default function ProjectsBC() {
                     .then(({ data }) => {
                       if (data.success) {
                         setShowEditModal(false);
+                        setSuccessMsg("Project updated successfully!");
+                        setTimeout(() => setSuccessMsg(null), 3000);
                         api
                           .get<{ projects?: Record<string, unknown>[] }>(
                             "/api/projects",
