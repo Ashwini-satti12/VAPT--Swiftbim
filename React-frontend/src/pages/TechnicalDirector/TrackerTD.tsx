@@ -446,7 +446,7 @@ export default function TrackerTD() {
                                 timeInputRef.current?.showPicker?.();
                                 timeInputRef.current?.focus();
                             }}
-                            className="flex items-center gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 group"
+                            className="flex items-center gap-6 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 group"
                         >
                             <span className={`text-sm ${selectedTime ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
                                 {formatTime12(selectedTime)}
@@ -483,7 +483,7 @@ export default function TrackerTD() {
                                 e.stopPropagation();
                                 setStatusOpen(o => !o);
                             }}
-                            className="flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                            className="flex items-center justify-between gap-6 px-2 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                         >
                             <span className={`min-w-0 flex-1 truncate text-left text-sm ${selectedStatus ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
                                 {selectedStatus || 'Status'}
@@ -491,7 +491,7 @@ export default function TrackerTD() {
                             <img
                                 src={ArrowDown}
                                 alt="arrow"
-                                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${statusOpen ? 'rotate-180' : ''} ${selectedStatus === '' ? 'opacity-60 grayscale' : 'opacity-90'}`}
+                                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${statusOpen ? 'rotate-180' : ''} ${selectedStatus === '' ? 'opacity-60 grayscale' : 'opacity-90'}`}
                             />
                         </button>
                         {statusOpen && (
@@ -523,7 +523,7 @@ export default function TrackerTD() {
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
-                            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                            className="w-full flex items-center justify-between  px-2 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                         >
                             <span className={`min-w-0 flex-1 truncate overflow-hidden text-left text-sm ${selectedShowEntries === '' ? 'text-[#8B8B8B]' : 'text-[#353535]'}`}>
                                 {selectedShowEntries === '' ? (
@@ -538,7 +538,7 @@ export default function TrackerTD() {
                             <img
                                 src={ArrowDown}
                                 alt=""
-                                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''} ${selectedShowEntries === '' ? 'opacity-60 grayscale' : 'opacity-90'}`}
+                                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''} ${selectedShowEntries === '' ? 'opacity-60 grayscale' : 'opacity-90'}`}
                                 aria-hidden
                             />
                         </button>

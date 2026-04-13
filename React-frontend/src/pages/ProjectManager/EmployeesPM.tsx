@@ -743,7 +743,7 @@ export default function EmployeesPM() {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-white">
       <style>{SCROLLBAR_STYLE}</style>
-      {(activeView === 'list' || activeView === 'invite' || activeView === 'inactive') && (
+      {activeView === 'list' && (
         <>
           <div className="sticky z-50 bg-white mb-4 mt-2 overflow-visible">
             <div className="flex w-full min-h-[44px] flex-nowrap items-center gap-2 sm:gap-3 overflow-visible">
@@ -973,7 +973,7 @@ export default function EmployeesPM() {
                           <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === 'active' ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
                             <span className={`w-2 h-2 rounded-full ${emp.active === 'active' ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
                             <span className={`text-[14px] font-semibold ${emp.active === 'active' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
-                              {emp.active === 'active' ? 'Active' : 'Deactive'}
+                              {emp.active === 'active' ? 'Online' : 'Offline'}
                             </span>
                           </div>
                         </div>
@@ -1658,19 +1658,19 @@ export default function EmployeesPM() {
       )}
 
       {activeView === 'invite' && createPortal(
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]">
-          <div className="bg-white rounded-[10px] max-w-[813px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
-            <div className="flex items-center justify-center mb-8 relative">
-              <div className="relative group inline-flex shrink-0">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
+          <div className="bg-white rounded-[20px] max-w-[813px] w-full max-h-[90vh] overflow-hidden px-5 py-4 relative shadow-2xl flex flex-col font-Gantari animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-center mb-6 sm:mb-2 relative shrink-0 pt-2 sm:pt-0">
+              <div className="absolute left-5 group inline-flex shrink-0">
                 <button
                   type="button"
                   onClick={() => { setActiveView('list'); setInviteEmails(''); setInviteMessage(''); }}
-                  className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer hover:bg-[#E8E8E8]"
+                  className="p-2.5 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
                 >
                   <FiX className="w-5 h-5 font-bold" />
                 </button>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px] "></div>
                   <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
                     <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                       Close
@@ -1678,40 +1678,49 @@ export default function EmployeesPM() {
                   </div>
                 </div>
               </div>
-              <h1 className="text-[24px] font-medium text-[#000000] text-center flex-1">Invite New Consultant</h1>
+              <h3 className="text-[24px] font-semibold text-[#020202] text-center mb-6">Invite New Consultant</h3>
             </div>
 
-            <form onSubmit={handleInvite} className="space-y-8 overflow-y-auto custom-scrollbar pr-2">
-              <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-3">Email Addresses</label>
-                <textarea
-                  value={inviteEmails}
-                  onChange={(e) => setInviteEmails(e.target.value)}
-                  rows={4}
-                  className="w-full px-5 py-4 bg-[#F2F2F2] border-none rounded-md text-[14px] placeholder:text-[#979797] font-medium transition-all outline-none resize-none leading-relaxed"
-                  placeholder="Enter Multiple Email addresses separated by commas,"
-                />
-                <p className="text-[14px] text-[#666666] mt-3 font-medium">Separate multiple emails with commas (eg., email01@eg.com)</p>
+            <form onSubmit={handleInvite} className="space-y-4 overflow-y-auto custom-scrollbar pr-2">
+              <div className="px-5 space-y-4">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-3">Email Addresses</label>
+                  <textarea
+                    value={inviteEmails}
+                    onChange={(e) => setInviteEmails(e.target.value)}
+                    rows={4}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52] leading-relaxed"
+                    placeholder="Enter Multiple Email addresses separated by commas,"
+                  />
+                  <p className="text-[14px] text-[#666666] mt-3 font-medium">Separate multiple emails with commas (eg., email01@eg.com)</p>
+                </div>
+
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-3">Invitation Message</label>
+                  <textarea
+                    value={inviteMessage}
+                    onChange={(e) => setInviteMessage(e.target.value)}
+                    rows={4}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52] leading-relaxed"
+                    placeholder="Enter your Invitation Message.,"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-3">Invitation Message</label>
-                <textarea
-                  value={inviteMessage}
-                  onChange={(e) => setInviteMessage(e.target.value)}
-                  rows={4}
-                  className="w-full px-5 py-4 bg-[#F2F2F2] border-none rounded-md text-[14px] placeholder:text-[#979797] font-medium transition-all outline-none resize-none leading-relaxed"
-                  placeholder="Enter your Invitation Message.,"
-                />
-              </div>
-
-              <div className="flex justify-center pt-4">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-14 justify-center items-center pt-4 ">
+                <button
+                  type="button"
+                  onClick={() => { setActiveView('list'); setInviteEmails(''); setInviteMessage(''); }}
+                  className="px-10 py-2 sm:py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-medium text-[14px] sm:text-[14px] transition-all cursor-pointer"
+                >
+                  Discard
+                </button>
                 <button
                   type="submit"
-                  disabled={inviteSubmitting}
-                  className="px-5 py-2 rounded-md bg-[#D1E6FF] text-[#12141D] font-medium text-[16px] cursor-pointer"
+                  disabled={!inviteEmails || inviteSubmitting}
+                  className="px-10 py-2 sm:py-2 rounded-md bg-[#DBE9FE] text-[#353535] font-medium text-[14px] sm:text-[14px] transition-all cursor-pointer"
                 >
-                  {inviteSubmitting ? 'Sending...' : 'Send Invitations'}
+                  {inviteSubmitting ? 'Sending...' : 'Invite'}
                 </button>
               </div>
             </form>
@@ -1720,40 +1729,43 @@ export default function EmployeesPM() {
         document.body
       )}
 
-      {activeView === 'inactive' && createPortal(
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]">
-          <div className="bg-white rounded-[10px] max-w-[950px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
-            <div className="flex items-center justify-center mb-8 relative shrink-0">
+      {activeView === 'inactive' && (
+        <div className="flex-1 overflow-y-auto px-5 bg-white flex flex-col min-h-0">
+          <div className="max-w-[1174px] mx-auto w-full flex-1 flex flex-col min-h-0">
+            <div className="flex items-center justify-between mb-8 sm:mb-10 relative shrink-0">
               <div className="relative group inline-flex shrink-0">
                 <button
                   type="button"
                   onClick={() => { setActiveView('list'); setInactiveIds([]); }}
-                  className="p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer hover:bg-[#E8E8E8]"
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
                 >
-                  <FiX className="w-5 h-5 font-bold" />
+                  <img src={backIcon} alt="Back" className="w-5 h-5" />
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
-                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                      Close
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-2 py-0.5 relative z-10">
+                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Go Back
                     </span>
                   </div>
                 </div>
               </div>
-              <h3 className="text-[24px] font-medium text-[#000000] text-center flex-1">Manage In-active Consultants</h3>
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
+                Manage In-active Consultants
+              </h3>
+              <div className="w-10" />
             </div>
 
-            <div className="shrink-0 mb-8 px-4">
-              <p className="text-[15px] text-[#353535] mb-2 leading-relaxed font-medium">
+            <div className="shrink-0 mb-6 px-2 sm:px-4 mt-[-20px]">
+              <p className="text-[14px] text-[#353535] mb-2 leading-relaxed font-medium font-Gantari">
                 Select Consultants to mark as IN-Active. In-Active Consultants will not appear in Project Assignment dropdowns.
               </p>
-              <p className="text-[16px] font-semibold text-[#3d3399]">
+              <p className="text-[14px] font-semibold text-[#3d3399] font-Gantari">
                 {inactiveIds.length} Consultant(s) will be marked as In-Active
               </p>
             </div>
 
-            <div className="flex-1 overflow-y-auto border border-[#E0E0E0] rounded-lg custom-scrollbar mb-10">
+            <div className="flex-1 overflow-y-auto border border-[#E0E0E0] rounded-[15px] custom-scrollbar mb-10 bg-white">
               {(() => {
                 const grouped = list.reduce((acc: Record<string, Employee[]>, emp) => {
                   const role = emp.user_role || 'General';
@@ -1764,32 +1776,32 @@ export default function EmployeesPM() {
 
                 return Object.entries(grouped).map(([role, emps]) => (
                   <div key={role} className="border-b border-[#E0E0E0] last:border-none">
-                    <div className="px-6 py-4 bg-white font-semibold text-[16px] text-[#000000] border-b border-[#F0F0F0]">
+                    <div className="px-6 py-4 bg-[#F9FAFB] font-semibold text-[14px] text-[#353535] border-b border-[#E0E0E0] font-Gantari">
                       {role}
                     </div>
                     <div className="divide-y divide-[#F0F0F0]">
                       {emps.map((emp) => (
                         <div
                           key={emp.id}
-                          className="flex items-center justify-between px-6 py-4  transition-colors"
+                          className="flex items-center justify-between px-6 py-4 hover:bg-[#F9FAFB]/50 transition-colors"
                         >
-                          <div className="flex items-center gap-6">
+                          <div className="flex items-center gap-4">
                             <div
                               onClick={() => setInactiveIds((prev) => (prev.includes(emp.id) ? prev.filter((id) => id !== emp.id) : [...prev, emp.id]))}
-                              className={`w-7 h-7 rounded-[5px] border-2 cursor-pointer flex items-center justify-center transition-all ${inactiveIds.includes(emp.id) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#E0E0E0]'}`}
+                              className={`w-5 h-5 rounded-[4px] border-2 cursor-pointer flex items-center justify-center shrink-0 transition-all ${inactiveIds.includes(emp.id) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#E0E0E0]'}`}
                             >
                               {inactiveIds.includes(emp.id) && (
-                                <svg width="16" height="12" viewBox="0 0 14 11" fill="none">
-                                  <path d="M1 5L5 9L13 1" stroke="#1A1A1A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                                <svg width="11" height="9" viewBox="0 0 14 11" fill="none" className="shrink-0" aria-hidden>
+                                  <path d="M1 5L5 9L13 1" stroke="#1A1A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                               )}
                             </div>
-                            <span className="text-[16px] font-semibold text-[#6B6B6B]">
+                            <span className="text-[14px] font-semibold text-[#6B6B6B] font-Gantari">
                               {emp.full_name} {emp.empid ? `(${emp.empid})` : `(EMP-${(emp.id + 150).toString().padStart(4, '0')})`}
                             </span>
                           </div>
                           {(emp.active === 'inactive' || emp.active === 'deactive') && (
-                            <span className="px-4 py-1.5 bg-[#FFE6E6] text-[#E00100] text-[12px] font-semibold rounded-[5px] shrink-0">
+                            <span className="px-4 py-1.5 bg-[#FFE6E6] text-[#E00100] text-[12px] font-semibold rounded-[5px] shrink-0 font-Gantari">
                               Currently In-Active
                             </span>
                           )}
@@ -1801,11 +1813,11 @@ export default function EmployeesPM() {
               })()}
             </div>
 
-            <div className="flex justify-center gap-6 pt-4 shrink-0">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center shrink-0">
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setInactiveIds([]); }}
-                className="px-5 py-2 rounded-md bg-[#F2F2F2] text-[#12141D] font-medium text-[16px] cursor-pointer"
+                className=" px-6 py-2 sm:py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-medium text-[14px] sm:text-[14px] transition-all cursor-pointer font-Gantari"
               >
                 Discard
               </button>
@@ -1813,14 +1825,13 @@ export default function EmployeesPM() {
                 type="button"
                 onClick={handleInactive}
                 disabled={!inactiveIds.length || inactiveSubmitting}
-                className="px-5 py-2 rounded-md bg-[#D1E6FF] text-[#12141D] font-medium text-[16px] cursor-pointer"
+                className="px-6 py-2 sm:py-2 rounded-md bg-[#DBE9FE] text-[#353535] font-medium text-[14px] sm:text-[14px] disabled:opacity-50 transition-all cursor-pointer font-Gantari"
               >
                 {inactiveSubmitting ? 'Updating...' : 'Update Status'}
               </button>
             </div>
           </div>
-        </div>,
-        document.body
+        </div>
       )}
 
       {showDetailsModal && selectedEmployee && createPortal(

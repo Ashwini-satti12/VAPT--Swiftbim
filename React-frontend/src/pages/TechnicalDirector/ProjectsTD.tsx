@@ -372,8 +372,6 @@ function FormSelect({
 }
 
 interface Project {
-  // Change note: Task Name should be read from backend (tasks table -> tasks column)
-  // as `task_name` in project payload when this page maps API data.
   id: number;
   project_name?: string;
   progress?: number;
@@ -558,7 +556,6 @@ export default function ProjectsTD() {
       progress: number;
       completedTasks: number;
       totalTasks: number;
-      status: "Approved" | "Pending" | "Review";
     }>
   >([]);
   const [loadingTaskStats, setLoadingTaskStats] = useState(false);
@@ -952,17 +949,12 @@ export default function ProjectsTD() {
         const mods = data.modules ?? [];
         const towers = mods.map((m, idx) => {
           const pct = Number(m.completion_percentage ?? 0);
-          let status: "Approved" | "Pending" | "Review";
-          if (pct >= 80) status = "Approved";
-          else if (pct >= 50) status = "Pending";
-          else status = "Review";
           return {
             id: idx + 1,
             name: String(m.module_name ?? `Module ${idx + 1}`),
             progress: Math.round(pct),
             completedTasks: Number(m.completed_tasks ?? 0),
             totalTasks: Number(m.total_tasks ?? 0),
-            status,
           };
         });
         setTowerData(towers);
@@ -1183,7 +1175,7 @@ export default function ProjectsTD() {
                     <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">
                       Modules
                     </h4>
-                    <div className="max-h-[220px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                    <div className="max-h-[220px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
                       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-4">
                         {loadingTaskStats ? (
                           <div className="col-span-full text-center py-8 text-gray-500">
@@ -1191,45 +1183,20 @@ export default function ProjectsTD() {
                           </div>
                         ) : towerData.length > 0 ? (
                           towerData.map((tower) => {
-                            const statusColor =
-                              tower.status === "Review"
-                                ? "#E00100"
-                                : tower.status === "Pending"
-                                  ? "#EB7200"
-                                  : "#008F22";
-                            const statusBg =
-                              tower.status === "Review"
-                                ? "bg-[#FFD9D9]"
-                                : tower.status === "Pending"
-                                  ? "bg-[#FFEAD6]"
-                                  : "bg-[#E0FFE8]";
+                            const progressRingColor = "#0a9344";
 
                             return (
                               <div
                                 key={tower.id}
-                                className="bg-white border border-slate-200 rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[120px]"
+                                className="bg-white border border-slate-200 rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[126px]"
                               >
-                                <div className="flex justify-between items-start">
-                                  <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
+                                <div className="flex justify-between items-start min-h-0 pb-2">
+                                  <h5 className="text-[16px] font-Gantari font-medium text-[#000000] truncate pr-2 w-full">
                                     {tower.name}
                                   </h5>
-                                  <div
-                                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0 ${statusBg}`}
-                                  >
-                                    <span
-                                      className="w-1.5 h-1.5 rounded-full"
-                                      style={{ backgroundColor: statusColor }}
-                                    ></span>
-                                    <span
-                                      className="text-[12px] font-bold font-gantari"
-                                      style={{ color: statusColor }}
-                                    >
-                                      {tower.status}
-                                    </span>
-                                  </div>
                                 </div>
 
-                                <div className="flex items-center justify-between mt-2">
+                                <div className="flex items-center justify-between mt-2 mb-2">
                                   <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
                                     <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
                                       <circle
@@ -1243,8 +1210,8 @@ export default function ProjectsTD() {
                                       <circle
                                         cx="32"
                                         cy="32"
-                                        r="26"
-                                        stroke={statusColor}
+                                        r="28"
+                                        stroke={progressRingColor}
                                         strokeWidth="5"
                                         fill="transparent"
                                         strokeDasharray={163.36}
@@ -1258,20 +1225,20 @@ export default function ProjectsTD() {
                                         }}
                                       />
                                     </svg>
-                                    <span className="absolute text-[13px] font-bold text-[#8B8B8B] font-Gantari">
+                                    <span className="absolute text-[12px] font-bold text-[#616161] font-Gantari">
                                       {tower.progress}%
                                     </span>
                                   </div>
 
-                                  <div className="flex flex-col items-end">
-                                    <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1">
+                                  <div className="flex flex-col flex-1 min-w-0 ml-2">
+                                    <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1 text-right">
                                       Tasks Done
                                     </p>
-                                    <div className="flex items-baseline border-t border-slate-100 pt-1">
-                                      <p className="text-[18px] font-bold text-[#353535] font-Gantari">
+                                    <div className="flex items-baseline justify-center ml-16 pt-1">
+                                      <p className="text-[16px] font-medium text-[#000000] font-Gantari">
                                         {tower.completedTasks}
                                       </p>
-                                      <p className="text-[14px] font-bold text-[#8B8B8B] font-Gantari">
+                                      <p className="text-[16px] font-medium text-[#000000] font-Gantari">
                                         /{tower.totalTasks}
                                       </p>
                                     </div>
@@ -1757,16 +1724,6 @@ export default function ProjectsTD() {
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
                         <div className="space-y-4 md:space-y-5">
                           <div className="flex flex-col sm:flex-row sm:items-center">
-                            {/* Change note: render selectedProjectForView.task_name in this row */}
-                            <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
-                              Task Name
-                            </span>
-                            <span className="hidden sm:inline text-[#616161] mr-4">
-                              :
-                            </span>
-                          </div>
-
-                          <div className="flex flex-col sm:flex-row sm:items-center">
                             <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
                               Actual Start Date
                             </span>
@@ -1800,7 +1757,7 @@ export default function ProjectsTD() {
                           </div>
 
                           <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                            <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
                               Budget
                             </span>
                             <span className="hidden sm:inline text-[#616161] mr-4">
@@ -1814,7 +1771,7 @@ export default function ProjectsTD() {
                           </div>
                           {selectedProjectForView.source === "Outsource" && (
                             <div className="flex flex-col sm:flex-row sm:items-center">
-                              <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                              <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
                                 Outsourcing Budget
                               </span>
                               <span className="hidden sm:inline text-[#616161] mr-4">
@@ -1858,7 +1815,7 @@ export default function ProjectsTD() {
                                       : `${api.defaults.baseURL}uploads/${fileName}`;
 
                                     return (
-                                      <div key={idx} className="flex items-center gap-3 px-4 py-2.5 rounded-md border border-slate-200 w-full md:max-w-md mt-1">
+                                      <div key={idx} className="flex items-center gap-3 w-full md:max-w-md mt-1">
                                         <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1 font-gantari">
                                           {fileName.split("_").pop() || "Document"}
                                         </span>

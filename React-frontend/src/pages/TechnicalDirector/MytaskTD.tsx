@@ -527,7 +527,7 @@ export function AttachmentPreviewItem({
     };
   }, [previewUrl]);
   return (
-    <li className="flex items-center gap-3 rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827]">
+    <li className="flex items-center gap-3 rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827]">
       <button
         type="button"
         onClick={() => onPreviewClick?.(file)}
@@ -740,9 +740,9 @@ function TaskCard({
     <div
       draggable={!isCompleted}
       onDragStart={handleDragStart}
-      className={`mt-2 rounded-md border border-[#AEACAC52] bg-white p-3 shadow-sm relative mx-auto w-full max-w-full lg:max-w-none ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+      className={`mt-2 rounded-lg border border-[#AEACAC52] bg-white p-3 shadow-sm relative mx-auto w-full max-w-full lg:max-w-none ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
-      <div className="flex items-center justify-between gap-2 mb-3">
+      <div className="flex items-center justify-between gap-2 mb-4">
         <h4 className="font-medium text-[#353535] text-[20px] truncate leading-tight">
           {task.task_name || "Task Name"}
         </h4>
@@ -828,7 +828,7 @@ function TaskCard({
           )}
         </div>
       </div>
-      <div className="flex items-start justify-between gap-2 mb-3">
+      <div className="flex items-start justify-between gap-2 mb-4">
         <div className="flex flex-col ">
           <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
           <span className="text-[14px] font-medium text-[#8B8B8B]">
@@ -851,7 +851,7 @@ function TaskCard({
         <span className="text-xs text-[#8B8B8B]">Progress</span>
         <span className="text-xs font-medium text-[#8B8B8B]">{progress}%</span>
       </div>
-      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
         <div
           className="h-full rounded-full bg-[#8B8B8B]"
           style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}

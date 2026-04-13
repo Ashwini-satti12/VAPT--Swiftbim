@@ -405,7 +405,7 @@ export default function ManageLeave() {
                   <img
                     src={ArrowDown}
                     alt=""
-                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${employeeDropdownOpen ? "rotate-180" : ""
+                    className={`w-3 h-3 shrink-0 transition-transform duration-200 ${employeeDropdownOpen ? "rotate-180" : ""
                       } ${selectedEmployee === ""
                         ? "opacity-60 grayscale"
                         : "opacity-90"
@@ -487,7 +487,7 @@ export default function ManageLeave() {
                   <img
                     src={ArrowDown}
                     alt=""
-                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                    className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
                       } ${selectedShowEntries === ""
                         ? "opacity-60 grayscale"
                         : "opacity-90"

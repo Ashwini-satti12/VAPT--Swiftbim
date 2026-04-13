@@ -38,7 +38,7 @@ export default function PartnerTD() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 mb-6">
                 <div>
-                    <h2 className="text-[20px] md:text-[24px] font-semibold text-[#12141D] font-Gantari">Partners</h2>
+                    <h2 className="text-[20px] md:text-[24px] font-semibold text-[#000000] font-Gantari">Partners</h2>
                 </div>
             </div>
 
@@ -68,18 +68,18 @@ export default function PartnerTD() {
                                 key={partner.id}
                                 className="bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-[#E8E8E8] overflow-hidden flex flex-col hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-shadow duration-300"
                             >
-                                <div className="p-6 flex-1 flex flex-col">
-                                    <h3 className="text-[18px] md:text-[20px] font-bold text-[#000000] font-Gantari leading-tight line-clamp-2 mb-4">
+                                <div className="p-4 flex-1 flex flex-col">
+                                    <h3 className="text-[20px] font-medium text-[#000000] font-Gantari leading-tight line-clamp-2 mb-4">
                                         {displayName(partner)}
                                     </h3>
 
-                                    <p className="text-[13px] font-Gantari font-medium text-[#9E9E9E] mb-1">
+                                    <p className="text-[14px] font-Gantari font-medium text-[#616161] mb-1">
                                         Vendor Name
                                     </p>
-                                    <p className="text-[16px] font-bold text-[#000000] font-Gantari leading-snug">
+                                    <p className="text-[14px] font-medium text-[#000000] font-Gantari leading-snug">
                                         {partner.contact_name || '—'}
                                     </p>
-                                    <p className="text-[14px] text-[#353535] font-Gantari mt-2 truncate" title={partner.contact_email || undefined}>
+                                    <p className="text-[14px] text-[#353535] font-Gantari mt-3 truncate" title={partner.contact_email || undefined}>
                                         {partner.contact_email || '—'}
                                     </p>
 
