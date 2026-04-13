@@ -416,6 +416,43 @@ interface Milestone {
   due_date: string;
   status: string;
   notes?: string;
+  milestone_percentage?: number | string;
+  paid?: number | string;
+  invoice_number?: string;
+  invoice_ref?: string;
+}
+
+function formatMilestoneTimeline(dueIso?: string | null): string {
+  if (!dueIso) return "—";
+  const due = new Date(dueIso);
+  if (Number.isNaN(due.getTime())) return "—";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  due.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((due.getTime() - today.getTime()) / 86400000);
+  if (diffDays < 0) {
+    const abs = Math.abs(diffDays);
+    if (abs >= 7) {
+      const w = Math.floor(abs / 7);
+      return `${w} week${w !== 1 ? "s" : ""} overdue`;
+    }
+    return `${abs} day${abs !== 1 ? "s" : ""} overdue`;
+  }
+  if (diffDays === 0) return "Due today";
+  if (diffDays >= 7) {
+    const w = Math.floor(diffDays / 7);
+    return `${w} week${w !== 1 ? "s" : ""}`;
+  }
+  return `${diffDays} day${diffDays !== 1 ? "s" : ""}`;
+}
+
+function readMilestoneInvoiceLabel(m: Milestone): string {
+  const r = m as unknown as Record<string, unknown>;
+  for (const key of ["invoice_number", "invoice_ref", "invoice_no"] as const) {
+    const v = r[key];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return "";
 }
 
 interface Employee {
@@ -2039,167 +2076,185 @@ export default function ProjectsTD() {
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DD4342]"></div>
                 </div>
               ) : milestones.length === 0 ? (
-                /* Central Box Area - Now Flexible */
-                <div className="flex-1 border border-[#E5E7EB] rounded-[8px] bg-white flex flex-col items-center justify-center text-center py-20">
-                  <h4 className="text-[20px] font-Gantari font-bold text-[#353535] mb-3">
-                    No Payment Milestones Found
-                  </h4>
-                  <p className="text-[16px] font-Gantari text-[#666666] mb-8">
-                    Add your First Payment to get started with payment tracking
+                <div className="space-y-4">
+                  <p className="text-[15px] font-Gantari font-medium text-[#666666] py-1">
+                    No payment milestones yet. Use{" "}
+                    <span className="font-semibold text-[#353535]">Add Milestone</span>{" "}
+                    in the header to create your first payment.
                   </p>
-                  <button
-                    onClick={() => setShowAddMilestoneModal(true)}
-                    className="flex items-center gap-2 px-6 py-2 rounded-md bg-[#DD4342] text-white font-Gantari font-medium text-[16px] hover:bg-[#c93a39] transition-colors cursor-pointer"
-                  >
-                    <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
-                    Add Milestone
-                  </button>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {milestones.map((m) => (
-                    <div
-                      key={m.id}
-                      className="bg-white border border-slate-100 rounded-[1.25rem] p-6 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] mb-1 truncate">
-                          {m.milestone_name}
-                        </h5>
-                        <div className="flex items-center gap-6 text-[14px] font-Gantari text-[#999999]">
-                          <div className="flex items-center gap-2">
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
+                  {(() => {
+                    const totalForTerms = milestones.reduce(
+                      (s, x) => s + Number(x.milestone_amount || 0),
+                      0,
+                    );
+                    const currencySymbol =
+                      CURRENCIES.find((c) => c.code === currentProject?.currency)
+                        ?.symbol ?? "₹";
+
+                    return milestones.map((m) => {
+                      const st = (m.status || "Pending").toLowerCase();
+                      const badgeClass =
+                        st === "paid"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : st === "overdue"
+                            ? "bg-red-50 text-red-600"
+                            : "bg-[#FFEAD6] text-[#C2410C]";
+                      const dbPct = Number(m.milestone_percentage);
+                      const termsText =
+                        !Number.isNaN(dbPct) && dbPct > 0
+                          ? `${dbPct}%`
+                          : totalForTerms > 0
+                            ? `${Math.round(
+                              (Number(m.milestone_amount) / totalForTerms) * 100,
+                            )}%`
+                            : "—";
+                      const invoiceLabel = readMilestoneInvoiceLabel(m);
+
+                      return (
+                        <div
+                          key={m.id}
+                          className="bg-white border border-slate-200 rounded-lg p-5 md:p-6 shadow-sm"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4 mb-4">
+                            <h5 className="text-[17px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] pr-2 min-w-0 flex-1">
+                              {m.milestone_name}
+                            </h5>
+                            <span
+                              className={`shrink-0 inline-flex items-center rounded-md px-3 py-1 text-[12px] font-bold font-Gantari ${badgeClass}`}
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              />
-                            </svg>
-                            <span>
-                              Due:{" "}
-                              {m.due_date
-                                ? new Date(m.due_date).toLocaleDateString(
-                                  "en-GB",
-                                )
-                                : "-"}
+                              {m.status || "Pending"}
                             </span>
                           </div>
-                          {m.notes && (
-                            <div className="flex items-center gap-2">
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
-                                />
-                              </svg>
-                              <span className="truncate max-w-xs">
-                                {m.notes}
+
+                          <div className="space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center">
+                              <span className="w-full sm:w-[120px] shrink-0 text-[15px] font-Gantari font-medium text-[#666666]">
+                                Terms
+                              </span>
+                              <span className="hidden sm:inline text-[#999999] mr-3">
+                                :
+                              </span>
+                              <span className="text-[15px] font-Gantari font-medium text-[#1A1A1A]">
+                                {termsText}
                               </span>
                             </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-8">
-                        <div className="text-right">
-                          <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
-                            ${Number(m.milestone_amount).toLocaleString()}
-                          </p>
-                          <span
-                            className={`inline-block px-3 py-1 rounded-full text-[12px] font-bold font-Gantari ${m.status === "Paid" ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"}`}
-                          >
-                            {m.status}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {m.status !== "Paid" && (
-                            <button
-                              onClick={() => {
-                                api
-                                  .post(`/api/milestones/${m.id}/mark-paid`)
-                                  .then(
-                                    () => {
-                                      toast.success("Milestone marked as paid!");
-                                      currentProject?.id &&
-                                      fetchMilestones(currentProject.id);
-                                    }
-                                  )
-                                  .catch(() => {
-                                    toast.error("Failed to mark milestone as paid");
-                                  });
-                              }}
-                              className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
-                              title="Mark as Paid"
-                            >
-                              <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                            <div className="flex flex-col sm:flex-row sm:items-center">
+                              <span className="w-full sm:w-[120px] shrink-0 text-[15px] font-Gantari font-medium text-[#666666]">
+                                Timeline
+                              </span>
+                              <span className="hidden sm:inline text-[#999999] mr-3">
+                                :
+                              </span>
+                              <span className="text-[15px] font-Gantari font-medium text-[#1A1A1A]">
+                                {formatMilestoneTimeline(m.due_date)}
+                              </span>
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-center">
+                              <span className="w-full sm:w-[120px] shrink-0 text-[15px] font-Gantari font-medium text-[#666666]">
+                                Amount
+                              </span>
+                              <span className="hidden sm:inline text-[#999999] mr-3">
+                                :
+                              </span>
+                              <span className="text-[15px] font-Gantari font-bold text-[#1A1A1A]">
+                                {currencySymbol}{" "}
+                                {Number(m.milestone_amount).toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              {m.status !== "Paid" && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    api
+                                      .post(`/api/milestones/${m.id}/mark-paid`)
+                                      .then(() => {
+                                        toast.success("Milestone marked as paid!");
+                                        currentProject?.id &&
+                                          fetchMilestones(currentProject.id);
+                                      })
+                                      .catch(() => {
+                                        toast.error("Failed to mark milestone as paid");
+                                      });
+                                  }}
+                                  className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
+                                  title="Mark as Paid"
+                                >
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M5 13l4 4L19 7"
+                                    />
+                                  </svg>
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (
+                                    window.confirm(
+                                      "Are you sure you want to delete this milestone?",
+                                    )
+                                  ) {
+                                    api
+                                      .delete(`/api/milestones/${m.id}`)
+                                      .then(() => {
+                                        toast.success("Milestone deleted successfully!");
+                                        currentProject?.id &&
+                                          fetchMilestones(currentProject.id);
+                                      })
+                                      .catch(() => {
+                                        toast.error("Failed to delete milestone");
+                                      });
+                                  }
+                                }}
+                                className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors cursor-pointer"
+                                title="Delete Milestone"
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                            </button>
-                          )}
-                          <button
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  "Are you sure you want to delete this milestone?",
-                                )
-                              ) {
-                                api
-                                  .delete(`/api/milestones/${m.id}`)
-                                  .then(
-                                    () => {
-                                      toast.success("Milestone deleted successfully!");
-                                      currentProject?.id &&
-                                      fetchMilestones(currentProject.id);
-                                    }
-                                  )
-                                  .catch(() => {
-                                    toast.error("Failed to delete milestone");
-                                  });
+                                <svg
+                                  className="w-5 h-5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              className="shrink-0 px-5 py-2.5 rounded-md bg-[#DD4342] text-white font-Gantari font-bold text-[14px] shadow-sm hover:bg-[#c93a39] transition-colors cursor-default"
+                              title={
+                                invoiceLabel
+                                  ? "Invoice reference"
+                                  : "Invoice generation is not wired for this view"
                               }
-                            }}
-                            className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors cursor-pointer"
-                            title="Delete Milestone"
-                          >
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
+                              {invoiceLabel || "Generate Invoice"}
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    });
+                  })()}
                 </div>
               )}
             </div>
@@ -2320,7 +2375,7 @@ export default function ProjectsTD() {
                                   }}
                                 />
                               </svg>
-                              <span className="absolute text-[14px] md:text-[18px] font-Gantari font-bold text-[#353535]">
+                              <span className="absolute text-[14px] md:text-[16px] font-Gantari font-bold text-[#353535]">
                                 {progress}%
                               </span>
                             </div>
@@ -2520,7 +2575,7 @@ export default function ProjectsTD() {
                           </div>
 
                           <div className="mb-2 ml-6 -mt-2 min-h-[45px] flex flex-col justify-center">
-                            <h3 className="text-[18px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                            <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight">
                               {p.project_name ?? "Untitled Project"}
                             </h3>
                           </div>
