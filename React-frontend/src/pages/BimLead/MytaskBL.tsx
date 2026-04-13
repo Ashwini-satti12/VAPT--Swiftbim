@@ -297,10 +297,10 @@ function TaskCard({
     <div
       draggable={!isCompleted}
       onDragStart={handleDragStart}
-      className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+      className={`rounded-lg border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[18px] sm:text-[20px] truncate">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <h4 className="flex-1 min-w-0 font-medium text-[#353535] text-[20px] truncate">
           {task.task_name || "Task Name"}
         </h4>
         <div className="relative shrink-0" ref={menuRef}>
@@ -315,7 +315,7 @@ function TaskCard({
             aria-label="More options"
             aria-expanded={menuOpen}
           >
-            <img src={Dot} alt="Dot" className="w-5 h-5 object-contain" />
+            <img src={Dot} alt="Dot" className="w-4 h-4 object-contain" />
           </button>
           {menuOpen && (
             <div
@@ -385,7 +385,7 @@ function TaskCard({
           )}
         </div>
       </div>
-      <div className="flex items-start justify-between gap-2 mb-2">
+      <div className="flex items-start justify-between gap-2 mb-4">
         <div className="flex flex-col ">
           <span className="text-[14px] font-medium text-[#000000]">
             Start Date
@@ -397,7 +397,7 @@ function TaskCard({
           </span>
         </div>
 
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex flex-col items-end">
           <span className="text-[14px] font-medium text-[#000000]">
             End Date
           </span>
@@ -408,13 +408,13 @@ function TaskCard({
           </span>
         </div>
       </div>
-      <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="text-xs text-slate-600">Progress</span>
-        <span className="text-xs font-medium text-slate-700">{progress}%</span>
+      <div className="flex items-center justify-between gap-2 mb-1 text-[12px] text-[#8B8B8B]">
+        <span>Progress</span>
+        <span className="font-medium">{progress}%</span>
       </div>
-      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
         <div
-          className="h-full rounded-full bg-slate-500"
+          className="h-full rounded-full bg-[#8B8B8B] transition-all duration-300"
           style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
         />
       </div>
@@ -499,13 +499,13 @@ function TaskCard({
           type="button"
           draggable={false}
           onClick={() => onViewTask?.(task)}
-          className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer"
+          className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer transition-colors"
         >
           Details
           <img
             src={Arrow}
             alt="Arrow"
-            className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
+            className="w-3 h-3 transition-all duration-200 group-hover:translate-x-0.5 group-hover:brightness-0 group-hover:invert-[20%] cursor-pointer"
           />
         </button>
       </div>
@@ -876,7 +876,7 @@ export default function MytaskBL() {
   return (
     <div className="h-full flex flex-col overflow-hidden bg-white pt-2">
       {/* Header Section (Title & Filters) - Stays fixed due to flex-col */}
-      <div className="bg-white px-4 sm:px-6 pb-4 shrink-0 z-10">
+      <div className="bg-white px-5 py-2 shrink-0 z-10">
         <div className="max-w-full mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* Row 1: Title and Mobile/Tablet Add Task Button */}
           <div className="flex items-center justify-between gap-4 w-full lg:w-auto">
@@ -976,10 +976,10 @@ export default function MytaskBL() {
       </div>
 
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 custom-scrollbar bg-[#FFFFFF]">
-        <div className="max-w-full mx-auto space-y-6">
+      <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#FFFFFF]">
+        <div className="max-w-full mx-auto space-y-0">
           {/* Status Summary Cards - Now scrollable to save space on mobile */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 px-5 py-2">
             <Link
               to={
                 statusFilter === "todo" ? pathname : `${pathname}?status=todo`
@@ -1046,9 +1046,9 @@ export default function MytaskBL() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 px-5 py-2">
             <div
-              className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+              className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors"
               onDragOver={(e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "move";
@@ -1071,7 +1071,7 @@ export default function MytaskBL() {
               ))}
             </div>
             <div
-              className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+              className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors"
               onDragOver={(e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "move";
@@ -1095,7 +1095,7 @@ export default function MytaskBL() {
               ))}
             </div>
             <div
-              className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+              className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors"
               onDragOver={(e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "move";

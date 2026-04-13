@@ -336,10 +336,10 @@ export default function TeamtaskBC() {
 
     return (
         <div className="h-full min-h-0 flex flex-col overflow-hidden">
-            <div className="bg-white pb-3 flex-shrink-0">
+            <div className="bg-white px-5 py-2 flex-shrink-0 ">
                 {/* Top row: title + dropdowns + Add task */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-                    <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
+                    <h2 className="text-[24px] font-medium text-[#000000] font-Gantari">
                         Team Task
                     </h2>
                     <div
@@ -403,7 +403,7 @@ export default function TeamtaskBC() {
                         <button
                             type="button"
                             onClick={() => navigate("/bc/teamtasks/add", { state: { from: "teamtasks" } })}
-                            className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm cursor-pointer"
+                            className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-white cursor-pointer"
                         >
                             <img src={AddBtn} alt="Add" className="h-5 w-5" />
                             Add task
@@ -412,13 +412,13 @@ export default function TeamtaskBC() {
                 </div>
 
                 {/* Status summary cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                     <Link
                         to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
                         className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
                     >
-                        <span className="text-xl font-bold text-[#0D1829]">To Do</span>
-                        <span className="text-xl font-bold text-[#0D1829]">({counts.todo})</span>
+                        <span className="text-[20px] font-bold font-Gantari  text-[#353535]">To Do</span>
+                        <span className="text-[20px] font-bold font-Gantari text-[#353535]">({counts.todo})</span>
                         <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
                             <img src={Group1} alt="Group1" className="w-8 h-8" />
                         </div>
@@ -428,8 +428,8 @@ export default function TeamtaskBC() {
                         to={statusFilter === "in_progress" ? pathname : `${pathname}?status=in_progress`}
                         className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
                     >
-                        <span className="text-xl font-bold text-[#0D1829]">In Progress</span>
-                        <span className="text-xl font-bold text-[#0D1829]">({counts.in_progress})</span>
+                        <span className="text-[20px] font-bold font-Gantari  text-[#353535]">In Progress</span>
+                        <span className="text-[20px] font-bold font-Gantari text-[#353535]">({counts.in_progress})</span>
                         <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
                             <img src={Group2} alt="Group2" className="w-8 h-8" />
                         </div>
@@ -439,8 +439,8 @@ export default function TeamtaskBC() {
                         to={statusFilter === "completed" ? pathname : `${pathname}?status=completed`}
                         className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
                     >
-                        <span className="text-xl font-bold text-[#0D1829]">Completed</span>
-                        <span className="text-xl font-bold text-[#0D1829]">({counts.completed})</span>
+                        <span className="text-[20px] font-bold font-Gantari  text-[#353535]">Completed</span>
+                        <span className="text-[20px] font-bold font-Gantari text-[#353535]">({counts.completed})</span>
                         <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
                             <img src={Group3} alt="Group3" className="w-8 h-8" />
                         </div>
@@ -449,10 +449,10 @@ export default function TeamtaskBC() {
             </div>
 
             {/* Task columns scrollable area */}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pl-5 pr-2 py-2">
                     <div
-                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        className="space-y-3 rounded-lg border-2 border-dashed border-transparent transition-colors"
                         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
                         onDrop={(e) => {
                             e.preventDefault();
@@ -472,7 +472,7 @@ export default function TeamtaskBC() {
                         ))}
                     </div>
                     <div
-                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        className="space-y-3 rounded-lg border-2 border-dashed border-transparent transition-colors"
                         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
                         onDrop={(e) => {
                             e.preventDefault();
@@ -492,7 +492,7 @@ export default function TeamtaskBC() {
                         ))}
                     </div>
                     <div
-                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        className="space-y-3 rounded-lg border-2 border-dashed border-transparent transition-colors"
                         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
                         onDrop={(e) => {
                             e.preventDefault();
@@ -516,7 +516,7 @@ export default function TeamtaskBC() {
 
             {deleteTask !== null && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+                    <div className="bg-white rounded-xl p-5 relative flex flex-col items-center w-[450px]">
                         {/* Close */}
                         <button
                             type="button"
@@ -525,7 +525,7 @@ export default function TeamtaskBC() {
                         >
                             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                                 <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
                                     <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                                         Close
                                     </span>
@@ -535,7 +535,7 @@ export default function TeamtaskBC() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
-                        <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
+                        <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mb-3">
                             Delete Task
                         </h3>
                         <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
@@ -545,14 +545,14 @@ export default function TeamtaskBC() {
                             <button
                                 type="button"
                                 onClick={() => setDeleteTask(null)}
-                                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+                                className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#353535] font-gantari font-semibold text-[14px]  cursor-pointer"
                             >
                                 Discard
                             </button>
                             <button
                                 type="button"
                                 onClick={confirmDeleteTask}
-                                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+                                className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px]  cursor-pointer"
                             >
                                 Yes, Delete
                             </button>
