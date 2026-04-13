@@ -45,6 +45,7 @@ import AddClientTD from "./pages/TechnicalDirector/AddClientTD";
 import EditClientTD from "./pages/TechnicalDirector/EditClientTD";
 import ClientViewTD from "./pages/TechnicalDirector/ClientViewTD";
 import ProjectsTD from "./pages/TechnicalDirector/ProjectsTD";
+import ViewInvoiceDetailsTD from "./pages/TechnicalDirector/ViewInvoiceDetailsTD";
 import MytaskTD from "./pages/TechnicalDirector/MytaskTD";
 import AddTaskTD from "./pages/TechnicalDirector/AddTaskTD";
 import TeamtaskTD from "./pages/TechnicalDirector/TeamtaskTD";
@@ -259,6 +260,10 @@ function App() {
             <Route path="td/clients/:id/view" element={<ClientViewTD />} />
             <Route path="td/clients/:id/edit" element={<EditClientTD />} />
             <Route path="td/projects" element={<ProjectsTD />} />
+            <Route
+              path="td/invoices/:invoiceId"
+              element={<ViewInvoiceDetailsTD />}
+            />
             <Route path="td/mytasks" element={<MytaskTD />} />
             <Route path="td/mytasks/add" element={<AddTaskTD />} />
             <Route path="td/teamtasks/add" element={<AddTaskTD />} />

@@ -16,6 +16,7 @@ import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+import plusIcon from "../../assets/ProjectManager/Client/plusicon.svg";
 
 const CURRENCIES = [
   { code: "INR", symbol: "₹", label: "Indian Rupee" },
@@ -116,6 +117,170 @@ const truncateFileName = (name: string, maxLen = 25) => {
   const base = lastDot !== -1 ? name.slice(0, lastDot) : name;
   return base.length > maxLen ? `${base.slice(0, maxLen)}...${ext}` : name;
 };
+
+function CustomDropdown({
+  options,
+  value,
+  onChange,
+  placeholder,
+  className = "",
+  styleType = "form",
+  menuMaxHeightClass = "max-h-[220px]",
+  direction = "down",
+  selectedPrefix = "",
+}: {
+  options: string[];
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  className?: string;
+  styleType?: "form" | "header" | "table";
+  menuMaxHeightClass?: string;
+  direction?: "up" | "down";
+  selectedPrefix?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, bottom: 0 });
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target) &&
+        menuRef.current &&
+        !menuRef.current.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && dropdownRef.current) {
+      const updatePosition = () => {
+        if (dropdownRef.current) {
+          const rect = dropdownRef.current.getBoundingClientRect();
+          setCoords({
+            top: rect.bottom,
+            left: rect.left,
+            width: rect.width,
+            bottom: window.innerHeight - rect.top,
+          });
+        }
+      };
+      updatePosition();
+      window.addEventListener("scroll", updatePosition, true);
+      window.addEventListener("resize", updatePosition);
+      return () => {
+        window.removeEventListener("scroll", updatePosition, true);
+        window.removeEventListener("resize", updatePosition);
+      };
+    }
+  }, [isOpen]);
+
+  const isPlaceholder = !value || value === placeholder;
+
+  return (
+    <div className={`relative ${className}`} ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-2 transition-all outline-none font-Gantari min-w-0 ${
+          styleType === "header"
+            ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[12px] sm:text-[14px] font-semibold"
+            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[12px] sm:text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${
+                isOpen ? "!border-[#AEACAC52]" : ""
+              }`
+        }`}
+      >
+        <span
+          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+            isPlaceholder || isOpen ? "text-[#8B8B8B]" : "text-[#353535]"
+          }`}
+        >
+          {isPlaceholder || isOpen ? (
+            placeholder
+          ) : (
+            <>
+              {selectedPrefix && (
+                <span className="text-[14px] font-normal">{selectedPrefix}</span>
+              )}{" "}
+              <span>{value}</span>
+            </>
+          )}
+        </span>
+        <img
+          src={ArrowDown}
+          alt="arrow"
+          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${
+            isOpen ? "rotate-180" : ""
+          } ${isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          ref={menuRef}
+          className="fixed z-[9999] bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden"
+          style={{
+            width: coords.width,
+            left: coords.left,
+            ...(direction === "up"
+              ? { bottom: coords.bottom + 4 }
+              : { top: coords.top + 4 }),
+          }}
+        >
+          <div
+            className={`flex flex-col py-2 overflow-y-auto ${menuMaxHeightClass} custom-scrollbar`}
+          >
+            {options.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  onChange(option);
+                  setIsOpen(false);
+                }}
+                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${
+                  value === option
+                    ? "text-[#353535] bg-[#F2F2F2]"
+                    : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                }`}
+              >
+                <span className="truncate min-w-0">{option}</span>
+                {value === option && (
+                  <svg
+                    className="w-4 h-4 shrink-0 text-[#353535]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FormSelect({
   placeholder, options, value, onChange,
 }: { label?: string; placeholder: string; options: string[]; value: string; onChange: (v: string) => void; }) {
@@ -275,7 +440,9 @@ export default function ProjectsPM() {
   const [selectedProjectForEdit, setSelectedProjectForEdit] = useState<Project | null>(null);
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-
+  const [typeFilter, setTypeFilter] = useState<
+    "Type" | "All" | "In House" | "Outsource"
+  >("Type");
 
   // Select Options States
   const [projectManagers, setProjectManagers] = useState<string[]>([]);
@@ -2851,57 +3018,108 @@ export default function ProjectsPM() {
         </div>
       ) : (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          {/* Dashboard Header */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6">
-            <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">{title}</h2>
-            {canCreate && (
-              <button
-                type="button"
-                onClick={() => {
-                  resetFormFields();
-                  setShowCreateModal(true);
-                }}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] md:text-[16px] font-Gantari font-semibold transition-all cursor-pointer"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                </svg>
-                Create Project
-              </button>
-            )}
+          {/* Dashboard Header: title + Type dropdown + Create Project */}
+          <div className="sticky top-0 z-30 bg-white mb-2 sm:mb-4 sm:mt-0 overflow-visible px-0 sm:px-1 shrink-0">
+            <div className="flex flex-col xl:flex-row w-full xl:items-center justify-between gap-3 overflow-visible py-2">
+              <div className="flex items-center justify-between w-full xl:w-auto">
+                <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
+                  {title}
+                </h2>
+              </div>
+              <div className="flex flex-col sm:flex-row flex-1 items-stretch sm:items-center justify-end gap-3 min-w-0 overflow-visible">
+                <div className="flex flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 px-0.5 custom-scrollbar min-w-0">
+                  <div className="shrink-0">
+                    <CustomDropdown
+                      options={["Type", "All", "In House", "Outsource"]}
+                      value={typeFilter}
+                      onChange={(val) =>
+                        setTypeFilter(
+                          val as "Type" | "All" | "In House" | "Outsource",
+                        )
+                      }
+                      placeholder="Type"
+                      className="w-[100px] sm:w-[130px]"
+                      styleType="header"
+                      direction="down"
+                    />
+                  </div>
+                  {canCreate && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resetFormFields();
+                        setShowCreateModal(true);
+                      }}
+                      className="flex items-center gap-1 sm:gap-2 shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-1.5 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
+                    >
+                      <img
+                        src={plusIcon}
+                        alt=""
+                        className="w-3 h-3 sm:w-3 sm:h-3"
+                        aria-hidden
+                      />
+                      Create Project
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Dashboard Content with Scrollbar */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden p-1 sm:p-2 pr-1 custom-scrollbar">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-4 pb-2">
-              {filteredList.length === 0 ? (
-                <div className="col-span-full bg-slate-50 rounded-md border border-dashed border-slate-300 p-8 text-center text-slate-500">
-                  No projects found.
-                </div>
-              ) : (
-                filteredList.map((p) => {
+          <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-4 pl-1 sm:pl-2 pr-1 custom-scrollbar">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-4 pb-2">
+              {(() => {
+                const displayList =
+                  typeFilter === "All" || typeFilter === "Type"
+                    ? filteredList
+                    : filteredList.filter((p) => p.source === typeFilter);
+
+                if (displayList.length === 0) {
+                  return (
+                    <div className="col-span-full bg-slate-50 rounded-md border border-dashed border-slate-300 p-8 text-center text-slate-500">
+                      No projects found.
+                    </div>
+                  );
+                }
+
+                return displayList.map((p) => {
                   const progress = Math.round(p.progress ?? 0);
+                  const radius = 28;
+                  const circumference = 2 * Math.PI * radius;
+                  const offset =
+                    circumference - (progress / 100) * circumference;
+
                   return (
                     <div key={p.id} className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300">
                       <div>
-                        <div className="flex items-start justify-between mb-2 mt-2 pr-0">
+                        <div className="flex items-start justify-between mb-4 mt-2 pr-0">
                           <div className="relative flex items-center justify-center">
-                            <svg className="w-12 h-12 md:w-16 md:h-16 transform -rotate-90">
-                              <circle cx="50%" cy="50%" r={22} stroke="#f1f5f9" strokeWidth="4" fill="transparent" />
+                            <svg className="w-16 h-16 md:w-20 md:h-20 transform -rotate-90">
                               <circle
                                 cx="50%"
                                 cy="50%"
-                                r={22}
+                                r={radius}
+                                stroke="#f1f5f9"
+                                strokeWidth="4"
+                                fill="transparent"
+                              />
+                              <circle
+                                cx="50%"
+                                cy="50%"
+                                r={radius}
                                 stroke="#0a9344"
                                 strokeWidth="4"
                                 fill="transparent"
-                                strokeDasharray={2 * Math.PI * 22}
-                                strokeDashoffset={(2 * Math.PI * 22) - (progress / 100) * (2 * Math.PI * 22)}
+                                strokeDasharray={circumference}
+                                strokeDashoffset={offset}
                                 strokeLinecap="round"
                                 style={{ transition: "stroke-dashoffset 0.8s ease-in-out" }}
                               />
                             </svg>
-                            <span className="absolute text-[12px] font-Gantari font-bold text-[#353535]">{progress}%</span>
+                            <span className="absolute text-[14px] md:text-[16px] font-Gantari font-bold text-[#353535]">
+                              {progress}%
+                            </span>
                           </div>
                           <div className="relative">
                             <button
@@ -2912,7 +3130,7 @@ export default function ProjectsPM() {
                                 setOpenMenuId(openMenuId === p.id ? null : p.id);
                               }}
                             >
-                              <img src={threedot} alt="" className='w-5 h-5' />
+                              <img src={threedot} alt="" className='w-4 h-4' />
                             </button>
                             <div
                               className={`absolute right-0 mt-3 w-60 bg-white/90 backdrop-blur-md rounded-md border border-[#595959]/50 shadow-xl transition-all origin-top-right z-50 ${openMenuId === p.id ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
@@ -2997,8 +3215,8 @@ export default function ProjectsPM() {
                           </div>
                         </div>
                       </div>
-                      <div className="mb-2 ml-6 -mt-1 min-h-[45px] flex items-center">
-                        <h3 className="text-[16px] md:text-[18px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                      <div className="mb-2 ml-6 -mt-2 min-h-[45px] flex flex-col justify-center">
+                        <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight">
                           {p.project_name ?? "Untitled Project"}
                         </h3>
                       </div>
@@ -3006,7 +3224,7 @@ export default function ProjectsPM() {
                     <div
                       role="button"
                       tabIndex={0}
-                      className="flex items-center justify-between border-t border-[#E8E8E8] pt-2 mt-auto cursor-pointer"
+                      className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto cursor-pointer"
                       onClick={() => setSearchParams({ projectId: String(p.id), source: String(p.source || "In House") })}
                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSearchParams({ projectId: String(p.id), source: String(p.source || "In House") }); } }}
                         title="View project details"
@@ -3063,8 +3281,8 @@ export default function ProjectsPM() {
                       </div>
                     </div>
                   );
-                })
-              )}
+                });
+              })()}
             </div>
           </div>
         </div>
