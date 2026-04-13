@@ -848,8 +848,8 @@ function TaskCard({
         </div>
       </div>
       <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="text-xs text-[#8B8B8B]">Progress</span>
-        <span className="text-xs font-medium text-[#8B8B8B]">{progress}%</span>
+        <span className="text-[12px] text-[#8B8B8B]">Progress</span>
+        <span className="text-[12px] text-[#8B8B8B]">{progress}%</span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
         <div

@@ -338,8 +338,8 @@ function TaskCard({
       onDragStart={handleDragStart}
       className={`mt-2 rounded-md border border-slate-200 bg-white p-3 shadow-sm relative mx-auto w-full max-w-full lg:max-w-none ${isCompleted || isOutsource ? "cursor-default opacity-90" : "cursor-grab active:cursor-grabbing"}`}
     >
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[18px] truncate leading-tight">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[20px] truncate leading-tight">
           {task.task_name || "Task Name"}
         </h4>
         <div className="relative shrink-0" ref={menuRef}>
@@ -424,7 +424,7 @@ function TaskCard({
           )}
         </div>
       </div>
-      <div className="flex items-start justify-between gap-2 mb-2">
+      <div className="flex items-start justify-between gap-2 mb-4">
         <div className="flex flex-col ">
           <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
           <span className="text-[14px] font-medium text-[#8B8B8B]">
@@ -444,8 +444,8 @@ function TaskCard({
         </div>
       </div>
       <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="text-xs text-[#8B8B8B]">Progress</span>
-        <span className="text-xs font-medium text-[#8B8B8B]">
+        <span className="text-[12px] text-[#8B8B8B]">Progress</span>
+        <span className="text-[12px] text-[#8B8B8B]">
           {progress}%
         </span>
       </div>
@@ -1189,9 +1189,9 @@ export default function TeamtaskTD() {
             to={statusFilter === "todo" ? pathname : buildStatusLink("todo")}
             className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
           >
-            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">To Do</span>
+            <span className="text-[20px] font-bold text-[#000000]">To Do</span>
 
-            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">({counts.todo})</span>
+            <span className="text-[20px] font-bold text-[#000000]">({counts.todo})</span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
               <img src={Group1} alt="Group1" className="w-8 h-8" />
             </div>
@@ -1205,9 +1205,9 @@ export default function TeamtaskTD() {
             }
             className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
           >
-            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">In Progress</span>
+            <span className="text-[20px] font-bold text-[#000000]">In Progress</span>
 
-            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">
+            <span className="text-[20px] font-bold text-[#000000]">
               ({counts.in_progress})
             </span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
@@ -1223,9 +1223,9 @@ export default function TeamtaskTD() {
             }
             className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
           >
-            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">Completed</span>
+            <span className="text-[20px] font-bold text-[#000000]">Completed</span>
 
-            <span className="text-[18px] sm:text-[16px] font-bold text-[#0D1829]">({counts.completed})</span>
+            <span className="text-[20px] font-bold text-[#000000]">({counts.completed})</span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
               <img src={Group3} alt="Group3" className="w-8 h-8" />
             </div>
