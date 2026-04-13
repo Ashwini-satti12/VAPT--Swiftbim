@@ -420,6 +420,11 @@ interface Milestone {
   paid?: number | string;
   invoice_number?: string;
   invoice_ref?: string;
+  /** Plain-text timeline from new_swiftbim.payment_milestones (e.g. "3 weeks") */
+  timeline_raw?: string;
+  swiftbim_invoice_id?: number | null;
+  swiftbim_invoice_total?: number | null;
+  swiftbim_invoice_status?: string | null;
 }
 
 function formatMilestoneTimeline(dueIso?: string | null): string {
@@ -537,6 +542,8 @@ export default function ProjectsTD() {
   const [milestoneNotes, setMilestoneNotes] = useState("");
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [milestonesLoading, setMilestonesLoading] = useState(false);
+  /** Contract milestones from new_swiftbim: TD view is read-only (commercial workflow elsewhere). */
+  const [milestonesReadOnly, setMilestonesReadOnly] = useState(false);
 
   // Edit Project Modal State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -1023,22 +1030,49 @@ export default function ProjectsTD() {
     searchParams,
   ]);
 
-  const fetchMilestones = (projectId: number) => {
+  const fetchMilestones = (projectId: number, source?: string) => {
     setMilestonesLoading(true);
+    const isOutsource = source === "Outsource";
+    if (!isOutsource) {
+      api
+        .get<{
+          milestones?: Milestone[];
+          read_only?: boolean;
+          source?: string;
+        }>(`/api/payment-milestones/new-swiftbim?project_id=${projectId}`)
+        .then(({ data }) => {
+          setMilestones(data.milestones || []);
+          setMilestonesReadOnly(Boolean(data.read_only));
+        })
+        .catch(() => {
+          setMilestonesReadOnly(false);
+          api
+            .get<{ milestones: Milestone[] }>(
+              `/api/milestones?project_id=${projectId}`,
+            )
+            .then(({ data }) => setMilestones(data.milestones || []))
+            .catch(() => setMilestones([]));
+        })
+        .finally(() => setMilestonesLoading(false));
+      return;
+    }
     api
       .get<{ milestones: Milestone[] }>(
         `/api/milestones?project_id=${projectId}`,
       )
-      .then(({ data }) => setMilestones(data.milestones || []))
+      .then(({ data }) => {
+        setMilestones(data.milestones || []);
+        setMilestonesReadOnly(false);
+      })
       .catch(() => setMilestones([]))
       .finally(() => setMilestonesLoading(false));
   };
 
   useEffect(() => {
     if (showMilestones && currentProject?.id) {
-      fetchMilestones(currentProject.id);
+      fetchMilestones(currentProject.id, currentProject.source);
     }
-  }, [showMilestones, currentProject?.id]);
+  }, [showMilestones, currentProject?.id, currentProject?.source]);
 
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const filteredList = list.filter((p) => {
@@ -2002,18 +2036,20 @@ export default function ProjectsTD() {
                   Payment Milestones
                 </h3>
                 <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
-                  {currentProject?.project_name ?? "Prestige Park Grove"}_Tower 1
-                  to 09
+                  {currentProject?.project_name ?? "Project"}
                 </p>
               </div>
-              <button
-                onClick={() => setShowAddMilestoneModal(true)}
-                className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-md bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors cursor-pointer"
-                title="Add Milestone"
-              >
-                <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
-                Add Milestone
-              </button>
+              {!milestonesReadOnly && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddMilestoneModal(true)}
+                  className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-md bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors cursor-pointer"
+                  title="Add Milestone"
+                >
+                  <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
+                  Add Milestone
+                </button>
+              )}
             </div>
 
             {/* Milestones Content - No Scroll Version */}
@@ -2078,9 +2114,15 @@ export default function ProjectsTD() {
               ) : milestones.length === 0 ? (
                 <div className="space-y-4">
                   <p className="text-[15px] font-Gantari font-medium text-[#666666] py-1">
-                    No payment milestones yet. Use{" "}
-                    <span className="font-semibold text-[#353535]">Add Milestone</span>{" "}
-                    in the header to create your first payment.
+                    {milestonesReadOnly
+                      ? "No client payment milestones are linked for this project in the commercial database yet."
+                      : (
+                        <>
+                          No payment milestones yet. Use{" "}
+                          <span className="font-semibold text-[#353535]">Add Milestone</span>{" "}
+                          in the header to create your first payment.
+                        </>
+                      )}
                   </p>
                 </div>
               ) : (
@@ -2149,7 +2191,9 @@ export default function ProjectsTD() {
                                 :
                               </span>
                               <span className="text-[15px] font-Gantari font-medium text-[#1A1A1A]">
-                                {formatMilestoneTimeline(m.due_date)}
+                                {m.timeline_raw?.trim()
+                                  ? m.timeline_raw
+                                  : formatMilestoneTimeline(m.due_date)}
                               </span>
                             </div>
                             <div className="flex flex-col sm:flex-row sm:items-center">
@@ -2168,7 +2212,7 @@ export default function ProjectsTD() {
 
                           <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
                             <div className="flex items-center gap-2">
-                              {m.status !== "Paid" && (
+                              {!milestonesReadOnly && m.status !== "Paid" && (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -2177,7 +2221,10 @@ export default function ProjectsTD() {
                                       .then(() => {
                                         toast.success("Milestone marked as paid!");
                                         currentProject?.id &&
-                                          fetchMilestones(currentProject.id);
+                                          fetchMilestones(
+                                            currentProject.id,
+                                            currentProject.source,
+                                          );
                                       })
                                       .catch(() => {
                                         toast.error("Failed to mark milestone as paid");
@@ -2201,54 +2248,110 @@ export default function ProjectsTD() {
                                   </svg>
                                 </button>
                               )}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (
-                                    window.confirm(
-                                      "Are you sure you want to delete this milestone?",
-                                    )
-                                  ) {
-                                    api
-                                      .delete(`/api/milestones/${m.id}`)
-                                      .then(() => {
-                                        toast.success("Milestone deleted successfully!");
-                                        currentProject?.id &&
-                                          fetchMilestones(currentProject.id);
-                                      })
-                                      .catch(() => {
-                                        toast.error("Failed to delete milestone");
-                                      });
-                                  }
-                                }}
-                                className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors cursor-pointer"
-                                title="Delete Milestone"
-                              >
-                                <svg
-                                  className="w-5 h-5"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
+                              {!milestonesReadOnly && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (
+                                      window.confirm(
+                                        "Are you sure you want to delete this milestone?",
+                                      )
+                                    ) {
+                                      api
+                                        .delete(`/api/milestones/${m.id}`)
+                                        .then(() => {
+                                          toast.success("Milestone deleted successfully!");
+                                          currentProject?.id &&
+                                            fetchMilestones(
+                                              currentProject.id,
+                                              currentProject.source,
+                                            );
+                                        })
+                                        .catch(() => {
+                                          toast.error("Failed to delete milestone");
+                                        });
+                                    }
+                                  }}
+                                  className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors cursor-pointer"
+                                  title="Delete Milestone"
                                 >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                  />
-                                </svg>
-                              </button>
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                  </svg>
+                                </button>
+                              )}
                             </div>
                             <button
                               type="button"
-                              className="shrink-0 px-5 py-2.5 rounded-md bg-[#DD4342] text-white font-Gantari font-bold text-[14px] shadow-sm hover:bg-[#c93a39] transition-colors cursor-default"
+                              onClick={() => {
+                                if (milestonesReadOnly) {
+                                  const invId = m.swiftbim_invoice_id;
+                                  if (
+                                    invId !== undefined &&
+                                    invId !== null &&
+                                    Number(invId) > 0
+                                  ) {
+                                    const qs = searchParams.toString();
+                                    navigate(
+                                      `/td/invoices/${Number(invId)}?project_id=${currentProject.id}`,
+                                      {
+                                        state: {
+                                          returnTo: `/td/projects${qs ? `?${qs}` : ""}`,
+                                        },
+                                      },
+                                    );
+                                  } else {
+                                    toast.error(
+                                      invoiceLabel
+                                        ? "Invoice number is shown, but the invoice record is not linked yet. Ask commercial to sync the invoice."
+                                        : "No invoice record is linked to this milestone yet.",
+                                    );
+                                  }
+                                  return;
+                                }
+                                if (invoiceLabel) {
+                                  toast(invoiceLabel, { icon: "ℹ️" });
+                                }
+                              }}
+                              className={`shrink-0 px-5 py-2.5 rounded-md bg-[#DD4342] text-white font-Gantari font-bold text-[14px] shadow-sm hover:bg-[#c93a39] transition-colors ${
+                                milestonesReadOnly &&
+                                m.swiftbim_invoice_id !== undefined &&
+                                m.swiftbim_invoice_id !== null &&
+                                Number(m.swiftbim_invoice_id) > 0
+                                  ? "cursor-pointer"
+                                  : milestonesReadOnly
+                                    ? "cursor-not-allowed opacity-80"
+                                    : "cursor-default"
+                              }`}
                               title={
-                                invoiceLabel
-                                  ? "Invoice reference"
-                                  : "Invoice generation is not wired for this view"
+                                milestonesReadOnly
+                                  ? m.swiftbim_invoice_id
+                                    ? "View invoice details from commercial database"
+                                    : invoiceLabel
+                                      ? "Invoice reference — record not linked for viewing yet"
+                                      : "Invoice not generated yet for this milestone"
+                                  : invoiceLabel
+                                    ? "Invoice reference"
+                                    : "Invoice generation is not wired for this view"
                               }
                             >
-                              {invoiceLabel || "Generate Invoice"}
+                              {milestonesReadOnly
+                                ? Number(m.swiftbim_invoice_id) > 0
+                                  ? "View Invoice"
+                                  : invoiceLabel
+                                    ? "Invoice ref"
+                                    : "No invoice yet"
+                                : invoiceLabel || "Generate Invoice"}
                             </button>
                           </div>
                         </div>
@@ -3418,7 +3521,7 @@ export default function ProjectsTD() {
                     setMilestoneAmount("");
                     setMilestoneDueDate("");
                     setMilestoneNotes("");
-                    fetchMilestones(currentProject.id);
+                    fetchMilestones(currentProject.id, currentProject.source);
                   })
                   .catch((err) => {
                     toast.error(err.response?.data?.message || "Failed to add milestone");
