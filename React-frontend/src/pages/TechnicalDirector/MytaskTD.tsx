@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useState,
-  useRef,
-  useMemo,
-  useLayoutEffect,
-} from "react";
+import { useEffect, useState, useRef, useMemo, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import {
   Link,
@@ -148,10 +142,10 @@ export function FormDropdown({
   const filteredOptions =
     searchable && isOpen && q
       ? options.filter(
-        (opt) =>
-          opt.label.toLowerCase().includes(q) ||
-          String(opt.value).toLowerCase().includes(q),
-      )
+          (opt) =>
+            opt.label.toLowerCase().includes(q) ||
+            String(opt.value).toLowerCase().includes(q),
+        )
       : options;
 
   const listMaxHeightPx = Math.max(120, maxVisibleRows * 40 + 8);
@@ -168,8 +162,7 @@ export function FormDropdown({
     (triggerRef as React.MutableRefObject<HTMLElement | null>).current = node;
   };
 
-  const fieldShellClass =
-    `flex w-full items-center gap-2 rounded-md border border-transparent ${bgClass} px-3 py-1.5 sm:py-2 text-left text-[14px] ${fontClass} font-Gantari transition-colors focus-within:border-[#AEACAC52]`;
+  const fieldShellClass = `flex w-full items-center gap-2 rounded-md border border-transparent ${bgClass} px-3 py-1.5 sm:py-2 text-left text-[14px] ${fontClass} font-Gantari transition-colors focus-within:border-[#AEACAC52]`;
 
   return (
     <div ref={setRootRef} className="relative w-full">
@@ -221,7 +214,9 @@ export function FormDropdown({
           aria-haspopup="listbox"
           aria-label={label}
         >
-          <span className={`min-w-0 flex-1 truncate text-left ${value ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
+          <span
+            className={`min-w-0 flex-1 truncate text-left ${value ? "text-[#353535]" : "text-[#8B8B8B]"}`}
+          >
             {displayLabel}
           </span>
           <img
@@ -320,19 +315,19 @@ export function TaskDropdown({
   const q = (searchQuery || "").trim().toLowerCase();
   const filteredOptions = searchable
     ? (() => {
-      if (!q) return options;
-      const first = options[0];
-      const isPlaceholderOption = (o: string) =>
-        o === first &&
-        (first === "Select Employee" || first === "Select Projects");
-      return options.filter((opt) => {
-        if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
-        const name = String(opt ?? "")
-          .trim()
-          .toLowerCase();
-        return name.includes(q);
-      });
-    })()
+        if (!q) return options;
+        const first = options[0];
+        const isPlaceholderOption = (o: string) =>
+          o === first &&
+          (first === "Select Employee" || first === "Select Projects");
+        return options.filter((opt) => {
+          if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
+          const name = String(opt ?? "")
+            .trim()
+            .toLowerCase();
+          return name.includes(q);
+        });
+      })()
     : options;
 
   const positionClass = narrow
@@ -386,7 +381,14 @@ export function TaskDropdown({
       window.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
     };
-  }, [isOpen, menuUseFixedLayer, menuAlign, narrow, maxVisibleItems, searchable]);
+  }, [
+    isOpen,
+    menuUseFixedLayer,
+    menuAlign,
+    narrow,
+    maxVisibleItems,
+    searchable,
+  ]);
 
   const menuShellClass =
     "flex flex-col overflow-hidden rounded-md border border-[#E0E0E0] bg-white shadow-lg";
@@ -462,7 +464,7 @@ export function TaskDropdown({
               <span className="font-semibold">{selected}</span>
             </>
           ) : (
-            (selected || label)
+            selected || label
           )}
         </span>
         <img
@@ -476,8 +478,8 @@ export function TaskDropdown({
         />
       </button>
       {isOpen &&
-        (menuUseFixedLayer
-          ? fixedPlacement &&
+        (menuUseFixedLayer ? (
+          fixedPlacement &&
           createPortal(
             <div
               ref={dropdownRef}
@@ -497,15 +499,15 @@ export function TaskDropdown({
             </div>,
             document.body,
           )
-          : (
-            <div
-              ref={dropdownRef}
-              role="listbox"
-              className={`absolute top-full z-50 mt-1 flex max-h-[min(18rem,calc(100vh-7rem))] ${menuShellClass} ${positionClass}`}
-            >
-              {menuContent}
-            </div>
-          ))}
+        ) : (
+          <div
+            ref={dropdownRef}
+            role="listbox"
+            className={`absolute top-full z-50 mt-1 flex max-h-[min(18rem,calc(100vh-7rem))] ${menuShellClass} ${positionClass}`}
+          >
+            {menuContent}
+          </div>
+        ))}
     </div>
   );
 }
@@ -668,9 +670,15 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
     ),
     actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
     startTime: timeOnly(
-      t.perferstart_time ?? t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
+      t.perferstart_time ??
+        t.start_time ??
+        t.startTime ??
+        t.Actual_start_time ??
+        "",
     ),
-    dueTime: timeOnly(t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? ""),
+    dueTime: timeOnly(
+      t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? "",
+    ),
     // Prefer human-readable assignee; never show raw employee id as the dropdown value.
     assignTo: (() => {
       const fromName = str(
@@ -838,14 +846,18 @@ function TaskCard({
       </div>
       <div className="flex items-start justify-between gap-2 mb-4">
         <div className="flex flex-col ">
-          <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
+          <span className="text-[14px] font-medium text-[#000000]">
+            Start Date
+          </span>
           <span className="text-[14px] font-medium text-[#8B8B8B]">
             {formatDateForDisplay(task.start_date || task.Actual_start_time) || "—"}
           </span>
         </div>
 
         <div className="flex flex-col items-end gap-1">
-          <span className="text-[14px] font-medium text-[#000000]">Due Date</span>
+          <span className="text-[14px] font-medium text-[#000000]">
+            Due Date
+          </span>
           <span className="text-[14px] font-medium text-[#8B8B8B]">
             {formatDateForDisplay(task.due_date) || "—"}
           </span>
@@ -870,9 +882,9 @@ function TaskCard({
                 const src =
                   task.assigned_to != null && task.assigned_profile_picture
                     ? getGlobalProfileUrl(
-                      task.assigned_to,
-                      task.assigned_profile_picture,
-                    )
+                        task.assigned_to,
+                        task.assigned_profile_picture,
+                      )
                     : task.assigned_profile_picture
                       ? getProfileUrl(task.assigned_profile_picture)
                       : "";
@@ -906,9 +918,9 @@ function TaskCard({
                 const src =
                   task.uploaderid != null && task.uploader_profile_picture
                     ? getGlobalProfileUrl(
-                      task.uploaderid,
-                      task.uploader_profile_picture,
-                    )
+                        task.uploaderid,
+                        task.uploader_profile_picture,
+                      )
                     : task.uploader_profile_picture
                       ? getProfileUrl(task.uploader_profile_picture)
                       : "";
@@ -964,14 +976,14 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-    { value: "1-50", label: "1-50", start: 0, end: 50 },
-    { value: "51-100", label: "51-100", start: 50, end: 100 },
-    { value: "101-150", label: "101-150", start: 100, end: 150 },
-    { value: "151-200", label: "151-200", start: 150, end: 200 },
-    { value: "201-250", label: "201-250", start: 200, end: 250 },
-    { value: "251-300", label: "251-300", start: 250, end: 300 },
-    { value: "all", label: "All", start: 0, end: null },
-  ];
+  { value: "1-50", label: "1-50", start: 0, end: 50 },
+  { value: "51-100", label: "51-100", start: 50, end: 100 },
+  { value: "101-150", label: "101-150", start: 100, end: 150 },
+  { value: "151-200", label: "151-200", start: 150, end: 200 },
+  { value: "201-250", label: "201-250", start: 200, end: 250 },
+  { value: "251-300", label: "251-300", start: 250, end: 300 },
+  { value: "all", label: "All", start: 0, end: null },
+];
 const PERIOD_OPTIONS = [
   "Period",
   "This Week",
@@ -1290,14 +1302,22 @@ export default function MytaskTD() {
 
     Promise.all([
       api.get<{ tasks?: Task[] }>("/api/tasks", { params: taskParams }),
-      api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: taskParams }),
+      api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", {
+        params: taskParams,
+      }),
       api.get<{ employees?: Employee[] }>("/api/employees"),
       api.get<{ projects?: Project[] }>("/api/projects"),
       api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
     ])
       .then(([tasksRes, vTasksRes, empRes, projRes, vProjRes]) => {
-        const internalTasks = (tasksRes.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
-        const vendorTasks = (vTasksRes.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
+        const internalTasks = (tasksRes.data.tasks ?? []).map((t) => ({
+          ...t,
+          source: "In House",
+        }));
+        const vendorTasks = (vTasksRes.data.tasks ?? []).map((t) => ({
+          ...t,
+          source: "Outsource",
+        }));
         setList([...internalTasks, ...vendorTasks] as Task[]);
 
         setEmployees(
@@ -1306,8 +1326,14 @@ export default function MytaskTD() {
           ),
         );
 
-        const internalProjs = (projRes.data.projects ?? []).map(p => ({ ...p, source: "In House" }));
-        const vendorProjs = (vProjRes.data.projects ?? []).map(p => ({ ...p, source: "Outsource" }));
+        const internalProjs = (projRes.data.projects ?? []).map((p) => ({
+          ...p,
+          source: "In House",
+        }));
+        const vendorProjs = (vProjRes.data.projects ?? []).map((p) => ({
+          ...p,
+          source: "Outsource",
+        }));
         setProjects([...internalProjs, ...vendorProjs] as Project[]);
       })
       .catch(() => {
@@ -1491,10 +1517,11 @@ export default function MytaskTD() {
                 className="w-full flex items-center justify-between gap-2 px-3 py-1.5 sm:py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-Gantari transition-all cursor-pointer border-0 min-w-0"
               >
                 <span
-                  className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
-                    ? "text-[#8B8B8B]"
-                    : "text-[#353535]"
-                    }`}
+                  className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                    selectedShowEntries === ""
+                      ? "text-[#8B8B8B]"
+                      : "text-[#353535]"
+                  }`}
                 >
                   {selectedShowEntries === "" ? (
                     SHOW_ENTRIES_PLACEHOLDER
@@ -1512,11 +1539,13 @@ export default function MytaskTD() {
                 <img
                   src={ArrowDown}
                   alt=""
-                  className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
-                    } ${selectedShowEntries === ""
+                  className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
+                    showEntriesOpen ? "rotate-180" : ""
+                  } ${
+                    selectedShowEntries === ""
                       ? "opacity-60 grayscale"
                       : "opacity-90"
-                    }`}
+                  }`}
                   aria-hidden
                 />
               </button>
@@ -1550,10 +1579,11 @@ export default function MytaskTD() {
                             setSelectedShowEntries(opt.value);
                             setShowEntriesOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${isChosen
-                            ? "text-[#353535] bg-[#F2F2F2]"
-                            : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
-                            }`}
+                          className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${
+                            isChosen
+                              ? "text-[#353535] bg-[#F2F2F2]"
+                              : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                          }`}
                         >
                           <span className="truncate min-w-0">{opt.label}</span>
                           {isChosen && (

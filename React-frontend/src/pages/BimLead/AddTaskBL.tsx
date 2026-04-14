@@ -676,11 +676,11 @@ export default function AddTaskBL() {
     navigate(fromTeamTasks ? "/bl/teamtasks" : "/bl/mytasks");
 
   return (
-    <div className="flex-1 min-h-0 p-2 bg-white overflow-hidden">
+    <div className="flex-1 min-h-0 pl-5 bg-white overflow-hidden">
       <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col">
-        <div className="relative flex items-center justify-center py-4 md:py-8 border-b border-slate-50 flex-shrink-0">
+        <div className="relative flex items-center justify-center py-4 border-b border-slate-50 flex-shrink-0">
           {/* Left Close / Back Button */}
-          <div className="absolute left-4 flex items-center group">
+          <div className="absolute left-1 flex items-center group">
             <button
               type="button"
               onClick={goBack}

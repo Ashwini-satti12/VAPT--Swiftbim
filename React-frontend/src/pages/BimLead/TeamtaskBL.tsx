@@ -456,10 +456,10 @@ function TaskCard({
         <div
             draggable={!isCompleted}
             onDragStart={handleDragStart}
-            className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+            className={`rounded-lg border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
-            <div className="flex items-center justify-between gap-2 mb-2">
-                <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[18px] sm:text-[20px] truncate">
+            <div className="flex items-center justify-between gap-2 mb-4">
+                <h4 className="flex-1 min-w-0 font-medium text-[#353535] text-[20px] truncate">
                     {task.task_name || "Task Name"}
                 </h4>
                 <div className="relative shrink-0" ref={menuRef}>
@@ -470,11 +470,11 @@ function TaskCard({
                             e.stopPropagation();
                             setMenuOpen((prev) => !prev);
                         }}
-                        className="p-1 rounded cursor-pointer leading-none"
+                        className="rounded cursor-pointer leading-none"
                         aria-label="More options"
                         aria-expanded={menuOpen}
                     >
-                        <img src={Dot} alt="Dot" className="w-5 h-5 object-contain" />
+                        <img src={Dot} alt="Dot" className="w-4 h-4 text-[#8B8B8B]" />
                     </button>
                     {menuOpen && (
                         <div
@@ -532,7 +532,7 @@ function TaskCard({
                                         <img
                                             src={deleteIcon}
                                             alt="delete"
-                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(180%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                         />
                                         <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                                             Delete
@@ -544,7 +544,7 @@ function TaskCard({
                     )}
                 </div>
             </div>
-            <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="flex items-start justify-between gap-2 mb-4">
                 <div className="flex flex-col ">
                     <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
                     <span className="text-[14px] font-medium text-[#8B8B8B]">
@@ -558,7 +558,7 @@ function TaskCard({
                     </span>
                 </div>
             </div>
-            <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="text-xs text-[#8B8B8B]">Progress</span>
                 <span className="text-xs font-medium text-[#8B8B8B]">{progress}%</span>
             </div>
@@ -1165,11 +1165,11 @@ export default function TeamtaskBL() {
 
     return (
         <div className="flex flex-col h-full bg-white overflow-hidden">
-            <div className="bg-white px-4 sm:px-6 pb-4 shrink-0 z-10 pt-2">
+            <div className="bg-white px-5 py-2 flex-shrink-0">
                 {/* Top row: title + Filters + Add task */}
-                <div className="max-w-full mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div className="max-w-full mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-3">
                     <div className="flex items-center justify-between gap-4 w-full lg:w-auto">
-                        <h2 className="text-[20px] sm:text-[24px] font-semibold text-slate-800 font-Gantari whitespace-nowrap">
+                        <h2 className="text-[24px] font-medium text-[#000000] font-Gantari whitespace-nowrap">
                             Team Task
                         </h2>
                         {/* Mobile/Tablet Add Task Button */}
@@ -1182,7 +1182,7 @@ export default function TeamtaskBL() {
                                         state: { from: "teamtasks" },
                                     })
                                 }
-                                className={`inline-flex items-center justify-center gap-2 rounded-md px-3 sm:px-4 h-[36px] min-h-[36px] text-[14px] font-medium shadow-sm cursor-pointer transition-all ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-[#F2F2F2]"}`}
+                                className={`inline-flex items-center justify-center gap-2 rounded-md px-3 sm:px-4 py-2 text-[14px] font-medium cursor-pointer transition-all ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-white"}`}
                             >
                                 <img src={AddBtn} alt="Add" className="h-4 w-4 sm:h-5 sm:w-5" />
                                 <span className="hidden sm:inline whitespace-nowrap">Add Task</span>
@@ -1193,9 +1193,8 @@ export default function TeamtaskBL() {
 
                     <div
                         ref={dropdownsContainerRef}
-                        className="grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-start lg:justify-end gap-2 w-full lg:w-auto overflow-visible"
+                        className="grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-start lg:justify-end gap-2 w-full lg:w-auto"
                     >
-                        {/* ... dropdowns ... */}
                         <TaskDropdown
                             label="Select Employee"
                             options={employeeOptions}
@@ -1258,7 +1257,6 @@ export default function TeamtaskBL() {
                             narrow
                             maxVisibleItems={4}
                         />
-                        {/* Desktop Add Task Button */}
                         <button
                             type="button"
                             disabled={isOutsourceProjectSelected}
@@ -1267,66 +1265,67 @@ export default function TeamtaskBL() {
                                     state: { from: "teamtasks" },
                                 })
                             }
-                            className={`hidden lg:inline-flex ml-2 items-center justify-center gap-2 rounded-md px-4 h-[36px] min-h-[36px] text-[14px] font-medium shadow-sm cursor-pointer transition-all ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-[#F2F2F2]"}`}
+                            className={`hidden lg:inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-[14px] font-medium cursor-pointer transition-all ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-white"}`}
                         >
                             <img src={AddBtn} alt="Add" className="h-5 w-5" />
                             <span className="whitespace-nowrap">Add Task</span>
                         </button>
                     </div>
                 </div>
+
+                {/* Status summary cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                    <Link
+                        to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
+                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
+                    >
+                        <span className="text-[20px] font-bold font-Gantari text-[#353535]">To Do</span>
+                        <span className="text-[20px] font-bold font-Gantari text-[#353535]">({counts.todo})</span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group1} alt="Group1" className="w-8 h-8" />
+                        </div>
+                    </Link>
+
+                    <Link
+                        to={
+                            statusFilter === "in_progress"
+                                ? pathname
+                                : `${pathname}?status=in_progress`
+                        }
+                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
+                    >
+                        <span className="text-[20px] font-bold font-Gantari text-[#353535]">In Progress</span>
+                        <span className="text-[20px] font-bold font-Gantari text-[#353535]">({counts.in_progress})</span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group2} alt="Group2" className="w-8 h-8" />
+                        </div>
+                    </Link>
+
+                    <Link
+                        to={
+                            statusFilter === "completed"
+                                ? pathname
+                                : `${pathname}?status=completed`
+                        }
+                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
+                    >
+                        <span className="text-[20px] font-bold font-Gantari text-[#353535]">Completed</span>
+                        <span className="text-[20px] font-bold font-Gantari text-[#353535]">({counts.completed})</span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group3} alt="Group3" className="w-8 h-8" />
+                        </div>
+                    </Link>
+                </div>
             </div>
 
             {/* Scrollable Content Area */}
-            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 custom-scrollbar bg-[#FFFFFF]">
-                <div className="max-w-full mx-auto space-y-6">
-                    {/* Status summary cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                        <Link
-                            to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                            className={`flex p-3 sm:p-4 gap-2 sm:gap-4 rounded-xl border shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
-                        >
-                            <span className="text-[18px] sm:text-[20px] font-bold text-[#0D1829]">To Do</span>
-                            <span className="text-[18px] sm:text-[20px] font-bold text-[#0D1829]">({counts.todo})</span>
-                            <div className="absolute top-1/2 -translate-y-1/2 right-3 sm:right-4 flex items-center justify-center">
-                                <img src={Group1} alt="Group1" className="w-6 h-6 sm:w-8 sm:h-8" />
-                            </div>
-                        </Link>
-
-                        <Link
-                            to={
-                                statusFilter === "in_progress"
-                                    ? pathname
-                                    : `${pathname}?status=in_progress`
-                            }
-                            className={`flex p-3 sm:p-4 gap-2 sm:gap-4 rounded-xl border shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
-                        >
-                            <span className="text-[18px] sm:text-[20px] font-bold text-[#0D1829]">In Progress</span>
-                            <span className="text-[18px] sm:text-[20px] font-bold text-[#0D1829]">({counts.in_progress})</span>
-                            <div className="absolute top-1/2 -translate-y-1/2 right-3 sm:right-4 flex items-center justify-center">
-                                <img src={Group2} alt="Group2" className="w-6 h-6 sm:w-8 sm:h-8" />
-                            </div>
-                        </Link>
-
-                        <Link
-                            to={
-                                statusFilter === "completed"
-                                    ? pathname
-                                    : `${pathname}?status=completed`
-                            }
-                            className={`flex p-3 sm:p-4 gap-2 sm:gap-4 rounded-xl border shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
-                        >
-                            <span className="text-[18px] sm:text-[20px] font-bold text-[#0D1829]">Completed</span>
-                            <span className="text-[18px] sm:text-[20px] font-bold text-[#0D1829]">({counts.completed})</span>
-                            <div className="absolute top-1/2 -translate-y-1/2 right-3 sm:right-4 flex items-center justify-center">
-                                <img src={Group3} alt="Group3" className="w-6 h-6 sm:w-8 sm:h-8" />
-                            </div>
-                        </Link>
-                    </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#FFFFFF]">
+                <div className="max-w-full mx-auto">
 
                     {/* Task columns */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div
-                        className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pl-5 pr-2 py-2">
+                        <div
+                            className="space-y-3 rounded-lg border-2 border-dashed border-transparent transition-colors"
                         onDragOver={(e) => {
                             e.preventDefault();
                             e.dataTransfer.dropEffect = "move";
@@ -1349,7 +1348,7 @@ export default function TeamtaskBL() {
                         ))}
                     </div>
                     <div
-                        className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
+                        className="space-y-3 rounded-lg border-2 border-dashed border-transparent transition-colors"
                         onDragOver={(e) => {
                             e.preventDefault();
                             e.dataTransfer.dropEffect = "move";
@@ -1372,7 +1371,7 @@ export default function TeamtaskBL() {
                         ))}
                     </div>
                     <div
-                        className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
+                        className="space-y-3 rounded-lg border-2 border-dashed border-transparent transition-colors"
                         onDragOver={(e) => {
                             e.preventDefault();
                             e.dataTransfer.dropEffect = "move";
@@ -1399,54 +1398,47 @@ export default function TeamtaskBL() {
         </div>
 
             {deleteTask !== null && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 text-[14px]">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden translate-z-0">
-                        <div className="flex items-center justify-between px-6 py-4">
-                            <div className="relative group">
-                                <button
-                                    type="button"
-                                    onClick={() => setDeleteTask(null)}
-                                    className="p-2 rounded-md bg-[#F2F2F2] text-black transition-colors cursor-pointer"
-                                    aria-label="Close"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 mb-[-5.5px]"></div>
-                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
-                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
-                                            Close
-                                        </span>
-                                    </div>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl p-5 relative flex flex-col items-center w-[450px]">
+                        {/* Close */}
+                        <button
+                            type="button"
+                            onClick={() => setDeleteTask(null)}
+                            className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer group"
+                        >
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                        Close
+                                    </span>
                                 </div>
                             </div>
-                            <h3 className="flex-1 text-center text-[20px] font-medium text-[#353535]">
-                                Delete Task
-                            </h3>
-                            <div className="w-10" />
-                        </div>
-                        <div className="px-6 py-5">
-                            <p className="text-black text-center font-gantari font-semibold text-[14px]">
-                                Are you sure, you want to Delete this Task?
-                            </p>
-                            <div className="mt-8 mb-4 flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setDeleteTask(null)}
-                                    className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#353535] font-gantari font-medium text-[16px] transition-all cursor-pointer"
-                                >
-                                    Discard
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={confirmDeleteTask}
-                                    className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-medium text-[16px] transition-all cursor-pointer"
-                                >
-                                    Yes, Delete
-                                </button>
-                            </div>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                        <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mb-3">
+                            Delete Task
+                        </h3>
+                        <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+                            Are you sure, you want to Delete this?
+                        </p>
+                        <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
+                            <button
+                                type="button"
+                                onClick={() => setDeleteTask(null)}
+                                className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#353535] font-gantari font-semibold text-[14px] cursor-pointer"
+                            >
+                                Discard
+                            </button>
+                            <button
+                                type="button"
+                                onClick={confirmDeleteTask}
+                                className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] cursor-pointer"
+                            >
+                                Yes, Delete
+                            </button>
                         </div>
                     </div>
                 </div>
