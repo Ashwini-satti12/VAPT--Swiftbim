@@ -815,7 +815,7 @@ export default function AddTaskPM() {
   };
 
   return (
-    <div className="h-full flex-1 min-h-0 p-2 bg-white overflow-hidden overflow-y-hidden">
+    <div className="h-full flex-1 min-h-0 px-5 py-2 bg-white overflow-hidden overflow-y-hidden">
       <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col overflow-hidden overflow-y-hidden">
         <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
           <div className="group relative inline-flex shrink-0">
