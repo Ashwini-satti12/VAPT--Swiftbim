@@ -28,8 +28,8 @@ const initialForm = {
     module: "",
     taskName: "",
     type: "",
-    actualStartDate: "",
-    actualEndDate: "",
+    startDate: "",
+    endDate: "",
     startTime: "",
     dueTime: "",
     assignTo: "",
@@ -313,8 +313,8 @@ export default function AddTaskTD() {
             "module",
             "taskName",
             "type",
-            "actualStartDate",
-            "actualEndDate",
+            "startDate",
+            "endDate",
             "startTime",
             "dueTime",
             "assignTo",
@@ -329,12 +329,12 @@ export default function AddTaskTD() {
         }
 
         const today = new Date().toISOString().split("T")[0];
-        if (addTaskForm.actualStartDate < today && !editingTaskId) {
-            setAddError("Actual Start Date cannot be in the past.");
+        if (addTaskForm.startDate < today && !editingTaskId) {
+            setAddError("Start Date cannot be in the past.");
             return;
         }
-        if (addTaskForm.actualEndDate < addTaskForm.actualStartDate) {
-            setAddError("Actual End Date cannot be before Actual Start Date.");
+        if (addTaskForm.endDate < addTaskForm.startDate) {
+            setAddError("End Date cannot be before Start Date.");
             return;
         }
 
@@ -343,8 +343,8 @@ export default function AddTaskTD() {
             projectid: projects.find((p) => p.project_name === addTaskForm.projectName)?.id || addTaskForm.projectName,
             taskName: addTaskForm.taskName,
             category: addTaskForm.type,
-            startdate: addTaskForm.actualStartDate,
-            dueDate: addTaskForm.actualEndDate,
+            startdate: addTaskForm.startDate,
+            dueDate: addTaskForm.endDate,
             startTime: addTaskForm.startTime,
             dueTime: addTaskForm.dueTime,
             assignedTo: employees.find((e) => e.full_name === addTaskForm.assignTo)?.id || addTaskForm.assignTo,
@@ -595,7 +595,7 @@ export default function AddTaskTD() {
                                     placeholder="Enter Task / Select Task"
                                     className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B]"
                                 />
-                                <TaskDropdown
+                                {/* <TaskDropdown
                                     label="Tasklist"
                                     options={[
                                         "Select Task",
@@ -619,11 +619,11 @@ export default function AddTaskTD() {
                                     maxVisibleItems={6}
                                     bgClass="bg-[#F2F3F4]"
                                     fontClass="font-normal"
-                                />
+                                /> */}
                             </div>
                         </div>
-                        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
-                            <div>
+                         <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
+                            {/* <div>
                                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
                                 <FormDropdown
                                     label="Select Type"
@@ -644,37 +644,38 @@ export default function AddTaskTD() {
                                     bgClass="bg-[#F2F3F4]"
                                     fontClass="font-normal"
                                 />
-                            </div>
+                            </div> */}
                             <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Actual Start Date <span className="text-[#DD4342]">*</span></label>
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Start Date <span className="text-[#DD4342]">*</span></label>
                                 <div className="relative">
                                     <input
                                         type="date"
-                                        value={addTaskForm.actualStartDate}
-                                        min={new Date().toISOString().split("T")[0]}
-                                        onChange={(e) => setAddTaskForm((f) => ({ ...f, actualStartDate: e.target.value }))}
+                                        value={addTaskForm.startDate}
+                                        onChange={(e) => setAddTaskForm((f) => ({ ...f, startDate: e.target.value }))}
+                                        onClick={(e) => e.currentTarget.showPicker?.()}
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                     />
                                     <div className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus-within:border-[#AEACAC52] flex items-center min-h-[42px]">
-                                        <span className={addTaskForm.actualStartDate ? "text-[#353535]" : "text-[#8B8B8B]"}>
-                                            {addTaskForm.actualStartDate ? formatDateForDisplay(addTaskForm.actualStartDate) : "DD/MM/YYYY"}
+                                        <span className={addTaskForm.startDate ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                                            {addTaskForm.startDate ? formatDateForDisplay(addTaskForm.startDate) : "DD/MM/YYYY"}
                                         </span>
                                     </div>
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Actual End Date <span className="text-[#DD4342]">*</span></label>
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">End Date <span className="text-[#DD4342]">*</span></label>
                                 <div className="relative">
                                     <input
                                         type="date"
-                                        value={addTaskForm.actualEndDate}
-                                        min={addTaskForm.actualStartDate || new Date().toISOString().split("T")[0]}
-                                        onChange={(e) => setAddTaskForm((f) => ({ ...f, actualEndDate: e.target.value }))}
+                                        value={addTaskForm.endDate}
+                                        min={addTaskForm.startDate}
+                                        onChange={(e) => setAddTaskForm((f) => ({ ...f, endDate: e.target.value }))}
+                                        onClick={(e) => e.currentTarget.showPicker?.()}
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                     />
                                     <div className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus-within:border-[#AEACAC52] flex items-center min-h-[42px]">
-                                        <span className={addTaskForm.actualEndDate ? "text-[#353535]" : "text-[#8B8B8B]"}>
-                                            {addTaskForm.actualEndDate ? formatDateForDisplay(addTaskForm.actualEndDate) : "DD/MM/YYYY"}
+                                        <span className={addTaskForm.endDate ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                                            {addTaskForm.endDate ? formatDateForDisplay(addTaskForm.endDate) : "DD/MM/YYYY"}
                                         </span>
                                     </div>
                                 </div>

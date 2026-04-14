@@ -638,8 +638,8 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
   module: string;
   taskName: string;
   type: string;
-  actualStartDate: string;
-  actualEndDate: string;
+  startDate: string;
+  endDate: string;
   startTime: string;
   dueTime: string;
   assignTo: string;
@@ -665,10 +665,10 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
     module: str(t.module ?? t.modules_name ?? t.modules ?? ""),
     taskName: str(t.task_name ?? t.taskName ?? ""),
     type: str(t.type ?? t.category ?? ""),
-    actualStartDate: dateOnly(
+    startDate: dateOnly(
       t.start_date ?? t.startDate ?? t.Actual_start_time ?? "",
     ),
-    actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
+    endDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
     startTime: timeOnly(
       t.perferstart_time ??
         t.start_time ??
@@ -856,7 +856,7 @@ function TaskCard({
 
         <div className="flex flex-col items-end gap-1">
           <span className="text-[14px] font-medium text-[#000000]">
-            Due Date
+            End Date
           </span>
           <span className="text-[14px] font-medium text-[#8B8B8B]">
             {formatDateForDisplay(task.due_date) || "—"}

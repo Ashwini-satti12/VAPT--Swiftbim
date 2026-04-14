@@ -519,20 +519,20 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
     actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
     startTime: timeOnly(
       t.perferstart_time ??
-        t.perferStartTime ??
-        t.start_time ??
-        t.startTime ??
-        t.Actual_start_time ??
-        "",
+      t.perferStartTime ??
+      t.start_time ??
+      t.startTime ??
+      t.Actual_start_time ??
+      "",
     ),
     dueTime: timeOnly(
       t.perferend_time ??
-        t.perferEndTime ??
-        t.due_time ??
-        t.dueTime ??
-        t.end_time ??
-        t.endTime ??
-        "",
+      t.perferEndTime ??
+      t.due_time ??
+      t.dueTime ??
+      t.end_time ??
+      t.endTime ??
+      "",
     ),
     assignTo: str(t.assigned_full_name ?? t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
     description: str(t.description ?? ""),
