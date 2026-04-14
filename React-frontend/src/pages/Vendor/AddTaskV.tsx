@@ -25,7 +25,7 @@ const initialForm = {
   projectName: "",
   module: "",
   taskName: "",
-  type: "",
+  type: "task",
   actualStartDate: "",
   actualEndDate: "",
   startTime: "",
@@ -254,7 +254,7 @@ export default function AddTaskV() {
       "projectName",
       "module",
       "taskName",
-      "type",
+      // "type",
       "actualStartDate",
       "actualEndDate",
       "startTime",
@@ -409,6 +409,15 @@ export default function AddTaskV() {
 
   return (
     <div className="flex-1 min-h-0 bg-white overflow-hidden font-Gantari">
+      <style>{`
+        .hide-calendar-icon::-webkit-calendar-picker-indicator {
+          display: none !important;
+          -webkit-appearance: none;
+        }
+        .hide-calendar-icon::-webkit-datetime-edit {
+          text-transform: uppercase;
+        }
+      `}</style>
       <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col pt-6 px-6">
         <div className="flex items-center justify-between mb-10 flex-shrink-0">
           <button
@@ -528,72 +537,15 @@ export default function AddTaskV() {
                     placeholder="Enter Task / Select Task"
                     className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B]"
                   />
-                  {!editingTaskId && (
-                    <div
-                      className="relative flex items-center"
-                      ref={tasklistRef}
-                    >
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          fetchRecentTasks();
-                        }}
-                        className="h-full bg-[#E2E2E2] px-5 py-2 text-[#8B8B8B] text-[14px] font-medium cursor-pointer transition-colors shrink-0 font-Gantari border-0"
-                      >
-                        {loadingRecentTasks ? "..." : "Tasklist"}
-                      </button>
-                      {tasklistOpen && (
-                        <div className="absolute top-full right-0 mt-1 z-50 w-80 rounded-lg border border-slate-200 bg-white shadow-lg max-h-96 overflow-y-auto">
-                          {recentTasks.map((t) => (
-                            <button
-                              key={t.id}
-                              type="button"
-                              onClick={() => {
-                                setAddTaskForm(buildFormFromTask(t, employees));
-                                setTasklistOpen(false);
-                              }}
-                              className="w-full px-4 py-2 text-left text-sm text-[#353535] hover:bg-slate-100 font-Gantari"
-                            >
-                              {t.task_name}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                 
                 </div>
               </div>
 
-              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
+              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-x-10 gap-y-6">
+               
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2">
-                    Type <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <FormDropdown
-                    label="Select Type"
-                    options={[
-                      { value: "", label: "Select Type" },
-                      { value: "task", label: "Task" },
-                      { value: "bug", label: "Bug" },
-                      { value: "feature", label: "Feature" },
-                    ]}
-                    value={addTaskForm.type}
-                    onChange={(v) => setAddTaskForm((f) => ({ ...f, type: v }))}
-                    isOpen={openFormDropdown === "type"}
-                    onToggle={() =>
-                      setOpenFormDropdown((d) => (d === "type" ? null : "type"))
-                    }
-                    onClose={() => setOpenFormDropdown(null)}
-                    triggerRef={formTypeTriggerRef}
-                    dropdownRef={formTypeMenuRef}
-                    searchable
-                    bgClass="bg-[#F2F3F4]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2">
-                    Actual Start Date <span className="text-[#DD4342]">*</span>
+                    Start Date <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="date"
@@ -605,12 +557,13 @@ export default function AddTaskV() {
                         actualStartDate: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder-[#8B8B8B] focus:border-[#AEACAC52]"
+                    onClick={(e) => e.currentTarget.showPicker()}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder-[#8B8B8B] focus:border-[#AEACAC52] cursor-pointer hide-calendar-icon"
                   />
                 </div>
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2">
-                    Actual End Date <span className="text-[#DD4342]">*</span>
+                    End Date <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="date"
@@ -622,7 +575,8 @@ export default function AddTaskV() {
                         actualEndDate: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder-[#8B8B8B] focus:border-[#AEACAC52]"
+                    onClick={(e) => e.currentTarget.showPicker()}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder-[#8B8B8B] focus:border-[#AEACAC52] cursor-pointer hide-calendar-icon"
                   />
                 </div>
               </div>
