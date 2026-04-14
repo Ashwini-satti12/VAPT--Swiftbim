@@ -82,8 +82,9 @@ const Resources = ({ vendor, editable, onAdd, onEdit, onDelete }: Props) => {
             {editable && (
                 <div className="flex justify-end">
                     <button
+                        type="button"
                         onClick={onAdd}
-                        className="px-4 py-2 text-sm font-semibold bg-[#DE3D3A] text-white rounded-lg hover:bg-red-700 transition-colors"
+                        className="rounded-md bg-[#DD4342] px-6 py-2 text-[14px] font-semibold text-white font-Gantari"
                     >
                         + Add New Resource
                     </button>

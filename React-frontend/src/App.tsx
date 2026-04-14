@@ -125,6 +125,7 @@ import BiddingV from "./pages/Vendor/BiddingV";
 import ProposalsV from "./pages/Vendor/ProposalsV";
 import CompanyProfileV from "./pages/Vendor/CompanyProfileV";
 import CompanyProfileEditV from "./pages/Vendor/CompanyProfileEditV";
+import CompanyProfileResourcePageV from "./pages/Vendor/CompanyProfileResourcePageV";
 import MilestonesV from "./pages/Vendor/MilestonesV";
 import CommunicationV from "./pages/Vendor/CommunicationV";
 import PerformanceV from "./pages/Vendor/PerformanceV";
@@ -361,6 +362,10 @@ function App() {
             <Route path="v/mytasks/view/:id" element={<MytaskViewV />} />
             <Route path="v/company-profile" element={<CompanyProfileV />} />
             <Route
+              path="v/company-profile/resources/:resourceId"
+              element={<CompanyProfileResourcePageV />}
+            />
+            <Route
               path="v/company-profile/edit"
               element={<CompanyProfileEditV />}
             />
@@ -386,6 +391,10 @@ function App() {
             <Route path="vpm/resources" element={<ResourcesV />} />
             <Route path="vpm/communication" element={<ChatPMV />} />
             <Route path="vpm/company-profile" element={<CompanyProfileV />} />
+            <Route
+              path="vpm/company-profile/resources/:resourceId"
+              element={<CompanyProfileResourcePageV />}
+            />
             <Route path="vpm/company-profile/edit" element={<CompanyProfileEditPMV />} />
 
             {/* Vendor Employee Routes */}

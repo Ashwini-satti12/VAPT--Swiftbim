@@ -478,6 +478,7 @@ export default function AddTaskV() {
                   triggerRef={formProjectTriggerRef}
                   dropdownRef={formProjectMenuRef}
                   searchable
+                  bgClass="bg-[#F2F3F4]"
                 />
               </div>
 
@@ -506,6 +507,7 @@ export default function AddTaskV() {
                   triggerRef={formModuleTriggerRef}
                   dropdownRef={formModuleMenuRef}
                   searchable
+                  bgClass="bg-[#F2F3F4]"
                 />
               </div>
 
@@ -586,6 +588,7 @@ export default function AddTaskV() {
                     triggerRef={formTypeTriggerRef}
                     dropdownRef={formTypeMenuRef}
                     searchable
+                    bgClass="bg-[#F2F3F4]"
                   />
                 </div>
                 <div>
@@ -682,6 +685,7 @@ export default function AddTaskV() {
                     triggerRef={formAssignTriggerRef}
                     dropdownRef={formAssignMenuRef}
                     searchable
+                    bgClass="bg-[#F2F3F4]"
                   />
                 </div>
               </div>
