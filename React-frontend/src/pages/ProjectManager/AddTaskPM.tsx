@@ -598,7 +598,8 @@ export default function AddTaskPM() {
   const totalAttachmentCount =
     existingOutputFilenames.length + attachmentFiles.length;
 
-  const goBack = () => navigate("/tasks");
+  const fromTeamTask = location.state?.from === "teamtask";
+  const goBack = () => navigate(fromTeamTask ? "/teamtask" : "/tasks");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -720,7 +721,7 @@ export default function AddTaskPM() {
           headers: { "Content-Type": "multipart/form-data" },
         });
       }
-      navigate("/tasks");
+      navigate(fromTeamTask ? "/teamtask" : "/tasks");
     } catch (err) {
       setAddError(
         (err as { response?: { data?: { message?: string } } })?.response?.data

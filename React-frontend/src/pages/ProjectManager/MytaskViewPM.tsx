@@ -302,8 +302,13 @@ export default function MytaskViewPM() {
             <img src={backIcon} alt="Back" className="w-5 h-5 object-contain" />
           </Link>
           {/* Tooltip */}
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-white text-[#353535] text-[14px] font-Gantari font-semibold rounded-md shadow-[0_4px_20px_rgba(0,0,0,0.15)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-[100] after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-[6px] after:border-transparent after:border-t-white">
-            Back
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+            <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+              <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                Go Back
+              </span>
+            </div>
           </div>
         </div>
         <h1 className="flex-1 text-center text-[24px] font-semibold text-black">
