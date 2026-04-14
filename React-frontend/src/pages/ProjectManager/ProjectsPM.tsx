@@ -1974,7 +1974,7 @@ export default function ProjectsPM() {
                         )}
                       </div>
                       {/* Task Name */}
-                      <div className="md:col-span-2">
+                      {/* <div className="md:col-span-2">
                         <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                           Task Name <span className="text-[#DD4342]">*</span>
                         </label>
@@ -2011,7 +2011,7 @@ export default function ProjectsPM() {
                             ))}
                           </div>
                         )}
-                      </div>
+                      </div> */}
 
                       {/* ── Client Name ── */}
                       <div>
@@ -2393,7 +2393,6 @@ export default function ProjectsPM() {
                         !createName.trim() ||
                         !createBudget.trim() ||
                         editModuleTags.length === 0 ||
-                        editTaskTags.length === 0 ||
                         !createClientName.trim() ||
                         !createProjectManager.trim() ||
                         !createStartDate.trim() ||
@@ -2620,7 +2619,7 @@ export default function ProjectsPM() {
                       </div>
 
                       {/* ── Task Name ── */}
-                      <div className="md:col-span-2">
+                      {/* <div className="md:col-span-2">
                         <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                           Task Name <span className="text-[#DD4342]">*</span>
                         </label>
@@ -2655,7 +2654,7 @@ export default function ProjectsPM() {
                             ))}
                           </div>
                         )}
-                      </div>
+                      </div> */}
 
                       {/* ── Client Name ── */}
                       <div>
