@@ -15,6 +15,7 @@ import {
   TaskDropdown,
   formatFileSize,
   formatTimeForDisplay,
+  formatDateForDisplay,
 } from "../TechnicalDirector/MytaskTD";
 
 /** Opens a local `File` in a new browser tab (e.g. PDF viewer). */
@@ -817,14 +818,23 @@ export default function AddTaskPM() {
     <div className="h-full flex-1 min-h-0 p-2 bg-white overflow-hidden overflow-y-hidden">
       <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col overflow-hidden overflow-y-hidden">
         <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
-          <button
-            type="button"
-            onClick={goBack}
-            className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
-            title="Back"
-          >
-            <img src={backIcon} alt="Back" className="w-5 h-5" />
-          </button>
+          <div className="group relative inline-flex shrink-0">
+            <button
+              type="button"
+              onClick={goBack}
+              className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
+            >
+              <img src={backIcon} alt="Back" className="w-5 h-5" />
+            </button>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                  Go Back
+                </span>
+              </div>
+            </div>
+          </div>
           <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
             {editingTaskId !== null ? "Edit Task" : "Add New Task"}
           </h3>
@@ -881,6 +891,8 @@ export default function AddTaskPM() {
                   triggerRef={formProjectTriggerRef}
                   dropdownRef={formProjectMenuRef}
                   searchable
+                  bgClass="bg-[#F2F3F4]"
+                  fontClass="font-normal"
                 />
               </div>
               <div>
@@ -905,6 +917,8 @@ export default function AddTaskPM() {
                   triggerRef={formModuleTriggerRef}
                   dropdownRef={formModuleMenuRef}
                   searchable
+                  bgClass="bg-[#F2F3F4]"
+                  fontClass="font-normal"
                 />
               </div>
               <div>
@@ -940,6 +954,8 @@ export default function AddTaskPM() {
                     searchable
                     searchPlaceholder="Search task..."
                     maxVisibleItems={6}
+                    bgClass="bg-[#F2F3F4]"
+                    fontClass="font-normal"
                   />
                 </div>
               </div>
@@ -966,41 +982,57 @@ export default function AddTaskPM() {
                     triggerRef={formTypeTriggerRef}
                     dropdownRef={formTypeMenuRef}
                     searchable
+                    bgClass="bg-[#F2F3F4]"
+                    fontClass="font-normal"
                   />
                 </div>
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Actual Start Date <span className="text-[#DD4342]">*</span>
                   </label>
-                  <input
-                    type="date"
-                    value={addTaskForm.actualStartDate}
-                    min={new Date().toISOString().split("T")[0]}
-                    onChange={(e) =>
-                      setAddTaskForm((f) => ({
-                        ...f,
-                        actualStartDate: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                  />
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={addTaskForm.actualStartDate}
+                      min={new Date().toISOString().split("T")[0]}
+                      onChange={(e) =>
+                        setAddTaskForm((f) => ({
+                          ...f,
+                          actualStartDate: e.target.value,
+                        }))
+                      }
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+                    <div className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus-within:border-[#AEACAC52] flex items-center min-h-[42px]">
+                      <span className={addTaskForm.actualStartDate ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                        {addTaskForm.actualStartDate ? formatDateForDisplay(addTaskForm.actualStartDate) : "DD/MM/YYYY"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Actual End Date <span className="text-[#DD4342]">*</span>
                   </label>
-                  <input
-                    type="date"
-                    value={addTaskForm.actualEndDate}
-                    min={addTaskForm.actualStartDate || new Date().toISOString().split("T")[0]}
-                    onChange={(e) =>
-                      setAddTaskForm((f) => ({
-                        ...f,
-                        actualEndDate: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                  />
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={addTaskForm.actualEndDate}
+                      min={addTaskForm.actualStartDate || new Date().toISOString().split("T")[0]}
+                      onChange={(e) =>
+                        setAddTaskForm((f) => ({
+                          ...f,
+                          actualEndDate: e.target.value,
+                        }))
+                      }
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+                    <div className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus-within:border-[#AEACAC52] flex items-center min-h-[42px]">
+                      <span className={addTaskForm.actualEndDate ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                        {addTaskForm.actualEndDate ? formatDateForDisplay(addTaskForm.actualEndDate) : "DD/MM/YYYY"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
@@ -1117,6 +1149,8 @@ export default function AddTaskPM() {
                     triggerRef={formAssignTriggerRef}
                     dropdownRef={formAssignMenuRef}
                     searchable
+                    bgClass="bg-[#F2F3F4]"
+                    fontClass="font-normal"
                   />
                 </div>
               </div>
@@ -1266,14 +1300,14 @@ export default function AddTaskPM() {
               <button
                 type="button"
                 onClick={goBack}
-                className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
+                className="w-full sm:w-auto px-6 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari cursor-pointer"
               >
                 Discard
               </button>
               <button
                 type="submit"
                 disabled={addSubmitting}
-                className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto px-6 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari cursor-pointer disabled:opacity-50"
               >
                 {addSubmitting ? "Submitting..." : "Submit"}
               </button>
@@ -1326,7 +1360,7 @@ export default function AddTaskPM() {
                   type="button"
                   disabled={serverAttachmentDeleting}
                   onClick={() => setPendingAttachmentDelete(null)}
-                  className="min-w-[140px] rounded-md bg-[#F2F2F2] px-8 py-2 text-[14px] font-semibold text-[#353535] cursor-pointer transition-opacity hover:opacity-90 border-0 disabled:opacity-50"
+                  className="min-w-[140px] rounded-md bg-[#F2F2F2] px-6 py-2 text-[14px] font-semibold text-[#353535] cursor-pointer transition-opacity hover:opacity-90 border-0 disabled:opacity-50"
                 >
                   Discard
                 </button>

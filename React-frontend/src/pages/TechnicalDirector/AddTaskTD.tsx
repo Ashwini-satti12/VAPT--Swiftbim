@@ -12,6 +12,7 @@ import { TimePickerWheel } from "../../components/TimePickerWheel";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import {
     formatTimeForDisplay,
+    formatDateForDisplay,
     FormDropdown,
     TaskDropdown,
     formatFileSize,
@@ -646,25 +647,37 @@ export default function AddTaskTD() {
                             </div>
                             <div>
                                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Actual Start Date <span className="text-[#DD4342]">*</span></label>
-                                <input
-                                    type="date"
-                                    value={addTaskForm.actualStartDate}
-                                    min={new Date().toISOString().split("T")[0]}
-                                    onChange={(e) => setAddTaskForm((f) => ({ ...f, actualStartDate: e.target.value }))}
-                                    placeholder="dd/mm/yyyy"
-                                    className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B] focus:border-[#AEACAC52] ${!addTaskForm.actualStartDate ? "text-[#8B8B8B]" : "text-[#353535]"}`}
-                                />
+                                <div className="relative">
+                                    <input
+                                        type="date"
+                                        value={addTaskForm.actualStartDate}
+                                        min={new Date().toISOString().split("T")[0]}
+                                        onChange={(e) => setAddTaskForm((f) => ({ ...f, actualStartDate: e.target.value }))}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    />
+                                    <div className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus-within:border-[#AEACAC52] flex items-center min-h-[42px]">
+                                        <span className={addTaskForm.actualStartDate ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                                            {addTaskForm.actualStartDate ? formatDateForDisplay(addTaskForm.actualStartDate) : "DD/MM/YYYY"}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Actual End Date <span className="text-[#DD4342]">*</span></label>
-                                <input
-                                    type="date"
-                                    value={addTaskForm.actualEndDate}
-                                    min={addTaskForm.actualStartDate || new Date().toISOString().split("T")[0]}
-                                    onChange={(e) => setAddTaskForm((f) => ({ ...f, actualEndDate: e.target.value }))}
-                                    placeholder="dd/mm/yyyy"
-                                    className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B] focus:border-[#AEACAC52] ${!addTaskForm.actualEndDate ? "text-[#8B8B8B]" : "text-[#353535]"}`}
-                                />
+                                <div className="relative">
+                                    <input
+                                        type="date"
+                                        value={addTaskForm.actualEndDate}
+                                        min={addTaskForm.actualStartDate || new Date().toISOString().split("T")[0]}
+                                        onChange={(e) => setAddTaskForm((f) => ({ ...f, actualEndDate: e.target.value }))}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    />
+                                    <div className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus-within:border-[#AEACAC52] flex items-center min-h-[42px]">
+                                        <span className={addTaskForm.actualEndDate ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                                            {addTaskForm.actualEndDate ? formatDateForDisplay(addTaskForm.actualEndDate) : "DD/MM/YYYY"}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">

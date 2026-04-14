@@ -80,6 +80,16 @@ export function formatTimeForDisplay(value: string): string {
   return `${h12}:${m} ${ampm}`;
 }
 
+/** Formats YYYY-MM-DD or ISO string to DD/MM/YYYY for display. */
+export function formatDateForDisplay(value: string | null | undefined): string {
+  if (!value) return "";
+  const datePart = value.includes("T") ? value.split("T")[0] : value;
+  const parts = datePart.split("-");
+  if (parts.length !== 3) return value;
+  const [y, m, d] = parts;
+  return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
+}
+
 export interface Employee {
   id: number;
   full_name: string;
@@ -458,13 +468,11 @@ export function TaskDropdown({
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
-          } ${
-            !(selected && selected !== label)
+          className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""
+            } ${!(selected && selected !== label)
               ? "opacity-60 grayscale"
               : "opacity-90"
-          }`}
+            }`}
         />
       </button>
       {isOpen &&
@@ -832,18 +840,14 @@ function TaskCard({
         <div className="flex flex-col ">
           <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
           <span className="text-[14px] font-medium text-[#8B8B8B]">
-            {task.start_date || task.Actual_start_time
-              ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}`
-              : "—"}
+            {formatDateForDisplay(task.start_date || task.Actual_start_time) || "—"}
           </span>
         </div>
 
         <div className="flex flex-col items-end gap-1">
           <span className="text-[14px] font-medium text-[#000000]">Due Date</span>
           <span className="text-[14px] font-medium text-[#8B8B8B]">
-            {task.due_date
-              ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
-              : "—"}
+            {formatDateForDisplay(task.due_date) || "—"}
           </span>
         </div>
       </div>
@@ -1348,10 +1352,10 @@ export default function MytaskTD() {
       selfById ??
       (user?.full_name
         ? raw.find(
-            (e) =>
-              (e.full_name || "").trim().toLowerCase() ===
-              user.full_name.trim().toLowerCase(),
-          )
+          (e) =>
+            (e.full_name || "").trim().toLowerCase() ===
+            user.full_name.trim().toLowerCase(),
+        )
         : undefined);
     const withSelf =
       selfEmp && !filtered.some((e) => e.id === selfEmp.id)
@@ -1605,61 +1609,61 @@ export default function MytaskTD() {
         </div>
       </div>
 
-        {/* Status summary cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2 px-5">
-          <Link
-            to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-            className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
-          >
-            <span className="text-[20px] font-bold text-[#0D1829]">To Do</span>
+      {/* Status summary cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2 px-5">
+        <Link
+          to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
+          className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
+        >
+          <span className="text-[20px] font-bold text-[#0D1829]">To Do</span>
 
-            <span className="text-[20px] font-bold text-[#0D1829]">
-              ({counts.todo})
-            </span>
-            <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-              <img src={Group1} alt="Group1" className="w-8 h-8" />
-            </div>
-          </Link>
+          <span className="text-[20px] font-bold text-[#0D1829]">
+            ({counts.todo})
+          </span>
+          <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+            <img src={Group1} alt="Group1" className="w-8 h-8" />
+          </div>
+        </Link>
 
-          <Link
-            to={
-              statusFilter === "in_progress"
-                ? pathname
-                : `${pathname}?status=in_progress`
-            }
-            className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
-          >
-            <span className="text-[20px] font-bold text-[#0D1829]">
-              In Progress
-            </span>
+        <Link
+          to={
+            statusFilter === "in_progress"
+              ? pathname
+              : `${pathname}?status=in_progress`
+          }
+          className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
+        >
+          <span className="text-[20px] font-bold text-[#0D1829]">
+            In Progress
+          </span>
 
-            <span className="text-[20px] font-bold text-[#0D1829]">
-              ({counts.in_progress})
-            </span>
-            <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-              <img src={Group2} alt="Group2" className="w-8 h-8" />
-            </div>
-          </Link>
+          <span className="text-[20px] font-bold text-[#0D1829]">
+            ({counts.in_progress})
+          </span>
+          <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+            <img src={Group2} alt="Group2" className="w-8 h-8" />
+          </div>
+        </Link>
 
-          <Link
-            to={
-              statusFilter === "completed"
-                ? pathname
-                : `${pathname}?status=completed`
-            }
-            className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
-          >
-            <span className="text-[20px] font-bold text-[#0D1829]">Completed</span>
+        <Link
+          to={
+            statusFilter === "completed"
+              ? pathname
+              : `${pathname}?status=completed`
+          }
+          className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
+        >
+          <span className="text-[20px] font-bold text-[#0D1829]">Completed</span>
 
-            <span className="text-[20px] font-bold text-[#0D1829]">
-              ({counts.completed})
-            </span>
-            <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-              <img src={Group3} alt="Group3" className="w-8 h-8" />
-            </div>
-          </Link>
-        </div>
-        {/* Task columns area */}
+          <span className="text-[20px] font-bold text-[#0D1829]">
+            ({counts.completed})
+          </span>
+          <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+            <img src={Group3} alt="Group3" className="w-8 h-8" />
+          </div>
+        </Link>
+      </div>
+      {/* Task columns area */}
       <div className="flex-1 min-h-0 lg:overflow-y-auto lg:custom-scrollbar px-4 pr-2">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pb-4 justify-items-center">
           <div
