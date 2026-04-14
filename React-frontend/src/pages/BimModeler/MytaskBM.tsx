@@ -62,6 +62,48 @@ export interface Project {
   members?: string;
   members_names?: string[];
 }
+const getApiBaseUrl = () => import.meta.env.VITE_API_URL || "";
+
+const getProfileUrl = (path: string | undefined): string => {
+  if (!path || path.trim() === "") return "";
+  if (path.startsWith("http")) return path;
+  const normalizedPath = path
+    .replace(/\\/g, "/")
+    .trim()
+    .replace(/^\d+\s+/, "")
+    .replace(/^\/+/, "");
+  const apiBaseUrl = getApiBaseUrl();
+  let urlPath = "";
+  if (normalizedPath.startsWith("employee/")) {
+    const parts = normalizedPath.split("/");
+    const encodedParts = parts.map((part, index) =>
+      index === 0 ? part : encodeURIComponent(part),
+    );
+    urlPath = `/uploads/${encodedParts.join("/")}`;
+  } else if (normalizedPath.startsWith("profiles/")) {
+    const filename = normalizedPath.replace("profiles/", "");
+    urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+  } else if (!normalizedPath.includes("/")) {
+    urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+  } else {
+    const parts = normalizedPath.split("/");
+    const encodedParts = parts.map((part, index) =>
+      index === 0 ? part : encodeURIComponent(part),
+    );
+    urlPath = `/uploads/${encodedParts.join("/")}`;
+  }
+  return `${apiBaseUrl}${urlPath}`;
+};
+
+/** Formats YYYY-MM-DD or ISO string to DD/MM/YYYY for display. */
+export function formatDateForDisplay(value: string | null | undefined): string {
+  if (!value) return "";
+  const datePart = value.includes("T") ? value.split("T")[0] : value;
+  const parts = datePart.split("-");
+  if (parts.length !== 3) return value;
+  const [y, m, d] = parts;
+  return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
+}
 
 export interface Task {
   id: number;
@@ -439,21 +481,6 @@ function TaskCard({
     e.dataTransfer.setData("text/plain", task.task_name || "Task");
   };
 
-  const assigneeInitials = (task.assigned_full_name || "U")
-    .split(" ")
-    .filter(Boolean)
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-  const uploaderInitials = (task.uploader_full_name || "S")
-    .split(" ")
-    .filter(Boolean)
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
   const isCompleted = status === "completed";
 
   return (
@@ -463,7 +490,7 @@ function TaskCard({
       className={`rounded-lg border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
       <div className="flex items-center justify-between gap-2 mb-4">
-        <h4 className="font-medium text-[#353535] text-[20px] truncate">
+        <h4 className="font-medium text-[#353535] text-[20px] truncate leading-tight">
           {task.task_name || "Task Name"}
         </h4>
         <div className="relative" ref={menuRef}>
@@ -549,72 +576,109 @@ function TaskCard({
         </div>
       </div>
       <div className="flex items-start justify-between gap-2 mb-4">
-        <div className="flex flex-col">
-          <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
+        <div className="flex flex-col ">
+          <span className="text-[14px] font-medium text-[#000000]">
+            Start Date
+          </span>
           <span className="text-[14px] font-medium text-[#8B8B8B]">
-            {task.start_date || task.Actual_start_time
-              ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}`
-              : "—"}
+            {formatDateForDisplay(task.start_date || task.Actual_start_time) || "—"}
           </span>
         </div>
 
         <div className="flex flex-col items-end gap-1">
-          <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+          <span className="text-[14px] font-medium text-[#000000]">
+            End Date
+          </span>
           <span className="text-[14px] font-medium text-[#8B8B8B]">
-            {task.due_date
-              ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
-              : "—"}
+            {formatDateForDisplay(task.due_date) || "—"}
           </span>
         </div>
       </div>
       <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="text-[12px] font-medium font-Gantari text-[#8B8B8B]">Progress</span>
-        <span className="text-[12px] font-medium font-Gantari text-[#8B8B8B]">{progress}%</span>
+        <span className="text-[12px] text-[#8B8B8B]">Progress</span>
+        <span className="text-[12px] text-[#8B8B8B]">{progress}%</span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
         <div
-          className="h-full rounded-full bg-slate-500"
+          className="h-full rounded-full bg-[#8B8B8B]"
           style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
         />
       </div>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1">
           <div className="flex -space-x-2">
-            <div
-              className="w-7 h-7 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
-              title={`Assigned to: ${task.assigned_full_name || "Unassigned"}`}
-            >
-              {task.assigned_profile_picture ? (
-                <img
-                  src={getGlobalProfileUrl(
-                    task.assigned_to,
-                    task.assigned_profile_picture,
-                  )}
-                  alt="Assignee"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span>{assigneeInitials}</span>
-              )}
-            </div>
-
-            <div
-              className="w-7 h-7 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
-              title={`Assigned by: ${task.uploader_full_name || "System"}`}
-            >
-              {task.uploader_profile_picture ? (
-                <img
-                  src={getGlobalProfileUrl(
-                    task.uploaderid,
-                    task.uploader_profile_picture,
-                  )}
-                  alt="Uploader"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span>{uploaderInitials}</span>
-              )}
-            </div>
+            {/* Assigned To avatar */}
+            {task.assigned_full_name &&
+              (() => {
+                const src =
+                  task.assigned_to != null && task.assigned_profile_picture
+                    ? getGlobalProfileUrl(
+                        task.assigned_to,
+                        task.assigned_profile_picture,
+                      )
+                    : task.assigned_profile_picture
+                      ? getProfileUrl(task.assigned_profile_picture)
+                      : "";
+                const initials = task.assigned_full_name
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((p) => p[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <div
+                    className="w-8 h-8 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    title={`Assigned To: ${task.assigned_full_name}`}
+                  >
+                    {src ? (
+                      <img
+                        src={src}
+                        alt={task.assigned_full_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{initials}</span>
+                    )}
+                  </div>
+                );
+              })()}
+            {/* Assigned By avatar */}
+            {task.uploader_full_name &&
+              (() => {
+                const src =
+                  task.uploaderid != null && task.uploader_profile_picture
+                    ? getGlobalProfileUrl(
+                        task.uploaderid,
+                        task.uploader_profile_picture,
+                      )
+                    : task.uploader_profile_picture
+                      ? getProfileUrl(task.uploader_profile_picture)
+                      : "";
+                const initials = task.uploader_full_name
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((p) => p[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <div
+                    className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    title={`Assigned By: ${task.uploader_full_name}`}
+                  >
+                    {src ? (
+                      <img
+                        src={src}
+                        alt={task.uploader_full_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{initials}</span>
+                    )}
+                  </div>
+                );
+              })()}
           </div>
         </div>
         <button

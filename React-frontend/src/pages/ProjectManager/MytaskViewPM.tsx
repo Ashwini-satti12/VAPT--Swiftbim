@@ -384,45 +384,49 @@ export default function MytaskViewPM() {
           </div>
         </div>
 
-        {/* Two columns: Task details (left) + Submit Work (right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border border-slate-200 rounded-xl p-6">
-          <div className="space-y-4 text-[14px]">
-            <div className="flex gap-2">
+        {/* Balanced Two-column Details Card */}
+        <div className="w-full border border-slate-200 rounded-xl p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 text-[14px]">
+            
+            {/* Row 1: Project Name | Modules Name */}
+            <div className="flex items-start gap-2">
               <span className="text-[#020202] font-medium shrink-0 w-32">Project Name</span>
               <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">{task.project_name || "—"}</span>
+              <span className="text-[#616161] break-words">{task.project_name || "—"}</span>
             </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">
-                Modules Name
-              </span>
+            <div className="flex items-start gap-2">
+              <span className="text-[#020202] font-medium shrink-0 w-32">Modules Name</span>
               <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
+              <span className="text-[#616161] break-words">
                 {String(task.modules_name || task.module || "—")}
               </span>
             </div>
-            <div className="flex gap-2 items-center">
+
+            {/* Row 2: Category | Assigned By */}
+            <div className="flex items-start gap-2">
               <span className="text-[#020202] font-medium shrink-0 w-32">Category</span>
               <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {String(task.category || task.type || "—")}
               </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-start gap-2">
               <span className="text-[#020202] font-medium shrink-0 w-32">Assigned By</span>
               <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.uploader_full_name ?? "—"}
               </span>
             </div>
-            <div className="flex gap-2">
+
+            {/* Row 3: Assigned To | Start Date */}
+            <div className="flex items-start gap-2">
               <span className="text-[#020202] font-medium shrink-0 w-32">Assigned To</span>
               <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.assigned_full_name ?? task.assign_to ?? "—"}
               </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-start gap-2">
               <span className="text-[#020202] font-medium shrink-0 w-32">Start Date</span>
               <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
@@ -431,17 +435,17 @@ export default function MytaskViewPM() {
                   : "-NIL-"}
               </span>
             </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] font-medium shrink-0 w-32">Due Date</span>
+
+            {/* Row 4: End Date | Preferred Time */}
+            <div className="flex items-start gap-2">
+              <span className="text-[#020202] font-medium shrink-0 w-32">End Date</span>
               <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.due_date ? formatDateDDMMYYYY(task.due_date) : "-NIL-"}
               </span>
             </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">
-                Preferred Time
-              </span>
+            <div className="flex items-start gap-2">
+              <span className="text-[#020202] font-medium shrink-0 w-32 lg:whitespace-nowrap">Preferred Time</span>
               <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.perferstart_time || task.start_time
@@ -449,7 +453,9 @@ export default function MytaskViewPM() {
                   : "-NIL-"}
               </span>
             </div>
-            <div className="flex gap-2">
+
+            {/* Row 5: End Time | Attachments */}
+            <div className="flex items-start gap-2">
               <span className="text-[#020202] font-medium shrink-0 w-32">End Time</span>
               <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
@@ -458,7 +464,7 @@ export default function MytaskViewPM() {
                   : "-NIL-"}
               </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-start gap-2">
               <span className="text-[#020202] font-medium shrink-0 w-32">Attachments</span>
               <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161] break-all">
@@ -477,105 +483,15 @@ export default function MytaskViewPM() {
               </span>
             </div>
           </div>
-
-          <div className="rounded-sm bg-[#F2F7FF] p-4 h-fit">
-            <h4 className="text-[#020202] font-medium text-[18px] mb-1">Submit Work</h4>
-            <p className="text-[14px] text-[#8B8B8B] mb-4">
-              Choose your finished work or error screenshots to update the team
-              on your progress.
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              aria-label="Select image"
-              onChange={handleSelectImage}
-            />
-            <div className="rounded-sm bg-[#FFFFFF] flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] relative transition-all duration-200">
-              {selectedImagePreview ? (
-                <>
-                  <button
-                    onClick={() => {
-                      setSelectedImage(null);
-                      setSelectedImagePreview(null);
-                    }}
-                    className="absolute top-2 right-2 p-1 bg-white/80 rounded-full shadow-sm hover:bg-white transition-colors z-10 cursor-pointer"
-                  >
-                    <FiX className="w-4 h-4 text-slate-600" />
-                  </button>
-                  <img
-                    src={selectedImagePreview}
-                    alt="Selected"
-                    className="max-h-48 max-w-full object-contain rounded"
-                  />
-                </>
-              ) : (
-                <>
-                  <img src={ImageIcon} alt="Image" className="w-7 h-7" />
-                  <span className="text-xs mt-2">No Image Selected</span>
-                </>
-              )}
-            </div>
-            <div className="flex gap-4 mt-6 justify-center">
-              <button
-                type="button"
-                disabled={submittingWork}
-                onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-2 text-[14px] text-black hover:bg-[#D5E6FF] whitespace-nowrap disabled:opacity-50 cursor-pointer"
-              >
-                <img src={Upload} alt="Upload" className="w-3.5 h-3.5 mr-1" />
-                <span className="mr-2">Select Image</span>
-              </button>
-              <button
-                type="button"
-                disabled={!selectedImage || submittingWork}
-                onClick={handleImageSubmit}
-                className="inline-flex items-center gap-1 rounded-sm bg-[#E1F6EB] px-4 py-2 text-[14px] text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap disabled:opacity-50 cursor-pointer"
-              >
-                <FiCheck className="w-4 h-4 text-[#008F22]" />
-                {submittingWork ? "Submitting..." : "Submit Image"}
-              </button>
-            </div>
-          </div>
         </div>
 
-        {/* Uploaded Work Display */}
-        {task.outputfilepath && task.outputfilepath.split(",").filter(Boolean).length > 0 && (
+          {/* Task Description */}
           <div className="mt-6 border border-slate-200 rounded-xl p-6">
-            <h4 className="text-black text-md mb-4 font-semibold">Uploaded Work</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {task.outputfilepath.split(",").filter(Boolean).map((filename, idx) => (
-                <div key={idx} className="group relative aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
-                  <a
-                    href={getTaskImageUrl(filename)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full h-full"
-                  >
-                    <img
-                      src={getTaskImageUrl(filename)}
-                      alt={`Uploaded work ${idx + 1}`}
-                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = ImageIcon;
-                        (e.target as HTMLImageElement).className = "w-10 h-10 m-auto mt-4 opacity-20";
-                      }}
-                    />
-                  </a>
-                </div>
-              ))}
+            <h4 className="text-black text-md mb-2">Task Description</h4>
+            <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+            {task.description || "Event (Consultant Partnership)..."}
             </div>
           </div>
-        )}
-
-        {/* Task Description */}
-        <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6">
-          <h4 className=" text-black text-md mb-2">Task Description</h4>
-          <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-            {task.description || "Event (Consultant Partnership)..."}
-          </div>
-        </div>
         </div>
       </div>
     </div>

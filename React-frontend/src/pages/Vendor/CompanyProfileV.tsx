@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../lib/api';
 import type { Vendor } from '../TechnicalDirector/PartnerView/types';
 import PartnerSidebar from '../TechnicalDirector/PartnerView/PartnerSidebar';
@@ -9,8 +10,7 @@ import SectorServiceSoftware from '../TechnicalDirector/PartnerView/components/S
 import Resources from '../TechnicalDirector/PartnerView/components/Resources';
 import PortfolioProject from '../TechnicalDirector/PartnerView/components/PortfolioProject';
 import Certificates from '../TechnicalDirector/PartnerView/components/Certificates';
-import type { ResourceProfile, PortfolioProject as PortfolioProjectType } from '../TechnicalDirector/PartnerView/types';
-import ResourceModal from './components/ResourceModal';
+import type { PortfolioProject as PortfolioProjectType } from '../TechnicalDirector/PartnerView/types';
 import PortfolioModal from './components/PortfolioModal';
 
 function parseJsonArray(val: unknown): string[] {
@@ -82,6 +82,12 @@ function profileToVendor(profile: Record<string, unknown> | null): Vendor | null
 }
 
 export default function CompanyProfileV() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const companyProfileResourcesPath = location.pathname.startsWith('/vpm/')
+        ? '/vpm/company-profile/resources'
+        : '/v/company-profile/resources';
+
     const [loading, setLoading] = useState(true);
     const [vendor, setVendor] = useState<Vendor | null>(null);
     const [, setCompleteness] = useState(0);
@@ -93,13 +99,16 @@ export default function CompanyProfileV() {
     const [saving, setSaving] = useState(false);
     const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
-    // Resource Modal State
-    const [showResourceModal, setShowResourceModal] = useState(false);
-    const [editingResource, setEditingResource] = useState<ResourceProfile | null>(null);
-
     // Portfolio Modal State
     const [showPortfolioModal, setShowPortfolioModal] = useState(false);
     const [editingPortfolio, setEditingPortfolio] = useState<PortfolioProjectType | null>(null);
+
+    useEffect(() => {
+        const st = location.state as { companyProfileTab?: string } | null;
+        if (st?.companyProfileTab) {
+            setActiveTab(st.companyProfileTab);
+        }
+    }, [location.state]);
 
     useEffect(() => {
         api.get<{ profile: Record<string, unknown> | null; completeness: number; verified: boolean }>('/api/vendors/profile')
@@ -199,8 +208,8 @@ export default function CompanyProfileV() {
                     <Resources
                         vendor={activeVendor}
                         editable={editMode}
-                        onAdd={() => setShowResourceModal(true)}
-                        onEdit={(id, data) => { setEditingResource({ ...data, id } as ResourceProfile); setShowResourceModal(true); }}
+                        onAdd={() => navigate(`${companyProfileResourcesPath}/new`)}
+                        onEdit={(id) => navigate(`${companyProfileResourcesPath}/${id}`)}
                         onDelete={async (id) => {
                             if (!window.confirm('Delete this resource profile?')) return;
                             try {
@@ -337,19 +346,6 @@ export default function CompanyProfileV() {
                     {renderContent()}
                 </div>
             </div>
-
-            {showResourceModal && (
-                <ResourceModal
-                    onClose={() => { setShowResourceModal(false); setEditingResource(null); }}
-                    onSuccess={async () => {
-                        const { data } = await api.get('/api/vendors/profile');
-                        setVendor(profileToVendor(data.profile));
-                        setShowResourceModal(false);
-                        setEditingResource(null);
-                    }}
-                    resource={editingResource}
-                />
-            )}
 
             {showPortfolioModal && (
                 <PortfolioModal

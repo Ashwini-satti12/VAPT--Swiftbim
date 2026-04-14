@@ -147,8 +147,8 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
   module: string;
   taskName: string;
   type: string;
-  actualStartDate: string;
-  actualEndDate: string;
+  startDate: string;
+  endDate: string;
   startTime: string;
   dueTime: string;
   assignTo: string;
@@ -198,10 +198,10 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
     module: normalizeModuleDisplay(t.module ?? t.modules_name ?? t.modules ?? ""),
     taskName: str(t.task_name ?? t.taskName ?? ""),
     type: str(t.type ?? t.category ?? ""),
-    actualStartDate: dateOnly(
+    startDate: dateOnly(
       t.start_date ?? t.startDate ?? t.Actual_start_time ?? "",
     ),
-    actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
+    endDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
     startTime: timeOnly(
       firstNonEmpty(
         t.perferstart_time,
@@ -240,8 +240,8 @@ const initialForm = {
   module: "",
   taskName: "",
   type: "",
-  actualStartDate: "",
-  actualEndDate: "",
+  startDate: "",
+  endDate: "",
   startTime: "",
   dueTime: "",
   assignTo: "",
@@ -608,9 +608,8 @@ export default function AddTaskPM() {
       "projectName",
       "module",
       "taskName",
-      "type",
-      "actualStartDate",
-      "actualEndDate",
+      "startDate",
+      "endDate",
       "startTime",
       "dueTime",
       "assignTo",
@@ -625,13 +624,13 @@ export default function AddTaskPM() {
     }
 
     const today = new Date().toISOString().split("T")[0];
-    if (addTaskForm.actualStartDate < today && !editingTaskId) {
-      setAddError("Actual Start Date cannot be in the past.");
+    if (addTaskForm.startDate < today && !editingTaskId) {
+      setAddError("Start Date cannot be in the past.");
       setAddSubmitting(false);
       return;
     }
-    if (addTaskForm.actualEndDate < addTaskForm.actualStartDate) {
-      setAddError("Actual End Date cannot be before Actual Start Date.");
+    if (addTaskForm.endDate < addTaskForm.startDate) {
+      setAddError("End Date cannot be before Start Date.");
       setAddSubmitting(false);
       return;
     }
@@ -666,10 +665,10 @@ export default function AddTaskPM() {
         taskName: addTaskForm.taskName,
         type: addTaskForm.type,
         category: addTaskForm.type,
-        start_date: addTaskForm.actualStartDate,
-        startdate: addTaskForm.actualStartDate,
-        due_date: addTaskForm.actualEndDate,
-        dueDate: addTaskForm.actualEndDate,
+        start_date: addTaskForm.startDate,
+        startdate: addTaskForm.startDate,
+        due_date: addTaskForm.endDate,
+        dueDate: addTaskForm.endDate,
         perferstart_time: addTaskForm.startTime,
         perferend_time: addTaskForm.dueTime,
         start_time: addTaskForm.startTime,
@@ -691,12 +690,12 @@ export default function AddTaskPM() {
           await api.patch(`${baseEndpoint}/${editingTaskId}`, {
             task_name: addTaskForm.taskName,
             assigned_to: assignedId,
-            due_date: addTaskForm.actualEndDate,
+            due_date: addTaskForm.endDate,
             category: addTaskForm.type,
             description: addTaskForm.description,
             checklist: addTaskForm.checklist,
             modules: addTaskForm.module,
-            start_date: addTaskForm.actualStartDate,
+            start_date: addTaskForm.startDate,
             start_time: addTaskForm.startTime,
             end_time: addTaskForm.dueTime,
             project_id: selectedProj?.id,
@@ -815,7 +814,7 @@ export default function AddTaskPM() {
   };
 
   return (
-    <div className="h-full flex-1 min-h-0 p-2 bg-white overflow-hidden overflow-y-hidden">
+    <div className="h-full flex-1 min-h-0 px-5 py-2 bg-white overflow-hidden overflow-y-hidden">
       <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col overflow-hidden overflow-y-hidden">
         <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
           <div className="group relative inline-flex shrink-0">
@@ -935,7 +934,7 @@ export default function AddTaskPM() {
                     placeholder="Enter Task / Select Task"
                     className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B]"
                   />
-                  <TaskDropdown
+                  {/* <TaskDropdown
                     label="Tasklist"
                     options={tasklistOptions}
                     selected={null}
@@ -956,11 +955,11 @@ export default function AddTaskPM() {
                     maxVisibleItems={6}
                     bgClass="bg-[#F2F3F4]"
                     fontClass="font-normal"
-                  />
+                  /> */}
                 </div>
               </div>
-              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
-                <div>
+              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
+                {/* <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Type <span className="text-[#DD4342]">*</span>
                   </label>
@@ -985,52 +984,56 @@ export default function AddTaskPM() {
                     bgClass="bg-[#F2F3F4]"
                     fontClass="font-normal"
                   />
-                </div>
-                <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Actual Start Date <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={addTaskForm.actualStartDate}
-                      min={new Date().toISOString().split("T")[0]}
-                      onChange={(e) =>
-                        setAddTaskForm((f) => ({
-                          ...f,
-                          actualStartDate: e.target.value,
-                        }))
-                      }
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    />
-                    <div className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus-within:border-[#AEACAC52] flex items-center min-h-[42px]">
-                      <span className={addTaskForm.actualStartDate ? "text-[#353535]" : "text-[#8B8B8B]"}>
-                        {addTaskForm.actualStartDate ? formatDateForDisplay(addTaskForm.actualStartDate) : "DD/MM/YYYY"}
-                      </span>
+                </div> */}
+                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
+                  <div>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                      Start Date <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={addTaskForm.startDate}
+                        min={new Date().toISOString().split("T")[0]}
+                        onChange={(e) =>
+                          setAddTaskForm((f) => ({
+                            ...f,
+                            startDate: e.target.value,
+                          }))
+                        }
+                        onClick={(e) => e.currentTarget.showPicker?.()}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <div className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus-within:border-[#AEACAC52] flex items-center min-h-[42px]">
+                        <span className={addTaskForm.startDate ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                          {addTaskForm.startDate ? formatDateForDisplay(addTaskForm.startDate) : "DD/MM/YYYY"}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Actual End Date <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={addTaskForm.actualEndDate}
-                      min={addTaskForm.actualStartDate || new Date().toISOString().split("T")[0]}
-                      onChange={(e) =>
-                        setAddTaskForm((f) => ({
-                          ...f,
-                          actualEndDate: e.target.value,
-                        }))
-                      }
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    />
-                    <div className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus-within:border-[#AEACAC52] flex items-center min-h-[42px]">
-                      <span className={addTaskForm.actualEndDate ? "text-[#353535]" : "text-[#8B8B8B]"}>
-                        {addTaskForm.actualEndDate ? formatDateForDisplay(addTaskForm.actualEndDate) : "DD/MM/YYYY"}
-                      </span>
+                  <div>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                      End Date <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={addTaskForm.endDate}
+                        min={addTaskForm.startDate || new Date().toISOString().split("T")[0]}
+                        onChange={(e) =>
+                          setAddTaskForm((f) => ({
+                            ...f,
+                            endDate: e.target.value,
+                          }))
+                        }
+                        onClick={(e) => e.currentTarget.showPicker?.()}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <div className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus-within:border-[#AEACAC52] flex items-center min-h-[42px]">
+                        <span className={addTaskForm.endDate ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                          {addTaskForm.endDate ? formatDateForDisplay(addTaskForm.endDate) : "DD/MM/YYYY"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

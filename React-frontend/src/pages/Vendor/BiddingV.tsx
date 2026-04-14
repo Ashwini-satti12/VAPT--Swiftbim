@@ -1,14 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
-import closeIcon from "../../assets/ProductNavbarIcons/close button.svg";
+import { BiddingSubmitModal } from "./BiddingSubmitModal";
 
 type Opportunity = {
   id: number;
+  project_id?: number;
   project_name: string;
   outsource_budget?: number | string;
   budget_ceiling?: number | string;
@@ -16,6 +17,10 @@ type Opportunity = {
   status: string;
   description?: string;
   technical_requirements?: string;
+  software_to_be_used?: string | null;
+  project_location?: string | null;
+  project_due_date?: string | null;
+  project_priority?: string | null;
   bids_count?: number;
   host_name?: string;
   currency?: string;
@@ -55,19 +60,12 @@ const EMPTY_BID_FORM: BidFormState = {
 
 type ModuleTab = "opportunities" | "my-bids";
 type OppTab = "all" | "active" | "bid" | "closed";
-type ViewMode = "list" | "opportunity-detail" | "bid-detail";
-
-// Helpers
-function getTags(opp: Opportunity): string[] {
-  const raw = (opp.technical_requirements || opp.description || "").replace(
-    /<[^>]*>/g,
-    " ",
-  );
-  const words = raw
-    .split(/[\s,;/|]+/)
-    .filter((w) => w.length >= 2 && w.length <= 20);
-  return words.slice(0, 4);
-}
+type ViewMode =
+  | "list"
+  | "opportunity-detail"
+  | "bid-detail"
+  | "submit-bid";
+type SubmitBidReturnView = "list" | "opportunity-detail";
 
 const AVATAR_COLORS = [
   "#DE3D3A",
@@ -253,6 +251,8 @@ export default function BiddingV() {
   const [searchParams] = useSearchParams();
   const [mainTab, setMainTab] = useState<ModuleTab>("opportunities");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [submitBidReturnView, setSubmitBidReturnView] =
+    useState<SubmitBidReturnView>("list");
   const [loading, setLoading] = useState(true);
 
   // Opportunities State
@@ -274,6 +274,8 @@ export default function BiddingV() {
   const [showDropdownOpen, setShowDropdownOpen] = useState(false);
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
 
+  const knownOppIdsRef = useRef<Set<number> | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -294,6 +296,48 @@ export default function BiddingV() {
     };
     fetchData();
   }, []);
+
+  /** Refresh opportunities in the background so new listings can surface + toast. */
+  useEffect(() => {
+    const intervalMs = 120_000;
+    const id = window.setInterval(() => {
+      void (async () => {
+        try {
+          const { data } = await api.get<{ opportunities: Opportunity[] }>(
+            "/api/vendors/opportunities",
+          );
+          setOpportunities(data.opportunities ?? []);
+        } catch {
+          /* ignore */
+        }
+      })();
+    }, intervalMs);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    const list = opportunities;
+    if (list.length === 0) {
+      knownOppIdsRef.current = new Set();
+      return;
+    }
+    const nextIds = new Set(list.map((o) => o.id));
+    if (knownOppIdsRef.current === null) {
+      knownOppIdsRef.current = nextIds;
+      return;
+    }
+    const prev = knownOppIdsRef.current;
+    const newlyAdded = list.filter((o) => !prev.has(o.id));
+    knownOppIdsRef.current = nextIds;
+    if (newlyAdded.length === 0) return;
+    newlyAdded.sort((a, b) => b.id - a.id);
+    const label =
+      newlyAdded.length === 1
+        ? newlyAdded[0].project_name || "New opportunity"
+        : `${newlyAdded.length} new opportunities`;
+    toast.success(`New bidding opportunity: ${label}`, { duration: 5500 });
+  }, [opportunities, loading]);
 
   useEffect(() => {
     const tab = (searchParams.get("tab") || "").toLowerCase();
@@ -324,20 +368,46 @@ export default function BiddingV() {
     );
   }, [searchParams]);
 
+  const enrichOpportunityById = async (id: number) => {
+    try {
+      const { data } = await api.get<{ opportunity: Opportunity }>(
+        `/api/vendors/opportunities/${id}`,
+      );
+      const full = data.opportunity;
+      if (!full) return;
+      setOpportunities((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, ...full } : o)),
+      );
+      setDetailOpp((d) => (d && d.id === id ? { ...d, ...full } : d));
+      setSelectedOpp((s) => (s && s.id === id ? { ...s, ...full } : s));
+    } catch (err) {
+      console.error("Failed to load opportunity details", err);
+    }
+  };
+
   const closeSubmitBidModal = () => {
     setBidSubmitting(false);
-    setSelectedOpp(null);
     setBidError(null);
     setBidAmountError(null);
     setBidForm({ ...EMPTY_BID_FORM });
     setCurrencyDropdownOpen(false);
+    setViewMode((vm) =>
+      vm === "submit-bid" ? submitBidReturnView : vm,
+    );
+    setSelectedOpp(null);
   };
 
-  const openSubmitBidModal = (opp: Opportunity) => {
+  const openSubmitBidModal = (
+    opp: Opportunity,
+    returnTo: SubmitBidReturnView,
+  ) => {
+    setSubmitBidReturnView(returnTo);
     setBidError(null);
     setBidAmountError(null);
     setBidForm({ ...EMPTY_BID_FORM, currency: opp.currency || "INR" });
     setSelectedOpp(opp);
+    void enrichOpportunityById(opp.id);
+    setViewMode("submit-bid");
   };
 
   const handleBidSubmit = async () => {
@@ -384,13 +454,15 @@ export default function BiddingV() {
           o.id === selectedOpp.id ? { ...o, already_bid: true } : o,
         ),
       );
+      setDetailOpp((d) =>
+        d && d.id === selectedOpp.id ? { ...d, already_bid: true } : d,
+      );
 
       // Refresh bids list
       const { data } = await api.get<{ bids: Bid[] }>("/api/vendors/mybids");
       setBids(data.bids ?? []);
 
       closeSubmitBidModal();
-      setViewMode("list");
     } catch (err: unknown) {
       const res =
         err && typeof err === "object" && "response" in err
@@ -410,13 +482,15 @@ export default function BiddingV() {
     }
   };
 
-  // Filtering logic
-  const filteredOpps = opportunities.filter((opp) => {
-    if (oppTab === "active" && opp.status !== "active") return false;
-    if (oppTab === "bid" && !opp.already_bid) return false;
-    if (oppTab === "closed" && opp.status === "active") return false;
-    return true;
-  });
+  // Filtering logic — newest opportunities first (higher id), same API data
+  const filteredOpps = opportunities
+    .filter((opp) => {
+      if (oppTab === "active" && opp.status !== "active") return false;
+      if (oppTab === "bid" && !opp.already_bid) return false;
+      if (oppTab === "closed" && opp.status === "active") return false;
+      return true;
+    })
+    .sort((a, b) => b.id - a.id);
 
   const filteredBids = (() => {
     let out = bids;
@@ -498,6 +572,7 @@ export default function BiddingV() {
     setDetailOpp(opp);
     setViewMode("opportunity-detail");
     window.scrollTo(0, 0);
+    void enrichOpportunityById(opp.id);
   };
 
   const openBidDetail = (bid: Bid) => {
@@ -517,6 +592,37 @@ export default function BiddingV() {
       <div className="flex justify-center py-24">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DE3D3A]" />
       </div>
+    );
+  }
+
+  if (viewMode === "submit-bid" && selectedOpp) {
+    return (
+      <BiddingSubmitModal
+        variant="page"
+        selectedOpp={selectedOpp}
+        bidForm={bidForm}
+        setBidForm={setBidForm}
+        currencyDropdownOpen={currencyDropdownOpen}
+        setCurrencyDropdownOpen={setCurrencyDropdownOpen}
+        bidAmountError={bidAmountError}
+        setBidAmountError={setBidAmountError}
+        setBidError={setBidError}
+        bidError={bidError}
+        bidSubmitting={bidSubmitting}
+        closeSubmitBidModal={closeSubmitBidModal}
+        handleBidSubmit={handleBidSubmit}
+        currencies={CURRENCIES.map(({ code, label }) => ({ code, label }))}
+        submitModalMaxBid={submitModalMaxBid}
+        submitModalMaxBidInEntered={submitModalMaxBidInEntered}
+        submitEnteredCurrency={submitEnteredCurrency}
+        submitBidOverMax={submitBidOverMax}
+        formatBudget={formatBudget}
+        parseBidAmountInput={parseBidAmountInput}
+        maxBidAmountForOpportunity={(opp) =>
+          maxBidAmountForOpportunity(opp as Opportunity)
+        }
+        bidTooHighMessage={bidTooHighMessage}
+      />
     );
   }
 
@@ -602,6 +708,36 @@ export default function BiddingV() {
                       {detailOpp.bids_count ?? 0} Bids Submitted
                     </span>
                   </div>
+                  {detailOpp.project_location ? (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[#8B8B8B] text-[14px] font-medium font-gantari">
+                        Location
+                      </span>
+                      <span className="text-[14px] font-medium text-[#353535] font-gantari">
+                        {detailOpp.project_location}
+                      </span>
+                    </div>
+                  ) : null}
+                  {detailOpp.project_due_date ? (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[#8B8B8B] text-[14px] font-medium font-gantari">
+                        Project Due Date
+                      </span>
+                      <span className="text-[14px] font-medium text-[#353535] font-gantari">
+                        {detailOpp.project_due_date}
+                      </span>
+                    </div>
+                  ) : null}
+                  {detailOpp.project_priority ? (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[#8B8B8B] text-[14px] font-medium font-gantari">
+                        Priority
+                      </span>
+                      <span className="text-[14px] font-medium text-[#353535] font-gantari">
+                        {detailOpp.project_priority}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -616,14 +752,14 @@ export default function BiddingV() {
                 </div>
               </div>
 
-              {/* Technical Requirements Section */}
+              {/* Technical Requirements — software / scope from linked project */}
               <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
                 <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
                   Technical Requirements
                 </h3>
                 <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
-                  {detailOpp.technical_requirements ||
-                    "Technical requirements have not been specified yet."}
+                  {detailOpp.software_to_be_used ||
+                    "Software, modules, and resource requirements have not been specified for this project yet."}
                 </div>
               </div>
             </div>
@@ -666,7 +802,9 @@ export default function BiddingV() {
                     </p>
                     <button
                       type="button"
-                      onClick={() => openSubmitBidModal(detailOpp)}
+                      onClick={() =>
+                        openSubmitBidModal(detailOpp, "opportunity-detail")
+                      }
                       className="w-full py-3 bg-[#DD4342] text-white rounded-md font-medium transition-all font-gantari text-[14px]"
                     >
                       Submit Your Bid
@@ -679,28 +817,6 @@ export default function BiddingV() {
                     </p>
                   </div>
                 )}
-              </div>
-
-              {/* Tags Card */}
-              <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
-                <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
-                  Area of Expertise
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {getTags(detailOpp).map((tag, i) => (
-                    <span
-                      key={i}
-                      className="px-3 py-1 bg-[#F2F2F2] text-[#353535] text-[14px] font-bold rounded-lg uppercase tracking-wide font-gantari"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                  {getTags(detailOpp).length === 0 && (
-                    <span className="text-[#8B8B8B] text-[14px] font-gantari">
-                      No specific tags identified.
-                    </span>
-                  )}
-                </div>
               </div>
             </div>
           </div>
@@ -1030,6 +1146,14 @@ export default function BiddingV() {
           <div className="flex bg-[#E8E8E8] p-1 rounded-md">
             <button
               onClick={() => {
+                if (viewMode === "submit-bid") {
+                  setBidSubmitting(false);
+                  setBidError(null);
+                  setBidAmountError(null);
+                  setBidForm({ ...EMPTY_BID_FORM });
+                  setCurrencyDropdownOpen(false);
+                  setSelectedOpp(null);
+                }
                 setMainTab("opportunities");
                 setViewMode("list");
               }}
@@ -1039,6 +1163,14 @@ export default function BiddingV() {
             </button>
             <button
               onClick={() => {
+                if (viewMode === "submit-bid") {
+                  setBidSubmitting(false);
+                  setBidError(null);
+                  setBidAmountError(null);
+                  setBidForm({ ...EMPTY_BID_FORM });
+                  setCurrencyDropdownOpen(false);
+                  setSelectedOpp(null);
+                }
                 setMainTab("my-bids");
                 setViewMode("list");
               }}
@@ -1087,7 +1219,6 @@ export default function BiddingV() {
                 {filteredOpps.map((opp) => {
                   const days = daysUntil(opp.bid_deadline);
                   const isActive = opp.status === "active";
-                  const tags = getTags(opp);
                   const name = opp.project_name || "Unnamed Project";
                   const avatarBg = getAvatarColor(name);
                   const initials = getInitials(name);
@@ -1117,10 +1248,10 @@ export default function BiddingV() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between text-[14px] text-[#717171] mb-2">
-                        <div className="flex items-center gap-1.5">
+                      <div className="flex items-center text-[14px] text-[#717171] mb-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
                           <svg
-                            className="w-3.5 h-3.5"
+                            className="w-3.5 h-3.5 shrink-0"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1132,15 +1263,12 @@ export default function BiddingV() {
                               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                             />
                           </svg>
-                          {opp.bid_deadline
-                            ? `${new Date(opp.bid_deadline).toLocaleDateString("en-GB")} · ${days > 0 ? `${days}d left` : "Ended"}`
-                            : "No deadline"}
+                          <span className="truncate">
+                            {opp.bid_deadline
+                              ? `${new Date(opp.bid_deadline).toLocaleDateString("en-GB")} · ${days > 0 ? `${days}d left` : "Ended"}`
+                              : "No deadline"}
+                          </span>
                         </div>
-                        <span
-                          className={`shrink-0 text-[14px] font-medium px-2 py-0.5 rounded-md ${isActive ? "bg-[#E8F9E8] text-[#16A34A]" : "bg-[#FFE5E5] text-[#DE3D3A]"}`}
-                        >
-                          ● {isActive ? "Reg. Open" : "Reg. Closed"}
-                        </span>
                       </div>
 
                       <div className="flex-1" />
@@ -1185,7 +1313,7 @@ export default function BiddingV() {
                           ) : isActive ? (
                             <button
                               type="button"
-                              onClick={() => openSubmitBidModal(opp)}
+                              onClick={() => openSubmitBidModal(opp, "list")}
                               className="text-[14px] font-medium text-white bg-[#DD4342] px-5 py-2 rounded-md transition-colors shadow-sm"
                             >
                               Submit Bid
@@ -1341,210 +1469,6 @@ export default function BiddingV() {
         </div>
       )}
 
-      {/* ── SUBMISSION MODAL (Always needs a modal for UX) ── */}
-      {selectedOpp && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-md p-6 sm:p-8 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <div className="relative flex items-center justify-center mb-8">
-              <div className="absolute left-0 group">
-                <button
-                  type="button"
-                  onClick={closeSubmitBidModal}
-                  className="p-2 bg-[#F2F2F2] rounded-md transition-colors cursor-pointer flex items-center justify-center"
-                >
-                  <img src={closeIcon} alt="close" className="w-5 h-5" />
-                </button>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-5 py-0.5 relative z-10">
-                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                      Close
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <h3 className="text-[24px] font-gantari font-medium text-[#000000]">
-                Submit Bid
-              </h3>
-            </div>
-            <p className="text-sm font-medium text-[#353535] mb-6 bg-[#F8F8F8] p-4 rounded-xl border border-gray-100">
-              Project:{" "}
-              <span className="font-bold">{selectedOpp.project_name}</span>
-            </p>
-            <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="relative">
-                  <label className="block text-[16px] font-medium text-[#353535] mb-2 font-gantari">
-                    Currency <span className="text-[#DE3D3A]">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrencyDropdownOpen(!currencyDropdownOpen)
-                    }
-                    className="w-full rounded-md px-4 py-2.5 text-[14px] text-[#353535] bg-[#F2F3F4] focus:ring-1 focus:ring-[#AEACAC52] outline-none border-none flex items-center justify-between cursor-pointer"
-                  >
-                    <span>
-                      {
-                        CURRENCIES.find((c) => c.code === bidForm.currency)
-                          ?.label
-                      }{" "}
-                      ({bidForm.currency})
-                    </span>
-                    <img
-                      src={ArrowDown}
-                      alt="arrow-down"
-                      className={`w-4 h-4 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
-                    />
-                  </button>
-
-                  {currencyDropdownOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-[110]"
-                        onClick={() => setCurrencyDropdownOpen(false)}
-                      />
-                      <div className="absolute top-full left-0 mt-1 w-full bg-white border border-[#E5E5E5] rounded-xl shadow-2xl z-[120] py-1 max-h-[250px] overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-1 duration-200">
-                        {CURRENCIES.map((c) => (
-                          <button
-                            key={c.code}
-                            type="button"
-                            onClick={() => {
-                              setBidForm((f) => ({ ...f, currency: c.code }));
-                              setCurrencyDropdownOpen(false);
-                            }}
-                            className={`w-full text-left px-4 py-3 text-[14px] transition-all font-gantari hover:bg-[#F2F2F2] ${bidForm.currency === c.code ? "bg-[#F2F2F2] text-[#353535] font-bold" : "text-[#8B8B8B] font-medium hover:text-[#353535]"}`}
-                          >
-                            {c.label} ({c.code})
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-[16px] font-medium text-[#353535] mb-2 font-gantari">
-                    Bid Amount <span className="text-[#DE3D3A]">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={bidForm.bid_amount}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setBidForm((f) => ({ ...f, bid_amount: v }));
-                      setBidError(null);
-                      const max = maxBidAmountForOpportunity(selectedOpp);
-                      const n = parseBidAmountInput(v);
-                      if (max != null && n != null && n > max) {
-                        setBidAmountError(
-                          bidTooHighMessage(max, bidForm.currency),
-                        );
-                      } else {
-                        setBidAmountError(null);
-                      }
-                    }}
-                    className={`w-full rounded-md px-4 py-2.5 text-[14px] text-[#353535] bg-[#F2F3F4] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-1 focus:ring-[#AEACAC52] outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                      bidAmountError ? "ring-2 ring-[#DE3D3A] bg-[#FFF8F8]" : ""
-                    }`}
-                    placeholder="0.00"
-                    min={0}
-                    step="0.01"
-                    aria-invalid={bidAmountError ? true : undefined}
-                    aria-describedby={
-                      bidAmountError ? "bid-amount-error" : undefined
-                    }
-                  />
-                </div>
-              </div>
-                {bidAmountError && (
-                  <p
-                    id="bid-amount-error"
-                    className="mt-2 text-sm font-semibold text-[#DE3D3A] leading-snug"
-                  >
-                    {bidAmountError}
-                  </p>
-                )}
-                {!bidAmountError && submitModalMaxBid != null && (
-                  <p className="mt-1.5 text-[14px] font-gantari text-[#666666]">
-                    Maximum bid for this opportunity:{" "}
-                    {formatBudget(
-                      submitModalMaxBidInEntered ?? submitModalMaxBid,
-                      submitEnteredCurrency,
-                    )}
-                  </p>
-                )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[16px] font-medium text-[#353535] mb-2 font-gantari">
-                    Timeline
-                  </label>
-                  <input
-                    type="text"
-                    value={bidForm.timeline}
-                    onChange={(e) =>
-                      setBidForm((f) => ({ ...f, timeline: e.target.value }))
-                    }
-                    className="w-full bg-[#F2F3F4] border-none rounded-md px-4 py-2.5 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-1 focus:ring-[#AEACAC52] outline-none"
-                    placeholder="e.g. 2 months"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[16px] font-medium text-[#353535] mb-2 font-gantari">
-                    Team Size
-                  </label>
-                  <input
-                    type="number"
-                    value={bidForm.team_size}
-                    onChange={(e) =>
-                      setBidForm((f) => ({ ...f, team_size: e.target.value }))
-                    }
-                    className="w-full bg-[#F2F3F4] border-none rounded-md px-4 py-2.5 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-1 focus:ring-[#AEACAC52] outline-none"
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-[16px] font-medium text-[#353535] mb-2 font-gantari">
-                  Additional Notes
-                </label>
-                <textarea
-                  value={bidForm.notes}
-                  onChange={(e) =>
-                    setBidForm((f) => ({ ...f, notes: e.target.value }))
-                  }
-                  rows={3}
-                  className="w-full bg-[#F2F3F4] border-none rounded-md px-4 py-2.5 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] placeholder:text-[14px] focus:ring-1 focus:ring-[#AEACAC52] outline-none resize-none"
-                  placeholder="Highlight your expertise..."
-                />
-              </div>
-              {bidError && (
-                <div className="p-3 bg-[#FFE5E5] rounded-lg text-xs text-[#DE3D3A] font-bold">
-                  {bidError}
-                </div>
-              )}
-            </div>
-            <div className="flex gap-3 mt-8">
-              <button
-                type="button"
-                onClick={closeSubmitBidModal}
-                className="flex-1 py-2 bg-[#F2F2F2] text-[#8B8B8B] rounded-md font-medium transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleBidSubmit}
-                disabled={bidSubmitting || submitBidOverMax}
-                className="flex-1 py-2 bg-[#DE3D3A] text-white rounded-md font-medium transition-all disabled:opacity-50"
-              >
-                {bidSubmitting ? "Processing..." : "Submit Bid"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

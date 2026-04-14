@@ -817,7 +817,7 @@ export default function MyTasksPM() {
   }
 
   return (
-    <div className="h-full min-h-0 flex flex-col overflow-hidden">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden px-5 py-2">
       <div className="bg-white pb-3 flex-shrink-0">
         {/* Top row: title + dropdowns + Add task - match MytaskTD */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-3">

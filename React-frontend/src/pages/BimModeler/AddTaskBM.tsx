@@ -291,11 +291,11 @@ export default function AddTaskBM() {
 
     const today = new Date().toISOString().split("T")[0];
     if (addTaskForm.actualStartDate < today && !editingTaskId) {
-      setAddError("Actual Start Date cannot be in the past.");
+      setAddError("Start Date cannot be in the past.");
       return;
     }
     if (addTaskForm.actualEndDate < addTaskForm.actualStartDate) {
-      setAddError("Actual End Date cannot be before Actual Start Date.");
+      setAddError("End Date cannot be before Start Date.");
       return;
     }
 
@@ -571,60 +571,16 @@ export default function AddTaskBM() {
                       }))
                     }
                     placeholder="Enter Task / Select Task"
-                    className="min-w-0 flex-1 border-0 bg-transparent px-4 text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B]"
+                    className="min-w-0 flex-1 border-0 bg-transparent px-4 py-[7px] text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B]"
                   />
-                  <TaskDropdown
-                    label="Tasklist"
-                    options={[
-                      "Select Task",
-                      ...(Array.from(
-                        new Set(merged.map((t) => t.task_name).filter(Boolean)),
-                      ) as string[]),
-                    ]}
-                    selected={null}
-                    onSelect={(val) => {
-                      if (!val || val === "Select Task") return;
-                      setAddTaskForm((f) => ({ ...f, taskName: val }));
-                    }}
-                    isOpen={tasklistOpen}
-                    onToggle={() => setTasklistOpen((d) => !d)}
-                    onClose={() => setTasklistOpen(false)}
-                    triggerRef={tasklistTriggerRef}
-                    dropdownRef={tasklistMenuRef}
-                    searchable
-                    searchPlaceholder="Search task..."
-                    maxVisibleItems={6}
-                  />
+                  
                 </div>
               </div>
-              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
+              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-2 gap-x-10 gap-y-6">
+                
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Type <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <FormDropdown
-                    label="Select Type"
-                    options={[
-                      { value: "", label: "Select Type" },
-                      { value: "task", label: "Task" },
-                      { value: "bug", label: "Bug" },
-                      { value: "feature", label: "Feature" },
-                    ]}
-                    value={addTaskForm.type}
-                    onChange={(v) => setAddTaskForm((f) => ({ ...f, type: v }))}
-                    isOpen={openFormDropdown === "type"}
-                    onToggle={() =>
-                      setOpenFormDropdown((d) => (d === "type" ? null : "type"))
-                    }
-                    onClose={() => setOpenFormDropdown(null)}
-                    triggerRef={formTypeTriggerRef}
-                    dropdownRef={formTypeMenuRef}
-                    searchable
-                  />
-                </div>
-                <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Actual Start Date <span className="text-[#DD4342]">*</span>
+                    Start Date <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="date"
@@ -642,7 +598,7 @@ export default function AddTaskBM() {
                 </div>
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Actual End Date <span className="text-[#DD4342]">*</span>
+                    End Date <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="date"

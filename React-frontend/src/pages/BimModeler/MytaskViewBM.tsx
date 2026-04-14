@@ -431,27 +431,30 @@ export default function MytaskViewBM() {
           </div>
 
           {/* Two columns: Task details (left) + Submit Work (right) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border border-slate-200 rounded-xl p-6">
-            <div className="space-y-4 text-[14px]">
-              <div className="flex gap-2">
+          <div className="w-full border border-slate-200 rounded-xl p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 text-[14px]">
+              {/* Row 1: Project Name | Modules Name */}
+              <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 w-32">
                   Project Name
                 </span>
                 <span className="text-[#020202] shrink-0">:</span>
-                <span className="text-[#616161]">
+                <span className="text-[#616161] break-words">
                   {task.project_name || "—"}
                 </span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">
                   Modules Name
                 </span>
                 <span className="text-[#020202] shrink-0">:</span>
-                <span className="text-[#616161]">
+                <span className="text-[#616161] break-words">
                   {String(task.modules_name || task.module || "—")}
                 </span>
               </div>
-              <div className="flex gap-2 items-center">
+
+              {/* Row 2: Category | Assigned By */}
+              <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 w-32">
                   Category
                 </span>
@@ -460,7 +463,7 @@ export default function MytaskViewBM() {
                   {String(task.category || task.type || "—")}
                 </span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 w-32">
                   Assigned By
                 </span>
@@ -469,7 +472,9 @@ export default function MytaskViewBM() {
                   {task.uploader_full_name ?? "—"}
                 </span>
               </div>
-              <div className="flex gap-2">
+
+              {/* Row 3: Assigned To | Start Date */}
+              <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 w-32">
                   Assigned To
                 </span>
@@ -478,7 +483,7 @@ export default function MytaskViewBM() {
                   {task.assigned_full_name ?? task.assign_to ?? "—"}
                 </span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 w-32">
                   Start Date
                 </span>
@@ -491,7 +496,9 @@ export default function MytaskViewBM() {
                     : "-NIL-"}
                 </span>
               </div>
-              <div className="flex gap-2">
+
+              {/* Row 4: Due Date | Start Time */}
+              <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 w-32">
                   Due Date
                 </span>
@@ -500,7 +507,7 @@ export default function MytaskViewBM() {
                   {task.due_date ? formatDateDDMMYYYY(task.due_date) : "-NIL-"}
                 </span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">
                   Start Time
                 </span>
@@ -511,7 +518,9 @@ export default function MytaskViewBM() {
                     : "-NIL-"}
                 </span>
               </div>
-              <div className="flex gap-2">
+
+              {/* Row 5: End Time | Attachments */}
+              <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">
                   End Time
                 </span>
@@ -524,7 +533,7 @@ export default function MytaskViewBM() {
                     : "-NIL-"}
                 </span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">
                   Attachments
                 </span>
@@ -546,6 +555,7 @@ export default function MytaskViewBM() {
               </div>
             </div>
 
+{/* 
             <div className="rounded-sm bg-[#F2F7FF] p-4 h-fit">
               <h4 className="text-[#020202] text-[18px]  mb-1">Submit Work</h4>
               <p className="text-[14px] text-[#8B8B8B] mb-4">
@@ -605,7 +615,7 @@ export default function MytaskViewBM() {
                   {submittingWork ? "Submitting..." : "Submit Image"}
                 </button>
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Uploaded Work Display */}
