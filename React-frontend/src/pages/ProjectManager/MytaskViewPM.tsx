@@ -27,6 +27,7 @@ interface Task {
   uploader_full_name?: string;
   Approval?: string;
   modules_name?: string;
+  modules?: string;
   category?: string;
   Actual_start_time?: string;
   perferstart_time?: string;
@@ -288,6 +289,22 @@ export default function MytaskViewPM() {
   }
 
   const style = STATUS_STYLE[statusDisplay];
+  const taskRecord = task as unknown as Record<string, unknown>;
+  const moduleNameDisplay = (() => {
+    const candidates = [
+      task.modules_name,
+      task.modules,
+      task.module,
+      taskRecord.modules_name,
+      taskRecord.modules,
+      taskRecord.module,
+    ];
+    for (const c of candidates) {
+      const s = String(c ?? "").trim();
+      if (s) return s;
+    }
+    return "—";
+  })();
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-white">
@@ -403,7 +420,7 @@ export default function MytaskViewPM() {
               <span className="text-[#020202] font-medium shrink-0 w-32">Modules Name</span>
               <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161] break-words">
-                {String(task.modules_name || task.module || "—")}
+                {moduleNameDisplay}
               </span>
             </div>
 

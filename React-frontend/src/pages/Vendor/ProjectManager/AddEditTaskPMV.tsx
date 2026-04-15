@@ -233,7 +233,7 @@ export default function AddEditTaskPMV() {
     setAddError("");
 
     const requiredFields: (keyof typeof addTaskForm)[] = [
-      "projectName", "module", "taskName", "type", "actualStartDate",
+      "projectName", "module", "taskName", "actualStartDate",
       "actualEndDate", "startTime", "dueTime", "assignTo", "description"
     ];
 
@@ -268,7 +268,7 @@ export default function AddEditTaskPMV() {
     const payload = {
       projectid: projectId ?? addTaskForm.projectName,
       taskName: addTaskForm.taskName,
-      category: addTaskForm.type,
+      category: addTaskForm.type || "task",
       startdate: addTaskForm.actualStartDate,
       dueDate: addTaskForm.actualEndDate,
       startTime: addTaskForm.startTime,
@@ -287,7 +287,7 @@ export default function AddEditTaskPMV() {
         start_date: addTaskForm.actualStartDate,
         start_time: addTaskForm.startTime,
         end_time: addTaskForm.dueTime,
-        category: addTaskForm.type,
+        category: addTaskForm.type || "task",
         modules: addTaskForm.module,
         assigned_to: assignedToVal,
         description: addTaskForm.description,

@@ -401,6 +401,21 @@ export default function MytaskViewV() {
 
   const style = STATUS_STYLE[statusDisplay];
   const taskRecord = task as unknown as Record<string, unknown>;
+  const moduleNameDisplay = (() => {
+    const candidates = [
+      task.modules_name,
+      task.modules,
+      task.module,
+      taskRecord.modules_name,
+      taskRecord.modules,
+      taskRecord.module,
+    ];
+    for (const c of candidates) {
+      const s = String(c ?? "").trim();
+      if (s) return s;
+    }
+    return "—";
+  })();
 
   const resolveAssignedName = (): string => {
     if (!task) return "—";
@@ -517,7 +532,7 @@ export default function MytaskViewV() {
               <span className="text-[#020202] shrink-0 w-28">Module Name</span>
               <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
-                {task.modules_name || task.module || "—"}
+                {moduleNameDisplay}
               </span>
             </div>
             <div className="flex gap-2">
