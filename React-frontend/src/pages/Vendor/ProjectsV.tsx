@@ -1335,32 +1335,32 @@ export default function ProjectsV() {
                         </div>
                         {/* Project View Content */}
                         <div className="flex-1 flex flex-col overflow-hidden">
-                            {/* Fixed KPI Cards at top */}
-                            <div className="px-2 md:px-4 mt-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
-                                    {[
-                                        { label: "To Do Tasks", value: taskStats.todo, status: "todo" },
-                                        { label: "In Progress Tasks", value: taskStats.inProgress, status: "in_progress" },
-                                        { label: "Paused Tasks", value: taskStats.paused, status: "" },
-                                        { label: "Completed Tasks", value: taskStats.completed, status: "completed" },
-                                    ].map((stat, i) => (
-                                        <button
-                                            key={i}
-                                            type="button"
-                                            onClick={() => stat.status && navigate(`/v/teamtasks?project=${encodeURIComponent(selectedProject?.project_name || "")}&status=${stat.status}`)}
-                                            className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
-                                        >
-                                            <div className="flex items-center justify-left mb-2">
-                                                <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">{stat.label}</p>
-                                            </div>
-                                            <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">{stat.value}</p>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Scrollable Content Below KPI Cards */}
+                            {/* Scrollable Content Including KPI Cards */}
                             <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 md:px-4 pb-10 pt-4 md:pt-4 custom-scrollbar space-y-8">
+                                {/* KPI Cards */}
+                                <div className="mt-0">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+                                        {[
+                                            { label: "To Do Tasks", value: taskStats.todo, status: "todo" },
+                                            { label: "In Progress Tasks", value: taskStats.inProgress, status: "in_progress" },
+                                            { label: "Paused Tasks", value: taskStats.paused, status: "" },
+                                            { label: "Completed Tasks", value: taskStats.completed, status: "completed" },
+                                        ].map((stat, i) => (
+                                            <button
+                                                key={i}
+                                                type="button"
+                                                onClick={() => stat.status && navigate(`/v/teamtasks?project=${encodeURIComponent(selectedProject?.project_name || "")}&status=${stat.status}`)}
+                                                className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                                            >
+                                                <div className="flex items-center justify-left mb-2">
+                                                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">{stat.label}</p>
+                                                </div>
+                                                <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">{stat.value}</p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
 
                                 {/* Module Progress Cards */}
                                 <div className="border border-slate-200 rounded-md md:rounded-md p-4 md:p-6 lg:p-2">
