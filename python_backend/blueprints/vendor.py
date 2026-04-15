@@ -150,6 +150,31 @@ def _ensure_vendor_bid_currency_columns(cur):
             pass
 
 
+def _ensure_vendor_bidding_currency_snh6(cur):
+    """
+    list_opportunities uses TRIM(vb.currency). Older snh6_swiftproject.vendor_bidding
+    tables may not have this column — add it so the query does not fail silently.
+    """
+    try:
+        cur.execute(
+            """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = 'snh6_swiftproject'
+              AND TABLE_NAME = 'vendor_bidding'
+              AND COLUMN_NAME = 'currency'
+            LIMIT 1
+            """
+        )
+        if cur.fetchone() is None:
+            cur.execute(
+                "ALTER TABLE snh6_swiftproject.vendor_bidding "
+                "ADD COLUMN currency VARCHAR(10) DEFAULT 'INR'"
+            )
+    except Exception:
+        pass
+
+
 def _parse_iso_date(val):
     if not val:
         return None
@@ -1088,6 +1113,92 @@ def vendor_dashboard_project_stats():
 # Opportunities (Bidding Inbox for Vendors)
 # ---------------------------------------------------------------------------
 
+def _annotate_vendor_opportunity(item):
+    """
+    Merge linked project fields into the opportunity dict for vendor UI.
+    Adds software_to_be_used (modules, tasks, resources from projects) and
+    prefers the live project description when the bidding copy is empty or shorter.
+    """
+    if not item or not isinstance(item, dict):
+        return item
+    pd = item.get("project_description")
+    if pd and str(pd).strip():
+        cur_d = (item.get("description") or "").strip()
+        pds = str(pd).strip()
+        if not cur_d or len(pds) > len(cur_d):
+            item["description"] = pds
+    parts = []
+    m = (item.get("project_modules") or "").strip()
+    t = (item.get("project_tasks") or "").strip()
+    r = (item.get("project_required_resources") or "").strip()
+    if m:
+        parts.append(f"Modules / scope:\n{m}")
+    if t:
+        parts.append(f"Tasks / deliverables:\n{t}")
+    if r:
+        parts.append(f"Resources / inputs required:\n{r}")
+    if parts:
+        item["software_to_be_used"] = "\n\n".join(parts)
+    else:
+        legacy = (item.get("technical_requirements") or "").strip()
+        item["software_to_be_used"] = legacy if legacy else None
+    return item
+
+
+@bp.route("/opportunities/<int:opportunity_id>", methods=["GET"])
+@login_required
+def get_opportunity(opportunity_id):
+    """
+    GET /api/vendors/opportunities/<id>
+    Full opportunity row plus joined project fields (description, modules, tasks, etc.).
+    """
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    vendor_id = getattr(g, "user_id", None)
+    try:
+        _ensure_vendor_bidding_currency_snh6(cur)
+        already_bid = False
+        if vendor_id:
+            try:
+                cur.execute(
+                    "SELECT 1 AS ok FROM snh6_swiftproject.vendor_bids WHERE vendor_id = %s AND opportunity_id = %s LIMIT 1",
+                    (vendor_id, opportunity_id),
+                )
+                already_bid = cur.fetchone() is not None
+            except Exception:
+                already_bid = False
+        cur.execute(
+            """
+            SELECT vb.*,
+                   COALESCE(NULLIF(TRIM(vb.currency), ''), NULLIF(TRIM(p.currency), ''), 'INR') AS currency,
+                   NULLIF(TRIM(p.description), '') AS project_description,
+                   NULLIF(TRIM(p.modules), '') AS project_modules,
+                   NULLIF(TRIM(p.tasks), '') AS project_tasks,
+                   NULLIF(TRIM(p.location), '') AS project_location,
+                   NULLIF(TRIM(p.no_resources_requried), '') AS project_required_resources,
+                   NULLIF(TRIM(p.due_date), '') AS project_due_date,
+                   NULLIF(TRIM(p.priority), '') AS project_priority,
+                   (SELECT COUNT(*) FROM snh6_swiftproject.vendor_bids vbc WHERE vbc.opportunity_id = vb.id) AS bids_count
+            FROM snh6_swiftproject.vendor_bidding vb
+            LEFT JOIN snh6_swiftproject.projects p ON p.id = vb.project_id
+            WHERE vb.id = %s
+            LIMIT 1
+            """,
+            (opportunity_id,),
+        )
+        r = cur.fetchone()
+        if not r:
+            return jsonify({"success": False, "message": "Opportunity not found"}), 404
+        item = {k: _serialize(v) for k, v in r.items()}
+        item["currency"] = _normalize_currency(item.get("currency") or "INR")
+        item["already_bid"] = already_bid
+        _annotate_vendor_opportunity(item)
+        return jsonify({"opportunity": item})
+    except Exception as e:
+        current_app.logger.warning("get_opportunity failed: %s", e)
+        return jsonify({"success": False, "message": "Failed to load opportunity"}), 500
+
+
 @bp.route("/opportunities", methods=["GET"])
 @login_required
 def list_opportunities():
@@ -1101,18 +1212,34 @@ def list_opportunities():
     vendor_id = getattr(g, "user_id", None)
 
     try:
-        # Check which ones current vendor already bid on
+        _ensure_vendor_bidding_currency_snh6(cur)
+
+        # Check which ones current vendor already bid on (must not hide opportunities if this fails)
         already_bid = set()
         if vendor_id:
-            cur.execute("SELECT opportunity_id FROM snh6_swiftproject.vendor_bids WHERE vendor_id = %s", (vendor_id,))
-            already_bid = {r["opportunity_id"] for r in cur.fetchall()}
+            try:
+                cur.execute(
+                    "SELECT opportunity_id FROM snh6_swiftproject.vendor_bids WHERE vendor_id = %s",
+                    (vendor_id,),
+                )
+                already_bid = {r["opportunity_id"] for r in cur.fetchall()}
+            except Exception:
+                already_bid = set()
 
         cur.execute(
             """
             SELECT vb.*,
-                   COALESCE(NULLIF(TRIM(vb.currency), ''), NULLIF(TRIM(p.currency), ''), 'INR') AS currency
-            FROM vendor_bidding vb
-            LEFT JOIN projects p ON p.id = vb.project_id
+                   COALESCE(NULLIF(TRIM(vb.currency), ''), NULLIF(TRIM(p.currency), ''), 'INR') AS currency,
+                   NULLIF(TRIM(p.description), '') AS project_description,
+                   NULLIF(TRIM(p.modules), '') AS project_modules,
+                   NULLIF(TRIM(p.tasks), '') AS project_tasks,
+                   NULLIF(TRIM(p.location), '') AS project_location,
+                   NULLIF(TRIM(p.no_resources_requried), '') AS project_required_resources,
+                   NULLIF(TRIM(p.due_date), '') AS project_due_date,
+                   NULLIF(TRIM(p.priority), '') AS project_priority,
+                   (SELECT COUNT(*) FROM snh6_swiftproject.vendor_bids vbc WHERE vbc.opportunity_id = vb.id) AS bids_count
+            FROM snh6_swiftproject.vendor_bidding vb
+            LEFT JOIN snh6_swiftproject.projects p ON p.id = vb.project_id
             WHERE vb.status = 'active'
             ORDER BY vb.bid_deadline ASC
             """
@@ -1123,9 +1250,10 @@ def list_opportunities():
             item = {k: _serialize(v) for k, v in r.items()}
             item["currency"] = _normalize_currency(item.get("currency") or "INR")
             item["already_bid"] = item["id"] in already_bid
+            _annotate_vendor_opportunity(item)
             opportunities.append(item)
-    except Exception:
-        # Table may not exist yet — return empty list gracefully
+    except Exception as e:
+        current_app.logger.warning("list_opportunities failed: %s", e)
         opportunities = []
 
     return jsonify({"opportunities": opportunities})
@@ -4049,6 +4177,13 @@ def list_vendor_tasks():
 
     is_vendor_user_task = getattr(g, "user_type", None) == "vendor"
     task_company_id = getattr(g, "company_id", None)
+    staff_role = (getattr(g, "user_role", None) or "").strip()
+    VENDOR_TASK_STAFF_ROLES = {
+        "Technical Director",
+        "Project Manager",
+        "BIM Lead",
+        "BIM Coordinator",
+    }
 
     where = []
     params = []
@@ -4088,14 +4223,23 @@ def list_vendor_tasks():
                 params.append(user_id)
                 params.append(user_id)
         else:
-            # Non-vendor callers: legacy filter
-            where.append("vt.vendor_id = %s")
-            params.append(user_id)
+            # Staff callers: allow role-based company visibility.
+            if staff_role not in VENDOR_TASK_STAFF_ROLES:
+                return jsonify({"tasks": []})
+            if task_company_id is not None:
+                where.append(
+                    "EXISTS (SELECT 1 FROM snh6_swiftproject.vendor_projects vp2 "
+                    "LEFT JOIN snh6_swiftproject.projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci "
+                    "WHERE vp2.id = vt.project_id AND mp.Company_id = %s)"
+                )
+                params.append(task_company_id)
     elif is_vendor_user_task:
         # Team view for vendor: no vendor_id restriction (all tasks in project)
         pass
     else:
         # Team view for staff (TD/PM/BL/BC): filter by company via vendor_projects join
+        if staff_role not in VENDOR_TASK_STAFF_ROLES:
+            return jsonify({"tasks": []})
         if task_company_id is not None:
             where.append(
                 "EXISTS (SELECT 1 FROM snh6_swiftproject.vendor_projects vp2 "

@@ -407,6 +407,7 @@ interface Project {
   document_attachment?: string;
   currency?: string;
   currency_locked?: boolean;
+  commercial_verification_status?: string;
 }
 
 interface Milestone {
@@ -677,6 +678,21 @@ export default function ProjectsTD() {
     const str = (v: unknown) => (v != null ? String(v) : undefined);
     const d = (v: unknown) =>
       v != null && typeof v === "string" ? v : undefined;
+    const pickFirstString = (keys: string[]) => {
+      for (const key of keys) {
+        const value = r[key];
+        if (typeof value === "string" && value.trim()) return value.trim();
+      }
+      return undefined;
+    };
+    const commercialVerificationStatus = pickFirstString([
+      "commercial_verification_status",
+      "commercial_status",
+      "verification_status",
+      "validation_status",
+      "payment_status",
+      "payment_completion_status",
+    ]);
     return {
       id: num(r.id) ?? 0,
       project_name: str(r.project_name),
@@ -716,7 +732,32 @@ export default function ProjectsTD() {
           : str(r.currency) || "INR",
       currency_locked:
         r.selected_currency != null && String(r.selected_currency).trim().length > 0,
+      commercial_verification_status: commercialVerificationStatus,
     };
+  };
+
+  const isCommercialVerificationPending = (project: Project) => {
+    const isOutsourceProject =
+      String(project.source || "").toLowerCase() === "outsource" ||
+      String(project.department || "").trim().toLowerCase() === "submission deadline";
+    if (!isOutsourceProject) return false;
+    const raw = String(project.commercial_verification_status || "").trim().toLowerCase();
+    // For outsource projects, missing status is treated as not verified yet.
+    if (!raw) return true;
+    const normalized = raw.replace(/[\s-]+/g, "_");
+    if (["verified", "approved", "validated", "completed", "paid"].includes(normalized)) {
+      return false;
+    }
+    return [
+      "pending",
+      "pending_validation",
+      "awaiting_validation",
+      "under_review",
+      "notstarted",
+      "not_started",
+      "inprogress",
+      "in_progress",
+    ].includes(normalized);
   };
 
   useEffect(() => {
@@ -1411,7 +1452,7 @@ export default function ProjectsTD() {
                                   pmEmp.profile_picture,
                                 )
                                 : null;
-                              return { key: i, dName, url };
+                              return { key: i, dName, url, emp: pmEmp };
                             },
                           );
                           const visiblePm = pmEntries.slice(0, 3);
@@ -1432,7 +1473,7 @@ export default function ProjectsTD() {
                                   : "Project Manager"}
                               </p>
                               {maxCount === 1 ? (
-                                <div className="flex items-center gap-3">
+                                <div className={`flex items-center gap-3 ${visiblePm[0].emp ? "cursor-pointer" : ""}`} onClick={() => visiblePm[0].emp && openMemberProfile(visiblePm[0].emp)}>
                                   <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
                                     {visiblePm[0].url ? (
                                       <img src={visiblePm[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
@@ -1447,7 +1488,7 @@ export default function ProjectsTD() {
                               ) : (
                                 <div className="flex items-center -space-x-3">
                                   {visiblePm.map((entry) => (
-                                    <div key={entry.key} className="relative group shrink-0">
+                                    <div key={entry.key} className={`relative group shrink-0 ${entry.emp ? "cursor-pointer" : ""}`} onClick={() => entry.emp && openMemberProfile(entry.emp)}>
                                       <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
                                         {entry.url ? (
                                           <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
@@ -1531,7 +1572,7 @@ export default function ProjectsTD() {
                                   blEmp.profile_picture,
                                 )
                                 : null;
-                              return { key: i, dName, url };
+                              return { key: i, dName, url, emp: blEmp };
                             },
                           );
                           const visibleBl = blEntries.slice(0, 3);
@@ -1550,7 +1591,7 @@ export default function ProjectsTD() {
                                 {maxCount > 1 ? "BIM Leads" : "BIM Lead"}
                               </p>
                               {maxCount === 1 ? (
-                                <div className="flex items-center gap-3">
+                                <div className={`flex items-center gap-3 ${visibleBl[0].emp ? "cursor-pointer" : ""}`} onClick={() => visibleBl[0].emp && openMemberProfile(visibleBl[0].emp)}>
                                   <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
                                     {visibleBl[0].url ? (
                                       <img src={visibleBl[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
@@ -1565,7 +1606,7 @@ export default function ProjectsTD() {
                               ) : (
                                 <div className="flex items-center -space-x-3">
                                   {visibleBl.map((entry) => (
-                                    <div key={entry.key} className="relative group shrink-0">
+                                    <div key={entry.key} className={`relative group shrink-0 ${entry.emp ? "cursor-pointer" : ""}`} onClick={() => entry.emp && openMemberProfile(entry.emp)}>
                                       <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
                                         {entry.url ? (
                                           <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
@@ -1596,7 +1637,125 @@ export default function ProjectsTD() {
                           );
                         })()}
 
-                        {/* Department Involved */}
+                        {/* BIM Coordinator */}
+                        {(() => {
+                          const bcIds = selectedProjectForView.bim_coordinator_id
+                            ? String(selectedProjectForView.bim_coordinator_id)
+                              .split(",")
+                              .map((id) => id.trim())
+                              .filter(Boolean)
+                            : [];
+                          const bcNames = selectedProjectForView.bim_co_ordinator
+                            ? String(selectedProjectForView.bim_co_ordinator)
+                              .split(",")
+                              .map((n) => n.trim())
+                              .filter(Boolean)
+                            : [];
+
+                          if (bcIds.length === 0 && bcNames.length === 0) {
+                            return (
+                              <div className="min-w-0">
+                                <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                                  BIM Coordinator
+                                </p>
+                                <div className="flex items-center -space-x-3">
+                                  <div
+                                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
+                                    title="Not assigned"
+                                  >
+                                    <span className="text-slate-600 text-xs font-bold">
+                                      BC
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          const maxCount = Math.max(bcIds.length, bcNames.length);
+                          const bcEntries = Array.from({ length: maxCount }).map(
+                            (_, i) => {
+                              const pId = bcIds[i];
+                              const pName = bcNames[i];
+                              const bcEmp = pId
+                                ? allEmployees.find(
+                                  (e: any) => String(e.id) === pId,
+                                )
+                                : null;
+                              const dName =
+                                bcEmp?.full_name || pName || "Unknown";
+                              const url = bcEmp?.profile_picture
+                                ? getGlobalProfileUrl(
+                                  bcEmp.id,
+                                  bcEmp.profile_picture,
+                                )
+                                : null;
+                              return { key: i, dName, url, emp: bcEmp };
+                            },
+                          );
+                          const visibleBc = bcEntries.slice(0, 3);
+                          const bcRemaining = Math.max(0, bcEntries.length - 3);
+                          const bcOverflowTitle =
+                            bcRemaining > 0
+                              ? bcEntries
+                                .slice(3)
+                                .map((e) => e.dName)
+                                .join(", ")
+                              : undefined;
+
+                          return (
+                            <div className="min-w-0">
+                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                                {maxCount > 1 ? "BIM Coordinators" : "BIM Coordinator"}
+                              </p>
+                              {maxCount === 1 ? (
+                                <div className={`flex items-center gap-3 ${bcEntries[0].emp ? "cursor-pointer" : ""}`} onClick={() => bcEntries[0].emp && openMemberProfile(bcEntries[0].emp)}>
+                                  <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
+                                    {visibleBc[0].url ? (
+                                      <img src={visibleBc[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                        {visibleBc[0].dName.charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visibleBc[0].dName}</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center -space-x-3">
+                                  {visibleBc.map((entry) => (
+                                    <div key={entry.key} className={`relative group shrink-0 ${entry.emp ? "cursor-pointer" : ""}`} onClick={() => entry.emp && openMemberProfile(entry.emp)}>
+                                      <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
+                                        {entry.url ? (
+                                          <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                            {entry.dName.charAt(0).toUpperCase()}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                        {entry.dName}
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {bcRemaining > 0 && (
+                                    <div className="relative group shrink-0">
+                                      <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
+                                        +{bcRemaining}
+                                      </div>
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                        {bcOverflowTitle}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* Department Involved
                         {selectedProjectForView?.source !== "Outsource" && (
                           <div className="min-w-0">
                             <p className="text-md font-Gantari font-semibold text-[#000000]">
@@ -1606,7 +1765,7 @@ export default function ProjectsTD() {
                               {selectedProjectForView.department || "N/A"}
                             </p>
                           </div>
-                        )}
+                        )} */}
 
                         {/* Members Involved */}
                         <div>
@@ -2430,6 +2589,11 @@ export default function ProjectsTD() {
 
                     // Use data directly from projects table
                     const progress = Math.round(p.progress ?? 0);
+                    const hasProjectStarted =
+                      Number(p.progress ?? 0) > 0 ||
+                      Number(p.completed_tasks ?? 0) > 0;
+                    const isBlockedByCommercial =
+                      isCommercialVerificationPending(p) && !hasProjectStarted;
 
                     // Get members from project.member field (comma-separated string)
                     const memberIds = p.member
@@ -2448,9 +2612,9 @@ export default function ProjectsTD() {
                     return (
                       <div
                         key={p.id}
-                        className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300"
+                        className={`relative overflow-hidden bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm transition-all duration-300 ${isBlockedByCommercial ? "opacity-95" : "hover:shadow-md"}`}
                       >
-                        <div>
+                        <div className={isBlockedByCommercial ? "pointer-events-none select-none blur-[1.5px]" : ""}>
                           <div className="flex items-start justify-between mb-4 mt-2 pr-0">
                             <div className="relative flex items-center justify-center">
                               <svg className="w-16 h-16 md:w-20 md:h-20 transform -rotate-90">
@@ -2505,6 +2669,12 @@ export default function ProjectsTD() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    if (isCommercialVerificationPending(p)) {
+                                      toast.error(
+                                        "Project is blocked until Commercial Team verification is completed.",
+                                      );
+                                      return;
+                                    }
                                     setOpenMenuProjectId(null);
                                     setSearchParams({
                                       projectId: String(p.id),
@@ -2514,7 +2684,7 @@ export default function ProjectsTD() {
                                           : "In House",
                                     });
                                   }}
-                                  className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
+                                  className={`w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group ${isCommercialVerificationPending(p) ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                                 >
                                   <img
                                     src={viewIcon}
@@ -2769,6 +2939,18 @@ export default function ProjectsTD() {
                             )}
                           </div>
                         </div>
+                        {isBlockedByCommercial && (
+                          <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/45 px-4">
+                            <div className="rounded-lg border border-[#F0C9C9] bg-white/95 px-3 py-2 shadow-sm text-center">
+                              <p className="text-[12px] font-semibold text-[#A33B3B] font-Gantari">
+                                Client needs to pay advance to unblock project
+                              </p>
+                              <p className="text-[11px] text-[#6F6F6F] font-Gantari mt-1">
+                                Advance payment pending. After payment verification, project will be open.
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       );
                     });
