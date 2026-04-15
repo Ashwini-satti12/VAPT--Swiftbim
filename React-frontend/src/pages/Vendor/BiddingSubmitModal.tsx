@@ -17,6 +17,8 @@ export type ModalOpportunity = {
   id: number;
   project_name: string;
   description?: string;
+  scope_of_work?: string | null;
+  technologies_used?: string | null;
   software_to_be_used?: string | null;
   bid_deadline: string;
   project_location?: string | null;
@@ -99,15 +101,78 @@ export function BiddingSubmitModal({
     exclusions: "",
   });
 
+  const parseTechnologies = (
+    technologiesUsed?: string | null,
+    softwareToBeUsed?: string | null,
+  ): string[] => {
+    const raw = String(technologiesUsed || softwareToBeUsed || "").trim();
+    if (!raw) return ["", ""];
+
+    const toSoftwareLabel = (row: unknown): string => {
+      if (row && typeof row === "object") {
+        const r = row as Record<string, unknown>;
+        return String(
+          r.software ?? r.module ?? r.name ?? r.value ?? "",
+        ).trim();
+      }
+      return String(row ?? "").trim();
+    };
+
+    // Backend may return JSON from proposals.technologies_used.
+    // Sometimes it arrives double-encoded, so parse up to 2 times.
+    const tryParseJson = (text: string): unknown => {
+      let parsed: unknown = text;
+      for (let i = 0; i < 2; i++) {
+        if (typeof parsed !== "string") break;
+        const s = parsed.trim();
+        if (!(s.startsWith("[") || s.startsWith("{") || s.startsWith("\""))) break;
+        try {
+          parsed = JSON.parse(s);
+        } catch {
+          break;
+        }
+      }
+      return parsed;
+    };
+
+    if (raw.startsWith("[") || raw.startsWith("{") || raw.startsWith("\"")) {
+      try {
+        const parsed = tryParseJson(raw);
+        if (Array.isArray(parsed)) {
+          const out = parsed
+            .map((row) => toSoftwareLabel(row))
+            .filter(Boolean);
+          if (out.length) return out;
+        }
+        if (parsed && typeof parsed === "object") {
+          const single = toSoftwareLabel(parsed);
+          if (single) return [single];
+        }
+      } catch {
+        // Fallback to plain-text parsing.
+      }
+    }
+
+    const textList = raw
+      .split(/\r?\n|,|;|\|/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return textList.length ? textList : ["", ""];
+  };
+
   useEffect(() => {
     setProposalDraft({
       executive_summary: "",
-      scope_of_work: "",
-      technologies: ["", ""],
+      // Scope from backend can contain rich HTML; show readable plain text in textarea.
+      scope_of_work: stripHtml(String(selectedOpp.scope_of_work || "")).trim(),
+      technologies: parseTechnologies(
+        selectedOpp.technologies_used,
+        selectedOpp.software_to_be_used,
+      ),
       deliverables: "",
       exclusions: "",
     });
-  }, [selectedOpp.id]);
+  }, [selectedOpp.id, selectedOpp.scope_of_work, selectedOpp.technologies_used, selectedOpp.software_to_be_used]);
 
   const currencyTriggerRef = useRef<HTMLElement | null>(null);
   const currencyMenuRef = useRef<HTMLDivElement | null>(null);
@@ -217,25 +282,7 @@ export function BiddingSubmitModal({
 
   const proposalDetailFields = (
     <div className="flex flex-col gap-10 mb-8">
-      <div className="space-y-4">
-        <h2 className="font-bold text-[16px] text-[#020202] font-gantari">
-          1. Executive Summary
-        </h2>
-        <textarea
-          value={proposalDraft.executive_summary}
-          onChange={(e) =>
-            setProposalDraft((d) => ({
-              ...d,
-              executive_summary: e.target.value,
-            }))
-          }
-          rows={4}
-          className={textareaBoxClass}
-          placeholder="Executive Summary"
-        />
-      </div>
-
-      <div className="space-y-4">
+     <div className="space-y-4">
         <h2 className="font-bold text-[16px] text-[#020202] font-gantari">
           2. Scope of Work
         </h2>
@@ -255,18 +302,6 @@ export function BiddingSubmitModal({
           <h2 className="font-bold text-[16px] text-[#020202] font-gantari">
             Technology to be Used
           </h2>
-          <button
-            type="button"
-            onClick={() =>
-              setProposalDraft((d) => ({
-                ...d,
-                technologies: [...d.technologies, ""],
-              }))
-            }
-            className="shrink-0 text-[14px] font-semibold text-[#DD4342] hover:underline font-gantari"
-          >
-            + Add row
-          </button>
         </div>
         <div className="bg-[#F2F2F2] rounded-md overflow-hidden border border-[#AEACAC52]">
           <table className="w-full">
@@ -313,36 +348,6 @@ export function BiddingSubmitModal({
             </tbody>
           </table>
         </div>
-      </div>
-
-      <div className="space-y-4">
-        <h2 className="font-bold text-[16px] text-[#020202] font-gantari">
-          3. Deliverables
-        </h2>
-        <textarea
-          value={proposalDraft.deliverables}
-          onChange={(e) =>
-            setProposalDraft((d) => ({ ...d, deliverables: e.target.value }))
-          }
-          rows={4}
-          className={textareaBoxClass}
-          placeholder="Deliverables"
-        />
-      </div>
-
-      <div className="space-y-4">
-        <h2 className="font-bold text-[16px] text-[#020202] font-gantari">
-          4. Exclusions
-        </h2>
-        <textarea
-          value={proposalDraft.exclusions}
-          onChange={(e) =>
-            setProposalDraft((d) => ({ ...d, exclusions: e.target.value }))
-          }
-          rows={4}
-          className={textareaBoxClass}
-          placeholder="Exclusions"
-        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">

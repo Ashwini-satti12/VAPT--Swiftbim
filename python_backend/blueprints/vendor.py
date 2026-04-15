@@ -1121,12 +1121,181 @@ def _annotate_vendor_opportunity(item):
     """
     if not item or not isinstance(item, dict):
         return item
+    def _strip_html_text(val):
+        s = str(val or "").strip()
+        if not s:
+            return ""
+        # Remove script/style blocks then all tags.
+        s = re.sub(r"<(script|style)\b[^>]*>.*?</\1>", " ", s, flags=re.IGNORECASE | re.DOTALL)
+        s = re.sub(r"<[^>]+>", " ", s)
+        s = re.sub(r"\s+", " ", s).strip()
+        return s
+
+    def _parse_tech_text(val):
+        raw = str(val or "").strip()
+        if not raw:
+            return ""
+        parsed = raw
+        # Handle JSON and double-encoded JSON.
+        for _ in range(2):
+            if not isinstance(parsed, str):
+                break
+            s = parsed.strip()
+            if not (s.startswith("[") or s.startswith("{") or s.startswith('"')):
+                break
+            try:
+                parsed = json.loads(s)
+            except Exception:
+                break
+
+        if isinstance(parsed, list):
+            out = []
+            for row in parsed:
+                if isinstance(row, dict):
+                    sv = str(
+                        row.get("software")
+                        or row.get("module")
+                        or row.get("name")
+                        or row.get("value")
+                        or ""
+                    ).strip()
+                else:
+                    sv = str(row or "").strip()
+                if sv:
+                    out.append(sv)
+            return "\n".join(out).strip()
+        if isinstance(parsed, dict):
+            sv = str(
+                parsed.get("software")
+                or parsed.get("module")
+                or parsed.get("name")
+                or parsed.get("value")
+                or ""
+            ).strip()
+            return sv
+        return _strip_html_text(parsed)
+
     pd = item.get("project_description")
     if pd and str(pd).strip():
-        cur_d = (item.get("description") or "").strip()
-        pds = str(pd).strip()
+        cur_d = _strip_html_text(item.get("description") or "")
+        pds = _strip_html_text(pd)
         if not cur_d or len(pds) > len(cur_d):
             item["description"] = pds
+    # Phase-1 enrichment (new_swiftbim): resolve service_id and pull richer
+    # narrative fields used in Vendor Bid page.
+    try:
+        vcur = vendor_cursor()
+
+        def _first_text(row, keys):
+            if not row or not isinstance(row, dict):
+                return ""
+            for k in keys:
+                v = row.get(k)
+                if v is None:
+                    continue
+                s = str(v).strip()
+                if s:
+                    return s
+            return ""
+
+        # Resolve service_id (bim_enquiry.id)
+        service_id = None
+        raw_sid = item.get("service_id")
+        try:
+            if raw_sid is not None and str(raw_sid).strip().isdigit():
+                service_id = int(str(raw_sid).strip())
+        except Exception:
+            service_id = None
+
+        if service_id is None:
+            client_id_raw = item.get("project_client_id")
+            client_id = None
+            try:
+                if client_id_raw is not None and str(client_id_raw).strip().isdigit():
+                    client_id = int(str(client_id_raw).strip())
+            except Exception:
+                client_id = None
+
+            if client_id is not None:
+                vcur.execute(
+                    "SELECT email FROM users WHERE id = %s LIMIT 1",
+                    (client_id,),
+                )
+                urow = vcur.fetchone() or {}
+                email = str(urow.get("email") or "").strip()
+                if email:
+                    vcur.execute(
+                        "SELECT * FROM bim_enquiry WHERE email_address = %s ORDER BY id DESC LIMIT 1",
+                        (email,),
+                    )
+                    enq = vcur.fetchone() or {}
+                    if enq.get("id") is not None:
+                        try:
+                            service_id = int(enq["id"])
+                        except Exception:
+                            service_id = None
+                    desc_from_enquiry = _first_text(
+                        enq,
+                        [
+                            "project_description",
+                            "description",
+                            "project_details",
+                            "details",
+                            "scope_of_work",
+                        ],
+                    )
+                    if desc_from_enquiry:
+                        item["description"] = _strip_html_text(desc_from_enquiry)
+                    # Location fallback from enquiry location parts.
+                    loc_parts = []
+                    for k in ("city", "state", "country"):
+                        vv = str(enq.get(k) or "").strip()
+                        if vv:
+                            loc_parts.append(vv)
+                    loc_from_enq = ", ".join(loc_parts).strip(", ").strip()
+                    if loc_from_enq and not str(item.get("project_location") or "").strip():
+                        item["project_location"] = loc_from_enq
+
+        if service_id is not None:
+            item["service_id"] = service_id
+            vcur.execute(
+                "SELECT * FROM bim_enquiry WHERE id = %s LIMIT 1",
+                (service_id,),
+            )
+            enq_by_id = vcur.fetchone() or {}
+            vcur.execute(
+                "SELECT * FROM proposals WHERE service_id = %s ORDER BY id DESC LIMIT 1",
+                (service_id,),
+            )
+            prop = vcur.fetchone() or {}
+            scope_text = _first_text(prop, ["scope_of_work"])
+            tech_text = _first_text(prop, ["technologies_used"])
+            desc_text = _first_text(
+                prop,
+                ["executive_summary", "aboutus"],
+            )
+            if scope_text:
+                clean_scope = _strip_html_text(scope_text)
+                item["scope_of_work"] = clean_scope
+                item["technical_requirements"] = clean_scope
+            if tech_text:
+                clean_tech = _parse_tech_text(tech_text)
+                item["technologies_used"] = clean_tech
+                item["software_to_be_used"] = clean_tech
+            if desc_text and (not str(item.get("description") or "").strip()):
+                item["description"] = _strip_html_text(desc_text)
+            # Location source-of-truth: bim_enquiry country/state/city only.
+            loc_parts = []
+            for k in ("city", "state", "country"):
+                vv = str(enq_by_id.get(k) or "").strip()
+                if vv:
+                    loc_parts.append(vv)
+            loc = ", ".join(loc_parts).strip(", ").strip()
+            if loc:
+                item["project_location"] = loc
+    except Exception:
+        pass
+
     parts = []
     m = (item.get("project_modules") or "").strip()
     t = (item.get("project_tasks") or "").strip()
@@ -1178,6 +1347,7 @@ def get_opportunity(opportunity_id):
                    NULLIF(TRIM(p.no_resources_requried), '') AS project_required_resources,
                    NULLIF(TRIM(p.due_date), '') AS project_due_date,
                    NULLIF(TRIM(p.priority), '') AS project_priority,
+                   NULLIF(TRIM(p.client_id), '') AS project_client_id,
                    (SELECT COUNT(*) FROM snh6_swiftproject.vendor_bids vbc WHERE vbc.opportunity_id = vb.id) AS bids_count
             FROM snh6_swiftproject.vendor_bidding vb
             LEFT JOIN snh6_swiftproject.projects p ON p.id = vb.project_id
@@ -1237,6 +1407,7 @@ def list_opportunities():
                    NULLIF(TRIM(p.no_resources_requried), '') AS project_required_resources,
                    NULLIF(TRIM(p.due_date), '') AS project_due_date,
                    NULLIF(TRIM(p.priority), '') AS project_priority,
+                   NULLIF(TRIM(p.client_id), '') AS project_client_id,
                    (SELECT COUNT(*) FROM snh6_swiftproject.vendor_bids vbc WHERE vbc.opportunity_id = vb.id) AS bids_count
             FROM snh6_swiftproject.vendor_bidding vb
             LEFT JOIN snh6_swiftproject.projects p ON p.id = vb.project_id
