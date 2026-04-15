@@ -627,6 +627,7 @@ export default function BiddingV() {
   }
 
   if (viewMode === "opportunity-detail" && detailOpp) {
+    const linkedBidForOpp = bids.find((b) => b.opportunity_id === detailOpp.id);
     return (
       <div className="h-full flex flex-col font-gantari animate-in fade-in duration-300 px-6">
         <div className="flex items-center justify-between mb-8 shrink-0">
@@ -646,25 +647,57 @@ export default function BiddingV() {
               </div>
             </div>
           </div>
-          <div className="flex-1 text-center">
-            <h2 className="text-[24px] font-medium text-[#000000] font-gantari">
-              {detailOpp.project_name}
-            </h2>
-            <div className="flex items-center justify-center gap-2 mt-1">
-              <span
-                className={`px-2.5 py-1 rounded-md text-[12px] font-medium font-gantari ${detailOpp.status === "active" ? "bg-[#E8F9E8] text-[#16A34A]" : "bg-[#FFE5E5] text-[#DE3D3A]"}`}
-              >
-                {detailOpp.status === "active"
-                  ? "● Open for Bidding"
-                  : "● Closed"}
-              </span>
-              {/* <span className="text-[#AEACAC] text-[13px] font-medium font-gantari">Project ID: #{detailOpp.id}</span> */}
-            </div>
-          </div>
+          <h2 className="flex-1 text-center text-[24px] font-medium text-[#000000] font-gantari">
+            Project Details
+          </h2>
           <div className="w-10"></div>
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 pb-10">
+          {/* Summary Banner */}
+          <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md px-5 py-2 flex flex-wrap items-stretch w-full mb-8">
+            <div className="flex-1 min-w-[100px] px-2 py-0.5 border-r border-[#AEACAC52] text-center">
+              <p className="text-[14px] sm:text-[15px] font-semibold text-[#020202] mb-1 font-gantari">
+                Project Name
+              </p>
+              <p className="text-[#616161] text-[13px] sm:text-[14px] font-gantari truncate" title={detailOpp.project_name}>
+                {detailOpp.project_name || "—"}
+              </p>
+            </div>
+            <div className="flex-1 min-w-[100px] px-2 py-0.5 border-r border-[#AEACAC52] text-center">
+              <p className="text-[14px] sm:text-[15px] font-semibold text-[#020202] mb-1 font-gantari">
+                Bid deadline
+              </p>
+              <p className="text-[#616161] text-[13px] sm:text-[14px] font-gantari">
+                {detailOpp.bid_deadline
+                  ? new Date(detailOpp.bid_deadline).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : "—"}
+              </p>
+            </div>
+            <div className="flex-1 min-w-[100px] px-2 py-0.5 border-r border-[#AEACAC52] text-center">
+              <p className="text-[14px] sm:text-[15px] font-semibold text-[#020202] mb-1 font-gantari">
+                Project due date
+              </p>
+              <p className="text-[#616161] text-[13px] sm:text-[14px] font-gantari">
+                {detailOpp.project_due_date || "—"}
+              </p>
+            </div>
+            <div className="flex-1 min-w-[100px] px-2 py-0.5 text-center">
+              <p className="text-[14px] sm:text-[15px] font-semibold text-[#020202] mb-1 font-gantari">
+                Bid amount
+              </p>
+              <p className="text-[#616161] text-[13px] sm:text-[14px] font-gantari truncate">
+                {linkedBidForOpp 
+                  ? formatBudget(linkedBidForOpp.bid_amount, linkedBidForOpp.currency)
+                  : "—"
+                }
+              </p>
+            </div>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Highlights Column */}
             <div className="lg:col-span-2 space-y-6">
@@ -752,14 +785,53 @@ export default function BiddingV() {
                 </div>
               </div>
 
-              {/* Technical Requirements — software / scope from linked project */}
+              {/* Executive Summary Section */}
+              <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
+                <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
+                  Executive Summary
+                </h3>
+                <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
+                  {detailOpp.description ? "Detailed executive summary would be derived from the project description and bid context." : "No executive summary available at this stage."}
+                </div>
+              </div>
+
+              {/* Scope of Work Section */}
+              <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
+                <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
+                  Scope of Work
+                </h3>
+                <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
+                  {detailOpp.technical_requirements || "The scope of work encompasses the full delivery as per project requirements."}
+                </div>
+              </div>
+
+              {/* Technical Requirements Section */}
               <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
                 <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
                   Technical Requirements
                 </h3>
                 <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
-                  {detailOpp.software_to_be_used ||
-                    "Software, modules, and resource requirements have not been specified for this project yet."}
+                  {detailOpp.software_to_be_used || "Software, modules, and resource requirements have not been specified for this project yet."}
+                </div>
+              </div>
+
+              {/* Deliverables Section */}
+              <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
+                <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
+                  Deliverables
+                </h3>
+                <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
+                  {"Project deliverables include all technical documentations, source models, and final output as per project scope."}
+                </div>
+              </div>
+
+              {/* Exclusions Section */}
+              <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
+                <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
+                  Exclusions
+                </h3>
+                <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
+                  {"Any out-of-scope items not mentioned in the technical requirements are excluded from the initial bid."}
                 </div>
               </div>
             </div>
@@ -772,27 +844,62 @@ export default function BiddingV() {
                   Submission Status
                 </h3>
                 {detailOpp.already_bid ? (
-                  <div className="bg-[#EAFDF5] border border-[#16A34A]/20 rounded-xl p-4 mb-4 text-[#16A34A]">
-                    <div className="flex items-center gap-2 font-bold text-[14px] mb-1 font-gantari">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={3}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      Bid Submitted
+                  <div className="space-y-6">
+                    <div className="bg-[#EAFDF5] border border-[#16A34A]/20 rounded-xl p-4 text-[#16A34A]">
+                      <div className="flex items-center gap-2 font-bold text-[14px] mb-1 font-gantari">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        Bid Submitted
+                      </div>
+                      <p className="text-[12px] text-[#16A34A]/80 italic font-gantari">
+                        Your proposal is currently under review by the host organization.
+                      </p>
                     </div>
-                    <p className="text-[12px] text-[#16A34A]/80 italic font-gantari">
-                      Your proposal is currently under review by the host
-                      organization.
-                    </p>
+
+                    {linkedBidForOpp && (
+                      <div className="border-t border-[#F2F2F2] pt-4 space-y-4">
+                        <h4 className="text-[16px] font-bold text-[#353535] font-gantari">Your Proposal Details</h4>
+                        <div className="grid grid-cols-1 gap-4">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[#8B8B8B] text-[12px] font-medium font-gantari uppercase">Bid Amount</span>
+                            <span className="text-[18px] font-bold text-[#DE3D3A] font-gantari">
+                              {formatBudget(linkedBidForOpp.bid_amount, linkedBidForOpp.currency)}
+                            </span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[#8B8B8B] text-[12px] font-medium font-gantari uppercase">Timeline</span>
+                            <span className="text-[14px] font-medium text-[#353535] font-gantari">
+                              {linkedBidForOpp.timeline || "Not specified"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[#8B8B8B] text-[12px] font-medium font-gantari uppercase">Team Size</span>
+                            <span className="text-[14px] font-medium text-[#353535] font-gantari">
+                              {linkedBidForOpp.team_size ? `${linkedBidForOpp.team_size} Members` : "N/A"}
+                            </span>
+                          </div>
+                          {linkedBidForOpp.notes && (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[#8B8B8B] text-[12px] font-medium font-gantari uppercase">Additional Notes</span>
+                              <p className="text-[13px] text-[#616161] font-gantari bg-[#F9F9F9] p-3 rounded-lg border border-[#F0F0F0] whitespace-pre-wrap">
+                                {linkedBidForOpp.notes}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : detailOpp.status === "active" ? (
                   <div className="space-y-4">
@@ -862,6 +969,48 @@ export default function BiddingV() {
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 pb-10">
+          {/* Summary Banner */}
+          <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md px-5 py-2 flex flex-wrap items-stretch w-full mb-8">
+            <div className="flex-1 min-w-[100px] px-2 py-0.5 border-r border-[#AEACAC52] text-center">
+              <p className="text-[14px] sm:text-[15px] font-semibold text-[#020202] mb-1 font-gantari">
+                Project Name
+              </p>
+              <p className="text-[#616161] text-[13px] sm:text-[14px] font-gantari truncate" title={detailBid.project_name}>
+                {detailBid.project_name || "—"}
+              </p>
+            </div>
+            <div className="flex-1 min-w-[100px] px-2 py-0.5 border-r border-[#AEACAC52] text-center">
+              <p className="text-[14px] sm:text-[15px] font-semibold text-[#020202] mb-1 font-gantari">
+                Bid deadline
+              </p>
+              <p className="text-[#616161] text-[13px] sm:text-[14px] font-gantari">
+                {detailBid.bid_deadline
+                  ? new Date(detailBid.bid_deadline).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : "—"}
+              </p>
+            </div>
+            <div className="flex-1 min-w-[100px] px-2 py-0.5 border-r border-[#AEACAC52] text-center">
+              <p className="text-[14px] sm:text-[15px] font-semibold text-[#020202] mb-1 font-gantari">
+                Project due date
+              </p>
+              <p className="text-[#616161] text-[13px] sm:text-[14px] font-gantari">
+                {detailBid.project_due_date || "—"}
+              </p>
+            </div>
+            <div className="flex-1 min-w-[100px] px-2 py-0.5 text-center">
+              <p className="text-[14px] sm:text-[15px] font-semibold text-[#020202] mb-1 font-gantari">
+                Bid amount
+              </p>
+              <p className="text-[#616161] text-[13px] sm:text-[14px] font-gantari truncate">
+                {formatBudget(detailBid.bid_amount, detailBid.currency)}
+              </p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               {/* Comparison Data */}
@@ -892,7 +1041,7 @@ export default function BiddingV() {
                 </div>
               </div>
 
-              {/* Proposal Details */}
+              {/* Submission Details */}
               <div className="bg-white border border-[#EBEBEB] rounded-md p-6 shadow-sm">
                 <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-3 font-gantari">
                   Submission Details
@@ -937,13 +1086,32 @@ export default function BiddingV() {
                     </span>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <span className="text-[#8B8B8B] text-[14px] font-medium font-gantari uppercase tracking-wider">
-                    Additional Notes / Approach
-                  </span>
-                  <div className="text-[#353535] leading-relaxed whitespace-pre-wrap bg-[#F9F9F9] p-4 rounded-md border border-[#F0F0F0] text-[14px] font-gantari">
-                    {detailBid.notes ||
-                      "No accompanying notes provided with this bid."}
+
+                {/* Additional Sections from Modal */}
+                <div className="space-y-6 pt-6 border-t border-[#F2F2F2]">
+                  <div>
+                    <h4 className="text-[16px] font-bold text-[#353535] mb-2 font-gantari">Executive Summary</h4>
+                    <div className="text-[14px] text-[#616161] leading-relaxed bg-[#F9F9F9] p-4 rounded-md border border-[#F0F0F0] font-gantari">
+                      {"Data would be derived from vendor proposal submission."}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-[16px] font-bold text-[#353535] mb-2 font-gantari">Scope of Work</h4>
+                    <div className="text-[14px] text-[#616161] leading-relaxed bg-[#F9F9F9] p-4 rounded-md border border-[#F0F0F0] font-gantari">
+                      {"Standard scope as per project technical documentation."}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-[16px] font-bold text-[#353535] mb-2 font-gantari">Deliverables</h4>
+                    <div className="text-[14px] text-[#616161] leading-relaxed bg-[#F9F9F9] p-4 rounded-md border border-[#F0F0F0] font-gantari">
+                      {"Technical reports, BIM models, and project specific outputs."}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-[16px] font-bold text-[#353535] mb-2 font-gantari">Additional Notes / Approach</h4>
+                    <div className="text-[#353535] leading-relaxed whitespace-pre-wrap bg-[#F9F9F9] p-4 rounded-md border border-[#F0F0F0] text-[14px] font-gantari">
+                      {detailBid.notes || "No accompanying notes provided with this bid."}
+                    </div>
                   </div>
                 </div>
               </div>
