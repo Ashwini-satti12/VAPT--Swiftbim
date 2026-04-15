@@ -2871,6 +2871,61 @@ def _send_login_email(to_email: str, role: str, temp_password: str):
         return False
 
 
+def _send_notification_email(to_email: str, subject: str, body: str) -> bool:
+    """Send plain-text notification email using configured SMTP."""
+    mail_server = current_app.config.get("MAIL_SERVER") or ""
+    mail_port = int(current_app.config.get("MAIL_PORT") or 587)
+    mail_use_tls = bool(current_app.config.get("MAIL_USE_TLS"))
+   MAIL_USERNAME = os.getenv("MAIL_USERNAME", "rajubhaaik@gmail.com")
+    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "wpyy hxlx asbf pyjw")
+    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", MAIL_USERNAME or "rajubhaaik@gmail.com")
+    if not (mail_server and sender and to_email):
+        return False
+    msg = MIMEText(body or "", "plain", "utf-8")
+    msg["Subject"] = subject or "SwiftBIM Notification"
+    msg["From"] = sender
+    msg["To"] = to_email
+    try:
+        context = ssl.create_default_context()
+        with smtplib.SMTP(mail_server, mail_port, timeout=10) as server:
+            if mail_use_tls:
+                server.starttls(context=context)
+            if mail_username and mail_password:
+                server.login(mail_username, mail_password)
+            server.sendmail(sender, [to_email], msg.as_string())
+        return True
+    except Exception:
+        return False
+
+
+def _notification_recipient_email(cur, user_id):
+    """Find recipient email from employee or vendor_employee."""
+    try:
+        uid = int(str(user_id).strip())
+    except (TypeError, ValueError):
+        return None
+    try:
+        cur.execute("SELECT email FROM employee WHERE id = %s LIMIT 1", (uid,))
+        er = cur.fetchone() or {}
+        em = (er.get("email") or "").strip()
+        if em:
+            return em
+    except Exception:
+        pass
+    try:
+        cur.execute(
+            "SELECT email FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+            (uid,),
+        )
+        vr = cur.fetchone() or {}
+        em = (vr.get("email") or "").strip()
+        if em:
+            return em
+    except Exception:
+        pass
+    return None
+
+
 def _profile_completeness(v: dict) -> int:
     """Return 0-100 completeness % for a vendor_onboarding row."""
     fields = ["company_name", "contact_email", "contact_name", "address",
@@ -4486,6 +4541,221 @@ def list_vendor_tasks():
     return jsonify({"tasks": tasks})
 
 
+def _resolve_vendor_task_notification_recipient(cur, assigned_to):
+    """
+    Resolve vendor_task assigned_to to actual login user id for notifications.
+    assigned_to can be:
+      - employee.id (main app)
+      - vendor_employee.id
+      - vendor_resource_profiles.id (needs mapping to vendor_employee_id)
+    """
+    if assigned_to is None or str(assigned_to).strip() == "":
+        return None
+    try:
+        aid = int(str(assigned_to).strip())
+    except (TypeError, ValueError):
+        return None
+
+    # 1) main employee user
+    try:
+        cur.execute("SELECT id FROM employee WHERE id = %s LIMIT 1", (aid,))
+        r = cur.fetchone()
+        if r:
+            return aid
+    except Exception:
+        pass
+
+    # 2) vendor employee user
+    try:
+        cur.execute("SELECT id FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1", (aid,))
+        r = cur.fetchone()
+        if r:
+            return aid
+    except Exception:
+        pass
+
+    # 3) vendor resource profile id -> vendor_employee_id
+    try:
+        vendor_onboard_id = _current_vendor_onboarding_id()
+        if vendor_onboard_id:
+            vcur = vendor_cursor()
+            vcur.execute(
+                "SELECT vendor_employee_id FROM vendor_resource_profiles WHERE id = %s AND vendor_id = %s LIMIT 1",
+                (aid, vendor_onboard_id),
+            )
+            rr = vcur.fetchone() or {}
+            veid = rr.get("vendor_employee_id")
+            if veid is not None:
+                return int(veid)
+    except Exception:
+        pass
+    return None
+
+
+def _insert_task_assignment_notification(cur, assignee_user_id, project_id, task_name, task_id):
+    """Insert assignment notification for assignee if possible."""
+    if not assignee_user_id:
+        return
+    try:
+        assignee_user_id = int(assignee_user_id)
+    except (TypeError, ValueError):
+        return
+    try:
+        actor_id = getattr(g, "user_id", None)
+        if actor_id is not None and int(actor_id) == assignee_user_id:
+            return
+    except Exception:
+        pass
+
+    # Determine recipient tenant id (Company_id column) from recipient user row.
+    notif_company_id = getattr(g, "company_id", None)
+    try:
+        cur.execute(
+            "SELECT Company_id FROM employee WHERE id = %s LIMIT 1",
+            (assignee_user_id,),
+        )
+        er = cur.fetchone() or {}
+        if er and er.get("Company_id") is not None:
+            notif_company_id = er.get("Company_id")
+        else:
+            cur.execute(
+                "SELECT vendor_id FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+                (assignee_user_id,),
+            )
+            vr = cur.fetchone() or {}
+            if vr and vr.get("vendor_id") is not None:
+                notif_company_id = vr.get("vendor_id")
+    except Exception:
+        pass
+
+    if notif_company_id is None:
+        return
+
+    # Ensure deep-link columns exist
+    try:
+        cur.execute(
+            "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+        )
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+        cur.execute(
+            "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+        )
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+    except Exception:
+        pass
+
+    # Actor / project display values
+    actor_name = "Someone"
+    actor_role = ""
+    try:
+        actor_id = getattr(g, "user_id", None)
+        # IMPORTANT: vendor flows should prefer vendor_employee identity first.
+        cur.execute(
+            "SELECT full_name, role FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+            (actor_id,),
+        )
+        vr = cur.fetchone() or {}
+        if vr.get("full_name"):
+            actor_name = vr.get("full_name")
+        if vr.get("role"):
+            actor_role = vr.get("role")
+
+        # Fallback only if no vendor identity row exists.
+        if actor_name == "Someone":
+            cur.execute(
+                "SELECT full_name, user_role FROM employee WHERE id = %s LIMIT 1",
+                (actor_id,),
+            )
+            ar = cur.fetchone() or {}
+            if ar.get("full_name"):
+                actor_name = ar.get("full_name")
+            if ar.get("user_role"):
+                actor_role = ar.get("user_role")
+    except Exception:
+        pass
+
+    project_name = ""
+    try:
+        if project_id:
+            cur.execute(
+                "SELECT project_name FROM snh6_swiftproject.vendor_projects WHERE id = %s LIMIT 1",
+                (project_id,),
+            )
+            pr = cur.fetchone() or {}
+            project_name = (pr.get("project_name") or "").strip()
+    except Exception:
+        pass
+
+    msg = ""
+    if project_name and task_name:
+        msg = f"{project_name} project - {task_name} task assigned by {actor_name}"
+    elif task_name:
+        msg = f"{task_name} task assigned by {actor_name}"
+    elif project_name:
+        msg = f"{project_name} project task assigned by {actor_name}"
+    else:
+        msg = f"Task assigned by {actor_name}"
+    if actor_role:
+        msg += f" ({actor_role})"
+
+    try:
+        cur.execute(
+            """
+            INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+            """,
+            (
+                assignee_user_id,
+                project_id or None,
+                "Task assigned",
+                msg,
+                "vendor_task_assigned",
+                "task",
+                task_id,
+                notif_company_id,
+            ),
+        )
+    except Exception:
+        try:
+            cur.execute(
+                """
+                INSERT INTO notifications (user_id, project_id, title, message, type, is_read, created_at, Company_id)
+                VALUES (%s, %s, %s, %s, %s, 0, NOW(), %s)
+                """,
+                (
+                    assignee_user_id,
+                    project_id or None,
+                    "Task assigned",
+                    msg,
+                    "vendor_task_assigned",
+                    notif_company_id,
+                ),
+            )
+        except Exception:
+            pass
+
+    # Also send email notification to recipient (best-effort).
+    try:
+        to_email = _notification_recipient_email(cur, assignee_user_id)
+        if to_email:
+            frontend_url = current_app.config.get("FRONTEND_URL") or "http://localhost:5173"
+            subject = "SwiftBIM Task Assignment"
+            body = "\n".join(
+                [
+                    "You have a new task assignment in SwiftBIM.",
+                    "",
+                    msg,
+                    "",
+                    f"Open app: {frontend_url}",
+                ]
+            )
+            _send_notification_email(to_email, subject, body)
+    except Exception:
+        pass
+
+
 @bp.route("/vendor-tasks", methods=["POST"])
 @login_required
 def create_vendor_task():
@@ -4581,8 +4851,10 @@ def create_vendor_task():
             checklist,
         ),
     )
-    conn.commit()
     task_id = cur.lastrowid
+    recipient_user_id = _resolve_vendor_task_notification_recipient(cur, assigned_to)
+    _insert_task_assignment_notification(cur, recipient_user_id, project_id, task_name, task_id)
+    conn.commit()
     return jsonify({"success": True, "task_id": task_id})
 
 
@@ -4605,6 +4877,12 @@ def update_vendor_task(task_id):
     _ensure_vendor_task_table()
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+
+    cur.execute(
+        "SELECT id, project_id, task_name, assigned_to FROM vendor_task WHERE id = %s LIMIT 1",
+        (task_id,),
+    )
+    old_row = cur.fetchone() or {}
 
     allowed = (
         "task_name",
@@ -4641,6 +4919,16 @@ def update_vendor_task(task_id):
         "UPDATE vendor_task SET " + ", ".join(sets) + " WHERE id = %s",
         params,
     )
+
+    old_assigned = old_row.get("assigned_to")
+    new_assigned = data.get("assigned_to", old_assigned)
+    old_recipient = _resolve_vendor_task_notification_recipient(cur, old_assigned)
+    new_recipient = _resolve_vendor_task_notification_recipient(cur, new_assigned)
+    if new_recipient and new_recipient != old_recipient:
+        project_for_msg = data.get("project_id", old_row.get("project_id"))
+        task_for_msg = data.get("task_name", old_row.get("task_name"))
+        _insert_task_assignment_notification(cur, new_recipient, project_for_msg, task_for_msg, task_id)
+
     conn.commit()
     return jsonify({"success": True})
 

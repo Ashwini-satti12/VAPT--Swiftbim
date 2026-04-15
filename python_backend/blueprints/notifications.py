@@ -33,15 +33,28 @@ def list_notifications():
     conn = get_db()
     cur = conn.cursor()
     _ensure_notification_link_columns(cur, conn)
-    cur.execute(
-        """SELECT n.*, p.project_name
-           FROM notifications n
-           LEFT JOIN projects p ON n.project_id = p.id
-           WHERE n.user_id = %s AND n.Company_id = %s AND n.is_read = 0
-           ORDER BY n.created_at DESC
-           LIMIT 10""",
-        (g.user_id, g.company_id),
-    )
+    if getattr(g, "user_type", None) == "vendor":
+        # Vendor logins can receive notifications from vendor flows where Company_id
+        # may not always match auth payload company_id; key on recipient id.
+        cur.execute(
+            """SELECT n.*, p.project_name
+               FROM notifications n
+               LEFT JOIN projects p ON n.project_id = p.id
+               WHERE n.user_id = %s AND n.is_read = 0
+               ORDER BY n.created_at DESC
+               LIMIT 10""",
+            (g.user_id,),
+        )
+    else:
+        cur.execute(
+            """SELECT n.*, p.project_name
+               FROM notifications n
+               LEFT JOIN projects p ON n.project_id = p.id
+               WHERE n.user_id = %s AND n.Company_id = %s AND n.is_read = 0
+               ORDER BY n.created_at DESC
+               LIMIT 10""",
+            (g.user_id, g.company_id),
+        )
     rows = cur.fetchall()
     notifications = []
     for r in rows:
@@ -64,10 +77,16 @@ def list_notifications():
 def mark_read(notification_id):
     conn = get_db()
     cur = conn.cursor()
-    cur.execute(
-        "UPDATE notifications SET is_read = 1 WHERE id = %s AND user_id = %s AND Company_id = %s",
-        (notification_id, g.user_id, g.company_id),
-    )
+    if getattr(g, "user_type", None) == "vendor":
+        cur.execute(
+            "UPDATE notifications SET is_read = 1 WHERE id = %s AND user_id = %s",
+            (notification_id, g.user_id),
+        )
+    else:
+        cur.execute(
+            "UPDATE notifications SET is_read = 1 WHERE id = %s AND user_id = %s AND Company_id = %s",
+            (notification_id, g.user_id, g.company_id),
+        )
     if cur.rowcount:
         return jsonify({"success": True})
     return jsonify({"success": False, "message": "Failed to mark notification as read"}), 400
@@ -78,10 +97,16 @@ def mark_read(notification_id):
 def mark_all_read():
     conn = get_db()
     cur = conn.cursor()
-    cur.execute(
-        "UPDATE notifications SET is_read = 1 WHERE user_id = %s AND Company_id = %s",
-        (g.user_id, g.company_id),
-    )
+    if getattr(g, "user_type", None) == "vendor":
+        cur.execute(
+            "UPDATE notifications SET is_read = 1 WHERE user_id = %s",
+            (g.user_id,),
+        )
+    else:
+        cur.execute(
+            "UPDATE notifications SET is_read = 1 WHERE user_id = %s AND Company_id = %s",
+            (g.user_id, g.company_id),
+        )
     return jsonify({"success": True})
 
 
