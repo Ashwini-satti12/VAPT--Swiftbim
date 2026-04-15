@@ -330,7 +330,7 @@ export default function VendorBimLeadCreateTeam() {
 
   return (
     <div className="bg-white h-full min-h-0 flex flex-col font-gantari">
-      <div className="flex-shrink-0 px-4 md:px-6 py-4">
+      <div className="flex-shrink-0 px-4 md:px-5 py-2">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <h2 className="text-[20px] md:text-[24px] font-semibold text-slate-800">
             Teams
@@ -379,9 +379,9 @@ export default function VendorBimLeadCreateTeam() {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 md:px-6 pb-6 custom-scrollbar">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 md:gap-8">
           {displayedTeams.length === 0 ? (
-            <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-[#AEACAC52] flex flex-col items-center justify-center gap-4">
+            <div className="col-span-full py-20 text-center bg-white rounded-2xl border border-[#AEACAC52] flex flex-col items-center justify-center gap-4">
               <p className="text-gray-500 font-medium">
                 No teams found. Start by creating a team.
               </p>
@@ -392,37 +392,39 @@ export default function VendorBimLeadCreateTeam() {
               return (
                 <div
                   key={(team.id ?? team.team_id) as number}
-                  className="bg-white rounded-2xl p-6 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative font-Gantari"
+                  className="bg-white rounded-lg p-4 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative font-Gantari"
                 >
                   {/* Team Name */}
-                  <div className="flex flex-col mb-4 pt-1">
-                    <span className="text-[15px] font-medium text-[#999999] mb-1.5">
+                  <div className="flex flex-col mb-4">
+                    <span className="text-[16px] font-medium text-[#999999]">
                       Team Name
                     </span>
-                    <span className="text-[18px] font-bold text-[#353535] pr-8 truncate">
+                    <span className="text-[18px] font-medium text-[#353535] pr-8 truncate">
                       {team.team_name}
                     </span>
                   </div>
 
-                  <div className="absolute top-6 right-6">
-                    <button
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenuTeamId(
-                          openMenuTeamId === (team.id ?? team.team_id)
-                            ? null
-                            : ((team.id ?? team.team_id) as number),
-                        );
-                      }}
-                      className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
-                    >
-                      <img
-                        src={threeDotsIcon}
-                        alt="Options"
-                        className="w-[18px] h-auto object-contain"
-                      />
-                    </button>
+                  <div className="absolute top-6 right-6 flex flex-col items-end">
+                    <div className="group relative inline-flex">
+                      <button
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuTeamId(
+                            openMenuTeamId === (team.id ?? team.team_id)
+                              ? null
+                              : ((team.id ?? team.team_id) as number),
+                          );
+                        }}
+                        className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+                      >
+                        <img
+                          src={threeDotsIcon}
+                          alt="Options"
+                          className="w-[18px] h-auto object-contain"
+                        />
+                      </button>
+                    </div>
                     {openMenuTeamId === (team.id ?? team.team_id) && (
                       <div className="absolute right-0 mt-3 w-[158px] bg-white/20 backdrop-blur rounded-[15px] border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
                         <button
@@ -465,17 +467,17 @@ export default function VendorBimLeadCreateTeam() {
                   </div>
 
                   {/* Team Leader */}
-                  <div className="flex flex-col mb-5">
-                    <span className="text-[15px] font-medium text-[#999999] mb-1.5">
+                  <div className="flex flex-col mb-4">
+                    <span className="text-[16px] font-medium text-[#999999]">
                       Team Leader
                     </span>
-                    <span className="text-[18px] font-bold text-[#353535] truncate">
+                    <span className="text-[18px] font-medium text-[#353535] truncate">
                       {getEmployeeName(team.leader_id) || "No Lead"}
                     </span>
                   </div>
 
                   {/* Divider */}
-                  <div className="h-[1px] w-full bg-[#E5E7EB] mb-5"></div>
+                  <div className="h-[1px] w-full bg-[#E5E7EB] mb-4"></div>
 
                   {/* Members + Details */}
                   <div className="mt-auto flex items-center justify-between">
@@ -529,24 +531,34 @@ export default function VendorBimLeadCreateTeam() {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full max-h-[90vh] overflow-y-auto custom-scrollbar p-6 animate-in zoom-in-95 duration-200 relative">
-            <button
-              onClick={() => setShowCreateModal(false)}
-              className="absolute top-6 left-6 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
-            >
-              <img
-                src={CloseIcon}
-                alt="Close"
-                className="w-5 h-5 object-contain"
-              />
-            </button>
-            <div className="text-center mb-10 pt-4">
+            <div className="absolute top-6 left-6 group z-20">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer block"
+              >
+                <img
+                  src={CloseIcon}
+                  alt="Close"
+                  className="w-5 h-5 object-contain"
+                />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10 shadow-sm">
+                  <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Close
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="text-center mb-10">
               <h3 className="text-[24px] font-medium font-Gantari text-[#000000]">
                 Create New Team
               </h3>
             </div>
             <form onSubmit={handleCreate} className="space-y-6">
               <div>
-                <label className="block text-[14px] font-medium text-[#353535] mb-3">
+                <label className="block text-[16px] font-medium text-[#353535] mb-2">
                   Team Name
                 </label>
                 <input
@@ -754,17 +766,27 @@ export default function VendorBimLeadCreateTeam() {
       {showEditModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full max-h-[90vh] overflow-y-auto custom-scrollbar p-6 animate-in zoom-in-95 duration-200 relative">
-            <button
-              onClick={() => setShowEditModal(false)}
-              className="absolute top-6 left-6 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
-            >
-              <img
-                src={CloseIcon}
-                alt="Close"
-                className="w-5 h-5 object-contain"
-              />
-            </button>
-            <div className="text-center mb-10 pt-4">
+            <div className="absolute top-6 left-6 group z-20">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer block"
+              >
+                <img
+                  src={CloseIcon}
+                  alt="Close"
+                  className="w-5 h-5 object-contain"
+                />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10 shadow-sm">
+                  <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Close
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="text-center mb-10">
               <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">
                 Edit Team
               </h3>
@@ -981,22 +1003,32 @@ export default function VendorBimLeadCreateTeam() {
       {showDetailsModal && selectedTeam && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-[15px] shadow-2xl max-w-[600px] w-full max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 relative overflow-hidden font-Gantari">
-            <button
-              onClick={() => setShowDetailsModal(false)}
-              className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer z-20 hover:bg-gray-200"
-            >
-              <img
-                src={CloseIcon}
-                alt="Close"
-                className="w-5 h-5 object-contain"
-              />
-            </button>
+            <div className="absolute top-8 left-8 group z-20">
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer block"
+              >
+                <img
+                  src={CloseIcon}
+                  alt="Close"
+                  className="w-5 h-5 object-contain"
+                />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10 shadow-sm">
+                  <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Close
+                  </span>
+                </div>
+              </div>
+            </div>
 
-            <div className="p-8 pb-3 shrink-0 text-center">
-              <h3 className="text-[22px] font-bold text-[#000000] font-Gantari px-12 uppercase">
+            <div className="p-8 pb-4 shrink-0 text-center">
+              <h3 className="text-[20px] font-medium text-[#000000] font-Gantari px-12">
                 {selectedTeam.team_name}
               </h3>
-              <p className="text-[16px] text-slate-500 font-medium mt-1">
+              <p className="text-[16px] text-slate-500 font-medium">
                 Team Details
               </p>
             </div>
@@ -1004,29 +1036,29 @@ export default function VendorBimLeadCreateTeam() {
             <div className="p-8 pt-0 flex-1 overflow-y-auto custom-scrollbar">
               <div className="space-y-6">
                 {/* Project Section */}
-                <div className="bg-[#F2F2F2] rounded-[10px] p-6 border border-[#AEACAC52]">
-                  <h4 className="text-[14px] font-bold text-[#000000] mb-4 uppercase tracking-wider">
-                    PROJECT
+                <div className="bg-[#F2F2F2] rounded-[10px] p-4 border border-[#AEACAC52]">
+                  <h4 className="text-[16px] font-medium text-[#000000] mb-2 tracking-wider">
+                    Project
                   </h4>
-                  <p className="text-[18px] font-semibold text-slate-800">
+                  <p className="text-[14px] font-semibold text-[#353535]">
                     {selectedTeam.project_name || "N/A"}
                   </p>
                 </div>
 
                 {/* Leadership Section */}
-                <div className="bg-[#F2F2F2] rounded-[10px] p-6 border border-[#AEACAC52]">
-                  <h4 className="text-[14px] font-bold text-[#000000] mb-4 uppercase tracking-wider">
-                    LEADERSHIP
+                <div className="bg-[#F2F2F2] rounded-[10px] p-4 border border-[#AEACAC52]">
+                  <h4 className="text-[16px] font-semibold text-[#000000] mb-2 tracking-wider">
+                    Leadership
                   </h4>
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-white rounded-full border border-slate-200 flex items-center justify-center text-xl font-bold text-slate-700 shadow-sm overflow-hidden shrink-0 uppercase">
+                    <div className="w-12 h-12 bg-white rounded-full border border-slate-200 flex items-center justify-center text-xl font-bold text-slate-700 shadow-sm overflow-hidden shrink-0 uppercase">
                       {(getEmployeeName(selectedTeam.leader_id) || "?")[0]}
                     </div>
                     <div>
-                      <p className="text-lg font-bold text-slate-900 leading-tight">
-                        {getEmployeeName(selectedTeam.leader_id)}
+                      <p className="text-[16px] font-medium text-[#353535] leading-tight">
+                        {getEmployeeName(selectedTeam.leader_id).charAt(0).toUpperCase() + getEmployeeName(selectedTeam.leader_id).slice(1)}
                       </p>
-                      <p className="text-[14px] text-slate-500 font-medium italic mt-0.5">
+                      <p className="text-[14px] text-[#8B8B8B] font-medium mt-0.5">
                         Team Leader
                       </p>
                     </div>
@@ -1035,15 +1067,15 @@ export default function VendorBimLeadCreateTeam() {
 
                 {/* Members Section */}
                 <div className="bg-[#F2F2F2] rounded-[10px] p-6 border border-[#AEACAC52]">
-                  <h4 className="text-[14px] font-bold text-[#000000] mb-4 uppercase tracking-wider">
-                    TEAM MEMBERS (
+                  <h4 className="text-[16px] font-medium text-[#000000] mb-4  tracking-wider">
+                    Team Members (
                     {
                       (selectedTeam.members || "").split(",").filter(Boolean)
                         .length
                     }
                     )
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {(selectedTeam.members || "")
                       .split(",")
                       .filter(Boolean)
@@ -1052,12 +1084,12 @@ export default function VendorBimLeadCreateTeam() {
                         return (
                           <div
                             key={id}
-                            className="flex items-center gap-3 bg-white p-3 rounded-[10px] border border-slate-100 shadow-sm"
+                            className="flex items-center gap-3 bg-white p-2 rounded-[5px] border border-slate-100 shadow-sm"
                           >
-                            <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold uppercase shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-red-300 text-[#000000] flex items-center justify-center text-sm font-semibold uppercase shrink-0">
                               {(name || "?")[0]}
                             </div>
-                            <span className="text-[15px] font-bold text-slate-700 truncate">
+                            <span className="text-[14px] font-semibold text-[#353535] truncate">
                               {name}
                             </span>
                           </div>
@@ -1076,23 +1108,35 @@ export default function VendorBimLeadCreateTeam() {
       {/* Delete Team Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 font-Gantari">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl animate-in fade-in zoom-in duration-200">
             <div className="mb-2 flex w-full">
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setTeamToDelete(null);
-                }}
-                className="flex items-center justify-center rounded-md bg-[#F2F2F2] p-2 text-black transition cursor-pointer"
-              >
-                <FiX className="h-5 w-5 text-black" />
-              </button>
+              <div className="group relative inline-flex shrink-0">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setTeamToDelete(null);
+                  }}
+                  className="flex items-center justify-center rounded-md bg-[#F2F2F2] p-2 text-black transition cursor-pointer"
+                >
+                  <FiX className="h-5 w-5 text-black" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10 shadow-sm">
+                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-col items-center">
-              <h3 className="-mt-8 mb-6 text-[24px] font-medium text-black">
+            <div className="flex flex-col items-center -mt-10">
+              <h3 className="text-[24px] font-medium text-black">
                 Delete Team
               </h3>
-              <p className="mb-8 text-center text-[#353535] text-[16px]">
+            </div>
+            <div>
+              <p className="mb-10 mt-4 text-center text-[#353535] text-[16px]">
                 Are you sure, you want to Delete this?
               </p>
               <div className="flex w-full justify-center gap-4">

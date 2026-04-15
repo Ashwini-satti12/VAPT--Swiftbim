@@ -407,6 +407,7 @@ interface Project {
   document_attachment?: string;
   currency?: string;
   currency_locked?: boolean;
+  commercial_verification_status?: string;
 }
 
 interface Milestone {
@@ -677,6 +678,21 @@ export default function ProjectsTD() {
     const str = (v: unknown) => (v != null ? String(v) : undefined);
     const d = (v: unknown) =>
       v != null && typeof v === "string" ? v : undefined;
+    const pickFirstString = (keys: string[]) => {
+      for (const key of keys) {
+        const value = r[key];
+        if (typeof value === "string" && value.trim()) return value.trim();
+      }
+      return undefined;
+    };
+    const commercialVerificationStatus = pickFirstString([
+      "commercial_verification_status",
+      "commercial_status",
+      "verification_status",
+      "validation_status",
+      "payment_status",
+      "payment_completion_status",
+    ]);
     return {
       id: num(r.id) ?? 0,
       project_name: str(r.project_name),
@@ -716,7 +732,32 @@ export default function ProjectsTD() {
           : str(r.currency) || "INR",
       currency_locked:
         r.selected_currency != null && String(r.selected_currency).trim().length > 0,
+      commercial_verification_status: commercialVerificationStatus,
     };
+  };
+
+  const isCommercialVerificationPending = (project: Project) => {
+    const isOutsourceProject =
+      String(project.source || "").toLowerCase() === "outsource" ||
+      String(project.department || "").trim().toLowerCase() === "submission deadline";
+    if (!isOutsourceProject) return false;
+    const raw = String(project.commercial_verification_status || "").trim().toLowerCase();
+    // For outsource projects, missing status is treated as not verified yet.
+    if (!raw) return true;
+    const normalized = raw.replace(/[\s-]+/g, "_");
+    if (["verified", "approved", "validated", "completed", "paid"].includes(normalized)) {
+      return false;
+    }
+    return [
+      "pending",
+      "pending_validation",
+      "awaiting_validation",
+      "under_review",
+      "notstarted",
+      "not_started",
+      "inprogress",
+      "in_progress",
+    ].includes(normalized);
   };
 
   useEffect(() => {
@@ -2548,6 +2589,11 @@ export default function ProjectsTD() {
 
                     // Use data directly from projects table
                     const progress = Math.round(p.progress ?? 0);
+                    const hasProjectStarted =
+                      Number(p.progress ?? 0) > 0 ||
+                      Number(p.completed_tasks ?? 0) > 0;
+                    const isBlockedByCommercial =
+                      isCommercialVerificationPending(p) && !hasProjectStarted;
 
                     // Get members from project.member field (comma-separated string)
                     const memberIds = p.member
@@ -2566,9 +2612,9 @@ export default function ProjectsTD() {
                     return (
                       <div
                         key={p.id}
-                        className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300"
+                        className={`relative overflow-hidden bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm transition-all duration-300 ${isBlockedByCommercial ? "opacity-95" : "hover:shadow-md"}`}
                       >
-                        <div>
+                        <div className={isBlockedByCommercial ? "pointer-events-none select-none blur-[1.5px]" : ""}>
                           <div className="flex items-start justify-between mb-4 mt-2 pr-0">
                             <div className="relative flex items-center justify-center">
                               <svg className="w-16 h-16 md:w-20 md:h-20 transform -rotate-90">
@@ -2623,6 +2669,12 @@ export default function ProjectsTD() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    if (isCommercialVerificationPending(p)) {
+                                      toast.error(
+                                        "Project is blocked until Commercial Team verification is completed.",
+                                      );
+                                      return;
+                                    }
                                     setOpenMenuProjectId(null);
                                     setSearchParams({
                                       projectId: String(p.id),
@@ -2632,7 +2684,7 @@ export default function ProjectsTD() {
                                           : "In House",
                                     });
                                   }}
-                                  className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
+                                  className={`w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group ${isCommercialVerificationPending(p) ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                                 >
                                   <img
                                     src={viewIcon}
@@ -2887,6 +2939,18 @@ export default function ProjectsTD() {
                             )}
                           </div>
                         </div>
+                        {isBlockedByCommercial && (
+                          <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/45 px-4">
+                            <div className="rounded-lg border border-[#F0C9C9] bg-white/95 px-3 py-2 shadow-sm text-center">
+                              <p className="text-[12px] font-semibold text-[#A33B3B] font-Gantari">
+                                Client needs to pay advance to unblock project
+                              </p>
+                              <p className="text-[11px] text-[#6F6F6F] font-Gantari mt-1">
+                                Advance payment pending. After payment verification, project will be open.
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       );
                     });

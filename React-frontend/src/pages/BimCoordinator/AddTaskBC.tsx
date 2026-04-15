@@ -278,11 +278,11 @@ export default function AddTaskBC() {
 
         const today = new Date().toISOString().split("T")[0];
         if (addTaskForm.actualStartDate < today && !editingTaskId) {
-            setAddError("Actual Start Date cannot be in the past.");
+            setAddError("Start Date cannot be in the past.");
             return;
         }
         if (addTaskForm.actualEndDate < addTaskForm.actualStartDate) {
-            setAddError("Actual End Date cannot be before Actual Start Date.");
+            setAddError("End Date cannot be before Start Date.");
             return;
         }
 
@@ -545,7 +545,7 @@ export default function AddTaskBC() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Actual Start Date <span className="text-[#DD4342]">*</span></label>
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Start Date <span className="text-[#DD4342]">*</span></label>
                                 <input
                                     type="date"
                                     value={addTaskForm.actualStartDate}
@@ -556,7 +556,7 @@ export default function AddTaskBC() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Actual End Date <span className="text-[#DD4342]">*</span></label>
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">End Date <span className="text-[#DD4342]">*</span></label>
                                 <input
                                     type="date"
                                     value={addTaskForm.actualEndDate}
