@@ -10,6 +10,8 @@ import {
 import Upload from "../../assets/ProjectManager/MyTask/Upload.svg";
 import ImageIcon from "../../assets/ProjectManager/MyTask/image.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import downloadIcon from "../../assets/TechnicalDirector/download icon.svg";
 
 
 interface Task {
@@ -505,82 +507,127 @@ export default function MytaskViewV() {
         <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 text-sm">
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Project Name</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0 w-28">Project Name</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.project_name || "—"}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Module Name</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0 w-28">Module Name</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.modules_name || task.module || "—"}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Category</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0 w-28">Category</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.category || task.type || "—"}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Assigned By</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0 w-28">Assigned By</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.uploader_full_name ?? "—"}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Assigned To</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0 w-28">Assigned To</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">{resolveAssignedName()}</span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">
+              <span className="text-[#020202] shrink-0 w-28">
                 Start Date
               </span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.start_date ? formatDateDDMMYYYY(task.start_date) : "—"}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Start Time</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0 w-28">Start Time</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {formatTimeDisplay(task.start_time)}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">End Date</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0 w-28">End Date</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.due_date ? formatDateDDMMYYYY(task.due_date) : "—"}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">End Time</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0 w-28">End Time</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {formatTimeDisplay(task.due_time ?? task.end_time)}
               </span>
             </div>
-            <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Attachments</span>
-              <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161] break-all">
-                {submittedOutputFiles.length > 0
-                  ? submittedOutputFiles
-                    .map((f) => {
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <span className="text-[#020202] shrink-0 w-28 font-medium">Attachments</span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <div className="flex flex-col gap-2 flex-1 min-w-0">
+                  {submittedOutputFiles.length > 0 ? (
+                    submittedOutputFiles.map((f, idx) => {
+                      const url = taskOutputFileUrl(f);
                       const base = f.split("/").pop() || f;
-                      const idx = base.indexOf("_");
-                      return idx > 8 ? base.slice(idx + 1) : base;
+                      const underscoreIdx = base.indexOf("_");
+                      const displayName = underscoreIdx > 8 ? base.slice(underscoreIdx + 1) : base;
+                      
+                      return (
+                        <div key={idx} className="flex items-center gap-3">
+                          <span className="text-[14px] font-medium text-[#616161] truncate font-Gantari">
+                            {displayName}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <div className="relative group/tooltip inline-flex shrink-0">
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1 hover:bg-slate-100 rounded transition-colors"
+                              >
+                                <img src={viewIcon} alt="View" className="w-4 h-4" />
+                              </a>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
+                                  <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">View</span>
+                                </div>
+                                <div className="w-2 h-2 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[4.5px]"></div>
+                              </div>
+                            </div>
+                            
+                            <div className="relative group/tooltip inline-flex shrink-0">
+                              <a
+                                href={url}
+                                download
+                                className="p-1 hover:bg-slate-100 rounded transition-colors"
+                              >
+                                <img src={downloadIcon} alt="Download" className="w-4 h-4" />
+                              </a>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
+                                  <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">Download</span>
+                                </div>
+                                <div className="w-2 h-2 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[4.5px]"></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
                     })
-                    .join(", ")
-                  : "—"}
-              </span>
+                  ) : (
+                    <span className="text-[#616161]">No Attachment Available</span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
