@@ -312,7 +312,6 @@ export default function AddTaskTD() {
             "projectName",
             "module",
             "taskName",
-            "type",
             "startDate",
             "endDate",
             "startTime",
@@ -342,7 +341,7 @@ export default function AddTaskTD() {
         const payload = {
             projectid: projects.find((p) => p.project_name === addTaskForm.projectName)?.id || addTaskForm.projectName,
             taskName: addTaskForm.taskName,
-            category: addTaskForm.type,
+            category: addTaskForm.type || "task",
             startdate: addTaskForm.startDate,
             dueDate: addTaskForm.endDate,
             startTime: addTaskForm.startTime,

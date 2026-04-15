@@ -260,7 +260,6 @@ export default function AddTaskBC() {
             "projectName",
             "module",
             "taskName",
-            "type",
             "actualStartDate",
             "actualEndDate",
             "startTime",
@@ -293,7 +292,7 @@ export default function AddTaskBC() {
         const payload = {
             projectid: selectedProj?.id || addTaskForm.projectName,
             taskName: addTaskForm.taskName,
-            category: addTaskForm.type,
+            category: addTaskForm.type || "task",
             startdate: addTaskForm.actualStartDate,
             dueDate: addTaskForm.actualEndDate,
             perferstart_time: addTaskForm.startTime,

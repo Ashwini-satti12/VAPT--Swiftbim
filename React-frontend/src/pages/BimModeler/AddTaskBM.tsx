@@ -273,7 +273,6 @@ export default function AddTaskBM() {
       "projectName",
       "module",
       "taskName",
-      "type",
       "actualStartDate",
       "actualEndDate",
       "startTime",
@@ -305,7 +304,7 @@ export default function AddTaskBM() {
         projects.find((p) => p.project_name === addTaskForm.projectName)?.id ||
         addTaskForm.projectName,
       taskName: addTaskForm.taskName,
-      category: addTaskForm.type,
+      category: addTaskForm.type || "task",
       startdate: addTaskForm.actualStartDate,
       dueDate: addTaskForm.actualEndDate,
       startTime: addTaskForm.startTime,
