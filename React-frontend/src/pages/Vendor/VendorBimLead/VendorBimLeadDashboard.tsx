@@ -332,9 +332,9 @@ export default function VendorBimLeadDashboard() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden px-5 py-2">
       {/* Header and KPI Cards */}
-      <div className="bg-white pb-4 pt-0 border-b border-transparent shrink-0">
+      <div className="bg-white pb-4 border-b border-transparent shrink-0">
         <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-4">
           Dashboard
         </h1>
@@ -346,10 +346,10 @@ export default function VendorBimLeadDashboard() {
               to={card.link}
               className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
             >
-              <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
+              <h3 className="text-[14px] md:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">
                 {card.label}
               </h3>
-              <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
+              <p className="text-[16px] md:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
                 {card.value}
               </p>
             </Link>
@@ -359,8 +359,8 @@ export default function VendorBimLeadDashboard() {
 
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2 pb-1 overflow-y-auto custom-scrollbar">
         {/* Today's Priority — projects with today's tasks (image 2 card design) */}
-        <div className="lg:col-span-2 flex flex-col bg-white rounded-md border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[450px] lg:h-full overflow-hidden">
-          <div className="mb-4 shrink-0 pr-4">
+        <div className="lg:col-span-2 flex flex-col bg-white rounded-md border border-[#AEACAC52] shadow-sm pt-4 pl-4 pr-0 h-[450px] lg:h-full overflow-hidden">
+          <div className="shrink-0">
             <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#353535] font-gantari">
               Today's Priority
             </h2>
@@ -368,7 +368,7 @@ export default function VendorBimLeadDashboard() {
 
           <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
             {priorityTasks.length === 0 ? (
-              <p className="text-[#717171] text-sm font-gantari py-4 pr-4">
+              <p className="text-[#717171] text-sm font-gantari py-2 pr-4">
                 No priority tasks for today.
               </p>
             ) : (
@@ -460,7 +460,10 @@ export default function VendorBimLeadDashboard() {
                                 </div>
                                 <div className="flex-1 min-w-0 pr-0 sm:pr-2">
                                   <div className="flex flex-col-reverse sm:flex-row sm:items-start justify-between gap-1 mb-1 sm:mb-0.5">
-                                    <h3 className="text-lg sm:text-xl font-bold text-black truncate pr-16 sm:pr-0" title={task.task_name ?? 'Task'}>
+                                    <h3
+                                      className="text-lg sm:text-xl font-bold text-black truncate pr-16 sm:pr-0"
+                                      title={task.task_name ?? "Task"}
+                                    >
                                       {task.task_name ?? "Task"}
                                     </h3>
                                     <div className="static sm:absolute sm:top-4 sm:right-4 mb-2 sm:mb-0">
@@ -523,21 +526,46 @@ export default function VendorBimLeadDashboard() {
             {/* Calendar Header — exact match: left = "December" then "2026" stacked; center = large day; right = "SUNDAY" */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 pt-2 px-2">
               <div className="flex flex-col items-start min-w-[70px]">
-                <span className="text-[15px] lg:text-[17px] font-semibold text-black font-gantari leading-tight">{currentMonthName}</span>
-                <span className="text-[15px] lg:text-[17px] font-semibold text-black font-gantari leading-tight">{displayYear}</span>
+                <span className="text-[15px] lg:text-[17px] font-semibold text-black font-gantari leading-tight">
+                  {currentMonthName}
+                </span>
+                <span className="text-[15px] lg:text-[17px] font-semibold text-black font-gantari leading-tight">
+                  {displayYear}
+                </span>
               </div>
               <div className="flex flex-col items-center flex-1 min-w-0">
-                <span className="text-[38px] lg:text-[32px] font-bold text-black leading-none tracking-tighter">{selectedDate.getDate()}</span>
+                <span className="text-[38px] lg:text-[32px] font-bold text-black leading-none tracking-tighter">
+                  {selectedDate.getDate()}
+                </span>
               </div>
               <div className="flex flex-col items-end min-w-[75px]">
-                <span className="text-[13px] lg:text-[16px] font-semibold text-black font-gantari tracking-wide">{currentDayName}</span>
+                <span className="text-[13px] lg:text-[16px] font-semibold text-black font-gantari tracking-wide">
+                  {currentDayName}
+                </span>
               </div>
             </div>
 
             {/* Month & Year — single line: [ < ] [ Month ▼ ] [ ↑ Year ↓ ] [ > ] */}
             <div className="flex flex-nowrap items-center justify-center gap-2 sm:gap-4 mb-3 px-2 shrink-0">
-              <button type="button" onClick={goPrevMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors" aria-label="Previous month">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              <button
+                type="button"
+                onClick={goPrevMonth}
+                className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors"
+                aria-label="Previous month"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
               </button>
               <div className="relative min-w-[100px]" ref={monthDropdownRef}>
                 <button
@@ -549,16 +577,34 @@ export default function VendorBimLeadDashboard() {
                   aria-label="Select month"
                 >
                   {currentMonthName}
-                  <svg className={`w-3.5 h-3.5 text-slate-500 absolute right-0 top-1/2 -translate-y-1/2 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  <svg
+                    className={`w-3.5 h-3.5 text-slate-500 absolute right-0 top-1/2 -translate-y-1/2 transition-transform ${monthDropdownOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
                 </button>
                 {monthDropdownOpen && (
                   <div
                     className="absolute left-0 top-full z-30 mt-2 min-w-[140px] rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5 overflow-hidden"
                     role="listbox"
                   >
-                    <div className="overflow-y-auto custom-scrollbar overscroll-contain" style={{ maxHeight: '160px' }}>
+                    <div
+                      className="overflow-y-auto custom-scrollbar overscroll-contain"
+                      style={{ maxHeight: "160px" }}
+                    >
                       {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((m) => {
-                        const name = new Date(2000, m, 1).toLocaleString("default", { month: "long" });
+                        const name = new Date(2000, m, 1).toLocaleString(
+                          "default",
+                          { month: "long" },
+                        );
                         const isSelected = m === displayMonth;
                         return (
                           <button
@@ -570,7 +616,7 @@ export default function VendorBimLeadDashboard() {
                               setDisplayMonth(m);
                               setMonthDropdownOpen(false);
                             }}
-                            className={`block w-full px-4 py-2.5 text-left text-[13px] font-medium font-gantari transition-colors truncate ${isSelected ? 'bg-[#2563eb] text-white' : 'text-slate-800 hover:bg-slate-100'}`}
+                            className={`block w-full px-4 py-2.5 text-left text-[13px] font-medium font-gantari transition-colors truncate ${isSelected ? "bg-[#2563eb] text-white" : "text-slate-800 hover:bg-slate-100"}`}
                           >
                             {name}
                           </button>
@@ -581,18 +627,59 @@ export default function VendorBimLeadDashboard() {
                 )}
               </div>
               <div className="flex items-center">
-                <span className="min-w-[40px] text-[13px] font-semibold text-slate-700 font-gantari">{displayYear}</span>
+                <span className="min-w-[40px] text-[13px] font-semibold text-slate-700 font-gantari">
+                  {displayYear}
+                </span>
                 <div className="flex flex-col gap-0 -space-y-px">
-                  <button type="button" onClick={() => setDisplayYear((y) => y + 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none" aria-label="Next year">
-                    <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z" /></svg>
+                  <button
+                    type="button"
+                    onClick={() => setDisplayYear((y) => y + 1)}
+                    className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none"
+                    aria-label="Next year"
+                  >
+                    <svg
+                      className="w-2.5 h-2.5"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M7 14l5-5 5 5z" />
+                    </svg>
                   </button>
-                  <button type="button" onClick={() => setDisplayYear((y) => y - 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none" aria-label="Previous year">
-                    <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
+                  <button
+                    type="button"
+                    onClick={() => setDisplayYear((y) => y - 1)}
+                    className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none"
+                    aria-label="Previous year"
+                  >
+                    <svg
+                      className="w-2.5 h-2.5"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M7 10l5 5 5-5z" />
+                    </svg>
                   </button>
                 </div>
               </div>
-              <button type="button" onClick={goNextMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors" aria-label="Next month">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              <button
+                type="button"
+                onClick={goNextMonth}
+                className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors"
+                aria-label="Next month"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
               </button>
             </div>
 
@@ -602,20 +689,27 @@ export default function VendorBimLeadDashboard() {
               {isCalendarExpanded && (
                 <div className="mb-2 py-2 animate-in fade-in duration-200">
                   <div className="grid grid-cols-7 gap-0 text-center text-[12px] lg:text-[13px] font-bold text-black font-gantari mb-2 [&>div]:py-0.5">
-                    <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+                    <div>S</div>
+                    <div>M</div>
+                    <div>T</div>
+                    <div>W</div>
+                    <div>T</div>
+                    <div>F</div>
+                    <div>S</div>
                   </div>
                   <div className="grid grid-cols-7 gap-y-1 text-center text-[13px] lg:text-[14px] font-semibold font-gantari">
                     {calendarDays.map((cell, i) => {
                       const cellDate = getCellDate(cell);
                       const isSelected = isSameDay(cellDate, selectedDate);
                       const isToday = isSameDay(cellDate, today);
-                      const isOtherMonth = cell.type === 'prev' || cell.type === 'next';
+                      const isOtherMonth =
+                        cell.type === "prev" || cell.type === "next";
                       return (
                         <button
                           key={i}
                           type="button"
                           onClick={() => handleDateClick(cell)}
-                          className={`py-1 min-w-[22px] transition-colors rounded-full ${isToday ? 'bg-[#DD4346] text-[#FFFFFF]' : isSelected ? 'text-[#E00100] font-bold' : isOtherMonth ? 'text-[#9CA3AF]' : 'text-black hover:bg-slate-50'}`}
+                          className={`py-1 min-w-[22px] transition-colors rounded-full ${isToday ? "bg-[#DD4346] text-[#FFFFFF]" : isSelected ? "text-[#E00100] font-bold" : isOtherMonth ? "text-[#9CA3AF]" : "text-black hover:bg-slate-50"}`}
                         >
                           {cell.day}
                         </button>
@@ -634,10 +728,24 @@ export default function VendorBimLeadDashboard() {
                     setIsCalendarExpanded(!isCalendarExpanded);
                   }}
                   className="text-slate-500 hover:text-slate-700 transition-colors p-0.5"
-                  aria-label={isCalendarExpanded ? 'Collapse calendar and load celebrations' : 'Expand calendar and load celebrations'}
+                  aria-label={
+                    isCalendarExpanded
+                      ? "Collapse calendar and load celebrations"
+                      : "Expand calendar and load celebrations"
+                  }
                 >
-                  <svg className={`w-5 h-4 transform transition-transform ${!isCalendarExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                  <svg
+                    className={`w-5 h-4 transform transition-transform ${!isCalendarExpanded ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M5 15l7-7 7 7"
+                    />
                   </svg>
                 </button>
               </div>
@@ -645,46 +753,70 @@ export default function VendorBimLeadDashboard() {
               {/* Celebrations Section — below calendar, loaded only when user clicks up arrow */}
               <div className="space-y-4 pr-1">
                 {!celebrationsRequested ? (
-                  <p className="text-sm text-slate-400 font-gantari py-4 text-center">Click the up arrow above to load celebrations.</p>
+                  <p className="text-sm text-slate-400 font-gantari py-4 text-center">
+                    Click the up arrow above to load celebrations.
+                  </p>
                 ) : celebrations.length === 0 ? (
-                  <p className="text-sm text-slate-400 font-gantari py-4 text-center">No celebrations for this date.</p>
+                  <p className="text-sm text-slate-400 font-gantari py-4 text-center">
+                    No celebrations for this date.
+                  </p>
                 ) : (
                   celebrations.map((event, i) => (
-                    <div key={i} className="bg-[#F8F9FA] p-5 rounded-xl border border-transparent hover:border-slate-200 transition-all flex flex-col relative">
+                    <div
+                      key={i}
+                      className="bg-[#F8F9FA] p-5 rounded-xl border border-transparent hover:border-slate-200 transition-all flex flex-col relative"
+                    >
                       <div className="flex justify-between items-center mb-2">
-                        <h4 className="font-bold text-[#353535] text-[17px] font-gantari">{event.full_name || event.project_name || 'Employee'}</h4>
-                        <span className={`text-[10px] px-3 py-1.5 rounded-md font-bold uppercase tracking-widest leading-none font-gantari ${event.type === 'birthday'
-                          ? 'bg-[#FFF3E0] text-[#E65100]'
-                          : event.type === 'work_anniversary'
-                            ? 'bg-[#E7F6EA] text-[#2D8A39]'
-                            : 'bg-[#E3F2FD] text-[#1565C0]'
-                          }`}>
-                          {event.type === 'birthday' ? 'BIRTHDAY' : event.type === 'work_anniversary' ? 'CELEBRATIONS' : 'PROJECT DUE'}
+                        <h4 className="font-bold text-[#353535] text-[17px] font-gantari">
+                          {event.full_name || event.project_name || "Employee"}
+                        </h4>
+                        <span
+                          className={`text-[10px] px-3 py-1.5 rounded-md font-bold uppercase tracking-widest leading-none font-gantari ${
+                            event.type === "birthday"
+                              ? "bg-[#FFF3E0] text-[#E65100]"
+                              : event.type === "work_anniversary"
+                                ? "bg-[#E7F6EA] text-[#2D8A39]"
+                                : "bg-[#E3F2FD] text-[#1565C0]"
+                          }`}
+                        >
+                          {event.type === "birthday"
+                            ? "BIRTHDAY"
+                            : event.type === "work_anniversary"
+                              ? "CELEBRATIONS"
+                              : "PROJECT DUE"}
                         </span>
                       </div>
-                      {event.type === 'birthday' && (
+                      {event.type === "birthday" && (
                         <>
-                          <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Happy Birthday 🎂</p>
+                          <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">
+                            Happy Birthday 🎂
+                          </p>
                           <p className="text-sm text-slate-400 leading-relaxed font-gantari">
-                            Wishing you a wonderful birthday! May this year bring you happiness and success.
+                            Wishing you a wonderful birthday! May this year
+                            bring you happiness and success.
                           </p>
                         </>
                       )}
-                      {event.type === 'work_anniversary' && (
+                      {event.type === "work_anniversary" && (
                         <>
-                          <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Congratulations</p>
+                          <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">
+                            Congratulations
+                          </p>
                           <p className="text-sm text-slate-400 leading-relaxed font-gantari">
                             {event.working_years === 1
-                              ? 'Congratulations for your first anniversary! Marking a great year of excellence.'
+                              ? "Congratulations for your first anniversary! Marking a great year of excellence."
                               : `You have completed ${event.working_years} years in our company. Marking another year of excellence.`}
                           </p>
                         </>
                       )}
-                      {event.type === 'project_due' && (
+                      {event.type === "project_due" && (
                         <>
-                          <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Project Due</p>
+                          <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">
+                            Project Due
+                          </p>
                           <p className="text-sm text-slate-400 leading-relaxed font-gantari">
-                            Project "{event.project_name}" is due on {event.due_date}.
+                            Project "{event.project_name}" is due on{" "}
+                            {event.due_date}.
                           </p>
                         </>
                       )}
