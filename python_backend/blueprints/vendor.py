@@ -2876,9 +2876,9 @@ def _send_notification_email(to_email: str, subject: str, body: str) -> bool:
     mail_server = current_app.config.get("MAIL_SERVER") or ""
     mail_port = int(current_app.config.get("MAIL_PORT") or 587)
     mail_use_tls = bool(current_app.config.get("MAIL_USE_TLS"))
-   MAIL_USERNAME = os.getenv("MAIL_USERNAME", "rajubhaaik@gmail.com")
-    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "wpyy hxlx asbf pyjw")
-    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", MAIL_USERNAME or "rajubhaaik@gmail.com")
+    mail_username = current_app.config.get("MAIL_USERNAME") or ""
+    mail_password = current_app.config.get("MAIL_PASSWORD") or ""
+    sender = current_app.config.get("MAIL_DEFAULT_SENDER") or mail_username
     if not (mail_server and sender and to_email):
         return False
     msg = MIMEText(body or "", "plain", "utf-8")
