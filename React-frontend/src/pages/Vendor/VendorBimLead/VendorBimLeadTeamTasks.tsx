@@ -1,4 +1,5 @@
 import { FiX } from "react-icons/fi";
+import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -644,9 +645,9 @@ export default function VendorBimLeadTeamTasks() {
           e.dataTransfer.effectAllowed = "move";
           e.dataTransfer.setData("text/plain", task.task_name || "Task");
         }}
-        className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative transition-all hover:shadow-md font-Gantari ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+        className={`rounded-md border border-slate-200 bg-white p-4 shadow-sm relative transition-all hover:shadow-md font-Gantari ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
       >
-        <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center justify-between gap-2 mb-4">
           <div className="flex-1 min-w-0 pr-6">
             <h4 className="text-[20px] font-semibold text-[#353535] truncate leading-tight">
               {task.task_name}
@@ -661,9 +662,9 @@ export default function VendorBimLeadTeamTasks() {
                 setMenuOpen((prev) => !prev);
               }}
               onMouseDown={(e) => e.stopPropagation()}
-              className="p-1 px-2 rounded cursor-pointer leading-none hover:bg-gray-100 transition-colors"
+              className="rounded cursor-pointer leading-none  transition-colors"
             >
-              <img src={Dot} alt="Dot" className="w-5 h-5 object-contain" />
+              <img src={Dot} alt="Dot" className="w-4 h-4 object-contain" />
             </button>
             {menuOpen && (
               <div className="absolute top-full right-0 mt-2 z-50 min-w-[170px] bg-white/40 backdrop-blur-xl rounded-[15px] border border-[#59595980] shadow-2xl py-2.5 animate-in fade-in zoom-in duration-200 origin-top-right">
@@ -677,14 +678,14 @@ export default function VendorBimLeadTeamTasks() {
                       state: { task, from: "teamtask" },
                     });
                   }}
-                  className="flex w-full items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer text-[#353535] hover:bg-white/40"
+                  className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                 >
                   <img
                     src={viewIcon}
                     alt="view"
-                    className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:bitness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]"
+                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                   />
-                  <span className="text-[15px] font-medium group-hover:text-[#DD4342]">
+                  <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                     View
                   </span>
                 </button>
@@ -711,14 +712,14 @@ export default function VendorBimLeadTeamTasks() {
                     setEditAttachmentFiles([]);
                     setShowEditModal(true);
                   }}
-                  className="flex w-full items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer text-[#353535] hover:bg-white/40"
+                  className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                 >
                   <img
                     src={editIcon}
                     alt="edit"
-                    className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:bitness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]"
+                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                   />
-                  <span className="text-[15px] font-medium group-hover:text-[#DD4342]">
+                  <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                     Edit
                   </span>
                 </button>
@@ -730,14 +731,14 @@ export default function VendorBimLeadTeamTasks() {
                     setMenuOpen(false);
                     handleDelete(task.id);
                   }}
-                  className="flex w-full items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer text-[#353535] hover:bg-white/40"
+                  className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                 >
                   <img
                     src={deleteIcon}
                     alt="delete"
-                    className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:bitness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]"
+                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                   />
-                  <span className="text-[15px] font-medium group-hover:text-[#DD4342]">
+                  <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                     Delete
                   </span>
                 </button>
@@ -851,8 +852,10 @@ export default function VendorBimLeadTeamTasks() {
   }
 
   return (
-    <div className="bg-white h-full min-h-0 flex flex-col font-gantari">
-      <div className="flex-shrink-0 px-4 md:px-6 py-4">
+    <div className="h-full min-h-0 flex flex-col font-gantari">
+      {!showCreateModal && !showEditModal && (
+        <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-shrink-0 px-4 md:px-5 py-2">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <h2 className="text-[20px] md:text-[24px] font-semibold text-slate-800">
             Team Tasks
@@ -878,20 +881,20 @@ export default function VendorBimLeadTeamTasks() {
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-white cursor-pointer"
             >
               <img src={AddBtn} alt="Add" className="h-5 w-5" />
-              AddTask
+              Add Task
             </button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 pt-2">
           <div className="flex px-4 py-3 md:py-4 gap-3 md:gap-4 rounded-xl border shadow-sm relative bg-white border-slate-200">
-            <span className="text-[16px] md:text-xl font-bold text-[#0D1829]">
+            <span className="text-[16px] md:text-[18px] font-bold text-[#0D1829]">
               To Do
             </span>
-            <span className="text-[16px] md:text-xl font-bold text-[#0D1829]">
+            <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829]">
               ({counts.todo})
             </span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
@@ -903,10 +906,10 @@ export default function VendorBimLeadTeamTasks() {
             </div>
           </div>
           <div className="flex px-4 py-3 md:py-4 gap-3 md:gap-4 rounded-xl border shadow-sm relative bg-white border-slate-200">
-            <span className="text-[16px] md:text-xl font-bold text-[#0D1829]">
+            <span className="text-[16px] md:text-[18px] font-bold text-[#0D1829]">
               In Progress
             </span>
-            <span className="text-[16px] md:text-xl font-bold text-[#0D1829]">
+            <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829]">
               ({counts.in_progress})
             </span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
@@ -918,10 +921,10 @@ export default function VendorBimLeadTeamTasks() {
             </div>
           </div>
           <div className="flex px-4 py-3 md:py-4 gap-3 md:gap-4 rounded-xl border shadow-sm relative bg-white border-slate-200">
-            <span className="text-[16px] md:text-xl font-bold text-[#0D1829]">
+            <span className="text-[16px] md:text-[18px] font-bold text-[#0D1829]">
               Completed
             </span>
-            <span className="text-[16px] md:text-xl font-bold text-[#0D1829]">
+            <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829]">
               ({counts.completed})
             </span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
@@ -935,8 +938,8 @@ export default function VendorBimLeadTeamTasks() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 md:px-6 pb-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pl-4 md:pr-2 pb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-3">
           {(["todo", "in_progress", "completed"] as const).map((bucket) => (
             <div
               key={bucket}
@@ -963,30 +966,42 @@ export default function VendorBimLeadTeamTasks() {
           ))}
         </div>
       </div>
+      </div>
+      )}
 
-      {/* ── Edit Task Modal ────────────────────────────────────────── */}
+      {/* ── Edit Task Page ────────────────────────────────────────── */}
       {showEditModal && (
-        <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/50 p-4 font-gantari">
-          <div className="bg-[#FFFFFF] rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+      <div className="flex-1 min-h-0 px-5 py-2 bg-white overflow-y-auto custom-scrollbar font-Gantari">
+        <div className="max-w-[1174px] mx-auto flex flex-col">
+          {/* Header with back button + tooltip */}
+          <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
+            <div className="group relative inline-flex shrink-0">
               <button
                 type="button"
                 onClick={() => setShowEditModal(false)}
-                className="p-2 rounded-md text-[#000000] bg-[#F2F2F2] cursor-pointer"
-                aria-label="Close"
+                className="p-2 rounded-md bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
               >
-                <FiX className="w-5 h-5" />
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
-              <h3 className="text-[24px] font-semibold text-black">
-                Edit Task
-              </h3>
-              <div className="w-9" />
+              {/* Tooltip */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
+                  <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Go Back
+                  </span>
+                </div>
+              </div>
             </div>
+            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
+              Edit Task
+            </h3>
+            <div className="w-10" />
+          </div>
 
             {/* Form */}
             <form
-              className="flex-1 overflow-y-auto p-6 custom-scrollbar"
+              className="max-w-4xl mx-auto w-full pb-10"
               onSubmit={handleUpdate}
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1107,7 +1122,7 @@ export default function VendorBimLeadTeamTasks() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-medium text-[#3535335] mb-1">
-                      Actual Start Date
+                       Start Date
                     </label>
                     <input
                       type="date"
@@ -1123,7 +1138,7 @@ export default function VendorBimLeadTeamTasks() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-medium text-[#3535335] mb-1">
-                      Actual End Date
+                       End Date
                     </label>
                     <input
                       type="date"
@@ -1317,29 +1332,39 @@ export default function VendorBimLeadTeamTasks() {
         </div>
       )}
 
-      {/* ── Add Task Modal (PMV-style) ─────────────────────────────── */}
+      {/* ── Add Task Page ─────────────────────────────── */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-[#FFFFFF] rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+      <div className="flex-1 min-h-0 px-5 py-4 bg-white overflow-y-auto custom-scrollbar font-Gantari">
+        <div className="max-w-[1174px] mx-auto flex flex-col">
+          {/* Header with back button + tooltip */}
+          <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
+            <div className="group relative inline-flex shrink-0">
               <button
                 type="button"
                 onClick={resetAndClose}
-                className="p-2 rounded-md text-[#000000] bg-[#F2F2F2] cursor-pointer"
-                aria-label="Close"
+                className="p-2 rounded-md bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
               >
-                <FiX className="w-5 h-5" />
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
-              <h3 className="text-[24px] font-medium text-black">
-                Add New Task
-              </h3>
-              <div className="w-9" />
+              {/* Tooltip */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
+                  <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Go Back
+                  </span>
+                </div>
+              </div>
             </div>
+            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
+              Add New Task
+            </h3>
+            <div className="w-10" />
+          </div>
 
             {/* Form */}
             <form
-              className="flex-1 overflow-y-auto p-6 custom-scrollbar"
+              className="max-w-4xl mx-auto w-full pb-10"
               onSubmit={handleCreate}
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1463,7 +1488,7 @@ export default function VendorBimLeadTeamTasks() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-medium text-[#353535] mb-1">
-                      Actual Start Date
+                       Start Date
                     </label>
                     <input
                       type="date"
@@ -1488,7 +1513,7 @@ export default function VendorBimLeadTeamTasks() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-medium text-[#353535] mb-1">
-                      Actual End Date
+                       End Date
                     </label>
                     <input
                       type="date"
@@ -1718,15 +1743,26 @@ export default function VendorBimLeadTeamTasks() {
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 font-Gantari">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
             <div className="mb-2 flex w-full">
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setTaskToDelete(null);
-                }}
-                className="flex items-center justify-center rounded-md bg-[#F2F2F2] p-2 text-black transition cursor-pointer"
-              >
-                <FiX className="h-5 w-5 text-black" />
-              </button>
+              <div className="group relative inline-flex">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setTaskToDelete(null);
+                  }}
+                  className="flex items-center justify-center rounded-md bg-[#F2F2F2] p-2 text-black transition cursor-pointer"
+                >
+                  <FiX className="h-5 w-5 text-black" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
+                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="flex flex-col items-center">
               <h3 className="-mt-8 mb-6 text-[24px] font-medium text-black">
@@ -1735,19 +1771,21 @@ export default function VendorBimLeadTeamTasks() {
               <p className="mb-8 text-center text-[#353535] text-[16px]">
                 Are you sure, you want to Delete this?
               </p>
-              <div className="flex w-full justify-center gap-4">
+              <div className="flex w-full gap-3 justify-center items-center">
                 <button
+                  type="button"
                   onClick={() => {
                     setShowDeleteModal(false);
                     setTaskToDelete(null);
                   }}
-                  className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[14px] font-medium text-[#353535] cursor-pointer"
+                  className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[16px] font-medium text-[#353535] cursor-pointer"
                 >
-                  Discard
+                  Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleDeleteConfirm}
-                  className="rounded-md bg-[#FFECEC] px-5 py-2 text-[14px] font-semibold text-[#FF4A4A] cursor-pointer"
+                  className="rounded-md bg-[#DD3246] px-4 py-2 text-[16px] font-medium text-white cursor-pointer"
                 >
                   Yes, Delete
                 </button>
@@ -1759,3 +1797,4 @@ export default function VendorBimLeadTeamTasks() {
     </div>
   );
 }
+  
