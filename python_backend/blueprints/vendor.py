@@ -4177,6 +4177,13 @@ def list_vendor_tasks():
 
     is_vendor_user_task = getattr(g, "user_type", None) == "vendor"
     task_company_id = getattr(g, "company_id", None)
+    staff_role = (getattr(g, "user_role", None) or "").strip()
+    VENDOR_TASK_STAFF_ROLES = {
+        "Technical Director",
+        "Project Manager",
+        "BIM Lead",
+        "BIM Coordinator",
+    }
 
     where = []
     params = []
@@ -4216,14 +4223,23 @@ def list_vendor_tasks():
                 params.append(user_id)
                 params.append(user_id)
         else:
-            # Non-vendor callers: legacy filter
-            where.append("vt.vendor_id = %s")
-            params.append(user_id)
+            # Staff callers: allow role-based company visibility.
+            if staff_role not in VENDOR_TASK_STAFF_ROLES:
+                return jsonify({"tasks": []})
+            if task_company_id is not None:
+                where.append(
+                    "EXISTS (SELECT 1 FROM snh6_swiftproject.vendor_projects vp2 "
+                    "LEFT JOIN snh6_swiftproject.projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci "
+                    "WHERE vp2.id = vt.project_id AND mp.Company_id = %s)"
+                )
+                params.append(task_company_id)
     elif is_vendor_user_task:
         # Team view for vendor: no vendor_id restriction (all tasks in project)
         pass
     else:
         # Team view for staff (TD/PM/BL/BC): filter by company via vendor_projects join
+        if staff_role not in VENDOR_TASK_STAFF_ROLES:
+            return jsonify({"tasks": []})
         if task_company_id is not None:
             where.append(
                 "EXISTS (SELECT 1 FROM snh6_swiftproject.vendor_projects vp2 "
