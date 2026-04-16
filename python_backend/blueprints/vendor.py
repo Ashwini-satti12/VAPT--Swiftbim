@@ -2693,6 +2693,539 @@ def td_create_proposal():
         return jsonify({"success": False, "message": str(e)}), 500
 
 
+# ---------------------------------------------------------------------------
+# Reversed proposal flow (Vendor creates → TD reviews/accepts)
+# ---------------------------------------------------------------------------
+
+def _require_td_role():
+    role = (getattr(g, "user_role", None) or "").strip()
+    if role != "Technical Director":
+        return jsonify({"success": False, "message": "Forbidden"}), 403
+    return None
+
+
+def _ensure_vendor_submitted_proposals_table(cur):
+    """
+    vendor_submitted_proposals: vendor-created proposals stored in main DB.
+    Kept separate from td_proposals to preserve legacy flow.
+    """
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS vendor_submitted_proposals (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            bid_id INT NOT NULL,
+            opportunity_id INT NOT NULL,
+            vendor_id INT NOT NULL,
+            project_name VARCHAR(255),
+            vendor_name VARCHAR(255),
+            vendor_email VARCHAR(255),
+            executive_summary TEXT,
+            about_us TEXT,
+            address TEXT,
+            website_url VARCHAR(255),
+            email_address VARCHAR(255),
+            selected_currency VARCHAR(10),
+            scope_of_work TEXT,
+            technologies_used JSON,
+            deliverables TEXT,
+            exclusions TEXT,
+            commercial_offer JSON,
+            payment_terms JSON,
+            reason TEXT,
+            status VARCHAR(50) DEFAULT 'Sent',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+        """
+    )
+
+
+@bp.route("/bidding/accepted-bids-vendor", methods=["GET"])
+@login_required
+def accepted_bids_for_vendor():
+    """
+    GET /api/vendors/bidding/accepted-bids-vendor
+    Vendor-side list: shortlisted bids for the current vendor, with proposal linkage
+    to vendor_submitted_proposals (new reversed flow).
+    """
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        _ensure_vendor_submitted_proposals_table(cur)
+    except Exception:
+        # Table creation failure shouldn't hard-crash the page; return empty list.
+        return jsonify({"bids": []})
+
+    try:
+        cur.execute(
+            """
+            SELECT vb.*, vbi.project_name, vbi.outsource_budget, vbi.budget_ceiling,
+                   e.full_name AS vendor_name, e.email AS vendor_email,
+                   vsp.id AS proposal_id, vsp.status AS proposal_status,
+                   (vsp.id IS NOT NULL) AS proposal_exists
+            FROM snh6_swiftproject.vendor_bids vb
+            LEFT JOIN vendor_bidding vbi ON vbi.id = vb.opportunity_id
+            LEFT JOIN snh6_swiftproject.vendor_employee e ON e.id = vb.vendor_id
+            LEFT JOIN (
+                SELECT t1.*
+                FROM vendor_submitted_proposals t1
+                INNER JOIN (
+                    SELECT bid_id, MAX(id) AS max_id
+                    FROM vendor_submitted_proposals
+                    GROUP BY bid_id
+                ) t2 ON t1.id = t2.max_id
+            ) vsp ON vsp.bid_id = vb.id
+            WHERE vb.status = 'shortlisted'
+              AND vb.vendor_id = %s
+            ORDER BY vb.created_at DESC
+            """,
+            (getattr(g, "user_id", None),),
+        )
+        rows = cur.fetchall() or []
+        bids = [{k: _serialize(v) for k, v in r.items()} for r in rows]
+        return jsonify({"bids": bids})
+    except Exception:
+        return jsonify({"bids": []})
+
+
+@bp.route("/proposals/vendor-create", methods=["POST"])
+@login_required
+def vendor_create_proposal():
+    """
+    POST /api/vendors/proposals/vendor-create
+    Vendor creates a formal proposal for a shortlisted bid.
+    Stored in vendor_submitted_proposals (main DB).
+    """
+    data = request.get_json(silent=True) or {}
+    bid_id = data.get("bid_id")
+    opportunity_id = data.get("opportunity_id")
+    if not bid_id or not opportunity_id:
+        return jsonify({"success": False, "message": "Missing required IDs (bid_id, opportunity_id)"}), 400
+
+    import json
+
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        _ensure_vendor_submitted_proposals_table(cur)
+
+        vendor_id = getattr(g, "user_id", None)
+        vendor_name = None
+        vendor_email = None
+        try:
+            cur.execute("SELECT full_name, email FROM employee WHERE id = %s LIMIT 1", (vendor_id,))
+            r = cur.fetchone() or {}
+            vendor_name = r.get("full_name")
+            vendor_email = r.get("email")
+        except Exception:
+            pass
+
+        technologies = data.get("technologies_used", [])
+        tech_json = json.dumps(technologies if isinstance(technologies, list) else [])
+
+        commercial = data.get("commercial_offer", [])
+        if not isinstance(commercial, list):
+            commercial = []
+
+        payment_terms = data.get("payment_terms", [])
+        if not isinstance(payment_terms, list):
+            payment_terms = []
+
+        cur.execute(
+            """
+            INSERT INTO vendor_submitted_proposals (
+                bid_id, opportunity_id, vendor_id, project_name, vendor_name, vendor_email,
+                executive_summary, about_us, address, website_url, email_address,
+                selected_currency, scope_of_work, technologies_used, deliverables,
+                exclusions, commercial_offer, payment_terms, status, reason
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'Sent', NULL)
+            """,
+            (
+                bid_id,
+                opportunity_id,
+                vendor_id,
+                data.get("project_name"),
+                data.get("vendor_name") or vendor_name,
+                vendor_email,
+                data.get("executive_summary"),
+                data.get("aboutus") or data.get("about_us"),
+                data.get("address"),
+                data.get("website_url"),
+                data.get("email_address") or vendor_email,
+                data.get("selected_currency"),
+                data.get("scope_of_work"),
+                tech_json,
+                data.get("deliverables"),
+                data.get("exclusions"),
+                json.dumps(commercial),
+                json.dumps(payment_terms),
+            ),
+        )
+        proposal_id = cur.lastrowid
+        conn.commit()
+
+        # Notify TDs: new proposal submitted
+        try:
+            if getattr(g, "company_id", None):
+                cur.execute(
+                    "SELECT id FROM employee WHERE Company_id = %s AND user_role = 'Technical Director' AND active = 1",
+                    (g.company_id,),
+                )
+                td_ids = [r["id"] for r in (cur.fetchall() or []) if r.get("id")]
+                if td_ids:
+                    project_name = data.get("project_name") or "a project"
+                    title = "New vendor proposal"
+                    msg = f"A vendor proposal has been submitted for \"{project_name}\". Please review."
+                    for td_id in td_ids:
+                        cur.execute(
+                            """
+                            INSERT INTO notifications (user_id, project_id, title, message, type, is_read, created_at, Company_id)
+                            VALUES (%s, %s, %s, %s, %s, 0, NOW(), %s)
+                            """,
+                            (td_id, None, title, msg, "proposal_sent", g.company_id),
+                        )
+                    conn.commit()
+        except Exception:
+            pass
+
+        return jsonify({"success": True, "message": "Proposal submitted successfully.", "proposal_id": proposal_id})
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@bp.route("/proposals/vendor/<int:proposal_id>", methods=["GET"])
+@login_required
+def vendor_get_submitted_proposal(proposal_id: int):
+    """GET /api/vendors/proposals/vendor/<proposal_id>"""
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        _ensure_vendor_submitted_proposals_table(cur)
+        cur.execute(
+            "SELECT * FROM vendor_submitted_proposals WHERE id = %s AND vendor_id = %s LIMIT 1",
+            (proposal_id, getattr(g, "user_id", None)),
+        )
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"proposal": None}), 404
+        return jsonify({"proposal": {k: _serialize(v) for k, v in row.items()}})
+    except Exception:
+        return jsonify({"proposal": None}), 500
+
+
+@bp.route("/proposals/vendor/<int:proposal_id>", methods=["PUT"])
+@login_required
+def vendor_update_submitted_proposal(proposal_id: int):
+    """
+    PUT /api/vendors/proposals/vendor/<proposal_id>
+    Vendor updates a proposal only when TD requested clarification.
+    Resets status back to Sent.
+    """
+    data = request.get_json(silent=True) or {}
+    import json
+
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        _ensure_vendor_submitted_proposals_table(cur)
+        cur.execute(
+            "SELECT * FROM vendor_submitted_proposals WHERE id = %s AND vendor_id = %s LIMIT 1",
+            (proposal_id, getattr(g, "user_id", None)),
+        )
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"success": False, "message": "Proposal not found"}), 404
+        if (row.get("status") or "").lower() != "clarification_requested":
+            return jsonify(
+                {
+                    "success": False,
+                    "message": "Proposal can only be edited when clarification is requested.",
+                }
+            ), 400
+
+        technologies = data.get("technologies_used", [])
+        tech_json = json.dumps(technologies if isinstance(technologies, list) else [])
+
+        commercial = data.get("commercial_offer", [])
+        if not isinstance(commercial, list):
+            commercial = []
+
+        payment_terms = data.get("payment_terms", [])
+        if not isinstance(payment_terms, list):
+            payment_terms = []
+
+        cur.execute(
+            """
+            UPDATE vendor_submitted_proposals SET
+                executive_summary = %s,
+                about_us = %s,
+                address = %s,
+                website_url = %s,
+                email_address = %s,
+                selected_currency = %s,
+                scope_of_work = %s,
+                technologies_used = %s,
+                deliverables = %s,
+                exclusions = %s,
+                commercial_offer = %s,
+                payment_terms = %s,
+                status = 'Sent',
+                reason = NULL
+            WHERE id = %s AND vendor_id = %s
+            """,
+            (
+                data.get("executive_summary"),
+                data.get("aboutus") or data.get("about_us"),
+                data.get("address"),
+                data.get("website_url"),
+                data.get("email_address"),
+                data.get("selected_currency"),
+                data.get("scope_of_work"),
+                tech_json,
+                data.get("deliverables"),
+                data.get("exclusions"),
+                json.dumps(commercial),
+                json.dumps(payment_terms),
+                proposal_id,
+                getattr(g, "user_id", None),
+            ),
+        )
+        conn.commit()
+
+        # Notify TDs: updated proposal
+        try:
+            if getattr(g, "company_id", None):
+                cur.execute(
+                    "SELECT id FROM employee WHERE Company_id = %s AND user_role = 'Technical Director' AND active = 1",
+                    (g.company_id,),
+                )
+                td_ids = [r["id"] for r in (cur.fetchall() or []) if r.get("id")]
+                if td_ids:
+                    project_name = data.get("project_name") or row.get("project_name") or "a project"
+                    title = "Vendor proposal updated"
+                    msg = f"The vendor proposal for \"{project_name}\" has been updated. Please review."
+                    for td_id in td_ids:
+                        cur.execute(
+                            """
+                            INSERT INTO notifications (user_id, project_id, title, message, type, is_read, created_at, Company_id)
+                            VALUES (%s, %s, %s, %s, %s, 0, NOW(), %s)
+                            """,
+                            (td_id, None, title, msg, "proposal_sent", g.company_id),
+                        )
+                    conn.commit()
+        except Exception:
+            pass
+
+        return jsonify({"success": True, "message": "Proposal updated and re-submitted.", "proposal_id": proposal_id})
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@bp.route("/td/proposals", methods=["GET"])
+@login_required
+def td_list_vendor_proposals():
+    """GET /api/vendors/td/proposals — TD view of vendor_submitted_proposals."""
+    forbidden = _require_td_role()
+    if forbidden:
+        return forbidden
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        _ensure_vendor_submitted_proposals_table(cur)
+        cur.execute(
+            """
+            SELECT vsp.*,
+                   vb.bid_amount AS bid_amount,
+                   vb.timeline AS timeline,
+                   vb.team_size AS team_size,
+                   vbi.project_name AS bid_project_name,
+                   e.full_name AS vendor_emp_name,
+                   e.email AS vendor_emp_email
+            FROM vendor_submitted_proposals vsp
+            LEFT JOIN snh6_swiftproject.vendor_bids vb ON vb.id = vsp.bid_id
+            LEFT JOIN vendor_bidding vbi ON vbi.id = vsp.opportunity_id
+            LEFT JOIN snh6_swiftproject.vendor_employee e ON e.id = vsp.vendor_id
+            ORDER BY vsp.created_at DESC
+            """
+        )
+        rows = cur.fetchall() or []
+        out = [{k: _serialize(v) for k, v in r.items()} for r in rows]
+        return jsonify({"success": True, "proposals": out})
+    except Exception as e:
+        return jsonify({"success": False, "proposals": [], "message": str(e)}), 500
+
+
+@bp.route("/td/proposals/<int:proposal_id>", methods=["GET"])
+@login_required
+def td_get_vendor_proposal(proposal_id: int):
+    """GET /api/vendors/td/proposals/<id> — TD fetch of a vendor-submitted proposal."""
+    forbidden = _require_td_role()
+    if forbidden:
+        return forbidden
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        _ensure_vendor_submitted_proposals_table(cur)
+        cur.execute(
+            "SELECT * FROM vendor_submitted_proposals WHERE id = %s LIMIT 1",
+            (proposal_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"proposal": None}), 404
+        return jsonify({"proposal": {k: _serialize(v) for k, v in row.items()}})
+    except Exception:
+        return jsonify({"proposal": None}), 500
+
+
+@bp.route("/td/proposals/<int:proposal_id>/respond", methods=["POST"])
+@login_required
+def td_respond_vendor_proposal(proposal_id: int):
+    """
+    POST /api/vendors/td/proposals/<id>/respond
+    TD accepts/rejects/requests clarification for vendor-submitted proposal.
+    Body: { action: 'accept'|'reject'|'clarification', reason?: string }
+    """
+    forbidden = _require_td_role()
+    if forbidden:
+        return forbidden
+    data = request.get_json(silent=True) or {}
+    action = data.get("action")
+    reason = data.get("reason", "")
+    if action not in ("accept", "reject", "clarification"):
+        return jsonify({"success": False, "message": "Invalid action"}), 400
+
+    status_map = {"accept": "accepted", "reject": "rejected", "clarification": "clarification_requested"}
+    new_status = status_map[action]
+
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        _ensure_vendor_submitted_proposals_table(cur)
+        cur.execute("SELECT * FROM vendor_submitted_proposals WHERE id = %s LIMIT 1", (proposal_id,))
+        proposal = cur.fetchone()
+        if not proposal:
+            return jsonify({"success": False, "message": "Proposal not found"}), 404
+
+        cur.execute(
+            "UPDATE vendor_submitted_proposals SET status = %s, reason = %s WHERE id = %s",
+            (new_status, reason, proposal_id),
+        )
+        conn.commit()
+
+        # Notify vendor about TD decision
+        try:
+            if getattr(g, "company_id", None):
+                vendor_id = proposal.get("vendor_id")
+                if vendor_id:
+                    project_name = proposal.get("project_name") or "Proposal"
+                    title = "Proposal update"
+                    msg = f"Your proposal for \"{project_name}\" was {new_status.replace('_', ' ')}."
+                    if action in ("reject", "clarification") and reason:
+                        msg += f" Note: {reason}"
+                    cur.execute(
+                        """
+                        INSERT INTO notifications (user_id, project_id, title, message, type, is_read, created_at, Company_id)
+                        VALUES (%s, %s, %s, %s, %s, 0, NOW(), %s)
+                        """,
+                        (vendor_id, None, title, msg, "proposal_status", g.company_id),
+                    )
+                    conn.commit()
+        except Exception:
+            pass
+
+        # On accept → auto-create vendor project (same as legacy accept)
+        project_id = None
+        if action == "accept":
+            try:
+                _ensure_vp_table()
+                main_cur = conn.cursor(dictionary=True)
+                main_cur.execute("SELECT id FROM vendor_projects WHERE proposal_id = %s", (proposal_id,))
+                existing = main_cur.fetchone()
+                if existing:
+                    project_id = existing["id"]
+                else:
+                    # project linkage from vendor_bidding
+                    main_cur.execute(
+                        "SELECT project_id FROM snh6_swiftproject.vendor_bidding WHERE id = %s",
+                        (proposal.get("opportunity_id"),),
+                    )
+                    vb_row = main_cur.fetchone()
+                    project_id_main = vb_row.get("project_id") if vb_row else None
+
+                    if project_id_main:
+                        main_cur.execute(
+                            """SELECT client_id, bidding_end_date, budget_ceiling, location, category,
+                               department, due_date, start_date, priority, Company_id, document_attachment
+                               FROM snh6_swiftproject.projects WHERE id = %s""",
+                            (project_id_main,),
+                        )
+                        source_proj = main_cur.fetchone()
+                    else:
+                        main_cur.execute(
+                            """SELECT client_id, bidding_end_date, budget_ceiling, location, category,
+                               department, due_date, start_date, priority, Company_id, document_attachment
+                               FROM snh6_swiftproject.projects WHERE project_name = %s LIMIT 1""",
+                            (proposal.get("project_name"),),
+                        )
+                        source_proj = main_cur.fetchone()
+
+                    source_proj = source_proj or {}
+                    main_cur.execute(
+                        """
+                        INSERT INTO vendor_projects (
+                            main_project_id,
+                            proposal_id, opportunity_id, vendor_id, project_name,
+                            description, modules, deliverables, budget, document_attachment,
+                            client_id, bidding_end_date, budget_ceiling, location, category,
+                            department, due_date, start_date, priority, Company_id
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (
+                            project_id_main,
+                            proposal_id,
+                            proposal.get("opportunity_id"),
+                            proposal.get("vendor_id"),
+                            proposal.get("project_name"),
+                            proposal.get("scope_of_work"),
+                            "",
+                            proposal.get("deliverables"),
+                            "0",
+                            source_proj.get("document_attachment"),
+                            source_proj.get("client_id"),
+                            source_proj.get("bidding_end_date"),
+                            source_proj.get("budget_ceiling"),
+                            source_proj.get("location"),
+                            source_proj.get("category"),
+                            source_proj.get("department"),
+                            source_proj.get("due_date"),
+                            source_proj.get("start_date"),
+                            source_proj.get("priority"),
+                            source_proj.get("Company_id"),
+                        ),
+                    )
+                    project_id = main_cur.lastrowid
+                    conn.commit()
+            except Exception:
+                pass
+
+        return jsonify({"success": True, "status": new_status, "project_id": project_id})
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return jsonify({"success": False, "message": str(e)}), 500
+
 # ===========================================================================
 # MODULE 2 — COMPANY PROFILE
 # ===========================================================================
