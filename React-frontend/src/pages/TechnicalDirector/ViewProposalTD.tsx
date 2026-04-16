@@ -51,6 +51,8 @@ export default function ViewProposalTD() {
     const state: any = (location && (location as any).state) || {};
     const bid = state?.bid || null;
     const proposalId = state?.proposalId || null;
+    const source = state?.source || "td_proposals";
+    const returnTo = state?.returnTo || "/td/proposals";
 
     const [loading, setLoading] = useState(true);
     const [proposal, setProposal] = useState<any>(null);
@@ -61,7 +63,12 @@ export default function ViewProposalTD() {
             return;
         }
 
-        api.get<{ proposal?: any }>(`/api/vendors/proposals/td/${proposalId}`)
+        const path =
+          source === "vendor_submitted"
+            ? `/api/vendors/td/proposals/${proposalId}`
+            : `/api/vendors/proposals/td/${proposalId}`;
+
+        api.get<{ proposal?: any }>(path)
             .then(({ data }) => {
                 if (data.proposal) {
                     setProposal(data.proposal);
@@ -112,7 +119,7 @@ export default function ViewProposalTD() {
                     <div className="group relative inline-flex shrink-0">
                         <button
                             type="button"
-                            onClick={() => navigate("/td/proposals")}
+                            onClick={() => navigate(returnTo)}
                             className="p-2 rounded-md bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer hover:opacity-90 shrink-0"
                         >
                             <img src={backIcon} alt="Back" className="w-5 h-5" />
@@ -330,6 +337,7 @@ export default function ViewProposalTD() {
                                                 <th className="px-4 py-3 text-left w-16 font-gantari font-bold text-[#020202] text-[16px]">Sl.No</th>
                                                 <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-[16px]">Payment Basis</th>
                                                 <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-[16px]">Terms</th>
+                                                <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-[16px]">Amount</th>
                                                 <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-[16px]">Timeline (Weeks)</th>
                                             </tr>
                                         </thead>
@@ -339,6 +347,7 @@ export default function ViewProposalTD() {
                                                     <td className="px-4 py-3 font-gantari text-[14px] text-[#020202]">{i + 1}.</td>
                                                     <td className="px-4 py-3 text-center font-gantari text-[14px] text-[#353535]">{p.basis || '—'}</td>
                                                     <td className="px-4 py-3 text-center font-gantari text-[14px] text-[#353535]">{p.terms || '—'}</td>
+                                                    <td className="px-4 py-3 text-center font-gantari text-[14px] text-[#353535]">{p.amount != null && String(p.amount).trim() !== "" ? String(p.amount) : '—'}</td>
                                                     <td className="px-4 py-3 text-center font-gantari text-[14px] text-[#353535]">{p.timeline || '—'}</td>
                                                 </tr>
                                             ))}

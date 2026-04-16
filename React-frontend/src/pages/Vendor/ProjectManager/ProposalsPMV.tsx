@@ -45,29 +45,17 @@ function safeParse(val: any): any[] {
 }
 
 export default function ProposalsPMV() {
-    const [loading, setLoading] = useState(true);
-    const [proposals, setProposals] = useState<Proposal[]>([]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selected, setSelected] = useState<Proposal | null>(null);
     const navigate = useNavigate();
-    const [rejectReason, setRejectReason] = useState('');
-    const [clarNote, setClarNote] = useState('');
-    const [submitting, setSubmitting] = useState(false);
-    const [successMsg, setSuccessMsg] = useState<string | null>(null);
+    // Proposals flow is shared with Vendor pages; keep PM route working by redirecting.
+    useEffect(() => {
+        navigate("/v/proposals", { replace: true });
+    }, [navigate]);
 
-    const fetchProposals = () => {
-        api.get<{ proposals: Proposal[] }>('/api/vendors/proposals')
-            .then(({ data }) => setProposals(data.proposals ?? []))
-            .catch(() => setProposals([]))
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(() => { fetchProposals(); }, []);
-
-    const formatDate = (dateStr: string) => {
-        if (!dateStr) return '—';
-        return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-    };
+    return (
+        <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DE3D3A]" />
+        </div>
+    );
 
     const getStatusBadge = (status: string) => {
         const s = (status || '').toLowerCase();

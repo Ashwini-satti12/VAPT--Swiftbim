@@ -6,24 +6,19 @@ import viewIcon from '../../assets/ProjectManager/project/viewIcon.svg';
 // import editIcon from '../../assets/ProjectManager/project/editIcon.svg';
 import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
-interface AcceptedBid {
+interface VendorProposalRow {
   id: number;
-  vendor_id: number;
+  bid_id: number;
   opportunity_id: number;
-  bid_amount: number;
-  notes: string;
-  timeline: string;
-  team_size: number;
+  vendor_id: number;
+  project_name?: string;
+  vendor_name?: string;
+  vendor_email?: string;
+  bid_amount?: number;
+  timeline?: string;
   status: string;
+  reason?: string;
   created_at: string;
-  project_name: string;
-  vendor_name: string;
-  vendor_email: string;
-  outsource_budget: number;
-  budget_ceiling: number;
-  proposal_exists?: boolean;
-  proposal_id?: number;
-  proposal_status?: string;
 }
 
 const SHOW_ENTRIES_PLACEHOLDER = 'Show Entries';
@@ -42,7 +37,7 @@ export default function ProposalTD() {
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
-  const [bids, setBids] = useState<AcceptedBid[]>([]);
+  const [proposals, setProposals] = useState<VendorProposalRow[]>([]);
   const [selectedShowEntries, setSelectedShowEntries] = useState('');
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
@@ -57,11 +52,7 @@ export default function ProposalTD() {
 
   useEffect(() => {
     const state: any = (location && (location as any).state) || {};
-    if (state?.acceptedBid) {
-      toast.success(`${state.acceptedBid.vendor_name || "Vendor"} accepted — create a proposal below.`);
-    } else if (state?.created || state?.updated) {
-      toast.success(state.msg || "Proposal submitted successfully!");
-    }
+    if (state?.responded) toast.success(state.msg || "Proposal updated.");
     // Clean up state so toast doesn't re-appear on refresh
     if (location.state) {
       navigate(location.pathname, { replace: true, state: {} });
@@ -69,9 +60,9 @@ export default function ProposalTD() {
   }, [location.state, location.pathname, navigate]);
 
   useEffect(() => {
-    api.get<{ bids: AcceptedBid[] }>("/api/vendors/bidding/accepted-bids")
-      .then(({ data }) => setBids(data.bids ?? []))
-      .catch(() => setBids([]))
+    api.get<{ success?: boolean; proposals?: VendorProposalRow[] }>("/api/vendors/td/proposals")
+      .then(({ data }) => setProposals(data.proposals ?? []))
+      .catch(() => setProposals([]))
       .finally(() => setLoading(false));
   }, []);
 
@@ -100,14 +91,14 @@ export default function ProposalTD() {
   };
 
   const searchQuery = searchParams.get('q')?.toLowerCase() || "";
-  const filtered = bids.filter((bid) => {
+  const filtered = proposals.filter((p) => {
     if (!searchQuery) return true;
     return (
-      (bid.project_name || "").toLowerCase().includes(searchQuery) ||
-      (bid.vendor_name || "").toLowerCase().includes(searchQuery) ||
-      (bid.vendor_email || "").toLowerCase().includes(searchQuery) ||
-      (bid.status || "").toLowerCase().includes(searchQuery) ||
-      (bid.timeline || "").toLowerCase().includes(searchQuery)
+      (p.project_name || "").toLowerCase().includes(searchQuery) ||
+      (p.vendor_name || "").toLowerCase().includes(searchQuery) ||
+      (p.vendor_email || "").toLowerCase().includes(searchQuery) ||
+      (p.status || "").toLowerCase().includes(searchQuery) ||
+      (p.timeline || "").toLowerCase().includes(searchQuery)
     );
   });
 
@@ -128,6 +119,19 @@ export default function ProposalTD() {
   const rangeEnd = selectedRange.end === null ? filtered.length : Math.min(selectedRange.end, filtered.length);
   const listInRange = filtered.slice(selectedRange.start, rangeEnd);
   const displayList = listInRange;
+
+  const respond = async (proposalId: number, action: "accept" | "reject") => {
+    const reason =
+      action === "reject" ? window.prompt("Reason (optional)", "") ?? "" : "";
+    try {
+      await api.post(`/api/vendors/td/proposals/${proposalId}/respond`, { action, reason });
+      const { data } = await api.get<{ proposals?: VendorProposalRow[] }>("/api/vendors/td/proposals");
+      setProposals(data.proposals ?? []);
+      navigate(location.pathname, { replace: true, state: { responded: true, msg: "Proposal updated." } });
+    } catch {
+      toast.error("Failed to update proposal");
+    }
+  };
 
   return (
     <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
@@ -208,8 +212,8 @@ export default function ProposalTD() {
               <svg className="w-14 h-14 mx-auto mb-4 text-[#AEACAC]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p className="text-lg font-semibold mb-1 text-[#353535]">No accepted bids yet</p>
-              <p className="text-sm">Accept vendor bids from the Bidding module to create proposals here.</p>
+              <p className="text-lg font-semibold mb-1 text-[#353535]">No vendor proposals yet</p>
+              <p className="text-sm">Vendor proposals will appear here once submitted.</p>
             </div>
           ) : (
             <>
@@ -227,27 +231,22 @@ export default function ProposalTD() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {displayList.map((bid, index) => {
+                    {displayList.map((p, index) => {
                       const slNo = (selectedRange.start + index + 1).toString().padStart(2, '0');
-                      const displayStatus =
-                        bid.proposal_exists && bid.proposal_status
-                          ? bid.proposal_status
-                          : bid.status;
-                      const clarificationEdit = isClarificationRequested(displayStatus);
-                      const canOpenCreateOrEdit =
-                        !bid.proposal_exists ||
-                        (clarificationEdit && bid.proposal_id != null && bid.proposal_id !== undefined);
+                      const displayStatus = p.status;
+                      const statusNorm = String(displayStatus || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+                      const isTerminal = statusNorm === "accepted" || statusNorm === "rejected";
                       return (
-                        <tr key={bid.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
+                        <tr key={p.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
                           <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{slNo}</td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{bid.project_name}</td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{p.project_name || "—"}</td>
                           <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                            <div className="text-[14px] text-[#353535] font-gantari">{bid.vendor_name}</div>
+                            <div className="text-[14px] text-[#353535] font-gantari">{p.vendor_name || "—"}</div>
                           </td>
                           <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                            {formatCurrency(bid.bid_amount)}
+                            {formatCurrency(p.bid_amount as any)}
                           </td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{bid.timeline || "—"}</td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{p.timeline || "—"}</td>
                           <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
                             <span className={`inline-flex px-4 py-1.5 rounded-lg text-[14px] font-gantari ${getStatusBadge(displayStatus)}`}>
                               {getStatusLabel(displayStatus)}
@@ -257,48 +256,50 @@ export default function ProposalTD() {
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() =>
-                                  canOpenCreateOrEdit &&
-                                  navigate("/td/create-proposal", {
-                                    state: {
-                                      bid,
-                                      projectName: bid.project_name,
-                                      opportunityId: bid.opportunity_id,
-                                      ...(clarificationEdit && bid.proposal_id != null
-                                        ? { proposalId: bid.proposal_id, editProposal: true }
-                                        : {}),
-                                    },
+                                  navigate("/td/view-proposal", {
+                                    state: { proposalId: p.id, bid: p, source: "vendor_submitted" },
                                   })
                                 }
-                                disabled={!canOpenCreateOrEdit}
-                                title={clarificationEdit ? "Edit proposal" : "Create proposal"}
-                                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${!canOpenCreateOrEdit
-                                  ? 'cursor-not-allowed opacity-50'
-                                  : ''
-                                  }`}
+                                title="View Proposal"
+                                className="flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer"
                               >
                                 <img src={viewIcon} alt="" className="w-4 h-4 object-contain brightness-0 invert" />
-                                {clarificationEdit ? "Edit" : "Create"}
-                              </button>
-
-                              <button
-                                onClick={() =>
-                                  bid.proposal_exists && navigate("/td/view-proposal", {
-                                    state: {
-                                      proposalId: bid.proposal_id,
-                                      bid,
-                                    },
-                                  })
-                                }
-                                disabled={!bid.proposal_exists}
-                                title="View Proposal"
-                                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${!bid.proposal_exists
-                                  ? 'cursor-not-allowed opacity-50'
-                                  : ''
-                                  }`}
-                              >
-                                <img src={viewIcon} alt="View" className="w-4 h-4 object-contain brightness-0 invert" />
                                 View
                               </button>
+
+                              <div className="relative group">
+                                <button
+                                  onClick={() => !isTerminal && void respond(p.id, "accept")}
+                                  disabled={isTerminal}
+                                  className={`h-10 w-10 rounded-full flex items-center justify-center text-[18px] font-gantari transition-all bg-[#E1F6EB] text-[#008F22] shadow-sm ${isTerminal ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                                  aria-label="Accept"
+                                  type="button"
+                                >
+                                  ✓
+                                </button>
+                                <div className="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-[300]">
+                                  <div className="rounded-md bg-[#353535] text-white text-[12px] font-semibold px-2 py-1 whitespace-nowrap shadow-lg">
+                                    Accept
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="relative group">
+                                <button
+                                  onClick={() => !isTerminal && void respond(p.id, "reject")}
+                                  disabled={isTerminal}
+                                  className={`h-10 w-10 rounded-full flex items-center justify-center text-[18px] font-gantari transition-all bg-[#FFF1F2] text-[#BE123C] shadow-sm ${isTerminal ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                                  aria-label="Reject"
+                                  type="button"
+                                >
+                                  ✕
+                                </button>
+                                <div className="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-[300]">
+                                  <div className="rounded-md bg-[#353535] text-white text-[12px] font-semibold px-2 py-1 whitespace-nowrap shadow-lg">
+                                    Reject
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </td>
                         </tr>

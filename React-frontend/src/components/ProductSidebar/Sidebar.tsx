@@ -124,7 +124,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           isVisible: true,
         },
         {
-          name: "Work Order",
+          name: "Proposals",
           path: "/td/manage-proposal",
           iconSrc: blackProposalIcon,
           activeIconSrc: redProposalIcon,
@@ -607,8 +607,8 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
 
     if (normalizedCurrent === normalizedTarget) return true;
 
-    // Technical Director Work Order: same app routes as legacy proposal URLs
-    if (name === "Work Order" && normalizedTarget === "/td/manage-proposal") {
+    // Technical Director Proposals: same app routes as legacy proposal URLs
+    if (name === "Proposals" && normalizedTarget === "/td/manage-proposal") {
       const workOrderSubRoutes = ["/td/proposals", "/td/create-proposal", "/td/view-proposal"];
       if (workOrderSubRoutes.includes(normalizedCurrent)) return true;
     }
