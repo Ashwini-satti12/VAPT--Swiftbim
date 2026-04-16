@@ -393,9 +393,14 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
   const str = (v: unknown) => (v != null ? String(v) : "");
   const dateOnly = (v: unknown) => {
     if (v == null) return "";
-    const s = str(v);
-    if (s.length >= 10) return s.slice(0, 10);
-    return s;
+    const s = str(v).trim();
+    if (!s) return "";
+    // ISO / datetime: YYYY-MM-DD...
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    // Legacy formats: DD-MM-YYYY / DD/MM/YYYY -> YYYY-MM-DD for <input type="date">
+    const dmy = s.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+    if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+    return s.length >= 10 ? s.slice(0, 10) : s;
   };
   const timeOnly = (v: unknown) => {
     if (v == null) return "";
@@ -413,10 +418,23 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
     ),
     actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
     startTime: timeOnly(
-      t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
+      t.perferstart_time ??
+        t.start_time ??
+        t.startTime ??
+        t.Actual_start_time ??
+        "",
     ),
-    dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
-    assignTo: str(t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
+    dueTime: timeOnly(
+      t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? "",
+    ),
+    assignTo: str(
+      t.assigned_full_name ??
+        t.assign_to_name ??
+        t.assign_to ??
+        t.assignTo ??
+        t.assigned_to ??
+        "",
+    ),
     description: str(t.description ?? ""),
     checklist: str(t.checklist ?? ""),
   };
@@ -699,7 +717,7 @@ function TaskCard({
   );
 }
 
-const SHOW_OPTIONS = ["Show Entries", "10", "50", "100", "All"];
+const SHOW_OPTIONS = ["Show Entries", "0-50", "51-100", "101-150", "151-200","201-250","251-300", "All"];
 const PERIOD_OPTIONS = [
   "Period",
   "This Week",

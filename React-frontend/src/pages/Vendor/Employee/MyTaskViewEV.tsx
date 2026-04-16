@@ -6,7 +6,7 @@ import api from "../../../lib/api";
 import Upload from "../../../assets/ProjectManager/MyTask/Upload.svg";
 import ImageIcon from "../../../assets/ProjectManager/MyTask/image.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
-import { VendorBimLeadBackTooltipWrap } from "../VendorBimLead/VendorBimLeadGoBackButton";
+
 
 interface Task {
   id: number;
@@ -201,7 +201,7 @@ function statusKeyToBackend(s: StatusKey): string {
   return "Todo";
 }
 
-export default function MyTaskViewEV() {
+export default function MyTaskViewEV({ taskId: propTaskId, onBack: propOnBack }: { taskId?: number, onBack?: () => void }) {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
@@ -209,7 +209,7 @@ export default function MyTaskViewEV() {
   const initialTask = state?.task;
 
   const [task, setTask] = useState<Task | undefined>(initialTask);
-  const [loading, setLoading] = useState(() => !initialTask && Boolean(id));
+  const [loading, setLoading] = useState(() => !initialTask && (Boolean(id) || Boolean(propTaskId)));
 
   const [statusDisplay, setStatusDisplay] = useState<StatusKey>(() =>
     initialTask ? normalizeStatus(initialTask.status, initialTask.Approval) : "todo",
@@ -231,6 +231,10 @@ export default function MyTaskViewEV() {
   const listPath = `/ve/mytasks${location.search || ""}`;
 
   const goBackToList = () => {
+    if (propOnBack) {
+      propOnBack();
+      return;
+    }
     navigate(listPath);
   };
 
@@ -329,7 +333,7 @@ export default function MyTaskViewEV() {
   }, [task]);
 
   useEffect(() => {
-    const tid = initialTask?.id ?? Number(id);
+    const tid = propTaskId ?? initialTask?.id ?? Number(id);
     if (!tid || Number.isNaN(tid)) {
       setLoading(false);
       return;
@@ -516,20 +520,29 @@ export default function MyTaskViewEV() {
   };
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col overflow-y-auto bg-white pb-10 custom-scrollbar">
-      <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-100">
-        <VendorBimLeadBackTooltipWrap>
+    <div className="flex flex-1 min-h-0 flex-col overflow-y-auto bg-white custom-scrollbar">
+      <div className="shrink-0 flex items-center justify-between px-5 py-2">
+        <div className="flex items-center justify-between mb-2 relative flex-shrink-0">
+            <div className="group relative inline-flex shrink-0">
           <button
             type="button"
             onClick={goBackToList}
             className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-            aria-label="Back"
-            title="Back"
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
           </button>
-        </VendorBimLeadBackTooltipWrap>
-        <h1 className="flex-1 text-center text-[20px] sm:text-2xl font-semibold text-[#353535] font-Gantari px-2">
+           {/* Tooltip */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
+                  <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Go Back
+                  </span>
+                </div>
+              </div>
+            </div>
+            </div>
+        <h1 className="flex-1 text-center text-[20px] md:text-[24px] font-medium text-[#353535] font-Gantari px-2">
           {resolvedProjectName || task.task_name || "Task"}
         </h1>
         <div className="w-9" />

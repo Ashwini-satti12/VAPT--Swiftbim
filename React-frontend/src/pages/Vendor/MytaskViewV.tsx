@@ -586,7 +586,7 @@ export default function MytaskViewV() {
             </div>
             <div className="flex flex-col gap-2">
               <div className="flex gap-2">
-                <span className="text-[#020202] shrink-0 w-28 font-medium">Attachments</span>
+                <span className="text-[#020202] shrink-0 w-28 ">Attachments</span>
                 <span className="text-[#020202] shrink-0">:</span>
                 <div className="flex flex-col gap-2 flex-1 min-w-0">
                   {submittedOutputFiles.length > 0 ? (

@@ -137,30 +137,57 @@ def list_tasks():
         # else: no assigned_to filter → all tasks in scope (not defaulted to current user;
         # defaulting omitted employeeid to g.user_id broke team/tracker views that need every assignee.)
 
-        # Add project level filtering for non-management roles to match dashboard
+        # Add project level filtering for non-management roles to match dashboard.
+        # Always include tasks directly assigned to / created by current user.
         if user_role not in MANAGEMENT_ROLES:
             if user_role == "BIM Coordinator":
-                where.append("FIND_IN_SET(%s, REPLACE(IFNULL(p.bim_coordinator_id, ''), ' ', '')) > 0")
-                params.append(g.user_id)
+                where.append(
+                    """(
+                        t.assigned_to = %s
+                        OR t.uploaderid = %s
+                        OR FIND_IN_SET(%s, REPLACE(IFNULL(p.bim_coordinator_id, ''), ' ', '')) > 0
+                    )"""
+                )
+                params.extend([g.user_id, g.user_id, g.user_id])
             elif user_role == "BIM Lead":
-                where.append("FIND_IN_SET(%s, REPLACE(IFNULL(p.lead_id, ''), ' ', '')) > 0")
-                params.append(g.user_id)
+                where.append(
+                    """(
+                        t.assigned_to = %s
+                        OR t.uploaderid = %s
+                        OR FIND_IN_SET(%s, REPLACE(IFNULL(p.lead_id, ''), ' ', '')) > 0
+                    )"""
+                )
+                params.extend([g.user_id, g.user_id, g.user_id])
             elif user_role == "BIM Modeler":
-                where.append("FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0")
-                params.append(g.user_id)
+                where.append(
+                    """(
+                        t.assigned_to = %s
+                        OR t.uploaderid = %s
+                        OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
+                    )"""
+                )
+                params.extend([g.user_id, g.user_id, g.user_id])
             elif user_role == "Project Manager":
                 # Match projects.py and dashboard /stats: only projects where user is Project Manager
                 where.append(
-                    "FIND_IN_SET(%s, REPLACE(IFNULL(p.project_manager_id, ''), ' ', '')) > 0"
+                    """(
+                        t.assigned_to = %s
+                        OR t.uploaderid = %s
+                        OR FIND_IN_SET(%s, REPLACE(IFNULL(p.project_manager_id, ''), ' ', '')) > 0
+                    )"""
                 )
-                params.append(g.user_id)
+                params.extend([g.user_id, g.user_id, g.user_id])
             else:
                 # Consultant and other roles: any project involvement
-                where.append("""(
-                        p.client_id = %s OR p.project_manager_id = %s OR p.lead_id = %s OR p.bim_coordinator_id = %s OR p.uploaderid = %s
+                where.append(
+                    """(
+                        t.assigned_to = %s
+                        OR t.uploaderid = %s
+                        OR p.client_id = %s OR p.project_manager_id = %s OR p.lead_id = %s OR p.bim_coordinator_id = %s OR p.uploaderid = %s
                         OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
-                    )""")
-                params.extend([g.user_id, g.user_id, g.user_id, g.user_id, g.user_id, g.user_id])
+                    )"""
+                )
+                params.extend([g.user_id, g.user_id, g.user_id, g.user_id, g.user_id, g.user_id, g.user_id, g.user_id])
     else:
         # My task / employee view: only tasks assigned to me or created by me.
         # Legacy frontend may send employeeid=all even for My Task. In that case,
@@ -189,15 +216,21 @@ def list_tasks():
         where.append("t.projectid = %s")
         params.append(project_id)
 
-    # Outsource delivery is tracked in vendor_task; do not surface parallel rows from `tasks`
-    # for main projects that are linked to vendor_projects (same project_name as list_vendor_projects).
+    # Outsource delivery is tracked in vendor_task; generally avoid parallel rows from `tasks`
+    # for linked vendor projects. But keep directly involved rows visible so creators/assignees
+    # (e.g., BIM Modeler who just added task) never lose their task.
     where.append(
-        """NOT EXISTS (
-            SELECT 1 FROM snh6_swiftproject.vendor_projects vp
-            INNER JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
-            WHERE mp.id = t.projectid AND mp.Company_id = t.Company_id
+        """(
+            NOT EXISTS (
+                SELECT 1 FROM snh6_swiftproject.vendor_projects vp
+                INNER JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
+                WHERE mp.id = t.projectid AND mp.Company_id = t.Company_id
+            )
+            OR t.uploaderid = %s
+            OR t.assigned_to = %s
         )"""
     )
+    params.extend([g.user_id, g.user_id])
 
     sql = f"""SELECT t.*, e_assigned.full_name AS assigned_full_name, e_uploader.full_name AS uploader_full_name,
               e_assigned.profile_picture AS assigned_profile_picture, e_uploader.profile_picture AS uploader_profile_picture,
