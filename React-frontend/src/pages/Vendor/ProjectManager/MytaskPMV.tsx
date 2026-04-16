@@ -642,7 +642,7 @@ function TaskCard({
                     : task.uploader_profile_picture
                       ? getProfileUrl(task.uploader_profile_picture)
                       : "";
-                const initials = task.uploader_full_name
+                const initials = task.uploader_full_name 
                   .split(" ")
                   .filter(Boolean)
                   .map((p) => p[0])

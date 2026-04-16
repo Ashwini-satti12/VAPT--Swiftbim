@@ -699,7 +699,7 @@ function TaskCard({
   );
 }
 
-const SHOW_OPTIONS = ["Show Entries", "10", "50", "100", "All"];
+const SHOW_OPTIONS = ["Show Entries", "0-50", "51-100", "101-150", "151-200","201-250","251-300", "All"];
 const PERIOD_OPTIONS = [
   "Period",
   "This Week",
