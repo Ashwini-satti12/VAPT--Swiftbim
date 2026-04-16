@@ -78,6 +78,44 @@ def send_project_creation_email(full_name, email, project_name, start_date, due_
     ]
     return _send_mail(email, subject, "\n".join(body_lines))
 
+
+def send_project_added_confirmation_email(full_name, email, project_name, start_date, due_date):
+    """Send an email confirmation to the user who created the project."""
+    subject = f"Project Created: {project_name}"
+    body_lines = [
+        f"Hello {full_name or 'User'},",
+        "",
+        f"You added a new project: {project_name}.",
+        "",
+        f"Start Date: {start_date}",
+        f"Due Date: {due_date}",
+        "",
+        "You can view it in your Projects dashboard.",
+        "",
+        "Best regards,",
+        "SwiftBIM System",
+    ]
+    return _send_mail(email, subject, "\n".join(body_lines))
+
+
+def send_vendor_outsource_opportunity_email(email, contact_name, project_name, bid_deadline, budget_ceiling, currency="INR"):
+    """Notify a vendor about a new outsource/bidding opportunity."""
+    subject = f"New Outsource Opportunity: {project_name}"
+    body_lines = [
+        f"Hello {contact_name or 'Vendor'},",
+        "",
+        f"A new outsource project is available for bidding: {project_name}.",
+        "",
+        f"Bid Deadline: {bid_deadline}",
+        f"Budget Ceiling: {currency} {budget_ceiling}",
+        "",
+        "Please log in to view the opportunity details and submit your bid.",
+        "",
+        "Best regards,",
+        "SwiftBIM System",
+    ]
+    return _send_mail(email, subject, "\n".join(body_lines))
+
 def send_invitation_email(email, full_name, invitation_link="https://projectmanagement.swifterz.ae/login"):
     """Send an invitation email to a new employee."""
     
@@ -96,5 +134,83 @@ def send_invitation_email(email, full_name, invitation_link="https://projectmana
         "Best regards,",
         "SwiftBIM Team"
     ]
+
+    return _send_mail(email, subject, "\n".join(body_lines))
+
+
+def send_employee_status_email(email, full_name, new_status, company_label="this company"):
+    """
+    Notify an employee that their account status changed.
+
+    new_status: 'active' | 'inactive' (case-insensitive)
+    """
+    status = (new_status or "").strip().lower()
+    is_active = status == "active"
+
+    subject = "Account Activated" if is_active else "Account Inactivated"
+    body_lines = [
+        f"Dear {full_name or 'User'},",
+        "",
+        (
+            f"Your account has been activated. You are now active in {company_label}."
+            if is_active
+            else f"Your account has been inactivated. You are now inactive in {company_label}."
+        ),
+        "",
+        "If you believe this is a mistake, please contact your administrator.",
+        "",
+        "Best regards,",
+        "SwiftBIM Team",
+    ]
+
+    return _send_mail(email, subject, "\n".join(body_lines))
+
+
+def send_employee_profile_updated_email(email, full_name, updated_fields=None, updated_by_role="Technical Director"):
+    """
+    Notify an employee that their profile was edited by an admin/TD.
+
+    updated_fields: list[str] of human readable field names.
+    """
+    # updated_fields can be:
+    # - list[str] (field labels)
+    # - list[tuple[str, str]] (label, value) OR list[dict] like {"label":..., "value":...}
+    fields = updated_fields or []
+    subject = "Your profile details were updated"
+
+    body_lines = [
+        f"Dear {full_name or 'User'},",
+        "",
+        f"Your profile details were updated by {updated_by_role}.",
+    ]
+
+    if fields:
+        body_lines.extend(["", "Updated fields:"])
+        for item in fields:
+            if isinstance(item, (tuple, list)) and len(item) >= 2:
+                label = str(item[0]).strip()
+                value = str(item[1]).strip()
+                body_lines.append(f"- {label}: {value}")
+            elif isinstance(item, dict):
+                label = str(item.get("label") or "").strip()
+                value = str(item.get("value") or "").strip()
+                if label and value:
+                    body_lines.append(f"- {label}: {value}")
+                elif label:
+                    body_lines.append(f"- {label}")
+            else:
+                label = str(item).strip()
+                if label:
+                    body_lines.append(f"- {label}")
+
+    body_lines.extend(
+        [
+            "",
+            "If you believe this is a mistake, please contact your administrator.",
+            "",
+            "Best regards,",
+            "SwiftBIM Team",
+        ]
+    )
 
     return _send_mail(email, subject, "\n".join(body_lines))
