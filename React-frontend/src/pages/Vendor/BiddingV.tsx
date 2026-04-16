@@ -10,14 +10,17 @@ import { BiddingSubmitModal } from "./BiddingSubmitModal";
 type Opportunity = {
   id: number;
   project_id?: number;
+  service_id?: number;
   project_name: string;
   outsource_budget?: number | string;
   budget_ceiling?: number | string;
   bid_deadline: string;
   status: string;
   description?: string;
+  scope_of_work?: string | null;
   technical_requirements?: string;
   software_to_be_used?: string | null;
+  technologies_used?: string | null;
   project_location?: string | null;
   project_due_date?: string | null;
   project_priority?: string | null;
@@ -785,15 +788,6 @@ export default function BiddingV() {
                 </div>
               </div>
 
-              {/* Executive Summary Section */}
-              <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
-                <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
-                  Executive Summary
-                </h3>
-                <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
-                  {detailOpp.description ? "Detailed executive summary would be derived from the project description and bid context." : "No executive summary available at this stage."}
-                </div>
-              </div>
 
               {/* Scope of Work Section */}
               <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
@@ -801,7 +795,9 @@ export default function BiddingV() {
                   Scope of Work
                 </h3>
                 <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
-                  {detailOpp.technical_requirements || "The scope of work encompasses the full delivery as per project requirements."}
+                  {detailOpp.scope_of_work ||
+                    detailOpp.technical_requirements ||
+                    "The scope of work encompasses the full delivery as per project requirements."}
                 </div>
               </div>
 
@@ -811,27 +807,9 @@ export default function BiddingV() {
                   Technical Requirements
                 </h3>
                 <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
-                  {detailOpp.software_to_be_used || "Software, modules, and resource requirements have not been specified for this project yet."}
-                </div>
-              </div>
-
-              {/* Deliverables Section */}
-              <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
-                <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
-                  Deliverables
-                </h3>
-                <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
-                  {"Project deliverables include all technical documentations, source models, and final output as per project scope."}
-                </div>
-              </div>
-
-              {/* Exclusions Section */}
-              <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
-                <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
-                  Exclusions
-                </h3>
-                <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
-                  {"Any out-of-scope items not mentioned in the technical requirements are excluded from the initial bid."}
+                  {detailOpp.technologies_used ||
+                    detailOpp.software_to_be_used ||
+                    "Software, modules, and resource requirements have not been specified for this project yet."}
                 </div>
               </div>
             </div>

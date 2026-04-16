@@ -7,6 +7,7 @@ from flask import Flask, send_from_directory
 from flask_cors import CORS
 from config import Config
 from db import mysql
+from werkzeug.utils import secure_filename
 
 # Blueprints
 from blueprints.auth import bp as auth_bp
@@ -87,6 +88,59 @@ def create_app(config_class=Config):
     def health():
         return {"status": "ok"}
 
+    def _send_upload_with_fallback(filename: str, preferred_dirs: list[str]):
+        """
+        Serve uploaded file by trying multiple directories and legacy filename variants.
+        Keeps backward compatibility for rows that stored only basename (or older naming).
+        """
+        upload_root = app.config["UPLOAD_FOLDER"]
+        requested = (filename or "").strip()
+        if not requested:
+            return send_from_directory(upload_root, requested)
+
+        basename = os.path.basename(requested)
+        unquoted = basename
+        try:
+            # Flask usually provides decoded path already, but keep this for safety.
+            from urllib.parse import unquote
+
+            unquoted = unquote(basename)
+        except Exception:
+            pass
+
+        candidates = []
+        for name in (basename, unquoted):
+            if not name:
+                continue
+            candidates.append(name)
+            sf = secure_filename(name)
+            if sf and sf not in candidates:
+                candidates.append(sf)
+            if name.startswith(("TL_", "GST_")):
+                no_prefix = name.split("_", 1)[1] if "_" in name else name
+                if no_prefix and no_prefix not in candidates:
+                    candidates.append(no_prefix)
+                sf_no_prefix = secure_filename(no_prefix)
+                if sf_no_prefix and sf_no_prefix not in candidates:
+                    candidates.append(sf_no_prefix)
+
+        # Deduplicate while preserving order.
+        seen = set()
+        unique_candidates = []
+        for c in candidates:
+            if c and c not in seen:
+                seen.add(c)
+                unique_candidates.append(c)
+
+        for sub_dir in preferred_dirs:
+            target_dir = os.path.join(upload_root, sub_dir) if sub_dir else upload_root
+            for c in unique_candidates:
+                if os.path.isfile(os.path.join(target_dir, c)):
+                    return send_from_directory(target_dir, c)
+
+        # Keep previous fallback behavior: try root with original value.
+        return send_from_directory(upload_root, basename)
+
     # Serve uploaded files (e.g., employee profile pictures)
     @app.route("/uploads/<path:filename>")
     def uploaded_file(filename):
@@ -95,21 +149,16 @@ def create_app(config_class=Config):
     # Backward-compatible routes used by older frontend links / stored URLs
     @app.route("/static/uploads/vendor_docs/<path:filename>")
     def vendor_docs_static(filename):
-        upload_root = app.config["UPLOAD_FOLDER"]
-        # Prefer uploads/vendor_docs/<file>, fallback to uploads/<file>
-        docs_dir = os.path.join(upload_root, "vendor_docs")
-        if os.path.isfile(os.path.join(docs_dir, filename)):
-            return send_from_directory(docs_dir, filename)
-        return send_from_directory(upload_root, filename)
+        # Prefer vendor_docs, then vendors, then upload root for legacy records.
+        return _send_upload_with_fallback(filename, ["vendor_docs", "vendors", ""])
 
     @app.route("/static/uploads/vendors/<path:filename>")
     def vendors_static(filename):
-        upload_root = app.config["UPLOAD_FOLDER"]
-        # Prefer uploads/vendors/<file>, fallback to uploads/<file>
-        vendors_dir = os.path.join(upload_root, "vendors")
-        if os.path.isfile(os.path.join(vendors_dir, filename)):
-            return send_from_directory(vendors_dir, filename)
-        return send_from_directory(upload_root, filename)
+        # Vendor/company/resources files have existed in multiple folders over time.
+        return _send_upload_with_fallback(
+            filename,
+            ["vendors", "vendor_resources", "vendor_docs", ""],
+        )
 
     @app.route("/api/view_profile_picture/<int:emp_id>")
     def view_profile_picture(emp_id):

@@ -1211,97 +1211,95 @@ export default function CreateteamV() {
 
             {/* Details Modal */}
             {showDetailsModal && selectedTeam && (
-                <div className="fixed inset-0 z-100 flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
-                    <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full max-h-[90vh] flex flex-col p-6 animate-in zoom-in-95 duration-200 relative overflow-hidden my-auto font-Gantari">
-                        <div className="relative mb-10 flex items-center justify-center min-h-[40px] w-full">
-                            <div className="group absolute left-0 z-10 top-1/2 -translate-y-1/2">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowDetailsModal(false)}
-                                    className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
-                                >
-                                    <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
-                                </button>
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
-                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Close</span>
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-[500px] w-full animate-in fade-in zoom-in duration-200 relative">
+                        <div className="group absolute top-8 left-8 z-10">
+                            <button
+                                onClick={() => setShowDetailsModal(false)}
+                                className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer border-0 shadow-none font-Gantari font-semibold"
+                            >
+                                <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
+                            </button>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
+                                    <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Close</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-8">
+                            <div className="text-center mb-6">
+                                <h3 className="text-[22px] font-medium text-[#1E293B] px-12 font-Gantari">Team Details</h3>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="text-[16px] font-Gantari block mb-1 font-medium text-[#000000]">Team Name</label>
+                                    <div className="text-[14px] font-Gantari bg-[#F2F3F4] border-2 border-[#AEACAC52] py-3 px-2 rounded-lg text-[#353535]">
+                                        {selectedTeam.team_name || selectedTeam.teamname || 'Unnamed Team'}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[16px] font-Gantari block mb-1 font-medium text-[#000000]">Project Name</label>
+                                    <div className="text-[14px] font-Gantari bg-[#F2F3F4] border-2 border-[#AEACAC52] py-3 px-2 rounded-lg text-[#353535]">
+                                        {selectedTeam.project_name || 'N/A'}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[16px] font-Gantari block mb-1 font-medium text-[#000000]">Team Leader</label>
+                                    <div className="flex items-center gap-3 bg-[#F2F3F4] border-2 border-[#AEACAC52] py-3 px-2 rounded-xl">
+                                        {(() => {
+                                            const emp = getEmp(selectedTeam.leader);
+                                            const name = emp?.full_name || 'N/A';
+                                            const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture) : '';
+                                            return (
+                                                <>
+                                                    <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center font-Gantari font-medium uppercase overflow-hidden shadow-sm">
+                                                        {avatarUrl ? (
+                                                            <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span>{name[0]}</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="font-Gantari font-medium text-[#334155]">{name}</div>
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[16px] font-Gantari block mb-2 font-medium text-[#000000]">
+                                        Members ({selectedTeam.employee.split(',').filter(Boolean).length})
+                                    </label>
+                                    <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
+                                        {selectedTeam.employee.split(',').filter(Boolean).map(eid => {
+                                            const emp = getEmp(eid);
+                                            const name = emp?.full_name || 'N/A';
+                                            const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture) : '';
+                                            return (
+                                                <div key={eid} className="flex items-center gap-2.5 bg-[#F2F3F4] border-2 border-[#AEACAC52] py-3 px-2 rounded-lg group hover:bg-white transition-colors">
+                                                    <div className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-[11px] font-bold text-slate-600 uppercase overflow-hidden shadow-sm">
+                                                        {avatarUrl ? (
+                                                            <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span>{name[0]}</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-[14px] font-bold text-[#475569] font-Gantari">{name}</div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
-                            <h3 className="text-[24px] font-semibold text-[#000000]">
-                                View Team Details
-                            </h3>
                         </div>
-
-                        <div className="flex-1 overflow-y-auto px-1 custom-scrollbar">
-
-                        <div className="space-y-6">
-                            <div>
-                                <label className="block text-[14px] font-medium text-[#8B8B8B] mb-1.5">Team Name</label>
-                                <div className="text-[18px] font-semibold text-[#353535]">{selectedTeam.team_name || selectedTeam.teamname || 'Unnamed Team'}</div>
-                            </div>
-
-
-                            <div>
-                                <label className="block text-[14px] font-medium text-[#8B8B8B] mb-1.5">Team Leader</label>
-                                <div className="flex items-center gap-4 bg-[#F2F3F4] p-4 rounded-xl border border-[#E5E7EB]">
-                                    {(() => {
-                                        const emp = getEmp(selectedTeam.leader);
-                                        const name = emp?.full_name || 'N/A';
-                                        const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture) : '';
-                                        return (
-                                            <>
-                                                <div className="w-12 h-12 rounded-full bg-[#DD4342] text-white flex items-center justify-center font-bold overflow-hidden shadow-sm">
-                                                    {avatarUrl ? (
-                                                        <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <span className="text-xl">{name[0]}</span>
-                                                    )}
-                                                </div>
-                                                <div className="text-lg font-semibold text-[#353535]">{name}</div>
-                                            </>
-                                        );
-                                    })()}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-[14px] font-medium text-[#8B8B8B] mb-3">Members ({selectedTeam.employee.split(',').filter(Boolean).length})</label>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    {selectedTeam.employee.split(',').filter(Boolean).map(eid => {
-                                        const emp = getEmp(eid);
-                                        const name = emp?.full_name || 'N/A';
-                                        const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture) : '';
-                                        return (
-                                            <div key={eid} className="flex items-center gap-3 p-3 bg-[#F2F3F4] rounded-lg border border-[#E5E7EB] transition-colors hover:bg-white">
-                                                <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-[12px] font-bold text-slate-600 overflow-hidden shadow-sm">
-                                                    {avatarUrl ? (
-                                                        <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <span>{name[0]}</span>
-                                                    )}
-                                                </div>
-                                                <div className="text-[15px] font-medium text-[#353535]">{name}</div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* <div className="mt-10">
-                            <button
-                                onClick={() => setShowDetailsModal(false)}
-                                className="w-full py-3.5 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-95 transition-all shadow-md active:scale-[0.98] cursor-pointer"
-                            >
-                                Close
-                            </button>
-                        </div> */}
                     </div>
                 </div>
-            </div>
-        )}
+            )}
+
         </div>
     );
 }

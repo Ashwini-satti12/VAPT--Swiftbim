@@ -408,6 +408,8 @@ interface Project {
   currency?: string;
   currency_locked?: boolean;
   commercial_verification_status?: string;
+  requires_advance_payment?: boolean;
+  advance_payment_verified?: boolean;
 }
 
 interface Milestone {
@@ -733,6 +735,8 @@ export default function ProjectsTD() {
       currency_locked:
         r.selected_currency != null && String(r.selected_currency).trim().length > 0,
       commercial_verification_status: commercialVerificationStatus,
+      requires_advance_payment: Boolean(r.requires_advance_payment),
+      advance_payment_verified: Boolean(r.advance_payment_verified),
     };
   };
 
@@ -758,6 +762,16 @@ export default function ProjectsTD() {
       "inprogress",
       "in_progress",
     ].includes(normalized);
+  };
+
+  const isAdvancePaymentPending = (project: Project) => {
+    // Only auto-created in-house projects should be blocked by advance gate.
+    const isOutsourceProject =
+      String(project.source || "").toLowerCase() === "outsource" ||
+      String(project.department || "").trim().toLowerCase() === "submission deadline";
+    if (isOutsourceProject) return false;
+    if (!project.requires_advance_payment) return false;
+    return !project.advance_payment_verified;
   };
 
   useEffect(() => {
@@ -2593,7 +2607,8 @@ export default function ProjectsTD() {
                       Number(p.progress ?? 0) > 0 ||
                       Number(p.completed_tasks ?? 0) > 0;
                     const isBlockedByCommercial =
-                      isCommercialVerificationPending(p) && !hasProjectStarted;
+                      !hasProjectStarted &&
+                      isAdvancePaymentPending(p);
 
                     // Get members from project.member field (comma-separated string)
                     const memberIds = p.member
@@ -2669,9 +2684,12 @@ export default function ProjectsTD() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    if (isCommercialVerificationPending(p)) {
+                                    if (
+                                      !hasProjectStarted &&
+                                      isAdvancePaymentPending(p)
+                                    ) {
                                       toast.error(
-                                        "Project is blocked until Commercial Team verification is completed.",
+                                        "Project is blocked until client advance payment is verified.",
                                       );
                                       return;
                                     }
@@ -2684,7 +2702,7 @@ export default function ProjectsTD() {
                                           : "In House",
                                     });
                                   }}
-                                  className={`w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group ${isCommercialVerificationPending(p) ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+                                  className={`w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group ${(!hasProjectStarted && isAdvancePaymentPending(p)) ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                                 >
                                   <img
                                     src={viewIcon}

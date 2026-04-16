@@ -1,6 +1,9 @@
 import type { Vendor } from '../types';
 import { FaDownload } from 'react-icons/fa6';
-import { api } from '../../../../lib/api';
+import {
+    sanitizeVendorVendorsFilename,
+    vendorVendorsFileUrl,
+} from '../../../../lib/vendorUploads';
 
 interface Props {
     vendor: Vendor;
@@ -15,7 +18,8 @@ const Certificates = ({ vendor }: Props) => {
     };
 
     const FileLink = ({ fileName, label }: { fileName: string, label: string }) => {
-        const fileUrl = api.defaults.baseURL + `static/uploads/vendors/${fileName}`;
+        const safe = sanitizeVendorVendorsFilename(fileName) || fileName;
+        const fileUrl = vendorVendorsFileUrl(safe);
         return (
             <div className="flex items-center justify-between px-4 py-2 bg-white border border-gray-200 rounded-lg">
                 <span className="text-sm font-medium text-gray-700">{label}</span>
