@@ -1069,6 +1069,7 @@ def _sync_vendor_bidding_for_outsource_project(cur, company_id, project_id, depa
         outsource_budget = proj["budget"]
         description = proj.get("description") or ""
         project_currency = (proj.get("currency") or "INR").strip() or "INR"
+        ceiling = budget_ceiling or outsource_budget
         cur.execute(
             """INSERT INTO vendor_bidding
                  (project_id, project_name, description, outsource_budget, budget_ceiling, currency, bid_deadline, status, company_id)
@@ -1088,12 +1089,93 @@ def _sync_vendor_bidding_for_outsource_project(cur, company_id, project_id, depa
                 project_name,
                 description,
                 outsource_budget,
-                budget_ceiling or outsource_budget,
+                ceiling,
                 project_currency,
                 bidding_end_date,
                 company_id,
             ),
         )
+
+        # Notify vendors (in-app + email). Best-effort only.
+        try:
+            # In-app notifications for vendor users stored in employee table
+            # (many parts of vendor bidding use g.user_id as employee id).
+            cur.execute(
+                "SELECT id, full_name, email, Company_id FROM employee WHERE user_role = 'Vendor' AND active = 'active'"
+            )
+            vendor_users = cur.fetchall() or []
+
+            title = "New outsource opportunity"
+            msg = f"New outsource project available for bidding: '{project_name}'. Deadline: {bidding_end_date or 'N/A'}."
+
+            for vu in vendor_users:
+                try:
+                    vid = vu.get("id") if isinstance(vu, dict) else vu[0]
+                    v_company = vu.get("Company_id") if isinstance(vu, dict) else None
+                    cur.execute(
+                        """
+                        INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                        """,
+                        (vid, project_id, title, msg, "vendor_opportunity", "vendor_bidding", project_id, v_company or company_id),
+                    )
+                except Exception:
+                    pass
+
+            # Email vendors from employee table
+            for vu in vendor_users:
+                try:
+                    name = (vu.get("full_name") if isinstance(vu, dict) else "") or "Vendor"
+                    email = (vu.get("email") if isinstance(vu, dict) else "") or ""
+                    if email:
+                        mailer.send_vendor_outsource_opportunity_email(
+                            email=email,
+                            contact_name=name,
+                            project_name=project_name,
+                            bid_deadline=bidding_end_date or "N/A",
+                            budget_ceiling=ceiling,
+                            currency=project_currency,
+                        )
+                except Exception:
+                    pass
+
+            # Email approved vendors from new_swiftbim.vendor_onboarding
+            try:
+                import mysql.connector as mysql_connector
+                from flask import current_app
+
+                vconn = mysql_connector.connect(
+                    host=current_app.config["MYSQL_HOST"],
+                    user=current_app.config["MYSQL_USER"],
+                    password=current_app.config["MYSQL_PASSWORD"],
+                    database="new_swiftbim",
+                    port=current_app.config.get("MYSQL_PORT", 3306),
+                    autocommit=current_app.config.get("MYSQL_AUTOCOMMIT", True),
+                )
+                vcur = vconn.cursor(dictionary=True)
+                vcur.execute(
+                    "SELECT contact_name, contact_email FROM vendor_onboarding WHERE status = 'approved' AND contact_email IS NOT NULL"
+                )
+                rows = vcur.fetchall() or []
+                for r in rows:
+                    try:
+                        email = (r.get("contact_email") or "").strip()
+                        if not email:
+                            continue
+                        mailer.send_vendor_outsource_opportunity_email(
+                            email=email,
+                            contact_name=r.get("contact_name") or "Vendor",
+                            project_name=project_name,
+                            bid_deadline=bidding_end_date or "N/A",
+                            budget_ceiling=ceiling,
+                            currency=project_currency,
+                        )
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+        except Exception:
+            pass
     except Exception:
         pass
 
@@ -1238,6 +1320,24 @@ def create_project():
                     mailer.send_project_creation_email(p_member["full_name"], p_member["email"], project_name, start_date or "N/A", due_date or "N/A")
             except Exception:
                 pass
+    except Exception:
+        pass
+
+    # Project created confirmation email (to creator/uploader)
+    try:
+        cur.execute(
+            "SELECT full_name, email FROM employee WHERE id = %s AND Company_id = %s LIMIT 1",
+            (g.user_id, g.company_id),
+        )
+        creator = cur.fetchone() or {}
+        if creator.get("email"):
+            mailer.send_project_added_confirmation_email(
+                creator.get("full_name") or "",
+                creator.get("email"),
+                project_name,
+                start_date or "N/A",
+                due_date or "N/A",
+            )
     except Exception:
         pass
 
