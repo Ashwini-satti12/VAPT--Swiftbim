@@ -819,28 +819,46 @@ export default function AddTaskBM() {
                             Saved on task
                           </span>
                         </div>
-                        <div className="flex shrink-0 items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openServerOutputInNewTab(stored)}
-                            className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
-                            title="View"
-                          >
-                            <img src={viewIcon} alt="" className="h-5 w-5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setPendingAttachmentDelete({
-                                type: "server",
-                                stored,
-                              })
-                            }
-                            className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
-                            title="Remove"
-                          >
-                            <img src={deleteIcon} alt="" className="h-5 w-5" />
-                          </button>
+                        <div className="flex shrink-0 items-center gap-2 pr-1">
+                          <div className="relative group/tooltip inline-flex shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => openServerOutputInNewTab(stored)}
+                              className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer transition-colors"
+                            >
+                              <img src={viewIcon} alt="View" className="h-5 w-5" />
+                            </button>
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-1 relative z-10">
+                                <span className="font-Gantari text-[13px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                  View
+                                </span>
+                              </div>
+                              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                            </div>
+                          </div>
+                          <div className="relative group/tooltip inline-flex shrink-0">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPendingAttachmentDelete({
+                                  type: "server",
+                                  stored,
+                                })
+                              }
+                              className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer transition-colors"
+                            >
+                              <img src={deleteIcon} alt="Remove" className="h-5 w-5" />
+                            </button>
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-1 relative z-10">
+                                <span className="font-Gantari text-[13px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                  Remove
+                                </span>
+                              </div>
+                              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -860,28 +878,46 @@ export default function AddTaskBM() {
                             {formatFileSize(file.size)}
                           </span>
                         </div>
-                        <div className="flex shrink-0 items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openAttachmentInNewTab(file)}
-                            className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
-                            title="View"
-                          >
-                            <img src={viewIcon} alt="" className="h-5 w-5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setPendingAttachmentDelete({
-                                type: "local",
-                                index,
-                              })
-                            }
-                            className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
-                            title="Remove"
-                          >
-                            <img src={deleteIcon} alt="" className="h-5 w-5" />
-                          </button>
+                        <div className="flex shrink-0 items-center gap-2 pr-1">
+                          <div className="relative group/tooltip inline-flex shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => openAttachmentInNewTab(file)}
+                              className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer transition-colors"
+                            >
+                              <img src={viewIcon} alt="View" className="h-5 w-5" />
+                            </button>
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-1 relative z-10">
+                                <span className="font-Gantari text-[13px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                  View
+                                </span>
+                              </div>
+                              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                            </div>
+                          </div>
+                          <div className="relative group/tooltip inline-flex shrink-0">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPendingAttachmentDelete({
+                                  type: "local",
+                                  index,
+                                })
+                              }
+                              className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer transition-colors"
+                            >
+                              <img src={deleteIcon} alt="Remove" className="h-5 w-5" />
+                            </button>
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-1 relative z-10">
+                                <span className="font-Gantari text-[13px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                  Remove
+                                </span>
+                              </div>
+                              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}

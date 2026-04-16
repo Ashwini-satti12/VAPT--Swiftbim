@@ -12,6 +12,7 @@ import threedot from "../../../assets/ProjectManager/project/threedot.svg";
 import ProfileIcon from "../../../assets/ProductNavbarIcons/Profile.svg";
 import closeBtnIcon from "../../../assets/ProductNavbarIcons/close button.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
+import downloadIcon from "../../../assets/TechnicalDirector/download icon.svg";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 
 
@@ -706,7 +707,7 @@ export default function ProjectsPMV() {
     const renderFormFields = () => (
         <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 text-left">
-                <div className="space-y-2">
+                <div className={`space-y-2 ${showEditModal ? "md:col-span-2" : ""}`}>
                     <label className="block text-[14px] font-medium text-[#353535]">Project Name <span className="text-[#DD4342]">*</span></label>
                     <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all  text-gray-700 placeholder-gray-400"
                         placeholder="Enter Project name" value={createName} onChange={(e) => setCreateName(e.target.value)} />
@@ -900,37 +901,56 @@ export default function ProjectsPMV() {
                         {currentAttachments.split(",").map(file => file.trim()).filter(Boolean).map((fileName, idx) => {
                             const url = resolveVendorDocUrl(fileName);
                             return (
-                                <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
-                                    <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                                    <span className="text-[13px] font-medium text-[#353535] line-clamp-1 flex-1">
+                                <div key={idx} className="flex items-center gap-3 w-full md:max-w-md mt-1">
+                                    <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1 font-gantari">
                                         {fileName.split("_").pop()}
                                     </span>
-                                    <div className="flex gap-1.5">
-                                        <button
-                                            type="button"
-                                            onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
-                                            className="p-1 hover:bg-slate-50 rounded transition-colors cursor-pointer"
-                                        >
-                                            <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const remaining = currentAttachments.split(",")
-                                                    .map(f => f.trim())
-                                                    .filter(f => f !== fileName)
-                                                    .join(",");
-                                                setCurrentAttachments(remaining);
-                                                setRemovedAttachments((prev) =>
-                                                    prev.includes(fileName) ? prev : [...prev, fileName],
-                                                );
-                                            }}
-                                            className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </button>
+                                    <div className="flex gap-2.5">
+                                        <div className="relative group/tooltip inline-flex shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+                                                className="p-1 rounded transition-colors cursor-pointer"
+                                            >
+                                                <img src={viewIcon} alt="View" className="w-4 h-4 cursor-pointer" />
+                                            </button>
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                                        View
+                                                    </span>
+                                                </div>
+                                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                            </div>
+                                        </div>
+                                        <div className="relative group/tooltip inline-flex shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const remaining = currentAttachments.split(",")
+                                                        .map(f => f.trim())
+                                                        .filter(f => f !== fileName)
+                                                        .join(",");
+                                                    setCurrentAttachments(remaining);
+                                                    setRemovedAttachments((prev) =>
+                                                        prev.includes(fileName) ? prev : [...prev, fileName],
+                                                    );
+                                                }}
+                                                className="p-1 rounded transition-colors cursor-pointer"
+                                            >
+                                                <svg className="w-4 h-4 text-slate-400 hover:text-[#DD4342]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                                        Remove
+                                                    </span>
+                                                </div>
+                                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             );
@@ -1054,7 +1074,7 @@ export default function ProjectsPMV() {
                                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#020202] truncate">
                                     Edit Project Details
                                 </h3>
-                                <p className="text-[14px] font-Gantari font-semibold text-[#999999]">Update your project information</p>
+                                
                             </div>
                         </div>
                         <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 pt-6 md:pt-8 custom-scrollbar">
@@ -1437,41 +1457,53 @@ export default function ProjectsPMV() {
                                                 .map((fileName, idx) => {
                                                     const url = resolveVendorDocUrl(fileName);
                                                     return (
-                                                        <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-slate-200 md:max-w-md w-full">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
-                                                                className="p-2 bg-white rounded-lg shadow-sm cursor-pointer"
-                                                                title="View Document"
-                                                            >
-                                                                <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
-                                                                className="text-[14px] font-bold text-[#353535] line-clamp-1 flex-1 text-left cursor-pointer"
-                                                                title="View Document"
-                                                            >
+                                                        <div key={idx} className="flex items-center gap-3 w-full md:max-w-md mt-1">
+                                                            <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1 font-gantari">
                                                                 {fileName.split("_").pop() || "Document"}
-                                                            </button>
-                                                            <div className="flex gap-2">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
-                                                                    className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow cursor-pointer"
-                                                                    title="View Details"
-                                                                >
-                                                                    <img src={viewIcon} alt="View" className="w-[18px] h-[18px] object-contain opacity-70 hover:opacity-100" />
-                                                                </button>
-                                                                <a
-                                                                    href={url}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
-                                                                    title="Download File"
-                                                                >
-                                                                    <FiUploadCloud className="w-[18px] h-[18px] rotate-180 object-contain text-slate-500 hover:text-[#DD4342]" />
-                                                                </a>
+                                                            </span>
+                                                            <div className="flex gap-2.5">
+                                                                <div className="relative group/tooltip inline-flex shrink-0">
+                                                                    <a
+                                                                        onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+                                                                        className="p-1 rounded transition-colors cursor-pointer"
+                                                                    >
+                                                                        <img
+                                                                            src={viewIcon}
+                                                                            alt="View"
+                                                                            className="w-4 h-4 cursor-pointer"
+                                                                        />
+                                                                    </a>
+                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                                                            <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                                                                View
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="relative group/tooltip inline-flex shrink-0">
+                                                                    <a
+                                                                        href={url}
+                                                                        download
+                                                                        className="p-1 hover:bg-white rounded transition-colors"
+                                                                    >
+                                                                        <img
+                                                                            src={downloadIcon}
+                                                                            alt="Download"
+                                                                            className="w-4 h-4 cursor-pointer"
+                                                                        />
+                                                                    </a>
+                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                                                            <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                                                                Download
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     );

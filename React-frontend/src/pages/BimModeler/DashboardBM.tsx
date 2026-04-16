@@ -428,7 +428,8 @@ export default function DashboardBM() {
                     </div>
                 </div>
 
-                {/* Calendar & Celebrations — same design as DashboardTD */}
+                
+                
                 <div className="lg:col-span-1 flex flex-col h-[600px] lg:h-full overflow-hidden">
                     <div className="bg-white rounded-md border border-[#AEACAC52] pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full min-h-0">
                         <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 pt-2 px-2">
@@ -751,7 +752,7 @@ export default function DashboardBM() {
                                   </p>
                                 </div>
                                 <div className="absolute top-4 right-4">
-                                  <span className="bg-[#353535] text-white text-[12px] px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight">
+                                  <span className="bg-[#3B82F6] text-white text-[12px] px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight">
                                     {task.category || "Task"}
                                   </span>
                                 </div>
