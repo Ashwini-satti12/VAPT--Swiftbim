@@ -764,16 +764,6 @@ export default function ProjectsTD() {
     ].includes(normalized);
   };
 
-  const isAdvancePaymentPending = (project: Project) => {
-    // Only auto-created in-house projects should be blocked by advance gate.
-    const isOutsourceProject =
-      String(project.source || "").toLowerCase() === "outsource" ||
-      String(project.department || "").trim().toLowerCase() === "submission deadline";
-    if (isOutsourceProject) return false;
-    if (!project.requires_advance_payment) return false;
-    return !project.advance_payment_verified;
-  };
-
   useEffect(() => {
     // Fetch employees for member lookup and dropdowns
     api
@@ -2606,9 +2596,7 @@ export default function ProjectsTD() {
                     const hasProjectStarted =
                       Number(p.progress ?? 0) > 0 ||
                       Number(p.completed_tasks ?? 0) > 0;
-                    const isBlockedByCommercial =
-                      !hasProjectStarted &&
-                      isAdvancePaymentPending(p);
+                    void hasProjectStarted;
 
                     // Get members from project.member field (comma-separated string)
                     const memberIds = p.member
@@ -2627,9 +2615,9 @@ export default function ProjectsTD() {
                     return (
                       <div
                         key={p.id}
-                        className={`relative overflow-hidden bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm transition-all duration-300 ${isBlockedByCommercial ? "opacity-95" : "hover:shadow-md"}`}
+                        className="relative overflow-hidden bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm transition-all duration-300 hover:shadow-md"
                       >
-                        <div className={isBlockedByCommercial ? "pointer-events-none select-none blur-[1.5px]" : ""}>
+                        <div>
                           <div className="flex items-start justify-between mb-4 mt-2 pr-0">
                             <div className="relative flex items-center justify-center">
                               <svg className="w-16 h-16 md:w-20 md:h-20 transform -rotate-90">
@@ -2684,15 +2672,6 @@ export default function ProjectsTD() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    if (
-                                      !hasProjectStarted &&
-                                      isAdvancePaymentPending(p)
-                                    ) {
-                                      toast.error(
-                                        "Project is blocked until client advance payment is verified.",
-                                      );
-                                      return;
-                                    }
                                     setOpenMenuProjectId(null);
                                     setSearchParams({
                                       projectId: String(p.id),
@@ -2702,7 +2681,7 @@ export default function ProjectsTD() {
                                           : "In House",
                                     });
                                   }}
-                                  className={`w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group ${(!hasProjectStarted && isAdvancePaymentPending(p)) ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+                                  className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                                 >
                                   <img
                                     src={viewIcon}
@@ -2957,18 +2936,6 @@ export default function ProjectsTD() {
                             )}
                           </div>
                         </div>
-                        {isBlockedByCommercial && (
-                          <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/45 px-4">
-                            <div className="rounded-lg border border-[#F0C9C9] bg-white/95 px-3 py-2 shadow-sm text-center">
-                              <p className="text-[12px] font-semibold text-[#A33B3B] font-Gantari">
-                                Client needs to pay advance to unblock project
-                              </p>
-                              <p className="text-[11px] text-[#6F6F6F] font-Gantari mt-1">
-                                Advance payment pending. After payment verification, project will be open.
-                              </p>
-                            </div>
-                          </div>
-                        )}
                       </div>
                       );
                     });
