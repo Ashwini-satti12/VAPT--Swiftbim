@@ -67,6 +67,7 @@ function CustomDropdown({
   styleType = "form",
   menuMaxHeightClass = "max-h-[220px]",
   direction = "down",
+  selectedPrefix = "",
 }: {
   options: string[];
   value: string;
@@ -76,6 +77,7 @@ function CustomDropdown({
   styleType?: "form" | "header" | "table";
   menuMaxHeightClass?: string;
   direction?: "up" | "down";
+  selectedPrefix?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -141,10 +143,19 @@ function CustomDropdown({
       >
         <span
           className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-            isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535]"
+            isPlaceholder || isOpen ? "text-[#8B8B8B]" : "text-[#353535]"
           }`}
         >
-          {isPlaceholder ? placeholder : value}
+          {isPlaceholder || isOpen ? (
+            placeholder
+          ) : (
+            <>
+              {selectedPrefix && (
+                <span className="text-[14px] font-normal">{selectedPrefix}</span>
+              )}{" "}
+              <span>{value}</span>
+            </>
+          )}
         </span>
         <img
           src={ArrowDown}
@@ -168,7 +179,7 @@ function CustomDropdown({
           }}
         >
           <div
-            className={`flex flex-col py-1 overflow-y-auto ${menuMaxHeightClass} custom-scrollbar`}
+            className={`flex flex-col py-2 overflow-y-auto ${menuMaxHeightClass} custom-scrollbar`}
           >
             {options.map((option) => (
               <button
@@ -396,6 +407,9 @@ interface Project {
   document_attachment?: string;
   currency?: string;
   currency_locked?: boolean;
+  commercial_verification_status?: string;
+  requires_advance_payment?: boolean;
+  advance_payment_verified?: boolean;
 }
 
 interface Milestone {
@@ -405,6 +419,48 @@ interface Milestone {
   due_date: string;
   status: string;
   notes?: string;
+  milestone_percentage?: number | string;
+  paid?: number | string;
+  invoice_number?: string;
+  invoice_ref?: string;
+  /** Plain-text timeline from new_swiftbim.payment_milestones (e.g. "3 weeks") */
+  timeline_raw?: string;
+  swiftbim_invoice_id?: number | null;
+  swiftbim_invoice_total?: number | null;
+  swiftbim_invoice_status?: string | null;
+}
+
+function formatMilestoneTimeline(dueIso?: string | null): string {
+  if (!dueIso) return "—";
+  const due = new Date(dueIso);
+  if (Number.isNaN(due.getTime())) return "—";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  due.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((due.getTime() - today.getTime()) / 86400000);
+  if (diffDays < 0) {
+    const abs = Math.abs(diffDays);
+    if (abs >= 7) {
+      const w = Math.floor(abs / 7);
+      return `${w} week${w !== 1 ? "s" : ""} overdue`;
+    }
+    return `${abs} day${abs !== 1 ? "s" : ""} overdue`;
+  }
+  if (diffDays === 0) return "Due today";
+  if (diffDays >= 7) {
+    const w = Math.floor(diffDays / 7);
+    return `${w} week${w !== 1 ? "s" : ""}`;
+  }
+  return `${diffDays} day${diffDays !== 1 ? "s" : ""}`;
+}
+
+function readMilestoneInvoiceLabel(m: Milestone): string {
+  const r = m as unknown as Record<string, unknown>;
+  for (const key of ["invoice_number", "invoice_ref", "invoice_no"] as const) {
+    const v = r[key];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return "";
 }
 
 interface Employee {
@@ -489,6 +545,8 @@ export default function ProjectsTD() {
   const [milestoneNotes, setMilestoneNotes] = useState("");
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [milestonesLoading, setMilestonesLoading] = useState(false);
+  /** Contract milestones from new_swiftbim: TD view is read-only (commercial workflow elsewhere). */
+  const [milestonesReadOnly, setMilestonesReadOnly] = useState(false);
 
   // Edit Project Modal State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -520,7 +578,7 @@ export default function ProjectsTD() {
   >([]);
 
   const [typeFilter, setTypeFilter] = useState<
-    "All" | "In House" | "Outsource"
+    "Type" | "All" | "In House" | "Outsource"
   >("All");
 
   // Profile modal state
@@ -545,7 +603,6 @@ export default function ProjectsTD() {
       progress: number;
       completedTasks: number;
       totalTasks: number;
-      status: "Approved" | "Pending" | "Review";
     }>
   >([]);
   const [loadingTaskStats, setLoadingTaskStats] = useState(false);
@@ -616,11 +673,28 @@ export default function ProjectsTD() {
   };
 
   const mapApiProjectToProject = (r: Record<string, unknown>): Project => {
+    // Change note: map backend `task_name` here once available in response.
+    // Example: task_name: str(r.task_name) ?? str(r.tasks),
     const num = (v: unknown) =>
       v === null || v === undefined ? undefined : Number(v);
     const str = (v: unknown) => (v != null ? String(v) : undefined);
     const d = (v: unknown) =>
       v != null && typeof v === "string" ? v : undefined;
+    const pickFirstString = (keys: string[]) => {
+      for (const key of keys) {
+        const value = r[key];
+        if (typeof value === "string" && value.trim()) return value.trim();
+      }
+      return undefined;
+    };
+    const commercialVerificationStatus = pickFirstString([
+      "commercial_verification_status",
+      "commercial_status",
+      "verification_status",
+      "validation_status",
+      "payment_status",
+      "payment_completion_status",
+    ]);
     return {
       id: num(r.id) ?? 0,
       project_name: str(r.project_name),
@@ -660,7 +734,44 @@ export default function ProjectsTD() {
           : str(r.currency) || "INR",
       currency_locked:
         r.selected_currency != null && String(r.selected_currency).trim().length > 0,
+      commercial_verification_status: commercialVerificationStatus,
+      requires_advance_payment: Boolean(r.requires_advance_payment),
+      advance_payment_verified: Boolean(r.advance_payment_verified),
     };
+  };
+
+  const isCommercialVerificationPending = (project: Project) => {
+    const isOutsourceProject =
+      String(project.source || "").toLowerCase() === "outsource" ||
+      String(project.department || "").trim().toLowerCase() === "submission deadline";
+    if (!isOutsourceProject) return false;
+    const raw = String(project.commercial_verification_status || "").trim().toLowerCase();
+    // For outsource projects, missing status is treated as not verified yet.
+    if (!raw) return true;
+    const normalized = raw.replace(/[\s-]+/g, "_");
+    if (["verified", "approved", "validated", "completed", "paid"].includes(normalized)) {
+      return false;
+    }
+    return [
+      "pending",
+      "pending_validation",
+      "awaiting_validation",
+      "under_review",
+      "notstarted",
+      "not_started",
+      "inprogress",
+      "in_progress",
+    ].includes(normalized);
+  };
+
+  const isAdvancePaymentPending = (project: Project) => {
+    // Only auto-created in-house projects should be blocked by advance gate.
+    const isOutsourceProject =
+      String(project.source || "").toLowerCase() === "outsource" ||
+      String(project.department || "").trim().toLowerCase() === "submission deadline";
+    if (isOutsourceProject) return false;
+    if (!project.requires_advance_payment) return false;
+    return !project.advance_payment_verified;
   };
 
   useEffect(() => {
@@ -937,17 +1048,12 @@ export default function ProjectsTD() {
         const mods = data.modules ?? [];
         const towers = mods.map((m, idx) => {
           const pct = Number(m.completion_percentage ?? 0);
-          let status: "Approved" | "Pending" | "Review";
-          if (pct >= 80) status = "Approved";
-          else if (pct >= 50) status = "Pending";
-          else status = "Review";
           return {
             id: idx + 1,
             name: String(m.module_name ?? `Module ${idx + 1}`),
             progress: Math.round(pct),
             completedTasks: Number(m.completed_tasks ?? 0),
             totalTasks: Number(m.total_tasks ?? 0),
-            status,
           };
         });
         setTowerData(towers);
@@ -979,22 +1085,49 @@ export default function ProjectsTD() {
     searchParams,
   ]);
 
-  const fetchMilestones = (projectId: number) => {
+  const fetchMilestones = (projectId: number, source?: string) => {
     setMilestonesLoading(true);
+    const isOutsource = source === "Outsource";
+    if (!isOutsource) {
+      api
+        .get<{
+          milestones?: Milestone[];
+          read_only?: boolean;
+          source?: string;
+        }>(`/api/payment-milestones/new-swiftbim?project_id=${projectId}`)
+        .then(({ data }) => {
+          setMilestones(data.milestones || []);
+          setMilestonesReadOnly(Boolean(data.read_only));
+        })
+        .catch(() => {
+          setMilestonesReadOnly(false);
+          api
+            .get<{ milestones: Milestone[] }>(
+              `/api/milestones?project_id=${projectId}`,
+            )
+            .then(({ data }) => setMilestones(data.milestones || []))
+            .catch(() => setMilestones([]));
+        })
+        .finally(() => setMilestonesLoading(false));
+      return;
+    }
     api
       .get<{ milestones: Milestone[] }>(
         `/api/milestones?project_id=${projectId}`,
       )
-      .then(({ data }) => setMilestones(data.milestones || []))
+      .then(({ data }) => {
+        setMilestones(data.milestones || []);
+        setMilestonesReadOnly(false);
+      })
       .catch(() => setMilestones([]))
       .finally(() => setMilestonesLoading(false));
   };
 
   useEffect(() => {
     if (showMilestones && currentProject?.id) {
-      fetchMilestones(currentProject.id);
+      fetchMilestones(currentProject.id, currentProject.source);
     }
-  }, [showMilestones, currentProject?.id]);
+  }, [showMilestones, currentProject?.id, currentProject?.source]);
 
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const filteredList = list.filter((p) => {
@@ -1041,7 +1174,7 @@ export default function ProjectsTD() {
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
                     <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                       Go Back
                     </span>
@@ -1168,7 +1301,7 @@ export default function ProjectsTD() {
                     <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">
                       Modules
                     </h4>
-                    <div className="max-h-[220px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                    <div className="max-h-[220px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
                       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-4">
                         {loadingTaskStats ? (
                           <div className="col-span-full text-center py-8 text-gray-500">
@@ -1176,45 +1309,20 @@ export default function ProjectsTD() {
                           </div>
                         ) : towerData.length > 0 ? (
                           towerData.map((tower) => {
-                            const statusColor =
-                              tower.status === "Review"
-                                ? "#E00100"
-                                : tower.status === "Pending"
-                                  ? "#EB7200"
-                                  : "#008F22";
-                            const statusBg =
-                              tower.status === "Review"
-                                ? "bg-[#FFD9D9]"
-                                : tower.status === "Pending"
-                                  ? "bg-[#FFEAD6]"
-                                  : "bg-[#E0FFE8]";
+                            const progressRingColor = "#0a9344";
 
                             return (
                               <div
                                 key={tower.id}
-                                className="bg-white border border-slate-200 rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[120px]"
+                                className="bg-white border border-slate-200 rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[126px]"
                               >
-                                <div className="flex justify-between items-start">
-                                  <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
+                                <div className="flex justify-between items-start min-h-0 pb-2">
+                                  <h5 className="text-[16px] font-Gantari font-medium text-[#000000] truncate pr-2 w-full">
                                     {tower.name}
                                   </h5>
-                                  <div
-                                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0 ${statusBg}`}
-                                  >
-                                    <span
-                                      className="w-1.5 h-1.5 rounded-full"
-                                      style={{ backgroundColor: statusColor }}
-                                    ></span>
-                                    <span
-                                      className="text-[12px] font-bold font-gantari"
-                                      style={{ color: statusColor }}
-                                    >
-                                      {tower.status}
-                                    </span>
-                                  </div>
                                 </div>
 
-                                <div className="flex items-center justify-between mt-2">
+                                <div className="flex items-center justify-between mt-2 mb-2">
                                   <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
                                     <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
                                       <circle
@@ -1228,8 +1336,8 @@ export default function ProjectsTD() {
                                       <circle
                                         cx="32"
                                         cy="32"
-                                        r="26"
-                                        stroke={statusColor}
+                                        r="28"
+                                        stroke={progressRingColor}
                                         strokeWidth="5"
                                         fill="transparent"
                                         strokeDasharray={163.36}
@@ -1243,20 +1351,20 @@ export default function ProjectsTD() {
                                         }}
                                       />
                                     </svg>
-                                    <span className="absolute text-[13px] font-bold text-[#8B8B8B] font-Gantari">
+                                    <span className="absolute text-[12px] font-bold text-[#616161] font-Gantari">
                                       {tower.progress}%
                                     </span>
                                   </div>
 
-                                  <div className="flex flex-col items-end">
-                                    <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1">
+                                  <div className="flex flex-col flex-1 min-w-0 ml-2">
+                                    <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1 text-right">
                                       Tasks Done
                                     </p>
-                                    <div className="flex items-baseline border-t border-slate-100 pt-1">
-                                      <p className="text-[18px] font-bold text-[#353535] font-Gantari">
+                                    <div className="flex items-baseline justify-center ml-16 pt-1">
+                                      <p className="text-[16px] font-medium text-[#000000] font-Gantari">
                                         {tower.completedTasks}
                                       </p>
-                                      <p className="text-[14px] font-bold text-[#8B8B8B] font-Gantari">
+                                      <p className="text-[16px] font-medium text-[#000000] font-Gantari">
                                         /{tower.totalTasks}
                                       </p>
                                     </div>
@@ -1358,7 +1466,7 @@ export default function ProjectsTD() {
                                   pmEmp.profile_picture,
                                 )
                                 : null;
-                              return { key: i, dName, url };
+                              return { key: i, dName, url, emp: pmEmp };
                             },
                           );
                           const visiblePm = pmEntries.slice(0, 3);
@@ -1379,7 +1487,7 @@ export default function ProjectsTD() {
                                   : "Project Manager"}
                               </p>
                               {maxCount === 1 ? (
-                                <div className="flex items-center gap-3">
+                                <div className={`flex items-center gap-3 ${visiblePm[0].emp ? "cursor-pointer" : ""}`} onClick={() => visiblePm[0].emp && openMemberProfile(visiblePm[0].emp)}>
                                   <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
                                     {visiblePm[0].url ? (
                                       <img src={visiblePm[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
@@ -1394,7 +1502,7 @@ export default function ProjectsTD() {
                               ) : (
                                 <div className="flex items-center -space-x-3">
                                   {visiblePm.map((entry) => (
-                                    <div key={entry.key} className="relative group shrink-0">
+                                    <div key={entry.key} className={`relative group shrink-0 ${entry.emp ? "cursor-pointer" : ""}`} onClick={() => entry.emp && openMemberProfile(entry.emp)}>
                                       <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
                                         {entry.url ? (
                                           <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
@@ -1478,7 +1586,7 @@ export default function ProjectsTD() {
                                   blEmp.profile_picture,
                                 )
                                 : null;
-                              return { key: i, dName, url };
+                              return { key: i, dName, url, emp: blEmp };
                             },
                           );
                           const visibleBl = blEntries.slice(0, 3);
@@ -1497,7 +1605,7 @@ export default function ProjectsTD() {
                                 {maxCount > 1 ? "BIM Leads" : "BIM Lead"}
                               </p>
                               {maxCount === 1 ? (
-                                <div className="flex items-center gap-3">
+                                <div className={`flex items-center gap-3 ${visibleBl[0].emp ? "cursor-pointer" : ""}`} onClick={() => visibleBl[0].emp && openMemberProfile(visibleBl[0].emp)}>
                                   <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
                                     {visibleBl[0].url ? (
                                       <img src={visibleBl[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
@@ -1512,7 +1620,7 @@ export default function ProjectsTD() {
                               ) : (
                                 <div className="flex items-center -space-x-3">
                                   {visibleBl.map((entry) => (
-                                    <div key={entry.key} className="relative group shrink-0">
+                                    <div key={entry.key} className={`relative group shrink-0 ${entry.emp ? "cursor-pointer" : ""}`} onClick={() => entry.emp && openMemberProfile(entry.emp)}>
                                       <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
                                         {entry.url ? (
                                           <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
@@ -1543,7 +1651,125 @@ export default function ProjectsTD() {
                           );
                         })()}
 
-                        {/* Department Involved */}
+                        {/* BIM Coordinator */}
+                        {(() => {
+                          const bcIds = selectedProjectForView.bim_coordinator_id
+                            ? String(selectedProjectForView.bim_coordinator_id)
+                              .split(",")
+                              .map((id) => id.trim())
+                              .filter(Boolean)
+                            : [];
+                          const bcNames = selectedProjectForView.bim_co_ordinator
+                            ? String(selectedProjectForView.bim_co_ordinator)
+                              .split(",")
+                              .map((n) => n.trim())
+                              .filter(Boolean)
+                            : [];
+
+                          if (bcIds.length === 0 && bcNames.length === 0) {
+                            return (
+                              <div className="min-w-0">
+                                <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                                  BIM Coordinator
+                                </p>
+                                <div className="flex items-center -space-x-3">
+                                  <div
+                                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
+                                    title="Not assigned"
+                                  >
+                                    <span className="text-slate-600 text-xs font-bold">
+                                      BC
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          const maxCount = Math.max(bcIds.length, bcNames.length);
+                          const bcEntries = Array.from({ length: maxCount }).map(
+                            (_, i) => {
+                              const pId = bcIds[i];
+                              const pName = bcNames[i];
+                              const bcEmp = pId
+                                ? allEmployees.find(
+                                  (e: any) => String(e.id) === pId,
+                                )
+                                : null;
+                              const dName =
+                                bcEmp?.full_name || pName || "Unknown";
+                              const url = bcEmp?.profile_picture
+                                ? getGlobalProfileUrl(
+                                  bcEmp.id,
+                                  bcEmp.profile_picture,
+                                )
+                                : null;
+                              return { key: i, dName, url, emp: bcEmp };
+                            },
+                          );
+                          const visibleBc = bcEntries.slice(0, 3);
+                          const bcRemaining = Math.max(0, bcEntries.length - 3);
+                          const bcOverflowTitle =
+                            bcRemaining > 0
+                              ? bcEntries
+                                .slice(3)
+                                .map((e) => e.dName)
+                                .join(", ")
+                              : undefined;
+
+                          return (
+                            <div className="min-w-0">
+                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                                {maxCount > 1 ? "BIM Coordinators" : "BIM Coordinator"}
+                              </p>
+                              {maxCount === 1 ? (
+                                <div className={`flex items-center gap-3 ${bcEntries[0].emp ? "cursor-pointer" : ""}`} onClick={() => bcEntries[0].emp && openMemberProfile(bcEntries[0].emp)}>
+                                  <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
+                                    {visibleBc[0].url ? (
+                                      <img src={visibleBc[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                        {visibleBc[0].dName.charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visibleBc[0].dName}</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center -space-x-3">
+                                  {visibleBc.map((entry) => (
+                                    <div key={entry.key} className={`relative group shrink-0 ${entry.emp ? "cursor-pointer" : ""}`} onClick={() => entry.emp && openMemberProfile(entry.emp)}>
+                                      <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
+                                        {entry.url ? (
+                                          <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                            {entry.dName.charAt(0).toUpperCase()}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                        {entry.dName}
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {bcRemaining > 0 && (
+                                    <div className="relative group shrink-0">
+                                      <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
+                                        +{bcRemaining}
+                                      </div>
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                        {bcOverflowTitle}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* Department Involved
                         {selectedProjectForView?.source !== "Outsource" && (
                           <div className="min-w-0">
                             <p className="text-md font-Gantari font-semibold text-[#000000]">
@@ -1553,7 +1779,7 @@ export default function ProjectsTD() {
                               {selectedProjectForView.department || "N/A"}
                             </p>
                           </div>
-                        )}
+                        )} */}
 
                         {/* Members Involved */}
                         <div>
@@ -1741,7 +1967,6 @@ export default function ProjectsTD() {
                       </h4>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
                         <div className="space-y-4 md:space-y-5">
-
                           <div className="flex flex-col sm:flex-row sm:items-center">
                             <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
                               Actual Start Date
@@ -1776,7 +2001,7 @@ export default function ProjectsTD() {
                           </div>
 
                           <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                            <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
                               Budget
                             </span>
                             <span className="hidden sm:inline text-[#616161] mr-4">
@@ -1790,7 +2015,7 @@ export default function ProjectsTD() {
                           </div>
                           {selectedProjectForView.source === "Outsource" && (
                             <div className="flex flex-col sm:flex-row sm:items-center">
-                              <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                              <span className="w-full sm:w-[220px] shrink-0 text-[16px] font-gantari font-medium text-[#353535]">
                                 Outsourcing Budget
                               </span>
                               <span className="hidden sm:inline text-[#616161] mr-4">
@@ -1834,7 +2059,7 @@ export default function ProjectsTD() {
                                       : `${api.defaults.baseURL}uploads/${fileName}`;
 
                                     return (
-                                      <div key={idx} className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-slate-200 w-full md:max-w-md mt-1">
+                                      <div key={idx} className="flex items-center gap-3 w-full md:max-w-md mt-1">
                                         <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1 font-gantari">
                                           {fileName.split("_").pop() || "Document"}
                                         </span>
@@ -1984,18 +2209,20 @@ export default function ProjectsTD() {
                   Payment Milestones
                 </h3>
                 <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
-                  {currentProject?.project_name ?? "Prestige Park Grove"}_Tower 1
-                  to 09
+                  {currentProject?.project_name ?? "Project"}
                 </p>
               </div>
-              <button
-                onClick={() => setShowAddMilestoneModal(true)}
-                className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-md bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors cursor-pointer"
-                title="Add Milestone"
-              >
-                <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
-                Add Milestone
-              </button>
+              {!milestonesReadOnly && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddMilestoneModal(true)}
+                  className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-md bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors cursor-pointer"
+                  title="Add Milestone"
+                >
+                  <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
+                  Add Milestone
+                </button>
+              )}
             </div>
 
             {/* Milestones Content - No Scroll Version */}
@@ -2058,167 +2285,252 @@ export default function ProjectsTD() {
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DD4342]"></div>
                 </div>
               ) : milestones.length === 0 ? (
-                /* Central Box Area - Now Flexible */
-                <div className="flex-1 border border-[#E5E7EB] rounded-[8px] bg-white flex flex-col items-center justify-center text-center py-20">
-                  <h4 className="text-[20px] font-Gantari font-bold text-[#353535] mb-3">
-                    No Payment Milestones Found
-                  </h4>
-                  <p className="text-[16px] font-Gantari text-[#666666] mb-8">
-                    Add your First Payment to get started with payment tracking
+                <div className="space-y-4">
+                  <p className="text-[15px] font-Gantari font-medium text-[#666666] py-1">
+                    {milestonesReadOnly
+                      ? "No client payment milestones are linked for this project in the commercial database yet."
+                      : (
+                        <>
+                          No payment milestones yet. Use{" "}
+                          <span className="font-semibold text-[#353535]">Add Milestone</span>{" "}
+                          in the header to create your first payment.
+                        </>
+                      )}
                   </p>
-                  <button
-                    onClick={() => setShowAddMilestoneModal(true)}
-                    className="flex items-center gap-2 px-6 py-2 rounded-md bg-[#DD4342] text-white font-Gantari font-medium text-[16px] hover:bg-[#c93a39] transition-colors cursor-pointer"
-                  >
-                    <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
-                    Add Milestone
-                  </button>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {milestones.map((m) => (
-                    <div
-                      key={m.id}
-                      className="bg-white border border-slate-100 rounded-[1.25rem] p-6 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] mb-1 truncate">
-                          {m.milestone_name}
-                        </h5>
-                        <div className="flex items-center gap-6 text-[14px] font-Gantari text-[#999999]">
-                          <div className="flex items-center gap-2">
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
+                  {(() => {
+                    const totalForTerms = milestones.reduce(
+                      (s, x) => s + Number(x.milestone_amount || 0),
+                      0,
+                    );
+                    const currencySymbol =
+                      CURRENCIES.find((c) => c.code === currentProject?.currency)
+                        ?.symbol ?? "₹";
+
+                    return milestones.map((m) => {
+                      const st = (m.status || "Pending").toLowerCase();
+                      const badgeClass =
+                        st === "paid"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : st === "overdue"
+                            ? "bg-red-50 text-red-600"
+                            : "bg-[#FFEAD6] text-[#C2410C]";
+                      const dbPct = Number(m.milestone_percentage);
+                      const termsText =
+                        !Number.isNaN(dbPct) && dbPct > 0
+                          ? `${dbPct}%`
+                          : totalForTerms > 0
+                            ? `${Math.round(
+                              (Number(m.milestone_amount) / totalForTerms) * 100,
+                            )}%`
+                            : "—";
+                      const invoiceLabel = readMilestoneInvoiceLabel(m);
+
+                      return (
+                        <div
+                          key={m.id}
+                          className="bg-white border border-slate-200 rounded-lg p-5 md:p-6 shadow-sm"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4 mb-4">
+                            <h5 className="text-[17px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] pr-2 min-w-0 flex-1">
+                              {m.milestone_name}
+                            </h5>
+                            <span
+                              className={`shrink-0 inline-flex items-center rounded-md px-3 py-1 text-[12px] font-bold font-Gantari ${badgeClass}`}
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              />
-                            </svg>
-                            <span>
-                              Due:{" "}
-                              {m.due_date
-                                ? new Date(m.due_date).toLocaleDateString(
-                                  "en-GB",
-                                )
-                                : "-"}
+                              {m.status || "Pending"}
                             </span>
                           </div>
-                          {m.notes && (
-                            <div className="flex items-center gap-2">
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
-                                />
-                              </svg>
-                              <span className="truncate max-w-xs">
-                                {m.notes}
+
+                          <div className="space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center">
+                              <span className="w-full sm:w-[120px] shrink-0 text-[15px] font-Gantari font-medium text-[#666666]">
+                                Terms
+                              </span>
+                              <span className="hidden sm:inline text-[#999999] mr-3">
+                                :
+                              </span>
+                              <span className="text-[15px] font-Gantari font-medium text-[#1A1A1A]">
+                                {termsText}
                               </span>
                             </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-8">
-                        <div className="text-right">
-                          <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
-                            ${Number(m.milestone_amount).toLocaleString()}
-                          </p>
-                          <span
-                            className={`inline-block px-3 py-1 rounded-full text-[12px] font-bold font-Gantari ${m.status === "Paid" ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"}`}
-                          >
-                            {m.status}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {m.status !== "Paid" && (
+                            <div className="flex flex-col sm:flex-row sm:items-center">
+                              <span className="w-full sm:w-[120px] shrink-0 text-[15px] font-Gantari font-medium text-[#666666]">
+                                Timeline
+                              </span>
+                              <span className="hidden sm:inline text-[#999999] mr-3">
+                                :
+                              </span>
+                              <span className="text-[15px] font-Gantari font-medium text-[#1A1A1A]">
+                                {m.timeline_raw?.trim()
+                                  ? m.timeline_raw
+                                  : formatMilestoneTimeline(m.due_date)}
+                              </span>
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-center">
+                              <span className="w-full sm:w-[120px] shrink-0 text-[15px] font-Gantari font-medium text-[#666666]">
+                                Amount
+                              </span>
+                              <span className="hidden sm:inline text-[#999999] mr-3">
+                                :
+                              </span>
+                              <span className="text-[15px] font-Gantari font-bold text-[#1A1A1A]">
+                                {currencySymbol}{" "}
+                                {Number(m.milestone_amount).toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="mt-5 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              {!milestonesReadOnly && m.status !== "Paid" && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    api
+                                      .post(`/api/milestones/${m.id}/mark-paid`)
+                                      .then(() => {
+                                        toast.success("Milestone marked as paid!");
+                                        currentProject?.id &&
+                                          fetchMilestones(
+                                            currentProject.id,
+                                            currentProject.source,
+                                          );
+                                      })
+                                      .catch(() => {
+                                        toast.error("Failed to mark milestone as paid");
+                                      });
+                                  }}
+                                  className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
+                                  title="Mark as Paid"
+                                >
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M5 13l4 4L19 7"
+                                    />
+                                  </svg>
+                                </button>
+                              )}
+                              {!milestonesReadOnly && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (
+                                      window.confirm(
+                                        "Are you sure you want to delete this milestone?",
+                                      )
+                                    ) {
+                                      api
+                                        .delete(`/api/milestones/${m.id}`)
+                                        .then(() => {
+                                          toast.success("Milestone deleted successfully!");
+                                          currentProject?.id &&
+                                            fetchMilestones(
+                                              currentProject.id,
+                                              currentProject.source,
+                                            );
+                                        })
+                                        .catch(() => {
+                                          toast.error("Failed to delete milestone");
+                                        });
+                                    }
+                                  }}
+                                  className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors cursor-pointer"
+                                  title="Delete Milestone"
+                                >
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
                             <button
+                              type="button"
                               onClick={() => {
-                                api
-                                  .post(`/api/milestones/${m.id}/mark-paid`)
-                                  .then(
-                                    () => {
-                                      toast.success("Milestone marked as paid!");
-                                      currentProject?.id &&
-                                      fetchMilestones(currentProject.id);
-                                    }
-                                  )
-                                  .catch(() => {
-                                    toast.error("Failed to mark milestone as paid");
-                                  });
+                                if (milestonesReadOnly) {
+                                  const invId = m.swiftbim_invoice_id;
+                                  if (
+                                    invId !== undefined &&
+                                    invId !== null &&
+                                    Number(invId) > 0
+                                  ) {
+                                    const qs = searchParams.toString();
+                                    navigate(
+                                      `/td/invoices/${Number(invId)}?project_id=${currentProject.id}`,
+                                      {
+                                        state: {
+                                          returnTo: `/td/projects${qs ? `?${qs}` : ""}`,
+                                        },
+                                      },
+                                    );
+                                  } else {
+                                    toast.error(
+                                      invoiceLabel
+                                        ? "Invoice number is shown, but the invoice record is not linked yet. Ask commercial to sync the invoice."
+                                        : "No invoice record is linked to this milestone yet.",
+                                    );
+                                  }
+                                  return;
+                                }
+                                if (invoiceLabel) {
+                                  toast(invoiceLabel, { icon: "ℹ️" });
+                                }
                               }}
-                              className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
-                              title="Mark as Paid"
-                            >
-                              <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                            </button>
-                          )}
-                          <button
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  "Are you sure you want to delete this milestone?",
-                                )
-                              ) {
-                                api
-                                  .delete(`/api/milestones/${m.id}`)
-                                  .then(
-                                    () => {
-                                      toast.success("Milestone deleted successfully!");
-                                      currentProject?.id &&
-                                      fetchMilestones(currentProject.id);
-                                    }
-                                  )
-                                  .catch(() => {
-                                    toast.error("Failed to delete milestone");
-                                  });
+                              className={`shrink-0 px-5 py-2.5 rounded-md bg-[#DD4342] text-white font-Gantari font-bold text-[14px] shadow-sm hover:bg-[#c93a39] transition-colors ${
+                                milestonesReadOnly &&
+                                m.swiftbim_invoice_id !== undefined &&
+                                m.swiftbim_invoice_id !== null &&
+                                Number(m.swiftbim_invoice_id) > 0
+                                  ? "cursor-pointer"
+                                  : milestonesReadOnly
+                                    ? "cursor-not-allowed opacity-80"
+                                    : "cursor-default"
+                              }`}
+                              title={
+                                milestonesReadOnly
+                                  ? m.swiftbim_invoice_id
+                                    ? "View invoice details from commercial database"
+                                    : invoiceLabel
+                                      ? "Invoice reference — record not linked for viewing yet"
+                                      : "Invoice not generated yet for this milestone"
+                                  : invoiceLabel
+                                    ? "Invoice reference"
+                                    : "Invoice generation is not wired for this view"
                               }
-                            }}
-                            className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors cursor-pointer"
-                            title="Delete Milestone"
-                          >
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
+                              {milestonesReadOnly
+                                ? Number(m.swiftbim_invoice_id) > 0
+                                  ? "View Invoice"
+                                  : invoiceLabel
+                                    ? "Invoice ref"
+                                    : "No invoice yet"
+                                : invoiceLabel || "Generate Invoice"}
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    });
+                  })()}
                 </div>
               )}
             </div>
@@ -2239,7 +2551,7 @@ export default function ProjectsTD() {
                       <button
                         type="button"
                         onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-1 sm:gap-2 shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
+                        className="flex items-center gap-1 sm:gap-2 shrink-0 px-2.5 py-2 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
                       >
                         <img
                           src={plusIcon}
@@ -2251,11 +2563,11 @@ export default function ProjectsTD() {
                     )}
                     <div className="shrink-0">
                       <CustomDropdown
-                        options={["All", "In House", "Outsource"]}
+                        options={["Type", "All", "In House", "Outsource"]}
                         value={typeFilter}
                         onChange={(val) =>
                           setTypeFilter(
-                            val as "All" | "In House" | "Outsource",
+                            val as any,
                           )
                         }
                         placeholder="Type"
@@ -2275,7 +2587,7 @@ export default function ProjectsTD() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(() => {
                   const displayList =
-                    typeFilter === "All"
+                    typeFilter === "All" || typeFilter === "Type"
                       ? filteredList
                       : filteredList.filter((p) => p.source === typeFilter);
 
@@ -2291,6 +2603,12 @@ export default function ProjectsTD() {
 
                     // Use data directly from projects table
                     const progress = Math.round(p.progress ?? 0);
+                    const hasProjectStarted =
+                      Number(p.progress ?? 0) > 0 ||
+                      Number(p.completed_tasks ?? 0) > 0;
+                    const isBlockedByCommercial =
+                      !hasProjectStarted &&
+                      isAdvancePaymentPending(p);
 
                     // Get members from project.member field (comma-separated string)
                     const memberIds = p.member
@@ -2309,9 +2627,9 @@ export default function ProjectsTD() {
                     return (
                       <div
                         key={p.id}
-                        className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300"
+                        className={`relative overflow-hidden bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm transition-all duration-300 ${isBlockedByCommercial ? "opacity-95" : "hover:shadow-md"}`}
                       >
-                        <div>
+                        <div className={isBlockedByCommercial ? "pointer-events-none select-none blur-[1.5px]" : ""}>
                           <div className="flex items-start justify-between mb-4 mt-2 pr-0">
                             <div className="relative flex items-center justify-center">
                               <svg className="w-16 h-16 md:w-20 md:h-20 transform -rotate-90">
@@ -2339,7 +2657,7 @@ export default function ProjectsTD() {
                                   }}
                                 />
                               </svg>
-                              <span className="absolute text-[14px] md:text-[18px] font-Gantari font-bold text-[#353535]">
+                              <span className="absolute text-[14px] md:text-[16px] font-Gantari font-bold text-[#353535]">
                                 {progress}%
                               </span>
                             </div>
@@ -2357,7 +2675,7 @@ export default function ProjectsTD() {
                                 <img
                                   src={threedot}
                                   alt="threeDots"
-                                  className="w-5 h-5 text-[#8B8B8B]"
+                                  className="w-4 h-4 text-[#8B8B8B]"
                                 />
                               </button>
                               <div
@@ -2366,6 +2684,15 @@ export default function ProjectsTD() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    if (
+                                      !hasProjectStarted &&
+                                      isAdvancePaymentPending(p)
+                                    ) {
+                                      toast.error(
+                                        "Project is blocked until client advance payment is verified.",
+                                      );
+                                      return;
+                                    }
                                     setOpenMenuProjectId(null);
                                     setSearchParams({
                                       projectId: String(p.id),
@@ -2375,7 +2702,7 @@ export default function ProjectsTD() {
                                           : "In House",
                                     });
                                   }}
-                                  className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
+                                  className={`w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group ${(!hasProjectStarted && isAdvancePaymentPending(p)) ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                                 >
                                   <img
                                     src={viewIcon}
@@ -2539,7 +2866,7 @@ export default function ProjectsTD() {
                           </div>
 
                           <div className="mb-2 ml-6 -mt-2 min-h-[45px] flex flex-col justify-center">
-                            <h3 className="text-[18px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                            <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight">
                               {p.project_name ?? "Untitled Project"}
                             </h3>
                           </div>
@@ -2630,6 +2957,18 @@ export default function ProjectsTD() {
                             )}
                           </div>
                         </div>
+                        {isBlockedByCommercial && (
+                          <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/45 px-4">
+                            <div className="rounded-lg border border-[#F0C9C9] bg-white/95 px-3 py-2 shadow-sm text-center">
+                              <p className="text-[12px] font-semibold text-[#A33B3B] font-Gantari">
+                                Client needs to pay advance to unblock project
+                              </p>
+                              <p className="text-[11px] text-[#6F6F6F] font-Gantari mt-1">
+                                Advance payment pending. After payment verification, project will be open.
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       );
                     });
@@ -3127,22 +3466,35 @@ export default function ProjectsTD() {
                         <label className="block text-[16px] font-medium text-[#000000]">
                           Outsourcing Budget <span className="text-[#DD4342]">*</span>
                         </label>
-                        <input
-                          type="text"
-                          className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-md focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
-                            const clientNum = parseBudgetValue(createBudget);
-                            const outsourceNum =
-                              parseBudgetValue(createBudgetCeiling);
-                            return outsourceNum > clientNum
-                              ? "border-[#DD4342] focus:border-[#DD4342]"
-                              : "border-transparent focus:border-[#AEACAC52]";
-                          })()}`}
-                          placeholder="Enter Outsourcing Budget"
-                          value={createBudgetCeiling}
-                          onChange={(e) =>
-                            setCreateBudgetCeiling(e.target.value)
-                          }
-                        />
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={createCurrency}
+                            onChange={(e) => setCreateCurrency(e.target.value)}
+                            className="w-[160px] px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-md focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535]"
+                          >
+                            {CURRENCIES.map((c) => (
+                              <option key={c.code} value={c.code}>
+                                {c.symbol} {c.code}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            className={`flex-1 px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-md focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
+                              const clientNum = parseBudgetValue(createBudget);
+                              const outsourceNum =
+                                parseBudgetValue(createBudgetCeiling);
+                              return outsourceNum > clientNum
+                                ? "border-[#DD4342] focus:border-[#DD4342]"
+                                : "border-transparent focus:border-[#AEACAC52]";
+                            })()}`}
+                            placeholder="Enter Outsourcing Budget"
+                            value={createBudgetCeiling}
+                            onChange={(e) =>
+                              setCreateBudgetCeiling(e.target.value)
+                            }
+                          />
+                        </div>
                         {(() => {
                           const clientNum = parseBudgetValue(createBudget);
                           const outsourceNum =
@@ -3369,7 +3721,7 @@ export default function ProjectsTD() {
                     setMilestoneAmount("");
                     setMilestoneDueDate("");
                     setMilestoneNotes("");
-                    fetchMilestones(currentProject.id);
+                    fetchMilestones(currentProject.id, currentProject.source);
                   })
                   .catch((err) => {
                     toast.error(err.response?.data?.message || "Failed to add milestone");
@@ -3476,10 +3828,10 @@ export default function ProjectsTD() {
 
       {/* Edit Project Details Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-5 py-2 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-md shadow-2xl max-w-3xl w-full flex flex-col max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
-            <div className="relative flex items-center justify-center px-10 py-8 border-b border-gray-100">
+            <div className="relative flex items-center justify-center px-10 py-8">
               <div className="absolute left-8 group inline-flex shrink-0">
                 <button
                   type="button"
@@ -3512,7 +3864,7 @@ export default function ProjectsTD() {
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px] "></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
                     <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                       Close
                     </span>
@@ -3537,7 +3889,14 @@ export default function ProjectsTD() {
                   }
                   const id = selectedProjectForEdit.id;
                   setIsEditSubmitting(true);
-                  const endpoint = selectedProjectForEdit.source === "Outsource" ? `/api/vendors/vendor-projects/${id}` : `/api/projects/${id}`;
+                  const primaryEndpoint =
+                    selectedProjectForEdit.source === "Outsource"
+                      ? `/api/vendors/vendor-projects/${id}`
+                      : `/api/projects/${id}`;
+                  const fallbackEndpoint =
+                    selectedProjectForEdit.source === "Outsource"
+                      ? `/api/projects/${id}`
+                      : `/api/vendors/vendor-projects/${id}`;
 
                   const formData = new FormData();
                   formData.append("project_name", createName.trim());
@@ -3585,9 +3944,27 @@ export default function ProjectsTD() {
                   createFiles.forEach((file) => formData.append("files", file));
                   removedFiles.forEach((file) => formData.append("removed_files", file));
 
-                  api
-                    .put(endpoint, formData, {
+                  const putPrimary = () =>
+                    api.put(primaryEndpoint, formData, {
                       headers: { "Content-Type": "multipart/form-data" },
+                    });
+                  const putFallback = () =>
+                    api.put(fallbackEndpoint, formData, {
+                      headers: { "Content-Type": "multipart/form-data" },
+                    });
+
+                  putPrimary()
+                    .catch((err) => {
+                      // Some merged-list rows can carry a mismatched source/id pair.
+                      // If primary endpoint says "Project not found", retry alternate endpoint.
+                      const message = String(
+                        err?.response?.data?.message || err?.response?.data?.error || "",
+                      ).toLowerCase();
+                      const status = Number(err?.response?.status || 0);
+                      const isNotFound =
+                        status === 404 || message.includes("project not found");
+                      if (!isNotFound) throw err;
+                      return putFallback();
                     })
                     .then(({ data }) => {
                       if ((data as { success?: boolean }).success) {
@@ -3880,24 +4257,37 @@ export default function ProjectsTD() {
                         <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
                           Outsourcing Budget
                         </label>
-                        <input
-                          type="text"
-                          className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-md focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
-                            const clientNum = parseBudgetValue(createBudget);
-                            const outsourceNum =
-                              parseBudgetValue(createBudgetCeiling);
-                            return outsourceNum > clientNum
-                              ? "border-[#DD4342] focus:border-[#DD4342]"
-                              : "border-transparent focus:border-[#AEACAC52]";
-                          })()}`}
-                          placeholder="Enter Outsourcing Budget"
-                          value={createBudgetCeiling}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9.]/g, "");
-                            const parts = val.split(".");
-                            if (parts.length <= 2) setCreateBudgetCeiling(val);
-                          }}
-                        />
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={createCurrency}
+                            onChange={(e) => setCreateCurrency(e.target.value)}
+                            className="w-[160px] px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-md focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535]"
+                          >
+                            {CURRENCIES.map((c) => (
+                              <option key={c.code} value={c.code}>
+                                {c.symbol} {c.code}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            className={`flex-1 px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-md focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
+                              const clientNum = parseBudgetValue(createBudget);
+                              const outsourceNum =
+                                parseBudgetValue(createBudgetCeiling);
+                              return outsourceNum > clientNum
+                                ? "border-[#DD4342] focus:border-[#DD4342]"
+                                : "border-transparent focus:border-[#AEACAC52]";
+                            })()}`}
+                            placeholder="Enter Outsourcing Budget"
+                            value={createBudgetCeiling}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9.]/g, "");
+                              const parts = val.split(".");
+                              if (parts.length <= 2) setCreateBudgetCeiling(val);
+                            }}
+                          />
+                        </div>
                         {(() => {
                           const clientNum = parseBudgetValue(createBudget);
                           const outsourceNum =
@@ -3965,7 +4355,7 @@ export default function ProjectsTD() {
                       setCreateLocation("");
                       setCreateDescription("");
                     }}
-                    className="px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-Gantari font-semibold text-[16px] transition-all cursor-pointer"
+                    className="px-6 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-Gantari font-medium text-[14px] transition-all cursor-pointer"
                   >
                     Discard
                   </button>
@@ -3980,7 +4370,7 @@ export default function ProjectsTD() {
                           parseBudgetValue(createBudget))
                       )
                     }
-                    className="px-8 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-Gantari font-semibold text-[16px] transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                    className="px-6 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-Gantari font-medium text-[14px] transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {isEditSubmitting ? "Updating..." : "Update Project"}
                   </button>

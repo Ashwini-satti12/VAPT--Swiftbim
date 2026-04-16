@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import api from "../../lib/api";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import { useAuth } from "../../contexts/AuthContext";
+import { formatDateForDisplay } from "../TechnicalDirector/MytaskTD";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg"
@@ -288,21 +289,17 @@ function TaskCard({
 
   const isCompleted = status === "completed";
 
-  const startStr = task.start_date
-    ? `${new Date(task.start_date).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date).getFullYear()}`
-    : "—";
-  const endStr = task.due_date
-    ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
-    : "";
+  const startStr = formatDateForDisplay(task.start_date) || "—";
+  const endStr = formatDateForDisplay(task.due_date) || "—";
 
   return (
     <div
       draggable={!isCompleted}
       onDragStart={handleDragStart}
-      className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+      className={`mt-2 rounded-lg border border-[#AEACAC52] bg-white p-3 shadow-sm relative mx-auto w-full max-w-full lg:max-w-none ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[20px] truncate">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <h4 className="flex-1 min-w-0 font-medium text-[#353535] text-[20px] truncate leading-tight">
           {task.task_name || "Task Name"}
         </h4>
         <div className="relative shrink-0" ref={menuRef}>
@@ -317,7 +314,7 @@ function TaskCard({
             aria-label="More options"
             aria-expanded={menuOpen}
           >
-            <img src={Dot} alt="Dot" className="w-5 h-5 object-contain" />
+            <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
           </button>
           {menuOpen && (
             <div
@@ -328,7 +325,7 @@ function TaskCard({
               <button
                 type="button"
                 role="menuitem"
-                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                 onClick={() => {
                   setMenuOpen(false);
                   onViewTask?.(task);
@@ -348,7 +345,7 @@ function TaskCard({
                   <button
                     type="button"
                     role="menuitem"
-                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                    className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                     onClick={() => {
                       setMenuOpen(false);
                       onEditTask?.(task);
@@ -366,7 +363,7 @@ function TaskCard({
                   <button
                     type="button"
                     role="menuitem"
-                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                    className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                     onClick={() => {
                       setMenuOpen(false);
                       onDeleteTask?.(task);
@@ -387,25 +384,23 @@ function TaskCard({
           )}
         </div>
       </div>
-      <div className="flex items-start justify-between gap-2 mb-2">
+      <div className="flex items-start justify-between gap-2 mb-4">
         <div className="flex flex-col">
           <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
           <span className="text-[14px] font-medium text-[#8B8B8B]">{startStr}</span>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+          <span className="text-[14px] font-medium text-[#000000]">Due Date</span>
           <span className="text-[14px] font-medium text-[#8B8B8B]">{endStr}</span>
         </div>
       </div>
       <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="text-xs text-slate-600">Progress</span>
-        <span className="text-xs font-medium text-slate-700">
-          {progress}%
-        </span>
+        <span className="text-[12px] text-[#8B8B8B]">Progress</span>
+        <span className="text-[12px] text-[#8B8B8B]">{progress}%</span>
       </div>
-      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
         <div
-          className="h-full rounded-full bg-slate-500"
+          className="h-full rounded-full bg-[#8B8B8B]"
           style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
         />
       </div>
@@ -430,7 +425,7 @@ function TaskCard({
                   .toUpperCase();
                 return (
                   <div
-                    className="w-7 h-7 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    className="w-8 h-8 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                     title={`Assigned To: ${task.assigned_full_name}`}
                   >
                     {src ? (
@@ -459,7 +454,7 @@ function TaskCard({
                   .toUpperCase();
                 return (
                   <div
-                    className="w-7 h-7 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                     title={`Assigned By: ${task.uploader_full_name}`}
                   >
                     {src ? (
@@ -822,7 +817,7 @@ export default function MyTasksPM() {
   }
 
   return (
-    <div className="h-full min-h-0 flex flex-col overflow-hidden">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden px-5 py-2">
       <div className="bg-white pb-3 flex-shrink-0">
         {/* Top row: title + dropdowns + Add task - match MytaskTD */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-3">

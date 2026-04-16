@@ -88,6 +88,93 @@ def _serialize(value):
     return value
 
 
+# Static conversion rates against INR for quick backend-side bid conversions.
+# This keeps bid comparison deterministic without external API dependency.
+_FX_TO_INR = {
+    "INR": 1.0,
+    "USD": 83.0,
+    "EUR": 90.0,
+    "GBP": 105.0,
+    "AED": 22.6,
+    "SAR": 22.1,
+    "QAR": 22.8,
+    "OMR": 215.0,
+    "BHD": 220.0,
+    "KWD": 270.0,
+    "SGD": 61.5,
+    "AUD": 54.0,
+    "CAD": 60.0,
+    "JPY": 0.56,
+    "CNY": 11.5,
+    "MYR": 17.8,
+    "THB": 2.3,
+    "IDR": 0.0052,
+}
+
+
+def _normalize_currency(code):
+    c = (code or "INR").strip().upper()
+    return c if c in _FX_TO_INR else "INR"
+
+
+def _convert_currency(amount, from_currency, to_currency):
+    frm = _normalize_currency(from_currency)
+    to = _normalize_currency(to_currency)
+    amt = float(amount or 0)
+    in_inr = amt * _FX_TO_INR[frm]
+    converted = in_inr / _FX_TO_INR[to]
+    return round(converted, 2)
+
+
+def _ensure_vendor_bid_currency_columns(cur):
+    """Ensure vendor_bids can store vendor currency and converted amount."""
+    for col, ddl in (
+        ("bid_currency", "VARCHAR(10) DEFAULT 'INR'"),
+        ("bid_amount_original", "DECIMAL(15,2) NULL"),
+        ("opportunity_currency", "VARCHAR(10) DEFAULT 'INR'"),
+    ):
+        try:
+            cur.execute(
+                """
+                SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'vendor_bids'
+                  AND COLUMN_NAME = %s
+                LIMIT 1
+                """,
+                (col,),
+            )
+            if cur.fetchone() is None:
+                cur.execute(f"ALTER TABLE snh6_swiftproject.vendor_bids ADD COLUMN {col} {ddl}")
+        except Exception:
+            pass
+
+
+def _ensure_vendor_bidding_currency_snh6(cur):
+    """
+    list_opportunities uses TRIM(vb.currency). Older snh6_swiftproject.vendor_bidding
+    tables may not have this column — add it so the query does not fail silently.
+    """
+    try:
+        cur.execute(
+            """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = 'snh6_swiftproject'
+              AND TABLE_NAME = 'vendor_bidding'
+              AND COLUMN_NAME = 'currency'
+            LIMIT 1
+            """
+        )
+        if cur.fetchone() is None:
+            cur.execute(
+                "ALTER TABLE snh6_swiftproject.vendor_bidding "
+                "ADD COLUMN currency VARCHAR(10) DEFAULT 'INR'"
+            )
+    except Exception:
+        pass
+
+
 def _parse_iso_date(val):
     if not val:
         return None
@@ -1026,6 +1113,262 @@ def vendor_dashboard_project_stats():
 # Opportunities (Bidding Inbox for Vendors)
 # ---------------------------------------------------------------------------
 
+def _annotate_vendor_opportunity(item):
+    """
+    Merge linked project fields into the opportunity dict for vendor UI.
+    Adds software_to_be_used (modules, tasks, resources from projects) and
+    prefers the live project description when the bidding copy is empty or shorter.
+    """
+    if not item or not isinstance(item, dict):
+        return item
+    def _strip_html_text(val):
+        s = str(val or "").strip()
+        if not s:
+            return ""
+        # Remove script/style blocks then all tags.
+        s = re.sub(r"<(script|style)\b[^>]*>.*?</\1>", " ", s, flags=re.IGNORECASE | re.DOTALL)
+        s = re.sub(r"<[^>]+>", " ", s)
+        s = re.sub(r"\s+", " ", s).strip()
+        return s
+
+    def _parse_tech_text(val):
+        raw = str(val or "").strip()
+        if not raw:
+            return ""
+        parsed = raw
+        # Handle JSON and double-encoded JSON.
+        for _ in range(2):
+            if not isinstance(parsed, str):
+                break
+            s = parsed.strip()
+            if not (s.startswith("[") or s.startswith("{") or s.startswith('"')):
+                break
+            try:
+                parsed = json.loads(s)
+            except Exception:
+                break
+
+        if isinstance(parsed, list):
+            out = []
+            for row in parsed:
+                if isinstance(row, dict):
+                    sv = str(
+                        row.get("software")
+                        or row.get("module")
+                        or row.get("name")
+                        or row.get("value")
+                        or ""
+                    ).strip()
+                else:
+                    sv = str(row or "").strip()
+                if sv:
+                    out.append(sv)
+            return "\n".join(out).strip()
+        if isinstance(parsed, dict):
+            sv = str(
+                parsed.get("software")
+                or parsed.get("module")
+                or parsed.get("name")
+                or parsed.get("value")
+                or ""
+            ).strip()
+            return sv
+        return _strip_html_text(parsed)
+
+    pd = item.get("project_description")
+    if pd and str(pd).strip():
+        cur_d = _strip_html_text(item.get("description") or "")
+        pds = _strip_html_text(pd)
+        if not cur_d or len(pds) > len(cur_d):
+            item["description"] = pds
+    # Phase-1 enrichment (new_swiftbim): resolve service_id and pull richer
+    # narrative fields used in Vendor Bid page.
+    try:
+        vcur = vendor_cursor()
+
+        def _first_text(row, keys):
+            if not row or not isinstance(row, dict):
+                return ""
+            for k in keys:
+                v = row.get(k)
+                if v is None:
+                    continue
+                s = str(v).strip()
+                if s:
+                    return s
+            return ""
+
+        # Resolve service_id (bim_enquiry.id)
+        service_id = None
+        raw_sid = item.get("service_id")
+        try:
+            if raw_sid is not None and str(raw_sid).strip().isdigit():
+                service_id = int(str(raw_sid).strip())
+        except Exception:
+            service_id = None
+
+        if service_id is None:
+            client_id_raw = item.get("project_client_id")
+            client_id = None
+            try:
+                if client_id_raw is not None and str(client_id_raw).strip().isdigit():
+                    client_id = int(str(client_id_raw).strip())
+            except Exception:
+                client_id = None
+
+            if client_id is not None:
+                vcur.execute(
+                    "SELECT email FROM users WHERE id = %s LIMIT 1",
+                    (client_id,),
+                )
+                urow = vcur.fetchone() or {}
+                email = str(urow.get("email") or "").strip()
+                if email:
+                    vcur.execute(
+                        "SELECT * FROM bim_enquiry WHERE email_address = %s ORDER BY id DESC LIMIT 1",
+                        (email,),
+                    )
+                    enq = vcur.fetchone() or {}
+                    if enq.get("id") is not None:
+                        try:
+                            service_id = int(enq["id"])
+                        except Exception:
+                            service_id = None
+                    desc_from_enquiry = _first_text(
+                        enq,
+                        [
+                            "project_description",
+                            "description",
+                            "project_details",
+                            "details",
+                            "scope_of_work",
+                        ],
+                    )
+                    if desc_from_enquiry:
+                        item["description"] = _strip_html_text(desc_from_enquiry)
+                    # Location fallback from enquiry location parts.
+                    loc_parts = []
+                    for k in ("city", "state", "country"):
+                        vv = str(enq.get(k) or "").strip()
+                        if vv:
+                            loc_parts.append(vv)
+                    loc_from_enq = ", ".join(loc_parts).strip(", ").strip()
+                    if loc_from_enq and not str(item.get("project_location") or "").strip():
+                        item["project_location"] = loc_from_enq
+
+        if service_id is not None:
+            item["service_id"] = service_id
+            vcur.execute(
+                "SELECT * FROM bim_enquiry WHERE id = %s LIMIT 1",
+                (service_id,),
+            )
+            enq_by_id = vcur.fetchone() or {}
+            vcur.execute(
+                "SELECT * FROM proposals WHERE service_id = %s ORDER BY id DESC LIMIT 1",
+                (service_id,),
+            )
+            prop = vcur.fetchone() or {}
+            scope_text = _first_text(prop, ["scope_of_work"])
+            tech_text = _first_text(prop, ["technologies_used"])
+            desc_text = _first_text(
+                prop,
+                ["executive_summary", "aboutus"],
+            )
+            if scope_text:
+                clean_scope = _strip_html_text(scope_text)
+                item["scope_of_work"] = clean_scope
+                item["technical_requirements"] = clean_scope
+            if tech_text:
+                clean_tech = _parse_tech_text(tech_text)
+                item["technologies_used"] = clean_tech
+                item["software_to_be_used"] = clean_tech
+            if desc_text and (not str(item.get("description") or "").strip()):
+                item["description"] = _strip_html_text(desc_text)
+            # Location source-of-truth: bim_enquiry country/state/city only.
+            loc_parts = []
+            for k in ("city", "state", "country"):
+                vv = str(enq_by_id.get(k) or "").strip()
+                if vv:
+                    loc_parts.append(vv)
+            loc = ", ".join(loc_parts).strip(", ").strip()
+            if loc:
+                item["project_location"] = loc
+    except Exception:
+        pass
+
+    parts = []
+    m = (item.get("project_modules") or "").strip()
+    t = (item.get("project_tasks") or "").strip()
+    r = (item.get("project_required_resources") or "").strip()
+    if m:
+        parts.append(f"Modules / scope:\n{m}")
+    if t:
+        parts.append(f"Tasks / deliverables:\n{t}")
+    if r:
+        parts.append(f"Resources / inputs required:\n{r}")
+    if parts:
+        item["software_to_be_used"] = "\n\n".join(parts)
+    else:
+        legacy = (item.get("technical_requirements") or "").strip()
+        item["software_to_be_used"] = legacy if legacy else None
+    return item
+
+
+@bp.route("/opportunities/<int:opportunity_id>", methods=["GET"])
+@login_required
+def get_opportunity(opportunity_id):
+    """
+    GET /api/vendors/opportunities/<id>
+    Full opportunity row plus joined project fields (description, modules, tasks, etc.).
+    """
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    vendor_id = getattr(g, "user_id", None)
+    try:
+        _ensure_vendor_bidding_currency_snh6(cur)
+        already_bid = False
+        if vendor_id:
+            try:
+                cur.execute(
+                    "SELECT 1 AS ok FROM snh6_swiftproject.vendor_bids WHERE vendor_id = %s AND opportunity_id = %s LIMIT 1",
+                    (vendor_id, opportunity_id),
+                )
+                already_bid = cur.fetchone() is not None
+            except Exception:
+                already_bid = False
+        cur.execute(
+            """
+            SELECT vb.*,
+                   COALESCE(NULLIF(TRIM(vb.currency), ''), NULLIF(TRIM(p.currency), ''), 'INR') AS currency,
+                   NULLIF(TRIM(p.description), '') AS project_description,
+                   NULLIF(TRIM(p.modules), '') AS project_modules,
+                   NULLIF(TRIM(p.tasks), '') AS project_tasks,
+                   NULLIF(TRIM(p.location), '') AS project_location,
+                   NULLIF(TRIM(p.no_resources_requried), '') AS project_required_resources,
+                   NULLIF(TRIM(p.due_date), '') AS project_due_date,
+                   NULLIF(TRIM(p.priority), '') AS project_priority,
+                   NULLIF(TRIM(p.client_id), '') AS project_client_id,
+                   (SELECT COUNT(*) FROM snh6_swiftproject.vendor_bids vbc WHERE vbc.opportunity_id = vb.id) AS bids_count
+            FROM snh6_swiftproject.vendor_bidding vb
+            LEFT JOIN snh6_swiftproject.projects p ON p.id = vb.project_id
+            WHERE vb.id = %s
+            LIMIT 1
+            """,
+            (opportunity_id,),
+        )
+        r = cur.fetchone()
+        if not r:
+            return jsonify({"success": False, "message": "Opportunity not found"}), 404
+        item = {k: _serialize(v) for k, v in r.items()}
+        item["currency"] = _normalize_currency(item.get("currency") or "INR")
+        item["already_bid"] = already_bid
+        _annotate_vendor_opportunity(item)
+        return jsonify({"opportunity": item})
+    except Exception as e:
+        current_app.logger.warning("get_opportunity failed: %s", e)
+        return jsonify({"success": False, "message": "Failed to load opportunity"}), 500
+
+
 @bp.route("/opportunities", methods=["GET"])
 @login_required
 def list_opportunities():
@@ -1039,25 +1382,49 @@ def list_opportunities():
     vendor_id = getattr(g, "user_id", None)
 
     try:
-        # Check which ones current vendor already bid on
+        _ensure_vendor_bidding_currency_snh6(cur)
+
+        # Check which ones current vendor already bid on (must not hide opportunities if this fails)
         already_bid = set()
         if vendor_id:
-            cur.execute("SELECT opportunity_id FROM snh6_swiftproject.vendor_bids WHERE vendor_id = %s", (vendor_id,))
-            already_bid = {r["opportunity_id"] for r in cur.fetchall()}
+            try:
+                cur.execute(
+                    "SELECT opportunity_id FROM snh6_swiftproject.vendor_bids WHERE vendor_id = %s",
+                    (vendor_id,),
+                )
+                already_bid = {r["opportunity_id"] for r in cur.fetchall()}
+            except Exception:
+                already_bid = set()
 
         cur.execute(
-            """SELECT * FROM vendor_bidding
-               WHERE status = 'active'
-               ORDER BY bid_deadline ASC"""
+            """
+            SELECT vb.*,
+                   COALESCE(NULLIF(TRIM(vb.currency), ''), NULLIF(TRIM(p.currency), ''), 'INR') AS currency,
+                   NULLIF(TRIM(p.description), '') AS project_description,
+                   NULLIF(TRIM(p.modules), '') AS project_modules,
+                   NULLIF(TRIM(p.tasks), '') AS project_tasks,
+                   NULLIF(TRIM(p.location), '') AS project_location,
+                   NULLIF(TRIM(p.no_resources_requried), '') AS project_required_resources,
+                   NULLIF(TRIM(p.due_date), '') AS project_due_date,
+                   NULLIF(TRIM(p.priority), '') AS project_priority,
+                   NULLIF(TRIM(p.client_id), '') AS project_client_id,
+                   (SELECT COUNT(*) FROM snh6_swiftproject.vendor_bids vbc WHERE vbc.opportunity_id = vb.id) AS bids_count
+            FROM snh6_swiftproject.vendor_bidding vb
+            LEFT JOIN snh6_swiftproject.projects p ON p.id = vb.project_id
+            WHERE vb.status = 'active'
+            ORDER BY vb.bid_deadline ASC
+            """
         )
         rows = cur.fetchall()
         opportunities = []
         for r in rows:
             item = {k: _serialize(v) for k, v in r.items()}
+            item["currency"] = _normalize_currency(item.get("currency") or "INR")
             item["already_bid"] = item["id"] in already_bid
+            _annotate_vendor_opportunity(item)
             opportunities.append(item)
-    except Exception:
-        # Table may not exist yet — return empty list gracefully
+    except Exception as e:
+        current_app.logger.warning("list_opportunities failed: %s", e)
         opportunities = []
 
     return jsonify({"opportunities": opportunities})
@@ -1074,6 +1441,7 @@ def submit_bid(opportunity_id):
     """
     data = request.get_json(silent=True) or {}
     bid_amount = data.get("bid_amount")
+    selected_currency = data.get("selected_currency")
     notes = data.get("notes", "")
     timeline = data.get("timeline", "")
     team_size = data.get("team_size", 0)
@@ -1088,12 +1456,18 @@ def submit_bid(opportunity_id):
 
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+    _ensure_vendor_bid_currency_columns(cur)
 
     # Verify the opportunity exists and is still active
     try:
         cur.execute(
-            """SELECT id, project_name, bid_deadline, outsource_budget, budget_ceiling
-               FROM snh6_swiftproject.vendor_bidding WHERE id = %s AND status = 'active'""",
+            """
+            SELECT vb.id, vb.project_name, vb.bid_deadline, vb.outsource_budget, vb.budget_ceiling,
+                   COALESCE(NULLIF(TRIM(vb.currency), ''), NULLIF(TRIM(p.currency), ''), 'INR') AS currency
+            FROM snh6_swiftproject.vendor_bidding vb
+            LEFT JOIN projects p ON p.id = vb.project_id
+            WHERE vb.id = %s AND vb.status = 'active'
+            """,
             (opportunity_id,),
         )
         opp = cur.fetchone()
@@ -1128,6 +1502,10 @@ def submit_bid(opportunity_id):
     except (TypeError, ValueError):
         return jsonify({"success": False, "message": "Invalid bid amount"}), 400
 
+    opp_currency = _normalize_currency(opp.get("currency") or "INR")
+    vendor_currency = _normalize_currency(selected_currency or opp_currency)
+    converted_bid_val = _convert_currency(bid_val, vendor_currency, opp_currency)
+
     caps = []
     for key in ("outsource_budget", "budget_ceiling"):
         fv = _to_float_budget(opp.get(key))
@@ -1135,11 +1513,11 @@ def submit_bid(opportunity_id):
             caps.append(fv)
     if caps:
         max_bid = min(caps)
-        if bid_val > max_bid:
+        if converted_bid_val > max_bid:
             return jsonify(
                 {
                     "success": False,
-                    "message": f"Your bid amount is too high. It cannot exceed ₹{max_bid:,.2f} for this opportunity.",
+                    "message": f"Your bid amount is too high. It cannot exceed {opp_currency} {max_bid:,.2f} for this opportunity.",
                 }
             ), 400
 
@@ -1149,7 +1527,25 @@ def submit_bid(opportunity_id):
                VALUES (%s, %s, %s, %s, %s, %s, 'submitted', NOW())
                ON DUPLICATE KEY UPDATE bid_amount = VALUES(bid_amount), notes = VALUES(notes),
                timeline = VALUES(timeline), team_size = VALUES(team_size), status = 'submitted'""",
-            (vendor_id, opportunity_id, bid_amount, notes, timeline, team_size),
+            (
+                vendor_id,
+                opportunity_id,
+                converted_bid_val,
+                notes,
+                timeline,
+                team_size,
+            ),
+        )
+        # Persist vendor-entered currency and original amount for display/audit.
+        cur.execute(
+            """
+            UPDATE snh6_swiftproject.vendor_bids
+            SET bid_currency = %s,
+                bid_amount_original = %s,
+                opportunity_currency = %s
+            WHERE vendor_id = %s AND opportunity_id = %s
+            """,
+            (vendor_currency, bid_val, opp_currency, vendor_id, opportunity_id),
         )
         conn.commit()
     except Exception as e:
@@ -1233,7 +1629,8 @@ def my_bids():
     try:
         cur.execute(
             """SELECT vb.*, vbidding.project_name, vbidding.outsource_budget,
-                      vbidding.budget_ceiling, vbidding.bid_deadline
+                      vbidding.budget_ceiling, vbidding.bid_deadline,
+                      vbidding.currency AS opportunity_currency_display
                FROM snh6_swiftproject.vendor_bids vb
                LEFT JOIN vendor_bidding vbidding ON vbidding.id = vb.opportunity_id
                WHERE vb.vendor_id = %s
@@ -1241,7 +1638,17 @@ def my_bids():
             (vendor_id,),
         )
         rows = cur.fetchall()
-        bids = [{k: _serialize(v) for k, v in r.items()} for r in rows]
+        bids = []
+        for r in rows:
+            item = {k: _serialize(v) for k, v in r.items()}
+            # Keep existing frontend compatibility: `currency` reflects vendor-selected bid currency.
+            item["currency"] = _normalize_currency(
+                item.get("bid_currency")
+                or item.get("currency")
+                or item.get("opportunity_currency_display")
+                or "INR"
+            )
+            bids.append(item)
     except Exception:
         bids = []
 
@@ -1746,8 +2153,10 @@ def bidding_bids(bidding_id):
                    ve.full_name AS vendor_name,
                    ve.email AS vendor_email,
                    ve.phone_number AS vendor_phone,
-                   ve.full_name AS company_name
+                   ve.full_name AS company_name,
+                   b.currency AS opportunity_currency_display
             FROM snh6_swiftproject.vendor_bids vb
+            LEFT JOIN snh6_swiftproject.vendor_bidding b ON b.id = vb.opportunity_id
             LEFT JOIN snh6_swiftproject.vendor_employee ve ON ve.id = vb.vendor_id
             WHERE vb.opportunity_id = %s
             ORDER BY vb.bid_amount ASC
@@ -2460,6 +2869,61 @@ def _send_login_email(to_email: str, role: str, temp_password: str):
         return True
     except Exception:
         return False
+
+
+def _send_notification_email(to_email: str, subject: str, body: str) -> bool:
+    """Send plain-text notification email using configured SMTP."""
+    mail_server = current_app.config.get("MAIL_SERVER") or ""
+    mail_port = int(current_app.config.get("MAIL_PORT") or 587)
+    mail_use_tls = bool(current_app.config.get("MAIL_USE_TLS"))
+    mail_username = current_app.config.get("MAIL_USERNAME") or ""
+    mail_password = current_app.config.get("MAIL_PASSWORD") or ""
+    sender = current_app.config.get("MAIL_DEFAULT_SENDER") or mail_username
+    if not (mail_server and sender and to_email):
+        return False
+    msg = MIMEText(body or "", "plain", "utf-8")
+    msg["Subject"] = subject or "SwiftBIM Notification"
+    msg["From"] = sender
+    msg["To"] = to_email
+    try:
+        context = ssl.create_default_context()
+        with smtplib.SMTP(mail_server, mail_port, timeout=10) as server:
+            if mail_use_tls:
+                server.starttls(context=context)
+            if mail_username and mail_password:
+                server.login(mail_username, mail_password)
+            server.sendmail(sender, [to_email], msg.as_string())
+        return True
+    except Exception:
+        return False
+
+
+def _notification_recipient_email(cur, user_id):
+    """Find recipient email from employee or vendor_employee."""
+    try:
+        uid = int(str(user_id).strip())
+    except (TypeError, ValueError):
+        return None
+    try:
+        cur.execute("SELECT email FROM employee WHERE id = %s LIMIT 1", (uid,))
+        er = cur.fetchone() or {}
+        em = (er.get("email") or "").strip()
+        if em:
+            return em
+    except Exception:
+        pass
+    try:
+        cur.execute(
+            "SELECT email FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+            (uid,),
+        )
+        vr = cur.fetchone() or {}
+        em = (vr.get("email") or "").strip()
+        if em:
+            return em
+    except Exception:
+        pass
+    return None
 
 
 def _profile_completeness(v: dict) -> int:
@@ -3939,6 +4403,13 @@ def list_vendor_tasks():
 
     is_vendor_user_task = getattr(g, "user_type", None) == "vendor"
     task_company_id = getattr(g, "company_id", None)
+    staff_role = (getattr(g, "user_role", None) or "").strip()
+    VENDOR_TASK_STAFF_ROLES = {
+        "Technical Director",
+        "Project Manager",
+        "BIM Lead",
+        "BIM Coordinator",
+    }
 
     where = []
     params = []
@@ -3978,14 +4449,23 @@ def list_vendor_tasks():
                 params.append(user_id)
                 params.append(user_id)
         else:
-            # Non-vendor callers: legacy filter
-            where.append("vt.vendor_id = %s")
-            params.append(user_id)
+            # Staff callers: allow role-based company visibility.
+            if staff_role not in VENDOR_TASK_STAFF_ROLES:
+                return jsonify({"tasks": []})
+            if task_company_id is not None:
+                where.append(
+                    "EXISTS (SELECT 1 FROM snh6_swiftproject.vendor_projects vp2 "
+                    "LEFT JOIN snh6_swiftproject.projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci "
+                    "WHERE vp2.id = vt.project_id AND mp.Company_id = %s)"
+                )
+                params.append(task_company_id)
     elif is_vendor_user_task:
         # Team view for vendor: no vendor_id restriction (all tasks in project)
         pass
     else:
         # Team view for staff (TD/PM/BL/BC): filter by company via vendor_projects join
+        if staff_role not in VENDOR_TASK_STAFF_ROLES:
+            return jsonify({"tasks": []})
         if task_company_id is not None:
             where.append(
                 "EXISTS (SELECT 1 FROM snh6_swiftproject.vendor_projects vp2 "
@@ -4059,6 +4539,221 @@ def list_vendor_tasks():
         d["due_date"] = d.get("due_date")
         tasks.append(d)
     return jsonify({"tasks": tasks})
+
+
+def _resolve_vendor_task_notification_recipient(cur, assigned_to):
+    """
+    Resolve vendor_task assigned_to to actual login user id for notifications.
+    assigned_to can be:
+      - employee.id (main app)
+      - vendor_employee.id
+      - vendor_resource_profiles.id (needs mapping to vendor_employee_id)
+    """
+    if assigned_to is None or str(assigned_to).strip() == "":
+        return None
+    try:
+        aid = int(str(assigned_to).strip())
+    except (TypeError, ValueError):
+        return None
+
+    # 1) main employee user
+    try:
+        cur.execute("SELECT id FROM employee WHERE id = %s LIMIT 1", (aid,))
+        r = cur.fetchone()
+        if r:
+            return aid
+    except Exception:
+        pass
+
+    # 2) vendor employee user
+    try:
+        cur.execute("SELECT id FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1", (aid,))
+        r = cur.fetchone()
+        if r:
+            return aid
+    except Exception:
+        pass
+
+    # 3) vendor resource profile id -> vendor_employee_id
+    try:
+        vendor_onboard_id = _current_vendor_onboarding_id()
+        if vendor_onboard_id:
+            vcur = vendor_cursor()
+            vcur.execute(
+                "SELECT vendor_employee_id FROM vendor_resource_profiles WHERE id = %s AND vendor_id = %s LIMIT 1",
+                (aid, vendor_onboard_id),
+            )
+            rr = vcur.fetchone() or {}
+            veid = rr.get("vendor_employee_id")
+            if veid is not None:
+                return int(veid)
+    except Exception:
+        pass
+    return None
+
+
+def _insert_task_assignment_notification(cur, assignee_user_id, project_id, task_name, task_id):
+    """Insert assignment notification for assignee if possible."""
+    if not assignee_user_id:
+        return
+    try:
+        assignee_user_id = int(assignee_user_id)
+    except (TypeError, ValueError):
+        return
+    try:
+        actor_id = getattr(g, "user_id", None)
+        if actor_id is not None and int(actor_id) == assignee_user_id:
+            return
+    except Exception:
+        pass
+
+    # Determine recipient tenant id (Company_id column) from recipient user row.
+    notif_company_id = getattr(g, "company_id", None)
+    try:
+        cur.execute(
+            "SELECT Company_id FROM employee WHERE id = %s LIMIT 1",
+            (assignee_user_id,),
+        )
+        er = cur.fetchone() or {}
+        if er and er.get("Company_id") is not None:
+            notif_company_id = er.get("Company_id")
+        else:
+            cur.execute(
+                "SELECT vendor_id FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+                (assignee_user_id,),
+            )
+            vr = cur.fetchone() or {}
+            if vr and vr.get("vendor_id") is not None:
+                notif_company_id = vr.get("vendor_id")
+    except Exception:
+        pass
+
+    if notif_company_id is None:
+        return
+
+    # Ensure deep-link columns exist
+    try:
+        cur.execute(
+            "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+        )
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+        cur.execute(
+            "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+        )
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+    except Exception:
+        pass
+
+    # Actor / project display values
+    actor_name = "Someone"
+    actor_role = ""
+    try:
+        actor_id = getattr(g, "user_id", None)
+        # IMPORTANT: vendor flows should prefer vendor_employee identity first.
+        cur.execute(
+            "SELECT full_name, role FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+            (actor_id,),
+        )
+        vr = cur.fetchone() or {}
+        if vr.get("full_name"):
+            actor_name = vr.get("full_name")
+        if vr.get("role"):
+            actor_role = vr.get("role")
+
+        # Fallback only if no vendor identity row exists.
+        if actor_name == "Someone":
+            cur.execute(
+                "SELECT full_name, user_role FROM employee WHERE id = %s LIMIT 1",
+                (actor_id,),
+            )
+            ar = cur.fetchone() or {}
+            if ar.get("full_name"):
+                actor_name = ar.get("full_name")
+            if ar.get("user_role"):
+                actor_role = ar.get("user_role")
+    except Exception:
+        pass
+
+    project_name = ""
+    try:
+        if project_id:
+            cur.execute(
+                "SELECT project_name FROM snh6_swiftproject.vendor_projects WHERE id = %s LIMIT 1",
+                (project_id,),
+            )
+            pr = cur.fetchone() or {}
+            project_name = (pr.get("project_name") or "").strip()
+    except Exception:
+        pass
+
+    msg = ""
+    if project_name and task_name:
+        msg = f"{project_name} project - {task_name} task assigned by {actor_name}"
+    elif task_name:
+        msg = f"{task_name} task assigned by {actor_name}"
+    elif project_name:
+        msg = f"{project_name} project task assigned by {actor_name}"
+    else:
+        msg = f"Task assigned by {actor_name}"
+    if actor_role:
+        msg += f" ({actor_role})"
+
+    try:
+        cur.execute(
+            """
+            INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+            """,
+            (
+                assignee_user_id,
+                project_id or None,
+                "Task assigned",
+                msg,
+                "vendor_task_assigned",
+                "task",
+                task_id,
+                notif_company_id,
+            ),
+        )
+    except Exception:
+        try:
+            cur.execute(
+                """
+                INSERT INTO notifications (user_id, project_id, title, message, type, is_read, created_at, Company_id)
+                VALUES (%s, %s, %s, %s, %s, 0, NOW(), %s)
+                """,
+                (
+                    assignee_user_id,
+                    project_id or None,
+                    "Task assigned",
+                    msg,
+                    "vendor_task_assigned",
+                    notif_company_id,
+                ),
+            )
+        except Exception:
+            pass
+
+    # Also send email notification to recipient (best-effort).
+    try:
+        to_email = _notification_recipient_email(cur, assignee_user_id)
+        if to_email:
+            frontend_url = current_app.config.get("FRONTEND_URL") or "http://localhost:5173"
+            subject = "SwiftBIM Task Assignment"
+            body = "\n".join(
+                [
+                    "You have a new task assignment in SwiftBIM.",
+                    "",
+                    msg,
+                    "",
+                    f"Open app: {frontend_url}",
+                ]
+            )
+            _send_notification_email(to_email, subject, body)
+    except Exception:
+        pass
 
 
 @bp.route("/vendor-tasks", methods=["POST"])
@@ -4156,8 +4851,10 @@ def create_vendor_task():
             checklist,
         ),
     )
-    conn.commit()
     task_id = cur.lastrowid
+    recipient_user_id = _resolve_vendor_task_notification_recipient(cur, assigned_to)
+    _insert_task_assignment_notification(cur, recipient_user_id, project_id, task_name, task_id)
+    conn.commit()
     return jsonify({"success": True, "task_id": task_id})
 
 
@@ -4180,6 +4877,12 @@ def update_vendor_task(task_id):
     _ensure_vendor_task_table()
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+
+    cur.execute(
+        "SELECT id, project_id, task_name, assigned_to FROM vendor_task WHERE id = %s LIMIT 1",
+        (task_id,),
+    )
+    old_row = cur.fetchone() or {}
 
     allowed = (
         "task_name",
@@ -4216,6 +4919,16 @@ def update_vendor_task(task_id):
         "UPDATE vendor_task SET " + ", ".join(sets) + " WHERE id = %s",
         params,
     )
+
+    old_assigned = old_row.get("assigned_to")
+    new_assigned = data.get("assigned_to", old_assigned)
+    old_recipient = _resolve_vendor_task_notification_recipient(cur, old_assigned)
+    new_recipient = _resolve_vendor_task_notification_recipient(cur, new_assigned)
+    if new_recipient and new_recipient != old_recipient:
+        project_for_msg = data.get("project_id", old_row.get("project_id"))
+        task_for_msg = data.get("task_name", old_row.get("task_name"))
+        _insert_task_assignment_notification(cur, new_recipient, project_for_msg, task_for_msg, task_id)
+
     conn.commit()
     return jsonify({"success": True})
 

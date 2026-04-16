@@ -11,6 +11,7 @@ import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
+import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 import Group1 from "../../assets/ProjectManager/MyTask/Group1.svg";
 import Group2 from "../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
@@ -111,41 +112,51 @@ const getProfileUrl = (path: string | undefined): string => {
   return `${apiBaseUrl}${urlPath}`;
 };
 
+/** Formats YYYY-MM-DD or ISO string to DD/MM/YYYY for display. */
+export function formatDateForDisplay(value: string | null | undefined): string {
+    if (!value) return "";
+    const datePart = value.includes("T") ? value.split("T")[0] : value;
+    const parts = datePart.split("-");
+    if (parts.length !== 3) return value;
+    const [y, m, d] = parts;
+    return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
+}
+
 /**
  * One assignee display name for vendor tasks: prefer `assigned_to` id + roster,
  * never show a raw numeric id; trim comma-separated API values to the first name only when id is unknown.
  */
 export function resolveVendorTaskAssigneeName(
-  task: Task | Record<string, unknown>,
-  employeeList: Employee[],
+    task: Task | Record<string, unknown>,
+    employeeList: Employee[],
 ): string {
-  const t = task as Record<string, unknown>;
-  const rawId = t.assigned_to;
-  const idNum =
-    typeof rawId === "number"
-      ? rawId
-      : typeof rawId === "string" && /^\d+$/.test(String(rawId).trim())
-        ? Number(String(rawId).trim())
-        : NaN;
-  if (!Number.isNaN(idNum) && employeeList.length > 0) {
-    const emp = employeeList.find((e) => e.id === idNum);
-    if (emp?.full_name?.trim()) return emp.full_name.trim();
-  }
-  const nameRaw = String(t.assigned_full_name ?? "").trim();
-  if (nameRaw) {
-    if (nameRaw.includes(",")) {
-      return nameRaw.split(",")[0].trim();
+    const t = task as Record<string, unknown>;
+    const rawId = t.assigned_to;
+    const idNum =
+        typeof rawId === "number"
+            ? rawId
+            : typeof rawId === "string" && /^\d+$/.test(String(rawId).trim())
+                ? Number(String(rawId).trim())
+                : NaN;
+    if (!Number.isNaN(idNum) && employeeList.length > 0) {
+        const emp = employeeList.find((e) => e.id === idNum);
+        if (emp?.full_name?.trim()) return emp.full_name.trim();
     }
-    return nameRaw;
-  }
-  const assignStr = String(t.assign_to ?? t.assignTo ?? "").trim();
-  if (!assignStr) return "";
-  if (!/^\d+$/.test(assignStr)) return assignStr;
-  if (employeeList.length > 0) {
-    const emp = employeeList.find((e) => e.id === Number(assignStr));
-    if (emp?.full_name?.trim()) return emp.full_name.trim();
-  }
-  return "";
+    const nameRaw = String(t.assigned_full_name ?? "").trim();
+    if (nameRaw) {
+        if (nameRaw.includes(",")) {
+            return nameRaw.split(",")[0].trim();
+        }
+        return nameRaw;
+    }
+    const assignStr = String(t.assign_to ?? t.assignTo ?? "").trim();
+    if (!assignStr) return "";
+    if (!/^\d+$/.test(assignStr)) return assignStr;
+    if (employeeList.length > 0) {
+        const emp = employeeList.find((e) => e.id === Number(assignStr));
+        if (emp?.full_name?.trim()) return emp.full_name.trim();
+    }
+    return "";
 }
 
 export function toInputDate(v: unknown): string {
@@ -278,6 +289,7 @@ export interface FormDropdownProps {
   dropdownRef: React.RefObject<HTMLDivElement | null>;
   searchable?: boolean;
   searchPlaceholder?: string;
+  bgClass?: string;
 }
 
 export function FormDropdown({
@@ -292,6 +304,7 @@ export function FormDropdown({
   dropdownRef,
   searchable = false,
   searchPlaceholder = "Search...",
+  bgClass = "bg-[#E8E8E8]",
 }: FormDropdownProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const q = (searchQuery || "").trim().toLowerCase();
@@ -311,7 +324,7 @@ export function FormDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-[14px] font-gantari font-medium cursor-pointer text-[#353535]"
+        className={`flex w-full items-center justify-between rounded-[5px] border border-transparent ${bgClass} px-4 py-2 text-left text-[14px] font-gantari font-medium cursor-pointer text-[#353535]`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
@@ -544,10 +557,10 @@ function TaskCard({
     <div
       draggable={!isCompleted}
       onDragStart={handleDragStart}
-      className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+      className={`mt-2 rounded-lg border border-[#AEACAC52] bg-white p-3 shadow-sm relative mx-auto w-full max-w-full lg:max-w-none ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <h4 className="font-semibold text-[#353535] text-[20px] truncate font-Gantari">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <h4 className="font-medium text-[#353535] text-[20px] truncate leading-tight font-Gantari">
           {task.task_name || "Task Name"}
         </h4>
         <div className="relative" ref={menuRef}>
@@ -566,13 +579,13 @@ function TaskCard({
           </button>
           {menuOpen && (
             <div
-              className={`absolute top-full mt-1 z-50 min-w-[170px] bg-white rounded-lg border border-[#AEACAC52] shadow-xl transition-all duration-200 ease-out font-Gantari ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}`}
+              className={`absolute top-full right-0 mt-1 z-50 min-w-[170px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right font-Gantari ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
               role="menu"
             >
               <button
                 type="button"
                 role="menuitem"
-                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                 onClick={() => {
                   setMenuOpen(false);
                   onViewTask?.(task);
@@ -583,7 +596,7 @@ function TaskCard({
                   alt="view"
                   className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                 />
-                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                   View
                 </span>
               </button>
@@ -592,7 +605,7 @@ function TaskCard({
                   <button
                     type="button"
                     role="menuitem"
-                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                    className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                     onClick={() => {
                       setMenuOpen(false);
                       onEditTask?.(task);
@@ -610,7 +623,7 @@ function TaskCard({
                   <button
                     type="button"
                     role="menuitem"
-                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                    className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                     onClick={() => {
                       setMenuOpen(false);
                       onDeleteTask?.(task);
@@ -631,32 +644,28 @@ function TaskCard({
           )}
         </div>
       </div>
-      <div className="flex items-center justify-between gap-2 mb-3 font-Gantari">
+      <div className="flex items-center justify-between gap-2 mb-4 font-Gantari">
         <div className="flex flex-col">
           <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
           <span className="text-[14px] font-medium text-[#8B8B8B]">
-            {task.start_date || task.Actual_start_time
-              ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}`
-              : "—"}
+            {formatDateForDisplay(task.start_date || task.Actual_start_time) || "—"}
           </span>
         </div>
 
-        <div className="flex flex-col items-end">
+        <div className="flex flex-col items-end text-right">
           <span className="text-[14px] font-medium text-[#000000]">End Date</span>
           <span className="text-[14px] font-medium text-[#8B8B8B]">
-            {task.due_date
-              ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
-              : ""}
+            {formatDateForDisplay(task.due_date) || "—"}
           </span>
         </div>
       </div>
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-xs text-[#8B8B8B] font-Gantari">Progress</span>
-        <span className="text-xs font-medium text-[#8B8B8B] font-Gantari">{progress}%</span>
+        <span className="text-xs font-semibold text-[#353535] font-Gantari">{progress}%</span>
       </div>
-      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+      <div className="h-1.5 rounded-full bg-[#E0E0E0] overflow-hidden mb-4">
         <div
-          className="h-full rounded-full bg-[#8B8B8B]"
+          className="h-full rounded-full bg-[#8B8B8B] transition-all duration-300"
           style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
         />
       </div>
@@ -789,7 +798,6 @@ export default function MytaskV() {
   const [selectedShow, setSelectedShow] = useState<string | null>("Show Entries");
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
-  const [viewTask, setViewTask] = useState<Task | null>(null);
   const navigate = useNavigate();
 
   const allTasks = list.filter((t: any) => {
@@ -875,7 +883,9 @@ export default function MytaskV() {
   };
 
   const openViewTask = (task: Task) => {
-    setViewTask(task);
+    navigate(`/v/mytasks/view/${task.id}`, { 
+      state: { task, from: isTeam ? "teamtask" : "mytask" } 
+    });
   };
 
   const confirmDeleteTask = () => {
@@ -985,16 +995,31 @@ export default function MytaskV() {
   }
 
   return (
-    <div className="h-full min-h-0 flex flex-col overflow-hidden">
-      <div className="bg-white pb-3 flex-shrink-0">
-        {/* Top row: title + dropdowns + Add task */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-          <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
+    <div className="h-full min-h-0 flex flex-col overflow-y-auto lg:overflow-hidden bg-white custom-scrollbar relative px-5 py-2">
+      <div className="bg-white flex-shrink-0 pt-0 sm:pt-0 sm:mt-2">
+        {/* Row 1: Title and Add Task button for mobile only (hidden on lg) */}
+        <div className="flex flex-row items-center justify-between w-full mb-4 lg:hidden">
+          <h2 className="text-[20px] sm:text-[24px] font-semibold text-slate-800 font-Gantari">
+            {isTeam ? "Team Task" : "My Task"}
+          </h2>
+          <button
+            type="button"
+            onClick={() => navigate("/v/mytasks/add")}
+            className="sm:hidden inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-2 py-1.5 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all"
+          >
+            <img src={AddBtn} alt="Add" className="h-4 w-4" />
+            Add task
+          </button>
+        </div>
+
+        {/* Row 2: Title (LG only) + Filters + Desktop Add Task button */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
+          <h2 className="hidden lg:block text-[24px] font-semibold text-slate-800 font-Gantari">
             {isTeam ? "Team Task" : "My Task"}
           </h2>
           <div
             ref={dropdownsContainerRef}
-            className="flex flex-wrap items-center gap-2 w-fit"
+            className="grid grid-cols-2 lg:flex lg:flex-row lg:items-center gap-2.5 w-full lg:w-auto"
           >
             <TaskDropdown
               label="Select Employee"
@@ -1061,35 +1086,28 @@ export default function MytaskV() {
             <button
               type="button"
               onClick={() => navigate("/v/mytasks/add")}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium font-Gantari text-white shadow-sm cursor-pointer"
+              className="hidden lg:inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all ml-auto"
             >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
+              <img src={AddBtn} alt="Add" className="h-4 w-4" />
               Add task
             </button>
           </div>
         </div>
-
+      </div>
         {/* Status summary cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
           <Link
             to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-            className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
+            className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${
+              statusFilter === "todo"
+                ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300"
+                : "bg-white border-slate-200"
+            }`}
           >
-            <span className="text-xl font-bold text-[#0D1829] font-Gantari">To Do</span>
-
-            <span className="text-xl font-bold text-[#0D1829] font-Gantari">
+            <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
+              To Do
+            </span>
+            <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
               ({counts.todo})
             </span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
@@ -1103,13 +1121,16 @@ export default function MytaskV() {
                 ? pathname
                 : `${pathname}?status=in_progress`
             }
-            className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
+            className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${
+              statusFilter === "in_progress"
+                ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300"
+                : "bg-white border-slate-200"
+            }`}
           >
-            <span className="text-xl font-bold text-[#0D1829] font-Gantari">
+            <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
               In Progress
             </span>
-
-            <span className="text-xl font-bold text-[#0D1829] font-Gantari">
+            <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
               ({counts.in_progress})
             </span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
@@ -1123,11 +1144,16 @@ export default function MytaskV() {
                 ? pathname
                 : `${pathname}?status=completed`
             }
-            className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
+            className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${
+              statusFilter === "completed"
+                ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300"
+                : "bg-white border-slate-200"
+            }`}
           >
-            <span className="text-xl font-bold text-[#0D1829] font-Gantari">Completed</span>
-
-            <span className="text-xl font-bold text-[#0D1829] font-Gantari">
+            <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
+              Completed
+            </span>
+            <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
               ({counts.completed})
             </span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
@@ -1135,7 +1161,6 @@ export default function MytaskV() {
             </div>
           </Link>
         </div>
-      </div>
 
       {/* Task columns scrollable area */}
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
@@ -1276,137 +1301,7 @@ export default function MytaskV() {
         </div>
       )}
 
-      {/* Task View Modal */}
-      {viewTask && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
-            {/* Modal Header */}
-            <div className="relative flex items-center justify-center px-6 py-4 border-b border-slate-100 shrink-0 font-Gantari">
-              <button
-                type="button"
-                onClick={() => setViewTask(null)}
-                className="absolute left-6 p-2 rounded-md text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer group"
-                aria-label="Close"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-                {/* Tooltip */}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
-                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Close</span>
-                  </div>
-                </div>
-              </button>
-              <h3 className="text-[20px] font-Gantari font-bold text-[#1A1A1A]">
-                Task Details
-              </h3>
-            </div>
-
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-1 font-Gantari">Task Name</p>
-                    <p className="text-[16px] font-semibold text-[#1A1A1A] font-Gantari">{viewTask.task_name || "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-1 font-Gantari">Project Name</p>
-                    <p className="text-[15px] text-[#353535] font-Gantari">{viewTask.project_name || "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-1 font-Gantari">Module</p>
-                    <p className="text-[15px] text-[#353535] font-Gantari">{viewTask.module || "—"}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex justify-between gap-4">
-                    <div>
-                      <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-1 font-Gantari">Start Date</p>
-                      <p className="text-[15px] text-[#353535] font-Gantari">
-                        {viewTask.start_date
-                          ? new Date(viewTask.start_date).toLocaleDateString("en-GB").replace(/\//g, "-")
-                          : viewTask.Actual_start_time
-                            ? new Date(viewTask.Actual_start_time).toLocaleDateString("en-GB").replace(/\//g, "-")
-                            : "—"}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-1 font-Gantari">Due Date</p>
-                      <p className="text-[15px] text-[#353535] font-Gantari">
-                        {viewTask.due_date
-                          ? new Date(viewTask.due_date).toLocaleDateString("en-GB").replace(/\//g, "-")
-                          : "—"}
-                      </p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-1 font-Gantari">Assigned By</p>
-                    <p className="text-[15px] text-[#353535] font-Gantari">{viewTask.uploader_full_name || "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-1 font-Gantari">Status</p>
-                    <div className="mt-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold font-Gantari
-                        ${viewTask.status?.toLowerCase().includes("complete") ? "bg-emerald-100 text-emerald-800" :
-                          viewTask.status?.toLowerCase().includes("progress") ? "bg-sky-100 text-sky-800" :
-                            "bg-orange-100 text-orange-800"}`}>
-                        {viewTask.status || "Todo"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="pt-4 border-t border-slate-100">
-                <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-2 font-Gantari">Description</p>
-                <div className="rounded-lg bg-[#F8F9FA] p-4 text-[14px] text-[#4A4A4A] leading-relaxed min-h-[100px] font-Gantari">
-                  {viewTask.description ? (
-                    <div dangerouslySetInnerHTML={{ __html: viewTask.description }} />
-                  ) : (
-                    <p className="italic text-slate-400">No description provided.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Checklist */}
-              {viewTask.checklist && (
-                <div className="pt-2">
-                  <p className="text-[12px] font-bold text-[#999999] uppercase tracking-wider mb-2 font-Gantari">Checklist / Reference</p>
-                  <div className="rounded-lg border border-slate-100 p-4 text-[14px] text-[#4A4A4A] leading-relaxed font-Gantari">
-                    <div dangerouslySetInnerHTML={{ __html: viewTask.checklist }} />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setViewTask(null)}
-                className="px-6 py-2 rounded-lg bg-[#F0F0F0] text-[#353535] font-semibold text-[14px] hover:bg-slate-200 transition-colors cursor-pointer font-Gantari"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Task View Modal has been replaced by MytaskViewV page to match TD design */}
     </div>
   );
 }

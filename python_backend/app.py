@@ -27,6 +27,7 @@ from blueprints.profile import bp as profile_bp
 from blueprints.company import bp as company_bp
 from blueprints.teams import bp as teams_bp
 from blueprints.milestones import bp as milestones_bp
+from blueprints.payment_milestones_swiftbim import bp as payment_milestones_swiftbim_bp
 from blueprints.calendar import bp as calendar_bp
 from blueprints.reports import bp as reports_bp
 from blueprints.timeline import bp as timeline_bp
@@ -71,6 +72,7 @@ def create_app(config_class=Config):
     app.register_blueprint(company_bp)
     app.register_blueprint(teams_bp)
     app.register_blueprint(milestones_bp)
+    app.register_blueprint(payment_milestones_swiftbim_bp)
     app.register_blueprint(calendar_bp)
     app.register_blueprint(reports_bp)
     app.register_blueprint(timeline_bp)

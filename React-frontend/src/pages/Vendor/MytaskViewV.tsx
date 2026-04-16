@@ -3,11 +3,16 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import api from "../../lib/api";
-import { resolveVendorTaskAssigneeName, type Employee as VendorRosterEmployee } from "./MytaskV";
+import {
+  resolveVendorTaskAssigneeName,
+  type Employee as VendorRosterEmployee,
+} from "./MytaskV";
 import Upload from "../../assets/ProjectManager/MyTask/Upload.svg";
 import ImageIcon from "../../assets/ProjectManager/MyTask/image.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
-import { VendorBimLeadBackTooltipWrap } from "./VendorBimLead/VendorBimLeadGoBackButton";
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import downloadIcon from "../../assets/TechnicalDirector/download icon.svg";
+
 
 interface Task {
   id: number;
@@ -144,11 +149,14 @@ const STATUS_STYLE: Record<
   },
 };
 
-const STATUS_OPTIONS: { value: "todo" | "in_progress" | "completed"; label: string }[] = [
-  { value: "todo", label: "To Do" },
-  { value: "in_progress", label: "Inprogress" },
-  { value: "completed", label: "Completed" },
-];
+const STATUS_OPTIONS: {
+  value: "todo" | "in_progress" | "completed";
+  label: string;
+}[] = [
+    { value: "todo", label: "To Do" },
+    { value: "in_progress", label: "Inprogress" },
+    { value: "completed", label: "Completed" },
+  ];
 
 function shouldHideInProgressInDropdown(status: StatusKey): boolean {
   return status === "approved" || status === "rejected";
@@ -178,7 +186,9 @@ export default function MytaskViewV() {
   const [task, setTask] = useState<Task | undefined>(initialTask);
 
   const [statusDisplay, setStatusDisplay] = useState<StatusKey>(() =>
-    initialTask ? normalizeStatus(initialTask.status, initialTask.Approval) : "todo",
+    initialTask
+      ? normalizeStatus(initialTask.status, initialTask.Approval)
+      : "todo",
   );
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
@@ -206,7 +216,9 @@ export default function MytaskViewV() {
     if (!file) return;
     setSelectedImage(file);
     if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
-    setSelectedImagePreview(isImageFile(file.type) ? URL.createObjectURL(file) : null);
+    setSelectedImagePreview(
+      isImageFile(file.type) ? URL.createObjectURL(file) : null,
+    );
     e.target.value = "";
   };
 
@@ -231,7 +243,9 @@ export default function MytaskViewV() {
     if (file) {
       setSelectedImage(file);
       if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
-      setSelectedImagePreview(isImageFile(file.type) ? URL.createObjectURL(file) : null);
+      setSelectedImagePreview(
+        isImageFile(file.type) ? URL.createObjectURL(file) : null,
+      );
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -254,9 +268,7 @@ export default function MytaskViewV() {
         status: backendStatus,
       });
       setStatusDisplay(newStatus);
-      setTask((prev) =>
-        prev ? { ...prev, status: backendStatus } : prev,
-      );
+      setTask((prev) => (prev ? { ...prev, status: backendStatus } : prev));
       toast.success(
         newStatus === "completed"
           ? "Task marked as completed"
@@ -292,7 +304,9 @@ export default function MytaskViewV() {
 
     if (fromTeamTask) {
       api
-        .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: { condition: "1" } })
+        .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", {
+          params: { condition: "1" },
+        })
         .then((res) => {
           const found = (res.data.tasks ?? []).find((t) => t.id === tid);
           if (found) setTask(found);
@@ -387,6 +401,21 @@ export default function MytaskViewV() {
 
   const style = STATUS_STYLE[statusDisplay];
   const taskRecord = task as unknown as Record<string, unknown>;
+  const moduleNameDisplay = (() => {
+    const candidates = [
+      task.modules_name,
+      task.modules,
+      task.module,
+      taskRecord.modules_name,
+      taskRecord.modules,
+      taskRecord.module,
+    ];
+    for (const c of candidates) {
+      const s = String(c ?? "").trim();
+      if (s) return s;
+    }
+    return "—";
+  })();
 
   const resolveAssignedName = (): string => {
     if (!task) return "—";
@@ -396,25 +425,31 @@ export default function MytaskViewV() {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-y-auto custom-scrollbar pb-10">
-      <div className="flex items-center justify-between px-6 py-4">
-        <VendorBimLeadBackTooltipWrap>
+    <div className="h-full flex flex-col overflow-y-auto custom-scrollbar px-5 py-2">
+      <div className="flex items-center justify-between py-4">
+        <div className="group relative">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer border-0 shadow-none"
-            title="Back"
+            className="p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer border-0 shadow-none group"
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
+            {/* Tooltip */}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Go Back</span>
+              </div>
+            </div>
           </button>
-        </VendorBimLeadBackTooltipWrap>
+        </div>
         <h1 className="flex-1 text-center text-2xl font-semibold text-black">
           {task.project_name || task.task_name || "Task Name"}
         </h1>
         <div className="w-9" />
       </div>
 
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto w-full">
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-2">
             <span className="text-md text-black">Status:</span>
@@ -465,8 +500,8 @@ export default function MytaskViewV() {
                       aria-selected={statusDisplay === opt.value}
                       onClick={() => handleStatusUpdate(opt.value)}
                       className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 ${disabled
-                        ? "text-slate-300 cursor-not-allowed opacity-60"
-                        : "hover:bg-[#F2F2F2]"
+                          ? "text-slate-300 cursor-not-allowed opacity-60"
+                          : "hover:bg-[#F2F2F2]"
                         } ${statusDisplay === opt.value && !disabled
                           ? "bg-[#F2F2F2] font-medium"
                           : ""
@@ -484,227 +519,148 @@ export default function MytaskViewV() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border border-slate-200 rounded-xl p-6 bg-white shadow-sm">
-          <div className="space-y-3 text-sm">
+        <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 text-sm">
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Project Name</span>
-              <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">{task.project_name || "—"}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-black shrink-0 lg:whitespace-nowrap w-28">
-                Module Name
-              </span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0 w-28">Project Name</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
-                {String(
-                  taskRecord.modules_name ??
-                  task.module ??
-                  task.modules ??
-                  taskRecord.modules ??
-                  "—",
-                )}
-              </span>
-            </div>
-            <div className="flex gap-2 items-center">
-              <span className="text-black shrink-0 w-28">Category</span>
-              <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">
-                {String(
-                  task.type ??
-                  task.category ??
-                  taskRecord.category ??
-                  taskRecord.type ??
-                  "—",
-                )}
+                {task.project_name || "—"}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Assigned By</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0 w-28">Module Name</span>
+              <span className="text-[#020202] shrink-0">:</span>
+              <span className="text-[#616161]">
+                {moduleNameDisplay}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <span className="text-[#020202] shrink-0 w-28">Category</span>
+              <span className="text-[#020202] shrink-0">:</span>
+              <span className="text-[#616161]">
+                {task.category || task.type || "—"}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <span className="text-[#020202] shrink-0 w-28">Assigned By</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.uploader_full_name ?? "—"}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Assigned To</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0 w-28">Assigned To</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">{resolveAssignedName()}</span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">
-                Actual Start Date
+              <span className="text-[#020202] shrink-0 w-28">
+                Start Date
               </span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
-                {task.start_date
-                  ? formatDateDDMMYYYY(task.start_date)
-                  : "—"}
+                {task.start_date ? formatDateDDMMYYYY(task.start_date) : "—"}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Start Time</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0 w-28">Start Time</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {formatTimeDisplay(task.start_time)}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Actual End Date</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0 w-28">End Date</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
-                {task.due_date
-                  ? formatDateDDMMYYYY(task.due_date)
-                  : "—"}
+                {task.due_date ? formatDateDDMMYYYY(task.due_date) : "—"}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">End Time</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0 w-28">End Time</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {formatTimeDisplay(task.due_time ?? task.end_time)}
               </span>
             </div>
-            <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Attachments</span>
-              <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161] break-all">
-                {submittedOutputFiles.length > 0
-                  ? submittedOutputFiles
-                      .map((f) => {
-                        const base = f.split("/").pop() || f;
-                        const idx = base.indexOf("_");
-                        return idx > 8 ? base.slice(idx + 1) : base;
-                      })
-                      .join(", ")
-                  : "—"}
-              </span>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <span className="text-[#020202] shrink-0 w-28 font-medium">Attachments</span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <div className="flex flex-col gap-2 flex-1 min-w-0">
+                  {submittedOutputFiles.length > 0 ? (
+                    submittedOutputFiles.map((f, idx) => {
+                      const url = taskOutputFileUrl(f);
+                      const base = f.split("/").pop() || f;
+                      const underscoreIdx = base.indexOf("_");
+                      const displayName = underscoreIdx > 8 ? base.slice(underscoreIdx + 1) : base;
+                      
+                      return (
+                        <div key={idx} className="flex items-center gap-3">
+                          <span className="text-[14px] font-medium text-[#616161] truncate font-Gantari">
+                            {displayName}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <div className="relative group/tooltip inline-flex shrink-0">
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1 hover:bg-slate-100 rounded transition-colors"
+                              >
+                                <img src={viewIcon} alt="View" className="w-4 h-4" />
+                              </a>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
+                                  <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">View</span>
+                                </div>
+                                <div className="w-2 h-2 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[4.5px]"></div>
+                              </div>
+                            </div>
+                            
+                            <div className="relative group/tooltip inline-flex shrink-0">
+                              <a
+                                href={url}
+                                download
+                                className="p-1 hover:bg-slate-100 rounded transition-colors"
+                              >
+                                <img src={downloadIcon} alt="Download" className="w-4 h-4" />
+                              </a>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
+                                  <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">Download</span>
+                                </div>
+                                <div className="w-2 h-2 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[4.5px]"></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <span className="text-[#616161]">No Attachment Available</span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="rounded-sm bg-[#F2F7FF] p-4 h-fit">
-            <h4 className="text-black text-md mb-1">Submit Work</h4>
-            <p className="text-xs text-[#8B8B8B] mb-4">
-              Choose your finished work or error screenshots to update the team
-              on your progress.
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="*/*"
-              className="sr-only"
-              aria-label="Select file"
-              onChange={handleSelectImage}
-            />
-            <div
-              className={`rounded-sm flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] relative transition-all duration-200 border-2 border-dashed ${isDragging ? "bg-sky-50 border-sky-400" : "bg-[#FFFFFF] border-slate-200"
-                }`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              {selectedImage && selectedImagePreview ? (
-                <>
-                  <div className="group absolute top-2 right-2 z-10">
-                    <button
-                      onClick={() => {
-                        setSelectedImage(null);
-                        setSelectedImagePreview(null);
-                      }}
-                      className="p-1 bg-white/80 rounded-full shadow-sm hover:bg-white transition-colors cursor-pointer border-0 shadow-none"
-                    >
-                      <FiX className="w-4 h-4 text-slate-600" />
-                    </button>
-                    {/* Tooltip */}
-                    <div className="absolute top-full right-0 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                      <div className="w-2 h-2 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px] ml-auto mr-1.5"></div>
-                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-1 relative z-10">
-                        <span className="font-Gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Remove</span>
-                      </div>
-                    </div>
-                  </div>
-                  <img
-                    src={selectedImagePreview}
-                    alt="Selected"
-                    className="max-h-48 max-w-full object-contain rounded"
-                  />
-                </>
-              ) : selectedImage ? (
-                <>
-                  <img src={ImageIcon} alt="File" className="w-7 h-7" />
-                  <span className="text-xs mt-2 text-[#353535] break-all text-center">{selectedImage.name}</span>
-                </>
-              ) : (
-                <>
-                  <img src={ImageIcon} alt="Image" className="w-7 h-7" />
-                  <span className="text-xs mt-2 text-[#616161]">No File Selected</span>
-                  <span className="text-[10px] mt-1 text-[#8B8B8B]">Drag and drop file here</span>
-                </>
-              )}
-            </div>
-            <div className="flex gap-4 mt-6 justify-center">
-              <button
-                type="button"
-                disabled={submittingWork}
-                onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-3 text-xs text-black hover:bg-[#D5E6FF] whitespace-nowrap disabled:opacity-50"
-              >
-                <img src={Upload} alt="Upload" className="w-3 h-3 mr-1" />
-                <span className="mr-2">Select File</span>
-              </button>
-              <button
-                type="button"
-                disabled={!selectedImage || submittingWork}
-                onClick={handleImageSubmit}
-                className="inline-flex items-center gap-1 rounded-sm bg-[#E1F6EB] px-4 py-3 text-xs text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap disabled:opacity-50"
-              >
-                <FiCheck className="w-4 h-4 text-[#008F22]" />
-                {submittingWork ? "Submitting..." : "Submit File"}
-              </button>
-            </div>
-            {submittedOutputFiles.length > 0 && (
-              <div className="mt-6 border-t border-slate-200 pt-4">
-                <p className="text-xs font-semibold text-black mb-2">
-                  Submitted files (saved)
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  {submittedOutputFiles.map((fname) => {
-                    const src = taskOutputFileUrl(fname);
-                    return (
-                      <a
-                        key={fname}
-                        href={src}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block rounded border border-slate-200 overflow-hidden bg-white max-w-[140px]"
-                      >
-                        {isImageFile(fname) ? (
-                          <img
-                            src={src}
-                            alt={fname}
-                            className="max-h-28 w-full object-contain"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="px-3 py-3 text-xs text-[#353535] break-all">
-                            {fname}
-                          </div>
-                        )}
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
+
         </div>
 
         {/* Task Description & Checklist */}
         <div className="mt-8 space-y-6 mb-10">
           <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
-            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">Task Description</h4>
+            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">
+              Task Description
+            </h4>
             <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 font-Gantari min-h-[80px]">
-              {task.description && task.description.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, '').trim().length > 0 ? (
+              {task.description &&
+                task.description
+                  .replace(/<[^>]*>?/gm, "")
+                  .replace(/&nbsp;/g, "")
+                  .trim().length > 0 ? (
                 <div
                   className="prose prose-sm max-w-none prose-p:my-0"
                   dangerouslySetInnerHTML={{ __html: task.description }}
@@ -716,9 +672,15 @@ export default function MytaskViewV() {
           </div>
 
           <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
-            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">Checklist / Reference</h4>
+            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">
+              Checklist / Reference
+            </h4>
             <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 font-Gantari min-h-[80px]">
-              {task.checklist && task.checklist.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, '').trim().length > 0 ? (
+              {task.checklist &&
+                task.checklist
+                  .replace(/<[^>]*>?/gm, "")
+                  .replace(/&nbsp;/g, "")
+                  .trim().length > 0 ? (
                 <div
                   className="prose prose-sm max-w-none prose-p:my-0"
                   dangerouslySetInnerHTML={{ __html: task.checklist }}

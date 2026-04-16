@@ -233,7 +233,7 @@ export default function AddEditTaskPMV() {
     setAddError("");
 
     const requiredFields: (keyof typeof addTaskForm)[] = [
-      "projectName", "module", "taskName", "type", "actualStartDate",
+      "projectName", "module", "taskName", "actualStartDate",
       "actualEndDate", "startTime", "dueTime", "assignTo", "description"
     ];
 
@@ -268,7 +268,7 @@ export default function AddEditTaskPMV() {
     const payload = {
       projectid: projectId ?? addTaskForm.projectName,
       taskName: addTaskForm.taskName,
-      category: addTaskForm.type,
+      category: addTaskForm.type || "task",
       startdate: addTaskForm.actualStartDate,
       dueDate: addTaskForm.actualEndDate,
       startTime: addTaskForm.startTime,
@@ -287,7 +287,7 @@ export default function AddEditTaskPMV() {
         start_date: addTaskForm.actualStartDate,
         start_time: addTaskForm.startTime,
         end_time: addTaskForm.dueTime,
-        category: addTaskForm.type,
+        category: addTaskForm.type || "task",
         modules: addTaskForm.module,
         assigned_to: assignedToVal,
         description: addTaskForm.description,
@@ -340,6 +340,12 @@ export default function AddEditTaskPMV() {
 
   return (
     <div className="flex-1 min-h-0 bg-white overflow-hidden font-Gantari">
+      <style>{`
+        .hide-calendar-icon::-webkit-calendar-picker-indicator {
+          display: none !important;
+          -webkit-appearance: none;
+        }
+      `}</style>
       <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col pt-6 px-6">
         <div className="flex items-center justify-between mb-10 flex-shrink-0">
           <div className="group relative">
@@ -413,7 +419,7 @@ export default function AddEditTaskPMV() {
                     placeholder="Enter Task / Select Task"
                     className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B]"
                   />
-                  {!editingTaskId && (
+                  {/* !editingTaskId && (
                     <div className="relative flex items-center" ref={tasklistRef}>
                       <button
                         type="button"
@@ -437,12 +443,12 @@ export default function AddEditTaskPMV() {
                         </div>
                       )}
                     </div>
-                  )}
+                  ) */}
                 </div>
               </div>
 
-              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
-                <div>
+              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
+                {/* <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
                   <FormDropdown
                     label="Select Type"
@@ -460,28 +466,31 @@ export default function AddEditTaskPMV() {
                     triggerRef={formTypeTriggerRef}
                     dropdownRef={formTypeMenuRef}
                   />
-                </div>
+                </div> */}
                 <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Actual Start Date <span className="text-[#DD4342]">*</span></label>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Start Date <span className="text-[#DD4342]">*</span></label>
                   <input
                     type="date"
                     min={todayInputDate}
                     value={addTaskForm.actualStartDate}
                     onChange={(e) => setAddTaskForm((f) => ({ ...f, actualStartDate: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder-[#8B8B8B] focus:border-[#AEACAC52]"
+                    onClick={(e) => e.currentTarget.showPicker()}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder-[#8B8B8B] focus:border-[#AEACAC52] cursor-pointer hide-calendar-icon"
                   />
                 </div>
                 <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Actual End Date <span className="text-[#DD4342]">*</span></label>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">End Date <span className="text-[#DD4342]">*</span></label>
                   <input
                     type="date"
                     min={addTaskForm.actualStartDate || todayInputDate}
                     value={addTaskForm.actualEndDate}
                     onChange={(e) => setAddTaskForm((f) => ({ ...f, actualEndDate: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder-[#8B8B8B] focus:border-[#AEACAC52]"
+                    onClick={(e) => e.currentTarget.showPicker()}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder-[#8B8B8B] focus:border-[#AEACAC52] cursor-pointer hide-calendar-icon"
                   />
                 </div>
               </div>
+
 
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
                 <div>

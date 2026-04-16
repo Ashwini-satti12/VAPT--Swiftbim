@@ -157,7 +157,7 @@ export default function ProposalTD() {
               <img
                 src={ArrowDown}
                 alt=""
-                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''} ${selectedShowEntries === '' ? 'opacity-60 grayscale' : 'opacity-90'}`}
+                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''} ${selectedShowEntries === '' ? 'opacity-60 grayscale' : 'opacity-90'}`}
                 aria-hidden
               />
             </button>
@@ -293,7 +293,7 @@ export default function ProposalTD() {
                                 title="View Proposal"
                                 className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${!bid.proposal_exists
                                   ? 'cursor-not-allowed opacity-50'
-                                  : 'hover:bg-[#c33a39]'
+                                  : ''
                                   }`}
                               >
                                 <img src={viewIcon} alt="View" className="w-4 h-4 object-contain brightness-0 invert" />

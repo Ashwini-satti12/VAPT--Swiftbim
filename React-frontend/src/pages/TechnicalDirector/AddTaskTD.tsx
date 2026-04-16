@@ -12,6 +12,7 @@ import { TimePickerWheel } from "../../components/TimePickerWheel";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import {
     formatTimeForDisplay,
+    formatDateForDisplay,
     FormDropdown,
     TaskDropdown,
     formatFileSize,
@@ -27,8 +28,8 @@ const initialForm = {
     module: "",
     taskName: "",
     type: "",
-    actualStartDate: "",
-    actualEndDate: "",
+    startDate: "",
+    endDate: "",
     startTime: "",
     dueTime: "",
     assignTo: "",
@@ -311,9 +312,8 @@ export default function AddTaskTD() {
             "projectName",
             "module",
             "taskName",
-            "type",
-            "actualStartDate",
-            "actualEndDate",
+            "startDate",
+            "endDate",
             "startTime",
             "dueTime",
             "assignTo",
@@ -328,12 +328,12 @@ export default function AddTaskTD() {
         }
 
         const today = new Date().toISOString().split("T")[0];
-        if (addTaskForm.actualStartDate < today && !editingTaskId) {
-            setAddError("Actual Start Date cannot be in the past.");
+        if (addTaskForm.startDate < today && !editingTaskId) {
+            setAddError("Start Date cannot be in the past.");
             return;
         }
-        if (addTaskForm.actualEndDate < addTaskForm.actualStartDate) {
-            setAddError("Actual End Date cannot be before Actual Start Date.");
+        if (addTaskForm.endDate < addTaskForm.startDate) {
+            setAddError("End Date cannot be before Start Date.");
             return;
         }
 
@@ -341,9 +341,9 @@ export default function AddTaskTD() {
         const payload = {
             projectid: projects.find((p) => p.project_name === addTaskForm.projectName)?.id || addTaskForm.projectName,
             taskName: addTaskForm.taskName,
-            category: addTaskForm.type,
-            startdate: addTaskForm.actualStartDate,
-            dueDate: addTaskForm.actualEndDate,
+            category: addTaskForm.type || "task",
+            startdate: addTaskForm.startDate,
+            dueDate: addTaskForm.endDate,
             startTime: addTaskForm.startTime,
             dueTime: addTaskForm.dueTime,
             assignedTo: employees.find((e) => e.full_name === addTaskForm.assignTo)?.id || addTaskForm.assignTo,
@@ -488,7 +488,7 @@ export default function AddTaskTD() {
     };
 
     return (
-        <div className="flex-1 min-h-0 p-4 bg-white overflow-hidden">
+        <div className="flex-1 min-h-0 px-5 py-2 bg-white overflow-hidden">
             <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col">
                 <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
                     <div className="group relative inline-flex shrink-0">
@@ -501,7 +501,7 @@ export default function AddTaskTD() {
                         </button>
                         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                             <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
                                 <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                                     Go Back
                                 </span>
@@ -509,7 +509,7 @@ export default function AddTaskTD() {
                         </div>
                     </div>
                     <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
-                        {editingTaskId !== null ? "Edit Task" : "Add New Task"}
+                        {editingTaskId !== null ? "Edit Task Details" : "Add New Task"}
                     </h3>
                     <div className="w-10" />
                 </div>
@@ -553,6 +553,8 @@ export default function AddTaskTD() {
                                 triggerRef={formProjectTriggerRef}
                                 dropdownRef={formProjectMenuRef}
                                 searchable
+                                bgClass="bg-[#F2F3F4]"
+                                fontClass="font-normal"
                             />
                         </div>
                         <div>
@@ -578,6 +580,8 @@ export default function AddTaskTD() {
                                 triggerRef={formModuleTriggerRef}
                                 dropdownRef={formModuleMenuRef}
                                 searchable
+                                bgClass="bg-[#F2F3F4]"
+                                fontClass="font-normal"
                             />
                         </div>
                         <div>
@@ -588,9 +592,9 @@ export default function AddTaskTD() {
                                     value={addTaskForm.taskName}
                                     onChange={(e) => setAddTaskForm((f) => ({ ...f, taskName: e.target.value }))}
                                     placeholder="Enter Task / Select Task"
-                                    className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B]"
+                                    className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B]"
                                 />
-                                <TaskDropdown
+                                {/* <TaskDropdown
                                     label="Tasklist"
                                     options={[
                                         "Select Task",
@@ -612,11 +616,13 @@ export default function AddTaskTD() {
                                     searchable
                                     searchPlaceholder="Search task..."
                                     maxVisibleItems={6}
-                                />
+                                    bgClass="bg-[#F2F3F4]"
+                                    fontClass="font-normal"
+                                /> */}
                             </div>
                         </div>
-                        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
-                            <div>
+                         <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
+                            {/* <div>
                                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
                                 <FormDropdown
                                     label="Select Type"
@@ -634,29 +640,44 @@ export default function AddTaskTD() {
                                     triggerRef={formTypeTriggerRef}
                                     dropdownRef={formTypeMenuRef}
                                     searchable
+                                    bgClass="bg-[#F2F3F4]"
+                                    fontClass="font-normal"
                                 />
+                            </div> */}
+                            <div>
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Start Date <span className="text-[#DD4342]">*</span></label>
+                                <div className="relative">
+                                    <input
+                                        type="date"
+                                        value={addTaskForm.startDate}
+                                        onChange={(e) => setAddTaskForm((f) => ({ ...f, startDate: e.target.value }))}
+                                        onClick={(e) => e.currentTarget.showPicker?.()}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    />
+                                    <div className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus-within:border-[#AEACAC52] flex items-center min-h-[42px]">
+                                        <span className={addTaskForm.startDate ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                                            {addTaskForm.startDate ? formatDateForDisplay(addTaskForm.startDate) : "DD/MM/YYYY"}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                             <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Actual Start Date <span className="text-[#DD4342]">*</span></label>
-                                <input
-                                    type="date"
-                                    value={addTaskForm.actualStartDate}
-                                    min={new Date().toISOString().split("T")[0]}
-                                    onChange={(e) => setAddTaskForm((f) => ({ ...f, actualStartDate: e.target.value }))}
-                                    placeholder="dd/mm/yyyy"
-                                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Actual End Date <span className="text-[#DD4342]">*</span></label>
-                                <input
-                                    type="date"
-                                    value={addTaskForm.actualEndDate}
-                                    min={addTaskForm.actualStartDate || new Date().toISOString().split("T")[0]}
-                                    onChange={(e) => setAddTaskForm((f) => ({ ...f, actualEndDate: e.target.value }))}
-                                    placeholder="dd/mm/yyyy"
-                                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                                />
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">End Date <span className="text-[#DD4342]">*</span></label>
+                                <div className="relative">
+                                    <input
+                                        type="date"
+                                        value={addTaskForm.endDate}
+                                        min={addTaskForm.startDate}
+                                        onChange={(e) => setAddTaskForm((f) => ({ ...f, endDate: e.target.value }))}
+                                        onClick={(e) => e.currentTarget.showPicker?.()}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    />
+                                    <div className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus-within:border-[#AEACAC52] flex items-center min-h-[42px]">
+                                        <span className={addTaskForm.endDate ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                                            {addTaskForm.endDate ? formatDateForDisplay(addTaskForm.endDate) : "DD/MM/YYYY"}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
@@ -743,6 +764,8 @@ export default function AddTaskTD() {
                                     triggerRef={formAssignTriggerRef}
                                     dropdownRef={formAssignMenuRef}
                                     searchable
+                                    bgClass="bg-[#F2F3F4]"
+                                    fontClass="font-normal"
                                 />
                             </div>
                         </div>
@@ -753,7 +776,7 @@ export default function AddTaskTD() {
                                 onChange={(e) => setAddTaskForm((f) => ({ ...f, description: e.target.value }))}
                                 placeholder="Enter Description..."
                                 rows={4}
-                                className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
+                                className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                             />
                         </div>
                         <div className="md:col-span-2">
@@ -763,7 +786,7 @@ export default function AddTaskTD() {
                                 value={addTaskForm.checklist}
                                 onChange={(e) => setAddTaskForm((f) => ({ ...f, checklist: e.target.value }))}
                                 placeholder="Enter Reference Link"
-                                className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                                className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                             />
                         </div>
                         <div className="md:col-span-2 space-y-2">
@@ -871,14 +894,14 @@ export default function AddTaskTD() {
                             <button
                                 type="button"
                                 onClick={goBack}
-                                className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
+                                className="w-full sm:w-auto px-6 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-semibold text-[14px] transition-all font-Gantari cursor-pointer"
                             >
                                 Discard
                             </button>
                             <button
                                 type="submit"
                                 disabled={addSubmitting}
-                                className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer disabled:opacity-50"
+                                className="w-full sm:w-auto px-6 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[1p4x] transition-all font-Gantari cursor-pointer disabled:opacity-50"
                             >
                                 {addSubmitting ? "Submitting..." : "Submit"}
                             </button>

@@ -260,7 +260,6 @@ export default function AddTaskBC() {
             "projectName",
             "module",
             "taskName",
-            "type",
             "actualStartDate",
             "actualEndDate",
             "startTime",
@@ -278,11 +277,11 @@ export default function AddTaskBC() {
 
         const today = new Date().toISOString().split("T")[0];
         if (addTaskForm.actualStartDate < today && !editingTaskId) {
-            setAddError("Actual Start Date cannot be in the past.");
+            setAddError("Start Date cannot be in the past.");
             return;
         }
         if (addTaskForm.actualEndDate < addTaskForm.actualStartDate) {
-            setAddError("Actual End Date cannot be before Actual Start Date.");
+            setAddError("End Date cannot be before Start Date.");
             return;
         }
 
@@ -293,7 +292,7 @@ export default function AddTaskBC() {
         const payload = {
             projectid: selectedProj?.id || addTaskForm.projectName,
             taskName: addTaskForm.taskName,
-            category: addTaskForm.type,
+            category: addTaskForm.type || "task",
             startdate: addTaskForm.actualStartDate,
             dueDate: addTaskForm.actualEndDate,
             perferstart_time: addTaskForm.startTime,
@@ -399,25 +398,25 @@ export default function AddTaskBC() {
     };
 
     return (
-        <div className="flex-1 min-h-0 p-4 bg-white overflow-hidden">
+        <div className="flex-1 min-h-0 px-5 py-2 bg-white overflow-hidden">
             <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col w-full">
-                <div className="flex shrink-0 items-center justify-between mb-8 sm:mb-10 relative">
+                <div className="flex shrink-0 items-center justify-between mb-4 sm:mb-6 relative">
                     <button
                         type="button"
                         onClick={goBack}
-                        className="group relative p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
+                        className="group relative p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer"
                     >
                         <img src={backIcon} alt="Back" className="w-5 h-5" />
                         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                           <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                          <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
-                            <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                          <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
+                            <span className="font-gantari text-[14px] font-medium text-[#353535] text-center block whitespace-nowrap">
                               Go Back
                             </span>
                           </div>
                         </div>
                     </button>
-                    <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
+                    <h3 className="text-[20px] sm:text-[24px] font-medium text-[#000000] font-Gantari text-center flex-1">
                         {editingTaskId !== null ? "Edit Task" : "Add New Task"}
                     </h3>
                     <div className="w-10" />
@@ -545,7 +544,7 @@ export default function AddTaskBC() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Actual Start Date <span className="text-[#DD4342]">*</span></label>
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Start Date <span className="text-[#DD4342]">*</span></label>
                                 <input
                                     type="date"
                                     value={addTaskForm.actualStartDate}
@@ -556,7 +555,7 @@ export default function AddTaskBC() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Actual End Date <span className="text-[#DD4342]">*</span></label>
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">End Date <span className="text-[#DD4342]">*</span></label>
                                 <input
                                     type="date"
                                     value={addTaskForm.actualEndDate}

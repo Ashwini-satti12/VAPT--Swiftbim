@@ -17,24 +17,24 @@ import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import { FiUploadCloud, FiPaperclip, FiX } from "react-icons/fi";
 
 const CURRENCIES = [
-  { code: 'USD', symbol: '$' },
-  { code: 'EUR', symbol: '€' },
-  { code: 'GBP', symbol: '£' },
-  { code: 'JPY', symbol: '¥' },
-  { code: 'INR', symbol: '₹' },
-  { code: 'AUD', symbol: 'A$' },
-  { code: 'CAD', symbol: 'C$' },
-  { code: 'CHF', symbol: 'Fr' },
-  { code: 'CNY', symbol: '¥' },
-  { code: 'AED', symbol: 'د.إ' },
-  { code: 'SAR', symbol: '﷼' },
-  { code: 'QAR', symbol: '﷼' },
-  { code: 'OMR', symbol: '﷼' },
-  { code: 'KWD', symbol: 'د.ك' },
-  { code: 'BHD', symbol: '.د.ب' },
-  { code: 'SGD', symbol: 'S$' },
-  { code: 'NZD', symbol: 'NZ$' },
-  { code: 'ZAR', symbol: 'R' },
+  { code: "USD", symbol: "$" },
+  { code: "EUR", symbol: "€" },
+  { code: "GBP", symbol: "£" },
+  { code: "JPY", symbol: "¥" },
+  { code: "INR", symbol: "₹" },
+  { code: "AUD", symbol: "A$" },
+  { code: "CAD", symbol: "C$" },
+  { code: "CHF", symbol: "Fr" },
+  { code: "CNY", symbol: "¥" },
+  { code: "AED", symbol: "د.إ" },
+  { code: "SAR", symbol: "﷼" },
+  { code: "QAR", symbol: "﷼" },
+  { code: "OMR", symbol: "﷼" },
+  { code: "KWD", symbol: "د.ك" },
+  { code: "BHD", symbol: ".د.ب" },
+  { code: "SGD", symbol: "S$" },
+  { code: "NZD", symbol: "NZ$" },
+  { code: "ZAR", symbol: "R" },
 ];
 
 interface Employee {
@@ -89,7 +89,10 @@ const normalizeProjectDescriptionHtml = (raw?: string): string => {
 
 const hasProjectDescriptionContent = (raw?: string): boolean => {
   const normalized = normalizeProjectDescriptionHtml(raw);
-  const text = normalized.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/gi, " ").trim();
+  const text = normalized
+    .replace(/<[^>]*>?/gm, "")
+    .replace(/&nbsp;/gi, " ")
+    .trim();
   return text.length > 0;
 };
 
@@ -97,13 +100,22 @@ const getProjectDurationDays = (start: string, end: string): number | null => {
   if (!start || !end) return null;
   const startDate = new Date(start);
   const endDate = new Date(end);
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || endDate < startDate) return null;
+  if (
+    Number.isNaN(startDate.getTime()) ||
+    Number.isNaN(endDate.getTime()) ||
+    endDate < startDate
+  )
+    return null;
   const diffMs = endDate.getTime() - startDate.getTime();
-  const diffDays = (diffMs / (1000 * 60 * 60 * 24)) + 1;
+  const diffDays = diffMs / (1000 * 60 * 60 * 24) + 1;
   return diffDays > 0 ? diffDays : null;
 };
 
-const calculateTotalHours = (perDay: string, start: string, end: string): string => {
+const calculateTotalHours = (
+  perDay: string,
+  start: string,
+  end: string,
+): string => {
   const perDayNum = Number(perDay);
   if (Number.isNaN(perDayNum) || perDayNum <= 0) return "";
   const durationDays = getProjectDurationDays(start, end);
@@ -152,9 +164,7 @@ function FormSelect({
       >
         <span
           className={
-            value
-              ? "text-[#353535] font-medium"
-              : "text-[#8B8B8B] font-medium"
+            value ? "text-[#353535] font-medium" : "text-[#8B8B8B] font-medium"
           }
         >
           {value || placeholder}
@@ -313,7 +323,11 @@ export default function ProjectsBL() {
   const [blTaskStatsLoading, setBlTaskStatsLoading] = useState(false);
 
   useEffect(() => {
-    const computedTotal = calculateTotalHours(createPerDay, createStartDate, createEndDate);
+    const computedTotal = calculateTotalHours(
+      createPerDay,
+      createStartDate,
+      createEndDate,
+    );
     if (computedTotal) setCreateTotalHours(computedTotal);
   }, [createPerDay, createStartDate, createEndDate]);
 
@@ -334,13 +348,19 @@ export default function ProjectsBL() {
   const [bimLeads, setBimLeads] = useState<string[]>([]);
   const [bimCoordinators, setBimCoordinators] = useState<string[]>([]);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
-  const [vendorResourceProfiles, setVendorResourceProfiles] = useState<Employee[]>([]);
+  const [vendorResourceProfiles, setVendorResourceProfiles] = useState<
+    Employee[]
+  >([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [memberSearch, setMemberSearch] = useState("");
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const resolveProjectMember = (id: string | number) =>
-    allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)) ||
-    vendorResourceProfiles.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id));
+    allEmployees.find(
+      (e) => Number(e.id) === Number(id) || String(e.id) === String(id),
+    ) ||
+    vendorResourceProfiles.find(
+      (e) => Number(e.id) === Number(id) || String(e.id) === String(id),
+    );
   const normalizeMemberForProfile = (member: Employee): Employee => {
     const raw = member as unknown as Record<string, unknown>;
     return {
@@ -489,9 +509,16 @@ export default function ProjectsBL() {
     budget: r.budget != null ? String(r.budget) : undefined,
     module_name: r.modules != null ? String(r.modules) : undefined,
     client_name: r.client_name != null ? String(r.client_name) : undefined,
-    project_manager: r.project_manager_name != null ? String(r.project_manager_name) : undefined,
-    project_manager_id: r.project_manager_id != null ? String(r.project_manager_id) : undefined,
-    project_manager_name: r.project_manager_name != null ? String(r.project_manager_name) : undefined,
+    project_manager:
+      r.project_manager_name != null
+        ? String(r.project_manager_name)
+        : undefined,
+    project_manager_id:
+      r.project_manager_id != null ? String(r.project_manager_id) : undefined,
+    project_manager_name:
+      r.project_manager_name != null
+        ? String(r.project_manager_name)
+        : undefined,
     start_date: r.start_date != null ? String(r.start_date) : undefined,
     end_date:
       r.end_date != null
@@ -506,9 +533,16 @@ export default function ProjectsBL() {
     bim_lead: r.lead_name != null ? String(r.lead_name) : undefined,
     lead_id: r.lead_id != null ? String(r.lead_id) : undefined,
     lead_name: r.lead_name != null ? String(r.lead_name) : undefined,
-    bim_co_ordinator: r.bim_coordinator_name != null ? String(r.bim_coordinator_name) : undefined,
-    bim_coordinator_id: r.bim_coordinator_id != null ? String(r.bim_coordinator_id) : undefined,
-    bim_coordinator_name: r.bim_coordinator_name != null ? String(r.bim_coordinator_name) : undefined,
+    bim_co_ordinator:
+      r.bim_coordinator_name != null
+        ? String(r.bim_coordinator_name)
+        : undefined,
+    bim_coordinator_id:
+      r.bim_coordinator_id != null ? String(r.bim_coordinator_id) : undefined,
+    bim_coordinator_name:
+      r.bim_coordinator_name != null
+        ? String(r.bim_coordinator_name)
+        : undefined,
     member:
       r.members != null
         ? String(r.members)
@@ -523,22 +557,27 @@ export default function ProjectsBL() {
     tasks:
       r.tasks != null
         ? String(r.tasks)
-        : (r.project_tasks != null ? String(r.project_tasks) : undefined),
+        : r.project_tasks != null
+          ? String(r.project_tasks)
+          : undefined,
     document_attachment:
       r.document_attachment != null ? String(r.document_attachment) : undefined,
-    budget_ceiling: r.budget_ceiling != null ? String(r.budget_ceiling) : undefined,
+    budget_ceiling:
+      r.budget_ceiling != null ? String(r.budget_ceiling) : undefined,
     source:
       r.source != null && String(r.source) !== "undefined"
         ? (String(r.source) as "In House" | "Outsource")
         : undefined,
     currency:
-      r.selected_currency != null && String(r.selected_currency).trim().length > 0
+      r.selected_currency != null &&
+      String(r.selected_currency).trim().length > 0
         ? String(r.selected_currency)
         : r.currency != null
           ? String(r.currency)
           : "INR",
     currency_locked:
-      r.selected_currency != null && String(r.selected_currency).trim().length > 0,
+      r.selected_currency != null &&
+      String(r.selected_currency).trim().length > 0,
   });
 
   const fetchMilestones = (projectId: number) => {
@@ -621,7 +660,7 @@ export default function ProjectsBL() {
   ]);
 
   const fetchProjects = () => {
-    const status = searchParams.get('status');
+    const status = searchParams.get("status");
     const isCompletedFilter = (status || "").toLowerCase() === "completed";
     // NOTE: vendor-projects "Completed" filtering is not reliable across DBs (status vs progress).
     // For Completed, fetch all and filter by progress client-side for both internal + outsource.
@@ -629,34 +668,54 @@ export default function ProjectsBL() {
 
     setLoading(true);
     Promise.all([
-      api.get<{ projects?: Record<string, unknown>[] }>("/api/projects", { params }),
-      api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects", { params })
-    ]).then(([res1, res2]) => {
-      const internal = (res1.data.projects ?? []).map((p) => ({ ...p, source: "In House" }));
-      const vendor = (res2.data.projects ?? []).map((p) => ({ ...p, source: "Outsource" }));
+      api.get<{ projects?: Record<string, unknown>[] }>("/api/projects", {
+        params,
+      }),
+      api.get<{ projects?: Record<string, unknown>[] }>(
+        "/api/vendors/vendor-projects",
+        { params },
+      ),
+    ])
+      .then(([res1, res2]) => {
+        const internal = (res1.data.projects ?? []).map((p) => ({
+          ...p,
+          source: "In House",
+        }));
+        const vendor = (res2.data.projects ?? []).map((p) => ({
+          ...p,
+          source: "Outsource",
+        }));
 
-      const allProjects = [...internal, ...vendor];
+        const allProjects = [...internal, ...vendor];
 
-      const isCompletedByProgress = (p: any): boolean => {
-        const raw = p?.progress;
-        const n = typeof raw === "number" ? raw : Number(String(raw ?? "").trim());
-        return Number.isFinite(n) && n >= 100;
-      };
+        const isCompletedByProgress = (p: any): boolean => {
+          const raw = p?.progress;
+          const n =
+            typeof raw === "number" ? raw : Number(String(raw ?? "").trim());
+          return Number.isFinite(n) && n >= 100;
+        };
 
-      const userId = user?.id;
-      const involvedFiltered = userId
-        ? allProjects.filter((p: any) => {
-          if (p.source === "Outsource") return true;
-          if (!p.lead_id) return false;
-          return String(p.lead_id).split(',').map((s: string) => s.trim()).includes(String(userId));
-        })
-        : allProjects;
-      const finalFiltered = isCompletedFilter
-        ? involvedFiltered.filter(isCompletedByProgress)
-        : involvedFiltered;
-      setList(finalFiltered.map((p) => mapApiProjectToProject(p as Record<string, unknown>)));
-    })
-      .catch(() => { })
+        const userId = user?.id;
+        const involvedFiltered = userId
+          ? allProjects.filter((p: any) => {
+              if (p.source === "Outsource") return true;
+              if (!p.lead_id) return false;
+              return String(p.lead_id)
+                .split(",")
+                .map((s: string) => s.trim())
+                .includes(String(userId));
+            })
+          : allProjects;
+        const finalFiltered = isCompletedFilter
+          ? involvedFiltered.filter(isCompletedByProgress)
+          : involvedFiltered;
+        setList(
+          finalFiltered.map((p) =>
+            mapApiProjectToProject(p as Record<string, unknown>),
+          ),
+        );
+      })
+      .catch(() => {})
       .finally(() => setLoading(false));
   };
 
@@ -669,8 +728,12 @@ export default function ProjectsBL() {
     setCreateBudget(p.budget ?? "");
     setCreateCurrency(p.currency ?? "INR");
 
-    const foundClient = clientsList.find((c) => String(c.id) === String(p.client_id));
-    setCreateClientName(foundClient ? foundClient.full_name : (p.client_name ?? ""));
+    const foundClient = clientsList.find(
+      (c) => String(c.id) === String(p.client_id),
+    );
+    setCreateClientName(
+      foundClient ? foundClient.full_name : (p.client_name ?? ""),
+    );
 
     setCreateProjectManager(p.project_manager ?? "");
     setEditProjectManager(p.project_manager ?? "");
@@ -744,7 +807,9 @@ export default function ProjectsBL() {
     populateEditFieldsFromProject(selectedProjectForEdit);
 
     const isOutsource = selectedProjectForEdit.source === "Outsource";
-    const baseApi = isOutsource ? "/api/vendors/vendor-projects" : "/api/projects";
+    const baseApi = isOutsource
+      ? "/api/vendors/vendor-projects"
+      : "/api/projects";
 
     setEditPrefillLoading(true);
     api
@@ -752,7 +817,8 @@ export default function ProjectsBL() {
       .then(({ data }) => {
         if (cancelled) return;
         const mapped = mapApiProjectToProject(data);
-        if (!mapped.source) mapped.source = isOutsource ? "Outsource" : "In House";
+        if (!mapped.source)
+          mapped.source = isOutsource ? "Outsource" : "In House";
         setSelectedProjectForEdit(mapped);
         populateEditFieldsFromProject(mapped);
       })
@@ -890,7 +956,14 @@ export default function ProjectsBL() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-6 mb-4 shrink-0">
               <button
                 type="button"
-                onClick={() => navigate('/bl/teamtasks?status=todo' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                onClick={() =>
+                  navigate(
+                    "/bl/teamtasks?status=todo" +
+                      (selectedProjectForView?.project_name
+                        ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                        : ""),
+                  )
+                }
                 className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
               >
                 <div className="flex items-center justify-left mb-2">
@@ -906,7 +979,14 @@ export default function ProjectsBL() {
               {/* In Progress Tasks */}
               <button
                 type="button"
-                onClick={() => navigate('/bl/teamtasks?status=in_progress' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                onClick={() =>
+                  navigate(
+                    "/bl/teamtasks?status=in_progress" +
+                      (selectedProjectForView?.project_name
+                        ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                        : ""),
+                  )
+                }
                 className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
               >
                 <div className="flex items-center justify-left mb-2">
@@ -922,7 +1002,14 @@ export default function ProjectsBL() {
               {/* Paused Tasks */}
               <button
                 type="button"
-                onClick={() => navigate('/bl/teamtasks?status=paused' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                onClick={() =>
+                  navigate(
+                    "/bl/teamtasks?status=paused" +
+                      (selectedProjectForView?.project_name
+                        ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                        : ""),
+                  )
+                }
                 className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
               >
                 <div className="flex items-center justify-left mb-2">
@@ -938,7 +1025,14 @@ export default function ProjectsBL() {
               {/* Completed Tasks */}
               <button
                 type="button"
-                onClick={() => navigate('/bl/teamtasks?status=completed' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                onClick={() =>
+                  navigate(
+                    "/bl/teamtasks?status=completed" +
+                      (selectedProjectForView?.project_name
+                        ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                        : ""),
+                  )
+                }
                 className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
               >
                 <div className="flex items-center justify-left mb-2">
@@ -962,102 +1056,110 @@ export default function ProjectsBL() {
                 <div className="max-h-[220px] overflow-y-auto custom-scrollbar p-6 md:p-8 lg:p-2">
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-4">
                     {selectedProjectForView.module_name ? (
-                      selectedProjectForView.module_name.split(",").map((mod, i) => {
-                        const modProgress = Math.round(selectedProjectForView.progress ?? 0);
-                        const statusColor =
-                          modProgress >= 80
-                            ? "#008F22"
-                            : modProgress >= 50
-                              ? "#EB7200"
-                              : "#E00100";
-                        const statusBg =
-                          modProgress >= 80
-                            ? "bg-[#E0FFE8]"
-                            : modProgress >= 50
-                              ? "bg-[#FFEAD6]"
-                              : "bg-[#FFD9D9]";
-                        const statusLabel =
-                          modProgress >= 80
-                            ? "Approved"
-                            : modProgress >= 50
-                              ? "Pending"
-                              : "Review";
-                        return (
-                          <div
-                            key={i}
-                            className="bg-white border border-[#AEACAC52] rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[120px]"
-                          >
-                            <div className="flex justify-between items-start">
-                              <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
-                                {mod.trim()}
-                              </h5>
-                              <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0 ${statusBg}`}>
-                                <span
-                                  className="w-1.5 h-1.5 rounded-full"
-                                  style={{ backgroundColor: statusColor }}
-                                ></span>
-                                <span
-                                  className="text-[12px] font-bold font-Gantari"
-                                  style={{ color: statusColor }}
+                      selectedProjectForView.module_name
+                        .split(",")
+                        .map((mod, i) => {
+                          const modProgress = Math.round(
+                            selectedProjectForView.progress ?? 0,
+                          );
+                          const statusColor =
+                            modProgress >= 80
+                              ? "#008F22"
+                              : modProgress >= 50
+                                ? "#EB7200"
+                                : "#E00100";
+                          const statusBg =
+                            modProgress >= 80
+                              ? "bg-[#E0FFE8]"
+                              : modProgress >= 50
+                                ? "bg-[#FFEAD6]"
+                                : "bg-[#FFD9D9]";
+                          const statusLabel =
+                            modProgress >= 80
+                              ? "Approved"
+                              : modProgress >= 50
+                                ? "Pending"
+                                : "Review";
+                          return (
+                            <div
+                              key={i}
+                              className="bg-white border border-[#AEACAC52] rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[120px]"
+                            >
+                              <div className="flex justify-between items-start">
+                                <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
+                                  {mod.trim()}
+                                </h5>
+                                <div
+                                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0 ${statusBg}`}
                                 >
-                                  {statusLabel}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between mt-2">
-                              <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
-                                <svg
-                                  className="w-full h-full transform -rotate-90"
-                                  viewBox="0 0 64 64"
-                                >
-                                  <circle
-                                    cx="32"
-                                    cy="32"
-                                    r="26"
-                                    stroke="#F2F3F5"
-                                    strokeWidth="5"
-                                    fill="transparent"
-                                  />
-                                  <circle
-                                    cx="32"
-                                    cy="32"
-                                    r="26"
-                                    stroke={statusColor}
-                                    strokeWidth="5"
-                                    fill="transparent"
-                                    strokeDasharray={163.36}
-                                    strokeDashoffset={
-                                      163.36 - (modProgress / 100) * 163.36
-                                    }
-                                    strokeLinecap="round"
-                                    style={{
-                                      transition: "stroke-dashoffset 1s ease-in-out",
-                                    }}
-                                  />
-                                </svg>
-                                <span className="absolute text-[14px] font-bold text-[#8B8B8B] font-Gantari">
-                                  {modProgress}%
-                                </span>
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full"
+                                    style={{ backgroundColor: statusColor }}
+                                  ></span>
+                                  <span
+                                    className="text-[12px] font-bold font-Gantari"
+                                    style={{ color: statusColor }}
+                                  >
+                                    {statusLabel}
+                                  </span>
+                                </div>
                               </div>
 
-                              <div className="flex flex-col items-end">
-                                <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1">
-                                  Tasks Done
-                                </p>
-                                <div className="flex items-baseline border-t border-slate-100 pt-1">
-                                  <p className="text-[18px] font-bold text-[#353535] font-Gantari">
-                                    {selectedProjectForView.completed_tasks ?? 0}
+                              <div className="flex items-center justify-between mt-2">
+                                <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
+                                  <svg
+                                    className="w-full h-full transform -rotate-90"
+                                    viewBox="0 0 64 64"
+                                  >
+                                    <circle
+                                      cx="32"
+                                      cy="32"
+                                      r="26"
+                                      stroke="#F2F3F5"
+                                      strokeWidth="5"
+                                      fill="transparent"
+                                    />
+                                    <circle
+                                      cx="32"
+                                      cy="32"
+                                      r="26"
+                                      stroke={statusColor}
+                                      strokeWidth="5"
+                                      fill="transparent"
+                                      strokeDasharray={163.36}
+                                      strokeDashoffset={
+                                        163.36 - (modProgress / 100) * 163.36
+                                      }
+                                      strokeLinecap="round"
+                                      style={{
+                                        transition:
+                                          "stroke-dashoffset 1s ease-in-out",
+                                      }}
+                                    />
+                                  </svg>
+                                  <span className="absolute text-[14px] font-bold text-[#8B8B8B] font-Gantari">
+                                    {modProgress}%
+                                  </span>
+                                </div>
+
+                                <div className="flex flex-col items-end">
+                                  <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1">
+                                    Tasks Done
                                   </p>
-                                  <p className="text-[14px] font-bold text-[#8B8B8B] font-Gantari">
-                                    /{selectedProjectForView.total_tasks ?? 0}
-                                  </p>
+                                  <div className="flex items-baseline border-t border-slate-100 pt-1">
+                                    <p className="text-[18px] font-bold text-[#353535] font-Gantari">
+                                      {selectedProjectForView.completed_tasks ??
+                                        0}
+                                    </p>
+                                    <p className="text-[14px] font-bold text-[#8B8B8B] font-Gantari">
+                                      /{selectedProjectForView.total_tasks ?? 0}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })
+                          );
+                        })
                     ) : (
                       <div className="col-span-full text-center py-8 text-gray-500">
                         Currently, no modules have been added.
@@ -1068,17 +1170,26 @@ export default function ProjectsBL() {
               </div>
               {/* Project Description */}
               <div className="border border-[#AEACAC52] rounded-md p-6 md:p-8 lg:p-4">
-                <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">Project Description</h4>
-                {hasProjectDescriptionContent(selectedProjectForView.description) ? (
+                <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">
+                  Project Description
+                </h4>
+                {hasProjectDescriptionContent(
+                  selectedProjectForView.description,
+                ) ? (
                   <div
                     className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] [&_*]:max-w-full [&_*]:whitespace-normal [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#DD4342] [&_a]:underline"
                     dangerouslySetInnerHTML={{
-                      __html: normalizeProjectDescriptionHtml(selectedProjectForView.description),
+                      __html: normalizeProjectDescriptionHtml(
+                        selectedProjectForView.description,
+                      ),
                     }}
                   />
                 ) : (
                   <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
-                    This project involves comprehensive BIM modeling and coordination for the selected facility, ensuring all architectural, structural, and MEP systems are perfectly aligned according to international standards.
+                    This project involves comprehensive BIM modeling and
+                    coordination for the selected facility, ensuring all
+                    architectural, structural, and MEP systems are perfectly
+                    aligned according to international standards.
                   </p>
                 )}
               </div>
@@ -1092,19 +1203,32 @@ export default function ProjectsBL() {
                   {/* Project Manager */}
                   {(() => {
                     const pmIds = selectedProjectForView.project_manager_id
-                      ? String(selectedProjectForView.project_manager_id).split(',').map(id => id.trim()).filter(Boolean)
+                      ? String(selectedProjectForView.project_manager_id)
+                          .split(",")
+                          .map((id) => id.trim())
+                          .filter(Boolean)
                       : [];
                     const pmNames = selectedProjectForView.project_manager_name
-                      ? String(selectedProjectForView.project_manager_name).split(',').map(n => n.trim()).filter(Boolean)
+                      ? String(selectedProjectForView.project_manager_name)
+                          .split(",")
+                          .map((n) => n.trim())
+                          .filter(Boolean)
                       : [];
 
                     if (pmIds.length === 0 && pmNames.length === 0) {
                       return (
                         <div className="min-w-0">
-                          <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">Project Manager</p>
+                          <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                            Project Manager
+                          </p>
                           <div className="flex items-center -space-x-3">
-                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
-                              <span className="text-slate-600 text-xs font-bold">PM</span>
+                            <div
+                              className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
+                              title="Not assigned"
+                            >
+                              <span className="text-slate-600 text-xs font-bold">
+                                PM
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1112,44 +1236,78 @@ export default function ProjectsBL() {
                     }
 
                     const maxCount = Math.max(pmIds.length, pmNames.length);
-                    const pmEntries = Array.from({ length: maxCount }).map((_, i) => {
-                      const pId = pmIds[i];
-                      const pName = pmNames[i];
-                      const pmEmp = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
-                      const dName = pmEmp?.full_name || pName || "Unknown";
-                      const url = pmEmp?.profile_picture ? getGlobalProfileUrl(pmEmp.id, pmEmp.profile_picture) : null;
-                      return { key: i, dName, url };
-                    });
+                    const pmEntries = Array.from({ length: maxCount }).map(
+                      (_, i) => {
+                        const pId = pmIds[i];
+                        const pName = pmNames[i];
+                        const pmEmp = pId
+                          ? allEmployees.find((e: any) => String(e.id) === pId)
+                          : null;
+                        const dName = pmEmp?.full_name || pName || "Unknown";
+                        const url = pmEmp?.profile_picture
+                          ? getGlobalProfileUrl(pmEmp.id, pmEmp.profile_picture)
+                          : null;
+                        return { key: i, dName, url };
+                      },
+                    );
                     const visiblePm = pmEntries.slice(0, 3);
                     const pmRemaining = Math.max(0, pmEntries.length - 3);
                     const pmOverflowTitle =
-                      pmRemaining > 0 ? pmEntries.slice(3).map((e) => e.dName).join(", ") : undefined;
+                      pmRemaining > 0
+                        ? pmEntries
+                            .slice(3)
+                            .map((e) => e.dName)
+                            .join(", ")
+                        : undefined;
 
                     return (
                       <div className="min-w-0">
                         <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
-                          {maxCount > 1 ? "Project Managers" : "Project Manager"}
+                          {maxCount > 1
+                            ? "Project Managers"
+                            : "Project Manager"}
                         </p>
                         {maxCount === 1 ? (
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
                               {visiblePm[0].url ? (
-                                <img src={visiblePm[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                <img
+                                  src={visiblePm[0].url}
+                                  className="w-full h-full object-cover"
+                                  alt=""
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src =
+                                      ProfileIcon;
+                                  }}
+                                />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
                                   {visiblePm[0].dName.charAt(0).toUpperCase()}
                                 </div>
                               )}
                             </div>
-                            <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visiblePm[0].dName}</span>
+                            <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                              {visiblePm[0].dName}
+                            </span>
                           </div>
                         ) : (
                           <div className="flex items-center -space-x-3">
                             {visiblePm.map((entry) => (
-                              <div key={entry.key} className="relative group shrink-0">
+                              <div
+                                key={entry.key}
+                                className="relative group shrink-0"
+                              >
                                 <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
                                   {entry.url ? (
-                                    <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                    <img
+                                      src={entry.url}
+                                      className="w-full h-full object-cover"
+                                      alt=""
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src =
+                                          ProfileIcon;
+                                      }}
+                                    />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
                                       {entry.dName.charAt(0).toUpperCase()}
@@ -1180,19 +1338,32 @@ export default function ProjectsBL() {
                   {/* BIM Lead */}
                   {(() => {
                     const blIds = selectedProjectForView.lead_id
-                      ? String(selectedProjectForView.lead_id).split(',').map(id => id.trim()).filter(Boolean)
+                      ? String(selectedProjectForView.lead_id)
+                          .split(",")
+                          .map((id) => id.trim())
+                          .filter(Boolean)
                       : [];
                     const blNames = selectedProjectForView.lead_name
-                      ? String(selectedProjectForView.lead_name).split(',').map(n => n.trim()).filter(Boolean)
+                      ? String(selectedProjectForView.lead_name)
+                          .split(",")
+                          .map((n) => n.trim())
+                          .filter(Boolean)
                       : [];
 
                     if (blIds.length === 0 && blNames.length === 0) {
                       return (
                         <div className="min-w-0">
-                          <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">BIM Lead</p>
+                          <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                            BIM Lead
+                          </p>
                           <div className="flex items-center -space-x-3">
-                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
-                              <span className="text-slate-600 text-xs font-bold">BL</span>
+                            <div
+                              className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
+                              title="Not assigned"
+                            >
+                              <span className="text-slate-600 text-xs font-bold">
+                                BL
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1200,18 +1371,29 @@ export default function ProjectsBL() {
                     }
 
                     const maxCount = Math.max(blIds.length, blNames.length);
-                    const blEntries = Array.from({ length: maxCount }).map((_, i) => {
-                      const pId = blIds[i];
-                      const pName = blNames[i];
-                      const blEmp = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
-                      const dName = blEmp?.full_name || pName || "Unknown";
-                      const url = blEmp?.profile_picture ? getGlobalProfileUrl(blEmp.id, blEmp.profile_picture) : null;
-                      return { key: i, dName, url };
-                    });
+                    const blEntries = Array.from({ length: maxCount }).map(
+                      (_, i) => {
+                        const pId = blIds[i];
+                        const pName = blNames[i];
+                        const blEmp = pId
+                          ? allEmployees.find((e: any) => String(e.id) === pId)
+                          : null;
+                        const dName = blEmp?.full_name || pName || "Unknown";
+                        const url = blEmp?.profile_picture
+                          ? getGlobalProfileUrl(blEmp.id, blEmp.profile_picture)
+                          : null;
+                        return { key: i, dName, url };
+                      },
+                    );
                     const visibleBl = blEntries.slice(0, 3);
                     const blRemaining = Math.max(0, blEntries.length - 3);
                     const blOverflowTitle =
-                      blRemaining > 0 ? blEntries.slice(3).map((e) => e.dName).join(", ") : undefined;
+                      blRemaining > 0
+                        ? blEntries
+                            .slice(3)
+                            .map((e) => e.dName)
+                            .join(", ")
+                        : undefined;
 
                     return (
                       <div className="min-w-0">
@@ -1222,22 +1404,43 @@ export default function ProjectsBL() {
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
                               {visibleBl[0].url ? (
-                                <img src={visibleBl[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                <img
+                                  src={visibleBl[0].url}
+                                  className="w-full h-full object-cover"
+                                  alt=""
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src =
+                                      ProfileIcon;
+                                  }}
+                                />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
                                   {visibleBl[0].dName.charAt(0).toUpperCase()}
                                 </div>
                               )}
                             </div>
-                            <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visibleBl[0].dName}</span>
+                            <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                              {visibleBl[0].dName}
+                            </span>
                           </div>
                         ) : (
                           <div className="flex items-center -space-x-3">
                             {visibleBl.map((entry) => (
-                              <div key={entry.key} className="relative group shrink-0">
+                              <div
+                                key={entry.key}
+                                className="relative group shrink-0"
+                              >
                                 <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
                                   {entry.url ? (
-                                    <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                    <img
+                                      src={entry.url}
+                                      className="w-full h-full object-cover"
+                                      alt=""
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src =
+                                          ProfileIcon;
+                                      }}
+                                    />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
                                       {entry.dName.charAt(0).toUpperCase()}
@@ -1268,21 +1471,34 @@ export default function ProjectsBL() {
                   {/* Department Involved */}
                   {selectedProjectForView?.source !== "Outsource" && (
                     <div className="flex flex-col gap-3">
-                      <p className="text-md font-Gantari font-semibold text-[#000000]">Department Involved</p>
-                      <p className="text-sm font-Gantari text-[#616161] truncate">{selectedProjectForView.department || 'N/A'}</p>
+                      <p className="text-md font-Gantari font-semibold text-[#000000]">
+                        BIM Coordinator
+                      </p>
+                      <p className="text-sm font-Gantari text-[#616161] truncate">
+                        {selectedProjectForView.bim_coordinator_name || "N/A"}
+                      </p>
                     </div>
                   )}
 
                   {/* Members Involved */}
                   <div className="flex flex-col gap-3">
-                    <p className="text-md font-Gantari font-semibold text-[#000000]">Members Involved</p>
+                    <p className="text-md font-Gantari font-semibold text-[#000000]">
+                      Members Involved
+                    </p>
                     {(() => {
                       const memberIdsForView = selectedProjectForView.member
-                        ? selectedProjectForView.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
+                        ? selectedProjectForView.member
+                            .split(",")
+                            .map((s) => parseInt(s.trim(), 10))
+                            .filter((n) => !isNaN(n))
                         : [];
 
                       if (memberIdsForView.length === 0) {
-                        return <p className="text-sm font-Gantari font-bold text-[#999999]">N/A</p>;
+                        return (
+                          <p className="text-sm font-Gantari font-bold text-[#999999]">
+                            N/A
+                          </p>
+                        );
                       }
 
                       return memberIdsForView.length === 1 ? (
@@ -1290,7 +1506,9 @@ export default function ProjectsBL() {
                           {(() => {
                             const id = memberIdsForView[0];
                             const emp = resolveProjectMember(id);
-                            const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                            const url = emp?.profile_picture
+                              ? getGlobalProfileUrl(emp.id, emp.profile_picture)
+                              : null;
                             return (
                               <>
                                 <div
@@ -1298,12 +1516,28 @@ export default function ProjectsBL() {
                                   tabIndex={0}
                                   className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
                                   onClick={() => openMemberProfile(emp)}
-                                  onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && emp) { e.preventDefault(); openMemberProfile(emp); } }}
+                                  onKeyDown={(e) => {
+                                    if (
+                                      (e.key === "Enter" || e.key === " ") &&
+                                      emp
+                                    ) {
+                                      e.preventDefault();
+                                      openMemberProfile(emp);
+                                    }
+                                  }}
                                 >
                                   {url ? (
-                                    <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
+                                    <img
+                                      src={url}
+                                      alt={emp?.full_name}
+                                      className="w-full h-full object-cover"
+                                    />
                                   ) : (
-                                    <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
+                                    <img
+                                      src={ProfileIcon}
+                                      alt={emp?.full_name}
+                                      className="w-full h-full object-cover p-1"
+                                    />
                                   )}
                                 </div>
                                 <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
@@ -1317,7 +1551,9 @@ export default function ProjectsBL() {
                         <div className="flex flex-wrap items-center -space-x-4">
                           {memberIdsForView.slice(0, 3).map((id, j) => {
                             const emp = resolveProjectMember(id);
-                            const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                            const url = emp?.profile_picture
+                              ? getGlobalProfileUrl(emp.id, emp.profile_picture)
+                              : null;
                             return (
                               <div key={j} className="relative group shrink-0">
                                 <div
@@ -1325,12 +1561,28 @@ export default function ProjectsBL() {
                                   tabIndex={0}
                                   className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
                                   onClick={() => openMemberProfile(emp)}
-                                  onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && emp) { e.preventDefault(); openMemberProfile(emp); } }}
+                                  onKeyDown={(e) => {
+                                    if (
+                                      (e.key === "Enter" || e.key === " ") &&
+                                      emp
+                                    ) {
+                                      e.preventDefault();
+                                      openMemberProfile(emp);
+                                    }
+                                  }}
                                 >
                                   {url ? (
-                                    <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
+                                    <img
+                                      src={url}
+                                      alt={emp?.full_name}
+                                      className="w-full h-full object-cover"
+                                    />
                                   ) : (
-                                    <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
+                                    <img
+                                      src={ProfileIcon}
+                                      alt={emp?.full_name}
+                                      className="w-full h-full object-cover p-1"
+                                    />
                                   )}
                                 </div>
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
@@ -1355,7 +1607,7 @@ export default function ProjectsBL() {
                                   setShowAllMembersModal(true);
                                 }}
                                 onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
+                                  if (e.key === "Enter" || e.key === " ") {
                                     e.preventDefault();
                                     const emps = memberIdsForView
                                       .map((id) => resolveProjectMember(id))
@@ -1386,24 +1638,41 @@ export default function ProjectsBL() {
                 </h4>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
                   <div className="space-y-4 md:space-y-5">
-
                     <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Actual Start Date</span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                        Actual Start Date
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
                       <span className="text-[16px] font-Gantari font-medium text-[#616161]">
                         {selectedProjectForView.start_date
-                          ? new Date(selectedProjectForView.start_date).toLocaleDateString("en-GB")
+                          ? new Date(
+                              selectedProjectForView.start_date,
+                            ).toLocaleDateString("en-GB")
                           : "N/A"}
                       </span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Total Project Hours</span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-medium text-[#616161]">{selectedProjectForView.total_hours ? `${selectedProjectForView.total_hours}hrs` : "N/A"}</span>
+                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                        Total Project Hours
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
+                      <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                        {selectedProjectForView.total_hours
+                          ? `${selectedProjectForView.total_hours}hrs`
+                          : "N/A"}
+                      </span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Budget</span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                        Budget
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
                       <span className="text-[16px] font-Gantari font-medium text-[#616161]">
                         {selectedProjectForView.budget
                           ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget}`
@@ -1412,8 +1681,12 @@ export default function ProjectsBL() {
                     </div>
                     {selectedProjectForView.source === "Outsource" && (
                       <div className="flex flex-col sm:flex-row sm:items-center">
-                        <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Outsourcing Budget</span>
-                        <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                        <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                          Outsourcing Budget
+                        </span>
+                        <span className="hidden sm:inline text-[#616161] mr-4">
+                          :
+                        </span>
                         <span className="text-[16px] font-Gantari font-medium text-[#616161]">
                           {selectedProjectForView.budget_ceiling
                             ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget_ceiling}`
@@ -1422,15 +1695,23 @@ export default function ProjectsBL() {
                       </div>
                     )}
                     <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Resources Available</span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-medium text-[#616161]">{selectedProjectForView.resources || "N/A"}</span>
+                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                        Resources Available
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
+                      <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                        {selectedProjectForView.resources || "N/A"}
+                      </span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-start">
                       <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
                         Tasks
                       </span>
-                      <span className="hidden sm:inline text-[#616161] mr-4 mt-[2px]">:</span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
                       <div className="flex flex-wrap gap-2">
                         {(selectedProjectForView.tasks || "")
                           .split(",")
@@ -1443,7 +1724,7 @@ export default function ProjectsBL() {
                             .map((t, idx) => (
                               <span
                                 key={`${t}-${idx}`}
-                                className="inline-flex items-center rounded-full bg-[#F2F3F4] px-3 py-1 text-[13px] font-Gantari font-medium text-[#353535] border border-[#AEACAC52]"
+                                className="text-[14px] font-Gantari font-medium text-[#353535] mt-[2px]"
                               >
                                 {t}
                               </span>
@@ -1458,79 +1739,132 @@ export default function ProjectsBL() {
                   </div>
                   <div className="space-y-4 md:space-y-5">
                     <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Location</span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-medium text-[#616161]">{selectedProjectForView.location || "N/A"}</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Actual End Date</span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                        Location
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
                       <span className="text-[16px] font-Gantari font-medium text-[#616161]">
-                        {selectedProjectForView.end_date ? new Date(selectedProjectForView.end_date).toLocaleDateString("en-GB") : "N/A"}
+                        {selectedProjectForView.location || "N/A"}
                       </span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Hours/Day</span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-medium text-[#616161]">{selectedProjectForView.per_day ? `${selectedProjectForView.per_day}hrs` : "N/A"}</span>
+                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                        Actual End Date
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
+                      <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                        {selectedProjectForView.end_date
+                          ? new Date(
+                              selectedProjectForView.end_date,
+                            ).toLocaleDateString("en-GB")
+                          : "N/A"}
+                      </span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Required Resources</span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-medium text-[#616161]">{selectedProjectForView.required_resources || "N/A"}</span>
+                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                        Hours/Day
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
+                      <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                        {selectedProjectForView.per_day
+                          ? `${selectedProjectForView.per_day}hrs`
+                          : "N/A"}
+                      </span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Project Document</span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                        Required Resources
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
+                      <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                        {selectedProjectForView.required_resources || "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                        Project Document
+                      </span>
+                      <span className="hidden sm:inline text-[#616161] mr-4">
+                        :
+                      </span>
                       <div className="flex flex-wrap gap-2">
                         {selectedProjectForView.document_attachment ? (
-                          selectedProjectForView.document_attachment.split(",").map((file) => file.trim()).filter(Boolean).map((fileName, idx) => {
-                            const isOutsource = selectedProjectForView.source === "Outsource";
-                            const url = isOutsource
-                              ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
-                              : `${api.defaults.baseURL}uploads/${fileName}`;
+                          selectedProjectForView.document_attachment
+                            .split(",")
+                            .map((file) => file.trim())
+                            .filter(Boolean)
+                            .map((fileName, idx) => {
+                              const isOutsource =
+                                selectedProjectForView.source === "Outsource";
+                              const url = isOutsource
+                                ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
+                                : `${api.defaults.baseURL}uploads/${fileName}`;
 
-                            return (
-                              <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-2 rounded-xl border border-slate-200 w-full md:max-w-xs mt-1">
-                                <div className="p-1.5 bg-white rounded-lg shadow-sm">
-                                  <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                                </div>
-                                <span className="text-[13px] font-bold text-[#353535] line-clamp-1 flex-1">
-                                  {fileName.split('_').pop() || "Document"}
-                                </span>
-                                <div className="flex gap-1">
-                                  <div className="relative group">
-                                    <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 rounded block">
-                                      <img src={viewIcon} alt="View" className="w-[16px] h-[16px] opacity-70 hover:opacity-100" />
-                                    </a>
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
-                                        <span className="font-gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                          View
-                                        </span>
+                              return (
+                                <div
+                                  key={idx}
+                                  className="flex items-center gap-2 w-full md:max-w-xs mt-1"
+                                >
+                                  <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1">
+                                    {fileName.split("_").pop() || "Document"}
+                                  </span>
+                                  <div className="flex gap-1">
+                                    <div className="relative group">
+                                      <a
+                                        href={url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-1 rounded block"
+                                      >
+                                        <img
+                                          src={viewIcon}
+                                          alt="View"
+                                          className="w-[16px] h-[16px] opacity-70 hover:opacity-100"
+                                        />
+                                      </a>
+                                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                          <span className="font-gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                            View
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="relative group">
+                                      <a
+                                        href={url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-1 rounded block"
+                                      >
+                                        <FiUploadCloud className="w-[16px] h-[16px] rotate-180 text-slate-500 hover:text-[#DD4342]" />
+                                      </a>
+                                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                          <span className="font-gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                            Download
+                                          </span>
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
-                                  <div className="relative group">
-                                    <a href={url} target="_blank" rel="noopener noreferrer" className="p-1 rounded block">
-                                      <FiUploadCloud className="w-[16px] h-[16px] rotate-180 text-slate-500 hover:text-[#DD4342]" />
-                                    </a>
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
-                                        <span className="font-gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                          Download
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })
+                              );
+                            })
                         ) : (
-                          <span className="text-[16px] font-Gantari font-medium text-[#616161]">No Document Available</span>
+                          <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                            No Document Available
+                          </span>
                         )}
                       </div>
                     </div>
@@ -1917,7 +2251,7 @@ export default function ProjectsBL() {
                                     currentProject?.id &&
                                     fetchMilestones(currentProject.id),
                                 )
-                                .catch(() => { });
+                                .catch(() => {});
                             }}
                             className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
                             title="Mark as Paid"
@@ -1951,7 +2285,7 @@ export default function ProjectsBL() {
                                     currentProject?.id &&
                                     fetchMilestones(currentProject.id),
                                 )
-                                .catch(() => { });
+                                .catch(() => {});
                             }
                           }}
                           className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors cursor-pointer"
@@ -2035,7 +2369,9 @@ export default function ProjectsBL() {
                   !createDescription.trim() ||
                   createFiles.length === 0
                 ) {
-                  setCreateError("Please fill in all required fields and attach at least one file.");
+                  setCreateError(
+                    "Please fill in all required fields and attach at least one file.",
+                  );
                   return;
                 }
 
@@ -2052,13 +2388,19 @@ export default function ProjectsBL() {
                 )?.id;
                 if (clientId) formData.append("client_id", String(clientId));
 
-                const pmIds = nameOrCsvToIdCsv(createProjectManager, allEmployees);
+                const pmIds = nameOrCsvToIdCsv(
+                  createProjectManager,
+                  allEmployees,
+                );
                 if (pmIds) formData.append("project_manager_id", pmIds);
 
                 const leadIds = nameOrCsvToIdCsv(createBIMLead, allEmployees);
                 if (leadIds) formData.append("lead_id", leadIds);
 
-                const bcIds = nameOrCsvToIdCsv(createBIMCoOrdinator, allEmployees);
+                const bcIds = nameOrCsvToIdCsv(
+                  createBIMCoOrdinator,
+                  allEmployees,
+                );
                 if (bcIds) formData.append("bim_coordinator_id", bcIds);
 
                 if (selectedMemberIds.length > 0)
@@ -2111,9 +2453,9 @@ export default function ProjectsBL() {
                           const userId = user?.id;
                           const filtered = userId
                             ? allProjects.filter(
-                              (p: any) =>
-                                String(p.lead_id) === String(userId),
-                            )
+                                (p: any) =>
+                                  String(p.lead_id) === String(userId),
+                              )
                             : allProjects;
                           setList(
                             filtered.map((r: any) => ({
@@ -2126,7 +2468,7 @@ export default function ProjectsBL() {
                             })),
                           );
                         })
-                        .catch(() => { });
+                        .catch(() => {});
                     }
                   })
                   .catch((err) =>
@@ -2140,9 +2482,13 @@ export default function ProjectsBL() {
             >
               {createError && (
                 <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
-                  <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
+                  <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
+                    !
+                  </div>
                   <div className="flex-1">
-                    <p className="mt-0.5 text-[13px] leading-snug">{createError}</p>
+                    <p className="mt-0.5 text-[13px] leading-snug">
+                      {createError}
+                    </p>
                   </div>
                 </div>
               )}
@@ -2177,7 +2523,11 @@ export default function ProjectsBL() {
                         className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-[5px] transition-all focus:outline-none border border-transparent focus:border-[#AEACAC52] ${selectedProjectForEdit?.currency_locked ? "cursor-not-allowed opacity-80" : "cursor-pointer"} ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
                       >
                         <span className="text-[14px] text-[#353535] font-medium truncate">
-                          {CURRENCIES.find(c => c.code === createCurrency)?.symbol} {createCurrency}
+                          {
+                            CURRENCIES.find((c) => c.code === createCurrency)
+                              ?.symbol
+                          }{" "}
+                          {createCurrency}
                         </span>
                         <img
                           src={ArrowDown}
@@ -2185,26 +2535,28 @@ export default function ProjectsBL() {
                           className={`w-3.5 h-3.5 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
                         />
                       </button>
-                      {currencyDropdownOpen && !selectedProjectForEdit?.currency_locked && (
-                        <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
-                          {CURRENCIES.map((c) => (
-                            <button
-                              key={c.code}
-                              type="button"
-                              onClick={() => {
-                                setCreateCurrency(c.code);
-                                setCurrencyDropdownOpen(false);
-                              }}
-                              className={`w-full text-left px-4 py-2 text-[14px] transition-colors hover:bg-[#F2F2F2] flex items-center justify-between cursor-pointer ${createCurrency === c.code ? "text-[#353535] bg-[#F8F8F8] font-bold" : "text-[#8B8B8B] font-medium"}`}
-                            >
-                              {c.code}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      {currencyDropdownOpen &&
+                        !selectedProjectForEdit?.currency_locked && (
+                          <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                            {CURRENCIES.map((c) => (
+                              <button
+                                key={c.code}
+                                type="button"
+                                onClick={() => {
+                                  setCreateCurrency(c.code);
+                                  setCurrencyDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-2 text-[14px] transition-colors hover:bg-[#F2F2F2] flex items-center justify-between cursor-pointer ${createCurrency === c.code ? "text-[#353535] bg-[#F8F8F8] font-bold" : "text-[#8B8B8B] font-medium"}`}
+                              >
+                                {c.code}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                     </div>
                     <input
-                      type="text" required
+                      type="text"
+                      required
                       value={createBudget}
                       onChange={(e) => {
                         const val = e.target.value.replace(/[^0-9.]/g, "");
@@ -2280,7 +2632,7 @@ export default function ProjectsBL() {
                 </div>
 
                 {/* Task Name */}
-                <div className="md:col-span-2 space-y-2">
+                {/* <div className="md:col-span-2 space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Task Name <span className="text-[#DD4342]">*</span>
                   </label>
@@ -2338,7 +2690,7 @@ export default function ProjectsBL() {
                       ))}
                     </div>
                   )}
-                </div>
+                </div> */}
 
                 {/* ── Client Name ── */}
                 <div className="space-y-2">
@@ -2646,7 +2998,10 @@ export default function ProjectsBL() {
                   {createFiles.length > 0 && (
                     <div className="flex flex-wrap gap-3 mb-4">
                       {createFiles.map((file, idx) => (
-                        <div key={idx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
+                        <div
+                          key={idx}
+                          className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]"
+                        >
                           <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
                           <div className="flex-1 min-w-0">
                             <p className="text-[13px] font-bold text-[#353535] truncate">
@@ -2660,10 +3015,19 @@ export default function ProjectsBL() {
                             <div className="relative group">
                               <button
                                 type="button"
-                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                                onClick={() =>
+                                  window.open(
+                                    URL.createObjectURL(file),
+                                    "_blank",
+                                  )
+                                }
                                 className="p-1 hover:bg-slate-50 rounded transition-colors"
                               >
-                                <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
+                                <img
+                                  src={viewIcon}
+                                  alt="View"
+                                  className="w-4 h-4 opacity-60"
+                                />
                               </button>
                               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                                 <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
@@ -2685,8 +3049,18 @@ export default function ProjectsBL() {
                                 }
                                 className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2.5}
+                                    d="M6 18L18 6M6 6l12 12"
+                                  />
                                 </svg>
                               </button>
                               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
@@ -2722,14 +3096,16 @@ export default function ProjectsBL() {
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
                         <FiUploadCloud className="w-8 h-8 mb-3 text-slate-400 group-hover:text-[#DD4342] transition-colors" />
                         <p className="mb-1 text-sm text-slate-500 group-hover:text-slate-600">
-                          <span className="font-bold">Add new files</span> or drag and drop
+                          <span className="font-bold">Add new files</span> or
+                          drag and drop
                         </p>
-                        <p className="text-xs text-slate-400">PDF, DOCX, ZIP or Images (Max 10MB)</p>
+                        <p className="text-xs text-slate-400">
+                          PDF, DOCX, ZIP or Images (Max 10MB)
+                        </p>
                       </div>
                     </label>
                   </div>
                 </div>
-
               </div>
 
               {/* Footer Buttons */}
@@ -2829,13 +3205,19 @@ export default function ProjectsBL() {
                 )?.id;
                 if (clientId) formData.append("client_id", String(clientId));
 
-                const pmIds = nameOrCsvToIdCsv(createProjectManager, allEmployees);
+                const pmIds = nameOrCsvToIdCsv(
+                  createProjectManager,
+                  allEmployees,
+                );
                 if (pmIds) formData.append("project_manager_id", pmIds);
 
                 const leadIds = nameOrCsvToIdCsv(createBIMLead, allEmployees);
                 if (leadIds) formData.append("lead_id", leadIds);
 
-                const bcIds = nameOrCsvToIdCsv(createBIMCoOrdinator, allEmployees);
+                const bcIds = nameOrCsvToIdCsv(
+                  createBIMCoOrdinator,
+                  allEmployees,
+                );
                 if (bcIds) formData.append("bim_coordinator_id", bcIds);
 
                 if (selectedMemberIds.length > 0)
@@ -2864,31 +3246,40 @@ export default function ProjectsBL() {
 
                 // Handle file uploads
                 if (createFiles.length > 0) {
-                  createFiles.forEach(file => formData.append('files', file));
+                  createFiles.forEach((file) => formData.append("files", file));
                 }
                 if (removedFiles.length > 0) {
-                  formData.append('removed_files', removedFiles.join(','));
+                  formData.append("removed_files", removedFiles.join(","));
                 }
 
-                const isOutsource = selectedProjectForEdit?.source === "Outsource";
-                const baseEndpoint = isOutsource ? `/api/vendors/vendor-projects/${selectedProjectForEdit?.id}` : `/api/projects/${selectedProjectForEdit?.id}`;
+                const isOutsource =
+                  selectedProjectForEdit?.source === "Outsource";
+                const baseEndpoint = isOutsource
+                  ? `/api/vendors/vendor-projects/${selectedProjectForEdit?.id}`
+                  : `/api/projects/${selectedProjectForEdit?.id}`;
 
-                api.put<{ success?: boolean }>(baseEndpoint, formData, {
-                  headers: { 'Content-Type': 'multipart/form-data' }
-                })
+                api
+                  .put<{ success?: boolean }>(baseEndpoint, formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                  })
                   .then(({ data }) => {
                     if (!data.success) return;
 
                     const createTasksPromise =
                       editTaskTags.length > 0
                         ? Promise.all(
-                          editTaskTags.map((taskName) =>
-                            api.post(isOutsource ? "/api/vendors/vendor-tasks" : "/api/tasks", {
-                              projectid: String(selectedProjectForEdit?.id),
-                              taskName,
-                            }),
-                          ),
-                        ).catch(() => undefined)
+                            editTaskTags.map((taskName) =>
+                              api.post(
+                                isOutsource
+                                  ? "/api/vendors/vendor-tasks"
+                                  : "/api/tasks",
+                                {
+                                  projectid: String(selectedProjectForEdit?.id),
+                                  taskName,
+                                },
+                              ),
+                            ),
+                          ).catch(() => undefined)
                         : Promise.resolve();
 
                     createTasksPromise
@@ -2902,9 +3293,13 @@ export default function ProjectsBL() {
                         toast.error("Failed to update project tasks.");
                       });
                   })
-                  .catch(err => {
-                    toast.error(err.response?.data?.message || 'Failed to update project');
-                    setEditError(err.response?.data?.message || 'Failed to update project');
+                  .catch((err) => {
+                    toast.error(
+                      err.response?.data?.message || "Failed to update project",
+                    );
+                    setEditError(
+                      err.response?.data?.message || "Failed to update project",
+                    );
                   })
                   .finally(() => setIsEditSubmitting(false));
               }}
@@ -2942,7 +3337,11 @@ export default function ProjectsBL() {
                         className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-[5px] transition-all focus:outline-none border border-transparent focus:border-[#AEACAC52] ${selectedProjectForEdit?.currency_locked ? "cursor-not-allowed opacity-80" : "cursor-pointer"} ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
                       >
                         <span className="text-[14px] text-[#353535] font-medium truncate">
-                          {CURRENCIES.find(c => c.code === createCurrency)?.symbol} {createCurrency}
+                          {
+                            CURRENCIES.find((c) => c.code === createCurrency)
+                              ?.symbol
+                          }{" "}
+                          {createCurrency}
                         </span>
                         <img
                           src={ArrowDown}
@@ -2950,26 +3349,28 @@ export default function ProjectsBL() {
                           className={`w-3.5 h-3.5 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
                         />
                       </button>
-                      {currencyDropdownOpen && !selectedProjectForEdit?.currency_locked && (
-                        <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
-                          {CURRENCIES.map((c) => (
-                            <button
-                              key={c.code}
-                              type="button"
-                              onClick={() => {
-                                setCreateCurrency(c.code);
-                                setCurrencyDropdownOpen(false);
-                              }}
-                              className={`w-full text-left px-4 py-2 text-[14px] transition-colors hover:bg-[#F2F2F2] flex items-center justify-between cursor-pointer ${createCurrency === c.code ? "text-[#353535] bg-[#F8F8F8] font-bold" : "text-[#8B8B8B] font-medium"}`}
-                            >
-                              {c.code}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      {currencyDropdownOpen &&
+                        !selectedProjectForEdit?.currency_locked && (
+                          <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                            {CURRENCIES.map((c) => (
+                              <button
+                                key={c.code}
+                                type="button"
+                                onClick={() => {
+                                  setCreateCurrency(c.code);
+                                  setCurrencyDropdownOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-2 text-[14px] transition-colors hover:bg-[#F2F2F2] flex items-center justify-between cursor-pointer ${createCurrency === c.code ? "text-[#353535] bg-[#F8F8F8] font-bold" : "text-[#8B8B8B] font-medium"}`}
+                              >
+                                {c.code}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                     </div>
                     <input
-                      type="text" required
+                      type="text"
+                      required
                       value={createBudget}
                       onChange={(e) => {
                         const val = e.target.value.replace(/[^0-9.]/g, "");
@@ -3044,7 +3445,7 @@ export default function ProjectsBL() {
                 </div>
 
                 {/* Task Name */}
-                <div className="md:col-span-2 space-y-2">
+                {/* <div className="md:col-span-2 space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Task Name <span className="text-[#DD4342]">*</span>
                   </label>
@@ -3102,7 +3503,7 @@ export default function ProjectsBL() {
                       ))}
                     </div>
                   )}
-                </div>
+                </div> */}
 
                 {/* Client Name */}
                 <div className="space-y-2">
@@ -3415,28 +3816,34 @@ export default function ProjectsBL() {
                     <div className="flex flex-wrap gap-3 mb-4">
                       {/* Existing Files */}
                       {existingFiles.map((fileName, idx) => {
-                        const isOutsource = selectedProjectForEdit?.source === "Outsource";
+                        const isOutsource =
+                          selectedProjectForEdit?.source === "Outsource";
                         const url = isOutsource
                           ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
                           : `${api.defaults.baseURL}uploads/${fileName}`;
 
                         return (
-                          <div key={`exist-${idx}`} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm min-w-[200px]">
-                            <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
+                          <div
+                            key={`exist-${idx}`}
+                            className="flex items-center gap-3 bg-white p-1 rounded-md border border-[#AEACAC52] min-w-[900px]"
+                          >
                             <div className="flex-1 min-w-0">
-                              <p className="text-[13px] font-bold text-[#353535] truncate">
+                              <p className="text-[14px] font-Gantari font-medium text-[#353535] truncate">
                                 {fileName}
                               </p>
-                              <p className="text-[11px] text-slate-500">Existing File</p>
                             </div>
                             <div className="flex gap-1.5">
                               <div className="relative group">
                                 <button
                                   type="button"
-                                  onClick={() => window.open(url, '_blank')}
+                                  onClick={() => window.open(url, "_blank")}
                                   className="p-1 hover:bg-slate-50 rounded transition-colors"
                                 >
-                                  <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
+                                  <img
+                                    src={viewIcon}
+                                    alt="View"
+                                    className="w-4 h-4 opacity-60"
+                                  />
                                 </button>
                                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
@@ -3453,13 +3860,25 @@ export default function ProjectsBL() {
                                   type="button"
                                   onClick={() => {
                                     const file = existingFiles[idx];
-                                    setExistingFiles((prev) => prev.filter((_, i) => i !== idx));
+                                    setExistingFiles((prev) =>
+                                      prev.filter((_, i) => i !== idx),
+                                    );
                                     setRemovedFiles((prev) => [...prev, file]);
                                   }}
                                   className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2.5}
+                                      d="M6 18L18 6M6 6l12 12"
+                                    />
                                   </svg>
                                 </button>
                                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
@@ -3478,22 +3897,36 @@ export default function ProjectsBL() {
 
                       {/* New Files */}
                       {createFiles.map((file, idx) => (
-                        <div key={`new-${idx}`} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-blue-100 shadow-sm min-w-[200px] border-dashed">
+                        <div
+                          key={`new-${idx}`}
+                          className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-blue-100 shadow-sm min-w-[200px] border-dashed"
+                        >
                           <FiPaperclip className="w-4 h-4 text-blue-500" />
                           <div className="flex-1 min-w-0">
                             <p className="text-[13px] font-bold text-[#353535] truncate">
                               {file.name}
                             </p>
-                            <p className="text-[11px] text-blue-400">New Upload</p>
+                            <p className="text-[11px] text-blue-400">
+                              New Upload
+                            </p>
                           </div>
                           <div className="flex gap-1.5">
                             <div className="relative group">
                               <button
                                 type="button"
-                                onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                                onClick={() =>
+                                  window.open(
+                                    URL.createObjectURL(file),
+                                    "_blank",
+                                  )
+                                }
                                 className="p-1 hover:bg-slate-50 rounded transition-colors"
                               >
-                                <img src={viewIcon} alt="View" className="w-4 h-4 opacity-60" />
+                                <img
+                                  src={viewIcon}
+                                  alt="View"
+                                  className="w-4 h-4 opacity-60"
+                                />
                               </button>
                               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                                 <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
@@ -3515,8 +3948,18 @@ export default function ProjectsBL() {
                                 }
                                 className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded transition-colors"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2.5}
+                                    d="M6 18L18 6M6 6l12 12"
+                                  />
                                 </svg>
                               </button>
                               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
@@ -3552,14 +3995,16 @@ export default function ProjectsBL() {
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
                         <FiUploadCloud className="w-8 h-8 mb-3 text-slate-400 group-hover:text-[#DD4342] transition-colors" />
                         <p className="mb-1 text-sm text-slate-500 group-hover:text-slate-600">
-                          <span className="font-bold">Add more files</span> or drag and drop
+                          <span className="font-bold">Add more files</span> or
+                          drag and drop
                         </p>
-                        <p className="text-xs text-slate-400">PDF, DOCX, ZIP or Images (Max 10MB)</p>
+                        <p className="text-xs text-slate-400">
+                          PDF, DOCX, ZIP or Images (Max 10MB)
+                        </p>
                       </div>
                     </label>
                   </div>
                 </div>
-
               </div>
 
               {/* Footer Buttons */}
@@ -3620,9 +4065,14 @@ export default function ProjectsBL() {
                 const q = searchParams.get("q")?.toLowerCase() || "";
                 const filtered = q
                   ? list.filter((p) =>
-                    [p.project_name, p.client_name, p.project_manager, p.bim_lead, p.location]
-                      .some(f => (f || "").toLowerCase().includes(q))
-                  )
+                      [
+                        p.project_name,
+                        p.client_name,
+                        p.project_manager,
+                        p.bim_lead,
+                        p.location,
+                      ].some((f) => (f || "").toLowerCase().includes(q)),
+                    )
                   : list;
 
                 if (filtered.length === 0) {
@@ -3636,7 +4086,11 @@ export default function ProjectsBL() {
                 return filtered.map((p) => {
                   const progress = Math.round(p.progress ?? 0);
                   const memberIds = p.member
-                    ? p.member.split(',').map(m => m.trim()).filter(Boolean).map(Number)
+                    ? p.member
+                        .split(",")
+                        .map((m) => m.trim())
+                        .filter(Boolean)
+                        .map(Number)
                     : [];
 
                   const radius = 22;
@@ -3672,7 +4126,8 @@ export default function ProjectsBL() {
                                 strokeDashoffset={offset}
                                 strokeLinecap="round"
                                 style={{
-                                  transition: "stroke-dashoffset 0.8s ease-in-out",
+                                  transition:
+                                    "stroke-dashoffset 0.8s ease-in-out",
                                 }}
                               />
                             </svg>
@@ -3691,7 +4146,11 @@ export default function ProjectsBL() {
                               }}
                               className="p-2 rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
                             >
-                              <img src={threedot} alt="threeDots" className="w-5 h-5 text-[#8B8B8B]" />
+                              <img
+                                src={threedot}
+                                alt="threeDots"
+                                className="w-5 h-5 text-[#8B8B8B]"
+                              />
                             </button>
                             <div
                               className={`absolute right-0 mt-3 w-60 bg-white/90 backdrop-blur-md rounded-md border border-[#595959]/50 shadow-xl transition-all origin-top-right z-50 ${openMenuId === p.id ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
@@ -3720,22 +4179,27 @@ export default function ProjectsBL() {
                                   View
                                 </span>
                               </button>
-                              {p.source !== "Outsource" && (isTechnicalDirector || isManagement) && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOpenMenuId(null);
-                                    setCurrentProject(p);
-                                    setShowMilestones(true);
-                                  }}
-                                  className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
-                                >
-                                  <img src={paymentMilestone} alt="payment milestone" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
-                                  <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
-                                    Payment Milestones
-                                  </span>
-                                </button>
-                              )}
+                              {p.source !== "Outsource" &&
+                                (isTechnicalDirector || isManagement) && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenMenuId(null);
+                                      setCurrentProject(p);
+                                      setShowMilestones(true);
+                                    }}
+                                    className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
+                                  >
+                                    <img
+                                      src={paymentMilestone}
+                                      alt="payment milestone"
+                                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                    />
+                                    <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                      Payment Milestones
+                                    </span>
+                                  </button>
+                                )}
                               {p.source !== "Outsource" && canEdit && (
                                 <button
                                   onClick={(e) => {
@@ -3782,9 +4246,9 @@ export default function ProjectsBL() {
                                     setEditModuleTags(
                                       p.module_name
                                         ? p.module_name
-                                          .split(",")
-                                          .map((m) => m.trim())
-                                          .filter(Boolean)
+                                            .split(",")
+                                            .map((m) => m.trim())
+                                            .filter(Boolean)
                                         : [],
                                     );
 
@@ -3801,17 +4265,17 @@ export default function ProjectsBL() {
                                     setEditTaskTags(
                                       p.tasks
                                         ? p.tasks
-                                          .split(",")
-                                          .map((t) => t.trim())
-                                          .filter(Boolean)
+                                            .split(",")
+                                            .map((t) => t.trim())
+                                            .filter(Boolean)
                                         : [],
                                     );
 
                                     const docs = p.document_attachment
                                       ? p.document_attachment
-                                        .split(",")
-                                        .map((s) => s.trim())
-                                        .filter(Boolean)
+                                          .split(",")
+                                          .map((s) => s.trim())
+                                          .filter(Boolean)
                                       : [];
                                     setExistingFiles(docs);
                                     setRemovedFiles([]);
@@ -3821,7 +4285,11 @@ export default function ProjectsBL() {
                                   }}
                                   className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                                 >
-                                  <img src={editIcon} alt="edit" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
+                                  <img
+                                    src={editIcon}
+                                    alt="edit"
+                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                  />
                                   <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                     Edit
                                   </span>
@@ -3836,7 +4304,11 @@ export default function ProjectsBL() {
                                   }}
                                   className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                                 >
-                                  <img src={deleteIcon} alt="delete" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
+                                  <img
+                                    src={deleteIcon}
+                                    alt="delete"
+                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                  />
                                   <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                     Delete
                                   </span>
@@ -3857,17 +4329,23 @@ export default function ProjectsBL() {
                         <div className="flex -space-x-4">
                           {(() => {
                             const projectEmployees = memberIds
-                              .map(id => resolveProjectMember(id))
+                              .map((id) => resolveProjectMember(id))
                               .filter(Boolean) as Employee[];
 
                             const visibleMembers = projectEmployees.slice(0, 3);
-                            const remainingCount = Math.max(0, projectEmployees.length - 3);
+                            const remainingCount = Math.max(
+                              0,
+                              projectEmployees.length - 3,
+                            );
 
                             return (
                               <>
                                 {visibleMembers.map((emp) => {
                                   const profileUrl = emp.profile_picture
-                                    ? getGlobalProfileUrl(emp.id, emp.profile_picture)
+                                    ? getGlobalProfileUrl(
+                                        emp.id,
+                                        emp.profile_picture,
+                                      )
                                     : null;
 
                                   return (
@@ -3882,21 +4360,22 @@ export default function ProjectsBL() {
                                           alt={emp.full_name}
                                           className="w-full h-full object-cover"
                                           onError={(e) => {
-                                            (e.target as HTMLImageElement).src = ProfileIcon;
+                                            (e.target as HTMLImageElement).src =
+                                              ProfileIcon;
                                           }}
                                         />
                                       ) : (
                                         <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
-                                          {(emp.full_name || 'U').charAt(0).toUpperCase()}
+                                          {(emp.full_name || "U")
+                                            .charAt(0)
+                                            .toUpperCase()}
                                         </div>
                                       )}
                                     </div>
                                   );
                                 })}
                                 {remainingCount > 0 && (
-                                  <div
-                                    className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
-                                  >
+                                  <div className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors">
                                     +{remainingCount}
                                   </div>
                                 )}
@@ -3906,13 +4385,13 @@ export default function ProjectsBL() {
                         </div>
 
                         <div className="flex items-center gap-3">
-
                           {p.priority && (
                             <div
-                              className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
-                                ? "bg-[#DD4342]"
-                                : "bg-[#94D6F2]"
-                                }`}
+                              className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${
+                                p.priority.toLowerCase() === "high"
+                                  ? "bg-[#DD4342]"
+                                  : "bg-[#94D6F2]"
+                              }`}
                             >
                               {p.priority}
                             </div>
@@ -3933,12 +4412,27 @@ export default function ProjectsBL() {
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-[20px] shadow-2xl max-w-sm w-full p-8 text-center border border-gray-100">
             <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg
+                className="w-10 h-10 text-red-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2 font-Gantari">Delete Project</h3>
-            <p className="text-gray-500 mb-8 font-Gantari">Are you sure you want to delete this project? This action cannot be undone.</p>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2 font-Gantari">
+              Delete Project
+            </h3>
+            <p className="text-gray-500 mb-8 font-Gantari">
+              Are you sure you want to delete this project? This action cannot
+              be undone.
+            </p>
             <div className="flex gap-3 justify-center">
               <button
                 type="button"
@@ -3952,16 +4446,24 @@ export default function ProjectsBL() {
                 onClick={() => {
                   if (deleteProject === null) return;
                   const isOutsource = deleteProject.source === "Outsource";
-                  const baseEndpoint = isOutsource ? `/api/vendors/vendor-projects/${deleteProject.id}` : `/api/projects/${deleteProject.id}`;
+                  const baseEndpoint = isOutsource
+                    ? `/api/vendors/vendor-projects/${deleteProject.id}`
+                    : `/api/projects/${deleteProject.id}`;
 
-                  api.delete(baseEndpoint)
+                  api
+                    .delete(baseEndpoint)
                     .then(() => {
                       toast.success("Project deleted successfully");
-                      setList(prev => prev.filter(p => p.id !== deleteProject.id));
+                      setList((prev) =>
+                        prev.filter((p) => p.id !== deleteProject.id),
+                      );
                       setDeleteProject(null);
                     })
                     .catch((err) => {
-                      toast.error(err.response?.data?.message || "Failed to delete project");
+                      toast.error(
+                        err.response?.data?.message ||
+                          "Failed to delete project",
+                      );
                     });
                 }}
                 className="flex-1 px-6 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all font-Gantari shadow-lg shadow-red-200 cursor-pointer"
@@ -3988,7 +4490,7 @@ export default function ProjectsBL() {
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
                     <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                       Close
                     </span>
@@ -4024,16 +4526,22 @@ export default function ProjectsBL() {
                     fetchMilestones(currentProject.id);
                   })
                   .catch((err) => {
-                    toast.error(err.response?.data?.message || "Failed to add milestone");
+                    toast.error(
+                      err.response?.data?.message || "Failed to add milestone",
+                    );
                   });
               }}
               className="max-w-5xl mx-auto px-6"
             >
               {editError && (
                 <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
-                  <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
+                  <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
+                    !
+                  </div>
                   <div className="flex-1">
-                    <p className="mt-0.5 text-[13px] leading-snug">{editError}</p>
+                    <p className="mt-0.5 text-[13px] leading-snug">
+                      {editError}
+                    </p>
                   </div>
                 </div>
               )}

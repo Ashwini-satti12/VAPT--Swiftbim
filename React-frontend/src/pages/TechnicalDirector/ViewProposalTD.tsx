@@ -105,9 +105,9 @@ export default function ViewProposalTD() {
     };
 
     return (
-        <div className=" space-y-4 flex flex-col min-h-full bg-white font-gantari overflow-y-auto w-full pb-10">
+        <div className=" space-y-4 flex flex-col min-h-full bg-white font-gantari overflow-y-auto w-full pb-10 px-5 py-2">
             {/* Page Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0 px-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
                 <div className="flex items-center justify-between w-full sm:w-auto">
                     <div className="group relative inline-flex shrink-0">
                         <button
@@ -119,7 +119,7 @@ export default function ViewProposalTD() {
                         </button>
                         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                             <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
                                 <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                                     Go Back
                                 </span>
@@ -127,7 +127,7 @@ export default function ViewProposalTD() {
                         </div>
                     </div>
                     
-                    <h1 className="sm:hidden text-xl font-semibold text-[#000000] truncate px-2">View Proposal</h1>
+                    <h1 className="sm:hidden text-[24px] font-semibold text-[#000000] truncate px-2">View Proposal Details</h1>
                     
                     {proposal && proposal.status && (
                         <span className={`sm:hidden inline-flex items-center justify-center px-3 py-1 rounded-md text-[12px] font-bold ${getStatusBadge(proposal.status)} shrink-0`}>
@@ -136,7 +136,7 @@ export default function ViewProposalTD() {
                     )}
                 </div>
 
-                <h1 className="hidden sm:block text-[24px] font-semibold text-[#000000]">View Proposal</h1>
+                <h1 className="hidden sm:block text-[24px] font-semibold text-[#000000]">View Proposal Details</h1>
 
                 <div className="hidden sm:flex items-center gap-3">
                     {proposal && proposal.status && (

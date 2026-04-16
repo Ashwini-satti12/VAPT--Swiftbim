@@ -58,6 +58,7 @@ def _ensure_vendor_bidding_table(vendor_conn):
             description TEXT,
             outsource_budget DECIMAL(15,2),
             budget_ceiling DECIMAL(15,2),
+            currency VARCHAR(10) DEFAULT 'INR',
             bid_deadline DATE,
             status ENUM('active', 'closed') DEFAULT 'active',
             company_id INT,
@@ -79,6 +80,25 @@ def _ensure_vendor_bidding_table(vendor_conn):
             UNIQUE KEY uniq_vendor_opportunity (vendor_id, opportunity_id)
         )
     """)
+
+
+def _ensure_vendor_bidding_currency_column(cur):
+    """Backward compatibility for older DBs missing vendor_bidding.currency."""
+    try:
+        cur.execute(
+            """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'vendor_bidding'
+              AND COLUMN_NAME = 'currency'
+            LIMIT 1
+            """
+        )
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE vendor_bidding ADD COLUMN currency VARCHAR(10) DEFAULT 'INR'")
+    except Exception:
+        pass
 
 bp = Blueprint("projects", __name__, url_prefix="/api/projects")
 
@@ -208,6 +228,7 @@ def list_projects():
         projects.append(d)
     _hydrate_project_display_fields(cur, company_id, projects)
     _hydrate_project_phase1_fields(projects)
+    _hydrate_project_advance_payment_gate(projects)
     return jsonify({"projects": projects})
 
 
@@ -279,6 +300,111 @@ def _as_int_id(value):
         return int(value) if value == int(value) else None
     s = str(value).strip()
     return int(s) if s.isdigit() else None
+
+
+def _is_paid_like_status(value) -> bool:
+    s = str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+    if not s:
+        return False
+    return s in {"paid", "completed", "complete", "approved", "confirmed", "done"}
+
+
+def _hydrate_project_advance_payment_gate(project_dicts: list[dict]):
+    """
+    Add advance-payment gate flags for projects linked to phase-1 client contracts.
+
+    Adds:
+    - requires_advance_payment: bool
+    - advance_payment_verified: bool
+    """
+    if not project_dicts:
+        return
+    try:
+        client_ids = sorted(
+            {
+                cid
+                for cid in (_as_int_id(p.get("client_id")) for p in project_dicts)
+                if cid is not None
+            }
+        )
+        if not client_ids:
+            for p in project_dicts:
+                p["requires_advance_payment"] = False
+                p["advance_payment_verified"] = False
+            return
+
+        vendor_conn = _get_vendor_db()
+        vcur = vendor_conn.cursor(dictionary=True)
+
+        ph = ",".join(["%s"] * len(client_ids))
+        vcur.execute(
+            f"""
+            SELECT c.client_id, c.id AS contract_id
+            FROM contracts c
+            JOIN (
+                SELECT client_id, MAX(id) AS max_id
+                FROM contracts
+                WHERE client_id IN ({ph})
+                GROUP BY client_id
+            ) mx
+              ON mx.client_id = c.client_id
+             AND mx.max_id = c.id
+            """,
+            tuple(client_ids),
+        )
+        contract_by_client = {}
+        contract_ids = []
+        for r in (vcur.fetchall() or []):
+            cid = _as_int_id(r.get("client_id"))
+            coid = _as_int_id(r.get("contract_id"))
+            if cid is not None and coid is not None:
+                contract_by_client[cid] = coid
+                contract_ids.append(coid)
+
+        advance_verified_by_contract = {}
+        if contract_ids:
+            ph2 = ",".join(["%s"] * len(contract_ids))
+            vcur.execute(
+                f"""
+                SELECT contract_id, status, title, side
+                FROM payment_milestones
+                WHERE contract_id IN ({ph2})
+                """,
+                tuple(contract_ids),
+            )
+            rows = vcur.fetchall() or []
+            for rr in rows:
+                coid = _as_int_id(rr.get("contract_id"))
+                if coid is None:
+                    continue
+                side = str(rr.get("side") or "").strip().lower()
+                title = str(rr.get("title") or "").strip().lower()
+                if side != "client":
+                    continue
+                if "advance" not in title:
+                    continue
+                if _is_paid_like_status(rr.get("status")):
+                    advance_verified_by_contract[coid] = True
+                elif coid not in advance_verified_by_contract:
+                    advance_verified_by_contract[coid] = False
+
+        for p in project_dicts:
+            cid = _as_int_id(p.get("client_id"))
+            coid = contract_by_client.get(cid) if cid is not None else None
+            requires = coid is not None
+            verified = bool(advance_verified_by_contract.get(coid, False)) if coid is not None else False
+            p["requires_advance_payment"] = requires
+            p["advance_payment_verified"] = verified
+    except Exception:
+        for p in project_dicts:
+            p["requires_advance_payment"] = p.get("requires_advance_payment", False)
+            p["advance_payment_verified"] = p.get("advance_payment_verified", False)
+    finally:
+        try:
+            if "vendor_conn" in locals() and vendor_conn.is_connected():
+                vendor_conn.close()
+        except Exception:
+            pass
 
 
 def _parse_csv_int_ids(value):
@@ -783,6 +909,7 @@ def get_project(project_id):
         d["required_resources"] = d.get("no_resources_requried")
     _hydrate_project_display_fields(cur, g.company_id, [d])
     _hydrate_project_phase1_fields([d])
+    _hydrate_project_advance_payment_gate([d])
     return jsonify(d)
 
 
@@ -930,8 +1057,9 @@ def _sync_vendor_bidding_for_outsource_project(cur, company_id, project_id, depa
     if not is_outsource:
         return
     try:
+        _ensure_vendor_bidding_currency_column(cur)
         cur.execute(
-            "SELECT project_name, budget, description FROM projects WHERE id = %s AND Company_id = %s",
+            "SELECT project_name, budget, description, currency FROM projects WHERE id = %s AND Company_id = %s",
             (project_id, company_id),
         )
         proj = cur.fetchone()
@@ -940,20 +1068,31 @@ def _sync_vendor_bidding_for_outsource_project(cur, company_id, project_id, depa
         project_name = proj["project_name"]
         outsource_budget = proj["budget"]
         description = proj.get("description") or ""
+        project_currency = (proj.get("currency") or "INR").strip() or "INR"
         cur.execute(
             """INSERT INTO vendor_bidding
-                 (project_id, project_name, description, outsource_budget, budget_ceiling, bid_deadline, status, company_id)
-               VALUES (%s, %s, %s, %s, %s, %s, 'active', %s)
+                 (project_id, project_name, description, outsource_budget, budget_ceiling, currency, bid_deadline, status, company_id)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, 'active', %s)
                ON DUPLICATE KEY UPDATE
                  project_name   = VALUES(project_name),
                  description    = VALUES(description),
                  outsource_budget = VALUES(outsource_budget),
                  budget_ceiling = VALUES(budget_ceiling),
+                 currency       = VALUES(currency),
                  bid_deadline   = VALUES(bid_deadline),
                  status         = 'active',
                  company_id     = VALUES(company_id)
             """,
-            (project_id, project_name, description, outsource_budget, budget_ceiling or outsource_budget, bidding_end_date, company_id),
+            (
+                project_id,
+                project_name,
+                description,
+                outsource_budget,
+                budget_ceiling or outsource_budget,
+                project_currency,
+                bidding_end_date,
+                company_id,
+            ),
         )
     except Exception:
         pass

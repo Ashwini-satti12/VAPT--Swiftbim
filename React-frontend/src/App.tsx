@@ -45,6 +45,7 @@ import AddClientTD from "./pages/TechnicalDirector/AddClientTD";
 import EditClientTD from "./pages/TechnicalDirector/EditClientTD";
 import ClientViewTD from "./pages/TechnicalDirector/ClientViewTD";
 import ProjectsTD from "./pages/TechnicalDirector/ProjectsTD";
+import ViewInvoiceDetailsTD from "./pages/TechnicalDirector/ViewInvoiceDetailsTD";
 import MytaskTD from "./pages/TechnicalDirector/MytaskTD";
 import AddTaskTD from "./pages/TechnicalDirector/AddTaskTD";
 import TeamtaskTD from "./pages/TechnicalDirector/TeamtaskTD";
@@ -124,6 +125,7 @@ import BiddingV from "./pages/Vendor/BiddingV";
 import ProposalsV from "./pages/Vendor/ProposalsV";
 import CompanyProfileV from "./pages/Vendor/CompanyProfileV";
 import CompanyProfileEditV from "./pages/Vendor/CompanyProfileEditV";
+import CompanyProfileResourcePageV from "./pages/Vendor/CompanyProfileResourcePageV";
 import MilestonesV from "./pages/Vendor/MilestonesV";
 import CommunicationV from "./pages/Vendor/CommunicationV";
 import PerformanceV from "./pages/Vendor/PerformanceV";
@@ -259,6 +261,10 @@ function App() {
             <Route path="td/clients/:id/view" element={<ClientViewTD />} />
             <Route path="td/clients/:id/edit" element={<EditClientTD />} />
             <Route path="td/projects" element={<ProjectsTD />} />
+            <Route
+              path="td/invoices/:invoiceId"
+              element={<ViewInvoiceDetailsTD />}
+            />
             <Route path="td/mytasks" element={<MytaskTD />} />
             <Route path="td/mytasks/add" element={<AddTaskTD />} />
             <Route path="td/teamtasks/add" element={<AddTaskTD />} />
@@ -356,6 +362,10 @@ function App() {
             <Route path="v/mytasks/view/:id" element={<MytaskViewV />} />
             <Route path="v/company-profile" element={<CompanyProfileV />} />
             <Route
+              path="v/company-profile/resources/:resourceId"
+              element={<CompanyProfileResourcePageV />}
+            />
+            <Route
               path="v/company-profile/edit"
               element={<CompanyProfileEditV />}
             />
@@ -381,6 +391,10 @@ function App() {
             <Route path="vpm/resources" element={<ResourcesV />} />
             <Route path="vpm/communication" element={<ChatPMV />} />
             <Route path="vpm/company-profile" element={<CompanyProfileV />} />
+            <Route
+              path="vpm/company-profile/resources/:resourceId"
+              element={<CompanyProfileResourcePageV />}
+            />
             <Route path="vpm/company-profile/edit" element={<CompanyProfileEditPMV />} />
 
             {/* Vendor Employee Routes */}

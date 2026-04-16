@@ -679,7 +679,7 @@ export default function CreateteamTD() {
               <img
                 src={ArrowDown}
                 alt=""
-                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
                   } ${selectedShowEntries === ""
                     ? "opacity-60 grayscale"
                     : "opacity-90"

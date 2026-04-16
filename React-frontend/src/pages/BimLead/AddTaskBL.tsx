@@ -532,7 +532,6 @@ export default function AddTaskBL() {
       "projectName",
       "module",
       "taskName",
-      "type",
       "actualStartDate",
       "actualEndDate",
       "startTime",
@@ -550,11 +549,11 @@ export default function AddTaskBL() {
 
     const today = new Date().toISOString().split("T")[0];
     if (addTaskForm.actualStartDate < today && editingTaskId === null) {
-      setAddError("Actual Start Date cannot be in the past.");
+      setAddError("Start Date cannot be in the past.");
       return;
     }
     if (addTaskForm.actualEndDate < addTaskForm.actualStartDate) {
-      setAddError("Actual End Date cannot be before Actual Start Date.");
+      setAddError("End Date cannot be before Start Date.");
       return;
     }
 
@@ -587,8 +586,8 @@ export default function AddTaskBL() {
         module: addTaskForm.module,
         task_name: addTaskForm.taskName,
         taskName: addTaskForm.taskName,
-        type: addTaskForm.type,
-        category: addTaskForm.type,
+        type: addTaskForm.type || "task",
+        category: addTaskForm.type || "task",
         start_date: addTaskForm.actualStartDate,
         startdate: addTaskForm.actualStartDate,
         due_date: addTaskForm.actualEndDate,
@@ -619,7 +618,7 @@ export default function AddTaskBL() {
             task_name: addTaskForm.taskName,
             assigned_to: assignedId,
             due_date: addTaskForm.actualEndDate,
-            category: addTaskForm.type,
+            category: addTaskForm.type || "task",
             description: addTaskForm.description,
             checklist: addTaskForm.checklist,
             modules: addTaskForm.module,
@@ -676,11 +675,11 @@ export default function AddTaskBL() {
     navigate(fromTeamTasks ? "/bl/teamtasks" : "/bl/mytasks");
 
   return (
-    <div className="flex-1 min-h-0 p-2 bg-white overflow-hidden">
+    <div className="flex-1 min-h-0 pl-5 bg-white overflow-hidden">
       <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col">
-        <div className="relative flex items-center justify-center py-4 md:py-8 border-b border-slate-50 flex-shrink-0">
+        <div className="relative flex items-center justify-center py-4 border-b border-slate-50 flex-shrink-0">
           {/* Left Close / Back Button */}
-          <div className="absolute left-4 flex items-center group">
+          <div className="absolute left-1 flex items-center group">
             <button
               type="button"
               onClick={goBack}
@@ -852,7 +851,7 @@ export default function AddTaskBL() {
                 </div>
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Actual Start Date <span className="text-[#DD4342]">*</span>
+                    Start Date <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="date"
@@ -874,7 +873,7 @@ export default function AddTaskBL() {
                 </div>
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Actual End Date <span className="text-[#DD4342]">*</span>
+                    End Date <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="date"

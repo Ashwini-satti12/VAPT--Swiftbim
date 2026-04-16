@@ -11,7 +11,6 @@ import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
 import ProfileIcon from "../../../assets/ProductNavbarIcons/Profile.svg";
 import closeBtnIcon from "../../../assets/ProductNavbarIcons/close button.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
-import { VendorBimLeadBackTooltipWrap } from "./VendorBimLeadGoBackButton";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 
 interface Project {
@@ -511,6 +510,36 @@ export default function VendorBimLeadProjects() {
 
           setSuccessMsg("Project updated!");
           setTimeout(() => setSuccessMsg(null), 3000);
+
+          // Update selected project state if it is currently being viewed
+          if (selectedProject && selectedProject.id === editId) {
+            setSelectedProject((prev) => 
+               prev ? {
+                ...prev,
+                project_name: createName,
+                budget: createBudget,
+                modules: createModuleName,
+                client_id: String(getClientIdByName(createClientName)),
+                project_manager_id: nameToId(createProjectManager, projectManagers),
+                start_date: createStartDate,
+                end_date: createEndDate,
+                totalhours: createTotalHours,
+                per_day: createPerDay,
+                lead_id: nameToId(createBIMLead, bimLeads),
+                bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
+                bim_coordinator: createBIMCoOrdinator,
+                members: selectedMemberIds.join(","),
+                resources: createResources,
+                required_resources: createRequiredResources,
+                priority: createPriority,
+                location: createLocation,
+                description: createDescription,
+                deliverables: createTaskName,
+                department: createDepartment,
+              } : null
+            );
+          }
+
           fetchProjects();
         }
       })
@@ -579,7 +608,7 @@ export default function VendorBimLeadProjects() {
 
   const renderMemberSelector = () => (
     <div className="space-y-2">
-      <label className="block text-[15px] font-bold text-[#353535]">
+      <label className="block text-[16px] font-medium text-[#353535]">
         Team Members
       </label>
       <div className="relative">
@@ -589,7 +618,7 @@ export default function VendorBimLeadProjects() {
               prev === "members" ? null : "members",
             )
           }
-          className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg cursor-pointer flex flex-wrap gap-2 items-center min-h-[50px] hover:bg-[#EAEAEA] transition-colors"
+          className="w-full px-4 py-2 bg-[#F2F2F2] rounded-md cursor-pointer flex flex-wrap gap-2 items-center min-h-[40px]"
         >
           {selectedMemberIds.length === 0 ? (
             <span className="text-gray-400 font-medium">Select members</span>
@@ -708,7 +737,7 @@ export default function VendorBimLeadProjects() {
           <div className="relative group">
             <input
               type="text"
-              className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[10px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+              className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
               placeholder="Enter Modules Name"
               value={moduleInput}
               onChange={(e) => {
@@ -733,7 +762,7 @@ export default function VendorBimLeadProjects() {
             </span>
             Please enter names, separated by commas, and then press enter
           </p>
-          <div className="flex flex-wrap gap-3 mt-4">
+          <div className="flex flex-wrap gap-3">
             {modulesList.map((mod: string, idx: number) => (
               <div
                 key={idx}
@@ -776,7 +805,7 @@ export default function VendorBimLeadProjects() {
               onClick={() =>
                 setEditDropdownOpen((prev) => (prev === "pm" ? null : "pm"))
               }
-              className="w-full flex items-center justify-between px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+              className="w-full flex items-center justify-between px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari outline-none focus:border-[#AEACAC52]"
             >
               <span
                 className={
@@ -962,6 +991,126 @@ export default function VendorBimLeadProjects() {
             )}
           </div>
         </div>
+
+        <div className="space-y-2">
+          <label className="block text-[16px] font-medium text-[#353535]">
+            Select BIM Coordinator
+          </label>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() =>
+                setEditDropdownOpen((prev) =>
+                  prev === "coord" ? null : "coord",
+                )
+              }
+              className="w-full flex items-center justify-between px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari outline-none focus:border-[#AEACAC52]"
+            >
+              <span
+                className={
+                  createBIMCoOrdinator ? "text-[#353535]" : "text-gray-400"
+                }
+              >
+                {createBIMCoOrdinator || "Select BIM Coordinator"}
+              </span>
+              <svg
+                className={`w-5 h-5 text-gray-400 transition-transform ${editDropdownOpen === "coord" ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+            {editDropdownOpen === "coord" && (
+              <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded-md py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                {bimCoordinators.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      setCreateBIMCoOrdinator(c.full_name || "");
+                      setEditDropdownOpen(null);
+                    }}
+                    className={`block w-full text-left px-4 py-3 text-sm hover:bg-[#F2F2F2] ${createBIMCoOrdinator === c.full_name ? "bg-[#FFF1F1] text-[#DD4342]" : "text-[#353535]"}`}
+                  >
+                    {c.full_name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-[16px] font-medium text-[#353535]">
+            Location
+          </label>
+          <input
+            type="text"
+            className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+            placeholder="Enter Location"
+            value={createLocation}
+            onChange={(e) => setCreateLocation(e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-[16px] font-medium text-[#353535]">
+            Total Project Hours
+          </label>
+          <input
+            type="text"
+            className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+            placeholder="e.g. 500"
+            value={createTotalHours}
+            onChange={(e) => setCreateTotalHours(e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-[16px] font-medium text-[#353535]">
+            Hours/Day
+          </label>
+          <input
+            type="text"
+            className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+            placeholder="e.g. 8"
+            value={createPerDay}
+            onChange={(e) => setCreatePerDay(e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-[16px] font-medium text-[#353535]">
+            Total Resources Available
+          </label>
+          <input
+            type="text"
+            className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+            placeholder="e.g. 5"
+            value={createResources}
+            onChange={(e) => setCreateResources(e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-[16px] font-medium text-[#353535]">
+            Total Resources Required
+          </label>
+          <input
+            type="text"
+            className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+            placeholder="e.g. 10"
+            value={createRequiredResources}
+            onChange={(e) => setCreateRequiredResources(e.target.value)}
+          />
+        </div>
       </div>
       <div className="space-y-6 mt-6">
         {renderMemberSelector()}
@@ -1084,30 +1233,11 @@ export default function VendorBimLeadProjects() {
   return (
     <div className="bg-white min-h-screen font-gantari">
       <div className="flex flex-col h-[calc(100vh-100px)] lg:h-[calc(100vh-100px)] overflow-hidden">
-        {successMsg && (
-          <div className="fixed top-5 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl bg-[#1A8A47] text-white font-gantari text-sm font-medium animate-in slide-in-from-right duration-300">
-            <svg
-              className="w-5 h-5 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2.5}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-            <span>{successMsg}</span>
-          </div>
-        )}
-
         {/* Project View (In-Page) */}
         {showEditModal ? (
           <div className="flex flex-col h-full bg-white">
-            <div className="flex items-center gap-4 md:gap-6 px-6 py-2 md:px-6 md:py-4 border-b border-slate-50 cursor-pointer">
-              <VendorBimLeadBackTooltipWrap>
+            <div className="flex items-center gap-4 md:gap-6 px-5 py-2 md:px-5 md:py-2 border-b border-slate-50 cursor-pointer">
+              <div className="relative group inline-flex shrink-0">
                 <button
                   type="button"
                   onClick={() => {
@@ -1136,18 +1266,25 @@ export default function VendorBimLeadProjects() {
                     setCreateFile(null);
                   }}
                   className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-colors cursor-pointer"
-                  title="Back"
                 >
                   <img src={backIcon} alt="Back" className="w-5 h-5" />
                 </button>
-              </VendorBimLeadBackTooltipWrap>
-              <div className="min-w-0">
-                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A] truncate">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Go Back
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-[18px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A] truncate text-center pr-10">
                   Edit Project Details
                 </h3>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 pt-6 md:pt-8 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 md:px-5 pb-10 pt-6 md:pt-8 custom-scrollbar">
               <form
                 onSubmit={handleEdit}
                 className="max-w-4xl mx-auto space-y-10"
@@ -1161,20 +1298,20 @@ export default function VendorBimLeadProjects() {
                       setEditDropdownOpen(null);
                       setEditError("");
                     }}
-                    className="px-5 py-2 rounded-md bg-[#F2F2F2] text-[#666666] font-medium text-[16px]"
+                    className="px-5 py-2 rounded-md bg-[#F2F2F2] text-[#666666] font-medium text-[16px] cursor-pointer"
                   >
                     Discard
                   </button>
                   <button
                     type="submit"
                     disabled={editSubmitting}
-                    className="px-5 py-2 rounded-md bg-[#DD4342] text-white font-medium text-[16px]"
+                    className="px-5 py-2 rounded-md bg-[#DD4342] text-white font-medium text-[16px] cursor-pointer"
                   >
                     {editSubmitting ? "Updating..." : "Update Project"}
                   </button>
                 </div>
                 {editError && (
-                  <p className="text-[#DD4342] text-sm font-bold text-center mt-4 uppercase tracking-wider">
+                  <p className="text-[#DD4342] text-sm font-bold text-center mt-4 uppercase tracking-wider cursor-pointer">
                     {editError}
                   </p>
                 )}
@@ -1183,29 +1320,36 @@ export default function VendorBimLeadProjects() {
           </div>
         ) : showProjectView && selectedProject ? (
           <div className="flex flex-col h-full bg-white">
-            <div className="flex items-center gap-4 md:gap-6 px-4 md:px-10 py-4 md:py-6 border-b border-slate-50">
-              <VendorBimLeadBackTooltipWrap>
+            <div className="flex items-center gap-4 md:gap-6 px-4 md:px-5 py-4 md:py-2 border-b border-slate-50">
+              <div className="relative group inline-flex shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowProjectView(false)}
                   className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-colors cursor-pointer"
-                  title="Back"
                 >
                   <img src={backIcon} alt="Back" className="w-5 h-5" />
                 </button>
-              </VendorBimLeadBackTooltipWrap>
-              <div className="min-w-0">
-                <h3 className="text-[18px] md:text-[24px] font-medium text-[#000000] truncate">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md  px-2 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Go Back
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-[18px] md:text-[24px] font-medium text-[#000000] truncate text-center pr-10">
                   {selectedProject.project_name ?? "Untitled Project"}
                 </h3>
-                <p className="text-[12px] md:text-[14px] font-medium text-[#999999]">
+                <p className="text-[12px] md:text-[14px] font-medium text-[#999999] text-center pr-10">
                   Overall Progress Tracker
                 </p>
               </div>
             </div>
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Fixed KPI Cards at top */}
-              <div className="px-4 md:px-10 mt-4">
+              <div className="px-4 md:px-5 mt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                   {[
                     {
@@ -1243,7 +1387,7 @@ export default function VendorBimLeadProjects() {
                       }
                       className="text-left bg-[#F2F2F2] p-3 md:p-4 rounded-md flex flex-col h-[70px] md:h-[90px] hover:bg-[#DD4342] focus:outline-none cursor-pointer transition-all group border-1 border-slate-200"
                     >
-                      <p className="text-[#353535] group-hover:text-white text-[14px] md:text-[16px] font-medium">
+                      <p className="text-[#353535] group-hover:text-white text-[16px] md:text-[18px] font-medium">
                         {stat.label}
                       </p>
                       <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[22px] font-bold leading-none mt-auto self-center lg:self-center">
@@ -1255,7 +1399,7 @@ export default function VendorBimLeadProjects() {
               </div>
 
               {/* Scrollable Content Below KPI Cards */}
-              <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-10 pt-4 md:pt-6 custom-scrollbar space-y-8">
+              <div className="flex-1 overflow-y-auto px-4 md:px-5 pb-10 pt-4 md:pt-6 custom-scrollbar space-y-8">
                 {/* Modules */}
                 <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-4">
                   <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">
@@ -1372,13 +1516,13 @@ export default function VendorBimLeadProjects() {
                 </div>
 
                 {/* Project Description */}
-                <div className="border border-slate-200 rounded-[10px] p-6 md:p-8">
-                  <h4 className="text-[18px] md:text-[20px] font-semibold text-[#000000]">
+                <div className="border border-slate-200 rounded-[10px] p-4 md:p-4">
+                  <h4 className="text-[18px] md:text-[20px] font-medium  font-gantari text-[#000000]">
                     Project Description
                   </h4>
                   {hasProjectDescriptionContent(selectedProject.description) ? (
                     <div
-                      className="text-[16px] font-medium text-[#666666] mt-4 leading-relaxed break-words quill-content"
+                      className="text-[14px] font-medium font-gantari text-[#353535] leading-relaxed break-words quill-content"
                       dangerouslySetInnerHTML={{
                         __html: normalizeProjectDescriptionHtml(
                           selectedProject.description,
@@ -1393,11 +1537,11 @@ export default function VendorBimLeadProjects() {
                 </div>
 
                 {/* Team Roles Section */}
-                <div className="border border-slate-200 rounded-[10px] p-6 md:p-8 space-y-6">
+                <div className="border border-slate-200 rounded-[10px] p-4 md:p-5 space-y-6">
                   <h4 className="text-[18px] md:text-[20px] font-semibold text-[#000000]">
                     Team Overview
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {[
                       {
                         label: "Project Manager",
@@ -1405,59 +1549,61 @@ export default function VendorBimLeadProjects() {
                       },
                       { label: "BIM Lead", id: selectedProject.lead_id },
                     ].map((role) => (
-                      <div key={role.label} className="space-y-3">
-                        <p className="text-[16px] font-bold text-[#000000]">
-                          {role.label}
-                        </p>
-                        <div className="flex items-center gap-4">
-                          {(() => {
-                            const emp = resolveVendorMember(role.id || "");
-                            const profileUrl = emp?.profile_picture
-                              ? getGlobalProfileUrl(emp.id, emp.profile_picture)
-                              : null;
-                            return (
-                              <>
-                                <div
-                                  role="button"
-                                  tabIndex={0}
-                                  className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                  onClick={() => openMemberProfile(emp)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === " ") {
-                                      e.preventDefault();
-                                      openMemberProfile(emp);
-                                    }
-                                  }}
-                                >
-                                  {profileUrl ? (
-                                    <img
-                                      src={profileUrl}
-                                      alt={role.label}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).src =
-                                          ProfileIcon;
-                                      }}
-                                    />
-                                  ) : (
-                                    <img
-                                      src={ProfileIcon}
-                                      alt={role.label}
-                                      className="w-full h-full object-cover p-1"
-                                    />
-                                  )}
-                                </div>
-                                <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                      <div key={role.label} className="flex items-center gap-3">
+                        {(() => {
+                          const emp = resolveVendorMember(role.id || "");
+                          const profileUrl = emp?.profile_picture
+                            ? getGlobalProfileUrl(emp.id, emp.profile_picture)
+                            : null;
+                          return (
+                            <>
+                              <div
+                                role="button"
+                                tabIndex={0}
+                                className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0  overflow-hidden shadow-sm cursor-pointer transition-all"
+                                onClick={() => openMemberProfile(emp)}
+                              >
+                                {profileUrl ? (
+                                  <img
+                                    src={profileUrl}
+                                    alt={role.label}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src =
+                                        ProfileIcon;
+                                    }}
+                                  />
+                                ) : (
+                                  <img
+                                    src={ProfileIcon}
+                                    alt={role.label}
+                                    className="w-full h-full object-cover"
+                                  />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[16px] font-medium text-[#1A1A1A] truncate">
                                   {getEmployeeName(role.id) || "Not assigned"}
                                 </p>
-                              </>
-                            );
-                          })()}
-                        </div>
+                                <p className="text-[14px] font-medium text-[#8B8B8B]">
+                                  {role.label}
+                                </p>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     ))}
-                    <div className="space-y-3">
-                      <p className="text-[16px] font-bold text-[#000000]">
+                    <div className="flex flex-col">
+                      <p className="text-[16px] font-medium text-[#353535]">
+                        BIM Coordinator
+                      </p>
+                      <p className="text-[14px] font-medium text-[#8B8B8B]">
+                        {selectedProject.bim_coordinator || "N/A"}
+                      </p>
+                    </div>
+                    <div className="flex flex-col">
+                      <p className="text-[16px] font-medium text-[#353535]">
                         Members Involved
                       </p>
                       {(() => {
@@ -1470,7 +1616,7 @@ export default function VendorBimLeadProjects() {
                           .filter(Boolean) as Employee[];
                         if (!projectMembers.length) {
                           return (
-                            <div className="h-10 flex items-center text-[14px] font-bold text-[#666666]">
+                            <div className="text-[14px] font-medium text-[#8B8B8B]">
                               N/A
                             </div>
                           );
@@ -1481,7 +1627,7 @@ export default function VendorBimLeadProjects() {
                           projectMembers.length - 3,
                         );
                         return (
-                          <div className="flex items-center -space-x-3">
+                          <div className="flex items-center -space-x-4">
                             {visibleMembers.map((emp) => {
                               const profileUrl = emp.profile_picture
                                 ? getGlobalProfileUrl(
@@ -1492,41 +1638,29 @@ export default function VendorBimLeadProjects() {
                               return (
                                 <div
                                   key={emp.id}
-                                  className="relative group shrink-0"
+                                  role="button"
+                                  tabIndex={0}
+                                  className="w-9 h-9 rounded-full border-white bg-slate-100 overflow-hidden cursor-pointer"
+                                  title={emp.full_name}
+                                  onClick={() => openMemberProfile(emp)}
                                 >
-                                  <div
-                                    role="button"
-                                    tabIndex={0}
-                                    className="w-10 h-10 rounded-full bg-white flex items-center justify-center border-2 border-white overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                    onClick={() => openMemberProfile(emp)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" || e.key === " ") {
-                                        e.preventDefault();
-                                        openMemberProfile(emp);
-                                      }
-                                    }}
-                                  >
-                                    {profileUrl ? (
-                                      <img
-                                        src={profileUrl}
-                                        className="w-full h-full object-cover"
-                                        alt={emp.full_name || "Member"}
-                                        onError={(e) => {
-                                          (e.target as HTMLImageElement).src =
-                                            ProfileIcon;
-                                        }}
-                                      />
-                                    ) : (
-                                      <img
-                                        src={ProfileIcon}
-                                        className="w-full h-full object-cover p-1"
-                                        alt={emp.full_name || "Member"}
-                                      />
-                                    )}
-                                  </div>
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                    {emp.full_name || "Unknown"}
-                                  </div>
+                                  {profileUrl ? (
+                                    <img
+                                      src={profileUrl}
+                                      alt={emp.full_name}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src =
+                                          ProfileIcon;
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[12px] font-medium text-slate-600">
+                                      {(emp.full_name || "U")
+                                        .charAt(0)
+                                        .toUpperCase()}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
@@ -1534,17 +1668,10 @@ export default function VendorBimLeadProjects() {
                               <div
                                 role="button"
                                 tabIndex={0}
-                                className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                                className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
                                 onClick={() => {
                                   setAllMembersList(projectMembers);
                                   setShowAllMembersModal(true);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    setAllMembersList(projectMembers);
-                                    setShowAllMembersModal(true);
-                                  }
                                 }}
                               >
                                 +{remainingCount}
@@ -1557,178 +1684,98 @@ export default function VendorBimLeadProjects() {
                   </div>
                 </div>
 
-                {/* Project Details */}
-                <div className="border border-slate-200 rounded-lg p-4 md:p-6">
-                  <h4 className="text-[20px] font-Gantari font-medium text-[#000000] mb-4">
+                <div className="border border-slate-200 rounded-lg px-5 py-2">
+                  <h4 className="text-[18px] md:text-[20px] font-semibold text-[#000000] mb-4">
                     Project Details
                   </h4>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
-                    <div className="space-y-4 md:space-y-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center">
-                        <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                          Actual Start Date
-                        </span>
-                        <span className="hidden sm:inline text-[#616161] mr-4">
-                          :
-                        </span>
-                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                          {formatDate(selectedProject.start_date)}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-2 md:gap-y-4 lg:gap-x-16">
+                    <div className="space-y-2">
+                      <div className="flex">
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Client Name</span>
+                        <span className="text-[#616161] mx-4 shrink-0">:</span>
+                        <span className="text-[14px] font-medium text-[#616161] font-gantari">{getClientNameById(selectedProject.client_id) || "N/A"}</span>
+                      </div>
+                      <div className="flex">
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Start Date</span>
+                        <span className="text-[#616161] mx-4 shrink-0">:</span>
+                        <span className="text-[14px] font-medium text-[#616161] font-gantari">{formatDate(selectedProject.start_date)}</span>
+                      </div>
+                      <div className="flex">
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Total Project Hours</span>
+                        <span className="text-[#616161] mx-4 shrink-0">:</span>
+                        <span className="text-[14px] font-medium text-[#616161]">
+                          {selectedProject.totalhours || (selectedProject as any).total_hours ? `${selectedProject.totalhours || (selectedProject as any).total_hours}hrs` : "N/A"}
                         </span>
                       </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center">
-                        <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                          Total Project Hours
-                        </span>
-                        <span className="hidden sm:inline text-[#616161] mr-4">
-                          :
-                        </span>
-                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                          {selectedProject.totalhours ||
-                          (selectedProject as any).total_hours
-                            ? `${selectedProject.totalhours || (selectedProject as any).total_hours}hrs`
+                      <div className="flex">
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Budget</span>
+                        <span className="text-[#616161] mx-4 shrink-0">:</span>
+                        <span className="text-[14px] font-medium text-[#616161] font-gantari">
+                          {selectedProject.budget || selectedProject.budget_ceiling
+                            ? `${getCurrencySymbol(projectCurrencyCode(selectedProject))}${selectedProject.budget || selectedProject.budget_ceiling}`
                             : "N/A"}
                         </span>
                       </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center">
-                        <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                          Outsourcing Budget
-                        </span>
-                        <span className="hidden sm:inline text-[#616161] mr-4">
-                          :
-                        </span>
-                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                          {selectedProject.budget_ceiling
-                            ? `${getCurrencySymbol(projectCurrencyCode(selectedProject))} ${selectedProject.budget_ceiling}`
-                            : "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center">
-                        <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                          Total Resources Available
-                        </span>
-                        <span className="hidden sm:inline text-[#616161] mr-4">
-                          :
-                        </span>
-                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                          {selectedProject.resources ||
-                            selectedProject.no_resource ||
-                            "N/A"}
-                        </span>
+                      <div className="flex">
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Total Resources Available</span>
+                        <span className="text-[#616161] mx-4 shrink-0">:</span>
+                        <span className="text-[14px] font-medium text-[#616161]">{selectedProject.no_resource || "000"}</span>
                       </div>
                     </div>
 
-                    <div className="space-y-4 md:space-y-5">
-                      <div className="flex flex-col sm:flex-row sm:items-center">
-                        <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                          Location
-                        </span>
-                        <span className="hidden sm:inline text-[#616161] mr-4">
-                          :
-                        </span>
-                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                          {selectedProject.location || "N/A"}
+                    <div className="space-y-2">
+                      <div className="flex">
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Location</span>
+                        <span className="text-[#616161] mx-4 shrink-0">:</span>
+                        <span className="text-[14px] font-medium text-[#616161]">{selectedProject.location || "N/A"}</span>
+                      </div>
+                      <div className="flex">
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">End Date</span>
+                        <span className="text-[#616161] mx-4 shrink-0">:</span>
+                        <span className="text-[14px] font-medium text-[#616161]">{formatDate(selectedProject.end_date || selectedProject.due_date)}</span>
+                      </div>
+                      <div className="flex">
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Hours/Day</span>
+                        <span className="text-[#616161] mx-4 shrink-0">:</span>
+                        <span className="text-[14px] font-medium text-[#616161]">
+                          {selectedProject.per_day || selectedProject.perday ? `${selectedProject.per_day || selectedProject.perday}hrs` : "0:00hrs"}
                         </span>
                       </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center">
-                        <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                          Actual End Date
-                        </span>
-                        <span className="hidden sm:inline text-[#616161] mr-4">
-                          :
-                        </span>
-                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                          {formatDate(
-                            selectedProject.end_date ||
-                              selectedProject.due_date,
-                          )}
-                        </span>
+                      <div className="flex">
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Total Resources Required</span>
+                        <span className="text-[#616161] mx-4 shrink-0">:</span>
+                        <span className="text-[14px] font-medium text-[#616161]">{selectedProject.no_resources_required || "000"}</span>
                       </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center">
-                        <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                          Hours/Day
-                        </span>
-                        <span className="hidden sm:inline text-[#616161] mr-4">
-                          :
-                        </span>
-                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                          {selectedProject.per_day || selectedProject.perday
-                            ? `${selectedProject.per_day || selectedProject.perday}hrs`
-                            : "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center">
-                        <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                          Required Resources
-                        </span>
-                        <span className="hidden sm:inline text-[#616161] mr-4">
-                          :
-                        </span>
-                        <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                          {selectedProject.required_resources ||
-                            selectedProject.no_resources_required ||
-                            "N/A"}
-                        </span>
+                      <div className="flex">
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Required Resources</span>
+                        <span className="text-[#616161] mx-4 shrink-0">:</span>
+                        <span className="text-[14px] font-medium text-[#616161]">{selectedProject.required_resources || "000"}</span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Document Attachment display */}
-                  <div className="mt-8 border-t border-slate-100 pt-6">
-                    <p className="text-[16px] font-bold text-[#353535] mb-4 tracking-wide uppercase">
-                      Project Document
-                    </p>
-                    {selectedProject.document_attachment ? (
-                      <div className="flex flex-wrap gap-3">
-                        {selectedProject.document_attachment
-                          .split(",")
-                          .map((file) => file.trim())
-                          .filter(Boolean)
-                          .map((fileName, idx) => {
-                            const url = resolveVendorDocUrl(fileName);
-                            return (
-                              <div
-                                key={idx}
-                                className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-slate-200 md:max-w-md w-full"
-                              >
-                                <div className="p-2 bg-white rounded-lg shadow-sm">
-                                  <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
-                                </div>
-                                <span className="text-[14px] font-bold text-[#353535] line-clamp-1 flex-1">
-                                  {fileName.split("_").pop() || "Document"}
-                                </span>
-                                <div className="flex gap-2">
-                                  <a
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
-                                    title="View Details"
-                                  >
-                                    <img
-                                      src={viewIcon}
-                                      alt="View"
-                                      className="w-[18px] h-[18px] object-contain opacity-70 hover:opacity-100"
-                                    />
-                                  </a>
-                                  <a
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-1.5 hover:bg-white rounded-md transition-colors border border-transparent shadow-sm hover:border-slate-200 hover:shadow"
-                                    title="Download File"
-                                  >
-                                    <FiUploadCloud className="w-[18px] h-[18px] rotate-180 object-contain text-slate-500 hover:text-[#DD4342]" />
-                                  </a>
-                                </div>
-                              </div>
-                            );
-                          })}
+                    <div className="lg:col-span-2 ">
+                      <div className="flex items-center">
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Project Document</span>
+                        <span className="text-[#616161] mx-4 shrink-0">:</span>
+                        {selectedProject.document_attachment ? (
+                          <div className="flex items-center gap-3">
+                            <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1">
+                              {selectedProject.document_attachment.split("/").pop()?.split("_").pop() || "Document.pdf"}
+                            </span>
+                            <a
+                              href={resolveVendorDocUrl(selectedProject.document_attachment)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2 py-1 bg-[#E8F0FE] text-[#1967D2] rounded flex items-center justify-center hover:bg-[#D2E3FC] transition-colors"
+                            >
+                              <FiUploadCloud className="w-4 h-4 rotate-180" />
+                            </a>
+                          </div>
+                        ) : (
+                          <span className="text-[14px] font-medium text-[#616161]">No Document Available</span>
+                        )}
                       </div>
-                    ) : (
-                      <span className="text-[16px] font-medium text-[#616161]">
-                        No Document Available
-                      </span>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1738,19 +1785,26 @@ export default function VendorBimLeadProjects() {
           <div className="flex flex-col h-full bg-white">
             <div className="flex items-center justify-between px-10 py-8 border-b border-slate-50">
               <div className="flex items-center gap-6">
-                <VendorBimLeadBackTooltipWrap>
+                <div className="relative group inline-flex shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowMilestones(false)}
-                    className="p-3 rounded-lg bg-[#F8F9FA] hover:bg-gray-100 transition-colors cursor-pointer"
-                    title="Back"
+                    className="p-2 rounded-md bg-[#F2F2F2] transition-colors cursor-pointer"
                   >
                     <img src={backIcon} alt="Back" className="w-5 h-5" />
                   </button>
-                </VendorBimLeadBackTooltipWrap>
-                <div>
-                  <h3 className="text-[26px] font-bold">Payment Milestones</h3>
-                  <p className="text-[16px] font-bold text-[#999999]">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Go Back
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-[26px] font-bold text-center pr-10">Payment Milestones</h3>
+                  <p className="text-[16px] font-bold text-[#999999] text-center pr-10">
                     {milestonesProject.project_name}
                   </p>
                 </div>
@@ -1767,12 +1821,12 @@ export default function VendorBimLeadProjects() {
           </div>
         ) : (
           <>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 px-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2 px-5">
               <h2 className="text-[24px] font-semibold text-[#000000]">
                 Projects
               </h2>
             </div>
-            <div className="flex-1 overflow-y-auto pt-4 pb-10 px-6 md:px-10 space-y-6 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto pt-4 pb-10 px-5 space-y-6 custom-scrollbar">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {list.length === 0 ? (
                   <div className="col-span-full bg-[#F8FAFC] rounded-2xl border-2 border-dashed border-slate-200 p-20 text-center">
@@ -1804,11 +1858,11 @@ export default function VendorBimLeadProjects() {
                         <div>
                           <div className="flex items-start justify-between mb-4 mt-2 pr-0">
                             <div className="relative flex items-center justify-center shrink-0">
-                              <svg className="w-12 h-12 md:w-16 md:h-16 transform -rotate-90">
+                              <svg className="w-16 h-16 md:w-20 md:h-20 transform -rotate-90">
                                 <circle
                                   cx="50%"
                                   cy="50%"
-                                  r={22}
+                                  r={radius}
                                   stroke="#f1f5f9"
                                   strokeWidth="4"
                                   fill="transparent"
@@ -1816,15 +1870,12 @@ export default function VendorBimLeadProjects() {
                                 <circle
                                   cx="50%"
                                   cy="50%"
-                                  r={22}
+                                  r={radius}
                                   stroke="#0a9344"
                                   strokeWidth="4"
                                   fill="transparent"
-                                  strokeDasharray={2 * Math.PI * 22}
-                                  strokeDashoffset={
-                                    2 * Math.PI * 22 -
-                                    (progress / 100) * (2 * Math.PI * 22)
-                                  }
+                                  strokeDasharray={circumference}
+                                  strokeDashoffset={offset}
                                   strokeLinecap="round"
                                   style={{
                                     transition:
@@ -1832,7 +1883,7 @@ export default function VendorBimLeadProjects() {
                                   }}
                                 />
                               </svg>
-                              <span className="absolute text-[12px] font-Gantari font-bold text-[#353535]">
+                              <span className="absolute text-[14px] md:text-[16px] font-Gantari font-bold text-[#353535]">
                                 {progress}%
                               </span>
                             </div>
@@ -1850,7 +1901,7 @@ export default function VendorBimLeadProjects() {
                                 <img
                                   src={threedot}
                                   alt="threeDots"
-                                  className="w-5 h-5 text-[#8B8B8B]"
+                                  className="w-4 h-4 text-[#8B8B8B]"
                                 />
                               </button>
                               <div
@@ -1914,14 +1965,14 @@ export default function VendorBimLeadProjects() {
                           </div>
 
                           <div className="mb-2 ml-6 -mt-2 min-h-[45px] flex flex-col justify-center">
-                            <h3 className="text-[18px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                            <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight">
                               {p.project_name ?? "Untitled Project"}
                             </h3>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
-                          <div className="flex items-center min-w-0">
+                          <div className="flex -space-x-4 min-w-0">
                             {(() => {
                               const projectEmployees = memberIds
                                 .map((id) => resolveVendorMember(id))
@@ -1951,7 +2002,7 @@ export default function VendorBimLeadProjects() {
                                         key={emp.id}
                                         role="button"
                                         tabIndex={0}
-                                        className="w-9 h-9 rounded-full border border-white bg-slate-100 overflow-hidden cursor-pointer hover:ring-2 hover:ring-[#F2F2F2]"
+                                        className="w-9 h-9 rounded-full border border-white bg-slate-100 overflow-hidden cursor-pointer"
                                         title={emp.full_name}
                                         onClick={(e) => {
                                           e.stopPropagation();
@@ -2021,12 +2072,17 @@ export default function VendorBimLeadProjects() {
                           </div>
                           {p.priority ? (
                             <div
-                              className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm shrink-0 ${(p.priority || "").toLowerCase() === "high" || (p.priority || "").toLowerCase() === "urgent" ? "bg-[#DD4342]" : "bg-[#94D6F2]"}`}
+                              className={`px-4 py-1 rounded-[5px] text-white text-[13px] font-medium font-Gantari shadow-sm shrink-0 ${
+                                (p.priority || "").toLowerCase() === "high" || 
+                                (p.priority || "").toLowerCase() === "urgent" 
+                                  ? "bg-[#DD4342]" 
+                                  : "bg-[#94D6F2]"
+                              }`}
                             >
                               {p.priority}
                             </div>
                           ) : (
-                            <div className="min-w-[2.75rem] h-9 flex items-center justify-center rounded-lg bg-sky-100 border border-sky-200/90 text-black text-[13px] px-4 py-2 font-Gantari shrink-0">
+                            <div className="px-4 py-1 rounded-[5px] bg-[#94D6F2] text-white text-[13px] font-medium font-Gantari shadow-sm shrink-0">
                               Low
                             </div>
                           )}
@@ -2199,6 +2255,31 @@ export default function VendorBimLeadProjects() {
                 Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Success Notification */}
+      {successMsg && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className="bg-[#1A1A1A] text-white px-8 py-4 rounded-xl shadow-2xl flex items-center gap-4 border border-white/10 backdrop-blur-md">
+            <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+              <svg
+                className="w-5 h-5 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={3}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+            <p className="text-[16px] font-bold font-gantari pr-4">
+              {successMsg}
+            </p>
           </div>
         </div>
       )}
