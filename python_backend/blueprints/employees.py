@@ -363,8 +363,14 @@ def update_employee(emp_id):
         if new_role in restricted:
             return jsonify({"success": False, "message": "You are not allowed to assign the role '%s'." % new_role}), 403
     roles = data.get("role") or data.get("roles")
+    # Frontend may send panel access as:
+    # - roles: list[str]
+    # - roles: "A,B,C" (comma-separated string in form-data)
+    # - Allpannel: "A,B,C" (legacy)
     if isinstance(roles, list):
-        Allpannel = ",".join(roles)
+        Allpannel = ",".join([str(r).strip() for r in roles if str(r).strip()])
+    elif isinstance(roles, str) and roles.strip():
+        Allpannel = roles.strip()
     else:
         Allpannel = data.get("Allpannel")
     
@@ -392,7 +398,21 @@ def update_employee(emp_id):
             profile_path = filename
     
     conn = get_db()
-    cur = conn.cursor()
+    # Use dict cursor when available (better compatibility across connectors)
+    cur = conn.cursor(dictionary=True) if hasattr(conn.cursor(), "dictionary") else conn.cursor()
+
+    # Load current employee (for email + notifications, and for better "changed fields" messages)
+    before = {}
+    try:
+        cur.execute(
+            "SELECT id, full_name, email, phone_number, dob, doj, user_type, user_role, address, department, salary, accountnumber, active, profile_picture "
+            "FROM employee WHERE id = %s AND Company_id = %s LIMIT 1",
+            (emp_id, g.company_id),
+        )
+        row = cur.fetchone()
+        before = dict(row) if row else {}
+    except Exception:
+        before = {}
     allowed = ("full_name", "phone_number", "email", "dob", "doj", "user_type", "user_role", "address", "department", "salary", "accountnumber", "active")
     sets = []
     params = []
@@ -433,8 +453,124 @@ def update_employee(emp_id):
     if not sets:
         return jsonify({"success": False, "message": "No fields to update"}), 400
     params.extend([emp_id, g.company_id])
-    cur.execute("UPDATE employee SET " + ", ".join(sets) + " WHERE id = %s AND Company_id = %s", params)
-    if cur.rowcount:
+    # Use a separate cursor for the UPDATE to avoid connector edge-cases with mixed fetch/update usage
+    update_cur = conn.cursor()
+    update_cur.execute("UPDATE employee SET " + ", ".join(sets) + " WHERE id = %s AND Company_id = %s", params)
+    if update_cur.rowcount:
+        # Send email + in-app notification (best-effort; never fail the update itself)
+        try:
+            employee_email = (before.get("email") or "").strip()
+            employee_name = before.get("full_name") or ""
+
+            def _clean_str(v):
+                try:
+                    return str(v).strip()
+                except Exception:
+                    return ""
+
+            def _mask_sensitive(label):
+                # Never include sensitive values in email
+                if label in ("Password",):
+                    return "Updated"
+                return ""
+
+            # Human-readable list of updated fields + new values (from request payload)
+            label_map = {
+                "full_name": "Full Name",
+                "phone_number": "Phone Number",
+                "email": "Email ID",
+                "dob": "Date of Birth",
+                "doj": "Date of Joining",
+                "user_type": "Type",
+                "user_role": "Role",
+                "address": "Address",
+                "department": "Department",
+                "salary": "Salary",
+                "accountnumber": "Account Number",
+                "active": "Status",
+                "profile_picture": "Profile Picture",
+                "Allpannel": "Panel Access",
+                "password": "Password",
+            }
+
+            def _norm_before(v):
+                if v is None:
+                    return ""
+                if hasattr(v, "isoformat"):
+                    try:
+                        return v.isoformat()
+                    except Exception:
+                        pass
+                return _clean_str(v)
+
+            def _same(a, b):
+                return _clean_str(a) == _clean_str(b)
+
+            updated_items = []
+            # Only include fields that truly changed (before vs new value from request).
+            for k in allowed:
+                if k not in data or data[k] is None:
+                    continue
+                lbl = label_map.get(k, k)
+                new_val = _clean_str(data.get(k))
+                old_val = _norm_before(before.get(k))
+
+                # Normalize status comparisons
+                if k == "active":
+                    new_val = new_val.lower()
+                    old_val = _clean_str(old_val).lower()
+
+                if _same(new_val, old_val):
+                    continue
+
+                updated_items.append((lbl, new_val if new_val else "Updated"))
+            if profile_path is not None or ("profile_picture" in data and data.get("profile_picture") is not None):
+                # Only include if it changed
+                old_pic = _norm_before(before.get("profile_picture"))
+                new_pic = profile_path if profile_path is not None else _clean_str(data.get("profile_picture"))
+                if not _same(new_pic, old_pic):
+                    updated_items.append(("Profile Picture", "Updated"))
+            if Allpannel is not None:
+                panels = [p.strip() for p in str(Allpannel).split(",") if p.strip()]
+                old_panels = [p.strip() for p in _norm_before(before.get("Allpannel")).split(",") if p.strip()]
+                if set([p.lower() for p in panels]) != set([p.lower() for p in old_panels]):
+                    updated_items.append(("Panel Access", ", ".join(panels) if panels else "Updated"))
+            if password is not None and str(password).strip():
+                # Always consider password a change if provided
+                updated_items.append(("Password", _mask_sensitive("Password") or "Updated"))
+
+            # Email
+            if employee_email:
+                mailer.send_employee_profile_updated_email(
+                    employee_email,
+                    employee_name,
+                    updated_fields=updated_items,
+                    updated_by_role=getattr(g, "user_role", "") or "Administrator",
+                )
+
+            # In-app notification (bell icon)
+            try:
+                title = "Profile updated"
+                actor = getattr(g, "user_role", "") or "Administrator"
+                msg = f"Your profile details were updated by {actor}."
+                if updated_items:
+                    only_labels = [x[0] for x in updated_items if isinstance(x, (tuple, list)) and x]
+                    if only_labels:
+                        msg += " Updated: " + ", ".join(only_labels[:8]) + ("..." if len(only_labels) > 8 else "")
+
+                ncur = conn.cursor()
+                ncur.execute(
+                    """
+                    INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                    """,
+                    (emp_id, None, title, msg, "profile_update", "employee", emp_id, g.company_id),
+                )
+            except Exception:
+                pass
+        except Exception as e:
+            current_app.logger.warning(f"Employee update notification/email failed: {e}")
+
         return jsonify({"success": True, "profile_picture": profile_path} if profile_path else {"success": True})
     return jsonify({"success": False, "message": "Employee not found"}), 404
 
@@ -511,30 +647,89 @@ def invite():
 def bulk_status():
     data = request.get_json() or request.form
     ids = data.get("ids") or data.get("id") or []
-    action = data.get("action") or "inactive"  # active | inactive
+    action = (data.get("action") or "inactive").strip().lower()  # active | inactive
     if isinstance(ids, (int, str)):
         ids = [ids]
     if not ids:
         return jsonify({"success": False, "message": "ids required"}), 400
+    if action not in ("active", "inactive"):
+        return jsonify({"success": False, "message": "action must be 'active' or 'inactive'"}), 400
     user_type = getattr(g, "user_type", "employee")
-    conn = get_db()
-    cur = conn.cursor()
     placeholders = ",".join(["%s"] * len(ids))
     
     if user_type == "vendor":
-        cur.execute(
+        conn = get_db()
+        cur = conn.cursor(dictionary=True) if hasattr(conn.cursor(), "dictionary") else conn.cursor()
+
+        # Fetch recipients first (best-effort; don't fail status update if this query fails)
+        recipients = []
+        try:
+            cur.execute(
+                f"SELECT id, full_name, email FROM vendor_employee WHERE id IN ({placeholders}) AND vendor_id = %s",
+                list(ids) + [g.company_id],
+            )
+            rows = cur.fetchall()
+            if rows and isinstance(rows[0], dict):
+                recipients = [dict(r) for r in rows]
+            else:
+                cols = [d[0] for d in (cur.description or [])]
+                recipients = [dict(zip(cols, r)) for r in (rows or [])]
+        except Exception as e:
+            current_app.logger.warning(f"Could not fetch vendor_employee recipients for status email: {e}")
+
+        # Update status
+        update_cur = conn.cursor()
+        update_cur.execute(
             f"UPDATE vendor_employee SET status = %s WHERE id IN ({placeholders}) AND vendor_id = %s",
             [action] + list(ids) + [g.company_id],
         )
-        return jsonify({"success": True, "updated": cur.rowcount})
+        updated = update_cur.rowcount
+
+        # Send emails (best-effort)
+        emailed = 0
+        for r in recipients:
+            email = (r.get("email") or "").strip()
+            if not email:
+                continue
+            if mailer.send_employee_status_email(email, r.get("full_name") or "", action):
+                emailed += 1
+        return jsonify({"success": True, "updated": updated, "email_sent": emailed})
+
+    # Internal employee update
     conn = get_db()
-    cur = conn.cursor()
-    placeholders = ",".join(["%s"] * len(ids))
-    cur.execute(
+    cur = conn.cursor(dictionary=True) if hasattr(conn.cursor(), "dictionary") else conn.cursor()
+
+    recipients = []
+    try:
+        cur.execute(
+            f"SELECT id, full_name, email FROM employee WHERE id IN ({placeholders}) AND Company_id = %s",
+            list(ids) + [g.company_id],
+        )
+        rows = cur.fetchall()
+        if rows and isinstance(rows[0], dict):
+            recipients = [dict(r) for r in rows]
+        else:
+            cols = [d[0] for d in (cur.description or [])]
+            recipients = [dict(zip(cols, r)) for r in (rows or [])]
+    except Exception as e:
+        current_app.logger.warning(f"Could not fetch employee recipients for status email: {e}")
+
+    update_cur = conn.cursor()
+    update_cur.execute(
         f"UPDATE employee SET active = %s WHERE id IN ({placeholders}) AND Company_id = %s",
         [action] + list(ids) + [g.company_id],
     )
-    return jsonify({"success": True, "updated": cur.rowcount})
+    updated = update_cur.rowcount
+
+    emailed = 0
+    for r in recipients:
+        email = (r.get("email") or "").strip()
+        if not email:
+            continue
+        if mailer.send_employee_status_email(email, r.get("full_name") or "", action):
+            emailed += 1
+
+    return jsonify({"success": True, "updated": updated, "email_sent": emailed})
 
 
 @bp.route("/members", methods=["GET"])
