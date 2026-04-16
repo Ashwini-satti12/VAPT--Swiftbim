@@ -221,7 +221,7 @@ export default function ProjectEV() {
   }
 
   return (
-    <div className="h-full min-h-0 flex flex-col overflow-hidden">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden px-5">
       <div className="bg-white pb-3 flex-shrink-0">
         <div className="flex items-center justify-between gap-3 mb-3">
           <h1 className="text-[24px] font-semibold text-[#000000] font-Gantari">

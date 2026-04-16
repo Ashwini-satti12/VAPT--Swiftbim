@@ -11,7 +11,6 @@ import api from "../../../lib/api";
 import toast from "react-hot-toast";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
-import { VendorBimLeadBackTooltipWrap } from "../VendorBimLead/VendorBimLeadGoBackButton";
 import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 import { EyeIcon } from "@heroicons/react/24/outline";
 
@@ -287,14 +286,13 @@ function isEndTimeBeforeStartOnSameDay(
   return endTime < startTime;
 }
 
-export default function AddEditTaskEV() {
+export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }: { taskId?: number, onBack?: () => void }) {
   const { id: idParam } = useParams();
   const [searchParams] = useSearchParams();
   const { pathname, state: locationState } = useLocation();
   const navigate = useNavigate();
 
-  const editingTaskId =
-    idParam && /^\d+$/.test(idParam) ? Number(idParam) : null;
+  const editingTaskId = propTaskId ?? (idParam && /^\d+$/.test(idParam) ? Number(idParam) : null);
   const isEdit = editingTaskId != null;
 
   const listQs = useMemo(() => {
@@ -308,6 +306,10 @@ export default function AddEditTaskEV() {
   const isTeamTasksRoute = listBasePath === "/ve/teamtasks";
 
   const goBackToList = () => {
+    if (propOnBack) {
+      propOnBack();
+      return;
+    }
     navigate(`${listBasePath}${listQs}`);
   };
 
@@ -508,11 +510,11 @@ export default function AddEditTaskEV() {
       return;
     }
     if (!addTaskForm.actualStartDate.trim()) {
-      toast.error("Please fill in the Actual Start Date.");
+      toast.error("Please fill in the Start Date.");
       return;
     }
     if (!addTaskForm.actualEndDate.trim()) {
-      toast.error("Please fill in the Actual End Date.");
+      toast.error("Please fill in the End Date.");
       return;
     }
     if (!addTaskForm.startTime.trim()) {
@@ -709,26 +711,35 @@ export default function AddEditTaskEV() {
 
   return (
     <div className="min-h-0 flex-1 flex flex-col bg-white overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4  shrink-0">
-        <VendorBimLeadBackTooltipWrap>
+      <div className="flex items-center justify-between px-5 py-2  shrink-0">
+        <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
+            <div className="group relative inline-flex shrink-0">
           <button
             type="button"
             onClick={goBackToList}
             className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-            aria-label="Back"
-            title="Back"
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
           </button>
-        </VendorBimLeadBackTooltipWrap>
-        <h1 className="text-[24px] font-medium text-[#353535]">
+           {/* Tooltip */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
+                  <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Go Back
+                  </span>
+                </div>
+              </div>
+              </div>
+              </div>
+        <h1 className="text-[24px] font-medium text-[#353535] -mt-12">
           {isEdit ? "Edit Task Details" : "Add Task Details"}
         </h1>
         <div className="w-9" />
       </div>
 
       <form
-        className="flex-1 overflow-y-auto p-6 custom-scrollbar"
+        className="flex-1 overflow-y-auto custom-scrollbar"
         noValidate
         onSubmit={handleFormSubmit}
       >
@@ -850,7 +861,7 @@ export default function AddEditTaskEV() {
             </div>
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
-                Actual Start Date
+                Start Date
                 <span className="text-red-500">*</span>
               </label>
               <input
@@ -872,7 +883,7 @@ export default function AddEditTaskEV() {
             </div>
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
-                Actual End Date
+                 End Date
                 <span className="text-red-500">*</span>
               </label>
               <input
@@ -1098,7 +1109,7 @@ export default function AddEditTaskEV() {
           <button
             type="button"
             onClick={goBackToList}
-            className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[14px] font-medium text-[#353535] font-gantari"
+            className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[14px] font-medium text-[#353535] font-gantari cursor-pointer"
           >
             Discard
           </button>

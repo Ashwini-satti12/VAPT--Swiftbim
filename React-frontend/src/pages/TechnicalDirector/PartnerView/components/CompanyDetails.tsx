@@ -2,7 +2,10 @@ import type { Vendor } from "../types";
 import { FaDownload } from "react-icons/fa6";
 import { Country, State, City } from "country-state-city";
 import { useMemo } from "react";
-import { api } from "../../../../lib/api";
+import {
+  sanitizeVendorVendorsFilename,
+  vendorVendorsFileUrl,
+} from "../../../../lib/vendorUploads";
 
 interface Props {
   vendor: Vendor;
@@ -209,7 +212,12 @@ const CompanyDetails = ({ vendor, editable = false, onChange }: Props) => {
           {vendor.trade_license_file ? (
             <div className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg">
               <a
-                href={api.defaults.baseURL + `static/uploads/vendors/${vendor.trade_license_file}`}
+                href={
+                  vendorVendorsFileUrl(
+                    sanitizeVendorVendorsFilename(vendor.trade_license_file) ||
+                      vendor.trade_license_file,
+                  )
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 title={vendor.trade_license_file}
@@ -231,7 +239,12 @@ const CompanyDetails = ({ vendor, editable = false, onChange }: Props) => {
           {vendor.gst_certificate_file ? (
             <div className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg">
               <a
-                href={`http://localhost:5000/static/uploads/vendors/${vendor.gst_certificate_file}`}
+                href={
+                  vendorVendorsFileUrl(
+                    sanitizeVendorVendorsFilename(vendor.gst_certificate_file) ||
+                      vendor.gst_certificate_file,
+                  )
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 title={vendor.gst_certificate_file}

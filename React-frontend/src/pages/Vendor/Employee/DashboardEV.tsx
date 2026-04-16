@@ -499,9 +499,9 @@ export default function DashboardEV() {
   }
 
   return (
-    <div className="flex flex-col lg:h-full lg:overflow-hidden">
+    <div className="flex flex-col lg:h-full lg:overflow-hidden px-5">
       {/* Header and KPI Cards */}
-      <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
+      <div className="bg-white pb-6 border-b border-transparent shrink-0">
         <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">
           Dashboard
         </h1>
@@ -511,7 +511,7 @@ export default function DashboardEV() {
             <Link
               key={i}
               to={card.link || "#"}
-              className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 no-underline cursor-pointer transition-colors"
+              className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-4 flex items-center justify-between min-h-0 no-underline cursor-pointer transition-colors"
             >
               <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#FFFFFF] font-medium font-gantari transition-colors">
                 {card.label}
