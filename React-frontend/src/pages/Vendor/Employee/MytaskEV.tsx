@@ -12,7 +12,11 @@ import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
+import { FiX } from "react-icons/fi";
 import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
+import AddEditTaskEV from "./AddEditTaskEV";
+import MyTaskViewEV from "./MyTaskViewEV";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 
@@ -308,13 +312,21 @@ function TaskCard({
         <div
             draggable={!isCompleted}
             onDragStart={handleDragStart}
-            className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+            className={`rounded-md border border-slate-200 bg-white p-4 shadow-sm relative transition-all hover:shadow-md font-Gantari ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
-            <div className="flex items-center justify-between gap-2 mb-2">
-                <h4 className="font-semibold text-[#353535] text-[20px] truncate">
-                    {task.task_name || "Task Name"}
-                </h4>
-                <div className="relative" ref={menuRef}>
+            <div className="flex items-center justify-between gap-2 mb-4">
+                <div className="flex-1 min-w-0 pr-6">
+                    <h4 className="text-[20px] font-semibold text-[#353535] truncate leading-tight">
+                        {task.task_name || "Task Name"}
+                    </h4>
+                    <p
+                        className="text-[13px] font-medium text-[#8B8B8B] truncate mt-0.5"
+                        title={(task.project_name || "").trim() || undefined}
+                    >
+                        {(task.project_name || "").trim() || "—"}
+                    </p>
+                </div>
+                <div className="absolute top-4 right-4" ref={menuRef}>
                     <button
                         type="button"
                         draggable={false}
@@ -322,21 +334,22 @@ function TaskCard({
                             e.stopPropagation();
                             setMenuOpen((prev) => !prev);
                         }}
-                        className="p-0.5 rounded cursor-pointer"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        className="rounded cursor-pointer leading-none transition-colors"
                         aria-label="More options"
                         aria-expanded={menuOpen}
                     >
-                        <img src={Dot} alt="Dot" className="w-5 h-5 text-slate-600" />
+                        <img src={Dot} alt="Dot" className="w-4 h-4 object-contain" />
                     </button>
                     {menuOpen && (
                         <div
-                            className={`absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right
-                                ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
+                            className="absolute top-full right-0 mt-2 z-50 min-w-[170px] bg-white/40 backdrop-blur-xl rounded-[15px] border border-[#59595980] shadow-2xl py-2.5 animate-in fade-in zoom-in duration-200 origin-top-right"
                             role="menu"
                         >
                             <button
                                 type="button"
                                 role="menuitem"
+                                onMouseDown={(e) => e.stopPropagation()}
                                 className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                 onClick={() => {
                                     setMenuOpen(false);
@@ -357,6 +370,7 @@ function TaskCard({
                                     <button
                                         type="button"
                                         role="menuitem"
+                                        onMouseDown={(e) => e.stopPropagation()}
                                         className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                         onClick={() => {
                                             setMenuOpen(false);
@@ -375,6 +389,7 @@ function TaskCard({
                                     <button
                                         type="button"
                                         role="menuitem"
+                                        onMouseDown={(e) => e.stopPropagation()}
                                         className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                         onClick={() => {
                                             setMenuOpen(false);
@@ -397,21 +412,21 @@ function TaskCard({
                 </div>
             </div>
             <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="flex flex-col ">
-                    <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
+                <div className="flex flex-col">
+                    <span className="text-[14px] font-medium text-[#000000] mb-0.5">Start Date</span>
                     <span className="text-[14px] font-medium text-[#8B8B8B]">
                         {(task.start_date || task.Actual_start_time)
                             ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}`
                             : "—"}
-                </span>
-            </div>
+                    </span>
+                </div>
 
-                <div className="flex flex-col items-end gap-1">
-                    <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+                <div className="flex flex-col items-end">
+                    <span className="text-[14px] font-medium text-[#000000] mb-0.5">End Date</span>
                     <span className="text-[14px] font-medium text-[#8B8B8B]">
                         {task.due_date
                             ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
-                            : ""}
+                            : "—"}
                     </span>
                 </div>
             </div>
@@ -421,15 +436,15 @@ function TaskCard({
             </div>
             <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
                 <div
-                    className="h-full rounded-full bg-[#8B8B8B]"
+                    className="h-full rounded-full bg-[#8B8B8B] transition-all duration-500"
                     style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                 />
             </div>
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 mt-auto">
                 <div className="flex items-center gap-1">
-                    <div className="flex -space-x-2">
+                    <div className="flex -space-x-1.5">
                         <div
-                            className="w-7 h-7 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                            className="w-7 h-7 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden shadow-sm"
                             title={`Assigned to: ${task.assigned_full_name || "Unassigned"}`}
                         >
                             {task.assigned_profile_picture ? (
@@ -458,7 +473,7 @@ function TaskCard({
                         </div>
 
                         <div
-                            className="w-7 h-7 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                            className="w-7 h-7 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden shadow-sm"
                             title={`Assigned by: ${task.uploader_full_name || "System"}`}
                         >
                             {task.uploader_profile_picture ? (
@@ -491,7 +506,7 @@ function TaskCard({
                     type="button"
                     draggable={false}
                     onClick={() => onViewTask?.(task)}
-                    className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer"
+                    className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer transition-colors"
                 >
                     Details
                     <img
@@ -528,12 +543,15 @@ export default function MytaskEV() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
 
+    const [currentPage, setCurrentPage] = useState<"list" | "add" | "edit" | "view">("list");
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+
     const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
     const [selectedProject, setSelectedProject] = useState<string | null>(null);
     const [selectedShow, setSelectedShow] = useState<string | null>("Show Entries");
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-    const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
 
     const allTasks = list.filter((t) => t && t.id != null).filter((t) => {
         // Employee filter
@@ -605,9 +623,8 @@ export default function MytaskEV() {
     }, [searchParams]);
 
     const openEditTask = (task: Task) => {
-        navigate(`/ve/mytasks/edit/${task.id}${listQueryString}`, {
-            state: { task },
-        });
+        setSelectedTask(task);
+        setCurrentPage("edit");
     };
 
     const openDeleteTask = (task: Task) => {
@@ -615,9 +632,13 @@ export default function MytaskEV() {
     };
 
     const openViewTask = (task: Task) => {
-        navigate(`/ve/mytasks/view/${task.id}${listQueryString}`, {
-            state: { task },
-        });
+        setSelectedTask(task);
+        setCurrentPage("view");
+    };
+
+    const openAddTask = () => {
+        setSelectedTask(null);
+        setCurrentPage("add");
     };
 
     const confirmDeleteTask = () => {
@@ -753,272 +774,276 @@ export default function MytaskEV() {
         );
     }
 
+    if (currentPage === "add" || currentPage === "edit") {
+        return (
+            <AddEditTaskEV
+                taskId={selectedTask?.id}
+                onBack={() => setCurrentPage("list")}
+            />
+        );
+    }
+
+    if (currentPage === "view") {
+        return (
+            <MyTaskViewEV
+                taskId={selectedTask?.id}
+                onBack={() => setCurrentPage("list")}
+            />
+        );
+    }
+
     return (
-        <div className="h-full min-h-0 flex flex-col overflow-hidden">
+        <div className="h-full min-h-0 flex flex-col overflow-hidden px-5 font-Gantari">
             {/* Top row: title + dropdowns + Add task */}
-            <div className="bg-white pb-3 flex-shrink-0">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-                <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
-                    {isTeam ? "Team Task" : "My Task"}
-                </h2>
-                <div
-                    ref={dropdownsContainerRef}
-                    className="flex flex-wrap items-center gap-2 w-fit"
-                >
-                    <TaskDropdown
-                        label="Select Employee"
-                        options={employeeOptions}
-                        selected={selectedEmployee}
-                        onSelect={setSelectedEmployee}
-                        isOpen={openDropdown === "employee"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "employee" ? null : "employee"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={employeeTriggerRef}
-                        dropdownRef={employeeMenuRef}
-                        searchable
-                        searchPlaceholder="Search employee..."
-                        maxVisibleItems={5}
-                    />
-                    <TaskDropdown
-                        label="Select Projects"
-                        options={projectOptions}
-                        selected={selectedProject}
-                        onSelect={setSelectedProject}
-                        isOpen={openDropdown === "projects"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "projects" ? null : "projects"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={projectsTriggerRef}
-                        dropdownRef={projectsMenuRef}
-                        searchable
-                        searchPlaceholder="Search project..."
-                        maxVisibleItems={5}
-                    />
-                    <TaskDropdown
-                        label="Show Entries"
-                        options={SHOW_OPTIONS}
-                        selected={selectedShow}
-                        onSelect={setSelectedShow}
-                        isOpen={openDropdown === "show"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "show" ? null : "show"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={showTriggerRef}
-                        dropdownRef={showMenuRef}
-                        narrow
-                        maxVisibleItems={4}
-                    />
-                    <TaskDropdown
-                        label="Period"
-                        options={PERIOD_OPTIONS}
-                        selected={selectedPeriod}
-                        onSelect={setSelectedPeriod}
-                        isOpen={openDropdown === "period"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "period" ? null : "period"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={periodTriggerRef}
-                        dropdownRef={periodMenuRef}
-                        narrow
-                        maxVisibleItems={4}
-                    />
-                    <button
-                        type="button"
-                        onClick={() =>
-                            navigate(`/ve/mytasks/add${listQueryString}`)
-                        }
-                        className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer"
+            <div className="bg-white px-0 md:px-1 py-4 flex-shrink-0">
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                    <h2 className="text-[20px] md:text-[24px] font-semibold text-slate-800 font-Gantari">
+                        {isTeam ? "Team Task" : "My Task"}
+                    </h2>
+                    <div
+                        ref={dropdownsContainerRef}
+                        className="flex flex-wrap items-center gap-2 w-fit font-Gantari"
                     >
-                        <svg
-                            className="h-5 w-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                        <TaskDropdown
+                            label="Select Employee"
+                            options={employeeOptions}
+                            selected={selectedEmployee}
+                            onSelect={setSelectedEmployee}
+                            isOpen={openDropdown === "employee"}
+                            onToggle={() =>
+                                setOpenDropdown((d) => (d === "employee" ? null : "employee"))
+                            }
+                            onClose={() => setOpenDropdown(null)}
+                            triggerRef={employeeTriggerRef}
+                            dropdownRef={employeeMenuRef}
+                            searchable
+                            searchPlaceholder="Search employee..."
+                            maxVisibleItems={5}
+                        />
+                        <TaskDropdown
+                            label="Select Projects"
+                            options={projectOptions}
+                            selected={selectedProject}
+                            onSelect={setSelectedProject}
+                            isOpen={openDropdown === "projects"}
+                            onToggle={() =>
+                                setOpenDropdown((d) => (d === "projects" ? null : "projects"))
+                            }
+                            onClose={() => setOpenDropdown(null)}
+                            triggerRef={projectsTriggerRef}
+                            dropdownRef={projectsMenuRef}
+                            searchable
+                            searchPlaceholder="Search project..."
+                            maxVisibleItems={5}
+                        />
+                        <TaskDropdown
+                            label="Show"
+                            options={SHOW_OPTIONS}
+                            selected={selectedShow}
+                            onSelect={setSelectedShow}
+                            isOpen={openDropdown === "show"}
+                            onToggle={() =>
+                                setOpenDropdown((d) => (d === "show" ? null : "show"))
+                            }
+                            onClose={() => setOpenDropdown(null)}
+                            triggerRef={showTriggerRef}
+                            dropdownRef={showMenuRef}
+                            narrow
+                        />
+                        <TaskDropdown
+                            label="Period"
+                            options={PERIOD_OPTIONS}
+                            selected={selectedPeriod}
+                            onSelect={setSelectedPeriod}
+                            isOpen={openDropdown === "period"}
+                            onToggle={() =>
+                                setOpenDropdown((d) => (d === "period" ? null : "period"))
+                            }
+                            onClose={() => setOpenDropdown(null)}
+                            triggerRef={periodTriggerRef}
+                            dropdownRef={periodMenuRef}
+                            narrow
+                        />
+                        <button
+                            type="button"
+                            onClick={openAddTask}
+                            className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] border border-[#DD4342] px-4 py-2 text-sm font-semibold text-white cursor-pointer font-Gantari"
                         >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 4v16m8-8H4"
+                            <img
+                                src={AddBtn}
+                                alt="Add"
+                                className="h-5 w-5"
                             />
-                        </svg>
-                        Add task
-                    </button>
+                            Create Task
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            {/* Status summary cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
-                <Link
-                    to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                    className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
-                >
-                    <span className="text-xl font-bold text-[#0D1829]">To Do</span>
-                    <span className="text-xl font-bold text-[#0D1829]">({counts.todo})</span>
-                    <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-                        <img src={Group1} alt="Group1" className="w-8 h-8" />
-                    </div>
-                </Link>
-
-                <Link
-                    to={
-                        statusFilter === "in_progress"
-                            ? pathname
-                            : `${pathname}?status=in_progress`
-                    }
-                    className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
-                >
-                    <span className="text-xl font-bold text-[#0D1829]">In Progress</span>
-                    <span className="text-xl font-bold text-[#0D1829]">({counts.in_progress})</span>
-                    <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-                        <img src={Group2} alt="Group2" className="w-8 h-8" />
-                    </div>
-                </Link>
-
-                <Link
-                    to={
-                        statusFilter === "completed"
-                            ? pathname
-                            : `${pathname}?status=completed`
-                    }
-                    className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
-                >
-                    <span className="text-xl font-bold text-[#0D1829]">Completed</span>
-                    <span className="text-xl font-bold text-[#0D1829]">({counts.completed})</span>
-                    <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-                        <img src={Group3} alt="Group3" className="w-8 h-8" />
-                    </div>
-                </Link>
-            </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-5 pt-2">
+                    <Link
+                        to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
+                        className={`flex items-center p-4 gap-3 md:gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all relative cursor-pointer ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
+                    >
+                        <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
+                            To Do
+                        </span>
+                        <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
+                            ({counts.todo})
+                        </span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group1} alt="Group1" className="w-6 h-6 md:w-8 md:h-8" />
+                        </div>
+                    </Link>
+                    <Link
+                        to={statusFilter === "in_progress" ? pathname : `${pathname}?status=in_progress`}
+                        className={`flex items-center p-4 gap-3 md:gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all relative cursor-pointer ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
+                    >
+                        <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
+                            Inprogress
+                        </span>
+                        <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
+                            ({counts.in_progress})
+                        </span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group2} alt="Group2" className="w-6 h-6 md:w-8 md:h-8" />
+                        </div>
+                    </Link>
+                    <Link
+                        to={statusFilter === "completed" ? pathname : `${pathname}?status=completed`}
+                        className={`flex items-center p-4 gap-3 md:gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all relative cursor-pointer ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
+                    >
+                        <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
+                            Completed
+                        </span>
+                        <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
+                            ({counts.completed})
+                        </span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group3} alt="Group3" className="w-6 h-6 md:w-8 md:h-8" />
+                        </div>
+                    </Link>
+                </div>
             </div>
 
             {/* Task cards under each status - drag and drop columns */}
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pb-4">
-                <div
-                    className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
-                    }}
-                >
-                    {displayedTasksByStatus.todo.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            status="todo"
-                            onViewTask={openViewTask}
-                            onEditTask={openEditTask}
-                            onDeleteTask={openDeleteTask}
-                        />
-                    ))}
-                </div>
-                <div
-                    className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
-                    }}
-                >
-                    {displayedTasksByStatus.in_progress.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            status="in_progress"
-                            onViewTask={openViewTask}
-                            onEditTask={openEditTask}
-                            onDeleteTask={openDeleteTask}
-                        />
-                    ))}
-                </div>
-                <div
-                    className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
-                    }}
-                >
-                    {displayedTasksByStatus.completed.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            status="completed"
-                            onViewTask={openViewTask}
-                            onEditTask={openEditTask}
-                            onDeleteTask={openDeleteTask}
-                        />
-                    ))}
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-10 mt-2">
+                    <div
+                        className="space-y-4 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors"
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const taskId = Number(e.dataTransfer.getData("taskId"));
+                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
+                        }}
+                    >
+                        {displayedTasksByStatus.todo.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                status="todo"
+                                onViewTask={openViewTask}
+                                onEditTask={openEditTask}
+                                onDeleteTask={openDeleteTask}
+                            />
+                        ))}
+                    </div>
+                    <div
+                        className="space-y-4 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors"
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const taskId = Number(e.dataTransfer.getData("taskId"));
+                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
+                        }}
+                    >
+                        {displayedTasksByStatus.in_progress.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                status="in_progress"
+                                onViewTask={openViewTask}
+                                onEditTask={openEditTask}
+                                onDeleteTask={openDeleteTask}
+                            />
+                        ))}
+                    </div>
+                    <div
+                        className="space-y-4 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors"
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const taskId = Number(e.dataTransfer.getData("taskId"));
+                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
+                        }}
+                    >
+                        {displayedTasksByStatus.completed.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                status="completed"
+                                onViewTask={openViewTask}
+                                onEditTask={openEditTask}
+                                onDeleteTask={openDeleteTask}
+                            />
+                        ))}
+                    </div>
                 </div>
             </div>
 
             {/* Delete Task confirmation modal */}
             {deleteTaskId !== null && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-                        <div className="flex items-center justify-between px-6 py-4">
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center animate-in zoom-in-95 duration-200">
+                        
+                        {/* Close Icon in Top Left with Tooltip */}
+                        <div className="absolute left-4 top-4 group z-50">
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="p-2 rounded-md text-black bg-[#F2F2F2] transition-colors"
-                                aria-label="Close"
+                                className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
                             >
-                                <svg
-                                    className="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
+                                <FiX className="h-5 w-5 text-black" />
                             </button>
-                            <h3 className="flex-1 text-center text-[20px] font-medium text-[#353535]">
-                                Delete Task
-                            </h3>
-                            <div className="w-9" />
+                            {/* Premium Tooltip */}
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
+                                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                        Close
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                        <div className="px-6 py-5">
-                            <p className="text-black text-center">
-                                Are you sure, you want to Delete this Task?
-                            </p>
-                        </div>
-                        <div className="flex justify-center gap-3 px-6 py-4 bg-slate-50/50">
+
+                        <h3 className="text-[24px] font-Gantari font-semibold text-[#000000] text-center mb-6 mt-6">
+                            Delete Task
+                        </h3>
+                        <p className="text-[16px] font-Gantari font-medium text-[#353535] mb-10 text-center max-w-[80%]">
+                            Are you sure, you want to Delete this?
+                        </p>
+
+                        <div className="flex items-center gap-6 mb-8">
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[14px] font-medium text-[#353535] "
+                                className="w-full sm:w-auto px-10 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-Gantari font-semibold text-[14px] cursor-pointer"
                             >
                                 Discard
                             </button>
                             <button
                                 type="button"
                                 onClick={confirmDeleteTask}
-                                className="rounded-md bg-[#FFD9D9] px-5 py-2 text-[14px] font-medium text-[#E00100]"
+                                className="w-full sm:w-auto px-10 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-Gantari font-semibold text-[14px] cursor-pointer"
                             >
                                 Yes, Delete
                             </button>
@@ -1026,6 +1051,6 @@ export default function MytaskEV() {
                     </div>
                 </div>
             )}
-                        </div>
+        </div>
     );
 }
