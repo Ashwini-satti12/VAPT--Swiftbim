@@ -336,19 +336,34 @@ export default function AddTaskBM() {
       : "/api/tasks";
 
     if (editingTaskId != null) {
+      const patchBody = isOutsource
+        ? {
+            task_name: payload.taskName,
+            assigned_to: payload.assignedTo,
+            due_date: payload.dueDate,
+            category: payload.category,
+            description: payload.description,
+            checklist: payload.checklist,
+            modules: payload.modules,
+            start_date: payload.startdate,
+            start_time: payload.startTime,
+            end_time: payload.dueTime,
+            project_id: selectedProj?.id,
+          }
+        : {
+            task_name: payload.taskName,
+            assigned_to: payload.assignedTo,
+            due_date: payload.dueDate,
+            category: payload.category,
+            description: payload.description,
+            checklist: payload.checklist,
+            modules_name: payload.modules,
+            Actual_start_time: payload.startdate,
+            perferstart_time: payload.startTime,
+            perferend_time: payload.dueTime,
+          };
       api
-        .patch(`${baseEndpoint}/${editingTaskId}`, {
-          task_name: payload.taskName,
-          assigned_to: payload.assignedTo,
-          due_date: payload.dueDate,
-          category: payload.category,
-          description: payload.description,
-          checklist: payload.checklist,
-          modules_name: payload.modules,
-          Actual_start_time: payload.startdate,
-          perferstart_time: payload.startTime,
-          perferend_time: payload.dueTime,
-        })
+        .patch(`${baseEndpoint}/${editingTaskId}`, patchBody)
         .then(() => {
           handleFiles(editingTaskId);
           toast.success("Updated successfully");
