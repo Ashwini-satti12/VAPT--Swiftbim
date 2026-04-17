@@ -43,7 +43,7 @@ export default function TrackerTD() {
         { value: '251-300', label: '251-300', start: 250, end: 300 },
         { value: 'all', label: 'All', start: 0, end: null },
     ];
-    const [selectedShowEntries, setSelectedShowEntries] = useState('');
+    const [selectedShowEntries, setSelectedShowEntries] = useState('1-50');
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
     const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
@@ -352,13 +352,31 @@ export default function TrackerTD() {
 
     const filteredList = list.filter((item) => {
         let matchesStatus = true;
-
         if (selectedStatus) {
             const name = (item.full_name || '').trim();
             const entryKey = item.employee_db_id != null ? String(item.employee_db_id) : name;
             const status =
                 (entryKey && busyMap[entryKey]) || (name && busyMap[name]) ? 'Busy' : 'Available';
             matchesStatus = status === selectedStatus;
+        }
+
+        let matchesTime = true;
+        if (selectedTime) {
+            const tIn = pickTime(item.time_in);
+            const tOut = pickTime(item.time_out);
+            // Normalize selectedTime "HH:MM" to "HH:MM:SS" for string comparison with tIn/tOut "HH:MM:SS"
+            const selTimeSs = selectedTime.includes(':') && selectedTime.split(':').length === 2 ? selectedTime + ':00' : selectedTime;
+
+            if (!tIn) {
+                matchesTime = false;
+            } else {
+                const isAfterIn = selTimeSs >= tIn;
+                if (tOut && tOut !== '-') {
+                    matchesTime = isAfterIn && selTimeSs <= tOut;
+                } else {
+                    matchesTime = isAfterIn;
+                }
+            }
         }
 
         const matchesSearch = !searchQuery ||
@@ -368,7 +386,7 @@ export default function TrackerTD() {
             (item.time_in || "").toLowerCase().includes(searchQuery) ||
             (item.time_out || "").toLowerCase().includes(searchQuery);
 
-        return matchesStatus && matchesSearch;
+        return matchesStatus && matchesTime && matchesSearch;
     });
 
     const effectiveShowEntryValue = selectedShowEntries || showEntriesOptions[0].value;

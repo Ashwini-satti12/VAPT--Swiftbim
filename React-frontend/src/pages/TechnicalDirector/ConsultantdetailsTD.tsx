@@ -33,7 +33,13 @@ export default function ConsultantdetailsTD() {
     if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" /></div>;
     if (!emp) return <div className="text-center py-12 text-slate-500">Consultant not found. <Link to="/td/consultants" className="text-[#3d3399] hover:underline">Back to Consultants</Link></div>;
 
-    const formatDate = (d?: string) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-');
+    const formatDate = (d?: string) => {
+        if (!d) return '-';
+        const date = new Date(d);
+        if (isNaN(date.getTime())) return d;
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    };
+
 
     return (
         <div className="space-y-4">
@@ -45,9 +51,9 @@ export default function ConsultantdetailsTD() {
                     <div className="flex items-center gap-6">
                         <div className="w-[85px] h-[85px] rounded-full bg-[#3d3399]/20 flex items-center justify-center text-3xl font-semibold text-[#3d3399] overflow-hidden shadow-sm">
                             {emp.profile_picture ? (
-                                <img 
-                                    src={getGlobalProfileUrl(emp.id, emp.profile_picture)} 
-                                    alt={emp.full_name} 
+                                <img
+                                    src={getGlobalProfileUrl(emp.id, emp.profile_picture)}
+                                    alt={emp.full_name}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
                                         const target = e.target as HTMLImageElement;
@@ -79,6 +85,7 @@ export default function ConsultantdetailsTD() {
                         { label: 'Phone', value: emp.phone_number ?? '-' },
                         { label: 'Department', value: emp.department ?? '-' },
                         { label: 'Date of Joining', value: formatDate(emp.doj) },
+                        
                         { label: 'Date of Birth', value: formatDate(emp.dob) },
                     ].map((item, idx) => (
                         <div key={idx} className="grid grid-cols-[140px_15px_1fr] items-center">

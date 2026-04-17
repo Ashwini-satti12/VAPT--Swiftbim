@@ -80,11 +80,6 @@ export default function TimesheetPM() {
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
   const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
-  const PER_PAGE = 10;
-  const PAGINATION_VISIBLE = 4;
-  const [currentPage, setCurrentPage] = useState(1);
-  const [_paginationWindowStart, setPaginationWindowStart] = useState(1);
-
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
 
@@ -240,15 +235,14 @@ export default function TimesheetPM() {
       selectteam?: string;
     } = {};
 
-    // If user picks only one side of the range, treat it as a single-day filter.
-    // Also fix accidental reversed ranges (start > end).
-    let effectiveStart = startDate || endDate;
-    let effectiveEnd = endDate || startDate;
-    if (effectiveStart && effectiveEnd && effectiveStart > effectiveEnd) {
+    // If user picks only one side of the range, use broad boundaries.
+    let effectiveStart = startDate || "1970-01-01";
+    let effectiveEnd = endDate || "2999-12-31";
+    if (startDate && endDate && startDate > endDate) {
       [effectiveStart, effectiveEnd] = [effectiveEnd, effectiveStart];
     }
-    if (effectiveStart) payload.startDate = effectiveStart;
-    if (effectiveEnd) payload.endDate = effectiveEnd;
+    payload.startDate = effectiveStart;
+    payload.endDate = effectiveEnd;
 
     if (employee !== "All") {
       const selectedEmp = employees.find((e) => e.full_name === employee);
@@ -316,22 +310,42 @@ export default function TimesheetPM() {
     }
   }, [showEntriesOpen]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-    setPaginationWindowStart(1);
-  }, [selectedShowEntries]);
+
 
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const filteredList = useMemo(() => {
-    if (!searchQuery) return list;
-    return list.filter(row =>
-      (row.project_name || "").toLowerCase().includes(searchQuery) ||
-      (row.task_name || "").toLowerCase().includes(searchQuery) ||
-      (row.assigned_name || "").toLowerCase().includes(searchQuery) ||
-      (row.assigned_by_name || "").toLowerCase().includes(searchQuery) ||
-      (row.teamname || "").toLowerCase().includes(searchQuery)
-    );
-  }, [list, searchQuery]);
+    // 1. Start with the raw list from the API
+    let result = list;
+
+    // 2. Apply Text Search Filter
+    if (searchQuery) {
+      const q = searchQuery;
+      result = result.filter(row =>
+        (row.project_name || "").toLowerCase().includes(q) ||
+        (row.task_name || "").toLowerCase().includes(q) ||
+        (row.assigned_name || "").toLowerCase().includes(q) ||
+        (row.assigned_by_name || "").toLowerCase().includes(q) ||
+        (row.teamname || "").toLowerCase().includes(q)
+      );
+    }
+
+    // 3. Apply Date Range Filter (Inclusive)
+    if (startDate || endDate) {
+      const filterStart = startDate || "0000-01-01";
+      const filterEnd = endDate || "9999-12-31";
+
+      result = result.filter(row => {
+        const rawDate = pickReportStart(row) || pickReportEnd(row);
+        const rowYmd = toYmd(rawDate);
+        if (!rowYmd) return false;
+
+        // Inclusive check: taskDate >= startDate && taskDate <= endDate
+        return rowYmd >= filterStart && rowYmd <= filterEnd;
+      });
+    }
+
+    return result;
+  }, [list, searchQuery, startDate, endDate]);
 
   const effectiveShowEntryValue =
     selectedShowEntries || showEntriesOptions[0].value;
@@ -343,39 +357,7 @@ export default function TimesheetPM() {
     selectedRange.end === null
       ? filteredList.length
       : Math.min(selectedRange.end, filteredList.length);
-  const listInRange = filteredList.slice(rangeStart, rangeEnd);
-  const totalInRange = listInRange.length;
-  const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
-  const safePage = Math.min(Math.max(1, currentPage), totalPages);
-  const displayedList = listInRange.slice(
-    (safePage - 1) * PER_PAGE,
-    safePage * PER_PAGE,
-  );
-
-  const pageRanges: { start: number; end: number; label: string }[] = [];
-  for (let p = 1; p <= totalPages; p++) {
-    const s = rangeStart + (p - 1) * PER_PAGE;
-    const e = Math.min(rangeStart + p * PER_PAGE, rangeEnd);
-    const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
-    pageRanges.push({ start: s, end: e, label });
-  }
-  // const activePage = safePage;
-  const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
-  // const effectiveWindowStart = Math.min(paginationWindowStart, maxWindowStart);
-  // const visiblePageRanges = pageRanges.slice(
-  //   effectiveWindowStart - 1,
-  //   effectiveWindowStart - 1 + PAGINATION_VISIBLE,
-  // );
-  // const canPrevWindow = paginationWindowStart > 1;
-  // const canNextWindow =
-  //   paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
-  // const goPrevWindow = () =>
-  //   setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
-  // const goNextWindow = () =>
-  //   setPaginationWindowStart((s) =>
-  //     Math.min(s + PAGINATION_VISIBLE, maxWindowStart),
-  //   );
-  void maxWindowStart;
+  const displayedList = filteredList.slice(rangeStart, rangeEnd);
 
   const handleDownload = () => {
     if (filteredList.length === 0) return;
@@ -606,7 +588,7 @@ export default function TimesheetPM() {
             )}
           </div>
 
-          {/* Team Custom Dropdown */}
+          {/* Team Custom Dropdown
           <div className="relative min-w-[120px]" ref={teamDropdownRef}>
             <button
               type="button"
@@ -656,7 +638,7 @@ export default function TimesheetPM() {
                 </div>
               </div>
             )}
-          </div>
+          </div> */}
 
           {/* Show entries — same design as EmployeesPM CustomDropdown (header) */}
           <div className="relative w-[140px]" ref={showEntriesDropdownRef}>
@@ -789,9 +771,7 @@ export default function TimesheetPM() {
                   </tr>
                 ) : (
                   displayedList.map((row, index) => {
-                    const baseIndex =
-                      rangeStart + (safePage - 1) * PER_PAGE + index;
-                    const slNo = (baseIndex + 1).toString().padStart(2, "0");
+                    const slNo = (rangeStart + index + 1).toString().padStart(2, "0");
                     const startDate = formatDate(pickReportStart(row));
                     const endDate = formatDate(pickReportEnd(row));
                     const duration = calculateDuration(row);
