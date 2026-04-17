@@ -189,6 +189,7 @@ def update_profile():
     else:
         params.extend([g.user_id, g.company_id])
         cur.execute("UPDATE employee SET " + ", ".join(sets) + " WHERE id = %s AND Company_id = %s", params)
+    conn.commit()
         
     # We use cur.rowcount to check if something was actually updated,
     # but in some cases (no changes made) it might be 0 even if the user exists.
@@ -230,4 +231,5 @@ def change_password():
     # (Other auth paths already support md5 and this avoids column-length issues.)
     hashed = hashlib.md5(new_password.encode()).hexdigest()
     cur.execute(f"UPDATE {table} SET password = %s WHERE id = %s", (hashed, g.user_id))
+    conn.commit()
     return jsonify({"success": True, "message": "Password updated"})

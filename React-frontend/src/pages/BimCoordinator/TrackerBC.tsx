@@ -29,12 +29,24 @@ export default function TrackerBC() {
 
     const [selectedDate] = useState(getTodayKey());
     const [selectedStatus, setSelectedStatus] = useState('');
+    const [selectedEmployee, setSelectedEmployee] = useState('');
+    const [employeeOpen, setEmployeeOpen] = useState(false);
+    const [employeeSearch, setEmployeeSearch] = useState('');
     const [statusOpen, setStatusOpen] = useState(false);
     const statusOptions = ['', 'Available', 'Busy'];
     // Pagination removed
     const statusDropdownRef = useRef<HTMLDivElement>(null);
+    const employeeDropdownRef = useRef<HTMLDivElement>(null);
     const timeDropdownRef = useRef<HTMLDivElement>(null);
     const [busyMap, setBusyMap] = useState<Record<string, boolean>>({});
+    const employeeOptions = useMemo(
+        () => Array.from(new Set(list.map((item) => (item.full_name || '').trim()).filter(Boolean))),
+        [list],
+    );
+    const employeeOptionsFiltered = useMemo(
+        () => employeeOptions.filter((name) => name.toLowerCase().includes(employeeSearch.toLowerCase())),
+        [employeeOptions, employeeSearch],
+    );
     const timeRangeOptions = ['All Time', '09:00 AM - 12:00 PM', '12:00 PM - 04:00 PM', '04:00 PM - 08:00 PM'];
 
     // Determine status from tasks: if employee has at least one non-completed task
@@ -183,6 +195,7 @@ export default function TrackerBC() {
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) setStatusOpen(false);
+            if (employeeDropdownRef.current && !employeeDropdownRef.current.contains(event.target as Node)) setEmployeeOpen(false);
             if (timeDropdownRef.current && !timeDropdownRef.current.contains(event.target as Node)) setTimeDropdownOpen(false);
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -198,6 +211,9 @@ export default function TrackerBC() {
         return list.filter((item) => {
             // Optional status filter: Available / Busy
             if (selectedStatus && getStatus(item) !== selectedStatus) {
+                return false;
+            }
+            if (selectedEmployee && (item.full_name || '').trim() !== selectedEmployee) {
                 return false;
             }
 
@@ -238,7 +254,7 @@ export default function TrackerBC() {
 
             return true;
         });
-    }, [list, searchParams, selectedStatus, selectedTimeRange, busyMap]);
+    }, [list, searchParams, selectedStatus, selectedTimeRange, selectedEmployee, busyMap]);
 
     // Pagination ranges removed
 
@@ -296,6 +312,64 @@ export default function TrackerBC() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
+                    {/* Employee Filter */}
+                    <div className="relative min-w-[190px]" ref={employeeDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setEmployeeOpen((o) => !o);
+                            }}
+                            className="w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md text-sm font-medium text-[#353535] border-0 cursor-pointer"
+                        >
+                            <span className={`${selectedEmployee ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
+                                {selectedEmployee || 'Select Employee'}
+                            </span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                style={{ transform: employeeOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                                <path d="M6 9l6 6 6-6" />
+                            </svg>
+                        </button>
+                        {employeeOpen && (
+                            <div className="absolute top-full left-0 mt-2 z-[220] bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15)] w-full overflow-hidden">
+                                <div className="p-2">
+                                    <input
+                                        type="text"
+                                        value={employeeSearch}
+                                        onChange={(e) => setEmployeeSearch(e.target.value)}
+                                        placeholder="Search employee..."
+                                        className="w-full px-3 py-2 bg-[#F2F2F2] rounded-md text-[14px] text-[#353535] outline-none"
+                                    />
+                                </div>
+                                <div className="max-h-[220px] overflow-y-auto custom-scrollbar pb-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedEmployee('');
+                                            setEmployeeOpen(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-[14px] text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
+                                    >
+                                        Show All
+                                    </button>
+                                    {employeeOptionsFiltered.map((name) => (
+                                        <button
+                                            key={name}
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedEmployee(name);
+                                                setEmployeeOpen(false);
+                                            }}
+                                            className={`w-full text-left px-4 py-2 text-[14px] hover:bg-[#F2F2F2] cursor-pointer ${selectedEmployee === name ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B]'}`}
+                                        >
+                                            {name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Time Range Filter dropdown with AM/PM ranges */}
                     <div className="relative min-w-[170px]" ref={timeDropdownRef}>
                         <button

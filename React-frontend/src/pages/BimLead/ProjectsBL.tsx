@@ -915,7 +915,7 @@ export default function ProjectsBL() {
       {showProjectView && selectedProjectForView ? (
         <div className="flex flex-col h-full bg-white">
           {/* Project View Header */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50 shrink-0">
+          <div className="relative flex items-center justify-center px-4 md:px-5 py-2 md:py-2 border-b border-slate-50 shrink-0">
             <div className="absolute left-4 group z-20">
               <button
                 type="button"
@@ -952,102 +952,102 @@ export default function ProjectsBL() {
 
           {/* Project View Content */}
           <div className="flex-1 flex flex-col overflow-hidden mt-4">
-            {/* Task Status Cards - Static at top */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-6 mb-4 shrink-0">
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(
-                    "/bl/teamtasks?status=todo" +
-                      (selectedProjectForView?.project_name
-                        ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                        : ""),
-                  )
-                }
-                className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
-              >
-                <div className="flex items-center justify-left mb-2">
-                  <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                    To Do Tasks
+            {/* Scrollable Content - Including KPI cards */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 px-4 md:px-6 pb-4">
+              {/* Task Status Cards - Now scrollable */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-4 mb-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      "/bl/teamtasks?status=todo" +
+                        (selectedProjectForView?.project_name
+                          ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                          : ""),
+                    )
+                  }
+                  className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                >
+                  <div className="flex items-center justify-left mb-2">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                      To Do Tasks
+                    </p>
+                  </div>
+                  <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    {blTaskStatsLoading ? "..." : blTaskStats.todo}
                   </p>
-                </div>
-                <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                  {blTaskStatsLoading ? "..." : blTaskStats.todo}
-                </p>
-              </button>
+                </button>
 
-              {/* In Progress Tasks */}
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(
-                    "/bl/teamtasks?status=in_progress" +
-                      (selectedProjectForView?.project_name
-                        ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                        : ""),
-                  )
-                }
-                className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
-              >
-                <div className="flex items-center justify-left mb-2">
-                  <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                    In Progress Tasks
+                {/* In Progress Tasks */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      "/bl/teamtasks?status=in_progress" +
+                        (selectedProjectForView?.project_name
+                          ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                          : ""),
+                    )
+                  }
+                  className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                >
+                  <div className="flex items-center justify-left mb-2">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                      In Progress Tasks
+                    </p>
+                  </div>
+                  <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    {blTaskStatsLoading ? "..." : blTaskStats.inProgress}
                   </p>
-                </div>
-                <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                  {blTaskStatsLoading ? "..." : blTaskStats.inProgress}
-                </p>
-              </button>
+                </button>
 
-              {/* Paused Tasks */}
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(
-                    "/bl/teamtasks?status=paused" +
-                      (selectedProjectForView?.project_name
-                        ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                        : ""),
-                  )
-                }
-                className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
-              >
-                <div className="flex items-center justify-left mb-2">
-                  <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                    Paused Tasks
+                {/* Paused Tasks */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      "/bl/teamtasks?status=paused" +
+                        (selectedProjectForView?.project_name
+                          ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                          : ""),
+                    )
+                  }
+                  className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                >
+                  <div className="flex items-center justify-left mb-2">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                      Paused Tasks
+                    </p>
+                  </div>
+                  <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    {blTaskStatsLoading ? "..." : blTaskStats.paused}
                   </p>
-                </div>
-                <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                  {blTaskStatsLoading ? "..." : blTaskStats.paused}
-                </p>
-              </button>
+                </button>
 
-              {/* Completed Tasks */}
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(
-                    "/bl/teamtasks?status=completed" +
-                      (selectedProjectForView?.project_name
-                        ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                        : ""),
-                  )
-                }
-                className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
-              >
-                <div className="flex items-center justify-left mb-2">
-                  <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                    Completed Tasks
+                {/* Completed Tasks */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      "/bl/teamtasks?status=completed" +
+                        (selectedProjectForView?.project_name
+                          ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                          : ""),
+                    )
+                  }
+                  className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                >
+                  <div className="flex items-center justify-left mb-2">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                      Completed Tasks
+                    </p>
+                  </div>
+                  <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    {blTaskStatsLoading ? "..." : blTaskStats.completed}
                   </p>
-                </div>
-                <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                  {blTaskStatsLoading ? "..." : blTaskStats.completed}
-                </p>
-              </button>
-            </div>
+                </button>
+              </div>
 
-            {/* Scrollable Content below KPI cards */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 px-4 md:px-6 pb-6">
               {/* Tower Progress Grid */}
               <div className="border border-[#AEACAC52] rounded-md ">
                 <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] px-6 md:px-8 lg:px-2 pt-6 md:pt-8 lg:pt-2">
@@ -1705,7 +1705,7 @@ export default function ProjectsBL() {
                         {selectedProjectForView.resources || "N/A"}
                       </span>
                     </div>
-                    <div className="flex flex-col sm:flex-row sm:items-start">
+                    {/* <div className="flex flex-col sm:flex-row sm:items-start">
                       <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
                         Tasks
                       </span>
@@ -1735,7 +1735,7 @@ export default function ProjectsBL() {
                           </span>
                         )}
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                   <div className="space-y-4 md:space-y-5">
                     <div className="flex flex-col sm:flex-row sm:items-center">
@@ -2316,7 +2316,7 @@ export default function ProjectsBL() {
       ) : showCreateModal ? (
         <div className="flex flex-col h-full bg-white">
           {/* Create Project Header */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50 shrink-0">
+          <div className="relative flex items-center justify-center px-4 md:px-5 py-2 md:py-2 border-b border-slate-50 shrink-0">
             <div className="absolute left-4 group">
               <button
                 type="button"
@@ -2326,13 +2326,13 @@ export default function ProjectsBL() {
                 }}
                 className="p-2 rounded-[5px] bg-[#F2F2F2] flex items-center justify-center transition-colors cursor-pointer"
               >
-                <FiX className="w-5 h-5 text-black" />
+               <img src={backIcon} alt="back" className="w-5 h-5" />
               </button>
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                 <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-1 py-0.5 relative z-10">
                   <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                    Close
+                    Go Back
                   </span>
                 </div>
               </div>

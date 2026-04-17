@@ -267,6 +267,20 @@ function buildFormFromTask(task: Task, employeeList: Employee[]) {
   return { ...base, assignTo };
 }
 
+function resolveFormProjectName(
+  task: Task,
+  baseForm: ReturnType<typeof buildFormFromTask>,
+  projectList: Project[],
+) {
+  if (baseForm.projectName?.trim()) return baseForm;
+  const rawProjectId = task.project_id ?? task.projectid;
+  const projectId = Number(rawProjectId);
+  if (Number.isNaN(projectId)) return baseForm;
+  const matched = projectList.find((p) => Number(p.id) === projectId);
+  if (!matched?.project_name) return baseForm;
+  return { ...baseForm, projectName: matched.project_name };
+}
+
 function getTodayInputDate(): string {
   const d = new Date();
   const y = d.getFullYear();
@@ -304,6 +318,8 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
     ? "/ve/teamtasks"
     : "/ve/mytasks";
   const isTeamTasksRoute = listBasePath === "/ve/teamtasks";
+  // VE add/edit should always use vendor task APIs to keep assignee/project mapping consistent.
+  const useVendorTaskApi = true;
 
   const goBackToList = () => {
     if (propOnBack) {
@@ -378,26 +394,35 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
 
     const fromNav = initialTaskFromNav.current;
     if (fromNav && fromNav.id === editingTaskId) {
-      setAddTaskForm(buildFormFromTask(fromNav, employees));
+      const seeded = buildFormFromTask(fromNav, employees);
+      setAddTaskForm(resolveFormProjectName(fromNav, seeded, projects));
       setFormReady(true);
       return;
     }
 
     if (!fetchedTaskForEditRef.current) {
       setFormReady(false);
-      const detailUrl = isTeamTasksRoute
+      const detailUrl = useVendorTaskApi
         ? `/api/vendors/vendor-tasks/${editingTaskId}`
         : `/api/tasks/${editingTaskId}`;
       api
         .get(detailUrl)
         .then((res) => {
-          const raw = isTeamTasksRoute
+          const raw = useVendorTaskApi
             ? (res.data as Task)
             : ((res.data as { task?: Task })?.task ?? (res.data as Task));
           if (raw && typeof (raw as Task).id === "number") {
             fetchedTaskForEditRef.current = raw as Task;
+            const seeded = buildFormFromTask(
+              fetchedTaskForEditRef.current,
+              employees,
+            );
             setAddTaskForm(
-              buildFormFromTask(fetchedTaskForEditRef.current, employees),
+              resolveFormProjectName(
+                fetchedTaskForEditRef.current,
+                seeded,
+                projects,
+              ),
             );
           }
         })
@@ -408,9 +433,12 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
       return;
     }
 
-    setAddTaskForm(buildFormFromTask(fetchedTaskForEditRef.current, employees));
+    const seeded = buildFormFromTask(fetchedTaskForEditRef.current, employees);
+    setAddTaskForm(
+      resolveFormProjectName(fetchedTaskForEditRef.current, seeded, projects),
+    );
     setFormReady(true);
-  }, [isEdit, editingTaskId, loadingMeta, employees, isTeamTasksRoute]);
+  }, [isEdit, editingTaskId, loadingMeta, employees, projects, useVendorTaskApi]);
 
   useEffect(() => {
     if (openFormDropdown === null) return;
@@ -606,7 +634,7 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
       if (attachmentFiles.length > 0) {
         const formData = new FormData();
         attachmentFiles.forEach((f) => formData.append("image", f));
-        const base = isTeamTasksRoute
+        const base = useVendorTaskApi
           ? `/api/vendors/vendor-tasks/${taskId}/output-files`
           : `/api/tasks/${taskId}/output-files`;
         api.post(base, formData, {
@@ -616,7 +644,7 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
     };
 
     if (isEdit && editingTaskId != null) {
-      if (isTeamTasksRoute) {
+      if (useVendorTaskApi) {
         api
           .patch(`/api/vendors/vendor-tasks/${editingTaskId}`, {
             task_name: addTaskForm.taskName,
@@ -662,7 +690,7 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
             toast.error("Failed to update task");
           });
       }
-    } else if (isTeamTasksRoute) {
+    } else if (useVendorTaskApi) {
       api
         .post("/api/vendors/vendor-tasks", payload)
         .then((res) => {
