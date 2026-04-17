@@ -133,18 +133,15 @@ function CustomDropdown({
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-2 transition-all outline-none font-Gantari min-w-0 ${
-          styleType === "header"
+        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-2 transition-all outline-none font-Gantari min-w-0 ${styleType === "header"
             ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[12px] sm:text-[14px] font-semibold"
-            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[12px] sm:text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${
-                isOpen ? "!border-[#AEACAC52]" : ""
-              }`
-        }`}
+            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[12px] sm:text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""
+            }`
+          }`}
       >
         <span
-          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-            isPlaceholder || isOpen ? "text-[#8B8B8B]" : "text-[#353535]"
-          }`}
+          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${isPlaceholder || isOpen ? "text-[#8B8B8B]" : "text-[#353535]"
+            }`}
         >
           {isPlaceholder || isOpen ? (
             placeholder
@@ -160,9 +157,8 @@ function CustomDropdown({
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${
-            isOpen ? "rotate-180" : ""
-          } ${isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
+          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""
+            } ${isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
         />
       </button>
 
@@ -189,11 +185,10 @@ function CustomDropdown({
                   onChange(option);
                   setIsOpen(false);
                 }}
-                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${
-                  value === option
+                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${value === option
                     ? "text-[#353535] bg-[#F2F2F2]"
                     : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
-                }`}
+                  }`}
               >
                 <span className="truncate min-w-0">{option}</span>
                 {value === option && (
@@ -807,7 +802,7 @@ export default function ProjectsTD() {
       .then(([res1, res2]) => {
         const rawP1 = res1.data.projects ?? [];
         const rawP2 = res2.data.projects ?? [];
-        
+
         // Map and tag res2 (Vendors) as Outsource
         const p2 = rawP2.map((p) => ({
           ...mapApiProjectToProject(p),
@@ -831,16 +826,16 @@ export default function ProjectsTD() {
         //   (prevents duplicates while preserving pending outsource rows)
         const p1 = rawP1
           .map((p) => {
-          const mapped = mapApiProjectToProject(p);
-          // If department is "Submission Deadline", it's an Outsource project
-          const isOutsource = mapped.department === "Submission Deadline";
-          const source: "Outsource" | "In House" = isOutsource
-            ? "Outsource"
-            : "In House";
-          return {
-            ...mapped,
-            source,
-          };
+            const mapped = mapApiProjectToProject(p);
+            // If department is "Submission Deadline", it's an Outsource project
+            const isOutsource = mapped.department === "Submission Deadline";
+            const source: "Outsource" | "In House" = isOutsource
+              ? "Outsource"
+              : "In House";
+            return {
+              ...mapped,
+              source,
+            };
           })
           .filter((p) => {
             if (p.source !== "Outsource") return true;
@@ -1175,7 +1170,7 @@ export default function ProjectsTD() {
                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A]">
                   {selectedProjectForView?.project_name ?? "Loading..."}
                 </h3>
-                
+
               </div>
             </div>
 
@@ -2486,16 +2481,15 @@ export default function ProjectsTD() {
                                   toast(invoiceLabel, { icon: "ℹ️" });
                                 }
                               }}
-                              className={`shrink-0 px-5 py-2.5 rounded-md bg-[#DD4342] text-white font-Gantari font-bold text-[14px] shadow-sm hover:bg-[#c93a39] transition-colors ${
-                                milestonesReadOnly &&
-                                m.swiftbim_invoice_id !== undefined &&
-                                m.swiftbim_invoice_id !== null &&
-                                Number(m.swiftbim_invoice_id) > 0
+                              className={`shrink-0 px-5 py-2.5 rounded-md bg-[#DD4342] text-white font-Gantari font-bold text-[14px] shadow-sm hover:bg-[#c93a39] transition-colors ${milestonesReadOnly &&
+                                  m.swiftbim_invoice_id !== undefined &&
+                                  m.swiftbim_invoice_id !== null &&
+                                  Number(m.swiftbim_invoice_id) > 0
                                   ? "cursor-pointer"
                                   : milestonesReadOnly
                                     ? "cursor-not-allowed opacity-80"
                                     : "cursor-default"
-                              }`}
+                                }`}
                               title={
                                 milestonesReadOnly
                                   ? m.swiftbim_invoice_id
@@ -2937,14 +2931,14 @@ export default function ProjectsTD() {
                           </div>
                         </div>
                       </div>
-                      );
-                    });
-                  })()}
-                </div>
+                    );
+                  });
+                })()}
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
+      </div>
 
 
       {/* Create Project Modal */}

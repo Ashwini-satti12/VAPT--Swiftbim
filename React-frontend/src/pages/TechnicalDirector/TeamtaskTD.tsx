@@ -794,7 +794,7 @@ export default function TeamtaskTD() {
   };
 
   const openViewTask = (task: Task) => {
-    navigate("/tasks/taskview", { state: { task, from: "teamtask" } });
+    navigate("/td/mytasks/view", { state: { task, from: "teamtask" } });
   };
 
   const confirmDeleteTask = () => {
@@ -924,7 +924,7 @@ export default function TeamtaskTD() {
         }));
         setProjects([...internalProjs, ...vendorProjs] as Project[]);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, [isTeam]);
 

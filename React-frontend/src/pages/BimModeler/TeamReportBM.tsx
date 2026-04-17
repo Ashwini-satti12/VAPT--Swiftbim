@@ -61,27 +61,27 @@ export default function TimesheetPM() {
   const showEntriesOptions: {
     value: string;
     label: string;
-    start: number;
-    end: number | null;
+    limit: number | null; // max rows to display (null = all)
   }[] = [
-      { value: "1-50", label: "1-50", start: 0, end: 50 },
-      { value: "51-100", label: "51-100", start: 50, end: 100 },
-      { value: "101-150", label: "101-150", start: 100, end: 150 },
-      { value: "151-200", label: "151-200", start: 150, end: 200 },
-      { value: "201-250", label: "201-250", start: 200, end: 250 },
-      { value: "251-300", label: "251-300", start: 250, end: 300 },
-      { value: "101-200", label: "101-200", start: 100, end: 200 },
-      { value: "201-300", label: "201-300", start: 200, end: 300 },
-      { value: "301-400", label: "301-400", start: 300, end: 400 },
-      { value: "all", label: "All", start: 0, end: null },
-    ];
+    { value: "1-50", label: "1-50", limit: 50 },
+    { value: "51-100", label: "51-100", limit: 100 },
+    { value: "101-150", label: "101-150", limit: 150 },
+    { value: "151-200", label: "151-200", limit: 200 },
+    { value: "201-250", label: "201-250", limit: 250 },
+    { value: "251-300", label: "251-300", limit: 300 },
+    { value: "all", label: "All", limit: null },
+  ];
   const [selectedShowEntries, setSelectedShowEntries] = useState("");
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
   const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
-  const PER_PAGE = 10;
+  // Kept for compatibility — no longer used for pagination
+  const _PER_PAGE_UNUSED = 10;
+  void _PER_PAGE_UNUSED;
   const PAGINATION_VISIBLE = 4;
+  void PAGINATION_VISIBLE;
   const [currentPage, setCurrentPage] = useState(1);
+  void currentPage;
   const [_paginationWindowStart, setPaginationWindowStart] = useState(1);
 
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -140,7 +140,11 @@ export default function TimesheetPM() {
 
   const pickReportStart = (row: TimesheetEntry): string | undefined => {
     const r = rowRec(row);
-    for (const key of ["start_time", "Actual_start_time", "actual_start_time"]) {
+    for (const key of [
+      "start_time",
+      "Actual_start_time",
+      "actual_start_time",
+    ]) {
       const v = r[key];
       if (v != null && String(v).trim() !== "") return String(v);
     }
@@ -168,29 +172,33 @@ export default function TimesheetPM() {
     return `'${dd}/${mm}/${yyyy}`;
   };
 
-  const csvEscape = (val: string) =>
-    `"${String(val).replace(/"/g, '""')}"`;
+  const csvEscape = (val: string) => `"${String(val).replace(/"/g, '""')}"`;
 
-  // Calculate task duration from start_time, end_time, Pause, and restart
+  // Calculate task duration using the same field-fallback logic as pickReportStart/pickReportEnd.
+  // This ensures duration works even when start_time/end_time are absent but
+  // Actual_start_time / due_date are present.
   const calculateDuration = (entry: TimesheetEntry): string => {
-    // Only use tracked time (start_time and end_time). 
-    // Fallbacks like Actual_start_time and due_date lead to incorrect, huge durations for tasks that haven't been tracked.
-    if (!entry.start_time || !entry.end_time) return "00:00:00";
+    const rawStart = pickReportStart(entry);
+    const rawEnd = pickReportEnd(entry);
+    if (!rawStart || !rawEnd) return "00:00:00";
 
     try {
-      const start = new Date(entry.start_time);
-      const end = new Date(entry.end_time);
+      const start = new Date(rawStart);
+      const end = new Date(rawEnd);
 
       if (isNaN(start.getTime()) || isNaN(end.getTime())) return "00:00:00";
 
       let totalSeconds = Math.floor((end.getTime() - start.getTime()) / 1000);
 
       const sec = (x: unknown) => {
-        const n =
-          typeof x === "number" ? x : Number(String(x ?? "").trim());
+        const n = typeof x === "number" ? x : Number(String(x ?? "").trim());
         return Number.isFinite(n) ? Math.trunc(n) : 0;
       };
-      totalSeconds = totalSeconds - sec(entry.Pause) + sec(entry.restart);
+      // Only subtract/add Pause & restart when using tracked start_time/end_time,
+      // not when falling back to Actual_start_time / due_date (which are schedule dates).
+      if (entry.start_time && entry.end_time) {
+        totalSeconds = totalSeconds - sec(entry.Pause) + sec(entry.restart);
+      }
 
       if (!Number.isFinite(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
 
@@ -316,65 +324,63 @@ export default function TimesheetPM() {
   }, [showEntriesOpen]);
 
   useEffect(() => {
-    setCurrentPage(1);
     setPaginationWindowStart(1);
   }, [selectedShowEntries]);
 
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+
+  // filteredList: text-search filter + sort matching date-range rows to the top
   const filteredList = useMemo(() => {
-    if (!searchQuery) return list;
-    return list.filter(row =>
-      (row.project_name || "").toLowerCase().includes(searchQuery) ||
-      (row.task_name || "").toLowerCase().includes(searchQuery) ||
-      (row.assigned_name || "").toLowerCase().includes(searchQuery) ||
-      (row.assigned_by_name || "").toLowerCase().includes(searchQuery) ||
-      (row.teamname || "").toLowerCase().includes(searchQuery)
-    );
-  }, [list, searchQuery]);
+    let base = list;
 
-  const effectiveShowEntryValue =
-    selectedShowEntries || showEntriesOptions[0].value;
-  const selectedRange =
-    showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ??
-    showEntriesOptions[0];
-  const rangeStart = selectedRange.start;
-  const rangeEnd =
-    selectedRange.end === null
-      ? filteredList.length
-      : Math.min(selectedRange.end, filteredList.length);
-  const listInRange = filteredList.slice(rangeStart, rangeEnd);
-  const totalInRange = listInRange.length;
-  const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
-  const safePage = Math.min(Math.max(1, currentPage), totalPages);
-  const displayedList = listInRange.slice(
-    (safePage - 1) * PER_PAGE,
-    safePage * PER_PAGE,
-  );
+    // Text search
+    if (searchQuery) {
+      base = base.filter(
+        (row) =>
+          (row.project_name || "").toLowerCase().includes(searchQuery) ||
+          (row.task_name || "").toLowerCase().includes(searchQuery) ||
+          (row.assigned_name || "").toLowerCase().includes(searchQuery) ||
+          (row.assigned_by_name || "").toLowerCase().includes(searchQuery) ||
+          (row.teamname || "").toLowerCase().includes(searchQuery),
+      );
+    }
 
-  const pageRanges: { start: number; end: number; label: string }[] = [];
-  for (let p = 1; p <= totalPages; p++) {
-    const s = rangeStart + (p - 1) * PER_PAGE;
-    const e = Math.min(rangeStart + p * PER_PAGE, rangeEnd);
-    const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
-    pageRanges.push({ start: s, end: e, label });
-  }
-  // const activePage = safePage;
-  const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
-  // const effectiveWindowStart = Math.min(paginationWindowStart, maxWindowStart);
-  // const visiblePageRanges = pageRanges.slice(
-  //   effectiveWindowStart - 1,
-  //   effectiveWindowStart - 1 + PAGINATION_VISIBLE,
-  // );
-  // const canPrevWindow = paginationWindowStart > 1;
-  // const canNextWindow =
-  //   paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
-  // const goPrevWindow = () =>
-  //   setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
-  // const goNextWindow = () =>
-  //   setPaginationWindowStart((s) =>
-  //     Math.min(s + PAGINATION_VISIBLE, maxWindowStart),
-  //   );
-  void maxWindowStart;
+    // Sort: rows whose start-date falls within the selected date range bubble to the top
+    if (startDate || endDate) {
+      const effStart = startDate || endDate;
+      const effEnd = endDate || startDate;
+      base = [...base].sort((a, b) => {
+        const aDate = toYmd(pickReportStart(a));
+        const bDate = toYmd(pickReportStart(b));
+        const aMatch =
+          aDate >= (effStart < effEnd ? effStart : effEnd) &&
+          aDate <= (effStart > effEnd ? effStart : effEnd);
+        const bMatch =
+          bDate >= (effStart < effEnd ? effStart : effEnd) &&
+          bDate <= (effStart > effEnd ? effStart : effEnd);
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+        // secondary: sort by date ascending within matched group
+        if (aDate < bDate) return -1;
+        if (aDate > bDate) return 1;
+        return 0;
+      });
+    }
+
+    return base;
+  }, [list, searchQuery, startDate, endDate]);
+
+  // Show-entries: simply limit the total rows displayed (no inner pagination)
+  const selectedRangeOpt =
+    showEntriesOptions.find((o) => o.value === selectedShowEntries) ??
+    null;
+  const displayedList =
+    selectedRangeOpt === null || selectedRangeOpt.limit === null
+      ? filteredList
+      : filteredList.slice(0, selectedRangeOpt.limit);
+
+  // Keep these for type-safety (previously used)
+  void setPaginationWindowStart;
 
   const handleDownload = () => {
     if (filteredList.length === 0) return;
@@ -414,8 +420,7 @@ export default function TimesheetPM() {
     });
 
     const csvContent =
-      "\uFEFF" +
-      [headers.map(csvEscape).join(","), ...csvData].join("\r\n");
+      "\uFEFF" + [headers.map(csvEscape).join(","), ...csvData].join("\r\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -434,7 +439,9 @@ export default function TimesheetPM() {
       <div className="flex flex-col gap-4 flex-shrink-0">
         {/* Line 1: Heading and Download */}
         <div className="flex items-center justify-between">
-          <h3 className="text-[24px] font-semibold text-[#000000] font-gantari whitespace-nowrap">Monthly Report</h3>
+          <h3 className="text-[24px] font-semibold text-[#000000] font-gantari whitespace-nowrap">
+            Monthly Report
+          </h3>
           <button
             onClick={handleDownload}
             disabled={filteredList.length === 0}
@@ -462,9 +469,7 @@ export default function TimesheetPM() {
         {/* Line 2: Filters */}
         <div className="flex flex-wrap items-center gap-3 justify-end">
           {/* Start Date — calendar icon only opens native picker */}
-          <div
-            className="relative flex min-w-[140px] items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-2 transition-all"
-          >
+          <div className="relative flex min-w-[140px] items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-2 transition-all">
             <span
               className={`select-none text-[14px] font-gantari font-semibold ${startDate ? "text-[#353535]" : "text-[#8B8B8B]"}`}
             >
@@ -476,8 +481,9 @@ export default function TimesheetPM() {
               type="button"
               aria-label="Open start date calendar"
               onClick={() => openNativeDatePicker(startDateInputRef.current)}
-              className={`shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40 ${startDate ? "opacity-90" : "opacity-60 grayscale"
-                }`}
+              className={`shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40 ${
+                startDate ? "opacity-90" : "opacity-60 grayscale"
+              }`}
             >
               <svg
                 width="18"
@@ -509,9 +515,7 @@ export default function TimesheetPM() {
           </div>
 
           {/* End Date — calendar icon only opens native picker */}
-          <div
-            className="relative flex min-w-[140px] items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-2 transition-all"
-          >
+          <div className="relative flex min-w-[140px] items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-2 transition-all">
             <span
               className={`select-none text-[14px] font-gantari font-semibold ${endDate ? "text-[#353535]" : "text-[#8B8B8B]"}`}
             >
@@ -521,8 +525,9 @@ export default function TimesheetPM() {
               type="button"
               aria-label="Open end date calendar"
               onClick={() => openNativeDatePicker(endDateInputRef.current)}
-              className={`shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40 ${endDate ? "opacity-90" : "opacity-60 grayscale"
-                }`}
+              className={`shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40 ${
+                endDate ? "opacity-90" : "opacity-60 grayscale"
+              }`}
             >
               <svg
                 width="18"
@@ -572,11 +577,11 @@ export default function TimesheetPM() {
               <img
                 src={ArrowDown}
                 alt=""
-                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${employeeOpen ? "rotate-180" : ""
-                  } ${employee === "All"
-                    ? "opacity-60 grayscale"
-                    : "opacity-90"
-                  }`}
+                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                  employeeOpen ? "rotate-180" : ""
+                } ${
+                  employee === "All" ? "opacity-60 grayscale" : "opacity-90"
+                }`}
                 aria-hidden
               />
             </button>
@@ -592,10 +597,11 @@ export default function TimesheetPM() {
                         setEmployee(opt);
                         setEmployeeOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${employee === opt
-                        ? "text-[#353535] bg-[#F2F2F2]"
-                        : "text-[#8B8B8B] bg-transparent"
-                        }`}
+                      className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${
+                        employee === opt
+                          ? "text-[#353535] bg-[#F2F2F2]"
+                          : "text-[#8B8B8B] bg-transparent"
+                      }`}
                     >
                       {opt === "All" ? "Employee" : opt}
                     </button>
@@ -624,11 +630,9 @@ export default function TimesheetPM() {
               <img
                 src={ArrowDown}
                 alt=""
-                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${teamOpen ? "rotate-180" : ""
-                  } ${team === "All"
-                    ? "opacity-60 grayscale"
-                    : "opacity-90"
-                  }`}
+                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                  teamOpen ? "rotate-180" : ""
+                } ${team === "All" ? "opacity-60 grayscale" : "opacity-90"}`}
                 aria-hidden
               />
             </button>
@@ -644,10 +648,11 @@ export default function TimesheetPM() {
                         setTeam(opt);
                         setTeamOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${team === opt
-                        ? "text-[#353535] bg-[#F2F2F2]"
-                        : "text-[#8B8B8B] bg-transparent"
-                        }`}
+                      className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${
+                        team === opt
+                          ? "text-[#353535] bg-[#F2F2F2]"
+                          : "text-[#8B8B8B] bg-transparent"
+                      }`}
                     >
                       {opt === "All" ? "Team" : opt}
                     </button>
@@ -668,28 +673,33 @@ export default function TimesheetPM() {
               className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
             >
               <span
-                className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
+                className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                  selectedShowEntries === ""
                     ? "text-[#8B8B8B]"
                     : "text-[#353535]"
-                  }`}
+                }`}
               >
                 {selectedShowEntries === "" ? (
                   SHOW_ENTRIES_PLACEHOLDER
                 ) : (
                   <>
-                    <span className="text-[14px]">{SHOW_ENTRIES_PLACEHOLDER}:</span>{" "}
-                    <span className="font-semibold">{selectedRange.label}</span>
+                    <span className="text-[14px]">
+                      {SHOW_ENTRIES_PLACEHOLDER}:
+                    </span>{" "}
+                    <span className="font-semibold">{selectedRangeOpt?.label}</span>
                   </>
                 )}
               </span>
               <img
                 src={ArrowDown}
                 alt=""
-                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
-                  } ${selectedShowEntries === ""
+                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                  showEntriesOpen ? "rotate-180" : ""
+                } ${
+                  selectedShowEntries === ""
                     ? "opacity-60 grayscale"
                     : "opacity-90"
-                  }`}
+                }`}
                 aria-hidden
               />
             </button>
@@ -713,7 +723,7 @@ export default function TimesheetPM() {
                   </button>
                   {showEntriesOptions.map((opt) => (
                     <button
-                      key={`${opt.value}-${opt.start}-${opt.end}`}
+                      key={opt.value}
                       type="button"
                       onMouseDown={(e) => {
                         e.preventDefault();
@@ -721,10 +731,11 @@ export default function TimesheetPM() {
                         setSelectedShowEntries(opt.value);
                         setShowEntriesOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${selectedShowEntries === opt.value
+                      className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${
+                        selectedShowEntries === opt.value
                           ? "text-[#353535] bg-[#F2F2F2]"
                           : "text-[#8B8B8B] bg-transparent"
-                        }`}
+                      }`}
                     >
                       {opt.label}
                     </button>
@@ -742,12 +753,8 @@ export default function TimesheetPM() {
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
           </div>
         ) : (
-          <div
-            className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1"
-
-          >
+          <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1">
             <table className="min-w-full border-collapse table-fixed">
-
               <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                 <tr className="bg-white">
                   <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
@@ -788,9 +795,7 @@ export default function TimesheetPM() {
                   </tr>
                 ) : (
                   displayedList.map((row, index) => {
-                    const baseIndex =
-                      rangeStart + (safePage - 1) * PER_PAGE + index;
-                    const slNo = (baseIndex + 1).toString().padStart(2, "0");
+                    const slNo = (index + 1).toString().padStart(2, "0");
                     const startDate = formatDate(pickReportStart(row));
                     const endDate = formatDate(pickReportEnd(row));
                     const duration = calculateDuration(row);
@@ -821,7 +826,8 @@ export default function TimesheetPM() {
                             : "-"}
                         </td>
                         <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
-                          {row.assigned_by_name && row.assigned_by_name.trim() !== ""
+                          {row.assigned_by_name &&
+                          row.assigned_by_name.trim() !== ""
                             ? row.assigned_by_name
                             : "-"}
                         </td>
