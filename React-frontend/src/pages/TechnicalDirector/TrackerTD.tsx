@@ -27,6 +27,9 @@ export default function TrackerTD() {
     // Selected time used to determine Busy/Available at that time (HH:MM, 24h)
     const [selectedTime, setSelectedTime] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
+    const [selectedEmployee, setSelectedEmployee] = useState('');
+    const [employeeOpen, setEmployeeOpen] = useState(false);
+    const [employeeSearch, setEmployeeSearch] = useState('');
     const [statusOpen, setStatusOpen] = useState(false);
     const statusOptions = ['', 'Available', 'Busy'];
     const statusDropdownRef = useRef<HTMLDivElement>(null);
@@ -43,10 +46,11 @@ export default function TrackerTD() {
         { value: '251-300', label: '251-300', start: 250, end: 300 },
         { value: 'all', label: 'All', start: 0, end: null },
     ];
-    const [selectedShowEntries, setSelectedShowEntries] = useState('');
+    const [selectedShowEntries, setSelectedShowEntries] = useState('1-50');
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
     const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
+    const employeeDropdownRef = useRef<HTMLDivElement>(null);
     const [searchParams] = useSearchParams();
 
     useEffect(() => {
@@ -57,6 +61,12 @@ export default function TrackerTD() {
 
 
     const [busyMap, setBusyMap] = useState<Record<string, boolean>>({});
+    const employeeOptions = Array.from(
+        new Set(list.map((item) => (item.full_name || '').trim()).filter(Boolean)),
+    );
+    const employeeOptionsFiltered = employeeOptions.filter((name) =>
+        name.toLowerCase().includes(employeeSearch.toLowerCase()),
+    );
 
     const todayIso = (() => {
         const now = new Date();
@@ -322,14 +332,17 @@ export default function TrackerTD() {
             if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
                 setStatusOpen(false);
             }
+            if (employeeDropdownRef.current && !employeeDropdownRef.current.contains(event.target as Node)) {
+                setEmployeeOpen(false);
+            }
         };
-        if (statusOpen) {
+        if (statusOpen || employeeOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [statusOpen]);
+    }, [statusOpen, employeeOpen]);
 
     // Close show entries dropdown when clicking outside
     useEffect(() => {
@@ -352,6 +365,7 @@ export default function TrackerTD() {
 
     const filteredList = list.filter((item) => {
         let matchesStatus = true;
+        let matchesEmployee = true;
 
         if (selectedStatus) {
             const name = (item.full_name || '').trim();
@@ -359,6 +373,28 @@ export default function TrackerTD() {
             const status =
                 (entryKey && busyMap[entryKey]) || (name && busyMap[name]) ? 'Busy' : 'Available';
             matchesStatus = status === selectedStatus;
+        }
+        if (selectedEmployee) {
+            matchesEmployee = (item.full_name || '').trim() === selectedEmployee;
+        }
+
+        let matchesTime = true;
+        if (selectedTime) {
+            const tIn = pickTime(item.time_in);
+            const tOut = pickTime(item.time_out);
+            // Normalize selectedTime "HH:MM" to "HH:MM:SS" for string comparison with tIn/tOut "HH:MM:SS"
+            const selTimeSs = selectedTime.includes(':') && selectedTime.split(':').length === 2 ? selectedTime + ':00' : selectedTime;
+
+            if (!tIn) {
+                matchesTime = false;
+            } else {
+                const isAfterIn = selTimeSs >= tIn;
+                if (tOut && tOut !== '-') {
+                    matchesTime = isAfterIn && selTimeSs <= tOut;
+                } else {
+                    matchesTime = isAfterIn;
+                }
+            }
         }
 
         const matchesSearch = !searchQuery ||
@@ -368,7 +404,7 @@ export default function TrackerTD() {
             (item.time_in || "").toLowerCase().includes(searchQuery) ||
             (item.time_out || "").toLowerCase().includes(searchQuery);
 
-        return matchesStatus && matchesSearch;
+        return matchesStatus && matchesEmployee && matchesSearch;
     });
 
     const effectiveShowEntryValue = selectedShowEntries || showEntriesOptions[0].value;
@@ -438,6 +474,65 @@ export default function TrackerTD() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
+                    {/* Employee Filter */}
+                    <div className="relative min-w-[190px]" ref={employeeDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setEmployeeOpen((o) => !o);
+                            }}
+                            className="w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md text-sm font-semibold font-gantari text-[#353535] border-0 cursor-pointer"
+                        >
+                            <span className={`${selectedEmployee ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
+                                {selectedEmployee || 'Select Employee'}
+                            </span>
+                            <img
+                                src={ArrowDown}
+                                alt=""
+                                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${employeeOpen ? 'rotate-180' : ''}`}
+                            />
+                        </button>
+                        {employeeOpen && (
+                            <div className="absolute top-full left-0 mt-2 z-[220] bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15)] w-full overflow-hidden">
+                                <div className="p-2">
+                                    <input
+                                        type="text"
+                                        value={employeeSearch}
+                                        onChange={(e) => setEmployeeSearch(e.target.value)}
+                                        placeholder="Search employee..."
+                                        className="w-full px-3 py-2 bg-[#F2F2F2] rounded-md text-[14px] text-[#353535] outline-none"
+                                    />
+                                </div>
+                                <div className="max-h-[220px] overflow-y-auto custom-scrollbar pb-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedEmployee('');
+                                            setEmployeeOpen(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-[14px] text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
+                                    >
+                                        Show All
+                                    </button>
+                                    {employeeOptionsFiltered.map((name) => (
+                                        <button
+                                            key={name}
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedEmployee(name);
+                                                setEmployeeOpen(false);
+                                            }}
+                                            className={`w-full text-left px-4 py-2 text-[14px] hover:bg-[#F2F2F2] cursor-pointer ${selectedEmployee === name ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B]'}`}
+                                        >
+                                            {name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Time picker (today only, date hidden) */}
                     <div className="relative">
                         <button

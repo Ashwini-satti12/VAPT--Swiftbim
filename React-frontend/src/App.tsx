@@ -63,6 +63,9 @@ import ViewProposalTD from "./pages/TechnicalDirector/ViewProposalTD";
 import ManageLeaveTD from "./pages/TechnicalDirector/ManageLeaveTD";
 import PaymentMilestonesTD from "./pages/TechnicalDirector/PaymentMilestonesTD";
 import InvoicesTD from "./pages/TechnicalDirector/InvoicesTD";
+import Workorder from "./pages/TechnicalDirector/Workorder";
+import WorkorderForm from "./pages/TechnicalDirector/WorkorderForm";
+import ViewWorkorder from "./pages/TechnicalDirector/ViewWorkorder";
 
 /* Bim Lead */
 import DashboardBL from "./pages/BimLead/DashboardBL";
@@ -133,19 +136,19 @@ import MilestonesV from "./pages/Vendor/MilestonesV";
 import CommunicationV from "./pages/Vendor/CommunicationV";
 import PerformanceV from "./pages/Vendor/PerformanceV";
 import InvoicesV from "./pages/Vendor/InvoicesV";
+import WorkorderV from "./pages/Vendor/WorkorderV";
+import ViewWorkorderV from "./pages/Vendor/ViewWorkorderV";
 
 /* Vendor PM */
-import DashboardPMV from './pages/Vendor/ProjectManager/DashboardPMV';
-import ProjectsPMV from './pages/Vendor/ProjectManager/ProjectsPMV';
-import MytaskPMV from './pages/Vendor/ProjectManager/MytaskPMV';
-import AddEditTaskPMV from './pages/Vendor/ProjectManager/AddEditTaskPMV';
-import TeamtaskPMV from './pages/Vendor/ProjectManager/TeamtaskPMV';
-import CreateteamPMV from './pages/Vendor/ProjectManager/CreateteamPMV';
-import ChatPMV from './pages/Vendor/ProjectManager/ChatPMV';
-import ProposalsPMV from './pages/Vendor/ProjectManager/ProposalsPMV';
-import CompanyProfileEditPMV from './pages/Vendor/ProjectManager/CompanyProfileEditPMV';
-
-
+import DashboardPMV from "./pages/Vendor/ProjectManager/DashboardPMV";
+import ProjectsPMV from "./pages/Vendor/ProjectManager/ProjectsPMV";
+import MytaskPMV from "./pages/Vendor/ProjectManager/MytaskPMV";
+import AddEditTaskPMV from "./pages/Vendor/ProjectManager/AddEditTaskPMV";
+import TeamtaskPMV from "./pages/Vendor/ProjectManager/TeamtaskPMV";
+import CreateteamPMV from "./pages/Vendor/ProjectManager/CreateteamPMV";
+import ChatPMV from "./pages/Vendor/ProjectManager/ChatPMV";
+import ProposalsPMV from "./pages/Vendor/ProjectManager/ProposalsPMV";
+import CompanyProfileEditPMV from "./pages/Vendor/ProjectManager/CompanyProfileEditPMV";
 
 /* Vendor Employee */
 import DashboardEV from "./pages/Vendor/Employee/DashboardEV";
@@ -288,6 +291,9 @@ function App() {
             <Route path="td/manage-leave" element={<ManageLeaveTD />} />
             <Route path="td/payment-milestones" element={<PaymentMilestonesTD />} />
             <Route path="td/invoices" element={<InvoicesTD />} />
+            <Route path="td/workorder" element={<Workorder />} />
+            <Route path="td/workorder-form" element={<WorkorderForm />} />
+            <Route path="td/view-workorder" element={<ViewWorkorder />} />
             {/* Bim Lead Routes */}
             <Route path="bl/dashboard" element={<DashboardBL />} />
             <Route path="bl/consultants" element={<ConsultantBL />} />
@@ -382,6 +388,8 @@ function App() {
             <Route path="v/communication" element={<CommunicationV />} />
             <Route path="v/performance" element={<PerformanceV />} />
             <Route path="v/resources" element={<ResourcesV />} />
+            <Route path="v/workorder" element={<WorkorderV />} />
+            <Route path="v/view-workorder" element={<ViewWorkorderV />} />
 
             {/* Vendor PM Routes */}
             <Route path="vpm/dashboard" element={<DashboardPMV />} />
@@ -404,7 +412,10 @@ function App() {
               path="vpm/company-profile/resources/:resourceId"
               element={<CompanyProfileResourcePageV />}
             />
-            <Route path="vpm/company-profile/edit" element={<CompanyProfileEditPMV />} />
+            <Route
+              path="vpm/company-profile/edit"
+              element={<CompanyProfileEditPMV />}
+            />
 
             {/* Vendor Employee Routes */}
             <Route path="ve/dashboard" element={<DashboardEV />} />

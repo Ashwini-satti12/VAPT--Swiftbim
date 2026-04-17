@@ -391,7 +391,8 @@ export default function CreateteamTD() {
       api.get<{ projects?: Project[] }>("/api/projects"),
     ])
       .then(([teamsRes, empsRes, projectsRes]) => {
-        setTeams(teamsRes.data.teams ?? []);
+        const sortedTeams = (teamsRes.data.teams ?? []).sort((a, b) => b.team_id - a.team_id);
+        setTeams(sortedTeams);
         setEmployees(empsRes.data.employees ?? []);
         setProjects(projectsRes.data.projects ?? []);
       })
@@ -428,7 +429,10 @@ export default function CreateteamTD() {
           // Refresh data instead of page reload for better UX
           api
             .get<{ teams?: Team[] }>("/api/teams")
-            .then((res) => setTeams(res.data.teams ?? []));
+            .then((res) => {
+              const sorted = (res.data.teams ?? []).sort((a, b) => b.team_id - a.team_id);
+              setTeams(sorted);
+            });
           setForm({
             leader: "",
             employee: [],
@@ -532,7 +536,10 @@ export default function CreateteamTD() {
           setShowEditModal(false);
           api
             .get<{ teams?: Team[] }>("/api/teams")
-            .then((res) => setTeams(res.data.teams ?? []));
+            .then((res) => {
+              const sorted = (res.data.teams ?? []).sort((a, b) => b.team_id - a.team_id);
+              setTeams(sorted);
+            });
           setSuccessMsg("Team Updated Successfully");
           setTimeout(() => setSuccessMsg(""), 3000);
         }
@@ -661,8 +668,8 @@ export default function CreateteamTD() {
             >
               <span
                 className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
-                    ? "text-[#8B8B8B]"
-                    : "text-[#353535]"
+                  ? "text-[#8B8B8B]"
+                  : "text-[#353535]"
                   }`}
               >
                 {selectedShowEntries === "" ? (
@@ -718,8 +725,8 @@ export default function CreateteamTD() {
                           setShowEntriesOpen(false);
                         }}
                         className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${isChosen
-                            ? "text-[#353535] bg-[#F2F2F2]"
-                            : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                          ? "text-[#353535] bg-[#F2F2F2]"
+                          : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
                           }`}
                       >
                         <span className="truncate min-w-0">{opt.label}</span>
@@ -838,319 +845,319 @@ export default function CreateteamTD() {
 
             <div className="flex-1 overflow-y-auto px-1 custom-scrollbar">
               <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-[14px] font-medium text-[#353535] mb-3">
-                  Team Name <span className="text-[#DD4342]">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter Team Name"
-                  className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
-                  value={form.team_name}
-                  onChange={(e) =>
-                    setForm({ ...form, team_name: e.target.value })
-                  }
-                  required
-                />
-              </div>
+                <div>
+                  <label className="block text-[14px] font-medium text-[#353535] mb-3">
+                    Team Name <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter Team Name"
+                    className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                    value={form.team_name}
+                    onChange={(e) =>
+                      setForm({ ...form, team_name: e.target.value })
+                    }
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-[16px] font-medium text-[#000000] mb-3">
-                  Select Project
-                </label>
-                <div className="relative" ref={projectDropdownRef}>
+                <div>
+                  <label className="block text-[16px] font-medium text-[#000000] mb-3">
+                    Select Project
+                  </label>
+                  <div className="relative" ref={projectDropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const el = projectDropdownRef.current;
+                        if (el) {
+                          const rect = el.getBoundingClientRect();
+                          setProjectDropdownUpward(window.innerHeight - rect.bottom < 220);
+                        }
+                        setShowProjectDropdown(!showProjectDropdown);
+                      }}
+                      className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] flex items-center justify-between transition-all cursor-pointer font-Gantari"
+                    >
+                      <span>
+                        {form.project_id
+                          ? projects.find((p) => String(p.id) === form.project_id)?.project_name || "Select Project"
+                          : "Select Project"}
+                      </span>
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M3 4.5L6 7.5L9 4.5"
+                          stroke="#8B8B8B"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+
+                    {showProjectDropdown && (
+                      <div
+                        className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 overflow-y-auto no-scrollbar flex flex-col ${projectDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"
+                          }`}
+                      >
+                        {projects.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setForm((f) => ({ ...f, project_id: String(p.id), leader: "", employee: [] }));
+                              setShowProjectDropdown(false);
+                            }}
+                            className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
+                          >
+                            {p.project_name ?? `Project ${p.id}`}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[14px] font-medium text-[#353535] mb-3">
+                    Select Team Leader <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <div className="relative" ref={leaderDropdownRef}>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Select Team Leader"
+                        value={
+                          showLeaderDropdown
+                            ? leaderSearchQuery
+                            : form.leader
+                              ? (employees.find(
+                                (emp) => String(emp.id) === form.leader,
+                              )?.full_name ?? "")
+                              : ""
+                        }
+                        onChange={(e) => {
+                          setLeaderSearchQuery(e.target.value);
+                          if (e.target.value === "")
+                            setForm((f) => ({ ...f, leader: "" }));
+                          setShowLeaderDropdown(true);
+                        }}
+                        onFocus={() => {
+                          const el = leaderDropdownRef.current;
+                          if (el) {
+                            const rect = el.getBoundingClientRect();
+                            setLeaderDropdownUpward(
+                              window.innerHeight - rect.bottom < 220,
+                            );
+                          }
+                          setShowLeaderDropdown(true);
+                          setLeaderSearchQuery(
+                            form.leader
+                              ? (employees.find(
+                                (emp) => String(emp.id) === form.leader,
+                              )?.full_name ?? "")
+                              : "",
+                          );
+                        }}
+                        className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          className={`transition-transform duration-200`}
+                        >
+                          <path
+                            d="M3 4.5L6 7.5L9 4.5"
+                            stroke="#8B8B8B"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {showLeaderDropdown && (
+                      <div
+                        className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${leaderDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
+                      >
+                        <div className="overflow-y-auto no-scrollbar max-h-44">
+                          {getProjectEmployees(form.project_id)
+                            .filter(
+                              (e) =>
+                                !leaderSearchQuery.trim() ||
+                                e.full_name
+                                  ?.toLowerCase()
+                                  .includes(leaderSearchQuery.toLowerCase()),
+                            )
+                            .map((e) => (
+                              <button
+                                key={e.id}
+                                type="button"
+                                onMouseDown={(ev) => {
+                                  ev.preventDefault();
+                                  setForm({ ...form, leader: String(e.id) });
+                                  setLeaderSearchQuery("");
+                                  setShowLeaderDropdown(false);
+                                }}
+                                className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer flex items-center gap-3"
+                              >
+                                {(() => {
+                                  const profileUrl = e.profile_picture ? getGlobalProfileUrl(e.id, e.profile_picture) : null;
+                                  return (
+                                    <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
+                                      {profileUrl ? (
+                                        <img
+                                          src={profileUrl}
+                                          alt={e.full_name}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            (e.target as HTMLImageElement).src = ProfileIcon;
+                                          }}
+                                        />
+                                      ) : (
+                                        (e.full_name || "U")[0].toUpperCase()
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                                {e.full_name}
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[14px] font-medium text-[#353535] mb-3">
+                    Select Member <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <div className="relative" ref={memberDropdownRef}>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Select Member"
+                        value={
+                          showMemberDropdown
+                            ? memberSearchQuery
+                            : form.employee.length === 0
+                              ? ""
+                              : `${form.employee.length} Member(s) Selected`
+                        }
+                        onChange={(e) => {
+                          setMemberSearchQuery(e.target.value);
+                          setShowMemberDropdown(true);
+                        }}
+                        onFocus={() => {
+                          const el = memberDropdownRef.current;
+                          if (el) {
+                            const rect = el.getBoundingClientRect();
+                            setMemberDropdownUpward(
+                              window.innerHeight - rect.bottom < 220,
+                            );
+                          }
+                          setShowMemberDropdown(true);
+                          setMemberSearchQuery("");
+                        }}
+                        className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          className={`transition-transform duration-200`}
+                        >
+                          <path
+                            d="M3 4.5L6 7.5L9 4.5"
+                            stroke="#8B8B8B"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {showMemberDropdown && (
+                      <div
+                        className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${memberDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
+                      >
+                        <div className="overflow-y-auto no-scrollbar max-h-44">
+                          {getProjectEmployees(form.project_id)
+                            .filter(
+                              (e) =>
+                                !memberSearchQuery.trim() ||
+                                e.full_name
+                                  ?.toLowerCase()
+                                  .includes(memberSearchQuery.toLowerCase()),
+                            )
+                            .map((e) => (
+                              <label
+                                key={e.id}
+                                className="flex items-center gap-3 px-5 py-2.5 hover:bg-[#F2F2F2] cursor-pointer transition-colors group"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={form.employee.includes(String(e.id))}
+                                  onChange={() =>
+                                    handleMemberToggle(String(e.id))
+                                  }
+                                  className="w-5 h-5 rounded border-gray-300 text-[#000000] focus:ring-0 cursor-pointer"
+                                />
+                                {(() => {
+                                  const profileUrl = e.profile_picture ? getGlobalProfileUrl(e.id, e.profile_picture) : null;
+                                  return (
+                                    <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden border">
+                                      {profileUrl ? (
+                                        <img src={profileUrl} alt={e.full_name} className="w-full h-full object-cover" />
+                                      ) : (
+                                        (e.full_name || "U")[0].toUpperCase()
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                                <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535]">
+                                  {e.full_name}
+                                </span>
+                              </label>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-center gap-6 pt-6">
                   <button
                     type="button"
-                    onClick={() => {
-                      const el = projectDropdownRef.current;
-                      if (el) {
-                        const rect = el.getBoundingClientRect();
-                        setProjectDropdownUpward(window.innerHeight - rect.bottom < 220);
-                      }
-                      setShowProjectDropdown(!showProjectDropdown);
-                    }}
-                    className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] flex items-center justify-between transition-all cursor-pointer font-Gantari"
+                    onClick={() => setShowAddModal(false)}
+                    className="px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] text-[14px] font-medium transition-all active:scale-[0.98] cursor-pointer"
                   >
-                    <span>
-                      {form.project_id
-                        ? projects.find((p) => String(p.id) === form.project_id)?.project_name || "Select Project"
-                        : "Select Project"}
-                    </span>
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M3 4.5L6 7.5L9 4.5"
-                        stroke="#8B8B8B"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    Discard
                   </button>
-
-                  {showProjectDropdown && (
-                    <div
-                      className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 overflow-y-auto no-scrollbar flex flex-col ${projectDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"
-                        }`}
-                    >
-                      {projects.map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setForm((f) => ({ ...f, project_id: String(p.id), leader: "", employee: [] }));
-                            setShowProjectDropdown(false);
-                          }}
-                          className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
-                        >
-                          {p.project_name ?? `Project ${p.id}`}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-12 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-medium transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                  >
+                    {submitting ? "Submitting..." : "Submit"}
+                  </button>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-[14px] font-medium text-[#353535] mb-3">
-                  Select Team Leader <span className="text-[#DD4342]">*</span>
-                </label>
-                <div className="relative" ref={leaderDropdownRef}>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Select Team Leader"
-                      value={
-                        showLeaderDropdown
-                          ? leaderSearchQuery
-                          : form.leader
-                            ? (employees.find(
-                              (emp) => String(emp.id) === form.leader,
-                            )?.full_name ?? "")
-                            : ""
-                      }
-                      onChange={(e) => {
-                        setLeaderSearchQuery(e.target.value);
-                        if (e.target.value === "")
-                          setForm((f) => ({ ...f, leader: "" }));
-                        setShowLeaderDropdown(true);
-                      }}
-                      onFocus={() => {
-                        const el = leaderDropdownRef.current;
-                        if (el) {
-                          const rect = el.getBoundingClientRect();
-                          setLeaderDropdownUpward(
-                            window.innerHeight - rect.bottom < 220,
-                          );
-                        }
-                        setShowLeaderDropdown(true);
-                        setLeaderSearchQuery(
-                          form.leader
-                            ? (employees.find(
-                              (emp) => String(emp.id) === form.leader,
-                            )?.full_name ?? "")
-                            : "",
-                        );
-                      }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className={`transition-transform duration-200`}
-                      >
-                        <path
-                          d="M3 4.5L6 7.5L9 4.5"
-                          stroke="#8B8B8B"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-
-                  {showLeaderDropdown && (
-                    <div
-                      className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${leaderDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
-                    >
-                      <div className="overflow-y-auto no-scrollbar max-h-44">
-                        {getProjectEmployees(form.project_id)
-                          .filter(
-                            (e) =>
-                              !leaderSearchQuery.trim() ||
-                              e.full_name
-                                ?.toLowerCase()
-                                .includes(leaderSearchQuery.toLowerCase()),
-                          )
-                          .map((e) => (
-                            <button
-                              key={e.id}
-                              type="button"
-                              onMouseDown={(ev) => {
-                                ev.preventDefault();
-                                setForm({ ...form, leader: String(e.id) });
-                                setLeaderSearchQuery("");
-                                setShowLeaderDropdown(false);
-                              }}
-                              className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer flex items-center gap-3"
-                            >
-                              {(() => {
-                                const profileUrl = e.profile_picture ? getGlobalProfileUrl(e.id, e.profile_picture) : null;
-                                return (
-                                  <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
-                                    {profileUrl ? (
-                                      <img
-                                        src={profileUrl}
-                                        alt={e.full_name}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                          (e.target as HTMLImageElement).src = ProfileIcon;
-                                        }}
-                                      />
-                                    ) : (
-                                      (e.full_name || "U")[0].toUpperCase()
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                              {e.full_name}
-                            </button>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[14px] font-medium text-[#353535] mb-3">
-                  Select Member <span className="text-[#DD4342]">*</span>
-                </label>
-                <div className="relative" ref={memberDropdownRef}>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Select Member"
-                      value={
-                        showMemberDropdown
-                          ? memberSearchQuery
-                          : form.employee.length === 0
-                            ? ""
-                            : `${form.employee.length} Member(s) Selected`
-                      }
-                      onChange={(e) => {
-                        setMemberSearchQuery(e.target.value);
-                        setShowMemberDropdown(true);
-                      }}
-                      onFocus={() => {
-                        const el = memberDropdownRef.current;
-                        if (el) {
-                          const rect = el.getBoundingClientRect();
-                          setMemberDropdownUpward(
-                            window.innerHeight - rect.bottom < 220,
-                          );
-                        }
-                        setShowMemberDropdown(true);
-                        setMemberSearchQuery("");
-                      }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className={`transition-transform duration-200`}
-                      >
-                        <path
-                          d="M3 4.5L6 7.5L9 4.5"
-                          stroke="#8B8B8B"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-
-                  {showMemberDropdown && (
-                    <div
-                      className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${memberDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
-                    >
-                      <div className="overflow-y-auto no-scrollbar max-h-44">
-                        {getProjectEmployees(form.project_id)
-                          .filter(
-                            (e) =>
-                              !memberSearchQuery.trim() ||
-                              e.full_name
-                                ?.toLowerCase()
-                                .includes(memberSearchQuery.toLowerCase()),
-                          )
-                          .map((e) => (
-                            <label
-                              key={e.id}
-                              className="flex items-center gap-3 px-5 py-2.5 hover:bg-[#F2F2F2] cursor-pointer transition-colors group"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={form.employee.includes(String(e.id))}
-                                onChange={() =>
-                                  handleMemberToggle(String(e.id))
-                                }
-                                className="w-5 h-5 rounded border-gray-300 text-[#000000] focus:ring-0 cursor-pointer"
-                              />
-                              {(() => {
-                                const profileUrl = e.profile_picture ? getGlobalProfileUrl(e.id, e.profile_picture) : null;
-                                return (
-                                  <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden border">
-                                    {profileUrl ? (
-                                      <img src={profileUrl} alt={e.full_name} className="w-full h-full object-cover" />
-                                    ) : (
-                                      (e.full_name || "U")[0].toUpperCase()
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                              <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535]">
-                                {e.full_name}
-                              </span>
-                            </label>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-center gap-6 pt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] text-[14px] font-medium transition-all active:scale-[0.98] cursor-pointer"
-                >
-                  Discard
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-12 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-medium transition-all disabled:opacity-50 cursor-pointer shadow-sm"
-                >
-                  {submitting ? "Submitting..." : "Submit"}
-                </button>
-              </div>
               </form>
             </div>
           </div>
@@ -1184,309 +1191,309 @@ export default function CreateteamTD() {
 
             <div className="flex-1 overflow-y-auto px-1 custom-scrollbar">
               <form onSubmit={handleUpdate} className="space-y-6">
-              <div>
-                <label className="block text-[14px] font-medium text-[#353535] mb-3">
-                  Team Name <span className="text-[#DD4342]">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter Team Name"
-                  className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
-                  value={editForm.team_name}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, team_name: e.target.value })
-                  }
-                />
-              </div>
+                <div>
+                  <label className="block text-[14px] font-medium text-[#353535] mb-3">
+                    Team Name <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter Team Name"
+                    className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                    value={editForm.team_name}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, team_name: e.target.value })
+                    }
+                  />
+                </div>
 
-              <div>
-                <label className="block text-[16px] font-medium text-[#000000] mb-3">
-                  Select Project
-                </label>
-                <div className="relative" ref={editProjectDropdownRef}>
+                <div>
+                  <label className="block text-[16px] font-medium text-[#000000] mb-3">
+                    Select Project
+                  </label>
+                  <div className="relative" ref={editProjectDropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const el = editProjectDropdownRef.current;
+                        if (el) {
+                          const rect = el.getBoundingClientRect();
+                          setEditProjectDropdownUpward(window.innerHeight - rect.bottom < 220);
+                        }
+                        setShowEditProjectDropdown(!showEditProjectDropdown);
+                      }}
+                      className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] flex items-center justify-between transition-all cursor-pointer font-Gantari"
+                    >
+                      <span>
+                        {editForm.project_id
+                          ? projects.find((p) => String(p.id) === editForm.project_id)?.project_name || "Select Project"
+                          : "Select Project"}
+                      </span>
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M3 4.5L6 7.5L9 4.5"
+                          stroke="#8B8B8B"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+
+                    {showEditProjectDropdown && (
+                      <div
+                        className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 overflow-y-auto no-scrollbar flex flex-col ${editProjectDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"
+                          }`}
+                      >
+                        {projects.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setEditForm((f) => ({ ...f, project_id: String(p.id), leader: "", employee: [] }));
+                              setShowEditProjectDropdown(false);
+                            }}
+                            className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
+                          >
+                            {p.project_name ?? `Project ${p.id}`}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[14px] font-medium text-[#353535] mb-3">
+                    Select Team Leader <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <div className="relative" ref={leaderDropdownRef}>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Select Team Leader"
+                        value={
+                          showLeaderDropdown
+                            ? leaderSearchQuery
+                            : editForm.leader
+                              ? (employees.find(
+                                (emp) => String(emp.id) === editForm.leader,
+                              )?.full_name ?? "")
+                              : ""
+                        }
+                        onChange={(e) => {
+                          setLeaderSearchQuery(e.target.value);
+                          if (e.target.value === "")
+                            setEditForm((f) => ({ ...f, leader: "" }));
+                          setShowLeaderDropdown(true);
+                        }}
+                        onFocus={() => {
+                          const el = leaderDropdownRef.current;
+                          if (el) {
+                            const rect = el.getBoundingClientRect();
+                            setLeaderDropdownUpward(
+                              window.innerHeight - rect.bottom < 220,
+                            );
+                          }
+                          setShowLeaderDropdown(true);
+                          setLeaderSearchQuery(
+                            editForm.leader
+                              ? (employees.find(
+                                (emp) => String(emp.id) === editForm.leader,
+                              )?.full_name ?? "")
+                              : "",
+                          );
+                        }}
+                        className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          className={`transition-transform duration-200`}
+                        >
+                          <path
+                            d="M3 4.5L6 7.5L9 4.5"
+                            stroke="#8B8B8B"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {showLeaderDropdown && (
+                      <div
+                        className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${leaderDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
+                      >
+                        <div className="overflow-y-auto no-scrollbar max-h-44">
+                          {getProjectEmployees(editForm.project_id)
+                            .filter(
+                              (e) =>
+                                !leaderSearchQuery.trim() ||
+                                e.full_name
+                                  ?.toLowerCase()
+                                  .includes(leaderSearchQuery.toLowerCase()),
+                            )
+                            .map((e) => (
+                              <button
+                                key={e.id}
+                                type="button"
+                                onMouseDown={(ev) => {
+                                  ev.preventDefault();
+                                  setEditForm({
+                                    ...editForm,
+                                    leader: String(e.id),
+                                  });
+                                  setLeaderSearchQuery("");
+                                  setShowLeaderDropdown(false);
+                                }}
+                                className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
+                              >
+                                {e.full_name}
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[14px] font-medium text-[#353535] mb-3">
+                    Select Member <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <div className="relative" ref={memberDropdownRef}>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Select Member"
+                        value={
+                          showMemberDropdown
+                            ? memberSearchQuery
+                            : editForm.employee.length === 0
+                              ? ""
+                              : `${editForm.employee.length} Member(s) Selected`
+                        }
+                        onChange={(e) => {
+                          setMemberSearchQuery(e.target.value);
+                          setShowMemberDropdown(true);
+                        }}
+                        onFocus={() => {
+                          const el = memberDropdownRef.current;
+                          if (el) {
+                            const rect = el.getBoundingClientRect();
+                            setMemberDropdownUpward(
+                              window.innerHeight - rect.bottom < 220,
+                            );
+                          }
+                          setShowMemberDropdown(true);
+                          setMemberSearchQuery("");
+                        }}
+                        className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          className={`transition-transform duration-200`}
+                        >
+                          <path
+                            d="M3 4.5L6 7.5L9 4.5"
+                            stroke="#8B8B8B"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {showMemberDropdown && (
+                      <div
+                        className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${memberDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
+                      >
+                        <div className="overflow-y-auto no-scrollbar max-h-44">
+                          {getProjectEmployees(editForm.project_id)
+                            .filter(
+                              (e) =>
+                                !memberSearchQuery.trim() ||
+                                e.full_name
+                                  ?.toLowerCase()
+                                  .includes(memberSearchQuery.toLowerCase()),
+                            )
+                            .map((e) => (
+                              <label
+                                key={e.id}
+                                className="flex items-center gap-3 px-5 py-2.5 hover:bg-[#F2F2F2] cursor-pointer transition-colors group"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={editForm.employee.includes(
+                                    String(e.id),
+                                  )}
+                                  onChange={() =>
+                                    handleMemberToggle(String(e.id), true)
+                                  }
+                                  className="w-5 h-5 rounded border-gray-300 text-[#000000] focus:ring-0 cursor-pointer"
+                                />
+                                {(() => {
+                                  const profileUrl = e.profile_picture ? getGlobalProfileUrl(e.id, e.profile_picture) : null;
+                                  return (
+                                    <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden border">
+                                      {profileUrl ? (
+                                        <img src={profileUrl} alt={e.full_name} className="w-full h-full object-cover" />
+                                      ) : (
+                                        (e.full_name || "U")[0].toUpperCase()
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                                <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535]">
+                                  {e.full_name}
+                                </span>
+                              </label>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-center gap-6 pt-6">
                   <button
                     type="button"
-                    onClick={() => {
-                      const el = editProjectDropdownRef.current;
-                      if (el) {
-                        const rect = el.getBoundingClientRect();
-                        setEditProjectDropdownUpward(window.innerHeight - rect.bottom < 220);
-                      }
-                      setShowEditProjectDropdown(!showEditProjectDropdown);
-                    }}
-                    className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] flex items-center justify-between transition-all cursor-pointer font-Gantari"
+                    onClick={() => setShowEditModal(false)}
+                    className="px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] text-[14px] font-medium transition-all active:scale-[0.98] cursor-pointer"
                   >
-                    <span>
-                      {editForm.project_id
-                        ? projects.find((p) => String(p.id) === editForm.project_id)?.project_name || "Select Project"
-                        : "Select Project"}
-                    </span>
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M3 4.5L6 7.5L9 4.5"
-                        stroke="#8B8B8B"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    Discard
                   </button>
-
-                  {showEditProjectDropdown && (
-                    <div
-                      className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 overflow-y-auto no-scrollbar flex flex-col ${editProjectDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"
-                        }`}
-                    >
-                      {projects.map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setEditForm((f) => ({ ...f, project_id: String(p.id), leader: "", employee: [] }));
-                            setShowEditProjectDropdown(false);
-                          }}
-                          className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
-                        >
-                          {p.project_name ?? `Project ${p.id}`}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-12 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-medium transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                  >
+                    {submitting ? "Updating..." : "Update"}
+                  </button>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-[14px] font-medium text-[#353535] mb-3">
-                  Select Team Leader <span className="text-[#DD4342]">*</span>
-                </label>
-                <div className="relative" ref={leaderDropdownRef}>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Select Team Leader"
-                      value={
-                        showLeaderDropdown
-                          ? leaderSearchQuery
-                          : editForm.leader
-                            ? (employees.find(
-                              (emp) => String(emp.id) === editForm.leader,
-                            )?.full_name ?? "")
-                            : ""
-                      }
-                      onChange={(e) => {
-                        setLeaderSearchQuery(e.target.value);
-                        if (e.target.value === "")
-                          setEditForm((f) => ({ ...f, leader: "" }));
-                        setShowLeaderDropdown(true);
-                      }}
-                      onFocus={() => {
-                        const el = leaderDropdownRef.current;
-                        if (el) {
-                          const rect = el.getBoundingClientRect();
-                          setLeaderDropdownUpward(
-                            window.innerHeight - rect.bottom < 220,
-                          );
-                        }
-                        setShowLeaderDropdown(true);
-                        setLeaderSearchQuery(
-                          editForm.leader
-                            ? (employees.find(
-                              (emp) => String(emp.id) === editForm.leader,
-                            )?.full_name ?? "")
-                            : "",
-                        );
-                      }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className={`transition-transform duration-200`}
-                      >
-                        <path
-                          d="M3 4.5L6 7.5L9 4.5"
-                          stroke="#8B8B8B"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-
-                  {showLeaderDropdown && (
-                    <div
-                      className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${leaderDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
-                    >
-                      <div className="overflow-y-auto no-scrollbar max-h-44">
-                        {getProjectEmployees(editForm.project_id)
-                          .filter(
-                            (e) =>
-                              !leaderSearchQuery.trim() ||
-                              e.full_name
-                                ?.toLowerCase()
-                                .includes(leaderSearchQuery.toLowerCase()),
-                          )
-                          .map((e) => (
-                            <button
-                              key={e.id}
-                              type="button"
-                              onMouseDown={(ev) => {
-                                ev.preventDefault();
-                                setEditForm({
-                                  ...editForm,
-                                  leader: String(e.id),
-                                });
-                                setLeaderSearchQuery("");
-                                setShowLeaderDropdown(false);
-                              }}
-                              className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
-                            >
-                              {e.full_name}
-                            </button>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[14px] font-medium text-[#353535] mb-3">
-                  Select Member <span className="text-[#DD4342]">*</span>
-                </label>
-                <div className="relative" ref={memberDropdownRef}>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Select Member"
-                      value={
-                        showMemberDropdown
-                          ? memberSearchQuery
-                          : editForm.employee.length === 0
-                            ? ""
-                            : `${editForm.employee.length} Member(s) Selected`
-                      }
-                      onChange={(e) => {
-                        setMemberSearchQuery(e.target.value);
-                        setShowMemberDropdown(true);
-                      }}
-                      onFocus={() => {
-                        const el = memberDropdownRef.current;
-                        if (el) {
-                          const rect = el.getBoundingClientRect();
-                          setMemberDropdownUpward(
-                            window.innerHeight - rect.bottom < 220,
-                          );
-                        }
-                        setShowMemberDropdown(true);
-                        setMemberSearchQuery("");
-                      }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className={`transition-transform duration-200`}
-                      >
-                        <path
-                          d="M3 4.5L6 7.5L9 4.5"
-                          stroke="#8B8B8B"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-
-                  {showMemberDropdown && (
-                    <div
-                      className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${memberDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
-                    >
-                      <div className="overflow-y-auto no-scrollbar max-h-44">
-                        {getProjectEmployees(editForm.project_id)
-                          .filter(
-                            (e) =>
-                              !memberSearchQuery.trim() ||
-                              e.full_name
-                                ?.toLowerCase()
-                                .includes(memberSearchQuery.toLowerCase()),
-                          )
-                          .map((e) => (
-                            <label
-                              key={e.id}
-                              className="flex items-center gap-3 px-5 py-2.5 hover:bg-[#F2F2F2] cursor-pointer transition-colors group"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={editForm.employee.includes(
-                                  String(e.id),
-                                )}
-                                onChange={() =>
-                                  handleMemberToggle(String(e.id), true)
-                                }
-                                className="w-5 h-5 rounded border-gray-300 text-[#000000] focus:ring-0 cursor-pointer"
-                              />
-                              {(() => {
-                                const profileUrl = e.profile_picture ? getGlobalProfileUrl(e.id, e.profile_picture) : null;
-                                return (
-                                  <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden border">
-                                    {profileUrl ? (
-                                      <img src={profileUrl} alt={e.full_name} className="w-full h-full object-cover" />
-                                    ) : (
-                                      (e.full_name || "U")[0].toUpperCase()
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                              <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535]">
-                                {e.full_name}
-                              </span>
-                            </label>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-center gap-6 pt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] text-[14px] font-medium transition-all active:scale-[0.98] cursor-pointer"
-                >
-                  Discard
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-12 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-medium transition-all disabled:opacity-50 cursor-pointer shadow-sm"
-                >
-                  {submitting ? "Updating..." : "Update"}
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
       {showDetailsModal && selectedTeam && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">

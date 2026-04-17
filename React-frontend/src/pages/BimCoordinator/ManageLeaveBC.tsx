@@ -27,9 +27,35 @@ interface LeaveEntry {
   appliedOn: string;
   appliedTo?: string;
   currentStatus: string;
+  /** Raw tblleaves.status: 0 pending first approver, 3 pending BIM Lead, 1 approved, 2 rejected */
+  statusCode?: number;
   fromDate?: string;
   toDate?: string;
   description?: string;
+}
+
+function isBimModelerRole(role: string | undefined): boolean {
+  const r = (role || "").trim().toLowerCase();
+  return r === "bim modeler" || r.includes("bim modeler");
+}
+
+function isBimCoordinatorRole(role: string | undefined): boolean {
+  const r = (role || "").trim().toLowerCase();
+  return r === "bim coordinator" || r.includes("bim coordinator");
+}
+
+function mapLeaveStatusFromApi(
+  status: unknown,
+  applicantRole: string | undefined,
+): string {
+  const s = Number(status);
+  if (s === 1) return "Approved";
+  if (s === 2) return "Rejected";
+  if (s === 3) return "Pending (BIM Lead)";
+  if (s === 4) return "Pending (Project Manager)";
+  if (isBimModelerRole(applicantRole)) return "Pending (BIM Coordinator)";
+  if (isBimCoordinatorRole(applicantRole)) return "Pending (BIM Lead)";
+  return "Pending";
 }
 
 function normalizeNameAndReason(value: string): string {
@@ -120,6 +146,8 @@ export default function ManageLeaveBC() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingLeave, setEditingLeave] = useState<LeaveEntry | null>(null);
   const [deleteLeave, setDeleteLeave] = useState<LeaveEntry | null>(null);
+  const [approveLeave, setApproveLeave] = useState<LeaveEntry | null>(null);
+  const [rejectLeave, setRejectLeave] = useState<LeaveEntry | null>(null);
   const [leaveType, setLeaveType] = useState("");
   const [leaveFrom, setLeaveFrom] = useState("");
   const [leaveTo, setLeaveTo] = useState("");
@@ -210,27 +238,42 @@ export default function ManageLeaveBC() {
     setPaginationWindowStart(1);
   }, [selectedShowEntries, selectedEmployee]);
 
+  const mapCompanyLeavesForCoordinator = (apps: any[]) => {
+    if (!user?.id) return [];
+    const seen = new Set<number>();
+    const merged = apps.filter((app) => {
+      const self = app.employee_id === user.id;
+      const teamModeler = isBimModelerRole(app.role);
+      if (!self && !teamModeler) return false;
+      const lid = Number(app.lid);
+      if (seen.has(lid)) return false;
+      seen.add(lid);
+      return true;
+    });
+    merged.sort((a, b) => Number(b.lid) - Number(a.lid));
+    return merged.map((app, index) => ({
+      id: app.lid,
+      slNo: index + 1,
+      employeeId: app.employee_id,
+      employeeName: app.full_name || user.full_name || "Unknown",
+      role: app.role || user.user_role || "BIM Coordinator",
+      email: app.email || user.email || undefined,
+      leaveType: app.type_name || app.title || "Others",
+      appliedOn: formatApiDate(app.posting_date),
+      fromDate: formatApiDate(app.from_date),
+      toDate: formatApiDate(app.to_date),
+      description: app.description || "",
+      statusCode: Number(app.status),
+      currentStatus: mapLeaveStatusFromApi(app.status, app.role),
+    }));
+  };
+
   useEffect(() => {
     const fetchExistingLeaves = async () => {
       if (!user?.id) return;
       try {
         const { data } = await api.get<{ applications?: any[] }>("/api/leave/applications");
-        const apps = (data.applications || []).filter((app) => app.employee_id === user.id);
-        const mapped: LeaveEntry[] = apps.map((app, index) => ({
-          id: app.lid,
-          slNo: index + 1,
-          employeeId: app.employee_id,
-          employeeName: app.full_name || user.full_name || "Unknown",
-          role: app.role || user.user_role || "BIM Coordinator",
-          email: app.email || user.email || undefined,
-          leaveType: app.type_name || app.title || "Others",
-          appliedOn: formatApiDate(app.posting_date),
-          fromDate: formatApiDate(app.from_date),
-          toDate: formatApiDate(app.to_date),
-          description: app.description || "",
-          currentStatus: app.status === 1 ? "Approved" : app.status === 2 ? "Rejected" : "Pending",
-        }));
-        setLeaves(mapped);
+        setLeaves(mapCompanyLeavesForCoordinator(data.applications || []));
       } catch (err) {
         console.error("Failed to load BIM Coordinator leaves", err);
       }
@@ -265,24 +308,8 @@ export default function ManageLeaveBC() {
         from_date: leaveFrom,
         to_date: leaveTo,
       });
-      // Refresh leaves list
       const { data } = await api.get<{ applications?: any[] }>("/api/leave/applications");
-      const apps = (data.applications || []).filter((app) => app.employee_id === user?.id);
-      const mapped: LeaveEntry[] = apps.map((app, index) => ({
-        id: app.lid,
-        slNo: index + 1,
-        employeeId: app.employee_id,
-        employeeName: app.full_name || user?.full_name || "Unknown",
-        role: app.role || user?.user_role || "BIM Coordinator",
-        email: app.email || user?.email || undefined,
-        leaveType: app.type_name || app.title || "Others",
-        appliedOn: formatApiDate(app.posting_date),
-        fromDate: formatApiDate(app.from_date),
-        toDate: formatApiDate(app.to_date),
-        description: app.description || "",
-        currentStatus: app.status === 1 ? "Approved" : app.status === 2 ? "Rejected" : "Pending",
-      }));
-      setLeaves(mapped);
+      setLeaves(mapCompanyLeavesForCoordinator(data.applications || []));
       toast.success("Applied successfully");
       handleCloseModal();
     } catch (err) {
@@ -362,6 +389,81 @@ export default function ManageLeaveBC() {
       setDeleteLeave(null);
     } catch (err) {
       console.error("Failed to delete leave", err);
+    }
+  };
+
+  const canEditOwnLeaveRow = (row: LeaveEntry) =>
+    row.employeeId === user?.id && row.statusCode === 0;
+
+  const canCoordinatorActOnTeamModeler = (row: LeaveEntry) =>
+    row.employeeId !== user?.id &&
+    isBimModelerRole(row.role) &&
+    row.statusCode === 0;
+
+  const confirmApproveLeave = async () => {
+    if (approveLeave === null) return;
+    try {
+      const { data } = await api.post<{
+        success?: boolean;
+        stage?: string;
+        message?: string;
+      }>(`/api/leave/applications/${approveLeave.id}/approve`);
+      if (data?.success === false) {
+        toast.error(data.message || "Failed to approve leave.");
+        return;
+      }
+      if (data?.stage === "pending_bim_lead") {
+        toast.success("Forwarded to BIM Lead for final approval");
+        setLeaves((prev) =>
+          prev.map((l) =>
+            l.id === approveLeave.id
+              ? { ...l, currentStatus: "Pending (BIM Lead)", statusCode: 3 }
+              : l,
+          ),
+        );
+      } else {
+        toast.success("Approved successfully");
+        setLeaves((prev) =>
+          prev.map((l) =>
+            l.id === approveLeave.id
+              ? { ...l, currentStatus: "Approved", statusCode: 1 }
+              : l,
+          ),
+        );
+      }
+      setApproveLeave(null);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Failed to approve leave.";
+      toast.error(msg);
+    }
+  };
+
+  const confirmRejectLeave = async () => {
+    if (rejectLeave === null) return;
+    try {
+      const { data } = await api.post<{ success?: boolean; message?: string }>(
+        `/api/leave/applications/${rejectLeave.id}/reject`,
+      );
+      if (data?.success === false) {
+        toast.error(data.message || "Failed to reject leave.");
+        return;
+      }
+      toast.success("Rejected successfully");
+      setLeaves((prev) =>
+        prev.map((l) =>
+          l.id === rejectLeave.id
+            ? { ...l, currentStatus: "Rejected", statusCode: 2 }
+            : l,
+        ),
+      );
+      setRejectLeave(null);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Failed to reject leave.";
+      toast.error(msg);
     }
   };
 
@@ -686,6 +788,9 @@ export default function ManageLeaveBC() {
                       To Date
                     </th>
                     <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
+                      Current Status
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       Action
                     </th>
                   </tr>
@@ -694,7 +799,7 @@ export default function ManageLeaveBC() {
                   {displayedList.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={7}
+                        colSpan={8}
                         className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white"
                       >
                         No leave records found
@@ -729,6 +834,19 @@ export default function ManageLeaveBC() {
                             {row.toDate ?? "–"}
                           </td>
                           <td className="px-3 py-6 text-center text-[14px] whitespace-nowrap align-middle">
+                            <span
+                              className={`inline-flex px-2 sm:px-3 py-1 rounded-md text-[10px] sm:text-[12px] font-semibold font-gantari ${
+                                row.currentStatus === "Approved"
+                                  ? "bg-[#E1F6EB] text-[#008F22]"
+                                  : row.currentStatus === "Rejected"
+                                    ? "bg-[#FFE5E5] text-[#C62828]"
+                                    : "bg-[#FFEAD6] text-[#EB7200]"
+                              }`}
+                            >
+                              {row.currentStatus}
+                            </span>
+                          </td>
+                          <td className="px-3 py-6 text-center text-[14px] whitespace-nowrap align-middle">
                             <div className="flex items-center justify-center gap-2 flex-nowrap">
                               <button
                                 type="button"
@@ -743,7 +861,49 @@ export default function ManageLeaveBC() {
                                 />
                                 View
                             </button>
-                              {row.currentStatus === "Pending" && (
+                              {canCoordinatorActOnTeamModeler(row) && (
+                                <>
+                                  <button
+                                    type="button"
+                                    aria-label="Approve"
+                                    onClick={() => setApproveLeave(row)}
+                                    className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
+                                    title="Approve (send to BIM Lead)"
+                                  >
+                                    <svg
+                                      className="w-4 h-4 shrink-0"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                      strokeWidth="2.5"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    >
+                                      <path d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    aria-label="Reject"
+                                    onClick={() => setRejectLeave(row)}
+                                    className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
+                                    title="Reject"
+                                  >
+                                    <svg
+                                      className="w-4 h-4 shrink-0"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                      strokeWidth="2.5"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    >
+                                      <path d="M18 6L6 18M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                </>
+                              )}
+                              {canEditOwnLeaveRow(row) && (
                                 <>
                                   <button
                                     type="button"
@@ -1493,6 +1653,110 @@ export default function ManageLeaveBC() {
                 className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
                 Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {approveLeave !== null && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+            <div className="w-full flex items-center justify-between px-4 py-3 relative">
+              <button
+                type="button"
+                onClick={() => setApproveLeave(null)}
+                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
+                aria-label="Close"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+              <h3 className="absolute left-1/2 -translate-x-1/2 text-[18px] font-gantari font-semibold text-[#020202] whitespace-nowrap">
+                Approve leave
+              </h3>
+              <div className="w-8" />
+            </div>
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-4 text-center px-4">
+              Approve and send this BIM Modeler request to the BIM Lead for final approval?
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
+              <button
+                type="button"
+                onClick={() => setApproveLeave(null)}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={confirmApproveLeave}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E1F6EB] text-[#008F22] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Yes, approve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rejectLeave !== null && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+            <div className="w-full flex items-center justify-between px-4 py-3 relative">
+              <button
+                type="button"
+                onClick={() => setRejectLeave(null)}
+                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
+                aria-label="Close"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+              <h3 className="absolute left-1/2 -translate-x-1/2 text-[18px] font-gantari font-semibold text-[#020202] whitespace-nowrap">
+                Reject leave
+              </h3>
+              <div className="w-8" />
+            </div>
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center px-4">
+              Are you sure you want to reject this leave request?
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
+              <button
+                type="button"
+                onClick={() => setRejectLeave(null)}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={confirmRejectLeave}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+              >
+                Yes, reject
               </button>
             </div>
           </div>

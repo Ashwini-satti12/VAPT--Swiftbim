@@ -33,6 +33,9 @@ export default function TrackerPM() {
 
   const [selectedDate] = useState(getTodayKey());
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [employeeOpen, setEmployeeOpen] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState("");
   const [statusOpen, setStatusOpen] = useState(false);
   const statusOptions = ["", "Available", "Busy"];
   const showEntriesOptions: {
@@ -62,10 +65,17 @@ export default function TrackerPM() {
   const [paginationWindowStart, setPaginationWindowStart] = useState(1);
 
   const statusDropdownRef = useRef<HTMLDivElement>(null);
+  const employeeDropdownRef = useRef<HTMLDivElement>(null);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
   const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
   const timeDropdownRef = useRef<HTMLDivElement>(null);
   const [busyMap, setBusyMap] = useState<Record<string, boolean>>({});
+  const employeeOptions = Array.from(
+    new Set(list.map((item) => (item.full_name || "").trim()).filter(Boolean)),
+  );
+  const employeeOptionsFiltered = employeeOptions.filter((name) =>
+    name.toLowerCase().includes(employeeSearch.toLowerCase()),
+  );
   const timeRangeOptions = [
     "All Time",
     "09:00 AM - 12:00 PM",
@@ -158,6 +168,12 @@ export default function TrackerPM() {
         !statusDropdownRef.current.contains(event.target as Node)
       ) {
         setStatusOpen(false);
+      }
+      if (
+        employeeDropdownRef.current &&
+        !employeeDropdownRef.current.contains(event.target as Node)
+      ) {
+        setEmployeeOpen(false);
       }
       if (
         showEntriesDropdownRef.current &&
@@ -254,6 +270,9 @@ export default function TrackerPM() {
     // 2) Optional status filter: Available / Busy (derived from tasks)
     if (selectedStatus) {
       if (getStatus(item) !== selectedStatus) return false;
+    }
+    if (selectedEmployee && (item.full_name || "").trim() !== selectedEmployee) {
+      return false;
     }
 
     // 3) Optional time-of-day filter based on time_in
@@ -402,6 +421,65 @@ export default function TrackerPM() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {/* Employee Filter */}
+          <div className="relative min-w-[190px]" ref={employeeDropdownRef}>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEmployeeOpen((o) => !o);
+              }}
+              className="w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md text-sm font-semibold font-gantari text-[#353535] border-0 cursor-pointer"
+            >
+              <span className={`${selectedEmployee ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
+                {selectedEmployee || "Select Employee"}
+              </span>
+              <img
+                src={ArrowDown}
+                alt=""
+                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${employeeOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+            {employeeOpen && (
+              <div className="absolute top-full left-0 mt-2 z-[220] bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15)] w-full overflow-hidden">
+                <div className="p-2">
+                  <input
+                    type="text"
+                    value={employeeSearch}
+                    onChange={(e) => setEmployeeSearch(e.target.value)}
+                    placeholder="Search employee..."
+                    className="w-full px-3 py-2 bg-[#F2F2F2] rounded-md text-[14px] text-[#353535] outline-none"
+                  />
+                </div>
+                <div className="max-h-[220px] overflow-y-auto custom-scrollbar pb-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedEmployee("");
+                      setEmployeeOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-[14px] text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
+                  >
+                    Show All
+                  </button>
+                  {employeeOptionsFiltered.map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => {
+                        setSelectedEmployee(name);
+                        setEmployeeOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-[14px] hover:bg-[#F2F2F2] cursor-pointer ${selectedEmployee === name ? "text-[#353535] bg-[#F2F2F2]" : "text-[#8B8B8B]"}`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Time Range Filter dropdown with AM/PM ranges */}
           <div className="relative min-w-[170px]" ref={timeDropdownRef}>
             <button

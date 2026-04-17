@@ -358,8 +358,9 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     }
 
     // Only validate password if the user is trying to change it
-    const curPass = (currentPassword || "").trim();
-    const newPass = (newPassword || "").trim();
+    // Do not trim passwords; spaces can be valid characters.
+    const curPass = currentPassword || "";
+    const newPass = newPassword || "";
 
     if (curPass || newPass) {
       if (!curPass || !newPass) {
@@ -376,6 +377,8 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     setPasswordError("");
     setIsLoading(true);
     try {
+      let passwordUpdateFailed = false;
+
       // Use FormData for multipart/form-data (required for file upload)
       const formData = new FormData();
       formData.append("full_name", editData.name);
@@ -401,12 +404,13 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
           setCurrentPassword("");
           setNewPassword("");
         } catch (e: any) {
-          // Profile update succeeded; don't block UI update because password failed.
+          // Keep edit mode open so user can correct password inputs.
           const msg =
             e?.response?.data?.message ||
             e?.response?.data?.error ||
             "Password update failed. Please check current password.";
           setPasswordError(String(msg));
+          passwordUpdateFailed = true;
         }
       }
 
@@ -426,7 +430,9 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
       }
 
       setSelectedFile(null);
-      setIsEditingActual(false);
+      if (!passwordUpdateFailed) {
+        setIsEditingActual(false);
+      }
     } catch (err) {
       console.error("Profile update error:", err);
       alert("Failed to update profile. Please try again.");

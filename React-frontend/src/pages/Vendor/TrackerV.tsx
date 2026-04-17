@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../lib/api';
 
 interface LocationEntry {
@@ -25,8 +25,13 @@ export default function TrackerV() {
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
+    const [selectedEmployee, setSelectedEmployee] = useState('');
     const [statusOpen, setStatusOpen] = useState(false);
+    const [employeeOpen, setEmployeeOpen] = useState(false);
+    const [employeeSearch, setEmployeeSearch] = useState('');
     const statusOptions = ['', 'Online', 'Offline'];
+    const statusDropdownRef = useRef<HTMLDivElement>(null);
+    const employeeDropdownRef = useRef<HTMLDivElement>(null);
 
     const formatDate = (dateStr: string) => {
         if (!dateStr) return 'Select Date';
@@ -55,6 +60,7 @@ export default function TrackerV() {
     const filteredList = list.filter((item) => {
         let matchesDate = true;
         let matchesStatus = true;
+        let matchesEmployee = true;
 
         if (selectedDate) {
             const itemDate = item.updated_at ? new Date(item.updated_at).toISOString().split('T')[0] : '';
@@ -64,9 +70,33 @@ export default function TrackerV() {
         if (selectedStatus) {
             matchesStatus = item.status === selectedStatus;
         }
+        if (selectedEmployee) {
+            matchesEmployee = (item.full_name || '').trim() === selectedEmployee;
+        }
 
-        return matchesDate && matchesStatus;
+        return matchesDate && matchesStatus && matchesEmployee;
     });
+    const employeeOptions = useMemo(
+        () => Array.from(new Set(list.map((item) => (item.full_name || '').trim()).filter(Boolean))),
+        [list],
+    );
+    const employeeOptionsFiltered = useMemo(
+        () => employeeOptions.filter((name) => name.toLowerCase().includes(employeeSearch.toLowerCase())),
+        [employeeOptions, employeeSearch],
+    );
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+                setStatusOpen(false);
+            }
+            if (employeeDropdownRef.current && !employeeDropdownRef.current.contains(event.target as Node)) {
+                setEmployeeOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const handleDownload = () => {
         if (filteredList.length === 0) return;
@@ -125,6 +155,64 @@ export default function TrackerV() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
+                    {/* Employee Filter */}
+                    <div className="relative min-w-[190px]" ref={employeeDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setEmployeeOpen((o) => !o);
+                            }}
+                            className="w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#EAEAEA] rounded-md text-sm font-medium text-[#353535] cursor-pointer"
+                        >
+                            <span className={`${selectedEmployee ? 'text-[#353535]' : 'text-[#616161]'}`}>
+                                {selectedEmployee || 'Select Employee'}
+                            </span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                style={{ transform: employeeOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                                <path d="M6 9l6 6 6-6" />
+                            </svg>
+                        </button>
+                        {employeeOpen && (
+                            <div className="absolute top-full left-0 mt-2 z-[220] bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15)] w-full overflow-hidden">
+                                <div className="p-2">
+                                    <input
+                                        type="text"
+                                        value={employeeSearch}
+                                        onChange={(e) => setEmployeeSearch(e.target.value)}
+                                        placeholder="Search employee..."
+                                        className="w-full px-3 py-2 bg-[#F2F2F2] rounded-md text-[14px] text-[#353535] outline-none"
+                                    />
+                                </div>
+                                <div className="max-h-[220px] overflow-y-auto custom-scrollbar pb-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedEmployee('');
+                                            setEmployeeOpen(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-[14px] text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
+                                    >
+                                        Show All
+                                    </button>
+                                    {employeeOptionsFiltered.map((name) => (
+                                        <button
+                                            key={name}
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedEmployee(name);
+                                                setEmployeeOpen(false);
+                                            }}
+                                            className={`w-full text-left px-4 py-2 text-[14px] hover:bg-[#F2F2F2] cursor-pointer ${selectedEmployee === name ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B]'}`}
+                                        >
+                                            {name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Select Date Filter */}
                     <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
                         <span className={`text-sm font-medium ${selectedDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
@@ -147,7 +235,7 @@ export default function TrackerV() {
                     </div>
 
                     {/* Status Custom Dropdown */}
-                    <div className="relative min-w-[120px]" onBlur={() => setTimeout(() => setStatusOpen(false), 150)}>
+                    <div className="relative min-w-[120px]" ref={statusDropdownRef}>
                         <button type="button" onClick={() => setStatusOpen(o => !o)}
                             className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer">
                             <span className={`text-sm font-medium ${selectedStatus ? 'text-[#353535]' : 'text-[#616161]'}`}>

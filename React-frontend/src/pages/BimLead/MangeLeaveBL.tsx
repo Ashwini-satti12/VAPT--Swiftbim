@@ -24,9 +24,41 @@ interface LeaveEntry {
   appliedOn: string;
   appliedTo?: string;
   currentStatus: string;
+  statusCode?: number;
   fromDate?: string;
   toDate?: string;
   description?: string;
+}
+
+function isBimModelerRole(role: string | undefined): boolean {
+  const r = (role || "").trim().toLowerCase();
+  return r === "bim modeler" || r.includes("bim modeler");
+}
+
+function isBimCoordinatorRole(role: string | undefined): boolean {
+  const r = (role || "").trim().toLowerCase();
+  return r === "bim coordinator" || r.includes("bim coordinator");
+}
+
+function isBimLeadRole(role: string | undefined): boolean {
+  const r = (role || "").trim().toLowerCase();
+  return r === "bim lead" || r.includes("bim lead");
+}
+
+function mapLeaveStatusFromApi(
+  status: unknown,
+  applicantRole: string | undefined,
+): string {
+  const s = Number(status);
+  if (s === 1) return "Approved";
+  if (s === 2) return "Rejected";
+  if (s === 3) return "Pending (BIM Lead)";
+  if (s === 4) return "Pending (Project Manager)";
+  if (s === 5) return "Pending (Technical Director)";
+  if (s === 0 && isBimLeadRole(applicantRole)) return "Pending (Project Manager)";
+  if (isBimModelerRole(applicantRole)) return "Pending (BIM Coordinator)";
+  if (isBimCoordinatorRole(applicantRole)) return "Pending (BIM Lead)";
+  return "Pending";
 }
 
 const DUMMY_LEAVES: LeaveEntry[] = [
@@ -329,7 +361,8 @@ export default function ManageLeave() {
         const allowedRoles = new Set(["bim modeler", "bim coordinator"]);
         const filteredApps = apps.filter((app) => {
           const role = String(app.role || "").toLowerCase();
-          const isAllowedRole = allowedRoles.has(role);
+          const isAllowedRole =
+            allowedRoles.has(role) || isBimModelerRole(app.role);
           const isOwn = user && app.employee_id === user.id;
           return isAllowedRole || isOwn;
         });
@@ -347,12 +380,8 @@ export default function ManageLeave() {
           fromDate: formatApiDate(app.from_date),
           toDate: formatApiDate(app.to_date),
           description: app.description || "",
-          currentStatus:
-            app.status === 1
-              ? "Approved"
-              : app.status === 2
-                ? "Rejected"
-                : "Pending",
+          statusCode: Number(app.status),
+          currentStatus: mapLeaveStatusFromApi(app.status, app.role),
         }));
         setLeaves(mapped);
       } catch (err) {
@@ -606,7 +635,8 @@ export default function ManageLeave() {
         const allowedRoles = new Set(["bim modeler", "bim coordinator"]);
         const filteredApps = apps.filter((app) => {
           const role = String(app.role || "").toLowerCase();
-          const isAllowedRole = allowedRoles.has(role);
+          const isAllowedRole =
+            allowedRoles.has(role) || isBimModelerRole(app.role);
           const isOwn = user && app.employee_id === user.id;
           return isAllowedRole || isOwn;
         });
@@ -624,12 +654,8 @@ export default function ManageLeave() {
           fromDate: formatApiDate(app.from_date),
           toDate: formatApiDate(app.to_date),
           description: app.description || "",
-          currentStatus:
-            app.status === 1
-              ? "Approved"
-              : app.status === 2
-                ? "Rejected"
-                : "Pending",
+          statusCode: Number(app.status),
+          currentStatus: mapLeaveStatusFromApi(app.status, app.role),
         }));
         setLeaves(mapped);
       } catch (err) {
@@ -738,7 +764,8 @@ export default function ManageLeave() {
         const allowedRoles = new Set(["bim modeler", "bim coordinator"]);
         const filteredApps = apps.filter((app) => {
           const role = String(app.role || "").toLowerCase();
-          const isAllowedRole = allowedRoles.has(role);
+          const isAllowedRole =
+            allowedRoles.has(role) || isBimModelerRole(app.role);
           const isOwn = user && app.employee_id === user.id;
           return isAllowedRole || isOwn;
         });
@@ -756,12 +783,8 @@ export default function ManageLeave() {
           fromDate: formatApiDate(app.from_date),
           toDate: formatApiDate(app.to_date),
           description: app.description || "",
-          currentStatus:
-            app.status === 1
-              ? "Approved"
-              : app.status === 2
-                ? "Rejected"
-                : "Pending",
+          statusCode: Number(app.status),
+          currentStatus: mapLeaveStatusFromApi(app.status, app.role),
         }));
         setLeaves(mapped);
       } catch (err) {
@@ -796,7 +819,8 @@ export default function ManageLeave() {
       const allowedRoles = new Set(["bim modeler", "bim coordinator"]);
       const filteredApps = apps.filter((app) => {
         const role = String(app.role || "").toLowerCase();
-        const isAllowedRole = allowedRoles.has(role);
+        const isAllowedRole =
+          allowedRoles.has(role) || isBimModelerRole(app.role);
         const isOwn = user && app.employee_id === user.id;
         return isAllowedRole || isOwn;
       });
@@ -815,12 +839,8 @@ export default function ManageLeave() {
         fromDate: formatApiDate(app.from_date),
         toDate: formatApiDate(app.to_date),
         description: app.description || "",
-        currentStatus:
-          app.status === 1
-            ? "Approved"
-            : app.status === 2
-              ? "Rejected"
-              : "Pending",
+        statusCode: Number(app.status),
+        currentStatus: mapLeaveStatusFromApi(app.status, app.role),
       }));
       setLeaves(mapped);
       toast.success("Deleted successfully");
@@ -836,57 +856,110 @@ export default function ManageLeave() {
     statusLabel: "Approved" | "Rejected",
   ) => {
     setLeaves((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, currentStatus: statusLabel } : l)),
+      prev.map((l) =>
+        l.id === id
+          ? {
+              ...l,
+              currentStatus: statusLabel,
+              statusCode: statusLabel === "Approved" ? 1 : 2,
+            }
+          : l,
+      ),
     );
   };
 
   const confirmApproveLeave = async () => {
     if (approveLeave === null) return;
     try {
-      await api.post(`/api/leave/applications/${approveLeave.id}/approve`);
-      toast.success("Approved successfully");
-      updateLeaveStatus(approveLeave.id, "Approved");
+      const { data } = await api.post<{
+        success?: boolean;
+        stage?: string;
+        message?: string;
+      }>(`/api/leave/applications/${approveLeave.id}/approve`);
+      if (data?.success === false) {
+        toast.error(data.message || "Failed to approve leave.");
+        return;
+      }
+      if (data?.stage === "pending_bim_lead") {
+        toast.success("Forwarded to BIM Lead for final approval");
+        setLeaves((prev) =>
+          prev.map((l) =>
+            l.id === approveLeave.id
+              ? { ...l, currentStatus: "Pending (BIM Lead)", statusCode: 3 }
+              : l,
+          ),
+        );
+      } else if (data?.stage === "pending_project_manager") {
+        toast.success("Forwarded to Project Manager for final approval");
+        setLeaves((prev) =>
+          prev.map((l) =>
+            l.id === approveLeave.id
+              ? {
+                  ...l,
+                  currentStatus: "Pending (Project Manager)",
+                  statusCode: 4,
+                }
+              : l,
+          ),
+        );
+      } else {
+        toast.success("Approved successfully");
+        updateLeaveStatus(approveLeave.id, "Approved");
+      }
       setApproveLeave(null);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to approve leave", err);
-      toast.error("Failed to approve leave. Please try again.");
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Failed to approve leave. Please try again.";
+      toast.error(msg);
     }
   };
 
   const confirmRejectLeave = async () => {
     if (rejectLeave === null) return;
     try {
-      await api.post(`/api/leave/applications/${rejectLeave.id}/reject`);
+      const { data } = await api.post<{ success?: boolean; message?: string }>(
+        `/api/leave/applications/${rejectLeave.id}/reject`,
+      );
+      if (data?.success === false) {
+        toast.error(data.message || "Failed to reject leave.");
+        return;
+      }
       toast.success("Rejected successfully");
       updateLeaveStatus(rejectLeave.id, "Rejected");
       setRejectLeave(null);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to reject leave", err);
-      toast.error("Failed to reject leave. Please try again.");
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Failed to reject leave. Please try again.";
+      toast.error(msg);
     }
   };
 
-  // Only allow BIM Lead to approve/reject leaves for BIM Modeler / BIM Coordinator,
-  // and never for their own applications.
+  // BIM Lead: final approve/reject for BIM Modeler (after coordinator) or BIM Coordinator;
+  // never for their own applications.
   const canActOnLeave = (row: LeaveEntry): boolean => {
     const currentName = (user?.full_name || "").trim();
-    const role = (row.role || "").toLowerCase();
     if (!currentName) return false;
 
-    // Do not act on own leave applications
     if (row.employeeName.trim() === currentName) return false;
 
-    return role === "bim modeler" || role === "bim coordinator";
+    if (isBimModelerRole(row.role)) {
+      return row.currentStatus === "Pending (BIM Lead)";
+    }
+    if (isBimCoordinatorRole(row.role)) {
+      return row.currentStatus === "Pending (BIM Lead)";
+    }
+    return false;
   };
 
-  // Only the person who applied the leave can edit/delete their own application,
-  // and only while it is still Pending.
+  // Only the applicant can edit/delete their own application while still editable (status 0).
   const canEditLeave = (row: LeaveEntry): boolean => {
     const currentName = (user?.full_name || "").trim();
     if (!currentName) return false;
-    return (
-      row.employeeName.trim() === currentName && row.currentStatus === "Pending"
-    );
+    return row.employeeName.trim() === currentName && row.statusCode === 0;
   };
 
   return (
@@ -1224,8 +1297,7 @@ export default function ManageLeave() {
                                 </button>
                               </div>
 
-                              {row.currentStatus === "Pending" &&
-                                canActOnLeave(row) && (
+                              {canActOnLeave(row) && (
                                   <>
                                     <div className="relative group inline-flex shrink-0">
                                       <button

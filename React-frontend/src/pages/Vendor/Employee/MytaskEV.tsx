@@ -319,12 +319,14 @@ function TaskCard({
                     <h4 className="text-[20px] font-semibold text-[#353535] truncate leading-tight">
                         {task.task_name || "Task Name"}
                     </h4>
-                    <p
-                        className="text-[13px] font-medium text-[#8B8B8B] truncate mt-0.5"
-                        title={(task.project_name || "").trim() || undefined}
-                    >
-                        {(task.project_name || "").trim() || "—"}
-                    </p>
+                    {(task.project_name || "").trim() ? (
+                        <p
+                            className="text-[13px] font-medium text-[#8B8B8B] truncate mt-0.5"
+                            title={(task.project_name || "").trim() || undefined}
+                        >
+                            {(task.project_name || "").trim()}
+                        </p>
+                    ) : null}
                 </div>
                 <div className="absolute top-4 right-4" ref={menuRef}>
                     <button
@@ -687,7 +689,7 @@ export default function MytaskEV() {
         }
 
         Promise.all([
-            api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params }),
             api.get<{ success?: boolean; resources?: Employee[] }>(
                 "/api/vendors/vendor-resource-profiles",
             ),

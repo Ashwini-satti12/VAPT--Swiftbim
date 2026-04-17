@@ -3468,6 +3468,238 @@ def _notification_recipient_email(cur, user_id):
     return None
 
 
+def _extract_int_ids(raw_value):
+    """
+    Extract integer IDs from int/list/CSV-like payload values.
+    Returns de-duplicated IDs preserving insertion order.
+    """
+    if raw_value is None:
+        return []
+    parts = []
+    if isinstance(raw_value, (list, tuple, set)):
+        for item in raw_value:
+            if item is not None:
+                parts.append(str(item))
+    else:
+        text = str(raw_value).strip()
+        if not text:
+            return []
+        text = text.strip("[]")
+        parts = [p.strip() for p in re.split(r"[,\s;]+", text) if p.strip()]
+
+    seen = set()
+    out = []
+    for p in parts:
+        try:
+            pid = int(str(p).strip())
+        except (TypeError, ValueError):
+            continue
+        if pid not in seen:
+            seen.add(pid)
+            out.append(pid)
+    return out
+
+
+def _resolve_vendor_notify_user_ids(cur, candidate_ids):
+    """
+    Convert mixed identifiers into login user IDs that can receive notifications.
+    Supports:
+      - employee.id
+      - vendor_employee.id
+      - vendor_resource_profiles.id (mapped to vendor_employee_id)
+    """
+    if not candidate_ids:
+        return []
+    resolved = []
+    seen = set()
+    for cid in candidate_ids:
+        uid = _resolve_vendor_task_notification_recipient(cur, cid)
+        if uid is None:
+            continue
+        try:
+            uid = int(uid)
+        except (TypeError, ValueError):
+            continue
+        if uid in seen:
+            continue
+        seen.add(uid)
+        resolved.append(uid)
+    return resolved
+
+
+def _send_vendor_involvement_emails(cur, user_ids, subject, message_lines):
+    """
+    Best-effort email notifications to involved users.
+    Never raises (does not affect request success/rollback).
+    """
+    if not user_ids:
+        return
+    frontend_url = current_app.config.get("FRONTEND_URL") or "http://localhost:5173"
+    body = "\n".join([*(message_lines or []), "", f"Open app: {frontend_url}"])
+    for uid in user_ids:
+        try:
+            to_email = _notification_recipient_email(cur, uid)
+            if to_email:
+                _send_notification_email(to_email, subject, body)
+        except Exception:
+            pass
+
+
+def _resolve_actor_identity(cur):
+    """Resolve current actor display name and role for messages."""
+    actor_name = "Someone"
+    actor_role = ""
+    actor_id = getattr(g, "user_id", None)
+    try:
+        cur.execute(
+            "SELECT full_name, role FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+            (actor_id,),
+        )
+        vr = cur.fetchone() or {}
+        if vr.get("full_name"):
+            actor_name = str(vr.get("full_name")).strip()
+        if vr.get("role"):
+            actor_role = str(vr.get("role")).strip()
+    except Exception:
+        pass
+    if actor_name == "Someone":
+        try:
+            cur.execute(
+                "SELECT full_name, user_role FROM employee WHERE id = %s LIMIT 1",
+                (actor_id,),
+            )
+            er = cur.fetchone() or {}
+            if er.get("full_name"):
+                actor_name = str(er.get("full_name")).strip()
+            if er.get("user_role"):
+                actor_role = str(er.get("user_role")).strip()
+        except Exception:
+            pass
+    return actor_name, actor_role
+
+
+def _ensure_notification_entity_columns(cur):
+    """Ensure notifications deep-link columns exist."""
+    try:
+        cur.execute(
+            "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+        )
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+    except Exception:
+        pass
+    try:
+        cur.execute(
+            "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+        )
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+    except Exception:
+        pass
+
+
+def _insert_vendor_project_update_notifications(cur, project_id, project_name, recipient_ids, actor_name, actor_role, changed_fields):
+    """Create in-app notifications for vendor project edits."""
+    if not recipient_ids:
+        return
+    _ensure_notification_entity_columns(cur)
+    fields_label = ", ".join(changed_fields[:12]) if changed_fields else "project details"
+    msg = f"{project_name} project edited by {actor_name}. Updated fields: {fields_label}."
+    if actor_role:
+        msg += f" ({actor_role})"
+    notif_company_id = getattr(g, "company_id", None)
+    for rid in recipient_ids:
+        try:
+            cur.execute(
+                """
+                INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                """,
+                (
+                    rid,
+                    project_id,
+                    "Project updated",
+                    msg,
+                    "vendor_project_updated",
+                    "project",
+                    project_id,
+                    notif_company_id,
+                ),
+            )
+        except Exception:
+            try:
+                cur.execute(
+                    """
+                    INSERT INTO notifications (user_id, project_id, title, message, type, is_read, created_at, Company_id)
+                    VALUES (%s, %s, %s, %s, %s, 0, NOW(), %s)
+                    """,
+                    (
+                        rid,
+                        project_id,
+                        "Project updated",
+                        msg,
+                        "vendor_project_updated",
+                        notif_company_id,
+                    ),
+                )
+            except Exception:
+                pass
+
+
+def _insert_entity_update_notifications(
+    cur,
+    *,
+    recipient_ids,
+    project_id,
+    title,
+    notif_type,
+    entity_type,
+    entity_id,
+    message,
+):
+    """Generic in-app notification fan-out for edited entities."""
+    if not recipient_ids:
+        return
+    _ensure_notification_entity_columns(cur)
+    notif_company_id = getattr(g, "company_id", None)
+    for rid in recipient_ids:
+        try:
+            cur.execute(
+                """
+                INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                """,
+                (
+                    rid,
+                    project_id,
+                    title,
+                    message,
+                    notif_type,
+                    entity_type,
+                    entity_id,
+                    notif_company_id,
+                ),
+            )
+        except Exception:
+            try:
+                cur.execute(
+                    """
+                    INSERT INTO notifications (user_id, project_id, title, message, type, is_read, created_at, Company_id)
+                    VALUES (%s, %s, %s, %s, %s, 0, NOW(), %s)
+                    """,
+                    (
+                        rid,
+                        project_id,
+                        title,
+                        message,
+                        notif_type,
+                        notif_company_id,
+                    ),
+                )
+            except Exception:
+                pass
+
+
 def _profile_completeness(v: dict) -> int:
     """Return 0-100 completeness % for a vendor_onboarding row."""
     fields = ["company_name", "contact_email", "contact_name", "address",
@@ -5421,7 +5653,14 @@ def update_vendor_task(task_id):
     cur = conn.cursor(dictionary=True)
 
     cur.execute(
-        "SELECT id, project_id, task_name, assigned_to FROM vendor_task WHERE id = %s LIMIT 1",
+        """
+        SELECT
+            id, vendor_id, project_id, task_name, status, due_date, start_date, start_time, end_time,
+            category, modules, assigned_to, description, checklist, outputfilepath
+        FROM vendor_task
+        WHERE id = %s
+        LIMIT 1
+        """,
         (task_id,),
     )
     old_row = cur.fetchone() or {}
@@ -5443,6 +5682,7 @@ def update_vendor_task(task_id):
     )
     sets = []
     params = []
+    changed_fields = []
     for key in allowed:
         if key in data and data[key] is not None:
             val = data[key]
@@ -5451,6 +5691,8 @@ def update_vendor_task(task_id):
                     val = int(str(val).strip())
                 except (TypeError, ValueError):
                     pass
+            if str(old_row.get(key) or "").strip() != str(val or "").strip():
+                changed_fields.append(key)
             sets.append(f"`{key}` = %s")
             params.append(val)
     if not sets:
@@ -5470,6 +5712,44 @@ def update_vendor_task(task_id):
         project_for_msg = data.get("project_id", old_row.get("project_id"))
         task_for_msg = data.get("task_name", old_row.get("task_name"))
         _insert_task_assignment_notification(cur, new_recipient, project_for_msg, task_for_msg, task_id)
+
+    # Notify all task-involved users (creator + assignees) with who edited and fields changed.
+    cur.execute(
+        "SELECT id, vendor_id, project_id, task_name, assigned_to FROM vendor_task WHERE id = %s LIMIT 1",
+        (task_id,),
+    )
+    task_row = cur.fetchone() or {}
+    candidate_ids = []
+    candidate_ids.extend(_extract_int_ids(task_row.get("vendor_id")))
+    candidate_ids.extend(_extract_int_ids(old_row.get("assigned_to")))
+    candidate_ids.extend(_extract_int_ids(task_row.get("assigned_to")))
+    recipient_ids = _resolve_vendor_notify_user_ids(cur, candidate_ids)
+    actor_name, actor_role = _resolve_actor_identity(cur)
+    task_name = (task_row.get("task_name") or old_row.get("task_name") or f"Task #{task_id}").strip()
+    fields_label = ", ".join(changed_fields[:20]) if changed_fields else "task details"
+    role_suffix = f" ({actor_role})" if actor_role else ""
+    msg = f"{task_name} task edited by {actor_name}{role_suffix}. Updated fields: {fields_label}."
+    _insert_entity_update_notifications(
+        cur,
+        recipient_ids=recipient_ids,
+        project_id=task_row.get("project_id"),
+        title="Task updated",
+        notif_type="vendor_task_updated",
+        entity_type="task",
+        entity_id=task_id,
+        message=msg,
+    )
+    _send_vendor_involvement_emails(
+        cur,
+        recipient_ids,
+        "SwiftBIM Task Updated",
+        [
+            f"{task_name} task was edited by {actor_name}{role_suffix}.",
+            "",
+            "Updated fields:",
+            fields_label,
+        ],
+    )
 
     conn.commit()
     return jsonify({"success": True})
@@ -6445,8 +6725,36 @@ def create_vendor_project():
     sql = f"INSERT INTO snh6_swiftproject.vendor_projects ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)})"
     try:
         cur.execute(sql, tuple(values))
+        project_id = cur.lastrowid
+
+        # Notify all involved users (project members / lead roles), best-effort.
+        involved_raw = [
+            data.get("members"),
+            data.get("lead_id"),
+            data.get("project_manager_id"),
+            data.get("bim_coordinator_id"),
+        ]
+        candidate_ids = []
+        for raw in involved_raw:
+            candidate_ids.extend(_extract_int_ids(raw))
+        recipient_ids = _resolve_vendor_notify_user_ids(cur, candidate_ids)
+        project_name = (
+            (data.get("project_name") or "").strip()
+            or f"Project #{project_id}"
+        )
+        _send_vendor_involvement_emails(
+            cur,
+            recipient_ids,
+            "SwiftBIM Project Involvement",
+            [
+                "You have been involved in a vendor project in SwiftBIM.",
+                "",
+                f"Project: {project_name}",
+            ],
+        )
+
         conn.commit()
-        return jsonify({"success": True, "project_id": cur.lastrowid})
+        return jsonify({"success": True, "project_id": project_id})
     except Exception as e:
         conn.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
@@ -6469,7 +6777,16 @@ def update_vendor_project(project_id):
 
     # 1. Check existence + snapshot for sync (renames must use old values)
     cur.execute(
-        "SELECT document_attachment, project_name, main_project_id FROM snh6_swiftproject.vendor_projects WHERE id = %s",
+        """
+        SELECT
+            id, project_name, client_id, description, category, due_date, end_date,
+            department, progress, priority, start_date, members, budget, budget_ceiling,
+            bidding_end_date, location, modules, no_resource, no_resources_required,
+            lead_id, project_manager_id, totalhours, perday, bim_coordinator_id,
+            document_attachment, payment_status, deliverables, main_project_id
+        FROM snh6_swiftproject.vendor_projects
+        WHERE id = %s
+        """,
         (project_id,),
     )
     row = cur.fetchone()
@@ -6522,8 +6839,13 @@ def update_vendor_project(project_id):
     ]
     fields = []
     values = []
+    changed_fields = []
     for col in allowed:
         if col in data and data[col] is not None:
+            old_val = row.get(col)
+            new_val = data[col]
+            if str(old_val or "").strip() != str(new_val or "").strip():
+                changed_fields.append(col)
             fields.append(f"{col} = %s")
             values.append(data[col])
 
@@ -6578,6 +6900,51 @@ def update_vendor_project(project_id):
                     "UPDATE snh6_swiftproject.projects SET " + ", ".join(p_sets) + " WHERE id = %s",
                     tuple(p_params + [main_project_id]),
                 )
+
+        # Notify currently involved users with editor identity + changed fields.
+        cur.execute(
+            """
+            SELECT project_name, members, lead_id, project_manager_id, bim_coordinator_id
+            FROM snh6_swiftproject.vendor_projects
+            WHERE id = %s
+            LIMIT 1
+            """,
+            (project_id,),
+        )
+        updated_project = cur.fetchone() or {}
+        recipient_candidates = []
+        recipient_candidates.extend(_extract_int_ids(updated_project.get("members")))
+        recipient_candidates.extend(_extract_int_ids(updated_project.get("lead_id")))
+        recipient_candidates.extend(_extract_int_ids(updated_project.get("project_manager_id")))
+        recipient_candidates.extend(_extract_int_ids(updated_project.get("bim_coordinator_id")))
+        recipient_ids = _resolve_vendor_notify_user_ids(cur, recipient_candidates)
+
+        actor_name, actor_role = _resolve_actor_identity(cur)
+        effective_project_name = (
+            (updated_project.get("project_name") or "").strip()
+            or old_project_name
+            or f"Project #{project_id}"
+        )
+        _insert_vendor_project_update_notifications(
+            cur,
+            project_id,
+            effective_project_name,
+            recipient_ids,
+            actor_name,
+            actor_role,
+            changed_fields,
+        )
+        _send_vendor_involvement_emails(
+            cur,
+            recipient_ids,
+            "SwiftBIM Project Updated",
+            [
+                f"{effective_project_name} project was edited by {actor_name}{f' ({actor_role})' if actor_role else ''}.",
+                "",
+                "Updated fields:",
+                ", ".join(changed_fields[:20]) if changed_fields else "project details",
+            ],
+        )
 
         conn.commit()
         return jsonify({"success": True})
@@ -6804,8 +7171,44 @@ def create_vendor_team():
                 project_name,
             ),
         )
+        team_id = cur.lastrowid
+
+        # Notify all involved users in team creation (leader/project lead/members).
+        candidate_ids = []
+        candidate_ids.extend(_extract_int_ids(leader))
+        candidate_ids.extend(_extract_int_ids(project_lead))
+        candidate_ids.extend(_extract_int_ids(employee))
+        recipient_ids = _resolve_vendor_notify_user_ids(cur, candidate_ids)
+
+        effective_project_name = project_name or ""
+        if not effective_project_name and project_id:
+            try:
+                cur.execute(
+                    "SELECT project_name FROM snh6_swiftproject.vendor_projects WHERE id = %s LIMIT 1",
+                    (project_id,),
+                )
+                proj_row = cur.fetchone() or {}
+                effective_project_name = (proj_row.get("project_name") or "").strip()
+            except Exception:
+                effective_project_name = ""
+
+        lines = [
+            "You have been added to a vendor team in SwiftBIM.",
+            "",
+            f"Team: {team_name}",
+        ]
+        if effective_project_name:
+            lines.append(f"Project: {effective_project_name}")
+
+        _send_vendor_involvement_emails(
+            cur,
+            recipient_ids,
+            "SwiftBIM Team Involvement",
+            lines,
+        )
+
         conn.commit()
-        return jsonify({"success": True, "team_id": cur.lastrowid})
+        return jsonify({"success": True, "team_id": team_id})
     except Exception as e:
         conn.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
@@ -6822,6 +7225,18 @@ def update_vendor_team(team_id):
     data = request.get_json(silent=True) or request.form
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+    cur.execute(
+        """
+        SELECT id, project_id, project_name, team_name, leader, employee, project_lead
+        FROM vendor_team
+        WHERE id = %s
+        LIMIT 1
+        """,
+        (team_id,),
+    )
+    old_row = cur.fetchone() or {}
+    if not old_row:
+        return jsonify({"success": False, "message": "Team not found"}), 404
 
     allowed = (
         "team_name",
@@ -6833,8 +7248,11 @@ def update_vendor_team(team_id):
     )
     sets = []
     params = []
+    changed_fields = []
     for key in allowed:
         if key in data and data[key] is not None:
+            if str(old_row.get(key) or "").strip() != str(data[key] or "").strip():
+                changed_fields.append(key)
             sets.append(f"`{key}` = %s")
             params.append(data[key])
     if not sets:
@@ -6846,6 +7264,58 @@ def update_vendor_team(team_id):
             "UPDATE vendor_team SET " + ", ".join(sets) + " WHERE id = %s",
             params,
         )
+
+        cur.execute(
+            """
+            SELECT id, project_id, project_name, team_name, leader, employee, project_lead
+            FROM vendor_team
+            WHERE id = %s
+            LIMIT 1
+            """,
+            (team_id,),
+        )
+        team_row = cur.fetchone() or {}
+        candidate_ids = []
+        candidate_ids.extend(_extract_int_ids(old_row.get("leader")))
+        candidate_ids.extend(_extract_int_ids(old_row.get("project_lead")))
+        candidate_ids.extend(_extract_int_ids(old_row.get("employee")))
+        candidate_ids.extend(_extract_int_ids(team_row.get("leader")))
+        candidate_ids.extend(_extract_int_ids(team_row.get("project_lead")))
+        candidate_ids.extend(_extract_int_ids(team_row.get("employee")))
+        recipient_ids = _resolve_vendor_notify_user_ids(cur, candidate_ids)
+
+        actor_name, actor_role = _resolve_actor_identity(cur)
+        role_suffix = f" ({actor_role})" if actor_role else ""
+        team_name = (team_row.get("team_name") or old_row.get("team_name") or f"Team #{team_id}").strip()
+        fields_label = ", ".join(changed_fields[:20]) if changed_fields else "team details"
+        msg = f"{team_name} team edited by {actor_name}{role_suffix}. Updated fields: {fields_label}."
+        _insert_entity_update_notifications(
+            cur,
+            recipient_ids=recipient_ids,
+            project_id=team_row.get("project_id") or old_row.get("project_id"),
+            title="Team updated",
+            notif_type="vendor_team_updated",
+            entity_type="team",
+            entity_id=team_id,
+            message=msg,
+        )
+
+        project_name = (team_row.get("project_name") or old_row.get("project_name") or "").strip()
+        mail_lines = [
+            f"{team_name} team was edited by {actor_name}{role_suffix}.",
+            "",
+            "Updated fields:",
+            fields_label,
+        ]
+        if project_name:
+            mail_lines.extend(["", f"Project: {project_name}"])
+        _send_vendor_involvement_emails(
+            cur,
+            recipient_ids,
+            "SwiftBIM Team Updated",
+            mail_lines,
+        )
+
         conn.commit()
         return jsonify({"success": True})
     except Exception as e:
