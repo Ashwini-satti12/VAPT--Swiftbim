@@ -21,9 +21,33 @@ interface LeaveEntry {
   appliedOn: string;
   appliedTo?: string;
   currentStatus: string;
+  statusCode?: number;
   fromDate?: string;
   toDate?: string;
   description?: string;
+}
+
+function isBimLeadRole(role: string | undefined): boolean {
+  const r = (role || "").trim().toLowerCase();
+  return r === "bim lead" || r.includes("bim lead");
+}
+
+function isProjectManagerRole(role: string | undefined): boolean {
+  const r = (role || "").trim().toLowerCase();
+  return r === "project manager" || r.includes("project manager");
+}
+
+function mapLeaveStatusFromApi(
+  status: unknown,
+  applicantRole: string | undefined,
+): string {
+  const s = Number(status);
+  if (s === 1) return "Approved";
+  if (s === 2) return "Rejected";
+  if (s === 5) return "Pending (Technical Director)";
+  if (s === 0 && isBimLeadRole(applicantRole)) return "Pending (Project Manager)";
+  if (s === 0 && isProjectManagerRole(applicantRole)) return "Pending (Technical Director)";
+  return "Pending";
 }
 
 const DUMMY_LEAVES: LeaveEntry[] = [
@@ -233,11 +257,11 @@ export default function ManageLeave() {
       try {
         const { data } = await api.get<{ applications?: any[] }>(
           "/api/leave/applications",
-          {
-            params: { role: "BIM Lead" },
-          },
         );
-        const apps = data.applications || [];
+        const apps = (data.applications || []).filter((app) => {
+          const role = String(app.role || "").trim().toLowerCase();
+          return role === "bim lead" || role === "project manager";
+        });
         const mapped: LeaveEntry[] = apps.map((app, index) => ({
           id: app.lid,
           slNo: index + 1,
@@ -248,12 +272,8 @@ export default function ManageLeave() {
           fromDate: formatApiDate(app.from_date),
           toDate: formatApiDate(app.to_date),
           description: app.description || "",
-          currentStatus:
-            app.status === 1
-              ? "Approved"
-              : app.status === 2
-                ? "Rejected"
-                : "Pending",
+          statusCode: Number(app.status),
+          currentStatus: mapLeaveStatusFromApi(app.status, app.role),
         }));
         setLeaves(mapped);
       } catch (err) {
@@ -328,7 +348,15 @@ export default function ManageLeave() {
     statusLabel: "Approved" | "Rejected",
   ) => {
     setLeaves((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, currentStatus: statusLabel } : l)),
+      prev.map((l) =>
+        l.id === id
+          ? {
+              ...l,
+              currentStatus: statusLabel,
+              statusCode: statusLabel === "Approved" ? 1 : 2,
+            }
+          : l,
+      ),
     );
   };
 
@@ -352,12 +380,13 @@ export default function ManageLeave() {
     }
   };
 
-  // Technical Director can approve/reject all leaves except their own
+  // Technical Director can approve/reject BIM Lead/Project Manager leaves in TD stage.
   const canActOnLeave = (row: LeaveEntry): boolean => {
     const currentName = (user?.full_name || "").trim();
     if (!currentName) return false;
-    // Do not act on own leave applications
-    return row.employeeName.trim() !== currentName;
+    if (row.employeeName.trim() === currentName) return false;
+    const isTdTarget = isBimLeadRole(row.role) || isProjectManagerRole(row.role);
+    return isTdTarget && row.currentStatus === "Pending (Technical Director)";
   };
 
   return (
@@ -649,8 +678,7 @@ export default function ManageLeave() {
                                 />
                                 View
                               </button>
-                              {row.currentStatus === "Pending" &&
-                                canActOnLeave(row) ? (
+                              {canActOnLeave(row) ? (
                                 <>
                                   <div className="relative group inline-flex shrink-0">
                                     <button

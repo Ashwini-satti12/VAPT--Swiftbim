@@ -25,9 +25,34 @@ interface LeaveEntry {
   leaveTypeId?: number | null;
   appliedOn: string;
   currentStatus: string;
+  statusCode?: number;
   fromDate?: string;
   toDate?: string;
   description?: string;
+}
+
+function isBimModelerRole(role: string | undefined): boolean {
+  const r = (role || "").trim().toLowerCase();
+  return r === "bim modeler" || r.includes("bim modeler");
+}
+
+function isBimCoordinatorRole(role: string | undefined): boolean {
+  const r = (role || "").trim().toLowerCase();
+  return r === "bim coordinator" || r.includes("bim coordinator");
+}
+
+function mapLeaveStatusFromApi(
+  status: unknown,
+  applicantRole: string | undefined,
+): string {
+  const s = Number(status);
+  if (s === 1) return "Approved";
+  if (s === 2) return "Rejected";
+  if (s === 3) return "Pending (BIM Lead)";
+  if (s === 4) return "Pending (Project Manager)";
+  if (isBimModelerRole(applicantRole)) return "Pending (BIM Coordinator)";
+  if (isBimCoordinatorRole(applicantRole)) return "Pending (BIM Lead)";
+  return "Pending";
 }
 
 // Local dummy list removed; data now comes from backend /api/leave/applications
@@ -211,12 +236,8 @@ export default function ManageLeave() {
                     fromDate: formatApiDate(app.from_date),
                     toDate: formatApiDate(app.to_date),
                     description: app.description || '',
-                    currentStatus:
-                        app.status === 1
-                            ? 'Approved'
-                            : app.status === 2
-                            ? 'Rejected'
-                            : 'Pending',
+                    statusCode: Number(app.status),
+                    currentStatus: mapLeaveStatusFromApi(app.status, app.role),
                 }));
                 setLeaves(mapped);
             } catch (err) {
@@ -389,12 +410,8 @@ export default function ManageLeave() {
           fromDate: formatApiDate(app.from_date),
           toDate: formatApiDate(app.to_date),
           description: app.description || "",
-          currentStatus:
-            app.status === 1
-              ? "Approved"
-              : app.status === 2
-                ? "Rejected"
-                : "Pending",
+          statusCode: Number(app.status),
+          currentStatus: mapLeaveStatusFromApi(app.status, app.role),
         }));
         setLeaves(mapped);
       } catch (err) {
@@ -511,12 +528,8 @@ export default function ManageLeave() {
           fromDate: formatApiDate(app.from_date),
           toDate: formatApiDate(app.to_date),
           description: app.description || "",
-          currentStatus:
-            app.status === 1
-              ? "Approved"
-              : app.status === 2
-                ? "Rejected"
-                : "Pending",
+          statusCode: Number(app.status),
+          currentStatus: mapLeaveStatusFromApi(app.status, app.role),
         }));
         setLeaves(mapped);
       } catch (err) {
@@ -570,12 +583,8 @@ export default function ManageLeave() {
           fromDate: formatApiDate(app.from_date),
           toDate: formatApiDate(app.to_date),
           description: app.description || "",
-          currentStatus:
-            app.status === 1
-              ? "Approved"
-              : app.status === 2
-                ? "Rejected"
-                : "Pending",
+          statusCode: Number(app.status),
+          currentStatus: mapLeaveStatusFromApi(app.status, app.role),
         }));
         setLeaves(mapped);
       }
@@ -844,7 +853,7 @@ export default function ManageLeave() {
                                         displayedList.map((row, index) => {
                                             const slNo = rangeStart + index + 1;
                                             const slNoDisplay = String(slNo).padStart(2, '0');
-                                            const isPending = row.currentStatus === 'Pending';
+                                            const isPending = row.statusCode === 0;
                                             return (
                                                 <tr
                                                     key={row.id}

@@ -26,9 +26,47 @@ interface LeaveEntry {
   appliedOn: string;
   appliedTo?: string;
   currentStatus: string;
+  statusCode?: number;
   fromDate?: string;
   toDate?: string;
   description?: string;
+}
+
+function isBimCoordinatorRole(role: string | undefined): boolean {
+  const r = (role || "").trim().toLowerCase();
+  return r === "bim coordinator" || r.includes("bim coordinator");
+}
+
+function isBimLeadRole(role: string | undefined): boolean {
+  const r = (role || "").trim().toLowerCase();
+  return r === "bim lead" || r.includes("bim lead");
+}
+
+function isProjectManagerRole(role: string | undefined): boolean {
+  const r = (role || "").trim().toLowerCase();
+  return r === "project manager" || r.includes("project manager");
+}
+
+function isBimModelerRole(role: string | undefined): boolean {
+  const r = (role || "").trim().toLowerCase();
+  return r === "bim modeler" || r.includes("bim modeler");
+}
+
+function mapLeaveStatusFromApi(
+  status: unknown,
+  applicantRole: string | undefined,
+): string {
+  const s = Number(status);
+  if (s === 1) return "Approved";
+  if (s === 2) return "Rejected";
+  if (s === 3) return "Pending (BIM Lead)";
+  if (s === 4) return "Pending (Project Manager)";
+  if (s === 5) return "Pending (Technical Director)";
+  if (s === 0 && isBimLeadRole(applicantRole)) return "Pending (Project Manager)";
+  if (s === 0 && isProjectManagerRole(applicantRole)) return "Pending (Technical Director)";
+  if (isBimModelerRole(applicantRole)) return "Pending (BIM Coordinator)";
+  if (isBimCoordinatorRole(applicantRole)) return "Pending (BIM Lead)";
+  return "Pending";
 }
 
 // Dummy data previously used for layout/testing; kept here commented for reference only.
@@ -183,9 +221,12 @@ export default function ManageLeavePM() {
         const { data } = await api.get<{ applications?: any[] }>(
           "/api/leave/applications",
         );
-        const apps = (data.applications || []).filter(
-          (app) => app.employee_id === user.id,
-        );
+        const apps = (data.applications || []).filter((app) => {
+          const isOwn = app.employee_id === user.id;
+          const isCoordinator = isBimCoordinatorRole(app.role);
+          const isBimLead = isBimLeadRole(app.role);
+          return isOwn || isCoordinator || isBimLead;
+        });
         const mapped: LeaveEntry[] = apps.map((app, index) => ({
           id: app.lid,
           employeeId: app.employee_id,
@@ -201,12 +242,8 @@ export default function ManageLeavePM() {
           fromDate: formatApiDate(app.from_date),
           toDate: formatApiDate(app.to_date),
           description: app.description || "",
-          currentStatus:
-            app.status === 1
-              ? "Approved"
-              : app.status === 2
-                ? "Rejected"
-                : "Pending",
+          statusCode: Number(app.status),
+          currentStatus: mapLeaveStatusFromApi(app.status, app.role),
         }));
         setLeaves(mapped);
       } catch (err) {
@@ -375,12 +412,8 @@ export default function ManageLeavePM() {
           fromDate: formatApiDate(app.from_date),
           toDate: formatApiDate(app.to_date),
           description: app.description || "",
-          currentStatus:
-            app.status === 1
-              ? "Approved"
-              : app.status === 2
-                ? "Rejected"
-                : "Pending",
+          statusCode: Number(app.status),
+          currentStatus: mapLeaveStatusFromApi(app.status, app.role),
         }));
         setLeaves(mapped);
       } catch (err) {
@@ -495,12 +528,8 @@ export default function ManageLeavePM() {
           fromDate: formatApiDate(app.from_date),
           toDate: formatApiDate(app.to_date),
           description: app.description || "",
-          currentStatus:
-            app.status === 1
-              ? "Approved"
-              : app.status === 2
-                ? "Rejected"
-                : "Pending",
+          statusCode: Number(app.status),
+          currentStatus: mapLeaveStatusFromApi(app.status, app.role),
         }));
         setLeaves(mapped);
       } catch (err) {
@@ -548,12 +577,8 @@ export default function ManageLeavePM() {
         fromDate: formatApiDate(app.from_date),
         toDate: formatApiDate(app.to_date),
         description: app.description || "",
-        currentStatus:
-          app.status === 1
-            ? "Approved"
-            : app.status === 2
-              ? "Rejected"
-              : "Pending",
+        statusCode: Number(app.status),
+        currentStatus: mapLeaveStatusFromApi(app.status, app.role),
       }));
       setLeaves(mapped);
       toast.success("Deleted successfully");
@@ -564,7 +589,59 @@ export default function ManageLeavePM() {
     }
   };
 
-  // For Project Manager view we no longer approve/reject here, so no status mutations from this screen.
+  const canPmActOnLeave = (row: LeaveEntry): boolean => {
+    const currentName = (user?.full_name || "").trim();
+    if (!currentName) return false;
+    if (row.employeeName.trim() === currentName) return false;
+    const targetRole = isBimCoordinatorRole(row.role) || isBimLeadRole(row.role);
+    return targetRole && row.currentStatus === "Pending (Project Manager)";
+  };
+
+  const canEditOwnLeave = (row: LeaveEntry): boolean => {
+    const currentName = (user?.full_name || "").trim();
+    if (!currentName) return false;
+    return row.employeeName.trim() === currentName && row.statusCode === 0;
+  };
+
+  const handleApproveLeave = async (row: LeaveEntry) => {
+    try {
+      const { data } = await api.post<{ success?: boolean; message?: string }>(
+        `/api/leave/applications/${row.id}/approve`,
+      );
+      if (data?.success === false) {
+        toast.error(data.message || "Failed to approve leave.");
+        return;
+      }
+      toast.success("Approved successfully");
+      setLeaves((prev) =>
+        prev.map((l) =>
+          l.id === row.id ? { ...l, currentStatus: "Approved", statusCode: 1 } : l,
+        ),
+      );
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to approve leave.");
+    }
+  };
+
+  const handleRejectLeave = async (row: LeaveEntry) => {
+    try {
+      const { data } = await api.post<{ success?: boolean; message?: string }>(
+        `/api/leave/applications/${row.id}/reject`,
+      );
+      if (data?.success === false) {
+        toast.error(data.message || "Failed to reject leave.");
+        return;
+      }
+      toast.success("Rejected successfully");
+      setLeaves((prev) =>
+        prev.map((l) =>
+          l.id === row.id ? { ...l, currentStatus: "Rejected", statusCode: 2 } : l,
+        ),
+      );
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to reject leave.");
+    }
+  };
 
   // filtered list is always current user's leaves; dropdown still allows filter by name if desired
   const employeeFilterShowsAll =
@@ -886,6 +963,9 @@ export default function ManageLeavePM() {
                       To Date
                     </th>
                     <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
+                      Status
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       Action
                     </th>
                   </tr>
@@ -894,7 +974,7 @@ export default function ManageLeavePM() {
                   {displayedList.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={7}
+                        colSpan={8}
                         className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white"
                       >
                         No leave records found
@@ -929,6 +1009,19 @@ export default function ManageLeavePM() {
                             {row.toDate ?? "–"}
                           </td>
                           <td className="px-3 py-6 text-center text-[14px] whitespace-nowrap align-middle">
+                            <span
+                              className={`inline-flex px-2 sm:px-3 py-1 rounded-md text-[10px] sm:text-[12px] font-semibold font-gantari ${
+                                row.currentStatus === "Approved"
+                                  ? "bg-[#E1F6EB] text-[#008F22]"
+                                  : row.currentStatus === "Rejected"
+                                    ? "bg-[#FFE5E5] text-[#C62828]"
+                                    : "bg-[#FFEAD6] text-[#EB7200]"
+                              }`}
+                            >
+                              {row.currentStatus}
+                            </span>
+                          </td>
+                          <td className="px-3 py-6 text-center text-[14px] whitespace-nowrap align-middle">
                             <div className="flex items-center justify-center gap-2 flex-nowrap">
                               <button
                                 type="button"
@@ -943,7 +1036,47 @@ export default function ManageLeavePM() {
                                 />
                                 View
                               </button>
-                              {row.currentStatus === "Pending" && (
+                              {canPmActOnLeave(row) && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleApproveLeave(row)}
+                                    className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
+                                    title="Approve"
+                                  >
+                                    <svg
+                                      className="w-4 h-4 shrink-0"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                      strokeWidth="2.5"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    >
+                                      <path d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRejectLeave(row)}
+                                    className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-md font-medium active:scale-[0.98] transition-transform cursor-pointer"
+                                    title="Reject"
+                                  >
+                                    <svg
+                                      className="w-4 h-4 shrink-0"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                      strokeWidth="2.5"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    >
+                                      <path d="M18 6L6 18M6 6l12 12" />
+                                    </svg>
+                                  </button>
+                                </>
+                              )}
+                              {canEditOwnLeave(row) && (
                                 <>
                                   <button
                                     type="button"
