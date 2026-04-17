@@ -131,6 +131,13 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           isVisible: true,
         },
         {
+          name: "Work Order",
+          path: "/td/workorder",
+          iconSrc: projectIcon,
+          activeIconSrc: whiteProjectIcon,
+          isVisible: true,
+        },
+        {
           name: "My Task",
           path: "/td/mytasks",
           iconSrc: myTaskIcon,
