@@ -773,106 +773,105 @@ export default function ProjectsBC() {
 
             {/* Project View Content */}
             <div className="flex-1 flex flex-col overflow-hidden mt-4">
-              {/* Task Status Cards - Static at top */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-6 mb-4 shrink-0">
-                {/* Total Tasks */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate(
-                      "/bc/teamtasks" +
-                        (selectedProjectForView?.project_name
-                          ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                          : ""),
-                    )
-                  }
-                  className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
-                >
-                  <div className="flex items-center justify-left mb-2">
-                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                      Total Tasks
+              <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 pb-6 px-5">
+                {/* Task Status Cards - Static at top */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-4 shrink-0">
+                  {/* Total Tasks */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        "/bc/teamtasks" +
+                          (selectedProjectForView?.project_name
+                            ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            : ""),
+                      )
+                    }
+                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                  >
+                    <div className="flex items-center justify-left mb-2">
+                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                        Total Tasks
+                      </p>
+                    </div>
+                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                      {selectedProjectForView.total_tasks ?? 0}
                     </p>
-                  </div>
-                  <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                    {selectedProjectForView.total_tasks ?? 0}
-                  </p>
-                </button>
+                  </button>
 
-                {/* Completed Tasks */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate(
-                      "/bc/teamtasks?status=completed" +
-                        (selectedProjectForView?.project_name
-                          ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                          : ""),
-                    )
-                  }
-                  className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
-                >
-                  <div className="flex items-center justify-left mb-2">
-                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                      Completed Tasks
+                  {/* Completed Tasks */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        "/bc/teamtasks?status=completed" +
+                          (selectedProjectForView?.project_name
+                            ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            : ""),
+                      )
+                    }
+                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                  >
+                    <div className="flex items-center justify-left mb-2">
+                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                        Completed Tasks
+                      </p>
+                    </div>
+                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                      {selectedProjectForView.completed_tasks ?? 0}
                     </p>
-                  </div>
-                  <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                    {selectedProjectForView.completed_tasks ?? 0}
-                  </p>
-                </button>
+                  </button>
 
-                {/* To Do Tasks */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate(
-                      "/bc/teamtasks?status=todo" +
-                        (selectedProjectForView?.project_name
-                          ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                          : ""),
-                    )
-                  }
-                  className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
-                >
-                  <div className="flex items-center justify-left mb-2">
-                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                      To Do Tasks
+                  {/* To Do Tasks */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        "/bc/teamtasks?status=todo" +
+                          (selectedProjectForView?.project_name
+                            ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            : ""),
+                      )
+                    }
+                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                  >
+                    <div className="flex items-center justify-left mb-2">
+                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                        To Do Tasks
+                      </p>
+                    </div>
+                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                      {pmTaskStatsLoading ? "..." : pmTaskStats.todo}
                     </p>
-                  </div>
-                  <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                    {pmTaskStatsLoading ? "..." : pmTaskStats.todo}
-                  </p>
-                </button>
+                  </button>
 
-                {/* In Progress Tasks */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate(
-                      "/bc/teamtasks?status=in_progress" +
-                        (selectedProjectForView?.project_name
-                          ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                          : ""),
-                    )
-                  }
-                  className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
-                >
-                  <div className="flex items-center justify-left mb-2">
-                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                      In Progress Tasks
+                  {/* In Progress Tasks */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        "/bc/teamtasks?status=in_progress" +
+                          (selectedProjectForView?.project_name
+                            ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            : ""),
+                      )
+                    }
+                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                  >
+                    <div className="flex items-center justify-left mb-2">
+                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                        In Progress Tasks
+                      </p>
+                    </div>
+                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                      {pmTaskStatsLoading ? "..." : pmTaskStats.inProgress}
                     </p>
-                  </div>
-                  <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                    {pmTaskStatsLoading ? "..." : pmTaskStats.inProgress}
-                  </p>
-                </button>
-              </div>
+                  </button>
+                </div>
 
-              {/* Scrollable Content below KPI cards */}
-              <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 px-4 md:px-6 pb-6">
                 {/* Tower Progress Grid */}
-                <div className="border border-[#AEACAC52] rounded-md ">
-                  <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] px-6 md:px-8 lg:px-2 pt-6 md:pt-8 lg:pt-2">
+                <div className="border border-[#AEACAC52] rounded-md px-4 ">
+                  <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] px-4 md:px-5 lg:px-2 pt-6 md:pt-8 lg:pt-2">
                     Modules
                   </h4>
                   <div className="max-h-[220px] overflow-y-auto custom-scrollbar p-6 md:p-8 lg:p-2">
@@ -1575,7 +1574,7 @@ export default function ProjectsBC() {
                           </span>
                         </div>
                       )}
-                      <div className="flex flex-col sm:flex-row sm:items-center">
+                      {/* <div className="flex flex-col sm:flex-row sm:items-center">
                         <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
                           Task Name
                         </span>
@@ -1585,7 +1584,7 @@ export default function ProjectsBC() {
                         <span className="text-md font-Gantari font-medium text-[#666666]">
                           {selectedProjectForView.tasks || "N/A"}
                         </span>
-                      </div>
+                      </div> */}
                       <div className="flex flex-col sm:flex-row sm:items-center">
                         <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
                           Total Resources Available

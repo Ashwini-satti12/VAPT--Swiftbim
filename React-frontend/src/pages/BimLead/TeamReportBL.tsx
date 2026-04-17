@@ -62,27 +62,20 @@ export default function TimesheetPM() {
   const showEntriesOptions: {
     value: string;
     label: string;
-    start: number;
-    end: number | null;
+    limit: number | null;
   }[] = [
-      { value: "1-50", label: "1-50", start: 0, end: 50 },
-      { value: "51-100", label: "51-100", start: 50, end: 100 },
-      { value: "101-150", label: "101-150", start: 100, end: 150 },
-      { value: "151-200", label: "151-200", start: 150, end: 200 },
-      { value: "201-250", label: "201-250", start: 200, end: 250 },
-      { value: "251-300", label: "251-300", start: 250, end: 300 },
-      { value: "101-200", label: "101-200", start: 100, end: 200 },
-      { value: "201-300", label: "201-300", start: 200, end: 300 },
-      { value: "301-400", label: "301-400", start: 300, end: 400 },
-      { value: "all", label: "All", start: 0, end: null },
-    ];
+    { value: "1-50", label: "1-50", limit: 50 },
+    { value: "51-100", label: "51-100", limit: 100 },
+    { value: "101-150", label: "101-150", limit: 150 },
+    { value: "151-200", label: "151-200", limit: 200 },
+    { value: "201-250", label: "201-250", limit: 250 },
+    { value: "251-300", label: "251-300", limit: 300 },
+    { value: "all", label: "All", limit: null },
+  ];
   const [selectedShowEntries, setSelectedShowEntries] = useState("");
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
   const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
-  const PER_PAGE = 10;
-  const PAGINATION_VISIBLE = 4;
-  const [currentPage, setCurrentPage] = useState(1);
   const [_paginationWindowStart, setPaginationWindowStart] = useState(1);
 
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -172,15 +165,15 @@ export default function TimesheetPM() {
   const csvEscape = (val: string) =>
     `"${String(val).replace(/"/g, '""')}"`;
 
-  // Calculate task duration from start_time, end_time, Pause, and restart
+  // Calculate task duration using field-fallback logic (same as pickReportStart/pickReportEnd).
   const calculateDuration = (entry: TimesheetEntry): string => {
-    // Only use tracked time (start_time and end_time). 
-    // Fallbacks like Actual_start_time and due_date lead to incorrect, huge durations for tasks that haven't been tracked.
-    if (!entry.start_time || !entry.end_time) return "00:00:00";
+    const rawStart = pickReportStart(entry);
+    const rawEnd = pickReportEnd(entry);
+    if (!rawStart || !rawEnd) return "00:00:00";
 
     try {
-      const start = new Date(entry.start_time);
-      const end = new Date(entry.end_time);
+      const start = new Date(rawStart);
+      const end = new Date(rawEnd);
 
       if (isNaN(start.getTime()) || isNaN(end.getTime())) return "00:00:00";
 
@@ -191,7 +184,9 @@ export default function TimesheetPM() {
           typeof x === "number" ? x : Number(String(x ?? "").trim());
         return Number.isFinite(n) ? Math.trunc(n) : 0;
       };
-      totalSeconds = totalSeconds - sec(entry.Pause) + sec(entry.restart);
+      if (entry.start_time && entry.end_time) {
+        totalSeconds = totalSeconds - sec(entry.Pause) + sec(entry.restart);
+      }
 
       if (!Number.isFinite(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
 
@@ -317,65 +312,50 @@ export default function TimesheetPM() {
   }, [showEntriesOpen]);
 
   useEffect(() => {
-    setCurrentPage(1);
     setPaginationWindowStart(1);
   }, [selectedShowEntries]);
 
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+
   const filteredList = useMemo(() => {
-    if (!searchQuery) return list;
-    return list.filter(row =>
-      (row.project_name || "").toLowerCase().includes(searchQuery) ||
-      (row.task_name || "").toLowerCase().includes(searchQuery) ||
-      (row.assigned_name || "").toLowerCase().includes(searchQuery) ||
-      (row.assigned_by_name || "").toLowerCase().includes(searchQuery) ||
-      (row.teamname || "").toLowerCase().includes(searchQuery)
-    );
-  }, [list, searchQuery]);
+    let base = list;
+    if (searchQuery) {
+      base = base.filter(row =>
+        (row.project_name || "").toLowerCase().includes(searchQuery) ||
+        (row.task_name || "").toLowerCase().includes(searchQuery) ||
+        (row.assigned_name || "").toLowerCase().includes(searchQuery) ||
+        (row.assigned_by_name || "").toLowerCase().includes(searchQuery) ||
+        (row.teamname || "").toLowerCase().includes(searchQuery)
+      );
+    }
+    if (startDate || endDate) {
+      const effStart = startDate || endDate;
+      const effEnd = endDate || startDate;
+      base = [...base].sort((a, b) => {
+        const aDate = toYmd(pickReportStart(a));
+        const bDate = toYmd(pickReportStart(b));
+        const lo = effStart < effEnd ? effStart : effEnd;
+        const hi = effStart > effEnd ? effStart : effEnd;
+        const aMatch = aDate >= lo && aDate <= hi;
+        const bMatch = bDate >= lo && bDate <= hi;
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+        if (aDate < bDate) return -1;
+        if (aDate > bDate) return 1;
+        return 0;
+      });
+    }
+    return base;
+  }, [list, searchQuery, startDate, endDate]);
 
-  const effectiveShowEntryValue =
-    selectedShowEntries || showEntriesOptions[0].value;
-  const selectedRange =
-    showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ??
-    showEntriesOptions[0];
-  const rangeStart = selectedRange.start;
-  const rangeEnd =
-    selectedRange.end === null
-      ? filteredList.length
-      : Math.min(selectedRange.end, filteredList.length);
-  const listInRange = filteredList.slice(rangeStart, rangeEnd);
-  const totalInRange = listInRange.length;
-  const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
-  const safePage = Math.min(Math.max(1, currentPage), totalPages);
-  const displayedList = listInRange.slice(
-    (safePage - 1) * PER_PAGE,
-    safePage * PER_PAGE,
-  );
+  const selectedRangeOpt =
+    showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? null;
+  const displayedList =
+    selectedRangeOpt === null || selectedRangeOpt.limit === null
+      ? filteredList
+      : filteredList.slice(0, selectedRangeOpt.limit);
 
-  const pageRanges: { start: number; end: number; label: string }[] = [];
-  for (let p = 1; p <= totalPages; p++) {
-    const s = rangeStart + (p - 1) * PER_PAGE;
-    const e = Math.min(rangeStart + p * PER_PAGE, rangeEnd);
-    const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
-    pageRanges.push({ start: s, end: e, label });
-  }
-  // const activePage = safePage;
-  const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
-  // const effectiveWindowStart = Math.min(paginationWindowStart, maxWindowStart);
-  // const visiblePageRanges = pageRanges.slice(
-  //   effectiveWindowStart - 1,
-  //   effectiveWindowStart - 1 + PAGINATION_VISIBLE,
-  // );
-  // const canPrevWindow = paginationWindowStart > 1;
-  // const canNextWindow =
-  //   paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
-  // const goPrevWindow = () =>
-  //   setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
-  // const goNextWindow = () =>
-  //   setPaginationWindowStart((s) =>
-  //     Math.min(s + PAGINATION_VISIBLE, maxWindowStart),
-  //   );
-  void maxWindowStart;
+  void setPaginationWindowStart;
 
   const handleDownload = () => {
     if (filteredList.length === 0) return;
@@ -683,7 +663,7 @@ export default function TimesheetPM() {
                 ) : (
                   <>
                     <span className="text-[14px]">{SHOW_ENTRIES_SELECTED_PREFIX}</span>{" "}
-                    <span className="font-semibold">{selectedRange.label}</span>
+                    <span className="font-semibold">{selectedRangeOpt?.label}</span>
                   </>
                 )}
               </span>
@@ -718,7 +698,7 @@ export default function TimesheetPM() {
                   </button>
                   {showEntriesOptions.map((opt) => (
                     <button
-                      key={`${opt.value}-${opt.start}-${opt.end}`}
+                      key={opt.value}
                       type="button"
                       onMouseDown={(e) => {
                         e.preventDefault();
@@ -793,9 +773,7 @@ export default function TimesheetPM() {
                   </tr>
                 ) : (
                   displayedList.map((row, index) => {
-                    const baseIndex =
-                      rangeStart + (safePage - 1) * PER_PAGE + index;
-                    const slNo = (baseIndex + 1).toString().padStart(2, "0");
+                    const slNo = (index + 1).toString().padStart(2, "0");
                     const startDate = formatDate(pickReportStart(row));
                     const endDate = formatDate(pickReportEnd(row));
                     const duration = calculateDuration(row);
