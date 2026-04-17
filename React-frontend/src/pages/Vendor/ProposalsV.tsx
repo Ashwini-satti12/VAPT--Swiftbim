@@ -337,7 +337,7 @@ export default function ProposalsV() {
 
                                                     <button
                                                         onClick={() =>
-                                                            bid.proposal_exists && navigate("/td/view-proposal", {
+                                                            bid.proposal_exists && navigate(`/td/view-proposal?proposalId=${bid.proposal_id}&source=vendor_submitted`, {
                                                                 state: {
                                                                     proposalId: bid.proposal_id,
                                                                     bid,

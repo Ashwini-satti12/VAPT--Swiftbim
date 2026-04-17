@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import toast from "react-hot-toast";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import api from "../../lib/api";
 
@@ -26,6 +27,9 @@ export default function WorkorderForm() {
   const location = useLocation();
   const state: any = location.state || {};
 
+  const editWO = state?.editWO;
+  const editId = editWO?.id ? Number(editWO.id) : null;
+
   const [form, setForm] = useState({
     proposalId: state?.proposal?.id || null,
     vendorName: state?.proposal?.vendor_name || "",
@@ -45,6 +49,43 @@ export default function WorkorderForm() {
     paymentTerms: "",
     additionalTerms: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const mapWorkOrderToForm = (wo: any) => ({
+    proposalId: wo?.proposal_id ?? wo?.proposalId ?? null,
+    vendorName: wo?.vendor_name || wo?.vendorName || "",
+    vendorAddress: wo?.vendor_address || wo?.vendorAddress || "",
+    poDate: wo?.po_date || wo?.poDate || new Date().toISOString().split("T")[0],
+    poNumber: wo?.po_number || wo?.poNumber || "",
+    projectName: wo?.project_name || wo?.projectName || "",
+    projectLocation: wo?.project_location || wo?.projectLocation || "",
+    workDescription: wo?.work_description || wo?.workDescription || "",
+    scopeOfWork: wo?.scope_of_work || wo?.scopeOfWork || "",
+    projectInvolves: wo?.project_involves || wo?.projectInvolves || "",
+    deliverables: wo?.deliverables || "",
+    currency: (wo?.currency || "").toUpperCase(),
+    amountAED: wo?.amount_aed != null ? String(wo.amount_aed) : wo?.amountAED || "",
+    duration: wo?.duration || "",
+    termsAndConditions: wo?.terms_and_conditions || wo?.termsAndConditions || "",
+    paymentTerms: wo?.payment_terms || wo?.paymentTerms || "",
+    additionalTerms: wo?.additional_terms || wo?.additionalTerms || "",
+  });
+
+  useEffect(() => {
+    if (!editId) return;
+    api
+      .get<{ success?: boolean; work_order?: any }>(`/api/workorders/${editId}`)
+      .then((res) => {
+        const wo = res.data?.work_order;
+        if (wo) {
+          setForm(mapWorkOrderToForm(wo));
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch work order", err);
+        toast.error("Failed to load work order details.");
+      });
+  }, [editId]);
 
   const fieldClass =
     "w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-white border border-[#E0E0E0] rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52]";
@@ -102,11 +143,20 @@ export default function WorkorderForm() {
       return;
     }
     try {
-      await api.post("/api/workorders", form);
+      setIsSubmitting(true);
+      if (editId) {
+        await api.put(`/api/workorders/${editId}`, form);
+        toast.success("Work order updated successfully.");
+      } else {
+        await api.post("/api/workorders", form);
+        toast.success("Work order created successfully.");
+      }
       navigate("/td/workorder");
     } catch (err) {
-      console.error("Failed to create work order", err);
-      alert("Failed to create work order. Please try again.");
+      console.error("Failed to save work order", err);
+      toast.error("Failed to save work order. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -122,7 +172,7 @@ export default function WorkorderForm() {
             <img src={backIcon} alt="Back" className="w-5 h-5" />
           </button>
           <h3 className="text-[24px] font-semibold text-[#020202]">
-            Create Work Order
+            {editWO ? "Edit Work Order" : "Create Work Order"}
           </h3>
           <div className="w-10" />
         </div>
@@ -393,9 +443,10 @@ export default function WorkorderForm() {
             </button>
             <button
               type="submit"
+              disabled={isSubmitting}
               className="px-8 py-2 bg-[#DD4342] text-white rounded-[5px] font-semibold transition-all cursor-pointer"
             >
-              Submit
+              {isSubmitting ? "Saving..." : "Submit"}
             </button>
           </div>
         </form>

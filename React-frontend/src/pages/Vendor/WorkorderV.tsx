@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
-import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
 import api from "../../lib/api";
 
 interface WorkOrder {
@@ -10,9 +9,10 @@ interface WorkOrder {
   project_name: string;
   vendor_name: string;
   bid_amount: string;
+  currency?: string;
+  amount_aed?: number;
   timeline: string;
   status: string;
-  // Additional details from form
   vendor_address?: string;
   po_date?: string;
   po_number?: string;
@@ -26,7 +26,7 @@ interface WorkOrder {
   additional_terms?: string;
 }
 
-export default function Workorder() {
+export default function WorkorderV() {
   const navigate = useNavigate();
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
 
@@ -41,6 +41,8 @@ export default function Workorder() {
           project_name: r.project_name || "",
           vendor_name: r.vendor_name || "",
           bid_amount: `${r.currency || "AED"} ${r.amount_aed ?? 0}`,
+          currency: r.currency || "AED",
+          amount_aed: Number(r.amount_aed ?? 0),
           timeline: r.duration || "TBD",
           status: r.status || "Created",
           vendor_address: r.vendor_address,
@@ -100,81 +102,62 @@ export default function Workorder() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {workOrders.map((wo, index) => (
-                (() => {
-                  const canEdit = (wo.status || "").toLowerCase() === "created";
-                  return (
-                <tr
-                  key={wo.id}
-                  className={index % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}
-                >
-                  <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
-                    {String(index + 1).padStart(2, "0")}
-                  </td>
-                  <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
-                    {wo.project_name}
-                  </td>
-                  <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
-                    {wo.vendor_name}
-                  </td>
-                  <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
-                    {wo.bid_amount}
-                  </td>
-                  <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
-                    {wo.timeline}
-                  </td>
-                  <td className="px-3 py-6 text-center">
-                    <span className={`inline-flex px-4 py-1.5 rounded-lg text-[14px] font-semibold ${
-                      wo.status === "Accepted" ? "bg-[#E6F4EA] text-[#1E8E3E]" :
-                      wo.status === "Rejected" ? "bg-[#FCE8E6] text-[#D93025]" :
-                      "bg-[#EAF0FB] text-[#1967D2]"
-                    }`}>
-                      {wo.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-6 text-center">
-                    <div className="flex items-center justify-center gap-2">
+              {workOrders.length > 0 ? (
+                workOrders.map((wo, index) => (
+                  <tr
+                    key={wo.id}
+                    className={index % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}
+                  >
+                    <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
+                      {String(index + 1).padStart(2, "0")}
+                    </td>
+                    <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
+                      {wo.project_name}
+                    </td>
+                    <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
+                      {wo.vendor_name}
+                    </td>
+                    <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
+                      {wo.bid_amount}
+                    </td>
+                    <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
+                      {wo.timeline}
+                    </td>
+                    <td className="px-3 py-6 text-center">
+                      <span className={`inline-flex px-4 py-1.5 rounded-lg text-[14px] font-semibold ${
+                        wo.status === "Accepted" ? "bg-[#E6F4EA] text-[#1E8E3E]" :
+                        wo.status === "Rejected" ? "bg-[#FCE8E6] text-[#D93025]" :
+                        "bg-[#EAF0FB] text-[#1967D2]"
+                      }`}>
+                        {wo.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-6 text-center">
                       <button 
-                        onClick={() => navigate("/td/view-workorder", { state: { selectedWO: wo } })}
-                        className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-[14px] bg-[#DD4342] text-white cursor-pointer hover:opacity-90"
+                        onClick={() => navigate("/v/view-workorder", { state: { selectedWO: wo } })}
+                        className="flex items-center justify-center gap-2 px-4 py-2 mx-auto rounded-md text-[14px] bg-[#DD4342] text-white cursor-pointer hover:opacity-90"
                       >
                         <img
                           src={viewIcon}
                           alt=""
-                        className="w-4 h-4 brightness-0 invert"
+                          className="w-4 h-4 brightness-0 invert"
                         />
                         View
                       </button>
-                      <button 
-                        onClick={() => {
-                          if (!canEdit) return;
-                          navigate("/td/workorder-form", { state: { editWO: wo } });
-                        }}
-                        disabled={!canEdit}
-                        className={`flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-[14px] border ${
-                          canEdit
-                            ? "bg-white border-gray-300 text-gray-700 cursor-pointer hover:bg-gray-50"
-                            : "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                        }`}
-                      >
-                        <img
-                          src={editIcon}
-                          alt=""
-                          className={`w-4 h-4 ${canEdit ? "opacity-60" : "opacity-30"}`}
-                        />
-                        Edit
-                      </button>
-                    </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="px-3 py-10 text-center text-[#616161]">
+                    No Work Orders available.
                   </td>
                 </tr>
-                  );
-                })()
-              ))}
+              )}
             </tbody>
           </table>
         </div>
       </div>
-
     </div>
   );
 }

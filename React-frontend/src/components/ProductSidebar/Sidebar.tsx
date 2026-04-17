@@ -130,6 +130,20 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           activeIconSrc: redProposalIcon,
           isVisible: true,
         },
+        // {
+        //   name: "Payment Milestones",
+        //   path: "/td/payment-milestones",
+        //   iconSrc: trackerIcon,
+        //   activeIconSrc: whiteTrackerIcon,
+        //   isVisible: true,
+        // },
+        // {
+        //   name: "Invoices",
+        //   path: "/td/invoices",
+        //   iconSrc: teamReportIcon,
+        //   activeIconSrc: whiteTeamReportIcon,
+        //   isVisible: true,
+        // },
         {
           name: "Work Order",
           path: "/td/workorder",
@@ -420,6 +434,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           { name: "Dashboard", path: "/v/dashboard", iconSrc: dashboardIcon, activeIconSrc: whiteDashboardIcon, isVisible: true },
           { name: "Bidding", path: "/v/opportunities", iconSrc: blackBiddingIcon, activeIconSrc: redBiddingIcon, isVisible: true },
           { name: "Proposals", path: "/v/proposals", iconSrc: blackProposalIcon, activeIconSrc: redProposalIcon, isVisible: true },
+          { name: "Work Order", path: "/v/workorder", iconSrc: projectIcon, activeIconSrc: whiteProjectIcon, isVisible: true },
           { name: "Projects", path: "/v/projects", iconSrc: projectIcon, activeIconSrc: whiteProjectIcon, isVisible: true },
           { name: "My Task", path: "/v/mytasks", iconSrc: myTaskIcon, activeIconSrc: whiteMyTaskIcon, isVisible: true },
           { name: "Team Task", path: "/v/teamtasks", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },
@@ -427,6 +442,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           { name: "Resources", path: "/v/resources", iconSrc: consultantIcon, activeIconSrc: whiteConsultantIcon, isVisible: true },
           { name: "Company Profile", path: "/v/company-profile", iconSrc: consultantIcon, activeIconSrc: whiteConsultantIcon, isVisible: true },
           { name: "Milestones", path: "/v/milestones", iconSrc: trackerIcon, activeIconSrc: whiteTrackerIcon, isVisible: true },
+          { name: "Invoices", path: "/v/invoices", iconSrc: teamReportIcon, activeIconSrc: whiteTeamReportIcon, isVisible: true },
           // { name: "Communication", path: "/v/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
           { name: "Performance", path: "/v/performance", iconSrc: teamReportIcon, activeIconSrc: whiteTeamReportIcon, isVisible: true },
         ];

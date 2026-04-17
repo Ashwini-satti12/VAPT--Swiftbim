@@ -177,7 +177,10 @@ export default function ViewInvoiceDetailsTD() {
   const downloadInvoicePdf = () => {
     if (!detail) return;
     const safe = String(detail.invoice_number).replace(/[^\w-]+/g, "_");
-    void downloadAuthedPdf(`/api/invoices/${detail.id}/pdf`, `${safe}.pdf`);
+    void downloadAuthedPdf(
+      `/api/payment-milestones/new-swiftbim/invoices/${detail.id}/pdf?project_id=${projectId}`,
+      `${safe}.pdf`,
+    );
   };
 
   const downloadPaymentPdf = (pay: PaymentRow) => {
