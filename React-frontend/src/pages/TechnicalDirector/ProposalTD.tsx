@@ -256,7 +256,7 @@ export default function ProposalTD() {
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() =>
-                                  navigate("/td/view-proposal", {
+                                  navigate(`/td/view-proposal?proposalId=${p.id}&source=vendor_submitted`, {
                                     state: { proposalId: p.id, bid: p, source: "vendor_submitted" },
                                   })
                                 }

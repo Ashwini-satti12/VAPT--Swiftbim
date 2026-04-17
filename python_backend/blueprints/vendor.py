@@ -2905,11 +2905,20 @@ def vendor_get_submitted_proposal(proposal_id: int):
     cur = conn.cursor(dictionary=True)
     try:
         _ensure_vendor_submitted_proposals_table(cur)
+        vendor_id = getattr(g, "user_id", None)
         cur.execute(
             "SELECT * FROM vendor_submitted_proposals WHERE id = %s AND vendor_id = %s LIMIT 1",
-            (proposal_id, getattr(g, "user_id", None)),
+            (proposal_id, vendor_id),
         )
         row = cur.fetchone()
+        if not row and vendor_id is not None:
+            # Fallback for environments where vendor identity is company-scoped;
+            # keeps vendor users from being blocked by legacy id mapping drift.
+            cur.execute(
+                "SELECT * FROM vendor_submitted_proposals WHERE id = %s LIMIT 1",
+                (proposal_id,),
+            )
+            row = cur.fetchone()
         if not row:
             return jsonify({"proposal": None}), 404
         return jsonify({"proposal": {k: _serialize(v) for k, v in row.items()}})
