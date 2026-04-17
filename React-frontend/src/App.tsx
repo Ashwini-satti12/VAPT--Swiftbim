@@ -61,6 +61,9 @@ import ProposalTD from "./pages/TechnicalDirector/ProposalTD";
 import CreateProposalTD from "./pages/TechnicalDirector/CreateProposalTD";
 import ViewProposalTD from "./pages/TechnicalDirector/ViewProposalTD";
 import ManageLeaveTD from "./pages/TechnicalDirector/ManageLeaveTD";
+import Workorder from "./pages/TechnicalDirector/Workorder";
+import WorkorderForm from "./pages/TechnicalDirector/WorkorderForm";
+import ViewWorkorder from "./pages/TechnicalDirector/ViewWorkorder";
 
 /* Bim Lead */
 import DashboardBL from "./pages/BimLead/DashboardBL";
@@ -132,17 +135,15 @@ import CommunicationV from "./pages/Vendor/CommunicationV";
 import PerformanceV from "./pages/Vendor/PerformanceV";
 
 /* Vendor PM */
-import DashboardPMV from './pages/Vendor/ProjectManager/DashboardPMV';
-import ProjectsPMV from './pages/Vendor/ProjectManager/ProjectsPMV';
-import MytaskPMV from './pages/Vendor/ProjectManager/MytaskPMV';
-import AddEditTaskPMV from './pages/Vendor/ProjectManager/AddEditTaskPMV';
-import TeamtaskPMV from './pages/Vendor/ProjectManager/TeamtaskPMV';
-import CreateteamPMV from './pages/Vendor/ProjectManager/CreateteamPMV';
-import ChatPMV from './pages/Vendor/ProjectManager/ChatPMV';
-import ProposalsPMV from './pages/Vendor/ProjectManager/ProposalsPMV';
-import CompanyProfileEditPMV from './pages/Vendor/ProjectManager/CompanyProfileEditPMV';
-
-
+import DashboardPMV from "./pages/Vendor/ProjectManager/DashboardPMV";
+import ProjectsPMV from "./pages/Vendor/ProjectManager/ProjectsPMV";
+import MytaskPMV from "./pages/Vendor/ProjectManager/MytaskPMV";
+import AddEditTaskPMV from "./pages/Vendor/ProjectManager/AddEditTaskPMV";
+import TeamtaskPMV from "./pages/Vendor/ProjectManager/TeamtaskPMV";
+import CreateteamPMV from "./pages/Vendor/ProjectManager/CreateteamPMV";
+import ChatPMV from "./pages/Vendor/ProjectManager/ChatPMV";
+import ProposalsPMV from "./pages/Vendor/ProjectManager/ProposalsPMV";
+import CompanyProfileEditPMV from "./pages/Vendor/ProjectManager/CompanyProfileEditPMV";
 
 /* Vendor Employee */
 import DashboardEV from "./pages/Vendor/Employee/DashboardEV";
@@ -283,6 +284,9 @@ function App() {
             <Route path="td/create-proposal" element={<CreateProposalTD />} />
             <Route path="td/view-proposal" element={<ViewProposalTD />} />
             <Route path="td/manage-leave" element={<ManageLeaveTD />} />
+            <Route path="td/workorder" element={<Workorder />} />
+            <Route path="td/workorder-form" element={<WorkorderForm />} />
+            <Route path="td/view-workorder" element={<ViewWorkorder />} />
             {/* Bim Lead Routes */}
             <Route path="bl/dashboard" element={<DashboardBL />} />
             <Route path="bl/consultants" element={<ConsultantBL />} />
@@ -397,7 +401,10 @@ function App() {
               path="vpm/company-profile/resources/:resourceId"
               element={<CompanyProfileResourcePageV />}
             />
-            <Route path="vpm/company-profile/edit" element={<CompanyProfileEditPMV />} />
+            <Route
+              path="vpm/company-profile/edit"
+              element={<CompanyProfileEditPMV />}
+            />
 
             {/* Vendor Employee Routes */}
             <Route path="ve/dashboard" element={<DashboardEV />} />
