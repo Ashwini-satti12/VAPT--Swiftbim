@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import api from "../../lib/api";
 
 interface WorkOrder {
   id: number;
@@ -26,80 +27,40 @@ interface WorkOrder {
 
 export default function Workorder() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const state: any = location.state || {};
-
-  const [workOrders, setWorkOrders] = useState<WorkOrder[]>(() => {
-    const saved = sessionStorage.getItem("mockWorkOrders");
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return [
-      {
-        id: 1,
-        project_name: "The Oasis Retail Centre",
-        vendor_name: "LetzBIM",
-        bid_amount: "AED 23,456",
-        timeline: "2 months",
-        status: "Created",
-        vendor_address: "Plot no 52, nr. SHIVE MANDIR,\nIngole Layout, Nagpur, Maharashtra, India",
-        po_date: "17/04/2026",
-        po_number: "PO-SW-LB-123/26",
-        project_location: "Dubai, UAE",
-        work_description: "Updating Revit model up to LOD 400 & LOD 500...",
-        scope_of_work: "LetzBIM Scope of work: includes Performing all activities...",
-        project_involves: "1. Preparation of coordinated LOD 400 BIM Model...",
-        deliverables: "• RVT-LOD 400 Model\n• DWG – Shop Drawings (Civil)...",
-        terms_and_conditions: "• LetzBIM staff will work as per the client's approved drawing...",
-        payment_terms: "• Upon receiving the PO, 10% Advance...",
-        additional_terms: "1. Non-Contact with Client\n2. Non-Solicitation...",
-      },
-    ];
-  });
-
-  // State removed, now handled by separate route
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
 
   useEffect(() => {
-    sessionStorage.setItem("mockWorkOrders", JSON.stringify(workOrders));
-  }, [workOrders]);
-
-  useEffect(() => {
-    if (state?.newWorkOrder) {
-      const newWorkOrderData = state.newWorkOrder;
-      
-      setWorkOrders((prev) => {
-        // Prevent adding duplicate if it already matches a recently added random PO or ID
-        if (prev.some(wo => wo.project_name === newWorkOrderData.projectName && wo.po_number === newWorkOrderData.poNumber && wo.timeline === newWorkOrderData.duration)) {
-          return prev;
-        }
-        
-        const newWorkOrder: WorkOrder = {
-          id: prev.length + 1,
-          proposal_id: newWorkOrderData.proposalId,
-          project_name: newWorkOrderData.projectName,
-          vendor_name: newWorkOrderData.vendorName,
-          bid_amount: `AED ${newWorkOrderData.amountAED}`,
-          timeline: newWorkOrderData.duration || "TBD",
-          status: "Created",
-          vendor_address: newWorkOrderData.vendorAddress,
-          po_date: newWorkOrderData.poDate,
-          po_number: newWorkOrderData.poNumber,
-          project_location: newWorkOrderData.projectLocation,
-          work_description: newWorkOrderData.workDescription,
-          scope_of_work: newWorkOrderData.scopeOfWork,
-          project_involves: newWorkOrderData.projectInvolves,
-          deliverables: newWorkOrderData.deliverables,
-          terms_and_conditions: newWorkOrderData.termsAndConditions,
-          payment_terms: newWorkOrderData.paymentTerms,
-          additional_terms: newWorkOrderData.additionalTerms,
-        };
-        return [newWorkOrder, ...prev];
+    api
+      .get<{ success?: boolean; work_orders?: any[] }>("/api/workorders")
+      .then((res) => {
+        const rows = res.data?.work_orders || [];
+        const mapped: WorkOrder[] = rows.map((r) => ({
+          id: Number(r.id),
+          proposal_id: r.proposal_id ?? undefined,
+          project_name: r.project_name || "",
+          vendor_name: r.vendor_name || "",
+          bid_amount: `${r.currency || "AED"} ${r.amount_aed ?? 0}`,
+          timeline: r.duration || "TBD",
+          status: r.status || "Created",
+          vendor_address: r.vendor_address,
+          po_date: r.po_date,
+          po_number: r.po_number,
+          project_location: r.project_location,
+          work_description: r.work_description,
+          scope_of_work: r.scope_of_work,
+          project_involves: r.project_involves,
+          deliverables: r.deliverables,
+          terms_and_conditions: r.terms_and_conditions,
+          payment_terms: r.payment_terms,
+          additional_terms: r.additional_terms,
+        }));
+        setWorkOrders(mapped);
+      })
+      .catch((err) => {
+        console.error("Failed to load work orders", err);
+        setWorkOrders([]);
       });
-
-      // Clear state to avoid adding duplicate on refresh
-      window.history.replaceState({}, document.title);
-    }
-  }, [state?.newWorkOrder]);
+  }, []);
 
   return (
     <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white font-Gantari relative">
