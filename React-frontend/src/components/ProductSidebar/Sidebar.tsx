@@ -420,6 +420,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           { name: "Dashboard", path: "/v/dashboard", iconSrc: dashboardIcon, activeIconSrc: whiteDashboardIcon, isVisible: true },
           { name: "Bidding", path: "/v/opportunities", iconSrc: blackBiddingIcon, activeIconSrc: redBiddingIcon, isVisible: true },
           { name: "Proposals", path: "/v/proposals", iconSrc: blackProposalIcon, activeIconSrc: redProposalIcon, isVisible: true },
+          { name: "Work Order", path: "/v/workorder", iconSrc: projectIcon, activeIconSrc: whiteProjectIcon, isVisible: true },
           { name: "Projects", path: "/v/projects", iconSrc: projectIcon, activeIconSrc: whiteProjectIcon, isVisible: true },
           { name: "My Task", path: "/v/mytasks", iconSrc: myTaskIcon, activeIconSrc: whiteMyTaskIcon, isVisible: true },
           { name: "Team Task", path: "/v/teamtasks", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },

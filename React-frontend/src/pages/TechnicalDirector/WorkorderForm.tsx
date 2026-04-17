@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import toast from "react-hot-toast";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import api from "../../lib/api";
 
@@ -25,6 +26,8 @@ export default function WorkorderForm() {
   const navigate = useNavigate();
   const location = useLocation();
   const state: any = location.state || {};
+
+  const editWO = state?.editWO;
 
   const [form, setForm] = useState({
     proposalId: state?.proposal?.id || null,
@@ -122,7 +125,7 @@ export default function WorkorderForm() {
             <img src={backIcon} alt="Back" className="w-5 h-5" />
           </button>
           <h3 className="text-[24px] font-semibold text-[#020202]">
-            Create Work Order
+            {editWO ? "Edit Work Order" : "Create Work Order"}
           </h3>
           <div className="w-10" />
         </div>

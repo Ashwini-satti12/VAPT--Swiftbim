@@ -120,22 +120,39 @@ export default function Workorder() {
                     {wo.timeline}
                   </td>
                   <td className="px-3 py-6 text-center">
-                    <span className="inline-flex px-4 py-1.5 rounded-lg text-[14px] bg-[#EAF0FB] text-[#1967D2]">
+                    <span className={`inline-flex px-4 py-1.5 rounded-lg text-[14px] font-semibold ${
+                      wo.status === "Accepted" ? "bg-[#E6F4EA] text-[#1E8E3E]" :
+                      wo.status === "Rejected" ? "bg-[#FCE8E6] text-[#D93025]" :
+                      "bg-[#EAF0FB] text-[#1967D2]"
+                    }`}>
                       {wo.status}
                     </span>
                   </td>
                   <td className="px-3 py-6 text-center">
-                    <button 
-                      onClick={() => navigate("/td/view-workorder", { state: { selectedWO: wo } })}
-                      className="flex items-center justify-center gap-2 px-4 py-2 mx-auto rounded-md text-[14px] bg-[#DD4342] text-white cursor-pointer hover:opacity-90"
-                    >
-                      <img
-                        src={viewIcon}
-                        alt=""
+                    <div className="flex items-center justify-center gap-2">
+                      <button 
+                        onClick={() => navigate("/td/view-workorder", { state: { selectedWO: wo } })}
+                        className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-[14px] bg-[#DD4342] text-white cursor-pointer hover:opacity-90"
+                      >
+                        <img
+                          src={viewIcon}
+                          alt=""
                         className="w-4 h-4 brightness-0 invert"
-                      />
-                      View
-                    </button>
+                        />
+                        View
+                      </button>
+                      <button 
+                        onClick={() => navigate("/td/workorder-form", { state: { editWO: wo } })}
+                        className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-[14px] bg-white border border-gray-300 text-gray-700 cursor-pointer hover:bg-gray-50"
+                      >
+                        <img
+                          src={editIcon}
+                          alt=""
+                          className="w-4 h-4 opacity-60"
+                        />
+                        Edit
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

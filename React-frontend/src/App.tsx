@@ -133,6 +133,8 @@ import CompanyProfileResourcePageV from "./pages/Vendor/CompanyProfileResourcePa
 import MilestonesV from "./pages/Vendor/MilestonesV";
 import CommunicationV from "./pages/Vendor/CommunicationV";
 import PerformanceV from "./pages/Vendor/PerformanceV";
+import WorkorderV from "./pages/Vendor/WorkorderV";
+import ViewWorkorderV from "./pages/Vendor/ViewWorkorderV";
 
 /* Vendor PM */
 import DashboardPMV from "./pages/Vendor/ProjectManager/DashboardPMV";
@@ -379,6 +381,8 @@ function App() {
             <Route path="v/communication" element={<CommunicationV />} />
             <Route path="v/performance" element={<PerformanceV />} />
             <Route path="v/resources" element={<ResourcesV />} />
+            <Route path="v/workorder" element={<WorkorderV />} />
+            <Route path="v/view-workorder" element={<ViewWorkorderV />} />
 
             {/* Vendor PM Routes */}
             <Route path="vpm/dashboard" element={<DashboardPMV />} />
