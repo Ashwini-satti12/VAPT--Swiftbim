@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import api from "../../lib/api";
 
 interface WorkOrder {
   id: number;
@@ -8,6 +9,8 @@ interface WorkOrder {
   project_name: string;
   vendor_name: string;
   bid_amount: string;
+  currency?: string;
+  amount_aed?: number;
   timeline: string;
   status: string;
   vendor_address?: string;
@@ -25,38 +28,42 @@ interface WorkOrder {
 
 export default function WorkorderV() {
   const navigate = useNavigate();
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
 
-  const [workOrders, setWorkOrders] = useState<WorkOrder[]>(() => {
-    try {
-      const saved = sessionStorage.getItem("mockWorkOrders");
-      if (saved && saved !== "undefined" && saved !== "null") {
-        return JSON.parse(saved);
-      }
-    } catch (error) {
-      console.error("Failed to parse mock work orders", error);
-    }
-    return [
-      {
-        id: 1,
-        project_name: "The Oasis Retail Centre",
-        vendor_name: "LetzBIM",
-        bid_amount: "AED 23,456",
-        timeline: "2 months",
-        status: "Created",
-        vendor_address: "Plot no 52, nr. SHIVE MANDIR,\nIngole Layout, Nagpur, Maharashtra, India",
-        po_date: "17/04/2026",
-        po_number: "PO-SW-LB-123/26",
-        project_location: "Dubai, UAE",
-        work_description: "Updating Revit model up to LOD 400 & LOD 500...",
-        scope_of_work: "LetzBIM Scope of work: includes Performing all activities...",
-        project_involves: "1. Preparation of coordinated LOD 400 BIM Model...",
-        deliverables: "• RVT-LOD 400 Model\n• DWG – Shop Drawings (Civil)...",
-        terms_and_conditions: "• LetzBIM staff will work as per the client's approved drawing...",
-        payment_terms: "• Upon receiving the PO, 10% Advance...",
-        additional_terms: "1. Non-Contact with Client\n2. Non-Solicitation...",
-      },
-    ];
-  });
+  useEffect(() => {
+    api
+      .get<{ success?: boolean; work_orders?: any[] }>("/api/workorders")
+      .then((res) => {
+        const rows = res.data?.work_orders || [];
+        const mapped: WorkOrder[] = rows.map((r) => ({
+          id: Number(r.id),
+          proposal_id: r.proposal_id ?? undefined,
+          project_name: r.project_name || "",
+          vendor_name: r.vendor_name || "",
+          bid_amount: `${r.currency || "AED"} ${r.amount_aed ?? 0}`,
+          currency: r.currency || "AED",
+          amount_aed: Number(r.amount_aed ?? 0),
+          timeline: r.duration || "TBD",
+          status: r.status || "Created",
+          vendor_address: r.vendor_address,
+          po_date: r.po_date,
+          po_number: r.po_number,
+          project_location: r.project_location,
+          work_description: r.work_description,
+          scope_of_work: r.scope_of_work,
+          project_involves: r.project_involves,
+          deliverables: r.deliverables,
+          terms_and_conditions: r.terms_and_conditions,
+          payment_terms: r.payment_terms,
+          additional_terms: r.additional_terms,
+        }));
+        setWorkOrders(mapped);
+      })
+      .catch((err) => {
+        console.error("Failed to load work orders", err);
+        setWorkOrders([]);
+      });
+  }, []);
 
   return (
     <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white font-Gantari relative">

@@ -184,25 +184,32 @@ export default function ViewProposalTD() {
   }, [proposalId, source]);
 
   useEffect(() => {
-    // Check if work order already created
-    try {
-      const saved = sessionStorage.getItem("mockWorkOrders");
-      if (saved && (proposal || bid)) {
-        const parsed = JSON.parse(saved);
-        const pId = proposal?.id || bid?.id;
-        const pName = proposal?.project_name || bid?.project_name;
-        const vName = proposal?.vendor_name || bid?.vendor_name;
-        const exists = parsed.some((wo: any) => 
-          (pId && wo.proposal_id === pId) || 
-          (wo.project_name === pName && wo.vendor_name === vName)
-        );
-        if (exists) {
-          setHasWorkOrder(true);
-        }
-      }
-    } catch {
-      // ignore
+    const pId = proposal?.id || bid?.id;
+    const pName = (proposal?.project_name || bid?.project_name || "").trim();
+    const vName = (proposal?.vendor_name || bid?.vendor_name || "").trim();
+    if (!pId && !pName && !vName) {
+      setHasWorkOrder(false);
+      return;
     }
+
+    api
+      .get<{ success?: boolean; work_orders?: any[] }>("/api/workorders")
+      .then(({ data }) => {
+        const rows = data?.work_orders || [];
+        const exists = rows.some((wo: any) => {
+          const woPid = Number(wo?.proposal_id || 0);
+          const thisPid = Number(pId || 0);
+          const byProposal = thisPid > 0 && woPid === thisPid;
+          const byName =
+            (wo?.project_name || "").trim() === pName &&
+            (wo?.vendor_name || "").trim() === vName;
+          return byProposal || byName;
+        });
+        setHasWorkOrder(exists);
+      })
+      .catch(() => {
+        setHasWorkOrder(false);
+      });
   }, [proposal, bid]);
 
   const respond = async (action: "accept" | "reject") => {

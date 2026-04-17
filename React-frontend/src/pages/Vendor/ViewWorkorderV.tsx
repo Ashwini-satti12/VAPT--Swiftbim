@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
+import api from "../../lib/api";
 
 interface WorkOrder {
   id: number;
@@ -7,6 +9,8 @@ interface WorkOrder {
   project_name: string;
   vendor_name: string;
   bid_amount: string;
+  currency?: string;
+  amount_aed?: number;
   timeline: string;
   status: string;
   vendor_address?: string;
@@ -26,20 +30,83 @@ export default function ViewWorkorderV() {
   const location = useLocation();
   const navigate = useNavigate();
   const state: any = location.state || {};
-  const selectedWO: WorkOrder | null = state.selectedWO || null;
+  const initialWO: WorkOrder | null = state.selectedWO || null;
+  const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(initialWO);
+
+  const mapApiToWorkOrder = (r: any): WorkOrder => ({
+    id: Number(r.id),
+    proposal_id: r.proposal_id ?? undefined,
+    project_name: r.project_name || "",
+    vendor_name: r.vendor_name || "",
+    bid_amount: `${r.currency || "AED"} ${r.amount_aed ?? 0}`,
+    currency: r.currency || "AED",
+    amount_aed: Number(r.amount_aed ?? 0),
+    timeline: r.duration || "TBD",
+    status: r.status || "Created",
+    vendor_address: r.vendor_address,
+    po_date: r.po_date,
+    po_number: r.po_number,
+    project_location: r.project_location,
+    work_description: r.work_description,
+    scope_of_work: r.scope_of_work,
+    project_involves: r.project_involves,
+    deliverables: r.deliverables,
+    terms_and_conditions: r.terms_and_conditions,
+    payment_terms: r.payment_terms,
+    additional_terms: r.additional_terms,
+  });
+
+  useEffect(() => {
+    const id = Number(initialWO?.id || 0);
+    if (!id) return;
+    api
+      .get<{ success?: boolean; work_order?: any }>(`/api/workorders/${id}`)
+      .then((res) => {
+        if (res.data?.work_order) {
+          setSelectedWO(mapApiToWorkOrder(res.data.work_order));
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load work order details", err);
+      });
+  }, [initialWO?.id]);
 
   const handleStatusChange = (newStatus: string) => {
+    if (!selectedWO) return;
+    const parsedAmount = Number((selectedWO.bid_amount || "").replace(/[^\d.]/g, ""));
+    const amountRaw = selectedWO.amount_aed ?? (Number.isFinite(parsedAmount) ? parsedAmount : 0);
+    const payload = {
+      proposalId: selectedWO.proposal_id ?? null,
+      projectName: selectedWO.project_name || "",
+      vendorName: selectedWO.vendor_name || "",
+      vendorAddress: selectedWO.vendor_address || "",
+      poDate: selectedWO.po_date || null,
+      poNumber: selectedWO.po_number || "",
+      projectLocation: selectedWO.project_location || "",
+      workDescription: selectedWO.work_description || "",
+      scopeOfWork: selectedWO.scope_of_work || "",
+      projectInvolves: selectedWO.project_involves || "",
+      deliverables: selectedWO.deliverables || "",
+      currency: selectedWO.currency || "AED",
+      amountAED: amountRaw,
+      duration: selectedWO.timeline === "TBD" ? "" : selectedWO.timeline || "",
+      termsAndConditions: selectedWO.terms_and_conditions || "",
+      paymentTerms: selectedWO.payment_terms || "",
+      additionalTerms: selectedWO.additional_terms || "",
+      status: newStatus,
+    };
     try {
-      const saved = sessionStorage.getItem("mockWorkOrders");
-      if (saved && saved !== "undefined" && saved !== "null") {
-        const workOrders: WorkOrder[] = JSON.parse(saved);
-        const updatedWorkOrders = workOrders.map((wo) =>
-          wo.id === selectedWO.id ? { ...wo, status: newStatus } : wo
-        );
-        sessionStorage.setItem("mockWorkOrders", JSON.stringify(updatedWorkOrders));
-        alert(`Work Order has been ${newStatus}!`);
-        navigate("/v/workorder");
-      }
+      api
+        .put(`/api/workorders/${selectedWO.id}`, payload)
+        .then(() => {
+          setSelectedWO((prev) => (prev ? { ...prev, status: newStatus } : prev));
+          alert(`Work Order has been ${newStatus}!`);
+          navigate("/v/workorder");
+        })
+        .catch((error) => {
+          console.error("Failed to update status", error);
+          alert("Failed to update work order status.");
+        });
     } catch (error) {
       console.error("Failed to update status", error);
     }

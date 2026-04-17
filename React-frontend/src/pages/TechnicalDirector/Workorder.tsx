@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
 import api from "../../lib/api";
 
 interface WorkOrder {
@@ -100,6 +101,9 @@ export default function Workorder() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {workOrders.map((wo, index) => (
+                (() => {
+                  const canEdit = (wo.status || "").toLowerCase() === "created";
+                  return (
                 <tr
                   key={wo.id}
                   className={index % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}
@@ -142,19 +146,29 @@ export default function Workorder() {
                         View
                       </button>
                       <button 
-                        onClick={() => navigate("/td/workorder-form", { state: { editWO: wo } })}
-                        className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-[14px] bg-white border border-gray-300 text-gray-700 cursor-pointer hover:bg-gray-50"
+                        onClick={() => {
+                          if (!canEdit) return;
+                          navigate("/td/workorder-form", { state: { editWO: wo } });
+                        }}
+                        disabled={!canEdit}
+                        className={`flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-[14px] border ${
+                          canEdit
+                            ? "bg-white border-gray-300 text-gray-700 cursor-pointer hover:bg-gray-50"
+                            : "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                        }`}
                       >
                         <img
                           src={editIcon}
                           alt=""
-                          className="w-4 h-4 opacity-60"
+                          className={`w-4 h-4 ${canEdit ? "opacity-60" : "opacity-30"}`}
                         />
                         Edit
                       </button>
                     </div>
                   </td>
                 </tr>
+                  );
+                })()
               ))}
             </tbody>
           </table>
