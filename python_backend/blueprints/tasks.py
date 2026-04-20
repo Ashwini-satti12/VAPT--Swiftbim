@@ -47,6 +47,26 @@ def _task_row_merge_joined_project_name(row_dict):
 MANAGEMENT_ROLES = ("Technical Director", "CEO")
 
 
+def _ensure_tasks_review_remark_column(cur):
+    """Ensure `tasks.review_remark` exists for review/rework loop."""
+    try:
+        cur.execute(
+            """
+            SELECT 1
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'tasks'
+              AND COLUMN_NAME = 'review_remark'
+            LIMIT 1
+            """
+        )
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE tasks ADD COLUMN review_remark TEXT NULL")
+    except Exception:
+        # fail open: feature will just not persist remark if schema can't be altered
+        pass
+
+
 def _progress(conn, project_id):
     cur = conn.cursor()
     cur.execute(
@@ -193,8 +213,10 @@ def list_tasks():
         # My task / employee view:
         # 1) Keep all tasks assigned to me.
         # 2) Keep self-created/self-assigned tasks.
-        # 3) For tasks I assigned to others, hide until they are completed;
-        #    once completed, return them so creator can review in My Task (To Do column).
+        # 3) For tasks I assigned to others:
+        #    - hide until they are completed (then return to creator for review in My Task -> To Do)
+        #    - if creator moves to InProgress for review AND review_remark is empty, keep in creator My Task
+        #    - once review_remark is entered (send back), remove from creator My Task (it will be visible in Team Task)
         # Legacy frontend may send employeeid=all even for My Task. In that case,
         # default to current user instead of filtering by literal string "all".
         if employeeid_param is None or str(employeeid_param).strip() == "" or str(employeeid_param).strip().lower() == "all":
@@ -208,7 +230,13 @@ def list_tasks():
                 OR (
                     t.uploaderid = %s
                     AND t.assigned_to <> t.uploaderid
-                    AND t.status = 'Completed'
+                    AND (
+                        t.status = 'Completed'
+                        OR (
+                            t.status = 'InProgress'
+                            AND (t.review_remark IS NULL OR TRIM(t.review_remark) = '')
+                        )
+                    )
                 )
             )"""
         )
@@ -304,6 +332,9 @@ def list_tasks():
                     and str(uploaderid) == str(g.user_id)
                     and str(t.get("status") or "").strip().lower() == "completed"
                 ):
+                    # Mark as review item for frontend.
+                    t["review_required"] = True
+                    t["status_original"] = t.get("status")
                     t["status"] = "Todo"
             except Exception:
                 continue
@@ -480,8 +511,9 @@ def update_task(task_id):
     data = request.get_json() or request.form
     conn = get_db()
     cur = conn.cursor()
+    _ensure_tasks_review_remark_column(cur)
     # Build dynamic update
-    allowed = ("task_name", "assigned_to", "due_date", "category", "description", "checklist", "status", "modules_name", "Actual_start_time", "perferstart_time", "perferend_time", "outputfilepath")
+    allowed = ("task_name", "assigned_to", "due_date", "category", "description", "checklist", "review_remark", "status", "modules_name", "Actual_start_time", "perferstart_time", "perferend_time", "outputfilepath")
     sets = []
     params = []
     for key in allowed:
@@ -496,6 +528,44 @@ def update_task(task_id):
         "UPDATE tasks SET " + ", ".join(sets) + " WHERE id = %s AND Company_id = %s",
         params,
     )
+    # Review cycle rule:
+    # If assigner enters a review remark on a delegated task, return it to assignee in To Do.
+    try:
+        remark = ""
+        if isinstance(data, dict):
+            remark = str(data.get("review_remark") or "").strip()
+        if remark:
+            cur.execute(
+                "SELECT uploaderid, assigned_to FROM tasks WHERE id = %s AND Company_id = %s LIMIT 1",
+                (task_id, g.company_id),
+            )
+            row = cur.fetchone() or {}
+            uploaderid = row.get("uploaderid")
+            assigned_to = row.get("assigned_to")
+            is_delegated = (
+                uploaderid is not None
+                and assigned_to is not None
+                and str(uploaderid) != str(assigned_to)
+            )
+            is_current_user_assigner = uploaderid is not None and str(uploaderid) == str(
+                getattr(g, "user_id", None)
+            )
+            if is_delegated and is_current_user_assigner:
+                cur.execute(
+                    """
+                    UPDATE tasks
+                    SET status = 'To Do',
+                        Approval = NULL,
+                        start_time = NULL,
+                        end_time = NULL
+                    WHERE id = %s AND Company_id = %s
+                    """,
+                    (task_id, g.company_id),
+                )
+    except Exception:
+        pass
+
+    conn.commit()
     if cur.rowcount:
         return jsonify({"success": True})
     return jsonify({"success": False, "message": "Task not found"}), 404

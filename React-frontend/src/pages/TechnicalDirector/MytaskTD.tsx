@@ -616,6 +616,7 @@ export interface Task {
   assign_to?: string;
   description?: string;
   checklist?: string;
+  review_remark?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
   assigned_to?: number;
@@ -645,6 +646,7 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
   assignTo: string;
   description: string;
   checklist: string;
+  reviewRemark: string;
 } {
   const t = task as Record<string, unknown>;
   const str = (v: unknown) => (v != null ? String(v) : "");
@@ -691,6 +693,7 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
     })(),
     description: str(t.description ?? ""),
     checklist: str(t.checklist ?? ""),
+    reviewRemark: str(t.review_remark ?? t.reviewRemark ?? ""),
   };
 }
 
@@ -1223,7 +1226,7 @@ export default function MytaskTD() {
   const navigate = useNavigate();
 
   const openEditTask = (task: Task) => {
-    navigate("/td/mytasks/add", { state: { task } });
+    navigate("/td/mytasks/add", { state: { task, from: "mytasks" } });
   };
 
   const openDeleteTask = (task: Task) => {
@@ -1231,7 +1234,7 @@ export default function MytaskTD() {
   };
 
   const openViewTask = (task: Task) => {
-    navigate("/td/mytasks/view", { state: { task } });
+    navigate("/td/mytasks/view", { state: { task, from: "mytasks" } });
   };
 
   const confirmDeleteTask = () => {

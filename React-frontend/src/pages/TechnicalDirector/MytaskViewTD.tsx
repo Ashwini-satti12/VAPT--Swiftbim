@@ -35,6 +35,9 @@ interface Task {
   perferend_time?: string;
   end_time?: string;
   outputfilepath?: string;
+  assigned_to?: number;
+  uploaderid?: number;
+  review_remark?: string;
 }
 
 function formatDateDDMMYYYY(d?: string): string {
@@ -149,6 +152,8 @@ export default function MytaskViewTD() {
   >(null);
   const [submittingWork, setSubmittingWork] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [reviewRemarkInput, setReviewRemarkInput] = useState("");
+  const [sendingBack, setSendingBack] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch task if missing (on refresh)
@@ -269,7 +274,43 @@ export default function MytaskViewTD() {
     if (!task) return;
     const next = normalizeStatus(task.status, task.Approval);
     setStatusDisplay(next);
+    setReviewRemarkInput(task.review_remark || "");
   }, [task]);
+
+  const canSendBackForCorrection =
+    (statusDisplay === "completed" || statusDisplay === "in_progress") &&
+    task?.assigned_to != null &&
+    task?.uploaderid != null &&
+    String(task.assigned_to) !== String(task.uploaderid);
+
+  const handleSendBackForCorrection = async () => {
+    if (!task || sendingBack) return;
+    const remark = (reviewRemarkInput || "").trim();
+    if (!remark) {
+      toast.error("Please enter review remark before sending back.");
+      return;
+    }
+    setSendingBack(true);
+    try {
+      await api.patch(`/api/tasks/${task.id}`, {
+        review_remark: remark,
+      });
+      await api.patch(`/api/tasks/${task.id}/status`, {
+        status: "Todo",
+        projectId: task.projectid,
+      });
+      setTask((prev) =>
+        prev ? { ...prev, review_remark: remark, status: "To Do" } : prev,
+      );
+      setStatusDisplay("todo");
+      toast.success("Returned to assignee in To Do.");
+    } catch (error) {
+      console.error("Error sending task back:", error);
+      toast.error("Failed to send back task");
+    } finally {
+      setSendingBack(false);
+    }
+  };
 
   useEffect(() => {
     if (!statusDropdownOpen) return;
@@ -561,6 +602,38 @@ export default function MytaskViewTD() {
             <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
               {task.description || "No description provided."}
             </div>
+          </div>
+
+          {/* Checklist */}
+          <div className="mt-6 border border-slate-200 rounded-xl p-6">
+            <h4 className="text-black text-md mb-2">Checklist / Reference</h4>
+            <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+              {task.checklist || "No checklist provided."}
+            </div>
+          </div>
+
+          {/* Review Remark (after checklist) */}
+          <div className="mt-6 border border-slate-200 rounded-xl p-6">
+            <h4 className="text-black text-md mb-2">Review Remark</h4>
+            <textarea
+              value={reviewRemarkInput}
+              onChange={(e) => setReviewRemarkInput(e.target.value)}
+              placeholder="Enter corrections / changes for assignee..."
+              rows={4}
+              className="w-full rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 border border-transparent outline-none focus:border-slate-300 resize-none"
+            />
+            {canSendBackForCorrection && (
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleSendBackForCorrection}
+                  disabled={sendingBack}
+                  className="rounded-md bg-[#DBE9FE] px-4 py-2 text-[14px] font-semibold text-[#101827] disabled:opacity-50 cursor-pointer"
+                >
+                  {sendingBack ? "Sending..." : "Send Back To Assignee"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
