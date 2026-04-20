@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import addressIcon from "../../assets/TechnicalDirector/Vector.svg";
@@ -128,21 +128,14 @@ function safeParsePayment(
 }
 
 export default function ViewProposalTD() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const state =
-    (location &&
-      (location.state as {
-        bid?: Proposal;
-        proposalId?: number;
-        source?: string;
-        returnTo?: string;
-      })) ||
-    {};
-  const bid: Proposal | null = state?.bid || null;
-  const proposalId = state?.proposalId || null;
-  const source = state?.source || "td_proposals";
-  const returnTo = state?.returnTo || "/td/proposals";
+    const navigate = useNavigate();
+    const location = useLocation();
+    const [searchParams] = useSearchParams();
+    const state: any = (location && (location as any).state) || {};
+    const bid = state?.bid || null;
+    const proposalId = state?.proposalId || Number(searchParams.get("proposalId") || 0) || null;
+    const source = state?.source || searchParams.get("source") || "td_proposals";
+    const returnTo = state?.returnTo || "/td/proposals";
 
   const [loading, setLoading] = useState(!!proposalId);
   const [proposal, setProposal] = useState<Proposal | null>(null);
@@ -170,16 +163,50 @@ export default function ViewProposalTD() {
             setShowCreateWorkOrder(true);
           }
         }
-      })
-      .catch(() => {
-        // ignore
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
+        const isVendorView = location.pathname.startsWith("/v") || returnTo.startsWith("/v");
 
-    return () => {
-      isMounted = false;
+        const fetchProposal = async () => {
+            const candidatePaths =
+                source === "vendor_submitted"
+                    ? (
+                        isVendorView
+                            ? [
+                                `/api/vendors/proposals/vendor/${proposalId}`,
+                                `/api/vendors/td/proposals/${proposalId}`,
+                            ]
+                            : [
+                                `/api/vendors/td/proposals/${proposalId}`,
+                                `/api/vendors/proposals/vendor/${proposalId}`,
+                            ]
+                    )
+                    : [`/api/vendors/proposals/td/${proposalId}`];
+
+            for (const path of candidatePaths) {
+                try {
+                    const { data } = await api.get<{ proposal?: any }>(path);
+                    if (data?.proposal) {
+                        setProposal(data.proposal);
+                        return;
+                    }
+                } catch {
+                    // try next candidate path
+                }
+            }
+            setProposal(null);
+        };
+
+        fetchProposal()
+            .finally(() => {
+                setLoading(false);
+            });
+    }, [proposalId, source, location.pathname, returnTo]);
+
+    const techs = safeParse(proposal?.technologies_used);
+    const payments = safeParsePayment(proposal?.payment_terms);
+
+    const formatDate = (dateStr: string) => {
+        if (!dateStr) return '—';
+        return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
     };
   }, [proposalId, source]);
 

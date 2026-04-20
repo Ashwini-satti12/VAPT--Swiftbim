@@ -130,6 +130,20 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           activeIconSrc: redProposalIcon,
           isVisible: true,
         },
+        // {
+        //   name: "Payment Milestones",
+        //   path: "/td/payment-milestones",
+        //   iconSrc: trackerIcon,
+        //   activeIconSrc: whiteTrackerIcon,
+        //   isVisible: true,
+        // },
+        // {
+        //   name: "Invoices",
+        //   path: "/td/invoices",
+        //   iconSrc: teamReportIcon,
+        //   activeIconSrc: whiteTeamReportIcon,
+        //   isVisible: true,
+        // },
         {
           name: "Work Order",
           path: "/td/workorder",
@@ -428,6 +442,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           { name: "Resources", path: "/v/resources", iconSrc: consultantIcon, activeIconSrc: whiteConsultantIcon, isVisible: true },
           { name: "Company Profile", path: "/v/company-profile", iconSrc: consultantIcon, activeIconSrc: whiteConsultantIcon, isVisible: true },
           { name: "Milestones", path: "/v/milestones", iconSrc: trackerIcon, activeIconSrc: whiteTrackerIcon, isVisible: true },
+          { name: "Invoices", path: "/v/invoices", iconSrc: teamReportIcon, activeIconSrc: whiteTeamReportIcon, isVisible: true },
           // { name: "Communication", path: "/v/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
           { name: "Performance", path: "/v/performance", iconSrc: teamReportIcon, activeIconSrc: whiteTeamReportIcon, isVisible: true },
         ];

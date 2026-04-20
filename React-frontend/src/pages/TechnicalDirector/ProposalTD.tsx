@@ -279,95 +279,94 @@ export default function ProposalTD() {
             <>
               {/* Simplified Table View (Always Visible, scrollable) */}
               <table className="min-w-full border-collapse">
-                <thead className="sticky top-0 z-10 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                  <tr className="bg-white">
-                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
-                      Sl.No
-                    </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
-                      Project Name
-                    </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
-                      Vendor Name
-                    </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
-                      Bid Amount
-                    </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
-                      Timeline
-                    </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
-                      Status
-                    </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {displayList.map((p, index) => {
-                    const slNo = (selectedRange.start + index + 1)
-                      .toString()
-                      .padStart(2, "0");
-                    const displayStatus = p.status;
-                    return (
-                      <tr
-                        key={p.id}
-                        className={`${index % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}`}
-                      >
-                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                          {slNo}
-                        </td>
-                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                          {p.project_name || "—"}
-                        </td>
-                        <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                          <div className="text-[14px] text-[#353535] font-gantari">
-                            {p.vendor_name || "—"}
-                          </div>
-                        </td>
-                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                          {formatCurrency(p.bid_amount)}
-                        </td>
-                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                          {p.timeline || "—"}
-                        </td>
-                        <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                          <span
-                            className={`inline-flex px-4 py-1.5 rounded-lg text-[14px] font-gantari ${getStatusBadge(displayStatus)}`}
-                          >
-                            {getStatusLabel(displayStatus)}
-                          </span>
-                        </td>
-                        <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() =>
-                                navigate("/td/view-proposal", {
-                                  state: {
-                                    proposalId: p.id,
-                                    bid: p,
-                                    source: "vendor_submitted",
-                                  },
-                                })
-                              }
-                              title="View Proposal"
-                              className="flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer"
-                            >
-                              <img
-                                src={viewIcon}
-                                alt=""
-                                className="w-4 h-4 object-contain brightness-0 invert"
-                              />
-                              View
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                  <thead className="sticky top-0 z-10 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                    <tr className="bg-white">
+                      <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                      <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
+                      <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Vendor Name</th>
+                      <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Bid Amount</th>
+                      <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Timeline</th>
+                      <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
+                      <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {displayList.map((p, index) => {
+                      const slNo = (selectedRange.start + index + 1).toString().padStart(2, '0');
+                      const displayStatus = p.status;
+                      const statusNorm = String(displayStatus || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+                      const isTerminal = statusNorm === "accepted" || statusNorm === "rejected";
+                      return (
+                        <tr key={p.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{p.project_name || "—"}</td>
+                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                            <div className="text-[14px] text-[#353535] font-gantari">{p.vendor_name || "—"}</div>
+                          </td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                            {formatCurrency(p.bid_amount as any)}
+                          </td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{p.timeline || "—"}</td>
+                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                            <span className={`inline-flex px-4 py-1.5 rounded-lg text-[14px] font-gantari ${getStatusBadge(displayStatus)}`}>
+                              {getStatusLabel(displayStatus)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() =>
+                                  navigate(`/td/view-proposal?proposalId=${p.id}&source=vendor_submitted`, {
+                                    state: { proposalId: p.id, bid: p, source: "vendor_submitted" },
+                                  })
+                                }
+                                title="View Proposal"
+                                className="flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer"
+                              >
+                                <img src={viewIcon} alt="" className="w-4 h-4 object-contain brightness-0 invert" />
+                                View
+                              </button>
+
+                              <div className="relative group">
+                                <button
+                                  onClick={() => !isTerminal && void respond(p.id, "accept")}
+                                  disabled={isTerminal}
+                                  className={`h-10 w-10 rounded-full flex items-center justify-center text-[18px] font-gantari transition-all bg-[#E1F6EB] text-[#008F22] shadow-sm ${isTerminal ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                                  aria-label="Accept"
+                                  type="button"
+                                >
+                                  ✓
+                                </button>
+                                <div className="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-[300]">
+                                  <div className="rounded-md bg-[#353535] text-white text-[12px] font-semibold px-2 py-1 whitespace-nowrap shadow-lg">
+                                    Accept
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="relative group">
+                                <button
+                                  onClick={() => !isTerminal && void respond(p.id, "reject")}
+                                  disabled={isTerminal}
+                                  className={`h-10 w-10 rounded-full flex items-center justify-center text-[18px] font-gantari transition-all bg-[#FFF1F2] text-[#BE123C] shadow-sm ${isTerminal ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                                  aria-label="Reject"
+                                  type="button"
+                                >
+                                  ✕
+                                </button>
+                                <div className="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-[300]">
+                                  <div className="rounded-md bg-[#353535] text-white text-[12px] font-semibold px-2 py-1 whitespace-nowrap shadow-lg">
+                                    Reject
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
             </>
           )}
         </div>
