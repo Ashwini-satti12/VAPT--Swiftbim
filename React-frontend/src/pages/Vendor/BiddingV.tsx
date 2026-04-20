@@ -43,6 +43,7 @@ type Bid = {
   outsource_budget?: number;
   bid_deadline?: string;
   currency?: string;
+  project_due_date?: string | null;
 };
 
 type BidFormState = {
