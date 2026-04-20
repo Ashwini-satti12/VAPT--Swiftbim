@@ -518,26 +518,28 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 top-10 w-64 sm:w-72 bg-white rounded-xl shadow-xl border border-slate-100 z-50">
-                <div className="px-4 py-3 border-b border-slate-100">
+              <div className="absolute right-0 top-10 w-64 sm:w-72 max-h-[min(70vh,22rem)] flex flex-col bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden">
+                <div className="shrink-0 px-4 py-3 border-b border-slate-100 bg-white">
                   <p className="font-semibold text-slate-800 text-sm">
                     Notifications
                   </p>
                 </div>
                 {notifications.length === 0 ? (
-                  <div className="px-4 py-6 text-center text-slate-400 text-sm">
+                  <div className="px-4 py-6 text-center text-slate-400 text-sm shrink-0">
                     No new notifications
                   </div>
                 ) : (
-                  notifications.map((n: any, i: number) => (
-                    <div
-                      key={i}
-                      onClick={() => openNotification(n)}
-                      className="px-4 py-3 hover:bg-slate-50 border-b border-slate-50 text-sm text-slate-700 cursor-pointer"
-                    >
-                      {n.message}
-                    </div>
-                  ))
+                  <div className="min-h-0 overflow-y-auto overscroll-contain [scrollbar-width:thin] [scrollbar-color:rgb(148_163_184)_rgb(241_245_249)]">
+                    {notifications.map((n: any, i: number) => (
+                      <div
+                        key={n.id ?? i}
+                        onClick={() => openNotification(n)}
+                        className="px-4 py-3 hover:bg-slate-50 border-b border-slate-50 last:border-b-0 text-sm text-slate-700 cursor-pointer"
+                      >
+                        {n.message}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
