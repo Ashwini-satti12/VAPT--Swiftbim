@@ -47,6 +47,7 @@ interface Task {
   project_id?: number;
   project_name?: string;
   assigned_to?: number;
+  uploaderid?: number;
   assigned_to_name?: string;
   category?: string;
   assigned_full_name?: string;
@@ -1044,7 +1045,16 @@ export default function VendorBimLeadTasks() {
                     ? 0
                     : normalizeStatus(task.status) === "in_progress"
                       ? 50
-                      : 100;
+                      : task.assigned_to != null &&
+                          task.uploaderid != null &&
+                          String(task.assigned_to) !== String(task.uploaderid)
+                        ? 95
+                        : 100;
+                const isUnderReview =
+                  normalizeStatus(task.status) === "completed" &&
+                  task.assigned_to != null &&
+                  task.uploaderid != null &&
+                  String(task.assigned_to) !== String(task.uploaderid);
                 const isCompletedCol =
                   normalizeStatus(task.status) === "completed";
                 return (
@@ -1191,7 +1201,9 @@ export default function VendorBimLeadTasks() {
 
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <span className="text-[12px] text-[#8B8B8B]">Progress</span>
-                      <span className="text-[12px] text-[#8B8B8B]">{progress}%</span>
+                      <span className="text-[12px] text-[#8B8B8B]">
+                        {isUnderReview ? "95% (Under Review)" : `${progress}%`}
+                      </span>
                     </div>
                     <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
                       <div

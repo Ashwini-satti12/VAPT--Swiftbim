@@ -121,7 +121,8 @@ def list_tasks():
 
     user_role = (getattr(g, "user_role", None) or "").strip()
 
-    if condition == "1":
+    is_team_view = condition == "1"
+    if is_team_view:
         # Management view: can see all tasks, or filter by Myself/Others or by employee
         if assigned_by == "Myself":
             where.append("t.assigned_to = t.uploaderid")
@@ -189,26 +190,72 @@ def list_tasks():
                 )
                 params.extend([g.user_id, g.user_id, g.user_id, g.user_id, g.user_id, g.user_id, g.user_id, g.user_id])
     else:
-        # My task / employee view: only tasks assigned to me or created by me.
+        # My task / employee view:
+        # 1) Keep all tasks assigned to me.
+        # 2) Keep self-created/self-assigned tasks.
+        # 3) For tasks I assigned to others, hide until they are completed;
+        #    once completed, return them so creator can review in My Task (To Do column).
         # Legacy frontend may send employeeid=all even for My Task. In that case,
         # default to current user instead of filtering by literal string "all".
         if employeeid_param is None or str(employeeid_param).strip() == "" or str(employeeid_param).strip().lower() == "all":
             employee_id = g.user_id
         else:
             employee_id = employeeid_param
-        where.append("(t.assigned_to = %s OR t.uploaderid = %s)")
-        params.extend([employee_id, employee_id])
+        where.append(
+            """(
+                t.assigned_to = %s
+                OR (t.uploaderid = %s AND t.assigned_to = t.uploaderid)
+                OR (
+                    t.uploaderid = %s
+                    AND t.assigned_to <> t.uploaderid
+                    AND t.status = 'Completed'
+                )
+            )"""
+        )
+        params.extend([employee_id, employee_id, employee_id])
 
     if status:
         if status == 'todo':
             # Backward compatibility: old rows may use "To Do", "Todo", or NULL.
-            where.append("(t.status IN ('Todo', 'To Do') OR t.status IS NULL OR TRIM(t.status) = '')")
+            if is_team_view:
+                where.append("(t.status IN ('Todo', 'To Do') OR t.status IS NULL OR TRIM(t.status) = '')")
+            else:
+                # In My Task, completed tasks assigned by me to others are review items:
+                # surface them under To Do.
+                where.append(
+                    """(
+                        t.status IN ('Todo', 'To Do')
+                        OR t.status IS NULL
+                        OR TRIM(t.status) = ''
+                        OR (
+                            t.uploaderid = %s
+                            AND t.assigned_to <> t.uploaderid
+                            AND t.status = 'Completed'
+                        )
+                    )"""
+                )
+                params.append(g.user_id)
         elif status == 'in_progress':
             where.append(
                 "(t.status IN ('InProgress', 'Started')) AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))"
             )
         elif status == 'completed':
-            where.append("(t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))")
+            if is_team_view:
+                where.append("(t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))")
+            else:
+                # Exclude creator review items from My Task completed bucket;
+                # they are intentionally shown in To Do.
+                where.append(
+                    """(
+                        (t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))
+                        AND NOT (
+                            t.uploaderid = %s
+                            AND t.assigned_to <> t.uploaderid
+                            AND t.status = 'Completed'
+                        )
+                    )"""
+                )
+                params.append(g.user_id)
         else:
             where.append("t.status = %s")
             params.append(status)
@@ -244,6 +291,22 @@ def list_tasks():
     cur.execute(sql, params)
     rows = cur.fetchall()
     tasks = [_serialize_row(_task_row_merge_joined_project_name(dict(r))) for r in rows]
+    if not is_team_view:
+        # Creator-review flow: once assignee completes a delegated task, show it in My Task as To Do.
+        for t in tasks:
+            try:
+                assigned_to = t.get("assigned_to")
+                uploaderid = t.get("uploaderid")
+                if (
+                    assigned_to is not None
+                    and uploaderid is not None
+                    and str(assigned_to) != str(uploaderid)
+                    and str(uploaderid) == str(g.user_id)
+                    and str(t.get("status") or "").strip().lower() == "completed"
+                ):
+                    t["status"] = "Todo"
+            except Exception:
+                continue
     return jsonify({"tasks": tasks})
 
 

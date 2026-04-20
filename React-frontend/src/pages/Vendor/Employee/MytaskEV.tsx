@@ -260,13 +260,23 @@ function TaskCard({
     onDeleteTask?: (task: Task) => void;
 }) {
     const progress =
-        typeof task.progress === "number"
-            ? task.progress
-            : status === "todo"
-                ? 0
-                : status === "in_progress"
-                    ? 50
-                    : 100;
+        status === "completed" &&
+            task.assigned_to != null &&
+            task.uploaderid != null &&
+            String(task.assigned_to) !== String(task.uploaderid)
+            ? 95
+            : typeof task.progress === "number"
+                ? task.progress
+                : status === "todo"
+                    ? 0
+                    : status === "in_progress"
+                        ? 50
+                        : 100;
+    const isUnderReview =
+        status === "completed" &&
+        task.assigned_to != null &&
+        task.uploaderid != null &&
+        String(task.assigned_to) !== String(task.uploaderid);
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -434,7 +444,9 @@ function TaskCard({
             </div>
             <div className="flex items-center justify-between gap-2 mb-2">
                 <span className="text-xs text-[#8B8B8B]">Progress</span>
-                <span className="text-xs font-medium text-[#8B8B8B]">{progress}%</span>
+                <span className="text-xs font-medium text-[#8B8B8B]">
+                    {isUnderReview ? "95% (Under Review)" : `${progress}%`}
+                </span>
             </div>
             <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
                 <div
@@ -680,7 +692,7 @@ export default function MytaskEV() {
         return () => document.removeEventListener("click", handleClickOutside);
     }, [openDropdown]);
 
-    useEffect(() => {
+    const fetchTasks = () => {
         const params: Record<string, string> = {};
         if (statusFilter) params.status = statusFilter;
         if (isTeam) {
@@ -704,6 +716,11 @@ export default function MytaskEV() {
                 setList([]);
             })
             .finally(() => setLoading(false));
+    };
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => {
+        fetchTasks();
     }, [isTeam, statusFilter]);
 
     // Data maps for dropdowns
@@ -781,6 +798,7 @@ export default function MytaskEV() {
             <AddEditTaskEV
                 taskId={selectedTask?.id}
                 onBack={() => setCurrentPage("list")}
+                onSuccess={fetchTasks}
             />
         );
     }
