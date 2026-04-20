@@ -630,13 +630,23 @@ export function TaskCard({
   onDeleteTask?: (task: Task) => void;
 }) {
   const progress =
-    task.progress !== undefined
-      ? task.progress
-      : status === "todo"
-        ? 0
-        : status === "in_progress"
-          ? 50
-          : 100;
+    status === "completed" &&
+    task.assigned_to != null &&
+    task.uploaderid != null &&
+    String(task.assigned_to) !== String(task.uploaderid)
+      ? 95
+      : task.progress !== undefined
+        ? task.progress
+        : status === "todo"
+          ? 0
+          : status === "in_progress"
+            ? 50
+            : 100;
+  const isUnderReview =
+    status === "completed" &&
+    task.assigned_to != null &&
+    task.uploaderid != null &&
+    String(task.assigned_to) !== String(task.uploaderid);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -788,7 +798,9 @@ export function TaskCard({
       </div>
       <div className="flex items-center justify-between gap-2 mb-1 text-[12px] text-[#8B8B8B]">
         <span>Progress</span>
-        <span className="font-medium">{progress}%</span>
+        <span className="font-medium">
+          {isUnderReview ? "95% (Under Review)" : `${progress}%`}
+        </span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-4">
         <div

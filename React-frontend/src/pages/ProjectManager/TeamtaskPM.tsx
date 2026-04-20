@@ -606,7 +606,21 @@ function TaskCard({
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (task: Task) => void;
 }) {
-  const progress = status === "todo" ? 0 : status === "in_progress" ? 50 : 100;
+  const progress =
+    status === "todo"
+      ? 0
+      : status === "in_progress"
+        ? 50
+        : task.assigned_to != null &&
+            task.uploaderid != null &&
+            String(task.assigned_to) !== String(task.uploaderid)
+          ? 95
+          : 100;
+  const isUnderReview =
+    status === "completed" &&
+    task.assigned_to != null &&
+    task.uploaderid != null &&
+    String(task.assigned_to) !== String(task.uploaderid);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -757,7 +771,9 @@ function TaskCard({
 
       <div className="flex items-center justify-between gap-2 mb-2">
         <span className="text-xs text-[#8B8B8B]">Progress</span>
-        <span className="text-xs font-medium text-[#8B8B8B]">{progress}%</span>
+        <span className="text-xs font-medium text-[#8B8B8B]">
+          {isUnderReview ? "95% (Under Review)" : `${progress}%`}
+        </span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
         <div

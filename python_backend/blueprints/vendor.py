@@ -5851,9 +5851,27 @@ def update_vendor_task_status(task_id):
     _ensure_vendor_task_table()
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+    progress = "0"
+    if status == "InProgress":
+        progress = "50"
+    elif status == "Completed":
+        cur.execute(
+            "SELECT vendor_id, assigned_to FROM vendor_task WHERE id = %s LIMIT 1",
+            (task_id,),
+        )
+        row = cur.fetchone() or {}
+        vendor_id = row.get("vendor_id")
+        assigned_to = row.get("assigned_to")
+        is_assigned_by_someone_else = (
+            vendor_id is not None
+            and assigned_to is not None
+            and str(vendor_id) != str(assigned_to)
+        )
+        progress = "95" if is_assigned_by_someone_else else "100"
+
     cur.execute(
-        "UPDATE vendor_task SET status = %s WHERE id = %s",
-        (status, task_id),
+        "UPDATE vendor_task SET status = %s, progress = %s WHERE id = %s",
+        (status, progress, task_id),
     )
     conn.commit()
     return jsonify({"success": True})
