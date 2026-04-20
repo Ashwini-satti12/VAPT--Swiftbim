@@ -188,7 +188,7 @@ export default function CreateProposalV() {
     setProjectSector("");
     setBimServices("");
     setTechRows([{ module: "" }]);
-    setPaymentRows([{ basis: "", terms: "", timeline: "" }]);
+    setPaymentRows([{ basis: "", terms: "", timeline: "", amount: "" }]);
 
     api
       .get<{ proposal?: any }>("/api/vendors/proposals/phase-one", {
@@ -212,7 +212,7 @@ export default function CreateProposalV() {
     setProjectSector("");
     setBimServices("");
     setTechRows([{ module: "" }]);
-    setPaymentRows([{ basis: "", terms: "", timeline: "" }]);
+    setPaymentRows([{ basis: "", terms: "", timeline: "", amount: "" }]);
 
     api
       .get<{ proposal?: any }>(`/api/vendors/proposals/vendor/${proposalIdEdit}`)

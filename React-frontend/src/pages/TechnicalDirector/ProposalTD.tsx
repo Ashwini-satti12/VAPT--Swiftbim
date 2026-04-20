@@ -294,8 +294,6 @@ export default function ProposalTD() {
                     {displayList.map((p, index) => {
                       const slNo = (selectedRange.start + index + 1).toString().padStart(2, '0');
                       const displayStatus = p.status;
-                      const statusNorm = String(displayStatus || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
-                      const isTerminal = statusNorm === "accepted" || statusNorm === "rejected";
                       return (
                         <tr key={p.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
                           <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{slNo}</td>
@@ -326,40 +324,6 @@ export default function ProposalTD() {
                                 <img src={viewIcon} alt="" className="w-4 h-4 object-contain brightness-0 invert" />
                                 View
                               </button>
-
-                              <div className="relative group">
-                                <button
-                                  onClick={() => !isTerminal && void respond(p.id, "accept")}
-                                  disabled={isTerminal}
-                                  className={`h-10 w-10 rounded-full flex items-center justify-center text-[18px] font-gantari transition-all bg-[#E1F6EB] text-[#008F22] shadow-sm ${isTerminal ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                                  aria-label="Accept"
-                                  type="button"
-                                >
-                                  ✓
-                                </button>
-                                <div className="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-[300]">
-                                  <div className="rounded-md bg-[#353535] text-white text-[12px] font-semibold px-2 py-1 whitespace-nowrap shadow-lg">
-                                    Accept
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="relative group">
-                                <button
-                                  onClick={() => !isTerminal && void respond(p.id, "reject")}
-                                  disabled={isTerminal}
-                                  className={`h-10 w-10 rounded-full flex items-center justify-center text-[18px] font-gantari transition-all bg-[#FFF1F2] text-[#BE123C] shadow-sm ${isTerminal ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                                  aria-label="Reject"
-                                  type="button"
-                                >
-                                  ✕
-                                </button>
-                                <div className="pointer-events-none absolute top-full mt-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-[300]">
-                                  <div className="rounded-md bg-[#353535] text-white text-[12px] font-semibold px-2 py-1 whitespace-nowrap shadow-lg">
-                                    Reject
-                                  </div>
-                                </div>
-                              </div>
                             </div>
                           </td>
                         </tr>

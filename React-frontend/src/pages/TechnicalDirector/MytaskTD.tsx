@@ -640,6 +640,8 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
   type: string;
   startDate: string;
   endDate: string;
+  actualStartDate: string;
+  actualEndDate: string;
   startTime: string;
   dueTime: string;
   assignTo: string;
@@ -660,15 +662,19 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
     const match = s.match(/(\d{1,2}):(\d{2})/);
     return match ? `${match[1].padStart(2, "0")}:${match[2]}` : s.slice(0, 5);
   };
+  const startDate = dateOnly(
+    t.start_date ?? t.startDate ?? t.Actual_start_time ?? "",
+  );
+  const endDate = dateOnly(t.due_date ?? t.dueDate ?? "");
   return {
     projectName: str(t.project_name ?? t.projectName ?? ""),
     module: str(t.module ?? t.modules_name ?? t.modules ?? ""),
     taskName: str(t.task_name ?? t.taskName ?? ""),
     type: str(t.type ?? t.category ?? ""),
-    startDate: dateOnly(
-      t.start_date ?? t.startDate ?? t.Actual_start_time ?? "",
-    ),
-    endDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
+    startDate,
+    endDate,
+    actualStartDate: startDate,
+    actualEndDate: endDate,
     startTime: timeOnly(
       t.perferstart_time ??
         t.start_time ??
