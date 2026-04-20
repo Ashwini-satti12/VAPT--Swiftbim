@@ -680,7 +680,7 @@ export default function MytaskEV() {
         return () => document.removeEventListener("click", handleClickOutside);
     }, [openDropdown]);
 
-    useEffect(() => {
+    const fetchTasks = () => {
         const params: Record<string, string> = {};
         if (statusFilter) params.status = statusFilter;
         if (isTeam) {
@@ -704,6 +704,11 @@ export default function MytaskEV() {
                 setList([]);
             })
             .finally(() => setLoading(false));
+    };
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => {
+        fetchTasks();
     }, [isTeam, statusFilter]);
 
     // Data maps for dropdowns
@@ -781,6 +786,7 @@ export default function MytaskEV() {
             <AddEditTaskEV
                 taskId={selectedTask?.id}
                 onBack={() => setCurrentPage("list")}
+                onSuccess={fetchTasks}
             />
         );
     }
