@@ -619,8 +619,18 @@ export default function VendorBimLeadTeamTasks() {
     status: "todo" | "in_progress" | "completed";
   }) => {
     const progress =
-      (task as any).progress ??
-      (status === "todo" ? 0 : status === "in_progress" ? 50 : 100);
+      status === "completed" &&
+        task.assigned_to != null &&
+        task.uploaderid != null &&
+        String(task.assigned_to) !== String(task.uploaderid)
+        ? 95
+        : (task as any).progress ??
+          (status === "todo" ? 0 : status === "in_progress" ? 50 : 100);
+    const isUnderReview =
+      status === "completed" &&
+      task.assigned_to != null &&
+      task.uploaderid != null &&
+      String(task.assigned_to) !== String(task.uploaderid);
     const isCompleted = normalizeStatus(task.status) === "completed";
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -777,7 +787,7 @@ export default function VendorBimLeadTeamTasks() {
         <div className="flex items-center justify-between gap-2 mb-2">
           <span className="text-xs text-[#8B8B8B]">Progress</span>
           <span className="text-xs font-medium text-[#8B8B8B]">
-            {progress}%
+            {isUnderReview ? "95% (Under Review)" : `${progress}%`}
           </span>
         </div>
         <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">

@@ -300,13 +300,22 @@ function isEndTimeBeforeStartOnSameDay(
   return endTime < startTime;
 }
 
-export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }: { taskId?: number, onBack?: () => void }) {
+export default function AddEditTaskEV({
+  taskId: propTaskId,
+  onBack: propOnBack,
+  onSuccess: propOnSuccess,
+}: {
+  taskId?: number;
+  onBack?: () => void;
+  onSuccess?: () => void;
+}) {
   const { id: idParam } = useParams();
   const [searchParams] = useSearchParams();
   const { pathname, state: locationState } = useLocation();
   const navigate = useNavigate();
 
-  const editingTaskId = propTaskId ?? (idParam && /^\d+$/.test(idParam) ? Number(idParam) : null);
+  const editingTaskId =
+    propTaskId ?? (idParam && /^\d+$/.test(idParam) ? Number(idParam) : null);
   const isEdit = editingTaskId != null;
 
   const listQs = useMemo(() => {
@@ -438,7 +447,14 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
       resolveFormProjectName(fetchedTaskForEditRef.current, seeded, projects),
     );
     setFormReady(true);
-  }, [isEdit, editingTaskId, loadingMeta, employees, projects, useVendorTaskApi]);
+  }, [
+    isEdit,
+    editingTaskId,
+    loadingMeta,
+    employees,
+    projects,
+    useVendorTaskApi,
+  ]);
 
   useEffect(() => {
     if (openFormDropdown === null) return;
@@ -598,10 +614,7 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
     const assignTrim = addTaskForm.assignTo.trim();
     const assigneeId = employees.find((emp) => {
       const n = (emp.full_name || emp.name || "").trim();
-      return (
-        n === assignTrim ||
-        n.toLowerCase() === assignTrim.toLowerCase()
-      );
+      return n === assignTrim || n.toLowerCase() === assignTrim.toLowerCase();
     })?.id;
     let assignedToVal: number | string =
       assigneeId != null && !Number.isNaN(Number(assigneeId))
@@ -697,7 +710,8 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
           const taskId = res.data?.task_id ?? res.data?.id;
           if (res.data?.success && taskId != null) {
             handleFiles(taskId);
-            toast.success("Task updated");
+            toast.success("Task created successfully");
+            propOnSuccess?.();
             goBackToList();
           } else {
             toast.error("Could not create task");
@@ -712,7 +726,8 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
         .then((res) => {
           if (res.data.success && res.data.task_id) {
             handleFiles(res.data.task_id);
-            toast.success("Task updated");
+            toast.success("Task created successfully");
+            propOnSuccess?.();
             goBackToList();
           } else {
             toast.error("Could not create task");
@@ -741,25 +756,25 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
     <div className="min-h-0 flex-1 flex flex-col bg-white overflow-hidden">
       <div className="flex items-center justify-between px-5 py-2  shrink-0">
         <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
-            <div className="group relative inline-flex shrink-0">
-          <button
-            type="button"
-            onClick={goBackToList}
-            className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-          >
-            <img src={backIcon} alt="Back" className="w-5 h-5" />
-          </button>
-           {/* Tooltip */}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
-                  <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                    Go Back
-                  </span>
-                </div>
+          <div className="group relative inline-flex shrink-0">
+            <button
+              type="button"
+              onClick={goBackToList}
+              className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+            >
+              <img src={backIcon} alt="Back" className="w-5 h-5" />
+            </button>
+            {/* Tooltip */}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
+                <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                  Go Back
+                </span>
               </div>
-              </div>
-              </div>
+            </div>
+          </div>
+        </div>
         <h1 className="text-[24px] font-medium text-[#353535] -mt-12">
           {isEdit ? "Edit Task Details" : "Add Task Details"}
         </h1>
@@ -911,7 +926,7 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
             </div>
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
-                 End Date
+                End Date
                 <span className="text-red-500">*</span>
               </label>
               <input

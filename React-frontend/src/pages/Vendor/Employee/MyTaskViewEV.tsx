@@ -40,6 +40,7 @@ interface Task {
   Approval?: string;
   /** Comma-separated filenames under uploads/task/ */
   outputfilepath?: string;
+  review_remark?: string;
 }
 
 interface Employee {
@@ -810,6 +811,14 @@ export default function MyTaskViewEV({ taskId: propTaskId, onBack: propOnBack }:
               )}
             </div>
           </div>
+          {task.review_remark && (
+            <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6">
+              <h4 className="text-black text-md mb-2">Review Remark</h4>
+              <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+                {task.review_remark}
+              </div>
+            </div>
+          )}
 
           <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
             <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">
