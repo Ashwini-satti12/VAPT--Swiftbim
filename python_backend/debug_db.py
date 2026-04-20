@@ -10,7 +10,7 @@ user = os.getenv("MYSQL_USER", "root")
 password = os.getenv("MYSQL_PASSWORD", "")
 
 db = os.getenv("MYSQL_DB", "snh6_swiftproject")
-port = int(os.getenv("MYSQL_PORT", "3306"))
+port = int(os.getenv("MYSQL_PORT", "3306"))``
 
 print(f"Connecting to {host}:{port}, db={db} with user={user}")
 

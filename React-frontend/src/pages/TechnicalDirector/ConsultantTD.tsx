@@ -127,6 +127,14 @@ const toCamelCase = (str: string): string => {
     word.charAt(0).toUpperCase() + word.slice(1)
   ).join(' ');
 };
+
+const formatDate = (d?: string) => {
+  if (!d) return 'N/A';
+  const date = new Date(d);
+  if (isNaN(date.getTime())) return d;
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
+};
+
 // These will be loaded from the database (kept for backward compatibility if needed)
 const ROLE_OPTIONS: string[] = [];
 
@@ -485,7 +493,7 @@ export default function ConsultantTD() {
       const normalizedEmployees = employees.map(emp => ({
         ...emp,
         active: emp.active === 'inactive' ? 'deactive' : (emp.active || 'active')
-      }));
+      })).sort((a, b) => b.id - a.id);
 
       setList(normalizedEmployees);
     }).catch(() => {
@@ -1581,7 +1589,7 @@ export default function ConsultantTD() {
                   <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
                     <CustomDropdown
-                      options={['Trainee', 'Consultant',]}
+                      options={['Employee', 'Trainee']}
                       value={editForm.user_type}
                       onChange={(val) => setEditForm((f) => ({ ...f, user_type: val }))}
                       placeholder="Select Type"
@@ -1891,13 +1899,13 @@ export default function ConsultantTD() {
             {/* Details Grid */}
             <div className="px-2 sm:px-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
               {[
-                { label: 'Date of Birth', value: selectedEmployee.dob },
+                { label: 'Date of Birth', value: formatDate(selectedEmployee.dob) },
                 { label: 'Phone Number', value: selectedEmployee.phone_number },
                 { label: 'Email ID', value: selectedEmployee.email },
                 { label: 'User Type', value: selectedEmployee.user_type },
                 { label: 'User Role', value: selectedEmployee.user_role },
                 { label: 'Address', value: selectedEmployee.address },
-                { label: 'Joined Date', value: selectedEmployee.doj },
+                { label: 'Joined Date', value: formatDate(selectedEmployee.doj) },
                 { label: 'Department', value: selectedEmployee.department },
                 { label: 'Salary', value: selectedEmployee.salary },
                 { label: 'Account Number', value: selectedEmployee.accountnumber },

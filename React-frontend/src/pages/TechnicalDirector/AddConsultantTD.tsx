@@ -1,12 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { FiChevronDown } from 'react-icons/fi';
+import { FiChevronDown, FiEye, FiEyeOff } from 'react-icons/fi';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
-import { getPhoneLength } from '../../utils/countryCodes';
+import { getPhoneLength, COUNTRY_CODES } from '../../utils/countryCodes';
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return bytes + " B";
@@ -92,6 +92,7 @@ export default function AddConsultantTD() {
   const navigate = useNavigate();
   const [addError, setAddError] = useState('');
   const [addSubmitting, setAddSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [successMsg, setSuccessMsg] = useState('');
@@ -111,8 +112,6 @@ export default function AddConsultantTD() {
   const [countryCode, setCountryCode] = useState('+91');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const todayISO = new Date().toISOString().split('T')[0];
-
-  const COUNTRY_CODES = ['+91', '+1', '+44', '+61', '+81', '+971'];
 
   useEffect(() => {
     api.get<{ roles?: string[] }>('/api/employees/roles').then(({ data }) => {
@@ -310,14 +309,23 @@ export default function AddConsultantTD() {
               </div>
               <div>
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password <span className="text-[#DD4342]">*</span></label>
-                <input
-                  type="password"
-                  placeholder="Enter Password"
-                  value={form.password}
-                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter Password"
+                    value={form.password}
+                    onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                    className="w-full px-4 py-2 pr-10 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#8B8B8B] hover:text-[#595959] focus:outline-none transition-colors border-0 bg-transparent cursor-pointer"
+                  >
+                    {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
               <div className="relative">
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role <span className="text-[#DD4342]">*</span></label>

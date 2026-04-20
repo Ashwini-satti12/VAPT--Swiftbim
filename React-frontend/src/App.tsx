@@ -61,6 +61,8 @@ import ProposalTD from "./pages/TechnicalDirector/ProposalTD";
 import CreateProposalTD from "./pages/TechnicalDirector/CreateProposalTD";
 import ViewProposalTD from "./pages/TechnicalDirector/ViewProposalTD";
 import ManageLeaveTD from "./pages/TechnicalDirector/ManageLeaveTD";
+import PaymentMilestonesTD from "./pages/TechnicalDirector/PaymentMilestonesTD";
+import InvoicesTD from "./pages/TechnicalDirector/InvoicesTD";
 import Workorder from "./pages/TechnicalDirector/Workorder";
 import WorkorderForm from "./pages/TechnicalDirector/WorkorderForm";
 import ViewWorkorder from "./pages/TechnicalDirector/ViewWorkorder";
@@ -133,6 +135,9 @@ import CompanyProfileResourcePageV from "./pages/Vendor/CompanyProfileResourcePa
 import MilestonesV from "./pages/Vendor/MilestonesV";
 import CommunicationV from "./pages/Vendor/CommunicationV";
 import PerformanceV from "./pages/Vendor/PerformanceV";
+import InvoicesV from "./pages/Vendor/InvoicesV";
+import WorkorderV from "./pages/Vendor/WorkorderV";
+import ViewWorkorderV from "./pages/Vendor/ViewWorkorderV";
 
 /* Vendor PM */
 import DashboardPMV from "./pages/Vendor/ProjectManager/DashboardPMV";
@@ -284,6 +289,8 @@ function App() {
             <Route path="td/create-proposal" element={<CreateProposalTD />} />
             <Route path="td/view-proposal" element={<ViewProposalTD />} />
             <Route path="td/manage-leave" element={<ManageLeaveTD />} />
+            <Route path="td/payment-milestones" element={<PaymentMilestonesTD />} />
+            <Route path="td/invoices" element={<InvoicesTD />} />
             <Route path="td/workorder" element={<Workorder />} />
             <Route path="td/workorder-form" element={<WorkorderForm />} />
             <Route path="td/view-workorder" element={<ViewWorkorder />} />
@@ -376,9 +383,13 @@ function App() {
               element={<CompanyProfileEditV />}
             />
             <Route path="v/milestones" element={<MilestonesV />} />
+            <Route path="v/invoices" element={<InvoicesV />} />
+            <Route path="v/invoices/:invoiceId" element={<ViewInvoiceDetailsTD />} />
             <Route path="v/communication" element={<CommunicationV />} />
             <Route path="v/performance" element={<PerformanceV />} />
             <Route path="v/resources" element={<ResourcesV />} />
+            <Route path="v/workorder" element={<WorkorderV />} />
+            <Route path="v/view-workorder" element={<ViewWorkorderV />} />
 
             {/* Vendor PM Routes */}
             <Route path="vpm/dashboard" element={<DashboardPMV />} />

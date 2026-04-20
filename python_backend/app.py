@@ -34,6 +34,7 @@ from blueprints.timeline import bp as timeline_bp
 from blueprints.client_panel import bp as client_panel_bp
 from blueprints.departments import bp as departments_bp
 from blueprints.vendor import bp as vendor_bp
+from blueprints.workorder import bp as workorder_bp
 
 
 def create_app(config_class=Config): 
@@ -79,6 +80,7 @@ def create_app(config_class=Config):
     app.register_blueprint(client_panel_bp)
     app.register_blueprint(departments_bp)
     app.register_blueprint(vendor_bp)
+    app.register_blueprint(workorder_bp)
 
     @app.route("/")
     def index():
