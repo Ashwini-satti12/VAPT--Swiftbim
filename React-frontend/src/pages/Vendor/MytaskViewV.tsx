@@ -558,13 +558,13 @@ export default function MytaskViewV() {
                 {moduleNameDisplay}
               </span>
             </div>
-            <div className="flex gap-2">
+            {/* <div className="flex gap-2">
               <span className="text-[#020202] shrink-0 w-28">Category</span>
               <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.category || task.type || "—"}
               </span>
-            </div>
+            </div> */}
             <div className="flex gap-2">
               <span className="text-[#020202] shrink-0 w-28">Assigned By</span>
               <span className="text-[#020202] shrink-0">:</span>
