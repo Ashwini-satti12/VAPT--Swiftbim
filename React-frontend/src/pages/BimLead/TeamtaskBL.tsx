@@ -456,7 +456,7 @@ function TaskCard({
         <div
             draggable={!isCompleted}
             onDragStart={handleDragStart}
-            className={`rounded-lg border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+            className={`mt-2 rounded-lg border border-[#AEACAC52] bg-white p-3 shadow-sm relative mx-auto w-full max-w-full lg:max-w-none ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
             <div className="flex items-center justify-between gap-2 mb-4">
                 <h4 className="flex-1 min-w-0 font-medium text-[#353535] text-[20px] truncate">

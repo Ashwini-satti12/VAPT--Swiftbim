@@ -286,81 +286,72 @@ function TaskCard({
     onViewTask,
     onEditTask,
     onDeleteTask,
+    isTeam = false
 }: {
     task: Task;
-    status: "todo" | "in_progress" | "completed";
+    status: StatusKey;
     onViewTask?: (task: Task) => void;
     onEditTask?: (task: Task) => void;
     onDeleteTask?: (task: Task) => void;
+    isTeam?: boolean;
 }) {
-    const progress =
-        typeof task.progress === "number"
-            ? task.progress
-            : status === "todo"
-                ? 0
-                : status === "in_progress"
-                    ? 50
-                    : 100;
-    const [menuOpen, setMenuOpen] = useState(false);
+    const isCompletedCol = status === "completed";
+    const progress = typeof task.progress === "number" ? task.progress : status === "todo" ? 0 : status === "in_progress" ? 50 : 100;
+    const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (!menuOpen) return;
+        if (!showMenu) return;
         const handleClickOutside = (e: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-                setMenuOpen(false);
+                setShowMenu(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [menuOpen]);
+    }, [showMenu]);
 
-    const handleDragStart = (e: React.DragEvent) => {
-        if (status === "completed") {
-            e.preventDefault();
-            return;
+    const formatDate = (d: any) => {
+        if (!d) return "—";
+        const s = String(d).trim();
+        let date: Date;
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+            const [y, mo, day] = s.slice(0, 10).split("-").map(Number);
+            date = new Date(y, mo - 1, day);
+        } else if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}/.test(s)) {
+            const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+            if (m) date = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+            else date = new Date(s);
+        } else {
+            date = new Date(s);
         }
-        e.dataTransfer.setData("taskId", String(task.id));
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", task.task_name || "Task");
+        if (Number.isNaN(date.getTime())) return "—";
+        const day = String(date.getDate()).padStart(2, "0");
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
     };
-
-    const isCompleted = status === "completed";
-
-    const assigneeInitials = (task.assigned_full_name || "U")
-        .split(" ")
-        .filter(Boolean)
-        .map((p) => p[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase();
-    const uploaderInitials = (task.uploader_full_name || "S")
-        .split(" ")
-        .filter(Boolean)
-        .map((p) => p[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase();
 
     return (
         <div
-            draggable={!isCompleted}
-            onDragStart={handleDragStart}
-            className={`rounded-md border border-slate-200 bg-white p-4 shadow-sm relative transition-all hover:shadow-md font-Gantari ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+            draggable={!isCompletedCol}
+            onDragStart={(e) => {
+                e.dataTransfer.setData("taskId", String(task.id));
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", task.task_name || "Task");
+            }}
+            className={`flex flex-col bg-white rounded-xl border border-[#AEACAC52] p-4 shadow-sm hover:shadow-md transition-all duration-200 relative group font-Gantari w-full mb-4 ${isCompletedCol ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
-            <div className="flex items-center justify-between gap-2 mb-4">
+            <div className="flex items-center justify-between gap-3 mb-4">
                 <div className="flex-1 min-w-0 pr-6">
-                    <h4 className="text-[20px] font-semibold text-[#353535] truncate leading-tight">
+                    <h4 className="text-[20px] font-semibold text-[#353535] truncate leading-tight" title={task.task_name}>
                         {task.task_name || "Task Name"}
                     </h4>
-                    {(task.project_name || "").trim() ? (
-                        <p
-                            className="text-[13px] font-medium text-[#8B8B8B] truncate mt-0.5"
-                            title={(task.project_name || "").trim() || undefined}
-                        >
-                            {(task.project_name || "").trim()}
+                    {task.project_name && (
+                        <p className="text-[13px] font-medium text-[#8B8B8B] truncate mt-0.5" title={task.project_name}>
+                            {task.project_name}
                         </p>
-                    ) : null}
+                    )}
                 </div>
                 <div className="absolute top-4 right-4" ref={menuRef}>
                     <button
@@ -368,79 +359,70 @@ function TaskCard({
                         draggable={false}
                         onClick={(e) => {
                             e.stopPropagation();
-                            setMenuOpen((prev) => !prev);
+                            setShowMenu(!showMenu);
                         }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        className="rounded cursor-pointer leading-none transition-colors"
-                        aria-label="More options"
-                        aria-expanded={menuOpen}
+                        className="p-1 rounded hover:bg-slate-50 transition-colors cursor-pointer"
                     >
-                        <img src={Dot} alt="Dot" className="w-4 h-4 object-contain" />
+                        <img src={Dot} alt="dot" className="w-4 h-4 object-contain" />
                     </button>
-                    {menuOpen && (
-                        <div
-                            className="absolute top-full right-0 mt-2 z-50 min-w-[170px] bg-white/40 backdrop-blur-xl rounded-[15px] border border-[#59595980] shadow-2xl py-2.5 animate-in fade-in zoom-in duration-200 origin-top-right"
-                            role="menu"
-                        >
+
+                    {showMenu && (
+                        <div className="absolute top-full right-0 mt-2 z-50 min-w-[170px] bg-white/40 backdrop-blur-xl rounded-[15px] border border-[#59595980] shadow-2xl py-2.5 animate-in fade-in zoom-in duration-200 origin-top-right">
                             <button
                                 type="button"
-                                role="menuitem"
-                                onMouseDown={(e) => e.stopPropagation()}
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                 onClick={() => {
-                                    setMenuOpen(false);
+                                    setShowMenu(false);
                                     onViewTask?.(task);
                                 }}
+                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group/item cursor-pointer"
                             >
                                 <img
                                     src={viewIcon}
                                     alt="view"
-                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                 />
-                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover/item:text-[#DD4342]">
                                     View
                                 </span>
                             </button>
-                            {!isCompleted && (
+                            {!isCompletedCol && (
                                 <>
                                     <button
                                         type="button"
-                                        role="menuitem"
-                                        onMouseDown={(e) => e.stopPropagation()}
-                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                         onClick={() => {
-                                            setMenuOpen(false);
+                                            setShowMenu(false);
                                             onEditTask?.(task);
                                         }}
+                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group/item cursor-pointer"
                                     >
                                         <img
                                             src={editIcon}
                                             alt="edit"
-                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                         />
-                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                        <span className="text-[14px] font-medium text-[#616161] group-hover/item:text-[#DD4342]">
                                             Edit
                                         </span>
                                     </button>
-                                    <button
-                                        type="button"
-                                        role="menuitem"
-                                        onMouseDown={(e) => e.stopPropagation()}
-                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                        onClick={() => {
-                                            setMenuOpen(false);
-                                            onDeleteTask?.(task);
-                                        }}
-                                    >
-                                        <img
-                                            src={deleteIcon}
-                                            alt="delete"
-                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                        />
-                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                            Delete
-                                        </span>
-                                    </button>
+                                    {isTeam && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowMenu(false);
+                                                onDeleteTask?.(task);
+                                            }}
+                                            className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group/item cursor-pointer"
+                                        >
+                                            <img
+                                                src={deleteIcon}
+                                                alt="delete"
+                                                className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                            />
+                                            <span className="text-[14px] font-medium text-[#616161] group-hover/item:text-[#DD4342]">
+                                                Delete
+                                            </span>
+                                        </button>
+                                    )}
                                 </>
                             )}
                         </div>
@@ -448,110 +430,63 @@ function TaskCard({
                 </div>
             </div>
 
-            <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="flex flex-col ">
-                    <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
-                    <span className="text-[14px] font-medium text-[#8B8B8B]">
-                        {(task.start_date || task.Actual_start_time)
-                            ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}`
-                            : "—"}
+            <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex flex-col">
+                    <span className="text-[14px] font-medium text-[#000000] mb-0.5">Start Date</span>
+                    <span className="text-[14px] font-medium text-[#8B8B8B] font-Gantari">
+                        {formatDate(task.start_date || (task as any).Actual_start_time)}
                     </span>
                 </div>
-
-                <div className="flex flex-col items-end gap-1">
-                    <span className="text-[14px] font-medium text-[#000000]">End Date</span>
-                    <span className="text-[14px] font-medium text-[#8B8B8B]">
-                        {task.due_date
-                            ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
-                            : ""}
+                <div className="flex flex-col items-end">
+                    <span className="text-[14px] font-medium text-[#000000] mb-0.5">End Date</span>
+                    <span className="text-[14px] font-medium text-[#8B8B8B] font-Gantari">
+                        {formatDate(task.due_date)}
                     </span>
                 </div>
             </div>
+
             <div className="flex items-center justify-between gap-2 mb-2">
                 <span className="text-xs text-[#8B8B8B]">Progress</span>
                 <span className="text-xs font-medium text-[#8B8B8B]">{progress}%</span>
             </div>
-            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
+            <div className="h-1.5 rounded-full bg-[#EAEAEA] overflow-hidden mb-5">
                 <div
-                    className="h-full rounded-full bg-[#8B8B8B]"
-                    style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                        width: `${progress}%`,
+                        backgroundColor: progress === 100 ? "#22C55E" : "#8B8B8B"
+                    }}
                 />
             </div>
-            <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1">
-                    <div className="flex -space-x-2">
-                        <div
-                            className="w-7 h-7 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
-                            title={`Assigned to: ${task.assigned_full_name || "Unassigned"}`}
-                        >
-                            {task.assigned_profile_picture ? (
-                                <img
-                                    src={getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture)}
-                                    alt="Assignee"
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.src = getProfileUrl(task.assigned_profile_picture);
-                                        target.onerror = () => {
-                                            target.style.display = "none";
-                                            const parent = target.parentElement;
-                                            if (parent) {
-                                                const span = document.createElement("span");
-                                                span.className = "text-[10px] font-semibold text-slate-700";
-                                                span.innerText = assigneeInitials;
-                                                parent.appendChild(span);
-                                            }
-                                        };
-                                    }}
-                                />
-                            ) : (
-                                <span>{assigneeInitials}</span>
-                            )}
-                        </div>
 
-                        <div
-                            className="w-7 h-7 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
-                            title={`Assigned by: ${task.uploader_full_name || "System"}`}
-                        >
-                            {task.uploader_profile_picture ? (
-                                <img
-                                    src={getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture)}
-                                    alt="Uploader"
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.src = getProfileUrl(task.uploader_profile_picture);
-                                        target.onerror = () => {
-                                            target.style.display = "none";
-                                            const parent = target.parentElement;
-                                            if (parent) {
-                                                const span = document.createElement("span");
-                                                span.className = "text-[10px] font-semibold text-slate-700";
-                                                span.innerText = uploaderInitials;
-                                                parent.appendChild(span);
-                                            }
-                                        };
-                                    }}
-                                />
-                            ) : (
-                                <span>{uploaderInitials}</span>
-                            )}
-                        </div>
+            <div className="flex items-center justify-between gap-2 mt-auto">
+                <div className="flex items-center gap-2 overflow-hidden">
+                    <div className="flex -space-x-2">
+                        {(() => {
+                            const url = getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture);
+                            return (
+                                <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-slate-100 flex-shrink-0">
+                                    <img
+                                        src={url}
+                                        alt="assignee"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(task.assigned_full_name || "U")}&background=random`;
+                                        }}
+                                    />
+                                </div>
+                            );
+                        })()}
                     </div>
+                    <span className="text-sm font-medium text-[#353535] truncate" title={task.assigned_full_name}>
+                        {task.assigned_full_name || "Unassigned"}
+                    </span>
                 </div>
-                <button
-                    type="button"
-                    draggable={false}
-                    onClick={() => onViewTask?.(task)}
-                    className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer"
-                >
-                    Details
-                    <img
-                        src={Arrow}
-                        alt="Arrow"
-                        className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
-                    />
-                </button>
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-[#F2F3F4] rounded-full shrink-0">
+                    <span className="text-[12px] font-medium text-[#616161] truncate max-w-[80px]">
+                        {task.category || task.category_name || "General"}
+                    </span>
+                </div>
             </div>
         </div>
     );
