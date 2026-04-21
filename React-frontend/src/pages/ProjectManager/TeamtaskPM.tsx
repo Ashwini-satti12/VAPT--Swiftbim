@@ -5,6 +5,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import toast from "react-hot-toast";
 import api from "../../lib/api";
@@ -55,39 +56,6 @@ function formatTimeForDisplay(value: string): string {
   const ampm = h24 < 12 ? "AM" : "PM";
   return `${h12}:${m} ${ampm}`;
 }
-
-/* Unused - using TimePickerWheel
-function TimePicker({ value, onChange }: { value: string; onChange: (val: string) => void }) {
-  const [hourStr, minStr] = value ? value.split(":") : ["", ""];
-  let hour12 = hourStr ? parseInt(hourStr, 10) : "";
-  let ampm = "AM";
-  if (typeof hour12 === "number") {
-    if (hour12 >= 12) { if (hour12 > 12) hour12 -= 12; ampm = "PM"; }
-    else if (hour12 === 0) hour12 = 12;
-  }
-  const h = hour12 ? String(hour12).padStart(2, "0") : "";
-  const m = minStr || "";
-  const handleTimeChange = (newH: string, newM: string, newAmPm: string) => {
-    if (!newH && !newM) { onChange(""); return; }
-    const safeH = newH || "12", safeM = newM || "00";
-    let h24 = parseInt(safeH, 10);
-    if (newAmPm === "PM" && h24 < 12) h24 += 12;
-    if (newAmPm === "AM" && h24 === 12) h24 = 0;
-    onChange(`${String(h24).padStart(2, "0")}:${safeM.padStart(2, "0")}`);
-  };
-  return (
-    <div className="flex items-center w-full rounded-sm bg-[#F2F3F4] px-3 py-2 border border-transparent focus-within:border-[#AEACAC52] focus-within:ring-1 focus-within:ring-[#AEACAC52] transition-all">
-      <input type="text" maxLength={2} value={h} placeholder="hh" onChange={(e) => { const val = e.target.value.replace(/\D/g, ""); let num = parseInt(val, 10); if (num > 12) num = 12; handleTimeChange(val ? String(num) : "", m, ampm); }} className="w-6 bg-transparent text-center text-[14px] text-[#353535] placeholder-[#8B8B8B] focus:outline-none" />
-      <span className="text-[#353535] font-bold mx-1">:</span>
-      <input type="text" maxLength={2} value={m} placeholder="mm" onChange={(e) => { const val = e.target.value.replace(/\D/g, ""); let num = parseInt(val, 10); if (num > 59) num = 59; handleTimeChange(h, val ? String(num) : "", ampm); }} className="w-6 bg-transparent text-center text-[14px] text-[#353535] placeholder-[#8B8B8B] focus:outline-none" />
-      <select value={ampm} onChange={(e) => handleTimeChange(h, m, e.target.value)} className="ml-auto bg-transparent text-[14px] text-[#353535] focus:outline-none cursor-pointer font-medium">
-        <option value="AM">AM</option>
-        <option value="PM">PM</option>
-      </select>
-    </div>
-  );
-}
-*/
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 type FormDropdownId =
@@ -471,7 +439,6 @@ interface Project {
   source?: "In House" | "Outsource";
 }
 
-/** Map task (local or API shape) to form values so every detail shows in edit. */
 function taskToFormValues(task: Task | Record<string, unknown>): {
   projectName: string;
   module: string;
@@ -491,8 +458,6 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
     if (v == null) return "";
     const s = str(v).trim();
     if (!s) return "";
-    // Expected by <input type="date">: YYYY-MM-DD
-    // Backend/old UI sometimes stores DD-MM-YYYY or DD/MM/YYYY; normalize.
     const isoMatch = s.match(/(\d{4})-(\d{2})-(\d{2})/);
     if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
     const dmyDash = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
@@ -540,22 +505,6 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
   };
 }
 
-// function formatDateRange(start?: string, end?: string): string {
-//   if (!start && !end) return "—";
-//   const months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
-//   const fmtShort = (s: string) => {
-//     const d = new Date(s);
-//     return `${d.getDate()} ${months[d.getMonth()]}`;
-//   };
-//   const fmtFull = (s: string) => {
-//     const d = new Date(s);
-//     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-//   };
-//   if (start && end) return `${fmtShort(start)} - ${fmtFull(end)}`;
-//   if (start) return fmtFull(start);
-//   return end ? fmtFull(end) : "—";
-// }
-
 function normalizeStatus(
   s: string | undefined,
   approval?: string,
@@ -570,42 +519,22 @@ function normalizeStatus(
   return "todo";
 }
 
-/* Unused
-const STATUS_STYLE: Record<
-  "todo" | "in_progress" | "completed",
-  { label: string; dot: string; bg: string }
-> = {
-  todo: {
-    label: "To Do",
-    dot: "bg-orange-500",
-    bg: "bg-orange-100 text-orange-800 rounded-full",
-  },
-  in_progress: {
-    label: "In Progress",
-    dot: "bg-sky-500",
-    bg: "bg-sky-100 text-sky-800",
-  },
-  completed: {
-    label: "Completed",
-    dot: "bg-emerald-500",
-    bg: "bg-emerald-100 text-emerald-800",
-  },
-};
-*/
-
 function TaskCard({
   task,
   status,
   onViewTask,
   onEditTask,
   onDeleteTask,
+  onApproveTask,
 }: {
   task: Task;
   status: "todo" | "in_progress" | "completed";
   onViewTask?: (task: Task) => void;
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (task: Task) => void;
+  onApproveTask?: (task: Task) => void;
 }) {
+  const { user } = useAuth();
   const progress =
     status === "todo"
       ? 0
@@ -614,13 +543,16 @@ function TaskCard({
         : task.assigned_to != null &&
             task.uploaderid != null &&
             String(task.assigned_to) !== String(task.uploaderid)
-          ? 95
+          ? task.Approval?.toLowerCase() === "approved"
+            ? 100
+            : 95
           : 100;
   const isUnderReview =
     status === "completed" &&
     task.assigned_to != null &&
     task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid);
+    String(task.assigned_to) !== String(task.uploaderid) &&
+    task.Approval?.toLowerCase() !== "approved";
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -659,7 +591,6 @@ function TaskCard({
       draggable={!isCompleted && task.source !== "Outsource"}
       onDragStart={handleDragStart}
       onClick={(e) => {
-        // Only trigger if not clicking on the menu or buttons
         if (!(e.target as HTMLElement).closest('button') && !(e.target as HTMLElement).closest('a')) {
           onViewTask?.(task);
         }
@@ -748,6 +679,26 @@ function TaskCard({
                   </button>
                 </>
               )}
+              {isUnderReview && String(task.uploaderid) === String(user?.id) && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onApproveTask?.(task);
+                  }}
+                >
+                  <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 transition-colors group-hover:bg-green-600 group-hover:text-white">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-green-600">
+                    Approve
+                  </span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -784,7 +735,6 @@ function TaskCard({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1">
           <div className="flex -space-x-2">
-            {/* Assigned To avatar */}
             {task.assigned_full_name &&
               (() => {
                 const src =
@@ -813,7 +763,6 @@ function TaskCard({
                   </div>
                 );
               })()}
-            {/* Assigned By avatar */}
             {task.uploader_full_name &&
               (() => {
                 const src =
@@ -884,6 +833,7 @@ const PERIOD_OPTIONS = [
 ];
 
 export default function TeamtaskPM() {
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
   const isTeam =
@@ -948,21 +898,18 @@ export default function TeamtaskPM() {
   ];
   const allTasksBase = merged.filter((t) => !deletedIds.includes(t.id));
   const allTasks = allTasksBase.filter((t: any) => {
-    // Employee filter
     if (
       selectedEmployee &&
       !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)
     ) {
       if (t.assigned_full_name !== selectedEmployee) return false;
     }
-    // Project filter
     if (
       selectedProject &&
       !["Select Projects", "Show All", "Projects"].includes(selectedProject)
     ) {
       if (t.project_name !== selectedProject) return false;
     }
-    // Period filter
     if (selectedPeriod && !["Period", "Show All"].includes(selectedPeriod)) {
       const taskDate = new Date(t.created_at || t.start_date || "");
       const now = new Date();
@@ -1010,7 +957,6 @@ export default function TeamtaskPM() {
   ) => {
     const label = statusToLabel(newStatus);
 
-    // Find task to get projectId if possible
     const task = merged.find(t => t.id === taskId);
     if (task?.source === "Outsource") {
       console.warn("Project Manager cannot update status of an Outsource task.");
@@ -1029,8 +975,20 @@ export default function TeamtaskPM() {
     }
     const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
 
-    // Visual update immediately
-    setList((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: label } : t)));
+    setList((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              status: label,
+              Approval:
+                newStatus === "completed" && String(t.uploaderid) === String(user?.id)
+                  ? "Approved"
+                  : t.Approval,
+            }
+          : t,
+      ),
+    );
     setLocalTasks((prev) => {
       const idx = prev.findIndex((t) => t.id === taskId);
       if (idx >= 0) {
@@ -1043,14 +1001,13 @@ export default function TeamtaskPM() {
       return prev;
     });
 
-    // Backend update
     const isOutsource = task?.source === ("Outsource" as any);
     const endpoint = isOutsource
       ? `/api/vendors/vendor-tasks/${taskId}/status`
       : `/api/tasks/${taskId}/status`;
 
     api.patch(endpoint, {
-      status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
+      status: newStatus.replace("_", ""),
       projectId
     }).catch(err => {
       console.error("Failed to update task status:", err);
@@ -1061,7 +1018,6 @@ export default function TeamtaskPM() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(localTasks));
     } catch {
-      // ignore quota or parse errors
     }
   }, [localTasks]);
 
@@ -1069,7 +1025,6 @@ export default function TeamtaskPM() {
     try {
       localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(deletedIds));
     } catch {
-      // ignore
     }
   }, [deletedIds]);
 
@@ -1108,7 +1063,14 @@ export default function TeamtaskPM() {
           ]).then(([res1, res2]) => {
             const internal = (res1.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
             const vendor = (res2.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
-            setList([...internal, ...vendor] as Task[]);
+            const combined = [...internal, ...vendor] as Task[];
+            combined.sort((a, b) => {
+                const dateA = new Date(a.created_at || a.start_date || 0).getTime();
+                const dateB = new Date(b.created_at || b.start_date || 0).getTime();
+                if (dateB !== dateA) return dateB - dateA;
+                return (b.id || 0) - (a.id || 0);
+            });
+            setList(combined);
           });
 
           setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTask.id));
@@ -1121,6 +1083,20 @@ export default function TeamtaskPM() {
           setDeleteTask(null);
         });
     }
+  };
+
+  const handleApproveTask = (task: Task) => {
+      const isOutsource = task.source === "Outsource";
+      const endpoint = isOutsource
+          ? `/api/vendors/vendor-tasks/${task.id}/status`
+          : `/api/tasks/${task.id}/status`;
+
+      api.patch(endpoint, { status: "Approved" })
+          .then(() => {
+              toast.success("Task Approved");
+              setList(prev => prev.map(t => t.id === task.id ? { ...t, Approval: "Approved", progress: 100 } : t));
+          })
+          .catch(() => toast.error("Failed to approve task"));
   };
 
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
@@ -1147,21 +1123,6 @@ export default function TeamtaskPM() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, [openDropdown]);
 
-  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = e.currentTarget;
-    const files = input.files;
-    if (!files?.length) return;
-    const newFiles = Array.from(files);
-    setAttachmentFiles((prev) => [...prev, ...newFiles]);
-    input.value = "";
-  };
-
-  const removeAttachment = (index: number) => {
-    setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
-
-
   useEffect(() => {
     const params: Record<string, string> = {};
     if (statusFilter) params.status = statusFilter;
@@ -1180,7 +1141,14 @@ export default function TeamtaskPM() {
       .then(([resTasks, resVendorTasks, resEmployees, resProjects, resVendorProjects]) => {
         const internalTasks = (resTasks.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
         const vendorTasks = (resVendorTasks.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
-        setList([...internalTasks, ...vendorTasks] as Task[]);
+        const combined = [...internalTasks, ...vendorTasks] as Task[];
+        combined.sort((a, b) => {
+            const dateA = new Date(a.created_at || a.start_date || 0).getTime();
+            const dateB = new Date(b.created_at || b.start_date || 0).getTime();
+            if (dateB !== dateA) return dateB - dateA;
+            return (b.id || 0) - (a.id || 0);
+        });
+        setList(combined);
 
         setEmployees((resEmployees.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
 
@@ -1193,8 +1161,6 @@ export default function TeamtaskPM() {
       })
       .finally(() => setLoading(false));
   }, [isTeam, statusFilter]);
-
-
 
   const employeeOptions = useMemo(() => {
     const raw = Array.isArray(employees) ? employees : [];
@@ -1278,7 +1244,6 @@ export default function TeamtaskPM() {
   return (
     <div className="flex flex-col h-full bg-white px-2 py-2 overflow-hidden font-Gantari">
       <div className="bg-white pb-3 flex-shrink-0">
-        {/* Top row: title + dropdowns + Add task - match MytaskTD */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
           <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
             {isTeam ? "Team Task" : "My Task"}
@@ -1362,7 +1327,6 @@ export default function TeamtaskPM() {
           </div>
         </div>
 
-        {/* Status summary cards - match MytaskTD */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
           <Link
             to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
@@ -1415,7 +1379,6 @@ export default function TeamtaskPM() {
         </div>
       </div>
 
-      {/* Task columns scrollable area - match MytaskTD */}
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
           <div
@@ -1438,6 +1401,7 @@ export default function TeamtaskPM() {
                 onViewTask={openViewTask}
                 onEditTask={openEditTask}
                 onDeleteTask={openDeleteTask}
+                onApproveTask={handleApproveTask}
               />
             ))}
           </div>

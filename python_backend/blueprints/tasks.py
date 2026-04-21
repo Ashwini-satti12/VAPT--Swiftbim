@@ -99,7 +99,18 @@ def update_status(task_id):
     if status_lower in ["inprogress", "started"]:
         cur.execute("UPDATE tasks SET status = 'InProgress', start_time = %s WHERE id = %s", (now, task_id))
     elif status_lower in ["completed", "done"]:
-        cur.execute("UPDATE tasks SET status = 'Completed', end_time = %s WHERE id = %s", (now, task_id))
+        cur.execute("SELECT uploaderid FROM tasks WHERE id = %s", (task_id,))
+        t_row = cur.fetchone()
+        is_assigner = False
+        if t_row:
+            up_id = t_row["uploaderid"] if isinstance(t_row, dict) else t_row[0]
+            if str(up_id) == str(getattr(g, "user_id", None)):
+                is_assigner = True
+        
+        if is_assigner:
+            cur.execute("UPDATE tasks SET status = 'Completed', end_time = %s, Approval = 'Approved' WHERE id = %s", (now, task_id))
+        else:
+            cur.execute("UPDATE tasks SET status = 'Completed', end_time = %s WHERE id = %s", (now, task_id))
     elif status_lower in ["todo", "new", "pending"]:
         cur.execute("UPDATE tasks SET status = 'To Do', start_time = NULL, end_time = NULL WHERE id = %s", (task_id,))
     elif status_lower == "pause":
@@ -118,6 +129,7 @@ def update_status(task_id):
         progress = _progress(conn, project_id)
         cur.execute("UPDATE projects SET progress = %s WHERE id = %s", (progress, project_id))
 
+    conn.commit()
     return jsonify({"success": True, "progress": progress})
 
 
@@ -223,24 +235,8 @@ def list_tasks():
             employee_id = g.user_id
         else:
             employee_id = employeeid_param
-        where.append(
-            """(
-                t.assigned_to = %s
-                OR (t.uploaderid = %s AND t.assigned_to = t.uploaderid)
-                OR (
-                    t.uploaderid = %s
-                    AND t.assigned_to <> t.uploaderid
-                    AND (
-                        t.status = 'Completed'
-                        OR (
-                            t.status = 'InProgress'
-                            AND (t.review_remark IS NULL OR TRIM(t.review_remark) = '')
-                        )
-                    )
-                )
-            )"""
-        )
-        params.extend([employee_id, employee_id, employee_id])
+        where.append("t.assigned_to = %s")
+        params.append(employee_id)
 
     if status:
         if status == 'todo':
@@ -375,12 +371,14 @@ def create_task():
     # If assigned_to is a name, try to resolve to ID (optional but helpful)
     if assigned_to and not str(assigned_to).isdigit():
         cur.execute(
-            "SELECT id FROM employee WHERE full_name = %s AND Company_id = %s",
+            "SELECT id FROM employee WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(%s)) AND Company_id = %s",
             (assigned_to, g.company_id),
         )
         row = cur.fetchone()
         if row:
             assigned_to = row["id"] if isinstance(row, dict) else row[0]
+        else:
+            return jsonify({"success": False, "message": f"Employee '{assigned_to}' not found."}), 400
 
     due_date = data.get("due_date") or data.get("dueDate")
     category = data.get("category") or data.get("type") or ""
@@ -481,6 +479,7 @@ def create_task():
     except Exception:
         pass
 
+    conn.commit()
     return jsonify({"success": True, "task_id": task_id, "ticket": ticket})
 
 
@@ -518,8 +517,19 @@ def update_task(task_id):
     params = []
     for key in allowed:
         if key in data and data[key] is not None:
+            val = data[key]
+            if key == "assigned_to" and val and not str(val).isdigit():
+                cur.execute(
+                    "SELECT id FROM employee WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(%s)) AND Company_id = %s",
+                    (val, g.company_id),
+                )
+                row = cur.fetchone()
+                if row:
+                    val = row["id"] if isinstance(row, dict) else row[0]
+                else:
+                    return jsonify({"success": False, "message": f"Employee '{val}' not found."}), 400
             sets.append(f"`{key}` = %s")
-            params.append(data[key])
+            params.append(val)
     if not sets:
         return jsonify({"success": False, "message": "No fields to update"}), 400
     params.append(task_id)
@@ -577,6 +587,7 @@ def delete_task(task_id):
     conn = get_db()
     cur = conn.cursor()
     cur.execute("DELETE FROM tasks WHERE id = %s AND Company_id = %s", (task_id, g.company_id))
+    conn.commit()
     if cur.rowcount:
         return jsonify({"success": True})
     return jsonify({"success": False, "message": "Task not found"}), 404
@@ -610,4 +621,5 @@ def upload_output_files(task_id):
             names.append(name)
     new_path = (existing + "," + ",".join(names)) if existing else ",".join(names)
     cur.execute("UPDATE tasks SET outputfilepath = %s WHERE id = %s AND Company_id = %s", (new_path, task_id, g.company_id))
+    conn.commit()
     return jsonify({"success": True, "files": names})

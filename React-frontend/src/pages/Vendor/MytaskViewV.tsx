@@ -270,7 +270,7 @@ export default function MytaskViewV() {
     const nextProgress =
       newStatus === "completed"
         ? isAssignedBySomeoneElse
-          ? 95
+          ? 95  // Under review, waiting for approval
           : 100
         : newStatus === "in_progress"
           ? 50
