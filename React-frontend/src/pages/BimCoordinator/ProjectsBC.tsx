@@ -370,54 +370,68 @@ export default function ProjectsBC() {
   const [departments, setDepartments] = useState<string[]>([]);
   const priorityOptions = ["High", "Low", "Normal"];
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [clientsList, setClientsList] = useState<
+    Array<{ id: number; fullName?: string; full_name?: string }>
+  >([]);
 
   // Fetch employees + departments once at mount so View modal can resolve names
   useEffect(() => {
     let isMounted = true;
     const fetchEmployeesAndDepartments = async () => {
       try {
-        const [empRes, depRes] = await Promise.all([
-          api.get("/api/employees"),
-          api.get("/api/departments"),
-        ]);
-        if (isMounted) {
-          const empData: Employee[] = empRes.data.employees || [];
-          const selectable = empData.filter(
-            isEmployeeActiveForProjectAssignment,
-          );
-          const roleOf = (e: Employee) =>
-            String(e.user_role || "")
-              .toLowerCase()
-              .trim();
-          setProjectManagers(
-            selectable
-              .filter((e) => {
-                const role = roleOf(e);
-                return role.includes("project manager");
+        // Fetch Employees
+        api.get("/api/employees")
+          .then(({ data }) => {
+            if (!isMounted) return;
+            const empData: Employee[] = data.employees || [];
+            const selectable = empData.filter(isEmployeeActiveForProjectAssignment);
+            const roleOf = (e: Employee) => String(e.user_role || "").toLowerCase().trim();
+            
+            setProjectManagers(
+              selectable
+                .filter((e) => roleOf(e).includes("project manager"))
+                .map((e) => e.full_name)
+            );
+            setBimLeads(
+              selectable
+                .filter((e) => roleOf(e).includes("bim lead"))
+                .map((e) => e.full_name)
+            );
+            setBimCoordinators(
+              selectable
+                .filter((e) => roleOf(e).includes("coordinator"))
+                .map((e) => e.full_name)
+            );
+            setAllEmployees(empData);
+          })
+          .catch(err => console.error("Error fetching employees:", err));
+
+        // Fetch Departments
+        api.get("/api/departments")
+          .then(({ data }) => {
+            if (isMounted) setDepartments(data.departments || []);
+          })
+          .catch(err => console.error("Error fetching departments:", err));
+
+        // Fetch Clients - Try vendors/clients first, fallback if needed
+        api.get("/api/vendors/clients")
+          .then(({ data }) => {
+            if (isMounted) setClientsList(data.clients || []);
+          })
+          .catch(() => {
+            // If vendors/clients fails, try clients/from-users as fallback
+            api.get("/api/clients/from-users")
+              .then(({ data }) => {
+                if (isMounted) setClientsList(data.clients || []);
               })
-              .map((e) => e.full_name),
-          );
-          setBimLeads(
-            selectable
-              .filter((e) => {
-                const role = roleOf(e);
-                return role.includes("bim lead");
-              })
-              .map((e) => e.full_name),
-          );
-          setBimCoordinators(
-            selectable
-              .filter((e) => {
-                const role = roleOf(e);
-                return role.includes("coordinator");
-              })
-              .map((e) => e.full_name),
-          );
-          setAllEmployees(empData);
-          setDepartments(depRes.data.departments || []);
-        }
+              .catch(err => {
+                console.error("Error fetching clients:", err);
+                if (isMounted) setClientsList([]);
+              });
+          });
+
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("General error in fetch:", error);
       }
     };
     fetchEmployeesAndDepartments();
@@ -2204,8 +2218,16 @@ export default function ProjectsBC() {
                   formData.append("currency", createCurrency);
                   if (moduleNameTags.length > 0)
                     formData.append("modules", moduleNameTags.join(", "));
-                  if (createClientName)
-                    formData.append("client_id", createClientName);
+                  if (createClientName) {
+                    const selectedClient = clientsList.find(
+                      (c) => (c.fullName ?? c.full_name) === createClientName,
+                    );
+                    if (selectedClient) {
+                      formData.append("client_id", String(selectedClient.id));
+                    } else if (/^\d+$/.test(createClientName)) {
+                      formData.append("client_id", createClientName);
+                    }
+                  }
                   const pmIdsCreate = nameOrCsvToIdCsv(
                     createProjectManager,
                     allEmployees,
@@ -2543,13 +2565,14 @@ export default function ProjectsBC() {
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                       Client Name <span className="text-[#DD4342]">*</span>
                     </label>
-                    <input
-                      type="text"
-                      required
+                    <FormSelect
+                      label="Client Name"
+                      placeholder="Select Client"
+                      options={clientsList
+                        .map((c) => c.fullName ?? c.full_name ?? "")
+                        .filter(Boolean)}
                       value={createClientName}
-                      onChange={(e) => setCreateClientName(e.target.value)}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] font-semibold placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                      placeholder="Enter Client Name"
+                      onChange={(v) => setCreateClientName(v)}
                     />
                   </div>
 
