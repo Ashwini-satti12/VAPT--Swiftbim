@@ -5212,27 +5212,36 @@ def list_vendor_tasks():
                 profile_ids = []
             if profile_ids:
                 ph = ",".join(["%s"] * len(profile_ids))
-                where.append(
-                    f"(vt.vendor_id = %s OR vt.assigned_to = %s OR vt.assigned_to IN ({ph}))"
-                )
-                params.append(user_id)
+                where.append(f"(vt.assigned_to = %s OR vt.assigned_to IN ({ph}))")
                 params.append(user_id)
                 params.extend(profile_ids)
             else:
-                where.append("(vt.vendor_id = %s OR vt.assigned_to = %s)")
-                params.append(user_id)
+                where.append("vt.assigned_to = %s")
                 params.append(user_id)
         else:
             # Staff callers: allow role-based company visibility.
             if staff_role not in VENDOR_TASK_STAFF_ROLES:
                 return jsonify({"tasks": []})
+            
+            # Staff "My Task" view: only show tasks they are assigned.
+            where.append("vt.assigned_to = %s")
+            params.append(user_id)
+            
             if task_company_id is not None:
                 where.append(
-                    "EXISTS (SELECT 1 FROM snh6_swiftproject.vendor_projects vp2 "
-                    "LEFT JOIN snh6_swiftproject.projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci "
-                    "WHERE vp2.id = vt.project_id AND mp.Company_id = %s)"
+                    """(
+                        EXISTS (
+                            SELECT 1 FROM snh6_swiftproject.vendor_projects vp2
+                            LEFT JOIN snh6_swiftproject.projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci
+                            WHERE vp2.id = vt.project_id AND mp.Company_id = %s
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM snh6_swiftproject.projects mp2
+                            WHERE mp2.id = vt.project_id AND mp2.Company_id = %s
+                        )
+                    )"""
                 )
-                params.append(task_company_id)
+                params.extend([task_company_id, task_company_id])
     elif is_vendor_user_task:
         # Team view for vendor: no vendor_id restriction (all tasks in project)
         pass
@@ -5242,11 +5251,19 @@ def list_vendor_tasks():
             return jsonify({"tasks": []})
         if task_company_id is not None:
             where.append(
-                "EXISTS (SELECT 1 FROM snh6_swiftproject.vendor_projects vp2 "
-                "LEFT JOIN snh6_swiftproject.projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci "
-                "WHERE vp2.id = vt.project_id AND mp.Company_id = %s)"
+                """(
+                    EXISTS (
+                        SELECT 1 FROM snh6_swiftproject.vendor_projects vp2
+                        LEFT JOIN snh6_swiftproject.projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci
+                        WHERE vp2.id = vt.project_id AND mp.Company_id = %s
+                    )
+                    OR EXISTS (
+                        SELECT 1 FROM snh6_swiftproject.projects mp2
+                        WHERE mp2.id = vt.project_id AND mp2.Company_id = %s
+                    )
+                )"""
             )
-            params.append(task_company_id)
+            params.extend([task_company_id, task_company_id])
     if status:
         where.append("vt.status = %s")
         params.append(status)
@@ -5258,13 +5275,14 @@ def list_vendor_tasks():
         f"""
         SELECT
             vt.*,
-            vp.project_name,
+            COALESCE(vp.project_name, mp_direct.project_name) AS project_name,
             COALESCE(ve.full_name, e_up.full_name) AS uploader_full_name,
             COALESCE(ve.profile_picture, e_up.profile_picture) AS uploader_profile_picture,
             COALESCE(va.full_name, e_as.full_name) AS assigned_full_name,
             COALESCE(va.profile_picture, e_as.profile_picture) AS assigned_profile_picture
         FROM vendor_task vt
         LEFT JOIN vendor_projects vp ON vt.project_id = vp.id
+        LEFT JOIN snh6_swiftproject.projects mp_direct ON vt.project_id = mp_direct.id
         LEFT JOIN snh6_swiftproject.vendor_employee ve ON ve.id = vt.vendor_id
         LEFT JOIN employee e_up ON e_up.id = vt.vendor_id AND ve.id IS NULL
         LEFT JOIN snh6_swiftproject.vendor_employee va ON va.id = vt.assigned_to
@@ -5879,7 +5897,7 @@ def update_vendor_task_status(task_id):
     """
     data = request.get_json(silent=True) or request.form
     status = data.get("status")
-    if status not in ("Todo", "InProgress", "Completed"):
+    if status not in ("Todo", "InProgress", "Completed", "Approved"):
         return jsonify({"success": False, "message": "Invalid status"}), 400
 
     _ensure_vendor_task_table()
@@ -5896,12 +5914,22 @@ def update_vendor_task_status(task_id):
         row = cur.fetchone() or {}
         vendor_id = row.get("vendor_id")
         assigned_to = row.get("assigned_to")
+        current_user_id = str(getattr(g, "user_id", None))
+        
+        is_current_user_assigner = (vendor_id is not None and str(vendor_id) == current_user_id)
         is_assigned_by_someone_else = (
             vendor_id is not None
             and assigned_to is not None
             and str(vendor_id) != str(assigned_to)
         )
-        progress = "95" if is_assigned_by_someone_else else "100"
+        
+        if is_current_user_assigner:
+            progress = "100"
+        else:
+            progress = "95" if is_assigned_by_someone_else else "100"
+    elif status == "Approved":
+        progress = "100"
+        status = "Completed"
 
     cur.execute(
         "UPDATE vendor_task SET status = %s, progress = %s WHERE id = %s",
@@ -7571,5 +7599,6 @@ def delete_vendor_project(project_id):
     except Exception as e:
         conn.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
+
 
 

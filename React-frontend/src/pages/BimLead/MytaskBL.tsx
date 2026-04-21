@@ -19,6 +19,7 @@ import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
+import { useAuth } from "../../contexts/AuthContext";
 
 const getApiBaseUrl = () => import.meta.env.VITE_API_URL || "";
 const getProfileUrl = (path: string | undefined): string => {
@@ -258,13 +259,17 @@ function TaskCard({
   onViewTask?: (task: Task) => void;
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (task: Task) => void;
+  onApproveTask?: (task: Task) => void;
 }) {
+  const { user } = useAuth();
   const progress =
     status === "completed" &&
     task.assigned_to != null &&
     task.uploaderid != null &&
     String(task.assigned_to) !== String(task.uploaderid)
-      ? 95
+      ? task.Approval?.toLowerCase() === "approved"
+        ? 100
+        : 95
       : typeof task.progress === "number"
         ? task.progress
         : status === "todo"
@@ -276,7 +281,8 @@ function TaskCard({
     status === "completed" &&
     task.assigned_to != null &&
     task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid);
+    String(task.assigned_to) !== String(task.uploaderid) &&
+    task.Approval?.toLowerCase() !== "approved";
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -390,6 +396,26 @@ function TaskCard({
                     </span>
                   </button>
                 </>
+              )}
+              {isUnderReview && String(task.uploaderid) === String(user?.id) && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onApproveTask?.(task);
+                  }}
+                >
+                  <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 transition-colors group-hover:bg-green-600 group-hover:text-white">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-green-600">
+                    Approve
+                  </span>
+                </button>
               )}
             </div>
           )}
@@ -652,7 +678,18 @@ export default function MytaskBL() {
 
     // Visual update immediately
     setList((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: label } : t)),
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              status: label,
+              Approval:
+                newStatus === "completed" && String(t.uploaderid) === String(user?.id)
+                  ? "Approved"
+                  : t.Approval,
+            }
+          : t,
+      ),
     );
 
     const isOutsource = task?.source === "Outsource";
@@ -669,6 +706,20 @@ export default function MytaskBL() {
       .catch((err) => {
         console.error("Failed to update task status:", err);
       });
+  };
+
+  const handleApproveTask = (task: Task) => {
+    const isOutsource = task.source === "Outsource";
+    const endpoint = isOutsource
+      ? `/api/vendors/vendor-tasks/${task.id}/status`
+      : `/api/tasks/${task.id}/status`;
+
+    api.patch(endpoint, { status: "Approved" })
+      .then(() => {
+        toast.success("Task Approved");
+        setList(prev => prev.map(t => t.id === task.id ? { ...t, Approval: "Approved", progress: 100 } : t));
+      })
+      .catch(() => toast.error("Failed to approve task"));
   };
 
   const [deleteTask, setDeleteTask] = useState<Task | null>(null);
@@ -753,7 +804,14 @@ export default function MytaskBL() {
           ...t,
           source: "Outsource",
         }));
-        setList([...t1, ...t2] as Task[]);
+        const combined = [...t1, ...t2] as Task[];
+        combined.sort((a, b) => {
+          const dateA = new Date(a.created_at || a.start_date || 0).getTime();
+          const dateB = new Date(b.created_at || b.start_date || 0).getTime();
+          if (dateB !== dateA) return dateB - dateA;
+          return (b.id || 0) - (a.id || 0);
+        });
+        setList(combined);
 
         setEmployees(
           (empRes.data.employees ?? []).filter(
@@ -1079,6 +1137,7 @@ export default function MytaskBL() {
                   onViewTask={openViewTask}
                   onEditTask={openEditTask}
                   onDeleteTask={openDeleteTask}
+                  onApproveTask={handleApproveTask}
                 />
               ))}
             </div>
@@ -1103,6 +1162,7 @@ export default function MytaskBL() {
                   onViewTask={openViewTask}
                   onEditTask={openEditTask}
                   onDeleteTask={openDeleteTask}
+                  onApproveTask={handleApproveTask}
                 />
               ))}
             </div>
@@ -1126,6 +1186,7 @@ export default function MytaskBL() {
                   onViewTask={openViewTask}
                   onEditTask={openEditTask}
                   onDeleteTask={openDeleteTask}
+                  onApproveTask={handleApproveTask}
                 />
               ))}
             </div>

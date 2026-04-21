@@ -824,7 +824,7 @@ export default function AddTaskBL() {
                   /> */}
                 </div>
               </div>
-              {/* <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
+              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Type <span className="text-[#DD4342]">*</span>
@@ -894,7 +894,7 @@ export default function AddTaskBL() {
                     className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
-              </div> */}
+              </div>
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
                 <div className="relative w-full">
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">

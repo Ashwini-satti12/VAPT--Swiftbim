@@ -264,7 +264,9 @@ function TaskCard({
     task.assigned_to != null &&
     task.uploaderid != null &&
     String(task.assigned_to) !== String(task.uploaderid)
-      ? 95
+      ? task.Approval?.toLowerCase() === "approved"
+        ? 100
+        : 95
       : typeof task.progress === "number"
         ? task.progress
         : status === "todo"
@@ -634,7 +636,7 @@ export default function TeamtaskV() {
     const nextProgress =
       newStatus === "completed"
         ? isAssignedBySomeoneElse
-          ? 95
+          ? 95  // Under review, waiting for approval
           : 100
         : newStatus === "in_progress"
           ? 50

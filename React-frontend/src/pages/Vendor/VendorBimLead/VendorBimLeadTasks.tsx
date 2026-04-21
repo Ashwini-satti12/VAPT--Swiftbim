@@ -1048,7 +1048,9 @@ export default function VendorBimLeadTasks() {
                       : task.assigned_to != null &&
                           task.uploaderid != null &&
                           String(task.assigned_to) !== String(task.uploaderid)
-                        ? 95
+                        ? task.Approval?.toLowerCase() === "approved"
+                          ? 100
+                          : 95
                         : 100;
                 const isUnderReview =
                   normalizeStatus(task.status) === "completed" &&

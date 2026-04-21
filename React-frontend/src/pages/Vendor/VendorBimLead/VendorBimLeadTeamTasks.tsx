@@ -623,7 +623,9 @@ export default function VendorBimLeadTeamTasks() {
         task.assigned_to != null &&
         task.uploaderid != null &&
         String(task.assigned_to) !== String(task.uploaderid)
-        ? 95
+        ? task.Approval?.toLowerCase() === "approved"
+          ? 100
+          : 95
         : (task as any).progress ??
           (status === "todo" ? 0 : status === "in_progress" ? 50 : 100);
     const isUnderReview =
