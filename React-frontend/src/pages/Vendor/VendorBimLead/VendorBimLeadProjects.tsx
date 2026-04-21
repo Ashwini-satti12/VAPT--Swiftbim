@@ -1347,9 +1347,10 @@ export default function VendorBimLeadProjects() {
                 </p>
               </div>
             </div>
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden px-5">
+              <div className="flex-1 overflow-y-auto pb-10 custom-scrollbar -mr-6 space-y-8">
               {/* Fixed KPI Cards at top */}
-              <div className="px-4 md:px-5 mt-4">
+              <div className="mt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                   {[
                     {
@@ -1399,7 +1400,7 @@ export default function VendorBimLeadProjects() {
               </div>
 
               {/* Scrollable Content Below KPI Cards */}
-              <div className="flex-1 overflow-y-auto px-4 md:px-5 pb-10 pt-4 md:pt-6 custom-scrollbar space-y-8">
+              
                 {/* Modules */}
                 <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-4">
                   <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">

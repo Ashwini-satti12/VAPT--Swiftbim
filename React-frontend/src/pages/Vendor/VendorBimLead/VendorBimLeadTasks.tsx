@@ -587,18 +587,18 @@ export default function VendorBimLeadTasks() {
                     className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B]"
                     required
                   />
-                  <button
+                  {/* <button
                     type="button"
                     className="inline-flex h-full min-h-[40px] w-auto shrink-0 items-center justify-between gap-2 border-0 border-l border-[#E0E0E0] bg-[#E2E2E2] px-4 py-2 text-[14px] font-Gantari text-[#8B8B8B] cursor-pointer"
                   >
                     Tasklist
-                  </button>
+                  </button> */}
                 </div>
               </div>
             </div>
 
             {/* Type + Start Date + End Date */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
+            {/* <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
               <div>
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                   Type <span className="text-[#DD4342]">*</span>
@@ -681,7 +681,7 @@ export default function VendorBimLeadTasks() {
                   className="w-full px-4 py-2 bg-[#F2F3F4] text-[#353535] rounded-[5px] text-[14px] focus:outline-none min-h-[42px] border border-transparent focus:border-[#AEACAC52] transition-colors font-Gantari"
                 />
               </div>
-            </div>
+            </div> */}
 
             {/* Start Time + End Time + Assign To */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">

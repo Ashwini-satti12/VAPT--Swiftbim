@@ -307,7 +307,7 @@ function TaskCard({
     <div
       draggable={!isCompleted}
       onDragStart={handleDragStart}
-      className={`rounded-lg border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+      className={`mt-2 rounded-lg border border-[#AEACAC52] bg-white p-3 shadow-sm relative mx-auto w-full max-w-full lg:max-w-none ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
       <div className="flex items-center justify-between gap-2 mb-4">
         <h4 className="flex-1 min-w-0 font-medium text-[#353535] text-[20px] truncate">
@@ -511,13 +511,13 @@ function TaskCard({
           type="button"
           draggable={false}
           onClick={() => onViewTask?.(task)}
-          className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer transition-colors"
+          className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer"
         >
           Details
           <img
             src={Arrow}
             alt="Arrow"
-            className="w-3 h-3 transition-all duration-200 group-hover:translate-x-0.5 group-hover:brightness-0 group-hover:invert-[20%] cursor-pointer"
+            className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
           />
         </button>
       </div>
