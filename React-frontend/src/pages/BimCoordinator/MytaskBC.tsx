@@ -92,10 +92,10 @@ export function FormDropdown({
   const filteredOptions =
     searchable && isOpen && q
       ? options.filter(
-          (opt) =>
-            opt.label.toLowerCase().includes(q) ||
-            String(opt.value).toLowerCase().includes(q),
-        )
+        (opt) =>
+          opt.label.toLowerCase().includes(q) ||
+          String(opt.value).toLowerCase().includes(q),
+      )
       : options;
 
   const displayLabel = value
@@ -243,19 +243,19 @@ export function TaskDropdown({
   const q = (searchQuery || "").trim().toLowerCase();
   const filteredOptions = searchable
     ? (() => {
-        if (!q) return options;
-        const first = options[0];
-        const isPlaceholderOption = (o: string) =>
-          o === first &&
-          (first === "Select Employee" || first === "Select Projects");
-        return options.filter((opt) => {
-          if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
-          const name = String(opt ?? "")
-            .trim()
-            .toLowerCase();
-          return name.includes(q);
-        });
-      })()
+      if (!q) return options;
+      const first = options[0];
+      const isPlaceholderOption = (o: string) =>
+        o === first &&
+        (first === "Select Employee" || first === "Select Projects");
+      return options.filter((opt) => {
+        if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
+        const name = String(opt ?? "")
+          .trim()
+          .toLowerCase();
+        return name.includes(q);
+      });
+    })()
     : options;
 
   const menuShellClass =
@@ -319,8 +319,8 @@ export function TaskDropdown({
         <span className={triggerTextClass}>
           {(label.toLowerCase() === "show entries" ||
             label.toLowerCase() === "show") &&
-          selected &&
-          selected !== label ? (
+            selected &&
+            selected !== label ? (
             <>
               <span className="text-[14px]">Show:</span>{" "}
               <span className="font-semibold">{selected}</span>
@@ -539,10 +539,10 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
     actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
     startTime: timeOnly(
       t.perferstart_time ??
-        t.start_time ??
-        t.startTime ??
-        t.Actual_start_time ??
-        "",
+      t.start_time ??
+      t.startTime ??
+      t.Actual_start_time ??
+      "",
     ),
     dueTime: timeOnly(
       t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? "",
@@ -631,9 +631,9 @@ export function TaskCard({
 }) {
   const progress =
     status === "completed" &&
-    task.assigned_to != null &&
-    task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid)
+      task.assigned_to != null &&
+      task.uploaderid != null &&
+      String(task.assigned_to) !== String(task.uploaderid)
       ? 95
       : task.progress !== undefined
         ? task.progress
