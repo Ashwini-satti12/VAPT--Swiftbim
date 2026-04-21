@@ -3949,7 +3949,7 @@ export default function ProjectsBC() {
                                     View
                                   </span>
                                 </button>
-                                {(isTechnicalDirector || isManagement) && (
+                                {/* {(isTechnicalDirector || isManagement) && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -3968,7 +3968,7 @@ export default function ProjectsBC() {
                                       Payment Milestones
                                     </span>
                                   </button>
-                                )}
+                                )} */}
                                 {canEdit && (
                                   <button
                                     onClick={(e) => {
@@ -4085,7 +4085,7 @@ export default function ProjectsBC() {
                                     </span>
                                   </button>
                                 )}
-                                {canDelete && (
+                                {/* {canDelete && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -4103,7 +4103,7 @@ export default function ProjectsBC() {
                                       Delete
                                     </span>
                                   </button>
-                                )}
+                                )} */}
                               </div>
                             </div>
                           </div>
