@@ -1468,8 +1468,138 @@ export default function ProjectsBL() {
                     );
                   })()}
 
+                  {/* BIM Coordinator */}
+                                      {(() => {
+                                          const bcIds = selectedProjectForView.bim_coordinator_id
+                                            ? String(selectedProjectForView.bim_coordinator_id)
+                                                .split(",")
+                                                .map((id) => id.trim())
+                                                .filter(Boolean)
+                                            : [];
+                                          const bcNames = selectedProjectForView.bim_coordinator_name
+                                            ? String(selectedProjectForView.bim_coordinator_name)
+                                                .split(",")
+                                                .map((n) => n.trim())
+                                                .filter(Boolean)
+                                            : [];
+                  
+                                          if (bcIds.length === 0 && bcNames.length === 0) {
+                                            return (
+                                              <div className="min-w-0">
+                                                <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                                                  BIM Coordinator
+                                                </p>
+                                                <div className="flex items-center -space-x-3">
+                                                  <div
+                                                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
+                                                    title="Not assigned"
+                                                  >
+                                                    <span className="text-slate-600 text-xs font-bold">
+                                                      BC
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            );
+                                          }
+                  
+                                          const maxCount = Math.max(bcIds.length, bcNames.length);
+                                          const bcEntries = Array.from({ length: maxCount }).map(
+                                            (_, i) => {
+                                              const pId = bcIds[i];
+                                              const pName = bcNames[i];
+                                              const bcEmp = pId
+                                                ? allEmployees.find((e: any) => String(e.id) === pId)
+                                                : null;
+                                              const dName = bcEmp?.full_name || pName || "Unknown";
+                                              const url = bcEmp?.profile_picture
+                                                ? getGlobalProfileUrl(bcEmp.id, bcEmp.profile_picture)
+                                                : null;
+                                              return { key: i, dName, url };
+                                            }
+                                          );
+                                          const visibleBc = bcEntries.slice(0, 3);
+                                          const bcRemaining = Math.max(0, bcEntries.length - 3);
+                                          const bcOverflowTitle =
+                                            bcRemaining > 0
+                                              ? bcEntries
+                                                  .slice(3)
+                                                  .map((e) => e.dName)
+                                                  .join(", ")
+                                              : undefined;
+                  
+                                          return (
+                                            <div className="min-w-0">
+                                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                                                {maxCount > 1 ? "BIM Coordinators" : "BIM Coordinator"}
+                                              </p>
+                                              {maxCount === 1 ? (
+                                                <div className="flex items-center gap-3">
+                                                  <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
+                                                    {visibleBc[0].url ? (
+                                                      <img
+                                                        src={visibleBc[0].url}
+                                                        className="w-full h-full object-cover"
+                                                        alt=""
+                                                        onError={(e) => {
+                                                          (e.target as HTMLImageElement).src =
+                                                            ProfileIcon;
+                                                        }}
+                                                      />
+                                                    ) : (
+                                                      <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                                        {visibleBc[0].dName.charAt(0).toUpperCase()}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                  <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                                                    {visibleBc[0].dName}
+                                                  </span>
+                                                </div>
+                                              ) : (
+                                                <div className="flex items-center -space-x-3">
+                                                  {visibleBc.map((entry) => (
+                                                    <div key={entry.key} className="relative group shrink-0">
+                                                      <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
+                                                        {entry.url ? (
+                                                          <img
+                                                            src={entry.url}
+                                                            className="w-full h-full object-cover"
+                                                            alt=""
+                                                            onError={(e) => {
+                                                              (e.target as HTMLImageElement).src =
+                                                                ProfileIcon;
+                                                            }}
+                                                          />
+                                                        ) : (
+                                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                                            {entry.dName.charAt(0).toUpperCase()}
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                                        {entry.dName}
+                                                      </div>
+                                                    </div>
+                                                  ))}
+                                                  {bcRemaining > 0 && (
+                                                    <div className="relative group shrink-0">
+                                                      <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
+                                                        +{bcRemaining}
+                                                      </div>
+                                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                                        {bcOverflowTitle}
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </div>
+                                          );
+                                        })()}
+
                   {/* Department Involved */}
-                  {selectedProjectForView?.source !== "Outsource" && (
+                  {/* {selectedProjectForView?.source !== "Outsource" && (
                     <div className="flex flex-col gap-3">
                       <p className="text-md font-Gantari font-semibold text-[#000000]">
                         BIM Coordinator
@@ -1478,7 +1608,7 @@ export default function ProjectsBL() {
                         {selectedProjectForView.bim_coordinator_name || "N/A"}
                       </p>
                     </div>
-                  )}
+                  )} */}
 
                   {/* Members Involved */}
                   <div className="flex flex-col gap-3">
@@ -2877,6 +3007,15 @@ export default function ProjectsBL() {
                       <div className="overflow-y-auto">
                         {allEmployees
                           .filter(isEmployeeActiveForProjectAssignment)
+                          .filter(e => {
+                            const role = String(e.user_role || '').toLowerCase();
+                            return (
+                              !role.includes('project manager') &&
+                              !role.includes('bim lead') &&
+                              !role.includes('coordinator') &&
+                              !role.includes('technical director')
+                            );
+                          })
                           .filter((e) =>
                             e.full_name
                               .toLowerCase()
@@ -3514,7 +3653,7 @@ export default function ProjectsBL() {
                     type="text"
                     readOnly
                     value={createClientName}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] cursor-not-allowed opacity-70"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] font-semibold border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] cursor-not-allowed"
                     placeholder="Enter Client Name"
                   />
                 </div>
@@ -3708,6 +3847,15 @@ export default function ProjectsBL() {
                       <div className="overflow-y-auto">
                         {allEmployees
                           .filter(isEmployeeActiveForProjectAssignment)
+                          .filter(e => {
+                            const role = String(e.user_role || '').toLowerCase();
+                            return (
+                              !role.includes('project manager') &&
+                              !role.includes('bim lead') &&
+                              !role.includes('coordinator') &&
+                              !role.includes('technical director')
+                            );
+                          })
                           .filter((e) =>
                             e.full_name
                               .toLowerCase()

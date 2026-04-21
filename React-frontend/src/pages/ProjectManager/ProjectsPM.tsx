@@ -959,7 +959,7 @@ export default function ProjectsPM() {
                     type="button"
                     onClick={() =>
                       navigate(
-                        "/pm/teamtasks?status=todo" +
+                        "/teamtask?status=todo" +
                         (selectedProjectForView?.project_name
                           ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
                           : ""),
@@ -982,7 +982,7 @@ export default function ProjectsPM() {
                     type="button"
                     onClick={() =>
                       navigate(
-                        "/pm/teamtasks?status=in_progress" +
+                        "/teamtask?status=in_progress" +
                         (selectedProjectForView?.project_name
                           ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
                           : ""),
@@ -1005,7 +1005,7 @@ export default function ProjectsPM() {
                     type="button"
                     onClick={() =>
                       navigate(
-                        "/pm/teamtasks?status=paused" +
+                        "/teamtask?status=paused" +
                         (selectedProjectForView?.project_name
                           ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
                           : ""),
@@ -1028,7 +1028,7 @@ export default function ProjectsPM() {
                     type="button"
                     onClick={() =>
                       navigate(
-                        "/pm/teamtasks?status=completed" +
+                        "/teamtask?status=completed" +
                         (selectedProjectForView?.project_name
                           ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
                           : ""),
@@ -2331,10 +2331,19 @@ export default function ProjectsPM() {
                               />
                             </div>
                             <div className="overflow-y-auto">
-                              {allEmployees
-                                .filter(isEmployeeActiveForProjectAssignment)
-                                .filter(e => e.full_name.toLowerCase().includes(memberSearch.toLowerCase()))
-                                .map(e => (
+                                {allEmployees
+                                  .filter(isEmployeeActiveForProjectAssignment)
+                                  .filter(e => {
+                                    const role = String(e.user_role || '').toLowerCase();
+                                    return (
+                                      !role.includes('project manager') &&
+                                      !role.includes('bim lead') &&
+                                      !role.includes('coordinator') &&
+                                      !role.includes('technical director')
+                                    );
+                                  })
+                                  .filter(e => e.full_name.toLowerCase().includes(memberSearch.toLowerCase()))
+                                  .map(e => (
                                   <label key={e.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F2F3F4] cursor-pointer">
                                     <input
                                       type="checkbox"
@@ -2828,10 +2837,12 @@ export default function ProjectsPM() {
                         <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                           Client Name <span className="text-[#DD4342]">*</span>
                         </label>
-                        <FormSelect
-                          label="Client Name" placeholder="Select Client"
-                          options={clientsList.map(c => c.full_name)} value={createClientName}
-                          onChange={setCreateClientName}
+                        <input
+                          type="text"
+                          readOnly
+                          value={createClientName}
+                          className="w-full px-4 py-2 text-[14px] text-[#353535] font-semibold bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari cursor-not-allowed focus:outline-none focus:border-[#AEACAC52]"
+                          placeholder="Client Name"
                         />
                       </div>
 
@@ -2977,10 +2988,19 @@ export default function ProjectsPM() {
                               />
                             </div>
                             <div className="overflow-y-auto">
-                              {allEmployees
-                                .filter(isEmployeeActiveForProjectAssignment)
-                                .filter(e => e.full_name.toLowerCase().includes(memberSearch.toLowerCase()))
-                                .map(e => (
+                               {allEmployees
+                                  .filter(isEmployeeActiveForProjectAssignment)
+                                  .filter(e => {
+                                    const role = String(e.user_role || '').toLowerCase();
+                                    return (
+                                      !role.includes('project manager') &&
+                                      !role.includes('bim lead') &&
+                                      !role.includes('coordinator') &&
+                                      !role.includes('technical director')
+                                    );
+                                  })
+                                  .filter(e => e.full_name.toLowerCase().includes(memberSearch.toLowerCase()))
+                                  .map(e => (
                                   <label key={e.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F2F3F4] cursor-pointer">
                                     <input
                                       type="checkbox"

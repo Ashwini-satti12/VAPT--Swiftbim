@@ -534,11 +534,12 @@ export default function ProjectsBC() {
     setPmTaskStatsLoading(true);
     let cancelled = false;
 
-    const source = searchParams.get("source") || "In House";
-    const statsApi =
-      source === "Outsource"
-        ? `/api/vendors/vendor-projects/${projectId}/module-progress`
-        : `/api/projects/${projectId}/module-progress`;
+    const isOutsource =
+      selectedProjectForView?.source === "Outsource" ||
+      searchParams.get("source") === "Outsource";
+    const statsApi = isOutsource
+      ? `/api/vendors/vendor-projects/${projectId}/module-progress`
+      : `/api/projects/${projectId}/module-progress`;
 
     api
       .get<{
@@ -576,7 +577,12 @@ export default function ProjectsBC() {
     return () => {
       cancelled = true;
     };
-  }, [showProjectView, selectedProjectForView?.id, searchParams]);
+  }, [
+    showProjectView,
+    selectedProjectForView?.id,
+    selectedProjectForView?.source,
+    searchParams,
+  ]);
 
   const fetchProjects = () => {
     const status = searchParams.get("status");
@@ -776,52 +782,6 @@ export default function ProjectsBC() {
               <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 pb-6 px-5">
                 {/* Task Status Cards - Static at top */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-4 shrink-0">
-                  {/* Total Tasks */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        "/bc/teamtasks" +
-                          (selectedProjectForView?.project_name
-                            ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                            : ""),
-                      )
-                    }
-                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
-                  >
-                    <div className="flex items-center justify-left mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                        Total Tasks
-                      </p>
-                    </div>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                      {selectedProjectForView.total_tasks ?? 0}
-                    </p>
-                  </button>
-
-                  {/* Completed Tasks */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        "/bc/teamtasks?status=completed" +
-                          (selectedProjectForView?.project_name
-                            ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                            : ""),
-                      )
-                    }
-                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
-                  >
-                    <div className="flex items-center justify-left mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                        Completed Tasks
-                      </p>
-                    </div>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                      {selectedProjectForView.completed_tasks ?? 0}
-                    </p>
-                  </button>
-
                   {/* To Do Tasks */}
                   <button
                     type="button"
@@ -865,6 +825,52 @@ export default function ProjectsBC() {
                     </div>
                     <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                       {pmTaskStatsLoading ? "..." : pmTaskStats.inProgress}
+                    </p>
+                  </button>
+
+                  {/* Paused Tasks */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        "/bc/teamtasks?status=paused" +
+                          (selectedProjectForView?.project_name
+                            ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            : ""),
+                      )
+                    }
+                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                  >
+                    <div className="flex items-center justify-left mb-2">
+                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                        Paused Tasks
+                      </p>
+                    </div>
+                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                      {pmTaskStatsLoading ? "..." : pmTaskStats.paused}
+                    </p>
+                  </button>
+
+                  {/* Completed Tasks */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        "/bc/teamtasks?status=completed" +
+                          (selectedProjectForView?.project_name
+                            ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            : ""),
+                      )
+                    }
+                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                  >
+                    <div className="flex items-center justify-left mb-2">
+                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                        Completed Tasks
+                      </p>
+                    </div>
+                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                      {pmTaskStatsLoading ? "..." : pmTaskStats.completed}
                     </p>
                   </button>
                 </div>
@@ -2542,7 +2548,7 @@ export default function ProjectsBC() {
                       required
                       value={createClientName}
                       onChange={(e) => setCreateClientName(e.target.value)}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] font-semibold placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Client Name"
                     />
                   </div>
@@ -2722,6 +2728,15 @@ export default function ProjectsBC() {
                         <div className="overflow-y-auto">
                           {allEmployees
                             .filter(isEmployeeActiveForProjectAssignment)
+                            .filter(e => {
+                              const role = String(e.user_role || '').toLowerCase();
+                              return (
+                                !role.includes('project manager') &&
+                                !role.includes('bim lead') &&
+                                !role.includes('coordinator') &&
+                                !role.includes('technical director')
+                              );
+                            })
                             .filter((e) =>
                               e.full_name
                                 .toLowerCase()
@@ -3282,7 +3297,7 @@ export default function ProjectsBC() {
                       type="text"
                       readOnly
                       value={createClientName}
-                      className="w-full px-4 py-2 text-[14px] text-gray-500 placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari cursor-not-allowed focus:outline-none"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] font-semibold placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari cursor-not-allowed focus:outline-none"
                       placeholder="Enter Client Name"
                     />
                   </div>
@@ -3481,6 +3496,15 @@ export default function ProjectsBC() {
                         <div className="overflow-y-auto">
                           {allEmployees
                             .filter(isEmployeeActiveForProjectAssignment)
+                            .filter(e => {
+                              const role = String(e.user_role || '').toLowerCase();
+                              return (
+                                !role.includes('project manager') &&
+                                !role.includes('bim lead') &&
+                                !role.includes('coordinator') &&
+                                !role.includes('technical director')
+                              );
+                            })
                             .filter((e) =>
                               e.full_name
                                 .toLowerCase()
