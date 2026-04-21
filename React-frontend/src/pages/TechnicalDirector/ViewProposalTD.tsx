@@ -129,14 +129,15 @@ function safeParsePayment(
 }
 
 export default function ViewProposalTD() {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const [searchParams] = useSearchParams();
-    const state: any = (location && (location as any).state) || {};
-    const bid = state?.bid || null;
-    const proposalId = state?.proposalId || Number(searchParams.get("proposalId") || 0) || null;
-    const source = state?.source || searchParams.get("source") || "td_proposals";
-    const returnTo = state?.returnTo || "/td/proposals";
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const state: any = (location && (location as any).state) || {};
+  const bid = state?.bid || null;
+  const proposalId =
+    state?.proposalId || Number(searchParams.get("proposalId") || 0) || null;
+  const source = state?.source || searchParams.get("source") || "td_proposals";
+  const returnTo = state?.returnTo || "/td/proposals";
 
   const [loading, setLoading] = useState(!!proposalId);
   const [proposal, setProposal] = useState<Proposal | null>(null);
@@ -242,21 +243,16 @@ export default function ViewProposalTD() {
     rejectReason?: string,
   ): Promise<boolean> => {
     if (!proposalId) return false;
-    const reason =
-      action === "reject" ? String(rejectReason ?? "").trim() : "";
+    const reason = action === "reject" ? String(rejectReason ?? "").trim() : "";
     try {
       await api.post(`/api/vendors/td/proposals/${proposalId}/respond`, {
         action,
         reason,
       });
       if (action === "accept") {
-        setProposal((prev) =>
-          prev ? { ...prev, status: "accepted" } : prev,
-        );
+        setProposal((prev) => (prev ? { ...prev, status: "accepted" } : prev));
       } else if (action === "reject") {
-        setProposal((prev) =>
-          prev ? { ...prev, status: "rejected" } : prev,
-        );
+        setProposal((prev) => (prev ? { ...prev, status: "rejected" } : prev));
       }
       const path =
         source === "vendor_submitted"
