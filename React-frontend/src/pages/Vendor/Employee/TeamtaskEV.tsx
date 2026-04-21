@@ -198,6 +198,8 @@ interface Task {
     uploader_profile_picture?: string;
 }
 
+type StatusKey = "todo" | "in_progress" | "completed";
+
 const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL || "";
 };
@@ -308,12 +310,13 @@ function TaskCard({
                     : status === "in_progress"
                         ? 50
                         : 100;
+    const isCompletedCol = status === "completed";
     const isUnderReview =
         status === "completed" &&
         task.assigned_to != null &&
         task.uploaderid != null &&
         String(task.assigned_to) !== String(task.uploaderid);
-    const [menuOpen, setMenuOpen] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
