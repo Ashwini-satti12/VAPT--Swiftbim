@@ -35,6 +35,7 @@ const initialForm = {
     assignTo: "",
     description: "",
     checklist: "",
+    reviewRemark: "",
 };
 
 /** Opens a local `File` in a new browser tab (e.g. PDF viewer) instead of an in-app modal. */
@@ -303,6 +304,17 @@ export default function AddTaskTD() {
 
     const merged = list.filter(Boolean);
     const totalAttachmentCount = existingOutputFilenames.length + attachmentFiles.length;
+    const statusRaw = String(editingTask?.status || "").trim().toLowerCase();
+    const isCompletedTask =
+        statusRaw === "completed" || statusRaw === "complete" || statusRaw === "done";
+    const reviewRequired = Boolean((editingTask as any)?.review_required);
+    const isDelegatedCompletedTask =
+        isCompletedTask &&
+        editingTask?.assigned_to != null &&
+        editingTask?.uploaderid != null &&
+        String(editingTask.assigned_to) !== String(editingTask.uploaderid);
+    const showReviewRemarkField =
+        editingTaskId != null && (reviewRequired || isDelegatedCompletedTask);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -349,11 +361,14 @@ export default function AddTaskTD() {
             assignedTo: employees.find((e) => e.full_name === addTaskForm.assignTo)?.id || addTaskForm.assignTo,
             description: addTaskForm.description,
             checklist: addTaskForm.checklist,
+            review_remark: addTaskForm.reviewRemark,
             modules: addTaskForm.module,
         };
 
         const selectedProj = projects.find((p) => p.project_name === addTaskForm.projectName);
-        const isOutsource = selectedProj?.source === "Outsource";
+        const isOutsource = editingTaskId != null
+            ? (editingTask?.source === "Outsource")
+            : (selectedProj?.source === "Outsource");
 
         const handleFiles = (taskId: number | string) => {
             if (attachmentFiles.length > 0) {
@@ -379,6 +394,7 @@ export default function AddTaskTD() {
                       category: payload.category,
                       description: payload.description,
                       checklist: payload.checklist,
+                      review_remark: payload.review_remark,
                       modules: payload.modules,
                       start_date: payload.startdate,
                       start_time: payload.startTime,
@@ -392,17 +408,55 @@ export default function AddTaskTD() {
                       category: payload.category,
                       description: payload.description,
                       checklist: payload.checklist,
+                      review_remark: payload.review_remark,
                       modules_name: payload.modules,
                       Actual_start_time: payload.startdate,
                       perferstart_time: payload.startTime,
                       perferend_time: payload.dueTime,
                   };
+            const primaryUrl = `${baseEndpoint}/${editingTaskId}`;
+            const fallbackBase = isOutsource ? "/api/tasks" : "/api/vendors/vendor-tasks";
+            const fallbackBody = isOutsource
+                ? {
+                      task_name: payload.taskName,
+                      assigned_to: payload.assignedTo,
+                      due_date: payload.dueDate,
+                      category: payload.category,
+                      description: payload.description,
+                      checklist: payload.checklist,
+                      review_remark: payload.review_remark,
+                      modules_name: payload.modules,
+                      Actual_start_time: payload.startdate,
+                      perferstart_time: payload.startTime,
+                      perferend_time: payload.dueTime,
+                  }
+                : {
+                      task_name: payload.taskName,
+                      assigned_to: payload.assignedTo,
+                      due_date: payload.dueDate,
+                      category: payload.category,
+                      description: payload.description,
+                      checklist: payload.checklist,
+                      review_remark: payload.review_remark,
+                      modules: payload.modules,
+                      start_date: payload.startdate,
+                      start_time: payload.startTime,
+                      end_time: payload.dueTime,
+                      project_id: selectedProj?.id,
+                  };
+
             api
-                .patch(`${baseEndpoint}/${editingTaskId}`, patchBody)
+                .patch(primaryUrl, patchBody)
+                .catch((err) => {
+                    const msg = String(err?.response?.data?.message || "").toLowerCase();
+                    const isNotFound = err?.response?.status === 404 || msg.includes("not found");
+                    if (!isNotFound) throw err;
+                    return api.patch(`${fallbackBase}/${editingTaskId}`, fallbackBody);
+                })
                 .then(() => {
                     handleFiles(editingTaskId);
                     toast.success("Updated successfully");
-                    navigate(location.state?.from === "teamtasks" ? "/td/teamtasks" : "/td/mytasks");
+                    navigate(fromTeamTasks ? "/td/teamtasks" : "/td/mytasks");
                 })
                 .catch((err) => {
                     setAddError(err.response?.data?.message || "Failed to update task.");
@@ -413,7 +467,7 @@ export default function AddTaskTD() {
                 if (res.data.success && res.data.task_id) {
                     handleFiles(res.data.task_id);
                     toast.success("Task added successfully");
-                    navigate(location.state?.from === "teamtasks" ? "/td/teamtasks" : "/td/mytasks");
+                    navigate(fromTeamTasks ? "/td/teamtasks" : "/td/mytasks");
                 }
             })
                 .catch((err) => {
@@ -423,7 +477,10 @@ export default function AddTaskTD() {
         }
     };
 
-    const fromTeamTasks = location.state?.from === "teamtasks";
+    const fromState = String(location.state?.from || "").toLowerCase();
+    const fromTeamTasks =
+        fromState === "teamtasks" ||
+        location.pathname.includes("/td/teamtasks");
     const goBack = () => navigate(fromTeamTasks ? "/td/teamtasks" : "/td/mytasks");
 
     const getAssignToOptions = () => {
@@ -789,6 +846,18 @@ export default function AddTaskTD() {
                                 className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                             />
                         </div>
+                        {showReviewRemarkField && (
+                            <div className="md:col-span-2">
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Review Remark</label>
+                                <textarea
+                                    value={addTaskForm.reviewRemark}
+                                    onChange={(e) => setAddTaskForm((f) => ({ ...f, reviewRemark: e.target.value }))}
+                                    placeholder="Enter correction remark to send back assignee"
+                                    rows={3}
+                                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
+                                />
+                            </div>
+                        )}
                         <div className="md:col-span-2 space-y-2">
                             <span className="block text-[16px] font-semibold text-[#000000] font-Gantari">Attachments</span>
                             <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">

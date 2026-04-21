@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import api from "../../lib/api";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import addressIcon from "../../assets/TechnicalDirector/Vector.svg";
@@ -139,115 +140,124 @@ export default function ViewProposalTD() {
 
   const [loading, setLoading] = useState(!!proposalId);
   const [proposal, setProposal] = useState<Proposal | null>(null);
-  const [showCreateWorkOrder, setShowCreateWorkOrder] = useState(false);
   const [hasWorkOrder, setHasWorkOrder] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectDescription, setRejectDescription] = useState("");
+  const [rejectSubmitting, setRejectSubmitting] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
     if (!proposalId) {
+      setLoading(false);
       return;
     }
 
-    const path =
-      source === "vendor_submitted"
-        ? `/api/vendors/td/proposals/${proposalId}`
-        : `/api/vendors/proposals/td/${proposalId}`;
+    const isVendorView =
+      location.pathname.startsWith("/v") || returnTo.startsWith("/v");
 
-    api
-      .get<{ proposal?: Proposal }>(path)
-      .then(({ data }) => {
-        if (isMounted && data.proposal) {
+    const fetchProposal = async () => {
+      const primaryPath =
+        source === "vendor_submitted"
+          ? `/api/vendors/td/proposals/${proposalId}`
+          : `/api/vendors/proposals/td/${proposalId}`;
+
+      try {
+        const { data } = await api.get<{ proposal?: Proposal }>(primaryPath);
+        if (!isMounted) return;
+        if (data.proposal) {
           setProposal(data.proposal);
-          // If already accepted, show create workorder button
-          if (data.proposal.status?.toLowerCase() === "accepted") {
-            setShowCreateWorkOrder(true);
-          }
+          return;
         }
-        const isVendorView = location.pathname.startsWith("/v") || returnTo.startsWith("/v");
+      } catch {
+        // try fallbacks
+      }
 
-        const fetchProposal = async () => {
-            const candidatePaths =
-                source === "vendor_submitted"
-                    ? (
-                        isVendorView
-                            ? [
-                                `/api/vendors/proposals/vendor/${proposalId}`,
-                                `/api/vendors/td/proposals/${proposalId}`,
-                            ]
-                            : [
-                                `/api/vendors/td/proposals/${proposalId}`,
-                                `/api/vendors/proposals/vendor/${proposalId}`,
-                            ]
-                    )
-                    : [`/api/vendors/proposals/td/${proposalId}`];
+      const candidatePaths =
+        source === "vendor_submitted"
+          ? isVendorView
+            ? [
+                `/api/vendors/proposals/vendor/${proposalId}`,
+                `/api/vendors/td/proposals/${proposalId}`,
+              ]
+            : [
+                `/api/vendors/td/proposals/${proposalId}`,
+                `/api/vendors/proposals/vendor/${proposalId}`,
+              ]
+          : [`/api/vendors/proposals/td/${proposalId}`];
 
-            for (const path of candidatePaths) {
-                try {
-                    const { data } = await api.get<{ proposal?: any }>(path);
-                    if (data?.proposal) {
-                        setProposal(data.proposal);
-                        return;
-                    }
-                } catch {
-                    // try next candidate path
-                }
-            }
-            setProposal(null);
-        };
-
-        fetchProposal()
-            .finally(() => {
-                setLoading(false);
-            });
-    }, [proposalId, source, location.pathname, returnTo]);
-
-    const techs = safeParse(proposal?.technologies_used);
-    const payments = safeParsePayment(proposal?.payment_terms);
-
-    const formatDate = (dateStr: string) => {
-        if (!dateStr) return '—';
-        return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+      for (const path of candidatePaths) {
+        try {
+          const { data } = await api.get<{ proposal?: Proposal }>(path);
+          if (!isMounted) return;
+          if (data?.proposal) {
+            setProposal(data.proposal);
+            return;
+          }
+        } catch {
+          // try next candidate path
+        }
+      }
+      if (isMounted) setProposal(null);
     };
-  }, [proposalId, source]);
+
+    void fetchProposal().finally(() => {
+      if (isMounted) setLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [proposalId, source, location.pathname, returnTo]);
 
   useEffect(() => {
-    const pId = proposal?.id || bid?.id;
-    const pName = (proposal?.project_name || bid?.project_name || "").trim();
-    const vName = (proposal?.vendor_name || bid?.vendor_name || "").trim();
-    if (!pId && !pName && !vName) {
+    const pId =
+      proposal?.id ?? bid?.id ?? (proposalId != null ? Number(proposalId) : 0);
+    const thisPid = Number(pId || 0);
+    if (!thisPid) {
       setHasWorkOrder(false);
       return;
     }
 
     api
-      .get<{ success?: boolean; work_orders?: any[] }>("/api/workorders")
+      .get<{ success?: boolean; work_orders?: { proposal_id?: unknown }[] }>(
+        "/api/workorders",
+      )
       .then(({ data }) => {
         const rows = data?.work_orders || [];
-        const exists = rows.some((wo: any) => {
-          const woPid = Number(wo?.proposal_id || 0);
-          const thisPid = Number(pId || 0);
-          const byProposal = thisPid > 0 && woPid === thisPid;
-          const byName =
-            (wo?.project_name || "").trim() === pName &&
-            (wo?.vendor_name || "").trim() === vName;
-          return byProposal || byName;
+        // Only treat as submitted when a work order row exists for this proposal id
+        // (same linkage as WorkorderForm proposalId on POST). Avoid name-only matches.
+        const exists = rows.some((wo) => {
+          const woPid = Number(wo?.proposal_id ?? 0);
+          return woPid > 0 && woPid === thisPid;
         });
         setHasWorkOrder(exists);
       })
       .catch(() => {
         setHasWorkOrder(false);
       });
-  }, [proposal, bid]);
+  }, [proposal?.id, bid?.id, proposalId]);
 
-  const respond = async (action: "accept" | "reject") => {
-    if (!proposalId) return;
+  const respond = async (
+    action: "accept" | "reject",
+    rejectReason?: string,
+  ): Promise<boolean> => {
+    if (!proposalId) return false;
     const reason =
-      action === "reject" ? (window.prompt("Reason (optional)", "") ?? "") : "";
+      action === "reject" ? String(rejectReason ?? "").trim() : "";
     try {
       await api.post(`/api/vendors/td/proposals/${proposalId}/respond`, {
         action,
         reason,
       });
+      if (action === "accept") {
+        setProposal((prev) =>
+          prev ? { ...prev, status: "accepted" } : prev,
+        );
+      } else if (action === "reject") {
+        setProposal((prev) =>
+          prev ? { ...prev, status: "rejected" } : prev,
+        );
+      }
       const path =
         source === "vendor_submitted"
           ? `/api/vendors/td/proposals/${proposalId}`
@@ -255,16 +265,40 @@ export default function ViewProposalTD() {
       const { data } = await api.get<{ proposal?: Proposal }>(path);
       if (data.proposal) {
         setProposal(data.proposal);
-        if (action === "accept") {
-          setShowCreateWorkOrder(true);
-        }
       }
-      navigate(location.pathname, {
+      toast.success(`Proposal ${action}ed.`);
+      navigate(location.pathname + location.search, {
         replace: true,
         state: { ...state, responded: true, msg: `Proposal ${action}ed.` },
       });
+      return true;
     } catch {
-      // ignore
+      toast.error("Could not update proposal.");
+      return false;
+    }
+  };
+
+  const openRejectModal = () => {
+    setRejectDescription("");
+    setRejectModalOpen(true);
+  };
+
+  const closeRejectModal = () => {
+    if (rejectSubmitting) return;
+    setRejectModalOpen(false);
+    setRejectDescription("");
+  };
+
+  const confirmReject = async () => {
+    setRejectSubmitting(true);
+    try {
+      const ok = await respond("reject", rejectDescription);
+      if (ok) {
+        setRejectModalOpen(false);
+        setRejectDescription("");
+      }
+    } finally {
+      setRejectSubmitting(false);
     }
   };
 
@@ -301,8 +335,106 @@ export default function ViewProposalTD() {
     return status || "Unknown";
   };
 
+  const proposalStatusNorm = proposal
+    ? String(proposal.status || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, "_")
+    : "";
+  const isProposalTerminal =
+    proposalStatusNorm === "accepted" || proposalStatusNorm === "rejected";
+  const isProposalAccepted = proposalStatusNorm === "accepted";
+
   return (
     <div className=" space-y-4 flex flex-col min-h-full bg-white font-gantari overflow-y-auto w-full pb-10 px-5 py-2">
+      {rejectModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reject-reason-title"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !rejectSubmitting) {
+              closeRejectModal();
+            }
+          }}
+        >
+          <div
+            className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="relative flex items-center justify-center px-4 pt-4 pb-2 w-full min-h-[3rem]">
+              <div className="group absolute left-4 top-1/2 -translate-y-1/2 z-10">
+                <button
+                  type="button"
+                  onClick={closeRejectModal}
+                  disabled={rejectSubmitting}
+                  className="p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Close"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]" />
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <h2
+                id="reject-reason-title"
+                className="text-[18px] font-gantari font-bold text-[#000000]"
+              >
+                Reason
+              </h2>
+            </div>
+
+            <div className="px-6 pb-6 pt-2 w-full">
+              <label
+                htmlFor="reject-description"
+                className="block text-[16px] font-gantari font-semibold text-[#000000] mb-2"
+              >
+                Description
+              </label>
+              <textarea
+                id="reject-description"
+                value={rejectDescription}
+                onChange={(e) => setRejectDescription(e.target.value)}
+                rows={6}
+                className="w-full min-h-[140px] px-4 py-3 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] bg-white border border-[#E0E0E0] rounded-[5px] font-gantari outline-none transition-all focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52] resize-y"
+                placeholder="Enter rejection details..."
+                disabled={rejectSubmitting}
+              />
+              <div className="flex flex-wrap justify-center gap-3 mt-8">
+                <button
+                  type="button"
+                  onClick={() => void confirmReject()}
+                  disabled={rejectSubmitting}
+                  className="px-8 py-2 rounded-md text-[14px] font-gantari font-semibold bg-[#DD4342] text-white border border-[#DD4342] shadow-sm transition-all hover:opacity-95 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {rejectSubmitting ? "Sending..." : "Send"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex items-center justify-between gap-3 flex-shrink-0">
         <div className="group relative inline-flex shrink-0">
@@ -323,34 +455,16 @@ export default function ViewProposalTD() {
           </div>
         </div>
 
-        <div className="flex-1 flex items-center justify-center gap-4">
-          <h1 className="text-[24px] font-semibold text-[#000000]">
+        <div className="flex-1 flex items-center justify-center min-w-0 px-2">
+          <h1 className="text-[24px] font-semibold text-[#000000] shrink-0 text-center">
             View Proposal Details
           </h1>
         </div>
 
-        <div className="shrink-0 min-w-[100px] flex items-center justify-end gap-3">
-          {proposal && (proposal.status?.toLowerCase() === "pending" || proposal.status?.toLowerCase() === "sent") && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => respond("accept")}
-                className="px-6 py-2 rounded-md flex items-center justify-center text-[14px] font-semibold transition-all bg-[#E1F6EB] text-[#008F22] border border-[#E1F6EB] shadow-sm cursor-pointer hover:bg-[#008F22] hover:text-white"
-                title="Accept"
-              >
-                Accept
-              </button>
-              <button
-                onClick={() => respond("reject")}
-                className="px-6 py-2 rounded-md flex items-center justify-center text-[14px] font-semibold transition-all bg-[#FFF1F2] text-[#BE123C] border border-[#FFF1F2] shadow-sm cursor-pointer hover:bg-[#BE123C] hover:text-white"
-                title="Reject"
-              >
-                Reject
-              </button>
-            </div>
-          )}
-
-          {showCreateWorkOrder && (
+        <div className="shrink-0 flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+          {proposal && isProposalAccepted && (
             <button
+              type="button"
               onClick={() =>
                 navigate("/td/workorder-form", { state: { proposal } })
               }
@@ -371,6 +485,27 @@ export default function ViewProposalTD() {
             >
               {getStatusLabel(proposal.status)}
             </span>
+          )}
+
+          {proposal && !isProposalTerminal && (
+            <div className="flex flex-row items-center justify-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => void respond("accept")}
+                className="px-6 py-2 rounded-md flex items-center justify-center text-[14px] font-semibold transition-all bg-[#E1F6EB] text-[#008F22] border border-[#E1F6EB] shadow-sm cursor-pointer "
+                title="Accept"
+              >
+                Accept
+              </button>
+              <button
+                type="button"
+                onClick={openRejectModal}
+                className="px-6 py-2 rounded-md flex items-center justify-center text-[14px] font-semibold transition-all bg-[#DD4342] text-white border border-[#DD4342] shadow-sm cursor-pointer "
+                title="Reject"
+              >
+                Reject
+              </button>
+            </div>
           )}
         </div>
       </div>

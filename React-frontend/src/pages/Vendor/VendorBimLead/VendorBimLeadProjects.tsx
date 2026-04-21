@@ -1600,7 +1600,8 @@ export default function VendorBimLeadProjects() {
                         BIM Coordinator
                       </p>
                       <p className="text-[14px] font-medium text-[#8B8B8B]">
-                        {getEmployeeName(selectedProject.bim_coordinator_id) || "N/A"}
+                        {getEmployeeName(selectedProject.bim_coordinator_id) ||
+                          "N/A"}
                       </p>
                     </div>
                     <div className="flex flex-col">

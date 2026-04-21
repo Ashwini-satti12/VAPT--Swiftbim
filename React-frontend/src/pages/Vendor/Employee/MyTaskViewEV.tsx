@@ -39,6 +39,7 @@ interface Task {
   Approval?: string;
   /** Comma-separated filenames under uploads/task/ */
   outputfilepath?: string;
+  review_remark?: string;
 }
 
 interface Employee {
@@ -780,7 +781,89 @@ export default function MyTaskViewEV({
                 {submittingWork ? "Submitting..." : "Submit Image"}
               </button>
             </div>
-          </div> */}
+            {submittedOutputFiles.length > 0 && (
+              <div className="mt-6 border-t border-slate-200 pt-4">
+                <p className="text-xs font-semibold text-black mb-2">
+                  Submitted files (saved)
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  {submittedOutputFiles.map((fname) => {
+                    const src = taskOutputFileUrl(fname);
+                    const label = displayStoredFileName(fname);
+                    return (
+                      <a
+                        key={fname}
+                        href={src}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block rounded border border-slate-200 overflow-hidden bg-white max-w-[180px]"
+                        title={label}
+                      >
+                        {isImageFile(fname) ? (
+                          <img
+                            src={src}
+                            alt={label}
+                            className="max-h-28 w-full object-contain"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="px-3 py-3 text-xs text-[#353535] break-all">
+                            {label}
+                          </div>
+                        )}
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-8 space-y-6 mb-10">
+          <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
+            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">
+              Task Description
+            </h4>
+            <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 overflow-y-auto font-Gantari min-h-[80px]">
+              {task.description &&
+                task.description.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, "").trim()
+                  .length > 0 ? (
+                <div
+                  className="prose prose-sm max-w-none prose-p:my-0"
+                  dangerouslySetInnerHTML={{ __html: task.description }}
+                />
+              ) : (
+                <span className="text-slate-400">—</span>
+              )}
+            </div>
+          </div>
+          {task.review_remark && (
+            <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6">
+              <h4 className="text-black text-md mb-2">Review Remark</h4>
+              <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+                {task.review_remark}
+              </div>
+            </div>
+          )}
+
+          <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
+            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">
+              Checklist / Reference
+            </h4>
+            <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 overflow-y-auto font-Gantari min-h-[80px]">
+              {task.checklist &&
+                task.checklist.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, "").trim()
+                  .length > 0 ? (
+                <div
+                  className="prose prose-sm max-w-none prose-p:my-0"
+                  dangerouslySetInnerHTML={{ __html: task.checklist }}
+                />
+              ) : (
+                <span className="text-slate-400">—</span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

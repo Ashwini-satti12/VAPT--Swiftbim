@@ -33,7 +33,7 @@ export default function WorkorderForm() {
   const [form, setForm] = useState({
     proposalId: state?.proposal?.id || null,
     vendorName: state?.proposal?.vendor_name || "",
-    vendorAddress: state?.proposal?.address || "",
+    vendorAddress: "",
     poDate: new Date().toISOString().split('T')[0],
     poNumber: "",
     projectName: state?.proposal?.project_name || "",
@@ -95,32 +95,6 @@ export default function WorkorderForm() {
   const currencyWrapRef = useRef<HTMLDivElement>(null);
   const selectedCurrencyLabel =
     CURRENCY_OPTIONS.find((c) => c.code === form.currency)?.label || "";
-
-  // Auto-fill vendor address from vendor_employee table by vendor name.
-  // We keep it best-effort and avoid interrupting manual edits.
-  useEffect(() => {
-    const name = (form.vendorName || "").trim();
-    if (!name) {
-      return;
-    }
-    const t = setTimeout(() => {
-      api
-        .get<{ success?: boolean; address?: string; vendor_name?: string }>(
-          "/api/workorders/vendor-address",
-          { params: { vendor_name: name } },
-        )
-        .then((res) => {
-          const address = (res.data?.address || "").trim();
-          if (address) {
-            setForm((prev) => ({ ...prev, vendorAddress: address }));
-          }
-        })
-        .catch(() => {
-          // keep current value when lookup fails
-        });
-    }, 250);
-    return () => clearTimeout(t);
-  }, [form.vendorName]);
 
   useEffect(() => {
     if (!isCurrencyOpen) return;
@@ -244,6 +218,7 @@ export default function WorkorderForm() {
                   onChange={(e) =>
                     setForm({ ...form, vendorAddress: e.target.value })
                   }
+                  placeholder="Enter vendor address"
                   className={`${fieldClass} min-h-[80px]`}
                 />
               </div>

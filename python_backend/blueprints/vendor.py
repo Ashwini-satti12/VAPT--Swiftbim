@@ -5296,6 +5296,27 @@ def list_vendor_tasks():
 
     tasks = []
     for r in rows:
+        if not is_team_view and is_vendor_user_task:
+            creator_id = r.get("vendor_id")
+            assigned_to_raw = r.get("assigned_to")
+            receiver_user_id = _resolve_vendor_task_notification_recipient(
+                cur, assigned_to_raw
+            )
+            is_creator = (
+                creator_id is not None and str(creator_id).strip() == str(user_id).strip()
+            )
+            is_receiver = (
+                receiver_user_id is not None
+                and str(receiver_user_id).strip() == str(user_id).strip()
+            )
+            is_self_assigned = is_creator and is_receiver
+            status_lower = str(r.get("status") or "").strip().lower()
+            is_completed = status_lower == "completed"
+
+            # For delegated tasks, creator should not see it in My Task until receiver completes it.
+            if is_creator and (not is_self_assigned) and (not is_completed):
+                continue
+
         d = {k: _serialize(v) for k, v in r.items()}
         # Resolve assignee name from vendor_resource_profiles using assigned_to id
         # only when assignee is not already resolved from vendor_employee.
@@ -5311,6 +5332,19 @@ def list_vendor_tasks():
         # For frontend compatibility
         d["projectid"] = d.get("project_id")
         d["due_date"] = d.get("due_date")
+        if not is_team_view and is_vendor_user_task:
+            creator_id = d.get("vendor_id")
+            assignee_id = d.get("assigned_to")
+            status_lower = str(d.get("status") or "").strip().lower()
+            # Completed delegated tasks come back to creator My Task as To Do for review.
+            if (
+                creator_id is not None
+                and assignee_id is not None
+                and str(creator_id).strip() == str(user_id).strip()
+                and str(assignee_id).strip() != str(creator_id).strip()
+                and status_lower == "completed"
+            ):
+                d["status"] = "Todo"
         tasks.append(d)
     return jsonify({"tasks": tasks})
 
@@ -5851,9 +5885,27 @@ def update_vendor_task_status(task_id):
     _ensure_vendor_task_table()
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+    progress = "0"
+    if status == "InProgress":
+        progress = "50"
+    elif status == "Completed":
+        cur.execute(
+            "SELECT vendor_id, assigned_to FROM vendor_task WHERE id = %s LIMIT 1",
+            (task_id,),
+        )
+        row = cur.fetchone() or {}
+        vendor_id = row.get("vendor_id")
+        assigned_to = row.get("assigned_to")
+        is_assigned_by_someone_else = (
+            vendor_id is not None
+            and assigned_to is not None
+            and str(vendor_id) != str(assigned_to)
+        )
+        progress = "95" if is_assigned_by_someone_else else "100"
+
     cur.execute(
-        "UPDATE vendor_task SET status = %s WHERE id = %s",
-        (status, task_id),
+        "UPDATE vendor_task SET status = %s, progress = %s WHERE id = %s",
+        (status, progress, task_id),
     )
     conn.commit()
     return jsonify({"success": True})

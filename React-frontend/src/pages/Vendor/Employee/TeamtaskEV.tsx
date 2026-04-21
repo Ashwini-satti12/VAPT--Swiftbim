@@ -295,9 +295,25 @@ function TaskCard({
     onDeleteTask?: (task: Task) => void;
     isTeam?: boolean;
 }) {
-    const isCompletedCol = status === "completed";
-    const progress = typeof task.progress === "number" ? task.progress : status === "todo" ? 0 : status === "in_progress" ? 50 : 100;
-    const [showMenu, setShowMenu] = useState(false);
+    const progress =
+        status === "completed" &&
+            task.assigned_to != null &&
+            task.uploaderid != null &&
+            String(task.assigned_to) !== String(task.uploaderid)
+            ? 95
+            : typeof task.progress === "number"
+                ? task.progress
+                : status === "todo"
+                    ? 0
+                    : status === "in_progress"
+                        ? 50
+                        : 100;
+    const isUnderReview =
+        status === "completed" &&
+        task.assigned_to != null &&
+        task.uploaderid != null &&
+        String(task.assigned_to) !== String(task.uploaderid);
+    const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -447,7 +463,9 @@ function TaskCard({
 
             <div className="flex items-center justify-between gap-2 mb-2">
                 <span className="text-xs text-[#8B8B8B]">Progress</span>
-                <span className="text-xs font-medium text-[#8B8B8B]">{progress}%</span>
+                <span className="text-xs font-medium text-[#8B8B8B]">
+                    {isUnderReview ? "95% (Under Review)" : `${progress}%`}
+                </span>
             </div>
             <div className="h-1.5 rounded-full bg-[#EAEAEA] overflow-hidden mb-5">
                 <div
