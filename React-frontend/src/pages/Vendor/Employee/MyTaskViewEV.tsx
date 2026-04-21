@@ -7,7 +7,6 @@ import Upload from "../../../assets/ProjectManager/MyTask/Upload.svg";
 import ImageIcon from "../../../assets/ProjectManager/MyTask/image.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
 
-
 interface Task {
   id: number;
   task_name?: string;
@@ -40,6 +39,7 @@ interface Task {
   Approval?: string;
   /** Comma-separated filenames under uploads/task/ */
   outputfilepath?: string;
+  review_remark?: string;
 }
 
 interface Employee {
@@ -171,7 +171,10 @@ const STATUS_STYLE: Record<
   },
 };
 
-const STATUS_OPTIONS: { value: "todo" | "in_progress" | "completed"; label: string }[] = [
+const STATUS_OPTIONS: {
+  value: "todo" | "in_progress" | "completed";
+  label: string;
+}[] = [
   { value: "todo", label: "To Do" },
   { value: "in_progress", label: "Inprogress" },
   { value: "completed", label: "Completed" },
@@ -201,7 +204,13 @@ function statusKeyToBackend(s: StatusKey): string {
   return "Todo";
 }
 
-export default function MyTaskViewEV({ taskId: propTaskId, onBack: propOnBack }: { taskId?: number, onBack?: () => void }) {
+export default function MyTaskViewEV({
+  taskId: propTaskId,
+  onBack: propOnBack,
+}: {
+  taskId?: number;
+  onBack?: () => void;
+}) {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
@@ -209,10 +218,14 @@ export default function MyTaskViewEV({ taskId: propTaskId, onBack: propOnBack }:
   const initialTask = state?.task;
 
   const [task, setTask] = useState<Task | undefined>(initialTask);
-  const [loading, setLoading] = useState(() => !initialTask && (Boolean(id) || Boolean(propTaskId)));
+  const [loading, setLoading] = useState(
+    () => !initialTask && (Boolean(id) || Boolean(propTaskId)),
+  );
 
   const [statusDisplay, setStatusDisplay] = useState<StatusKey>(() =>
-    initialTask ? normalizeStatus(initialTask.status, initialTask.Approval) : "todo",
+    initialTask
+      ? normalizeStatus(initialTask.status, initialTask.Approval)
+      : "todo",
   );
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
@@ -247,7 +260,7 @@ export default function MyTaskViewEV({ taskId: propTaskId, onBack: propOnBack }:
 
   const refreshTaskFromApi = (taskId: number) => {
     api
-      .get(`/api/tasks/${taskId}`)
+      .get(`/api/vendors/vendor-tasks/${taskId}`)
       .then((res) => {
         const parsed = parseTaskPayload(res.data);
         if (parsed) setTask(parsed);
@@ -340,7 +353,7 @@ export default function MyTaskViewEV({ taskId: propTaskId, onBack: propOnBack }:
     }
     setLoading(true);
     api
-      .get(`/api/tasks/${tid}`)
+      .get(`/api/vendors/vendor-tasks/${tid}`)
       .then((res) => {
         const parsed = parseTaskPayload(res.data);
         if (parsed) setTask(parsed);
@@ -349,7 +362,8 @@ export default function MyTaskViewEV({ taskId: propTaskId, onBack: propOnBack }:
         toast.error("Failed to load task");
       })
       .finally(() => setLoading(false));
-  }, [id, initialTask?.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propTaskId, id, initialTask?.id]);
 
   useEffect(() => {
     if (!statusDropdownOpen) return;
@@ -394,15 +408,11 @@ export default function MyTaskViewEV({ taskId: propTaskId, onBack: propOnBack }:
     const direct = String(task.project_name ?? tr.project_name ?? "").trim();
     if (direct) return direct;
     const pid =
-      task.projectid ??
-      task.project_id ??
-      tr.projectid ??
-      tr.project_id;
+      task.projectid ?? task.project_id ?? tr.projectid ?? tr.project_id;
     const n = typeof pid === "number" ? pid : Number(pid);
     if (Number.isNaN(n) || vendorProjects.length === 0) return "";
     const byMain = vendorProjects.find(
-      (p) =>
-        p.main_project_id != null && Number(p.main_project_id) === n,
+      (p) => p.main_project_id != null && Number(p.main_project_id) === n,
     );
     const nmMain = byMain?.project_name?.trim();
     if (nmMain) return nmMain;
@@ -429,7 +439,7 @@ export default function MyTaskViewEV({ taskId: propTaskId, onBack: propOnBack }:
           onClick={goBackToList}
           className="text-[#3d3399] hover:underline font-medium cursor-pointer"
         >
-          ← Back to My Tasks
+          ← Back to Tasks
         </button>
       </div>
     );
@@ -520,10 +530,10 @@ export default function MyTaskViewEV({ taskId: propTaskId, onBack: propOnBack }:
   };
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col overflow-y-auto bg-white custom-scrollbar">
-      <div className="shrink-0 flex items-center justify-between px-5 py-2">
-        <div className="flex items-center justify-between mb-2 relative flex-shrink-0">
-            <div className="group relative inline-flex shrink-0">
+    <div className="flex-1 flex flex-col min-h-0 bg-white font-Gantari">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-2 mb-4 shrink-0">
+        <div className="group relative inline-flex shrink-0">
           <button
             type="button"
             onClick={goBackToList}
@@ -531,181 +541,200 @@ export default function MyTaskViewEV({ taskId: propTaskId, onBack: propOnBack }:
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
           </button>
-           {/* Tooltip */}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
-                  <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                    Go Back
-                  </span>
-                </div>
-              </div>
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+            <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
+              <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                Go Back
+              </span>
             </div>
-            </div>
-        <h1 className="flex-1 text-center text-[20px] md:text-[24px] font-medium text-[#353535] font-Gantari px-2">
-          {resolvedProjectName || task.task_name || "Task"}
+          </div>
+        </div>
+        <h1 className="flex-1 text-center text-[24px] font-semibold text-black">
+          {task.task_name || "Task Name"}
         </h1>
         <div className="w-9" />
       </div>
 
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="flex items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <span className="text-md text-black">Status:</span>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${style.bg}`}
-            >
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="max-w-7xl mx-auto p-6 space-y-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-md text-black">Status:</span>
               <span
-                className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`}
-              />
-              {style.label}
-            </span>
-          </div>
-          <div className="relative" ref={statusDropdownRef}>
-            <button
-              type="button"
-              disabled={updatingStatus}
-              onClick={() => setStatusDropdownOpen((prev) => !prev)}
-              className="rounded bg-[#E8E8E8] px-3 py-2 text-xs text-black flex items-center gap-1 hover:bg-[#DDDDDD] disabled:opacity-50"
-              aria-expanded={statusDropdownOpen}
-              aria-haspopup="listbox"
-            >
-              {updatingStatus ? "Updating..." : "Select Status"}
-              <FiChevronDown className="w-4 h-4" />
-            </button>
-            {statusDropdownOpen && !updatingStatus && (
-              <div
-                className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200"
-                role="listbox"
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${style.bg}`}
               >
-                {STATUS_OPTIONS.filter(
-                  (opt) =>
-                    !(
-                      shouldHideInProgressInDropdown(statusDisplay) &&
-                      opt.value === "in_progress"
-                    ),
-                ).map((opt) => {
-                  const disabled = isStatusOptionDisabled(
-                    statusDisplay,
-                    opt.value,
-                  );
-                  return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    role="option"
-                    aria-disabled={disabled}
-                    disabled={disabled}
-                    aria-selected={statusDisplay === opt.value}
-                    onClick={() => handleStatusUpdate(opt.value)}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 ${disabled
-                      ? "text-slate-300 cursor-not-allowed opacity-60"
-                      : "hover:bg-slate-50"
-                      } ${statusDisplay === opt.value && !disabled
-                      ? "bg-slate-50 font-medium"
-                      : ""
-                      }`}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`}
-                    />
-                    {opt.label}
-                  </button>
-                  );
-                })}
+                <span
+                  className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`}
+                />
+                {style.label}
+              </span>
+            </div>
+            <div className="relative" ref={statusDropdownRef}>
+              <button
+                type="button"
+                disabled={updatingStatus}
+                onClick={() => setStatusDropdownOpen((prev) => !prev)}
+                className="rounded-[5px] bg-[#E8E8E8] px-3 py-2 text-[14px] text-[#8B8B8B] flex items-center gap-2 hover:bg-[#DDDDDD] disabled:opacity-50"
+                aria-expanded={statusDropdownOpen}
+                aria-haspopup="listbox"
+              >
+                {updatingStatus ? "Updating..." : "Change Status"}
+                <FiChevronDown className="w-4 h-4" />
+              </button>
+              {statusDropdownOpen && !updatingStatus && (
+                <div
+                  className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200"
+                  role="listbox"
+                >
+                  {STATUS_OPTIONS.filter(
+                    (opt) =>
+                      !(
+                        shouldHideInProgressInDropdown(statusDisplay) &&
+                        opt.value === "in_progress"
+                      ),
+                  ).map((opt) => {
+                    const disabled = isStatusOptionDisabled(
+                      statusDisplay,
+                      opt.value,
+                    );
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="option"
+                        aria-disabled={disabled}
+                        disabled={disabled}
+                        aria-selected={statusDisplay === opt.value}
+                        onClick={() => handleStatusUpdate(opt.value)}
+                        className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 ${
+                          disabled
+                            ? "text-slate-300 cursor-not-allowed opacity-60"
+                            : "hover:bg-slate-50"
+                        } ${
+                          statusDisplay === opt.value && !disabled
+                            ? "bg-slate-50 font-medium"
+                            : ""
+                        }`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`}
+                        />
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+              <div className="flex items-start gap-2">
+                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                  Task Name
+                </span>
+                <span className="text-[14px] text-[#616161] break-all">
+                  {task.task_name || "—"}
+                </span>
               </div>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border border-slate-200 rounded-xl p-6 bg-white shadow-sm">
-          <div className="space-y-3 text-sm">
-            <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Task Name</span>
-              <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">{task.task_name || "—"}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Project Name</span>
-              <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">
-                {resolvedProjectName || "—"}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-black shrink-0 lg:whitespace-nowrap w-28">
-                Select Module
-              </span>
-              <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">{displayModule()}</span>
-            </div>
-            <div className="flex gap-2 items-center">
-              <span className="text-black shrink-0 w-28">Type</span>
-              <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">{displayType()}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Assigned By</span>
-              <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">
-                {task.uploader_full_name ?? "—"}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Assigned To</span>
-              <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">{resolveAssignedName()}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">
-                Actual Start Date
-              </span>
-              <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">{displayStartDate()}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">
-                Select Start Time
-              </span>
-              <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">{displayStartTime()}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">
-                Actual End Date
-              </span>
-              <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">
-                {task.due_date
-                  ? formatDateDDMMYYYY(task.due_date)
-                  : "—"}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">
-                Select End Time
-              </span>
-              <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161]">{displayEndTime()}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Attachments</span>
-              <span className="text-black shrink-0">:</span>
-              <span className="text-[#616161] break-all">
-                {submittedOutputFiles.length > 0
-                  ? submittedOutputFiles
-                      .map((f) => {
-                        const base = f.split("/").pop() || f;
-                        const idx = base.indexOf("_");
-                        return idx > 8 ? base.slice(idx + 1) : base;
-                      })
-                      .join(", ")
-                  : "—"}
-              </span>
+              <div className="flex items-start gap-2">
+                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                  Project Name
+                </span>
+                <span className="text-[14px] text-[#616161] break-all">
+                  {resolvedProjectName || "—"}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                  Select Module
+                </span>
+                <span className="text-[14px] text-[#616161]">
+                  {displayModule()}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                  Type
+                </span>
+                <span className="text-[14px] text-[#616161]">
+                  {displayType()}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                  Assigned By
+                </span>
+                <span className="text-[14px] text-[#616161]">
+                  {task.uploader_full_name ?? "—"}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                  Assigned To
+                </span>
+                <span className="text-[14px] text-[#616161]">
+                  {resolveAssignedName()}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                  Actual Start Date
+                </span>
+                <span className="text-[14px] text-[#616161] font-gantari">
+                  {displayStartDate()}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                  Start Time
+                </span>
+                <span className="text-[14px] text-[#616161] font-gantari">
+                  {displayStartTime()}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                  Actual End Date
+                </span>
+                <span className="text-[14px] text-[#616161] font-gantari">
+                  {task.due_date ? formatDateDDMMYYYY(task.due_date) : "—"}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                  End Time
+                </span>
+                <span className="text-[14px] text-[#616161] font-gantari">
+                  {displayEndTime()}
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="rounded-sm bg-[#F2F7FF] p-4 h-fit">
+          <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm">
+            <h4 className="text-[#353535] text-[18px] font-semibold mb-3">
+              Task Description
+            </h4>
+            <div className="rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800">
+              {task.description &&
+              task.description
+                .replace(/<[^>]*>?/gm, "")
+                .replace(/&nbsp;/g, "")
+                .trim().length > 0 ? (
+                <div
+                  className="prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: task.description }}
+                />
+              ) : (
+                <span className="text-slate-400">—</span>
+              )}
+            </div>
+          </div>
+
+          {/* <div className="rounded-sm bg-[#F2F7FF] p-6">
             <h4 className="text-black text-md mb-1">Submit Work</h4>
             <p className="text-xs text-[#8B8B8B] mb-4">
               Choose your finished work or error screenshots to update the team
@@ -716,10 +745,9 @@ export default function MyTaskViewEV({ taskId: propTaskId, onBack: propOnBack }:
               type="file"
               accept="image/*"
               className="sr-only"
-              aria-label="Select image"
               onChange={handleSelectImage}
             />
-            <div className="rounded-sm bg-[#FFFFFF] flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] relative transition-all duration-200">
+            <div className="rounded-sm bg-[#FFFFFF] flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] mb-4">
               {selectedImagePreview ? (
                 <img
                   src={selectedImagePreview}
@@ -733,23 +761,23 @@ export default function MyTaskViewEV({ taskId: propTaskId, onBack: propOnBack }:
                 </>
               )}
             </div>
-            <div className="flex gap-4 mt-6 justify-center flex-wrap">
+            <div className="flex gap-4">
               <button
                 type="button"
                 disabled={submittingWork}
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-3 text-xs text-black hover:bg-[#D5E6FF] whitespace-nowrap disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-3 text-xs text-black hover:bg-[#D5E6FF] disabled:opacity-50"
               >
-                <img src={Upload} alt="Upload" className="w-3 h-3 mr-1" />
-                <span className="mr-2">Select Image</span>
+                <img src={Upload} alt="Upload" className="w-3 h-3 mr-1" />{" "}
+                Select Image
               </button>
               <button
                 type="button"
                 disabled={!selectedImage || submittingWork}
                 onClick={handleImageSubmit}
-                className="inline-flex items-center gap-1 rounded-sm bg-[#E1F6EB] px-4 py-3 text-xs text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded-sm bg-[#E1F6EB] px-4 py-3 text-xs text-[#008F22] hover:bg-[#D6F5E8] disabled:opacity-50"
               >
-                <FiCheck className="w-4 h-4 text-[#008F22]" />
+                <FiCheck className="w-4 h-4" />{" "}
                 {submittingWork ? "Submitting..." : "Submit Image"}
               </button>
             </div>
@@ -810,6 +838,14 @@ export default function MyTaskViewEV({ taskId: propTaskId, onBack: propOnBack }:
               )}
             </div>
           </div>
+          {task.review_remark && (
+            <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6">
+              <h4 className="text-black text-md mb-2">Review Remark</h4>
+              <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+                {task.review_remark}
+              </div>
+            </div>
+          )}
 
           <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
             <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">

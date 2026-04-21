@@ -34,6 +34,7 @@ interface Task {
   end_time?: string;
   assign_to?: string;
   assigned_to?: number;
+  uploaderid?: number;
   description?: string;
   checklist?: string;
   assigned_full_name?: string;
@@ -262,13 +263,27 @@ export default function MytaskViewV() {
         : newStatus === "todo"
           ? "Todo"
           : "InProgress";
+    const isAssignedBySomeoneElse =
+      task.assigned_to != null &&
+      task.uploaderid != null &&
+      String(task.assigned_to) !== String(task.uploaderid);
+    const nextProgress =
+      newStatus === "completed"
+        ? isAssignedBySomeoneElse
+          ? 95
+          : 100
+        : newStatus === "in_progress"
+          ? 50
+          : 0;
 
     try {
       await api.patch(`/api/vendors/vendor-tasks/${task.id}/status`, {
         status: backendStatus,
       });
       setStatusDisplay(newStatus);
-      setTask((prev) => (prev ? { ...prev, status: backendStatus } : prev));
+      setTask((prev) =>
+        prev ? { ...prev, status: backendStatus, progress: nextProgress } : prev,
+      );
       toast.success(
         newStatus === "completed"
           ? "Task marked as completed"
@@ -399,7 +414,15 @@ export default function MytaskViewV() {
     );
   }
 
-  const style = STATUS_STYLE[statusDisplay];
+  const isUnderReview =
+    statusDisplay === "completed" &&
+    task.assigned_to != null &&
+    task.uploaderid != null &&
+    String(task.assigned_to) !== String(task.uploaderid);
+  const style = {
+    ...STATUS_STYLE[statusDisplay],
+    label: isUnderReview ? "Under Review" : STATUS_STYLE[statusDisplay].label,
+  };
   const taskRecord = task as unknown as Record<string, unknown>;
   const moduleNameDisplay = (() => {
     const candidates = [
@@ -535,13 +558,13 @@ export default function MytaskViewV() {
                 {moduleNameDisplay}
               </span>
             </div>
-            <div className="flex gap-2">
+            {/* <div className="flex gap-2">
               <span className="text-[#020202] shrink-0 w-28">Category</span>
               <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.category || task.type || "—"}
               </span>
-            </div>
+            </div> */}
             <div className="flex gap-2">
               <span className="text-[#020202] shrink-0 w-28">Assigned By</span>
               <span className="text-[#020202] shrink-0">:</span>

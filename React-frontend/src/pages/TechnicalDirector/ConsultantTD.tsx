@@ -974,7 +974,7 @@ export default function ConsultantTD() {
                         onClick={() => setActiveView('deactive')}
                         className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm "
                       >
-                        Manage Deactive
+                        Manage Inactive
                       </button>
                     </>
                   )}

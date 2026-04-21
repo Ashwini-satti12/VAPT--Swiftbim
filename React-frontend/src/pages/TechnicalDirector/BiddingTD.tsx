@@ -18,6 +18,9 @@ export interface BiddingEntry {
   total_bids: number;
   company_id?: number;
   created_at: string;
+  /** Shown in bid views when present on the opportunity row */
+  currency?: string;
+  opportunity_currency_display?: string;
 }
 
 const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";

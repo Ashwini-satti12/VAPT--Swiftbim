@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FiChevronDown, FiX } from "react-icons/fi";
+import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import api from "../../lib/api";
 import Upload from "../../assets/ProjectManager/MyTask/Upload.svg";
 import ImageIcon from "../../assets/ProjectManager/MyTask/image.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import downloadIcon from "../../assets/TechnicalDirector/download icon.svg";
 
 interface Task {
   id: number;
@@ -33,6 +35,7 @@ interface Task {
   perferend_time?: string;
   end_time?: string;
   outputfilepath?: string;
+  review_remark?: string;
 }
 
 function formatDateDDMMYYYY(d?: string): string {
@@ -135,7 +138,7 @@ export default function MytaskViewBL() {
   const location = useLocation();
   const routeState =
     (location.state as { task?: Task; from?: string } | null) ?? null;
-  const task = routeState?.task;
+  const [task, setTask] = useState<Task | undefined>(routeState?.task);
   const backToTasksPath =
     routeState?.from === "teamtask" || routeState?.from === "teamtasks"
       ? "/bl/teamtasks"
@@ -152,6 +155,7 @@ export default function MytaskViewBL() {
   >(null);
   const [loading, setLoading] = useState(!task);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [submittingWork, setSubmittingWork] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,6 +186,19 @@ export default function MytaskViewBL() {
         projectId: task.projectid,
       });
       setStatusDisplay(newStatus);
+      setTask((prev) =>
+        prev
+          ? {
+              ...prev,
+              status:
+                newStatus === "completed"
+                  ? "Completed"
+                  : newStatus === "todo"
+                    ? "To Do"
+                    : "InProgress",
+            }
+          : prev,
+      );
       toast.success(`Status Updated Successfully`);
     } catch (error) {
       console.error("Error updating status:", error);
@@ -193,7 +210,8 @@ export default function MytaskViewBL() {
   };
 
   const handleImageSubmit = async () => {
-    if (!task || !selectedImage) return;
+    if (!task || !selectedImage || submittingWork) return;
+    setSubmittingWork(true);
     const formData = new FormData();
     formData.append("image", selectedImage);
 
@@ -207,15 +225,16 @@ export default function MytaskViewBL() {
       );
       toast.success("Work submitted successfully");
 
-      // Refetch or update local task state with new file paths
+      // Update task state with new file paths
       const newFiles = res.data.files || [];
-      if (task) {
-        const existing = task.outputfilepath
-          ? task.outputfilepath.split(",").filter(Boolean)
+      setTask((prev) => {
+        if (!prev) return prev;
+        const existing = prev.outputfilepath
+          ? prev.outputfilepath.split(",").filter(Boolean)
           : [];
         const updated = [...existing, ...newFiles].join(",");
-        task.outputfilepath = updated;
-      }
+        return { ...prev, outputfilepath: updated };
+      });
 
       setSelectedImage(null);
       if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
@@ -223,29 +242,26 @@ export default function MytaskViewBL() {
     } catch (error) {
       console.error("Error submitting work:", error);
       toast.error("Failed to submit work");
+    } finally {
+      setSubmittingWork(false);
     }
   };
 
   useEffect(() => {
-    return () => {
-      if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
-    };
-  }, [selectedImagePreview]);
-
-  useEffect(() => {
     if (!task) {
-      const taskId = location.pathname.split("/").pop();
-      if (taskId && !isNaN(Number(taskId))) {
+      const taskIdMatch =
+        location.pathname.match(/\/tasks\/(\d+)/) ||
+        location.pathname.match(/\/view\/(\d+)/);
+      const taskId = taskIdMatch ? taskIdMatch[1] : null;
+
+      if (taskId) {
         setLoading(true);
         api
           .get(`/api/tasks/${taskId}`)
           .then((res) => {
-            if (res.data.task) {
-              const fetched = res.data.task || res.data;
-              setStatusDisplay(
-                normalizeStatus(fetched.status, fetched.Approval),
-              );
-            }
+            const fetched = res.data.tasks?.[0] || res.data.task || res.data;
+            setTask(fetched);
+            setStatusDisplay(normalizeStatus(fetched.status, fetched.Approval));
           })
           .catch((err) => {
             console.error("Error fetching task:", err);
@@ -256,6 +272,12 @@ export default function MytaskViewBL() {
       }
     }
   }, [task, location.pathname]);
+
+  useEffect(() => {
+    return () => {
+      if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
+    };
+  }, [selectedImagePreview]);
 
   useEffect(() => {
     if (!task) return;
@@ -280,7 +302,7 @@ export default function MytaskViewBL() {
   if (loading) {
     return (
       <div className="bg-white min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3d3399]"></div>
       </div>
     );
   }
@@ -305,34 +327,31 @@ export default function MytaskViewBL() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-white">
-      <div className="relative flex items-center justify-center px-4 md:px-5 py-2 md:py-2 border-b border-slate-50 shrink-0 mb-4">
-        {/* Left Back Button */}
-        <div className="absolute left-4 md:left-6 flex items-center group">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 pt-4 shrink-0 mb-4">
+        <div className="group relative inline-flex shrink-0">
           <Link
             to={backToTasksPath}
-            className="p-2 rounded-[5px] bg-[#F2F2F2] flex items-center justify-center transition-colors cursor-pointer"
+            className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
           </Link>
-
-          {/* Tooltip */}
           <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
             <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
-              <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
+              <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                 Go Back
               </span>
             </div>
           </div>
         </div>
-
-        {/* Center Heading */}
-        <h1 className="text-center text-[20px] md:text-[24px] font-semibold text-black">
+        <h1 className="flex-1 text-center text-[24px] font-semibold text-black">
           {task.task_name || "Task Name"}
         </h1>
+        <div className="w-9" />
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-5 py-1scroll-smooth">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 scroll-smooth">
         <div className="max-w-7xl mx-auto">
           {/* Status row */}
           <div className="flex items-center justify-between gap-4 mb-6">
@@ -361,7 +380,7 @@ export default function MytaskViewBL() {
               </button>
               {statusDropdownOpen && !updatingStatus && (
                 <div
-                  className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200"
+                  className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200 cursor-pointer"
                   role="listbox"
                 >
                   {STATUS_OPTIONS.filter(
@@ -406,28 +425,31 @@ export default function MytaskViewBL() {
             </div>
           </div>
 
-          {/* Two columns: Task details (left) + Submit Work (right) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border border-slate-200 rounded-xl p-6">
-            <div className="space-y-4 text-[14px]">
-              <div className="flex gap-2">
+          {/* Task Details Card */}
+          <div className="w-full border border-slate-200 rounded-xl p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 text-[14px]">
+              {/* Row 1: Project Name | Modules Name */}
+              <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 w-32">
                   Project Name
                 </span>
                 <span className="text-[#020202] shrink-0">:</span>
-                <span className="text-[#616161]">
+                <span className="text-[#616161] break-words">
                   {task.project_name || "—"}
                 </span>
               </div>
-              <div className="flex gap-2">
-                <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">
+              <div className="flex items-start gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
                   Modules Name
                 </span>
                 <span className="text-[#020202] shrink-0">:</span>
-                <span className="text-[#616161]">
+                <span className="text-[#616161] break-words">
                   {String(task.modules_name || task.module || "—")}
                 </span>
               </div>
-              <div className="flex gap-2 items-center">
+
+              {/* Row 2: Category | Assigned By */}
+              <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 w-32">
                   Category
                 </span>
@@ -436,7 +458,7 @@ export default function MytaskViewBL() {
                   {String(task.category || task.type || "—")}
                 </span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 w-32">
                   Assigned By
                 </span>
@@ -445,7 +467,9 @@ export default function MytaskViewBL() {
                   {task.uploader_full_name ?? "—"}
                 </span>
               </div>
-              <div className="flex gap-2">
+
+              {/* Row 3: Assigned To | Start Date */}
+              <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 w-32">
                   Assigned To
                 </span>
@@ -454,7 +478,7 @@ export default function MytaskViewBL() {
                   {task.assigned_full_name ?? task.assign_to ?? "—"}
                 </span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 w-32">
                   Start Date
                 </span>
@@ -467,17 +491,19 @@ export default function MytaskViewBL() {
                     : "-NIL-"}
                 </span>
               </div>
-              <div className="flex gap-2">
+
+              {/* Row 4: End Date | Start Time */}
+              <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 w-32">
-                  Due Date
+                  End Date
                 </span>
                 <span className="text-[#020202] shrink-0">:</span>
                 <span className="text-[#616161]">
                   {task.due_date ? formatDateDDMMYYYY(task.due_date) : "-NIL-"}
                 </span>
               </div>
-              <div className="flex gap-2">
-                <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">
+              <div className="flex items-start gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32 lg:whitespace-nowrap">
                   Start Time
                 </span>
                 <span className="text-[#020202] shrink-0">:</span>
@@ -487,8 +513,10 @@ export default function MytaskViewBL() {
                     : "-NIL-"}
                 </span>
               </div>
-              <div className="flex gap-2">
-                <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">
+
+              {/* Row 5: End Time | Attachments */}
+              <div className="flex items-start gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
                   End Time
                 </span>
                 <span className="text-[#020202] shrink-0">:</span>
@@ -500,31 +528,95 @@ export default function MytaskViewBL() {
                     : "-NIL-"}
                 </span>
               </div>
-              <div className="flex gap-2">
-                <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">
+              <div className="flex items-start gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
                   Attachments
                 </span>
                 <span className="text-[#020202] shrink-0">:</span>
-                <span className="text-[#616161] break-all">
-                  {task.outputfilepath
-                    ? task.outputfilepath
-                        .split(",")
-                        .map((f) => f.trim())
-                        .filter(Boolean)
-                        .map((f) => {
-                          const base = f.split("/").pop() || f;
-                          const idx = base.indexOf("_");
-                          return idx > 8 ? base.slice(idx + 1) : base;
-                        })
-                        .join(", ")
-                    : "-NIL-"}
-                </span>
+                <div className="flex flex-col gap-2 flex-1 min-w-0">
+                  {task.outputfilepath ? (
+                    task.outputfilepath
+                      .split(",")
+                      .map((f) => f.trim())
+                      .filter(Boolean)
+                      .map((f, idx) => {
+                        const url = getTaskImageUrl(f);
+                        const base = f.split("/").pop() || f;
+                        const underscoreIdx = base.indexOf("_");
+                        const displayName =
+                          underscoreIdx > 8 ? base.slice(underscoreIdx + 1) : base;
+
+                        return (
+                          <div key={idx} className="flex items-center gap-3">
+                            <span className="text-[14px] font-medium text-[#616161] truncate font-Gantari">
+                              {displayName}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              {/* View Tooltip */}
+                              <div className="relative group/tooltip inline-flex shrink-0">
+                                <a
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 hover:bg-slate-100 rounded transition-colors"
+                                >
+                                  <img
+                                    src={viewIcon}
+                                    alt="View"
+                                    className="w-4 h-4 cursor-pointer"
+                                  />
+                                </a>
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
+                                    <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                      View
+                                    </span>
+                                  </div>
+                                  <div className="w-2 h-2 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[4.5px]"></div>
+                                </div>
+                              </div>
+
+                              {/* Download Tooltip */}
+                              <div className="relative group/tooltip inline-flex shrink-0">
+                                <a
+                                  href={url}
+                                  download
+                                  className="p-1 hover:bg-slate-100 rounded transition-colors"
+                                >
+                                  <img
+                                    src={downloadIcon}
+                                    alt="Download"
+                                    className="w-4 h-4 cursor-pointer"
+                                  />
+                                </a>
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
+                                    <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                      Download
+                                    </span>
+                                  </div>
+                                  <div className="w-2 h-2 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[4.5px]"></div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                  ) : (
+                    <span className="text-[#616161]">-NIL-</span>
+                  )}
+                </div>
               </div>
             </div>
+          </div>
 
-            <div className="rounded-sm bg-[#F2F7FF] p-4 h-fit">
-              <h4 className="text-[#020202] text-[18px]  mb-1">Submit Work</h4>
-              <p className="text-[14px] text-[#8B8B8B] mb-4">
+          <div className="gap-6 mt-6">
+            {/* Submit Work (Kept from BL) */}
+            {/* <div className="border border-slate-200 rounded-xl p-6 bg-[#F2F7FF]">
+              <h4 className="text-[#020202] text-[18px] mb-1 font-semibold">
+                Submit Work
+              </h4>
+              <p className="text-[14px] text-[#8B8B8B] mb-4 font-medium">
                 Choose your finished work or error screenshots to update the
                 team on your progress.
               </p>
@@ -545,7 +637,7 @@ export default function MytaskViewBL() {
                           setSelectedImage(null);
                           setSelectedImagePreview(null);
                         }}
-                        className="p-1 bg-white/80 rounded-full transition-colors cursor-pointer"
+                        className="p-1 bg-white/80 rounded-full transition-colors cursor-pointer shadow-sm hover:bg-white"
                       >
                         <FiX className="w-4 h-4 text-slate-600" />
                       </button>
@@ -567,7 +659,9 @@ export default function MytaskViewBL() {
                 ) : (
                   <>
                     <img src={ImageIcon} alt="Image" className="w-7 h-7" />
-                    <span className="text-xs mt-2">No Image Selected</span>
+                    <span className="text-xs mt-2 font-medium">
+                      No Image Selected
+                    </span>
                   </>
                 )}
               </div>
@@ -575,67 +669,39 @@ export default function MytaskViewBL() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-2 text-[14px] text-black hover:bg-[#D5E6FF] whitespace-nowrap disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-2 text-[14px] font-medium text-black hover:bg-[#D5E6FF] whitespace-nowrap disabled:opacity-50 cursor-pointer transition-colors"
                 >
                   <img src={Upload} alt="Upload" className="w-3 h-3 mr-1" />
                   <span className="mr-2">Select Image</span>
                 </button>
                 <button
                   onClick={handleImageSubmit}
-                  className="inline-flex items-center gap-1 rounded-md bg-[#E1F6EB] px-4 py-2 text-[14px] text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap disabled:opacity-50 cursor-pointer"
+                  disabled={submittingWork || !selectedImage}
+                  className="inline-flex items-center gap-1 rounded-md bg-[#E1F6EB] px-4 py-2 text-[14px] font-semibold text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap disabled:opacity-50 cursor-pointer transition-colors"
                 >
-                  Submit Work
+                  {submittingWork ? "Submitting..." : "Submit Work"}
                 </button>
               </div>
-            </div>
-          </div>
+            </div> */}
 
-          {/* Uploaded Work Display */}
-          {task.outputfilepath &&
-            task.outputfilepath.split(",").filter(Boolean).length > 0 && (
-              <div className="mt-6 border border-slate-200 rounded-xl p-6">
-                <h4 className="text-black text-md mb-4 font-semibold">
-                  Uploaded Work
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {task.outputfilepath
-                    .split(",")
-                    .filter(Boolean)
-                    .map((filename, idx) => (
-                      <div
-                        key={idx}
-                        className="group relative aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-50"
-                      >
-                        <a
-                          href={getTaskImageUrl(filename)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block w-full h-full"
-                        >
-                          <img
-                            src={getTaskImageUrl(filename)}
-                            alt={`Uploaded work ${idx + 1}`}
-                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = ImageIcon;
-                              (e.target as HTMLImageElement).className =
-                                "w-10 h-10 m-auto mt-4 opacity-20";
-                            }}
-                          />
-                        </a>
-                      </div>
-                    ))}
-                </div>
+            {/* Task Description (Full Width row if needed) */}
+            <div className="border border-slate-200 rounded-xl p-6 flex flex-col h-full bg-white">
+              <h4 className="text-[#020202] text-[18px] mb-2 font-semibold">
+                Task Description
+              </h4>
+              <div className="flex-1 rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[100px]">
+                {task.description || "No description provided."}
               </div>
-            )}
-
-          {/* Task Description */}
-          <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6">
-            <h4 className=" text-black text-md mb-2">Task Description</h4>
-            <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-              {task.description || "Event (Consultant Partnership)..."}
             </div>
           </div>
+          {task.review_remark && (
+            <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6">
+              <h4 className=" text-black text-md mb-2">Review Remark</h4>
+              <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+                {task.review_remark}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

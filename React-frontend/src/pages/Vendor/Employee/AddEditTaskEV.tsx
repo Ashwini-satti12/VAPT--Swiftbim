@@ -300,13 +300,22 @@ function isEndTimeBeforeStartOnSameDay(
   return endTime < startTime;
 }
 
-export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }: { taskId?: number, onBack?: () => void }) {
+export default function AddEditTaskEV({
+  taskId: propTaskId,
+  onBack: propOnBack,
+  onSuccess: propOnSuccess,
+}: {
+  taskId?: number;
+  onBack?: () => void;
+  onSuccess?: () => void;
+}) {
   const { id: idParam } = useParams();
   const [searchParams] = useSearchParams();
   const { pathname, state: locationState } = useLocation();
   const navigate = useNavigate();
 
-  const editingTaskId = propTaskId ?? (idParam && /^\d+$/.test(idParam) ? Number(idParam) : null);
+  const editingTaskId =
+    propTaskId ?? (idParam && /^\d+$/.test(idParam) ? Number(idParam) : null);
   const isEdit = editingTaskId != null;
 
   const listQs = useMemo(() => {
@@ -438,7 +447,14 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
       resolveFormProjectName(fetchedTaskForEditRef.current, seeded, projects),
     );
     setFormReady(true);
-  }, [isEdit, editingTaskId, loadingMeta, employees, projects, useVendorTaskApi]);
+  }, [
+    isEdit,
+    editingTaskId,
+    loadingMeta,
+    employees,
+    projects,
+    useVendorTaskApi,
+  ]);
 
   useEffect(() => {
     if (openFormDropdown === null) return;
@@ -598,10 +614,7 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
     const assignTrim = addTaskForm.assignTo.trim();
     const assigneeId = employees.find((emp) => {
       const n = (emp.full_name || emp.name || "").trim();
-      return (
-        n === assignTrim ||
-        n.toLowerCase() === assignTrim.toLowerCase()
-      );
+      return n === assignTrim || n.toLowerCase() === assignTrim.toLowerCase();
     })?.id;
     let assignedToVal: number | string =
       assigneeId != null && !Number.isNaN(Number(assigneeId))
@@ -697,7 +710,8 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
           const taskId = res.data?.task_id ?? res.data?.id;
           if (res.data?.success && taskId != null) {
             handleFiles(taskId);
-            toast.success("Task updated");
+            toast.success("Task created successfully");
+            propOnSuccess?.();
             goBackToList();
           } else {
             toast.error("Could not create task");
@@ -712,7 +726,8 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
         .then((res) => {
           if (res.data.success && res.data.task_id) {
             handleFiles(res.data.task_id);
-            toast.success("Task updated");
+            toast.success("Task created successfully");
+            propOnSuccess?.();
             goBackToList();
           } else {
             toast.error("Could not create task");
@@ -739,43 +754,41 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
 
   return (
     <div className="min-h-0 flex-1 flex flex-col bg-white overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-2  shrink-0">
-        <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
-            <div className="group relative inline-flex shrink-0">
+      <div className="flex items-center justify-between px-5 py-2 mb-4 shrink-0">
+        <div className="group relative inline-flex shrink-0">
           <button
             type="button"
             onClick={goBackToList}
-            className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+              className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
           </button>
-           {/* Tooltip */}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
-                  <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                    Go Back
-                  </span>
-                </div>
-              </div>
-              </div>
-              </div>
-        <h1 className="text-[24px] font-medium text-[#353535] -mt-12">
-          {isEdit ? "Edit Task Details" : "Add Task Details"}
+          {/* Tooltip */}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+            <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
+                <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                Go Back
+              </span>
+            </div>
+          </div>
+        </div>
+        <h1 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
+          {isEdit ? "Edit Task Details" : "Add New Task"}
         </h1>
         <div className="w-9" />
       </div>
 
       <form
-        className="flex-1 overflow-y-auto custom-scrollbar"
+        className="flex-1 overflow-y-auto px-4 md:px-8 pb-24 custom-scrollbar"
         noValidate
         onSubmit={handleFormSubmit}
       >
-        <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
           <div className="sm:col-span-2">
-            <label className="block text-[16px] font-medium text-[#353535] mb-1">
+            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
               Project Name
-              <span className="text-red-500">*</span>
+              <span className="text-[#DD4342]">*</span>
             </label>
             <FormDropdown
               label="Select Project name"
@@ -806,9 +819,9 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
             />
           </div>
           <div>
-            <label className="block text-[16px] font-medium text-[#353535] mb-1">
+            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
               Select Module
-              <span className="text-red-500">*</span>
+              <span className="text-[#DD4342]">*</span>
             </label>
             <FormDropdown
               label="Select Module"
@@ -833,11 +846,11 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
           </div>
 
           <div>
-            <label className="block text-[16px] font-medium text-[#353535] mb-1">
+            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
               Task Name
-              <span className="text-red-500">*</span>
+              <span className="text-[#DD4342]">*</span>
             </label>
-            <div className="flex">
+            <div className="relative flex min-h-[42px] items-stretch overflow-hidden rounded-[5px] border border-transparent bg-[#F2F3F4] transition-colors focus-within:border-[#AEACAC52]">
               <input
                 type="text"
                 value={addTaskForm.taskName}
@@ -848,20 +861,20 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
                   }))
                 }
                 placeholder="Enter Task / Select Task"
-                className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none ${isEdit ? "rounded-sm" : "rounded-l-sm"}`}
+                className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B]"
               />
-              {!isEdit && (
+              {/* {!isEdit && (
                 <button
                   type="button"
                   className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-[14px] font-medium text-[#8B8B8B]"
                 >
                   Tasklist
                 </button>
-              )}
+              )} */}
             </div>
           </div>
 
-          <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
                 Type
@@ -911,7 +924,7 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
             </div>
             <div>
               <label className="block text-[16px] font-medium text-[#353535] mb-1">
-                 End Date
+                End Date
                 <span className="text-red-500">*</span>
               </label>
               <input
@@ -931,12 +944,12 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
                 className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none required"
               />
             </div>
-          </div>
-          <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          </div> */}
+          <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
             <div>
-              <label className="block text-[16px] font-medium text-[#353535] mb-1">
+              <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                 Select Start Time
-                <span className="text-red-500">*</span>
+                <span className="text-[#DD4342]">*</span>
               </label>
               <input
                 type="time"
@@ -955,13 +968,13 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
                     return next;
                   });
                 }}
-                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none required"
+                className="w-full rounded-[5px] bg-[#F2F3F4] border border-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] focus:outline-none focus:border-[#AEACAC52]"
               />
             </div>
             <div>
-              <label className="block text-[16px] font-medium text-[#353535] mb-1">
+              <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                 Select End Time
-                <span className="text-red-500">*</span>
+                <span className="text-[#DD4342]">*</span>
               </label>
               <input
                 type="time"
@@ -972,13 +985,13 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
                     dueTime: e.target.value,
                   }))
                 }
-                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none required"
+                className="w-full rounded-[5px] bg-[#F2F3F4] border border-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] focus:outline-none focus:border-[#AEACAC52]"
               />
             </div>
             <div>
-              <label className="block text-[16px] font-medium text-[#353535] mb-1">
+              <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                 Assign To
-                <span className="text-red-500">*</span>
+                <span className="text-[#DD4342]">*</span>
               </label>
               <FormDropdown
                 label="Select Assign To"
@@ -1008,9 +1021,9 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
             </div>
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-[16px] font-medium text-[#353535] mb-1">
+            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
               Description
-              <span className="text-red-500">*</span>
+              <span className="text-[#DD4342]">*</span>
             </label>
             <textarea
               value={addTaskForm.description}
@@ -1021,12 +1034,12 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
                 }))
               }
               placeholder="Enter Description..."
-              rows={3}
-              className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none required"
+              rows={4}
+              className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-[16px] font-medium text-[#353535] mb-1">
+            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
               Checklist
             </label>
             <input
@@ -1039,11 +1052,11 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
                 }))
               }
               placeholder="Enter Reference Link"
-              className="w-full rounded-md bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
+              className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-[16px] font-medium text-[#353535] mb-1">
+            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
               Attachments
             </label>
             <input
@@ -1133,18 +1146,18 @@ export default function AddEditTaskEV({ taskId: propTaskId, onBack: propOnBack }
             </div>
           </div>
         </div>
-        <div className="max-w-4xl mx-auto flex justify-center gap-3 mt-8 pt-4">
+        <div className="max-w-4xl mx-auto flex justify-center gap-4 mt-8 pt-4">
           <button
             type="button"
             onClick={goBackToList}
-            className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[14px] font-medium text-[#353535] font-gantari cursor-pointer"
+            className="rounded-[5px] bg-[#F4F4F4] px-6 py-2 text-[14px] font-semibold text-[#353535] font-Gantari cursor-pointer"
           >
             Discard
           </button>
           <button
             type="button"
             onClick={executeTaskSave}
-            className="rounded-md bg-[#DBE9FE] px-5 py-2 text-[14px] font-medium text-[#353535] font-gantari cursor-pointer"
+            className="rounded-[5px] bg-[#DBE9FE] px-6 py-2 text-[14px] font-semibold text-[#353535] font-Gantari cursor-pointer"
           >
             Submit
           </button>
