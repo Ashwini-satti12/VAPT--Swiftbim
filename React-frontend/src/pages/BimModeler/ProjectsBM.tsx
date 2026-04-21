@@ -1282,9 +1282,10 @@ export default function ProjectsBL() {
                         {selectedProjectForView.document_attachment ? (
                           selectedProjectForView.document_attachment.split(",").map((file) => file.trim()).filter(Boolean).map((fileName, idx) => {
                             const isOutsource = selectedProjectForView.source === "Outsource";
+                            const fileBaseUrl = (api.defaults.baseURL || "").replace(/\/api\/?$/, "");
                             const url = isOutsource
-                                ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
-                                : `${api.defaults.baseURL}uploads/${fileName}`;
+                                ? `${fileBaseUrl}/static/uploads/vendor_docs/${fileName}`
+                                : `${fileBaseUrl}/uploads/${fileName}`;
 
                             return (
                                 <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-2 rounded-xl border border-slate-200 w-full md:max-w-xs mt-1">

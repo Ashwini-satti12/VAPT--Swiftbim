@@ -1804,9 +1804,10 @@ export default function ProjectsBL() {
                             .map((fileName, idx) => {
                               const isOutsource =
                                 selectedProjectForView.source === "Outsource";
+                              const fileBaseUrl = (api.defaults.baseURL || "").replace(/\/api\/?$/, "");
                               const url = isOutsource
-                                ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
-                                : `${api.defaults.baseURL}uploads/${fileName}`;
+                                ? `${fileBaseUrl}/static/uploads/vendor_docs/${fileName}`
+                                : `${fileBaseUrl}/uploads/${fileName}`;
 
                               return (
                                 <div
