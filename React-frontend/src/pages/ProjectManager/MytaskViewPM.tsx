@@ -6,6 +6,8 @@ import api from "../../lib/api";
 import Upload from '../../assets/ProjectManager/MyTask/Upload.svg';
 import ImageIcon from '../../assets/ProjectManager/MyTask/image.svg';
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import downloadIcon from "../../assets/TechnicalDirector/download icon.svg";
 
 interface Task {
   id: number;
@@ -467,7 +469,7 @@ export default function MytaskViewPM() {
               </span>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-[#020202] font-medium shrink-0 w-32 lg:whitespace-nowrap">Preferred Time</span>
+              <span className="text-[#020202] font-medium shrink-0 w-32 lg:whitespace-nowrap">Start Time</span>
               <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.perferstart_time || task.start_time
@@ -489,20 +491,64 @@ export default function MytaskViewPM() {
             <div className="flex items-start gap-2">
               <span className="text-[#020202] font-medium shrink-0 w-32">Attachments</span>
               <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161] break-all">
-                {task.outputfilepath
-                  ? task.outputfilepath
-                      .split(",")
-                      .map((f) => f.trim())
-                      .filter(Boolean)
-                      .map((f) => {
-                        const base = f.split("/").pop() || f;
-                        const idx = base.indexOf("_");
-                        return idx > 8 ? base.slice(idx + 1) : base;
-                      })
-                      .join(", ")
-                  : "-NIL-"}
-              </span>
+              <div className="flex flex-col gap-2 flex-1 min-w-0">
+                {task.outputfilepath ? (
+                  task.outputfilepath
+                    .split(",")
+                    .map((f) => f.trim())
+                    .filter(Boolean)
+                    .map((f, idx) => {
+                      const url = getTaskImageUrl(f);
+                      const base = f.split("/").pop() || f;
+                      const underscoreIdx = base.indexOf("_");
+                      const displayName = underscoreIdx > 8 ? base.slice(underscoreIdx + 1) : base;
+                      return (
+                        <div key={idx} className="flex items-center gap-3">
+                          <span className="text-[14px] font-medium text-[#616161] truncate font-Gantari">
+                            {displayName}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {/* View Tooltip */}
+                            <div className="relative group/tooltip inline-flex shrink-0">
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1 hover:bg-slate-100 rounded transition-colors"
+                              >
+                                <img src={viewIcon} alt="View" className="w-4 h-4" />
+                              </a>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
+                                  <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">View</span>
+                                </div>
+                                <div className="w-2 h-2 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[4.5px]"></div>
+                              </div>
+                            </div>
+                            {/* Download Tooltip */}
+                            <div className="relative group/tooltip inline-flex shrink-0">
+                              <a
+                                href={url}
+                                download
+                                className="p-1 hover:bg-slate-100 rounded transition-colors"
+                              >
+                                <img src={downloadIcon} alt="Download" className="w-4 h-4" />
+                              </a>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
+                                  <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">Download</span>
+                                </div>
+                                <div className="w-2 h-2 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[4.5px]"></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                ) : (
+                  <span className="text-[#616161]">-NIL-</span>
+                )}
+              </div>
             </div>
           </div>
         </div>

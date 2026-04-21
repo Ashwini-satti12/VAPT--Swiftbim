@@ -226,6 +226,10 @@ interface Task {
   created_at?: string;
   projectid?: number;
   source?: "In House" | "Outsource";
+  Actual_start_time?: string;
+  perferstart_time?: string;
+  perferend_time?: string;
+  end_time?: string;
 }
 
 function normalizeStatus(
@@ -426,11 +430,15 @@ function TaskCard({
       <div className="flex items-start justify-between gap-2 mb-4">
         <div className="flex flex-col">
           <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
-          <span className="text-[14px] font-medium text-[#8B8B8B]">{startStr}</span>
+          <span className="text-[14px] font-medium text-[#8B8B8B]">
+            {formatDateForDisplay(task.start_date || task.Actual_start_time) || (task.start_date || task.Actual_start_time ? task.start_date || task.Actual_start_time : "—")}
+          </span>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <span className="text-[14px] font-medium text-[#000000]">Due Date</span>
-          <span className="text-[14px] font-medium text-[#8B8B8B]">{endStr}</span>
+          <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+          <span className="text-[14px] font-medium text-[#8B8B8B]">
+            {formatDateForDisplay(task.due_date || task.end_time) || (task.due_date || task.end_time ? task.due_date || task.end_time : "—")}
+          </span>
         </div>
       </div>
       <div className="flex items-center justify-between gap-2 mb-1">
