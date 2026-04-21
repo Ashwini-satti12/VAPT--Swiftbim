@@ -370,54 +370,68 @@ export default function ProjectsBC() {
   const [departments, setDepartments] = useState<string[]>([]);
   const priorityOptions = ["High", "Low", "Normal"];
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [clientsList, setClientsList] = useState<
+    Array<{ id: number; fullName?: string; full_name?: string }>
+  >([]);
 
   // Fetch employees + departments once at mount so View modal can resolve names
   useEffect(() => {
     let isMounted = true;
     const fetchEmployeesAndDepartments = async () => {
       try {
-        const [empRes, depRes] = await Promise.all([
-          api.get("/api/employees"),
-          api.get("/api/departments"),
-        ]);
-        if (isMounted) {
-          const empData: Employee[] = empRes.data.employees || [];
-          const selectable = empData.filter(
-            isEmployeeActiveForProjectAssignment,
-          );
-          const roleOf = (e: Employee) =>
-            String(e.user_role || "")
-              .toLowerCase()
-              .trim();
-          setProjectManagers(
-            selectable
-              .filter((e) => {
-                const role = roleOf(e);
-                return role.includes("project manager");
+        // Fetch Employees
+        api.get("/api/employees")
+          .then(({ data }) => {
+            if (!isMounted) return;
+            const empData: Employee[] = data.employees || [];
+            const selectable = empData.filter(isEmployeeActiveForProjectAssignment);
+            const roleOf = (e: Employee) => String(e.user_role || "").toLowerCase().trim();
+            
+            setProjectManagers(
+              selectable
+                .filter((e) => roleOf(e).includes("project manager"))
+                .map((e) => e.full_name)
+            );
+            setBimLeads(
+              selectable
+                .filter((e) => roleOf(e).includes("bim lead"))
+                .map((e) => e.full_name)
+            );
+            setBimCoordinators(
+              selectable
+                .filter((e) => roleOf(e).includes("coordinator"))
+                .map((e) => e.full_name)
+            );
+            setAllEmployees(empData);
+          })
+          .catch(err => console.error("Error fetching employees:", err));
+
+        // Fetch Departments
+        api.get("/api/departments")
+          .then(({ data }) => {
+            if (isMounted) setDepartments(data.departments || []);
+          })
+          .catch(err => console.error("Error fetching departments:", err));
+
+        // Fetch Clients - Try vendors/clients first, fallback if needed
+        api.get("/api/vendors/clients")
+          .then(({ data }) => {
+            if (isMounted) setClientsList(data.clients || []);
+          })
+          .catch(() => {
+            // If vendors/clients fails, try clients/from-users as fallback
+            api.get("/api/clients/from-users")
+              .then(({ data }) => {
+                if (isMounted) setClientsList(data.clients || []);
               })
-              .map((e) => e.full_name),
-          );
-          setBimLeads(
-            selectable
-              .filter((e) => {
-                const role = roleOf(e);
-                return role.includes("bim lead");
-              })
-              .map((e) => e.full_name),
-          );
-          setBimCoordinators(
-            selectable
-              .filter((e) => {
-                const role = roleOf(e);
-                return role.includes("coordinator");
-              })
-              .map((e) => e.full_name),
-          );
-          setAllEmployees(empData);
-          setDepartments(depRes.data.departments || []);
-        }
+              .catch(err => {
+                console.error("Error fetching clients:", err);
+                if (isMounted) setClientsList([]);
+              });
+          });
+
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("General error in fetch:", error);
       }
     };
     fetchEmployeesAndDepartments();
@@ -534,11 +548,12 @@ export default function ProjectsBC() {
     setPmTaskStatsLoading(true);
     let cancelled = false;
 
-    const source = searchParams.get("source") || "In House";
-    const statsApi =
-      source === "Outsource"
-        ? `/api/vendors/vendor-projects/${projectId}/module-progress`
-        : `/api/projects/${projectId}/module-progress`;
+    const isOutsource =
+      selectedProjectForView?.source === "Outsource" ||
+      searchParams.get("source") === "Outsource";
+    const statsApi = isOutsource
+      ? `/api/vendors/vendor-projects/${projectId}/module-progress`
+      : `/api/projects/${projectId}/module-progress`;
 
     api
       .get<{
@@ -576,7 +591,12 @@ export default function ProjectsBC() {
     return () => {
       cancelled = true;
     };
-  }, [showProjectView, selectedProjectForView?.id, searchParams]);
+  }, [
+    showProjectView,
+    selectedProjectForView?.id,
+    selectedProjectForView?.source,
+    searchParams,
+  ]);
 
   const fetchProjects = () => {
     const status = searchParams.get("status");
@@ -776,52 +796,6 @@ export default function ProjectsBC() {
               <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 pb-6 px-5">
                 {/* Task Status Cards - Static at top */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-4 shrink-0">
-                  {/* Total Tasks */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        "/bc/teamtasks" +
-                          (selectedProjectForView?.project_name
-                            ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                            : ""),
-                      )
-                    }
-                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
-                  >
-                    <div className="flex items-center justify-left mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                        Total Tasks
-                      </p>
-                    </div>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                      {selectedProjectForView.total_tasks ?? 0}
-                    </p>
-                  </button>
-
-                  {/* Completed Tasks */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        "/bc/teamtasks?status=completed" +
-                          (selectedProjectForView?.project_name
-                            ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                            : ""),
-                      )
-                    }
-                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
-                  >
-                    <div className="flex items-center justify-left mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                        Completed Tasks
-                      </p>
-                    </div>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                      {selectedProjectForView.completed_tasks ?? 0}
-                    </p>
-                  </button>
-
                   {/* To Do Tasks */}
                   <button
                     type="button"
@@ -865,6 +839,52 @@ export default function ProjectsBC() {
                     </div>
                     <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                       {pmTaskStatsLoading ? "..." : pmTaskStats.inProgress}
+                    </p>
+                  </button>
+
+                  {/* Paused Tasks */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        "/bc/teamtasks?status=paused" +
+                          (selectedProjectForView?.project_name
+                            ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            : ""),
+                      )
+                    }
+                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                  >
+                    <div className="flex items-center justify-left mb-2">
+                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                        Paused Tasks
+                      </p>
+                    </div>
+                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                      {pmTaskStatsLoading ? "..." : pmTaskStats.paused}
+                    </p>
+                  </button>
+
+                  {/* Completed Tasks */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        "/bc/teamtasks?status=completed" +
+                          (selectedProjectForView?.project_name
+                            ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            : ""),
+                      )
+                    }
+                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                  >
+                    <div className="flex items-center justify-left mb-2">
+                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                        Completed Tasks
+                      </p>
+                    </div>
+                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                      {pmTaskStatsLoading ? "..." : pmTaskStats.completed}
                     </p>
                   </button>
                 </div>
@@ -2199,8 +2219,16 @@ export default function ProjectsBC() {
                   formData.append("currency", createCurrency);
                   if (moduleNameTags.length > 0)
                     formData.append("modules", moduleNameTags.join(", "));
-                  if (createClientName)
-                    formData.append("client_id", createClientName);
+                  if (createClientName) {
+                    const selectedClient = clientsList.find(
+                      (c) => (c.fullName ?? c.full_name) === createClientName,
+                    );
+                    if (selectedClient) {
+                      formData.append("client_id", String(selectedClient.id));
+                    } else if (/^\d+$/.test(createClientName)) {
+                      formData.append("client_id", createClientName);
+                    }
+                  }
                   const pmIdsCreate = nameOrCsvToIdCsv(
                     createProjectManager,
                     allEmployees,
@@ -2538,13 +2566,14 @@ export default function ProjectsBC() {
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                       Client Name <span className="text-[#DD4342]">*</span>
                     </label>
-                    <input
-                      type="text"
-                      required
+                    <FormSelect
+                      label="Client Name"
+                      placeholder="Select Client"
+                      options={clientsList
+                        .map((c) => c.fullName ?? c.full_name ?? "")
+                        .filter(Boolean)}
                       value={createClientName}
-                      onChange={(e) => setCreateClientName(e.target.value)}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                      placeholder="Enter Client Name"
+                      onChange={(v) => setCreateClientName(v)}
                     />
                   </div>
 
@@ -2723,6 +2752,15 @@ export default function ProjectsBC() {
                         <div className="overflow-y-auto">
                           {allEmployees
                             .filter(isEmployeeActiveForProjectAssignment)
+                            .filter(e => {
+                              const role = String(e.user_role || '').toLowerCase();
+                              return (
+                                !role.includes('project manager') &&
+                                !role.includes('bim lead') &&
+                                !role.includes('coordinator') &&
+                                !role.includes('technical director')
+                              );
+                            })
                             .filter((e) =>
                               e.full_name
                                 .toLowerCase()
@@ -3283,7 +3321,7 @@ export default function ProjectsBC() {
                       type="text"
                       readOnly
                       value={createClientName}
-                      className="w-full px-4 py-2 text-[14px] text-gray-500 placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari cursor-not-allowed focus:outline-none"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] font-semibold placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari cursor-not-allowed focus:outline-none"
                       placeholder="Enter Client Name"
                     />
                   </div>
@@ -3482,6 +3520,15 @@ export default function ProjectsBC() {
                         <div className="overflow-y-auto">
                           {allEmployees
                             .filter(isEmployeeActiveForProjectAssignment)
+                            .filter(e => {
+                              const role = String(e.user_role || '').toLowerCase();
+                              return (
+                                !role.includes('project manager') &&
+                                !role.includes('bim lead') &&
+                                !role.includes('coordinator') &&
+                                !role.includes('technical director')
+                              );
+                            })
                             .filter((e) =>
                               e.full_name
                                 .toLowerCase()
@@ -3903,7 +3950,7 @@ export default function ProjectsBC() {
                                     View
                                   </span>
                                 </button>
-                                {(isTechnicalDirector || isManagement) && (
+                                {/* {(isTechnicalDirector || isManagement) && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -3922,7 +3969,7 @@ export default function ProjectsBC() {
                                       Payment Milestones
                                     </span>
                                   </button>
-                                )}
+                                )} */}
                                 {canEdit && (
                                   <button
                                     onClick={(e) => {
@@ -4039,7 +4086,7 @@ export default function ProjectsBC() {
                                     </span>
                                   </button>
                                 )}
-                                {canDelete && (
+                                {/* {canDelete && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -4057,7 +4104,7 @@ export default function ProjectsBC() {
                                       Delete
                                     </span>
                                   </button>
-                                )}
+                                )} */}
                               </div>
                             </div>
                           </div>
