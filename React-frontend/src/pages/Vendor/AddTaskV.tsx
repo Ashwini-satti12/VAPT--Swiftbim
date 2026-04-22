@@ -537,12 +537,12 @@ export default function AddTaskV() {
                     placeholder="Enter Task / Select Task"
                     className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B]"
                   />
-                 
+
                 </div>
               </div>
 
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-x-10 gap-y-6">
-               
+
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2">
                     Start Date <span className="text-[#DD4342]">*</span>

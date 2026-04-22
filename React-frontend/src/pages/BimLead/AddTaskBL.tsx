@@ -152,7 +152,7 @@ export default function AddTaskBL() {
   const [serverAttachmentDeleting, setServerAttachmentDeleting] =
     useState(false);
 
-  const showReviewRemarkField = 
+  const showReviewRemarkField =
     addTaskForm.assignTo && addTaskForm.assignTo !== user?.full_name;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -278,7 +278,7 @@ export default function AddTaskBL() {
             }
             applyRow(data as Record<string, unknown>, true);
           })
-          .catch(() => {});
+          .catch(() => { });
       });
 
     return () => {
@@ -305,15 +305,15 @@ export default function AddTaskBL() {
     const name = addTaskForm.projectName;
     const sourceHint =
       editingTaskId != null &&
-      editingTask &&
-      String(editingTask.project_name || "") === name
+        editingTask &&
+        String(editingTask.project_name || "") === name
         ? editingTask.source
         : undefined;
     const selectedProj =
       (sourceHint
         ? projects.find(
-            (p) => p.project_name === name && p.source === sourceHint,
-          )
+          (p) => p.project_name === name && p.source === sourceHint,
+        )
         : undefined) ?? projects.find((p) => p.project_name === name);
     if (!selectedProj) {
       setModules([]);
@@ -438,15 +438,15 @@ export default function AddTaskBL() {
     const name = addTaskForm.projectName;
     const sourceHint =
       editingTaskId != null &&
-      editingTask &&
-      String(editingTask.project_name || "") === name
+        editingTask &&
+        String(editingTask.project_name || "") === name
         ? editingTask.source
         : undefined;
     const selectedProj =
       (sourceHint
         ? projects.find(
-            (p) => p.project_name === name && p.source === sourceHint,
-          )
+          (p) => p.project_name === name && p.source === sourceHint,
+        )
         : undefined) ?? projects.find((p) => p.project_name === name);
     const isOutsourceTask =
       editingTask?.source === "Outsource" ||
@@ -567,15 +567,15 @@ export default function AddTaskBL() {
       const name = addTaskForm.projectName;
       const sourceHint =
         isEditing &&
-        editingTask &&
-        String(editingTask.project_name || "") === name
+          editingTask &&
+          String(editingTask.project_name || "") === name
           ? editingTask.source
           : undefined;
       const selectedProj =
         (sourceHint
           ? projects.find(
-              (p) => p.project_name === name && p.source === sourceHint,
-            )
+            (p) => p.project_name === name && p.source === sourceHint,
+          )
           : undefined) ?? projects.find((p) => p.project_name === name);
       const isOutsource = selectedProj?.source === "Outsource";
 
