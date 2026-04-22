@@ -597,7 +597,6 @@ function TaskCard({
                       src={deleteIcon}
                       alt="delete"
                       className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                      onApproveTask={handleApproveTask}
                     />
                     <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                       Delete

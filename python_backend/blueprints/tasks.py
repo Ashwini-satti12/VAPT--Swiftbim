@@ -169,7 +169,10 @@ def list_tasks():
             params.append(employeeid_param)
         # else: no assigned_to filter → all tasks in scope (not defaulted to current user;
         # defaulting omitted employeeid to g.user_id broke team/tracker views that need every assignee.)
-
+        
+        # Team Task view: strictly for delegated work (assigned to someone else).
+        where.append("t.assigned_to <> t.uploaderid")
+        
         # Add project level filtering for non-management roles to match dashboard.
         # Always include tasks directly assigned to / created by current user.
         if user_role not in MANAGEMENT_ROLES:
@@ -230,13 +233,16 @@ def list_tasks():
         else:
             employee_id = employeeid_param
         
-        # Base ownership: either assigned to the employee, or uploaded/assigned-by them and not yet approved (Review workflow).
+        # Base ownership:
+        # 1) Tasks assigned to the employee.
+        # 2) Tasks assigned by the employee to others that are COMPLETED (Review workflow).
         where.append(
             """(
                 t.assigned_to = %s
                 OR (
                     t.uploaderid = %s
                     AND t.assigned_to <> t.uploaderid
+                    AND (t.status = 'Completed')
                     AND (t.Approval IS NULL OR t.Approval != 'Approved')
                 )
             )"""
@@ -245,8 +251,6 @@ def list_tasks():
 
     if status:
         if status == 'todo':
-            # In My Task, completed tasks assigned by me to others are review items:
-            # surface them under To Do.
             where.append(
                 """(
                     t.status IN ('Todo', 'To Do')
@@ -255,7 +259,7 @@ def list_tasks():
                     OR (
                         t.uploaderid = %s
                         AND t.assigned_to <> t.uploaderid
-                        AND (t.status = 'Completed' OR t.status IN ('Todo', 'To Do') OR t.status IS NULL)
+                        AND (t.status = 'Completed')
                         AND (t.Approval IS NULL OR t.Approval != 'Approved')
                     )
                 )"""
@@ -266,22 +270,20 @@ def list_tasks():
                 "(t.status IN ('InProgress', 'Started')) AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))"
             )
         elif status == 'completed':
-            if is_team_view:
-                where.append("(t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))")
-            else:
-                # Exclude creator review items from My Task completed bucket;
-                # they are intentionally shown in To Do.
-                where.append(
-                    """(
-                        (t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))
-                        AND NOT (
-                            t.uploaderid = %s
-                            AND t.assigned_to <> t.uploaderid
-                            AND (t.Approval IS NULL OR t.Approval != 'Approved')
-                        )
-                    )"""
-                )
-                params.append(employee_id)
+            # Exclude delegated review items from the assigner's 'Completed' bucket; 
+            # they are intentionally shown in 'To Do' for review action.
+            where.append(
+                """(
+                    (t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))
+                    AND NOT (
+                        t.uploaderid = %s
+                        AND t.assigned_to <> t.uploaderid
+                        AND (t.status = 'Completed')
+                        AND (t.Approval IS NULL OR t.Approval != 'Approved')
+                    )
+                )"""
+            )
+            params.append(employee_id)
         else:
             where.append("t.status = %s")
             params.append(status)
