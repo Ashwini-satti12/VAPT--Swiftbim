@@ -99,7 +99,18 @@ def update_status(task_id):
     if status_lower in ["inprogress", "started"]:
         cur.execute("UPDATE tasks SET status = 'InProgress', start_time = %s WHERE id = %s", (now, task_id))
     elif status_lower in ["completed", "done"]:
-        cur.execute("UPDATE tasks SET status = 'Completed', end_time = %s WHERE id = %s", (now, task_id))
+        cur.execute("SELECT uploaderid FROM tasks WHERE id = %s", (task_id,))
+        t_row = cur.fetchone()
+        is_assigner = False
+        if t_row:
+            up_id = t_row["uploaderid"] if isinstance(t_row, dict) else t_row[0]
+            if str(up_id) == str(getattr(g, "user_id", None)):
+                is_assigner = True
+        
+        if is_assigner:
+            cur.execute("UPDATE tasks SET status = 'Completed', end_time = %s, Approval = 'Approved' WHERE id = %s", (now, task_id))
+        else:
+            cur.execute("UPDATE tasks SET status = 'Completed', end_time = %s WHERE id = %s", (now, task_id))
     elif status_lower in ["todo", "new", "pending"]:
         cur.execute("UPDATE tasks SET status = 'To Do', start_time = NULL, end_time = NULL WHERE id = %s", (task_id,))
     elif status_lower == "pause":
@@ -118,6 +129,7 @@ def update_status(task_id):
         progress = _progress(conn, project_id)
         cur.execute("UPDATE projects SET progress = %s WHERE id = %s", (progress, project_id))
 
+    conn.commit()
     return jsonify({"success": True, "progress": progress})
 
 
@@ -212,57 +224,43 @@ def list_tasks():
     else:
         # My task / employee view:
         # 1) Keep all tasks assigned to me.
-        # 2) Keep self-created/self-assigned tasks.
-        # 3) For tasks I assigned to others:
-        #    - hide until they are completed (then return to creator for review in My Task -> To Do)
-        #    - if creator moves to InProgress for review AND review_remark is empty, keep in creator My Task
-        #    - once review_remark is entered (send back), remove from creator My Task (it will be visible in Team Task)
-        # Legacy frontend may send employeeid=all even for My Task. In that case,
-        # default to current user instead of filtering by literal string "all".
+        # 2) Keep self-created/completed tasks delegated to others (Review workflow).
         if employeeid_param is None or str(employeeid_param).strip() == "" or str(employeeid_param).strip().lower() == "all":
             employee_id = g.user_id
         else:
             employee_id = employeeid_param
+        
+        # Base ownership: either assigned to the employee, or uploaded/assigned-by them and not yet approved (Review workflow).
         where.append(
             """(
                 t.assigned_to = %s
-                OR (t.uploaderid = %s AND t.assigned_to = t.uploaderid)
                 OR (
                     t.uploaderid = %s
                     AND t.assigned_to <> t.uploaderid
-                    AND (
-                        t.status = 'Completed'
-                        OR (
-                            t.status = 'InProgress'
-                            AND (t.review_remark IS NULL OR TRIM(t.review_remark) = '')
-                        )
-                    )
+                    AND (t.Approval IS NULL OR t.Approval != 'Approved')
                 )
             )"""
         )
-        params.extend([employee_id, employee_id, employee_id])
+        params.extend([employee_id, employee_id])
 
     if status:
         if status == 'todo':
-            # Backward compatibility: old rows may use "To Do", "Todo", or NULL.
-            if is_team_view:
-                where.append("(t.status IN ('Todo', 'To Do') OR t.status IS NULL OR TRIM(t.status) = '')")
-            else:
-                # In My Task, completed tasks assigned by me to others are review items:
-                # surface them under To Do.
-                where.append(
-                    """(
-                        t.status IN ('Todo', 'To Do')
-                        OR t.status IS NULL
-                        OR TRIM(t.status) = ''
-                        OR (
-                            t.uploaderid = %s
-                            AND t.assigned_to <> t.uploaderid
-                            AND t.status = 'Completed'
-                        )
-                    )"""
-                )
-                params.append(g.user_id)
+            # In My Task, completed tasks assigned by me to others are review items:
+            # surface them under To Do.
+            where.append(
+                """(
+                    t.status IN ('Todo', 'To Do')
+                    OR t.status IS NULL
+                    OR TRIM(t.status) = ''
+                    OR (
+                        t.uploaderid = %s
+                        AND t.assigned_to <> t.uploaderid
+                        AND (t.status = 'Completed' OR t.status IN ('Todo', 'To Do') OR t.status IS NULL)
+                        AND (t.Approval IS NULL OR t.Approval != 'Approved')
+                    )
+                )"""
+            )
+            params.append(employee_id)
         elif status == 'in_progress':
             where.append(
                 "(t.status IN ('InProgress', 'Started')) AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))"
@@ -279,11 +277,11 @@ def list_tasks():
                         AND NOT (
                             t.uploaderid = %s
                             AND t.assigned_to <> t.uploaderid
-                            AND t.status = 'Completed'
+                            AND (t.Approval IS NULL OR t.Approval != 'Approved')
                         )
                     )"""
                 )
-                params.append(g.user_id)
+                params.append(employee_id)
         else:
             where.append("t.status = %s")
             params.append(status)
@@ -375,12 +373,14 @@ def create_task():
     # If assigned_to is a name, try to resolve to ID (optional but helpful)
     if assigned_to and not str(assigned_to).isdigit():
         cur.execute(
-            "SELECT id FROM employee WHERE full_name = %s AND Company_id = %s",
+            "SELECT id FROM employee WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(%s)) AND Company_id = %s",
             (assigned_to, g.company_id),
         )
         row = cur.fetchone()
         if row:
             assigned_to = row["id"] if isinstance(row, dict) else row[0]
+        else:
+            return jsonify({"success": False, "message": f"Employee '{assigned_to}' not found."}), 400
 
     due_date = data.get("due_date") or data.get("dueDate")
     category = data.get("category") or data.get("type") or ""
@@ -481,6 +481,7 @@ def create_task():
     except Exception:
         pass
 
+    conn.commit()
     return jsonify({"success": True, "task_id": task_id, "ticket": ticket})
 
 
@@ -518,8 +519,19 @@ def update_task(task_id):
     params = []
     for key in allowed:
         if key in data and data[key] is not None:
+            val = data[key]
+            if key == "assigned_to" and val and not str(val).isdigit():
+                cur.execute(
+                    "SELECT id FROM employee WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(%s)) AND Company_id = %s",
+                    (val, g.company_id),
+                )
+                row = cur.fetchone()
+                if row:
+                    val = row["id"] if isinstance(row, dict) else row[0]
+                else:
+                    return jsonify({"success": False, "message": f"Employee '{val}' not found."}), 400
             sets.append(f"`{key}` = %s")
-            params.append(data[key])
+            params.append(val)
     if not sets:
         return jsonify({"success": False, "message": "No fields to update"}), 400
     params.append(task_id)
@@ -577,6 +589,7 @@ def delete_task(task_id):
     conn = get_db()
     cur = conn.cursor()
     cur.execute("DELETE FROM tasks WHERE id = %s AND Company_id = %s", (task_id, g.company_id))
+    conn.commit()
     if cur.rowcount:
         return jsonify({"success": True})
     return jsonify({"success": False, "message": "Task not found"}), 404
@@ -610,4 +623,5 @@ def upload_output_files(task_id):
             names.append(name)
     new_path = (existing + "," + ",".join(names)) if existing else ",".join(names)
     cur.execute("UPDATE tasks SET outputfilepath = %s WHERE id = %s AND Company_id = %s", (new_path, task_id, g.company_id))
+    conn.commit()
     return jsonify({"success": True, "files": names})

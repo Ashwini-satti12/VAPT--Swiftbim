@@ -12,7 +12,6 @@ import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive
 import {
     formatTimeForDisplay,
     FormDropdown,
-    TaskDropdown,
     formatFileSize,
     taskToFormValues,
     type FormDropdownId,
@@ -74,6 +73,7 @@ const initialForm = {
     assignTo: "",
     description: "",
     checklist: "",
+    reviewRemark: "",
 };
 
 export default function AddTaskBC() {
@@ -91,7 +91,6 @@ export default function AddTaskBC() {
     const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
     const [existingOutputFilenames, setExistingOutputFilenames] = useState<string[]>([]);
     const [openFormDropdown, setOpenFormDropdown] = useState<FormDropdownId>(null);
-    const [tasklistOpen, setTasklistOpen] = useState(false);
     const [pendingAttachmentDelete, setPendingAttachmentDelete] = useState<PendingAttachmentDelete | null>(null);
     const [serverAttachmentDeleting, setServerAttachmentDeleting] = useState(false);
 
@@ -100,16 +99,12 @@ export default function AddTaskBC() {
     const formProjectMenuRef = useRef<HTMLDivElement>(null);
     const formModuleTriggerRef = useRef<HTMLElement | null>(null);
     const formModuleMenuRef = useRef<HTMLDivElement>(null);
-    const formTypeTriggerRef = useRef<HTMLElement | null>(null);
-    const formTypeMenuRef = useRef<HTMLDivElement>(null);
     const formAssignTriggerRef = useRef<HTMLElement | null>(null);
     const formAssignMenuRef = useRef<HTMLDivElement>(null);
     const formStartTimeTriggerRef = useRef<HTMLButtonElement>(null);
     const formStartTimeMenuRef = useRef<HTMLDivElement>(null);
     const formEndTimeTriggerRef = useRef<HTMLButtonElement>(null);
     const formEndTimeMenuRef = useRef<HTMLDivElement>(null);
-    const tasklistTriggerRef = useRef<HTMLButtonElement>(null);
-    const tasklistMenuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         Promise.all([
@@ -160,32 +155,27 @@ export default function AddTaskBC() {
     }, [editingTask]);
 
     useEffect(() => {
-        if (openFormDropdown === null && !tasklistOpen) return;
+        if (openFormDropdown === null) return;
         const handleClickOutside = (e: MouseEvent) => {
             const target = e.target as Node;
             const refs: React.RefObject<HTMLElement | null>[] =
-                tasklistOpen
-                    ? [tasklistTriggerRef, tasklistMenuRef]
-                    : openFormDropdown === "project"
-                        ? [formProjectTriggerRef, formProjectMenuRef]
-                        : openFormDropdown === "module"
-                            ? [formModuleTriggerRef, formModuleMenuRef]
-                            : openFormDropdown === "type"
-                                ? [formTypeTriggerRef, formTypeMenuRef]
-                                : openFormDropdown === "type_start_time"
-                                    ? [formStartTimeTriggerRef, formStartTimeMenuRef]
-                                    : openFormDropdown === "type_end_time"
-                                        ? [formEndTimeTriggerRef, formEndTimeMenuRef]
-                                        : [formAssignTriggerRef, formAssignMenuRef];
+                openFormDropdown === "project"
+                    ? [formProjectTriggerRef, formProjectMenuRef]
+                    : openFormDropdown === "module"
+                        ? [formModuleTriggerRef, formModuleMenuRef]
+                        : openFormDropdown === "type_start_time"
+                            ? [formStartTimeTriggerRef, formStartTimeMenuRef]
+                            : openFormDropdown === "type_end_time"
+                                ? [formEndTimeTriggerRef, formEndTimeMenuRef]
+                                : [formAssignTriggerRef, formAssignMenuRef];
             const inside = refs.some((r) => r.current && r.current.contains(target));
             if (!inside) {
                 setOpenFormDropdown(null);
-                setTasklistOpen(false);
             }
         };
         document.addEventListener("click", handleClickOutside);
         return () => document.removeEventListener("click", handleClickOutside);
-    }, [openFormDropdown, tasklistOpen]);
+    }, [openFormDropdown]);
 
     const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const input = e.currentTarget;
@@ -300,6 +290,7 @@ export default function AddTaskBC() {
             assignedTo: employees.find((e) => e.full_name === addTaskForm.assignTo)?.id || addTaskForm.assignTo,
             description: addTaskForm.description,
             checklist: addTaskForm.checklist,
+            review_remark: addTaskForm.reviewRemark,
             modules: addTaskForm.module,
         };
 
@@ -324,6 +315,7 @@ export default function AddTaskBC() {
                     category: payload.category,
                     description: payload.description,
                     checklist: payload.checklist,
+                    review_remark: payload.review_remark,
                     modules_name: payload.modules,
                     Actual_start_time: payload.startdate,
                     perferstart_time: payload.perferstart_time,
@@ -489,60 +481,15 @@ export default function AddTaskBC() {
                         </div>
                         <div>
                             <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Task Name <span className="text-[#DD4342]">*</span></label>
-                            <div className="relative flex min-h-[42px] items-stretch overflow-hidden rounded-[5px] border border-transparent bg-[#F2F3F4] transition-colors focus-within:border-[#AEACAC52]">
-                                <input
-                                    type="text"
-                                    value={addTaskForm.taskName}
-                                    onChange={(e) => setAddTaskForm((f) => ({ ...f, taskName: e.target.value }))}
-                                    placeholder="Enter Task / Select Task"
-                                    className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B]"
-                                />
-                                <TaskDropdown
-                                    label="Tasklist"
-                                    options={[
-                                        "Select Task",
-                                        ...Array.from(new Set(merged.map((t) => t.task_name).filter(Boolean))) as string[],
-                                    ]}
-                                    selected={null}
-                                    onSelect={(val) => {
-                                        if (!val || val === "Select Task") return;
-                                        setAddTaskForm((f) => ({ ...f, taskName: val }));
-                                    }}
-                                    isOpen={tasklistOpen}
-                                    onToggle={() => setTasklistOpen((d) => !d)}
-                                    onClose={() => setTasklistOpen(false)}
-                                    triggerRef={tasklistTriggerRef}
-                                    dropdownRef={tasklistMenuRef}
-                                    menuAlign="right"
-                                    menuUseFixedLayer
-                                    triggerVariant="compositeEnd"
-                                    searchable
-                                    searchPlaceholder="Search task..."
-                                    maxVisibleItems={6}
-                                />
-                            </div>
+                            <input
+                                type="text"
+                                value={addTaskForm.taskName}
+                                onChange={(e) => setAddTaskForm((f) => ({ ...f, taskName: e.target.value }))}
+                                placeholder="Enter Task Name"
+                                className="w-full min-h-[42px] border border-transparent bg-[#F2F3F4] px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B] rounded-[5px] transition-colors focus:border-[#AEACAC52]"
+                            />
                         </div>
-                        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
-                            <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
-                                <FormDropdown
-                                    label="Select Type"
-                                    options={[
-                                        { value: "", label: "Select Type" },
-                                        { value: "task", label: "Task" },
-                                        { value: "bug", label: "Bug" },
-                                        { value: "feature", label: "Feature" },
-                                    ]}
-                                    value={addTaskForm.type}
-                                    onChange={(v) => setAddTaskForm((f) => ({ ...f, type: v }))}
-                                    isOpen={openFormDropdown === "type"}
-                                    onToggle={() => setOpenFormDropdown((d) => (d === "type" ? null : "type"))}
-                                    onClose={() => setOpenFormDropdown(null)}
-                                    triggerRef={formTypeTriggerRef}
-                                    dropdownRef={formTypeMenuRef}
-                                    searchable
-                                />
-                            </div>
+                        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
                             <div>
                                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Start Date <span className="text-[#DD4342]">*</span></label>
                                 <input
@@ -673,6 +620,16 @@ export default function AddTaskBC() {
                                 className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                             />
                         </div>
+                        <div className="md:col-span-2">
+                            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Review Remark</label>
+                            <textarea
+                                value={addTaskForm.reviewRemark}
+                                onChange={(e) => setAddTaskForm((f) => ({ ...f, reviewRemark: e.target.value }))}
+                                placeholder="Enter correction remark"
+                                rows={3}
+                                className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
+                            />
+                        </div>
                         <div className="md:col-span-2 space-y-2">
                             <span className="block text-[16px] font-semibold text-[#000000] font-Gantari">Attachments</span>
                             <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
@@ -712,22 +669,32 @@ export default function AddTaskBC() {
                                                 <button
                                                     type="button"
                                                     onClick={() => openServerOutputInNewTab(stored)}
-                                                    className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
-                                                    title="View in new tab"
+                                                    className="relative p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer group"
                                                     aria-label={`View ${displayNameFromStoredFilename(stored)} in new tab`}
                                                 >
                                                     <img src={viewIcon} alt="" className="h-5 w-5" />
+                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 shadow-sm">
+                                                            <span className="font-Gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">View</span>
+                                                        </div>
+                                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 -mt-[5.5px]"></div>
+                                                    </div>
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() =>
                                                         setPendingAttachmentDelete({ type: "server", stored })
                                                     }
-                                                    className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
-                                                    title="Remove"
+                                                    className="relative p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer group"
                                                     aria-label={`Remove ${displayNameFromStoredFilename(stored)}`}
                                                 >
                                                     <img src={deleteIcon} alt="" className="h-5 w-5" />
+                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 shadow-sm">
+                                                            <span className="font-Gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Remove</span>
+                                                        </div>
+                                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 -mt-[5.5px]"></div>
+                                                    </div>
                                                 </button>
                                             </div>
                                         </div>
@@ -749,22 +716,32 @@ export default function AddTaskBC() {
                                                 <button
                                                     type="button"
                                                     onClick={() => openAttachmentInNewTab(file)}
-                                                    className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
-                                                    title="View in new tab"
+                                                    className="relative p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer group"
                                                     aria-label={`View ${file.name} in new tab`}
                                                 >
                                                     <img src={viewIcon} alt="" className="h-5 w-5" />
+                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 shadow-sm">
+                                                            <span className="font-Gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">View</span>
+                                                        </div>
+                                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 -mt-[5.5px]"></div>
+                                                    </div>
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() =>
                                                         setPendingAttachmentDelete({ type: "local", index })
                                                     }
-                                                    className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
-                                                    title="Remove"
+                                                    className="relative p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer group"
                                                     aria-label={`Remove ${file.name}`}
                                                 >
                                                     <img src={deleteIcon} alt="" className="h-5 w-5" />
+                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 shadow-sm">
+                                                            <span className="font-Gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Remove</span>
+                                                        </div>
+                                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 -mt-[5.5px]"></div>
+                                                    </div>
                                                 </button>
                                             </div>
                                         </div>

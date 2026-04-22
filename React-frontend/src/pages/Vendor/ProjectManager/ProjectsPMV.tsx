@@ -192,7 +192,7 @@ export default function ProjectsPMV() {
         const cleaned = (rawPath || "").trim();
         if (!cleaned) return "";
         if (/^https?:\/\//i.test(cleaned)) return cleaned;
-        const base = String(api.defaults.baseURL || "").replace(/\/+$/, "");
+        const base = String(api.defaults.baseURL || "").replace(/\/api\/?$/, "").replace(/\/+$/, "");
         if (cleaned.startsWith("/uploads/")) {
             const rest = cleaned.replace(/^\/+/, ""); // uploads/<...>
             if (/^uploads\/[^/]+$/i.test(rest)) {

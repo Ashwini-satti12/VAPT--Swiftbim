@@ -286,7 +286,7 @@ export default function ProjectEV() {
     const cleaned = (rawPath || "").trim();
     if (!cleaned) return "";
     if (/^https?:\/\//i.test(cleaned)) return cleaned;
-    const base = String(api.defaults.baseURL || "").replace(/\/+$/, "");
+    const base = String(api.defaults.baseURL || "").replace(/\/api\/?$/, "").replace(/\/+$/, "");
     if (cleaned.startsWith("/uploads/")) {
       const rest = cleaned.replace(/^\/+/, "");
       if (/^uploads\/[^/]+$/i.test(rest)) {

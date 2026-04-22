@@ -42,7 +42,7 @@ const CURRENCIES = [
 
 
 const nameToId = (name: string, employeesList: Employee[]) => {
-  if (!name || name === "Nothing Selected" || name === "Other")
+  if (!name || name === "Nothing Selected")
     return undefined;
   if (/^\d+$/.test(name)) return Number(name);
   const emp = employeesList.find((e) => e.full_name === name);
@@ -300,9 +300,7 @@ function FormSelect({
     return value === opt;
   };
 
-  const dropdownOptions = options.includes("Other")
-    ? options
-    : [...options, "Other"];
+  const dropdownOptions = options;
 
   return (
     <div className="relative w-full" ref={ref}>
@@ -487,14 +485,10 @@ export default function ProjectsTD() {
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
   const [createModuleName, setCreateModuleName] = useState("");
   const [createClientName, setCreateClientName] = useState("");
-  const [showOtherClient, setShowOtherClient] = useState(false);
-  const [otherClientValue, setOtherClientValue] = useState("");
 
   const [createProjectManager, setCreateProjectManager] = useState<string[]>(
     [],
   );
-  const [showOtherPM, setShowOtherPM] = useState(false);
-  const [otherPMValue, setOtherPMValue] = useState("");
 
   const [createStartDate, setCreateStartDate] = useState("");
   const [createEndDate, setCreateEndDate] = useState("");
@@ -503,14 +497,10 @@ export default function ProjectsTD() {
   const [createDepartment, setCreateDepartment] = useState("");
 
   const [createBIMLead, setCreateBIMLead] = useState<string[]>([]);
-  const [showOtherBIMLead, setShowOtherBIMLead] = useState(false);
-  const [otherBIMLeadValue, setOtherBIMLeadValue] = useState("");
 
   const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState<string[]>(
     [],
   );
-  const [showOtherBIMCoord, setShowOtherBIMCoord] = useState(false);
-  const [otherBIMCoordValue, setOtherBIMCoordValue] = useState("");
   const [createMember, setCreateMember] = useState("");
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [createResources, setCreateResources] = useState("");
@@ -998,7 +988,15 @@ export default function ProjectsTD() {
     }
 
     setLoadingTaskStats(true);
-    setTowerData([]);
+    // Initialize towerData from selectedProjectForView.module_name to avoid empty modules during load or failure
+    const initialTowers = (selectedProjectForView?.module_name ? selectedProjectForView.module_name.split(',').map(m => m.trim()).filter(Boolean) : []).map((name, idx) => ({
+      id: idx + 1,
+      name,
+      progress: selectedProjectForView?.progress ?? 0,
+      completedTasks: selectedProjectForView?.completed_tasks ?? 0,
+      totalTasks: selectedProjectForView?.total_tasks ?? 0
+    }));
+    setTowerData(initialTowers);
 
     api
       .get<{
@@ -1054,7 +1052,8 @@ export default function ProjectsTD() {
           paused: 0,
           completed: projectCompleted,
         });
-        setTowerData([]);
+        // Keep the initialTowers derived above instead of clearing to []
+        // setTowerData([]); 
       })
       .finally(() => {
         if (!cancelled) setLoadingTaskStats(false);
@@ -2039,9 +2038,10 @@ export default function ProjectsTD() {
                                   .filter(Boolean)
                                   .map((fileName, idx) => {
                                     const isOutsource = selectedProjectForView.source === "Outsource";
+                                    const fileBaseUrl = (api.defaults.baseURL || "").replace(/\/api\/?$/, "");
                                     const url = isOutsource
-                                      ? `${api.defaults.baseURL}static/uploads/vendor_docs/${fileName}`
-                                      : `${api.defaults.baseURL}uploads/${fileName}`;
+                                      ? `${fileBaseUrl}/static/uploads/vendor_docs/${fileName}`
+                                      : `${fileBaseUrl}/uploads/${fileName}`;
 
                                     return (
                                       <div key={idx} className="flex items-center gap-3 w-full md:max-w-md mt-1">
@@ -2995,7 +2995,6 @@ export default function ProjectsTD() {
                   if (createModuleName) formData.append("modules", createModuleName);
 
                   const clientId = (() => {
-                    if (showOtherClient && otherClientValue) return otherClientValue;
                     if (!createClientName) return undefined;
                     const byName = clientsList.find((c) => (c.fullName ?? c.full_name) === createClientName);
                     if (byName) return byName.id;
@@ -3004,13 +3003,13 @@ export default function ProjectsTD() {
                   })();
                   if (clientId !== undefined) formData.append("client_id", String(clientId));
 
-                  const pmIds = namesToIds([...createProjectManager, ...(showOtherPM && otherPMValue ? [otherPMValue] : [])], projectManagers);
+                  const pmIds = namesToIds(createProjectManager, projectManagers);
                   if (pmIds) formData.append("project_manager_id", pmIds);
 
-                  const leadIds = namesToIds([...createBIMLead, ...(showOtherBIMLead && otherBIMLeadValue ? [otherBIMLeadValue] : [])], bimLeads);
+                  const leadIds = namesToIds(createBIMLead, bimLeads);
                   if (leadIds) formData.append("lead_id", leadIds);
 
-                  const coordIds = namesToIds([...createBIMCoOrdinator, ...(showOtherBIMCoord && otherBIMCoordValue ? [otherBIMCoordValue] : [])], bimCoordinators);
+                  const coordIds = namesToIds(createBIMCoOrdinator, bimCoordinators);
                   if (coordIds) formData.append("bim_coordinator_id", coordIds);
 
                   const members = selectedMemberIds.join(",") || createMember;
@@ -3048,11 +3047,7 @@ export default function ProjectsTD() {
                         setCurrencyDropdownOpen(false);
                         setCreateModuleName("");
                         setCreateClientName("");
-                        setShowOtherClient(false);
-                        setOtherClientValue("");
                         setCreateProjectManager([]);
-                        setShowOtherPM(false);
-                        setOtherPMValue("");
                         setCreateStartDate("");
                         setCreateEndDate("");
                         setCreateTotalHours("");
@@ -3061,11 +3056,7 @@ export default function ProjectsTD() {
                         setCreateBudgetCeiling("");
                         setCreateBiddingEndDate("");
                         setCreateBIMLead([]);
-                        setShowOtherBIMLead(false);
-                        setOtherBIMLeadValue("");
                         setCreateBIMCoOrdinator([]);
-                        setShowOtherBIMCoord(false);
-                        setOtherBIMCoordValue("");
                         setCreateMember("");
                         setSelectedMemberIds([]);
                         setCreatePriority("");
@@ -3227,18 +3218,8 @@ export default function ProjectsTD() {
                       showTick={false}
                       onChange={(v) => {
                         setCreateClientName(v);
-                        setShowOtherClient(v === "Other");
                       }}
                     />
-                    {showOtherClient && (
-                      <input
-                        type="text"
-                        value={otherClientValue}
-                        onChange={(e) => setOtherClientValue(e.target.value)}
-                        className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-md transition-all focus:outline-none focus:border-[#AEACAC52]"
-                        placeholder="Enter Client Name"
-                      />
-                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">
@@ -3339,18 +3320,8 @@ export default function ProjectsTD() {
                           isMulti={true}
                           onChange={(v) => {
                             setCreateProjectManager(v);
-                            setShowOtherPM(v.includes("Other"));
                           }}
                         />
-                        {showOtherPM && (
-                          <input
-                            type="text"
-                            value={otherPMValue}
-                            onChange={(e) => setOtherPMValue(e.target.value)}
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-md transition-all focus:outline-none focus:border-[#AEACAC52]"
-                            placeholder="Enter Project Manager Name"
-                          />
-                        )}
                       </div>
 
                       <div className="space-y-2">
@@ -3370,20 +3341,8 @@ export default function ProjectsTD() {
                           isMulti={true}
                           onChange={(v) => {
                             setCreateBIMLead(v);
-                            setShowOtherBIMLead(v.includes("Other"));
                           }}
                         />
-                        {showOtherBIMLead && (
-                          <input
-                            type="text"
-                            value={otherBIMLeadValue}
-                            onChange={(e) =>
-                              setOtherBIMLeadValue(e.target.value)
-                            }
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-md transition-all focus:outline-none focus:border-[#AEACAC52]"
-                            placeholder="Enter BIM Lead Name"
-                          />
-                        )}
                       </div>
 
                       <div className="space-y-2">
@@ -3402,20 +3361,8 @@ export default function ProjectsTD() {
                           isMulti={true}
                           onChange={(v) => {
                             setCreateBIMCoOrdinator(v);
-                            setShowOtherBIMCoord(v.includes("Other"));
                           }}
                         />
-                        {showOtherBIMCoord && (
-                          <input
-                            type="text"
-                            value={otherBIMCoordValue}
-                            onChange={(e) =>
-                              setOtherBIMCoordValue(e.target.value)
-                            }
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-md transition-all focus:outline-none focus:border-[#AEACAC52]"
-                            placeholder="Enter BIM Coordinator Name"
-                          />
-                        )}
                       </div>
                     </>
                   )}
@@ -3866,7 +3813,6 @@ export default function ProjectsTD() {
                   if (createModuleName) formData.append("modules", createModuleName);
 
                   const clientId = (() => {
-                    if (showOtherClient && otherClientValue) return otherClientValue;
                     if (!createClientName) return undefined;
                     const byName = clientsList.find((c) => (c.fullName ?? c.full_name) === createClientName);
                     if (byName) return byName.id;
@@ -3875,13 +3821,13 @@ export default function ProjectsTD() {
                   })();
                   if (clientId !== undefined) formData.append("client_id", String(clientId));
 
-                  const pmIds = namesToIds([...createProjectManager, ...(showOtherPM && otherPMValue ? [otherPMValue] : [])], projectManagers);
+                  const pmIds = namesToIds(createProjectManager, projectManagers);
                   if (pmIds) formData.append("project_manager_id", pmIds);
 
-                  const leadIds = namesToIds([...createBIMLead, ...(showOtherBIMLead && otherBIMLeadValue ? [otherBIMLeadValue] : [])], bimLeads);
+                  const leadIds = namesToIds(createBIMLead, bimLeads);
                   if (leadIds) formData.append("lead_id", leadIds);
 
-                  const coordIds = namesToIds([...createBIMCoOrdinator, ...(showOtherBIMCoord && otherBIMCoordValue ? [otherBIMCoordValue] : [])], bimCoordinators);
+                  const coordIds = namesToIds(createBIMCoOrdinator, bimCoordinators);
                   if (coordIds) formData.append("bim_coordinator_id", coordIds);
 
                   if (createMember) formData.append("members", createMember);
@@ -4137,18 +4083,8 @@ export default function ProjectsTD() {
                           isMulti={true}
                           onChange={(v) => {
                             setCreateProjectManager(v);
-                            setShowOtherPM(v.includes("Other"));
                           }}
                         />
-                        {showOtherPM && (
-                          <input
-                            type="text"
-                            value={otherPMValue}
-                            onChange={(e) => setOtherPMValue(e.target.value)}
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-md transition-all focus:outline-none focus:border-[#AEACAC52]"
-                            placeholder="Enter Project Manager Name"
-                          />
-                        )}
                       </div>
                       <div className="space-y-2">
                         <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
@@ -4164,20 +4100,8 @@ export default function ProjectsTD() {
                           isMulti={true}
                           onChange={(v) => {
                             setCreateBIMLead(v);
-                            setShowOtherBIMLead(v.includes("Other"));
                           }}
                         />
-                        {showOtherBIMLead && (
-                          <input
-                            type="text"
-                            value={otherBIMLeadValue}
-                            onChange={(e) =>
-                              setOtherBIMLeadValue(e.target.value)
-                            }
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-md transition-all focus:outline-none focus:border-[#AEACAC52]"
-                            placeholder="Enter BIM Lead Name"
-                          />
-                        )}
                       </div>
                       <div className="space-y-2">
                         <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
@@ -4193,20 +4117,8 @@ export default function ProjectsTD() {
                           isMulti={true}
                           onChange={(v) => {
                             setCreateBIMCoOrdinator(v);
-                            setShowOtherBIMCoord(v.includes("Other"));
                           }}
                         />
-                        {showOtherBIMCoord && (
-                          <input
-                            type="text"
-                            value={otherBIMCoordValue}
-                            onChange={(e) =>
-                              setOtherBIMCoordValue(e.target.value)
-                            }
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-md transition-all focus:outline-none focus:border-[#AEACAC52]"
-                            placeholder="Enter BIM Coordinator Name"
-                          />
-                        )}
                       </div>
                     </>
                   )}

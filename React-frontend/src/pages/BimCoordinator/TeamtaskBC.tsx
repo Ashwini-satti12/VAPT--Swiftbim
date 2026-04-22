@@ -15,6 +15,7 @@ import {
     type Employee,
     type Project
 } from "./MytaskBC";
+import { useAuth } from "../../contexts/AuthContext";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 
@@ -37,6 +38,7 @@ const PERIOD_OPTIONS = [
 ];
 
 export default function TeamtaskBC() {
+    const { user } = useAuth();
     const [searchParams] = useSearchParams();
     const { pathname } = useLocation();
     const statusFilter = searchParams.get("status") || searchParams.get("taskstatus");
@@ -132,7 +134,20 @@ export default function TeamtaskBC() {
         const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
 
         // Visual update immediately
-        setList((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: label } : t)));
+        setList((prev) =>
+          prev.map((t) =>
+            t.id === taskId
+              ? {
+                  ...t,
+                  status: label,
+                  Approval:
+                    newStatus === "completed" && String(t.uploaderid) === String(user?.id)
+                      ? "Approved"
+                      : t.Approval,
+                }
+              : t,
+          ),
+        );
         setLocalTasks((prev) => {
             const idx = prev.findIndex((t) => t.id === taskId);
             if (idx >= 0) {
@@ -157,6 +172,20 @@ export default function TeamtaskBC() {
         }).catch(err => {
             console.error("Failed to update task status:", err);
         });
+    };
+
+    const handleApproveTask = (task: Task) => {
+        const isOutsource = task.source === "Outsource";
+        const endpoint = isOutsource
+            ? `/api/vendors/vendor-tasks/${task.id}/status`
+            : `/api/tasks/${task.id}/status`;
+
+        api.patch(endpoint, { status: "Approved" })
+            .then(() => {
+                toast.success("Task Approved");
+                setList(prev => prev.map(t => t.id === task.id ? { ...t, Approval: "Approved", progress: 100 } : t));
+            })
+            .catch(() => toast.error("Failed to approve task"));
     };
 
     const openEditTask = (task: Task) => {
@@ -215,7 +244,14 @@ export default function TeamtaskBC() {
             .then(([res1, res2]) => {
                 const internal = (res1.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
                 const vendor = (res2.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
-                setList([...internal, ...vendor] as Task[]);
+                const combined = [...internal, ...vendor] as Task[];
+                combined.sort((a, b) => {
+                    const dateA = new Date(a.created_at || a.start_date || 0).getTime();
+                    const dateB = new Date(b.created_at || b.start_date || 0).getTime();
+                    if (dateB !== dateA) return dateB - dateA;
+                    return (b.id || 0) - (a.id || 0);
+                });
+                setList(combined);
             })
             .catch(() => setList([]))
             .finally(() => setLoading(false));
@@ -468,6 +504,7 @@ export default function TeamtaskBC() {
                                 onViewTask={openViewTask}
                                 onEditTask={openEditTask}
                                 onDeleteTask={openDeleteTask}
+                                onApproveTask={handleApproveTask}
                             />
                         ))}
                     </div>
@@ -488,6 +525,7 @@ export default function TeamtaskBC() {
                                 onViewTask={openViewTask}
                                 onEditTask={openEditTask}
                                 onDeleteTask={openDeleteTask}
+                                onApproveTask={handleApproveTask}
                             />
                         ))}
                     </div>

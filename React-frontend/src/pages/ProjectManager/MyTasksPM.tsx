@@ -226,6 +226,10 @@ interface Task {
   created_at?: string;
   projectid?: number;
   source?: "In House" | "Outsource";
+  Actual_start_time?: string;
+  perferstart_time?: string;
+  perferend_time?: string;
+  end_time?: string;
 }
 
 function normalizeStatus(
@@ -258,24 +262,32 @@ function TaskCard({
   onViewTask?: (task: Task) => void;
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (task: Task) => void;
+  onApproveTask?: (task: Task) => void;
   onOpenMemberProfile?: (emp: Employee) => void;
   onOpenInvolvedList?: (involved: Employee[]) => void;
 }) {
+  const { user } = useAuth();
   const progress =
-    status === "todo"
-      ? 0
-      : status === "in_progress"
-        ? 50
-        : task.assigned_to != null &&
-            task.uploaderid != null &&
-            String(task.assigned_to) !== String(task.uploaderid)
-          ? 95
-          : 100;
+    (status === "completed" || (task as any).review_required) &&
+      task.assigned_to != null &&
+      task.uploaderid != null &&
+      String(task.assigned_to) !== String(task.uploaderid)
+      ? task.Approval?.toLowerCase() === "approved"
+        ? 100
+        : 95
+      : typeof task.progress === "number"
+        ? task.progress
+        : status === "todo"
+          ? 0
+          : status === "in_progress"
+            ? 50
+            : 100;
   const isUnderReview =
-    status === "completed" &&
+    (status === "completed" || (task as any).review_required) &&
     task.assigned_to != null &&
     task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid);
+    String(task.assigned_to) !== String(task.uploaderid) &&
+    task.Approval?.toLowerCase() !== "approved";
   void [employees, onOpenMemberProfile, onOpenInvolvedList];
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -394,6 +406,26 @@ function TaskCard({
                   </button>
                 </>
               )}
+              {isUnderReview && String(task.uploaderid) === String(user?.id) && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onApproveTask?.(task);
+                  }}
+                >
+                  <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 transition-colors group-hover:bg-green-600 group-hover:text-white">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-green-600">
+                    Approve
+                  </span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -401,17 +433,21 @@ function TaskCard({
       <div className="flex items-start justify-between gap-2 mb-4">
         <div className="flex flex-col">
           <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
-          <span className="text-[14px] font-medium text-[#8B8B8B]">{startStr}</span>
+          <span className="text-[14px] font-medium text-[#8B8B8B]">
+            {formatDateForDisplay(task.start_date || task.Actual_start_time) || (task.start_date || task.Actual_start_time ? task.start_date || task.Actual_start_time : "—")}
+          </span>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <span className="text-[14px] font-medium text-[#000000]">Due Date</span>
-          <span className="text-[14px] font-medium text-[#8B8B8B]">{endStr}</span>
+          <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+          <span className="text-[14px] font-medium text-[#8B8B8B]">
+            {formatDateForDisplay(task.due_date || task.end_time) || (task.due_date || task.end_time ? task.due_date || task.end_time : "—")}
+          </span>
         </div>
       </div>
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-[12px] text-[#8B8B8B]">Progress</span>
         <span className="text-[12px] text-[#8B8B8B]">
-          {isUnderReview ? "95% (Under Review)" : `${progress}%`}
+          {isUnderReview ? "100% (Under Review)" : `${progress}%`}
         </span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
@@ -560,10 +596,28 @@ export default function MyTasksPM() {
         status: statusMap[newStatus],
         projectId
       });
-      setList(prev => prev.map(t => t.id === taskId ? { ...t, status: statusMap[newStatus] } : t));
+      setList(prev => prev.map(t => t.id === taskId ? {
+        ...t,
+        status: statusMap[newStatus],
+        Approval: (newStatus === "completed" && String(t.uploaderid) === String(user?.id)) ? "Approved" : t.Approval
+      } : t));
     } catch (error) {
       console.error("Error moving task:", error);
     }
+  };
+
+  const handleApproveTask = (task: Task) => {
+    const isOutsource = task.source === "Outsource";
+    const endpoint = isOutsource
+      ? `/api/vendors/vendor-tasks/${task.id}/status`
+      : `/api/tasks/${task.id}/status`;
+
+    api.patch(endpoint, { status: "Approved" })
+      .then(() => {
+        toast.success("Task Approved");
+        setList(prev => prev.map(t => t.id === task.id ? { ...t, Approval: "Approved", progress: 100 } : t));
+      })
+      .catch(() => toast.error("Failed to approve task"));
   };
 
 
@@ -588,7 +642,8 @@ export default function MyTasksPM() {
   };
 
   const openViewTask = (task: Task) => {
-    navigate("/tasks/taskview", { state: { task } });
+    const sourceQuery = task.source === "Outsource" ? "?source=Outsource" : "";
+    navigate(`/tasks/taskview/${task.id}${sourceQuery}`, { state: { task, from: "mytasks" } });
   };
 
   const confirmDeleteTask = async () => {
@@ -657,7 +712,14 @@ export default function MyTasksPM() {
       .then(([res1, res2]) => {
         const t1 = (res1.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
         const t2 = (res2.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
-        setList([...t1, ...t2] as Task[]);
+        const combined = [...t1, ...t2] as Task[];
+        combined.sort((a, b) => {
+          const dateA = new Date(a.created_at || a.start_date || 0).getTime();
+          const dateB = new Date(b.created_at || b.start_date || 0).getTime();
+          if (dateB !== dateA) return dateB - dateA;
+          return (b.id || 0) - (a.id || 0);
+        });
+        setList(combined);
       })
       .catch(() => setList([]))
       .finally(() => setLoading(false));
@@ -990,6 +1052,7 @@ export default function MyTasksPM() {
                 onViewTask={openViewTask}
                 onEditTask={openEditTask}
                 onDeleteTask={openDeleteTask}
+                onApproveTask={handleApproveTask}
                 onOpenMemberProfile={(emp) => { setSelectedMember(emp); setShowMemberProfileModal(true); }}
                 onOpenInvolvedList={(list) => { setInvolvedList(list); setShowInvolvedModal(true); }}
               />
@@ -1020,6 +1083,7 @@ export default function MyTasksPM() {
                 onViewTask={openViewTask}
                 onEditTask={openEditTask}
                 onDeleteTask={openDeleteTask}
+                onApproveTask={handleApproveTask}
                 onOpenMemberProfile={(emp) => { setSelectedMember(emp); setShowMemberProfileModal(true); }}
                 onOpenInvolvedList={(list) => { setInvolvedList(list); setShowInvolvedModal(true); }}
               />

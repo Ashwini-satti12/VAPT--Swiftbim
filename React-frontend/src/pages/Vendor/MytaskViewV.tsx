@@ -270,7 +270,7 @@ export default function MytaskViewV() {
     const nextProgress =
       newStatus === "completed"
         ? isAssignedBySomeoneElse
-          ? 95
+          ? 95  // Under review, waiting for approval
           : 100
         : newStatus === "in_progress"
           ? 50
@@ -714,6 +714,18 @@ export default function MytaskViewV() {
             </div>
           </div>
         </div>
+
+        {/* Review Remark (Optional context for assignee) */}
+        {task.review_remark && (
+          <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col mb-10">
+            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">
+              Review Remark
+            </h4>
+            <div className="rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 font-Gantari min-h-[80px]">
+              {task.review_remark}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

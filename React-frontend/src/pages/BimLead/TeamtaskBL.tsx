@@ -5,6 +5,7 @@ import {
     useLocation,
     useNavigate,
 } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 import toast from "react-hot-toast";
 import api from "../../lib/api";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
@@ -424,13 +425,17 @@ function TaskCard({
     onViewTask?: (task: Task) => void;
     onEditTask?: (task: Task) => void;
     onDeleteTask?: (task: Task) => void;
+    onApproveTask?: (task: Task) => void;
 }) {
+    const { user } = useAuth();
     const progress =
         status === "completed" &&
             task.assigned_to != null &&
             task.uploaderid != null &&
             String(task.assigned_to) !== String(task.uploaderid)
-            ? 95
+            ? task.Approval?.toLowerCase() === "approved"
+              ? 100
+              : 95
             : typeof task.progress === "number"
                 ? task.progress
                 : status === "todo"
@@ -442,7 +447,8 @@ function TaskCard({
         status === "completed" &&
         task.assigned_to != null &&
         task.uploaderid != null &&
-        String(task.assigned_to) !== String(task.uploaderid);
+        String(task.assigned_to) !== String(task.uploaderid) &&
+        task.Approval?.toLowerCase() !== "approved";
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -556,6 +562,26 @@ function TaskCard({
                                         </span>
                                     </button>
                                 </>
+                            )}
+                            {isUnderReview && String(task.uploaderid) === String(user?.id) && (
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                    onClick={() => {
+                                        setMenuOpen(false);
+                                        onApproveTask?.(task);
+                                    }}
+                                >
+                                    <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 transition-colors group-hover:bg-green-600 group-hover:text-white">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                    <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-green-600">
+                                        Approve
+                                    </span>
+                                </button>
                             )}
                         </div>
                     )}
@@ -678,6 +704,7 @@ const PERIOD_OPTIONS = [
 ];
 
 export default function TeamtaskBL() {
+    const { user } = useAuth();
     const [searchParams] = useSearchParams();
     const { pathname } = useLocation();
     const isTeam =
@@ -933,7 +960,17 @@ export default function TeamtaskBL() {
         const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
 
         // Visual update immediately
-        setList((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: label } : t)));
+        setList((prev) =>
+            prev.map((t) =>
+                t.id === taskId
+                    ? {
+                        ...t,
+                        status: label,
+                        Approval: (newStatus === "completed" && String(t.uploaderid) === String(user?.id)) ? "Approved" : t.Approval
+                    }
+                    : t,
+            ),
+        );
         setLocalTasks((prev) => {
             const idx = prev.findIndex((t) => t.id === taskId);
             if (idx >= 0) {
@@ -962,6 +999,20 @@ export default function TeamtaskBL() {
             toast.error(err.response?.data?.message || "Failed to update task status.");
             // Optionally revert local state on error
         });
+    };
+
+    const handleApproveTask = (task: Task) => {
+        const isOutsource = task.source === "Outsource";
+        const endpoint = isOutsource
+            ? `/api/vendors/vendor-tasks/${task.id}/status`
+            : `/api/tasks/${task.id}/status`;
+
+        api.patch(endpoint, { status: "Approved" })
+            .then(() => {
+                toast.success("Task Approved");
+                setList(prev => prev.map(t => t.id === task.id ? { ...t, Approval: "Approved", progress: 100 } : t));
+            })
+            .catch(() => toast.error("Failed to approve task"));
     };
 
     useEffect(() => {
@@ -1014,7 +1065,14 @@ export default function TeamtaskBL() {
                 ]).then(([res1, res2]) => {
                     const internal = (res1.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
                     const vendor = (res2.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
-                    setList([...internal, ...vendor] as Task[]);
+                    const combined = [...internal, ...vendor] as Task[];
+                    combined.sort((a, b) => {
+                        const dateA = new Date(a.created_at || a.start_date || 0).getTime();
+                        const dateB = new Date(b.created_at || b.start_date || 0).getTime();
+                        if (dateB !== dateA) return dateB - dateA;
+                        return (b.id || 0) - (a.id || 0);
+                    });
+                    setList(combined);
                 });
 
                 setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTask.id));
@@ -1137,7 +1195,14 @@ export default function TeamtaskBL() {
             .then(([resTasks, resVendorTasks, resEmployees, resProjects, resVendorProjects]) => {
                 const internalTasks = (resTasks.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
                 const vendorTasks = (resVendorTasks.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
-                setList([...internalTasks, ...vendorTasks] as Task[]);
+                const combined = [...internalTasks, ...vendorTasks] as Task[];
+                combined.sort((a, b) => {
+                    const dateA = new Date(a.created_at || a.start_date || 0).getTime();
+                    const dateB = new Date(b.created_at || b.start_date || 0).getTime();
+                    if (dateB !== dateA) return dateB - dateA;
+                    return (b.id || 0) - (a.id || 0);
+                });
+                setList(combined);
 
                 setEmployees((resEmployees.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
 
@@ -1409,6 +1474,7 @@ export default function TeamtaskBL() {
                                 onViewTask={openViewTask}
                                 onEditTask={openEditTask}
                                 onDeleteTask={openDeleteTask}
+                                onApproveTask={handleApproveTask}
                             />
                         ))}
                     </div>

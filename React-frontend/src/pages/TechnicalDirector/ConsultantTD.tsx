@@ -1347,8 +1347,8 @@ export default function ConsultantTD() {
                                 <td className="px-4 py-2 text-center border-b border-[#AEACAC52] whitespace-nowrap">
                                   <div className="flex items-center justify-center">
                                     <CustomDropdown
-                                      options={['Active', 'Deactivate']}
-                                      value={emp.active === 'active' ? 'Active' : 'Deactivate'}
+                                      options={['Active', 'Inactive']}
+                                      value={emp.active === 'active' ? 'Active' : 'Inactive'}
                                       onChange={(val) => handleStatusToggle(emp.id, val)}
                                       placeholder="Status"
                                       className="w-[140px]"

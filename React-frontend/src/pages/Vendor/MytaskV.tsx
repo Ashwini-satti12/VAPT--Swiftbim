@@ -114,12 +114,12 @@ const getProfileUrl = (path: string | undefined): string => {
 
 /** Formats YYYY-MM-DD or ISO string to DD/MM/YYYY for display. */
 export function formatDateForDisplay(value: string | null | undefined): string {
-    if (!value) return "";
-    const datePart = value.includes("T") ? value.split("T")[0] : value;
-    const parts = datePart.split("-");
-    if (parts.length !== 3) return value;
-    const [y, m, d] = parts;
-    return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
+  if (!value) return "";
+  const datePart = value.includes("T") ? value.split("T")[0] : value;
+  const parts = datePart.split("-");
+  if (parts.length !== 3) return value;
+  const [y, m, d] = parts;
+  return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
 }
 
 /**
@@ -127,36 +127,36 @@ export function formatDateForDisplay(value: string | null | undefined): string {
  * never show a raw numeric id; trim comma-separated API values to the first name only when id is unknown.
  */
 export function resolveVendorTaskAssigneeName(
-    task: Task | Record<string, unknown>,
-    employeeList: Employee[],
+  task: Task | Record<string, unknown>,
+  employeeList: Employee[],
 ): string {
-    const t = task as Record<string, unknown>;
-    const rawId = t.assigned_to;
-    const idNum =
-        typeof rawId === "number"
-            ? rawId
-            : typeof rawId === "string" && /^\d+$/.test(String(rawId).trim())
-                ? Number(String(rawId).trim())
-                : NaN;
-    if (!Number.isNaN(idNum) && employeeList.length > 0) {
-        const emp = employeeList.find((e) => e.id === idNum);
-        if (emp?.full_name?.trim()) return emp.full_name.trim();
+  const t = task as Record<string, unknown>;
+  const rawId = t.assigned_to;
+  const idNum =
+    typeof rawId === "number"
+      ? rawId
+      : typeof rawId === "string" && /^\d+$/.test(String(rawId).trim())
+        ? Number(String(rawId).trim())
+        : NaN;
+  if (!Number.isNaN(idNum) && employeeList.length > 0) {
+    const emp = employeeList.find((e) => e.id === idNum);
+    if (emp?.full_name?.trim()) return emp.full_name.trim();
+  }
+  const nameRaw = String(t.assigned_full_name ?? "").trim();
+  if (nameRaw) {
+    if (nameRaw.includes(",")) {
+      return nameRaw.split(",")[0].trim();
     }
-    const nameRaw = String(t.assigned_full_name ?? "").trim();
-    if (nameRaw) {
-        if (nameRaw.includes(",")) {
-            return nameRaw.split(",")[0].trim();
-        }
-        return nameRaw;
-    }
-    const assignStr = String(t.assign_to ?? t.assignTo ?? "").trim();
-    if (!assignStr) return "";
-    if (!/^\d+$/.test(assignStr)) return assignStr;
-    if (employeeList.length > 0) {
-        const emp = employeeList.find((e) => e.id === Number(assignStr));
-        if (emp?.full_name?.trim()) return emp.full_name.trim();
-    }
-    return "";
+    return nameRaw;
+  }
+  const assignStr = String(t.assign_to ?? t.assignTo ?? "").trim();
+  if (!assignStr) return "";
+  if (!/^\d+$/.test(assignStr)) return assignStr;
+  if (employeeList.length > 0) {
+    const emp = employeeList.find((e) => e.id === Number(assignStr));
+    if (emp?.full_name?.trim()) return emp.full_name.trim();
+  }
+  return "";
 }
 
 export function toInputDate(v: unknown): string {
@@ -529,10 +529,12 @@ function TaskCard({
   const assigneeName = resolveVendorTaskAssigneeName(task, employees);
   const progress =
     status === "completed" &&
-    task.assigned_to != null &&
-    task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid)
-      ? 95
+      task.assigned_to != null &&
+      task.uploaderid != null &&
+      String(task.assigned_to) !== String(task.uploaderid)
+      ? task.Approval?.toLowerCase() === "approved"
+        ? 100
+        : 95
       : typeof task.progress === "number"
         ? task.progress
         : status === "todo"
@@ -878,7 +880,7 @@ export default function MytaskV() {
     const nextProgress =
       newStatus === "completed"
         ? isAssignedBySomeoneElse
-          ? 95
+          ? 95  // Under review, waiting for approval
           : 100
         : newStatus === "in_progress"
           ? 50
@@ -910,8 +912,8 @@ export default function MytaskV() {
   };
 
   const openViewTask = (task: Task) => {
-    navigate(`/v/mytasks/view/${task.id}`, { 
-      state: { task, from: isTeam ? "teamtask" : "mytask" } 
+    navigate(`/v/mytasks/view/${task.id}`, {
+      state: { task, from: isTeam ? "teamtask" : "mytask" }
     });
   };
 
@@ -1121,73 +1123,70 @@ export default function MytaskV() {
           </div>
         </div>
       </div>
-        {/* Status summary cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
-          <Link
-            to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-            className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${
-              statusFilter === "todo"
-                ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300"
-                : "bg-white border-slate-200"
+      {/* Status summary cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+        <Link
+          to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
+          className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo"
+            ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300"
+            : "bg-white border-slate-200"
             }`}
-          >
-            <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
-              To Do
-            </span>
-            <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
-              ({counts.todo})
-            </span>
-            <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-              <img src={Group1} alt="Group1" className="w-8 h-8" />
-            </div>
-          </Link>
+        >
+          <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
+            To Do
+          </span>
+          <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
+            ({counts.todo})
+          </span>
+          <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+            <img src={Group1} alt="Group1" className="w-8 h-8" />
+          </div>
+        </Link>
 
-          <Link
-            to={
-              statusFilter === "in_progress"
-                ? pathname
-                : `${pathname}?status=in_progress`
-            }
-            className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${
-              statusFilter === "in_progress"
-                ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300"
-                : "bg-white border-slate-200"
+        <Link
+          to={
+            statusFilter === "in_progress"
+              ? pathname
+              : `${pathname}?status=in_progress`
+          }
+          className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "in_progress"
+            ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300"
+            : "bg-white border-slate-200"
             }`}
-          >
-            <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
-              In Progress
-            </span>
-            <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
-              ({counts.in_progress})
-            </span>
-            <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-              <img src={Group2} alt="Group2" className="w-8 h-8" />
-            </div>
-          </Link>
+        >
+          <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
+            In Progress
+          </span>
+          <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
+            ({counts.in_progress})
+          </span>
+          <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+            <img src={Group2} alt="Group2" className="w-8 h-8" />
+          </div>
+        </Link>
 
-          <Link
-            to={
-              statusFilter === "completed"
-                ? pathname
-                : `${pathname}?status=completed`
-            }
-            className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${
-              statusFilter === "completed"
-                ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300"
-                : "bg-white border-slate-200"
+        <Link
+          to={
+            statusFilter === "completed"
+              ? pathname
+              : `${pathname}?status=completed`
+          }
+          className={`flex items-center p-4 gap-4 rounded-xl border py-3 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "completed"
+            ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300"
+            : "bg-white border-slate-200"
             }`}
-          >
-            <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
-              Completed
-            </span>
-            <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
-              ({counts.completed})
-            </span>
-            <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-              <img src={Group3} alt="Group3" className="w-8 h-8" />
-            </div>
-          </Link>
-        </div>
+        >
+          <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
+            Completed
+          </span>
+          <span className="text-[20px] font-bold text-[#0D1829] font-Gantari">
+            ({counts.completed})
+          </span>
+          <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+            <img src={Group3} alt="Group3" className="w-8 h-8" />
+          </div>
+        </Link>
+      </div>
 
       {/* Task columns scrollable area */}
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">

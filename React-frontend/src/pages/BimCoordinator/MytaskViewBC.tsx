@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
+import { Link, useLocation, useParams } from "react-router-dom";
+import { FiChevronDown } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import api from "../../lib/api";
-import Upload from "../../assets/ProjectManager/MyTask/Upload.svg";
 import ImageIcon from "../../assets/ProjectManager/MyTask/image.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import downloadIcon from "../../assets/TechnicalDirector/download icon.svg";
 
 interface Task {
   id: number;
@@ -130,8 +131,8 @@ function isStatusOptionDisabled(
 }
 
 export default function MytaskViewBC() {
-  const location = useLocation();
-  const task = (location.state as { task?: Task } | null)?.task;
+  const { id: taskIdParam } = useParams();
+  const [task, setTask] = useState<Task | undefined>((location.state as { task?: Task } | null)?.task);
   const backToUrl = "/bc/mytasks";
 
   const [statusDisplay, setStatusDisplay] = useState<StatusKey>(() =>
@@ -139,23 +140,45 @@ export default function MytaskViewBC() {
   );
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [selectedImagePreview, setSelectedImagePreview] = useState<
-    string | null
-  >(null);
-  const [submittingWork, setSubmittingWork] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [loading, setLoading] = useState(!task);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [reviewRemarkInput, setReviewRemarkInput] = useState("");
+  const [sendingBack, setSendingBack] = useState(false);
+  const [approving, setApproving] = useState(false);
 
-  const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
-    setSelectedImage(file);
-    if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
-    setSelectedImagePreview(URL.createObjectURL(file));
-    e.target.value = "";
-  };
+  // Fetch task if missing (on refresh)
+  useEffect(() => {
+    if (task) {
+      setLoading(false);
+      return;
+    }
+    const taskId = taskIdParam;
+    if (taskId) {
+      setLoading(true);
+      const searchParams = new URLSearchParams(location.search);
+      const isOutsource = searchParams.get("source") === "Outsource";
+      const endpoint = isOutsource 
+        ? `/api/vendors/vendor-tasks/${taskId}` 
+        : `/api/tasks/${taskId}`;
+
+      api.get(endpoint)
+        .then(res => {
+          const fetched = res.data.tasks?.[0] || res.data;
+          if (isOutsource) fetched.source = "Outsource";
+          setTask(fetched);
+          setStatusDisplay(normalizeStatus(fetched.status, fetched.Approval));
+          setReviewRemarkInput(fetched.review_remark || "");
+        })
+        .catch(err => {
+          console.error("Error fetching task:", err);
+          toast.error("Failed to load task details");
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [task, taskIdParam, location.search, location.pathname]);
+
 
   const handleStatusUpdate = async (
     newStatus: "todo" | "in_progress" | "completed",
@@ -186,48 +209,7 @@ export default function MytaskViewBC() {
     }
   };
 
-  const handleImageSubmit = async () => {
-    if (!task || !selectedImage || submittingWork) return;
-    setSubmittingWork(true);
-    const formData = new FormData();
-    formData.append("image", selectedImage);
 
-    try {
-      const res = await api.post(
-        `/api/tasks/${task.id}/output-files`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        },
-      );
-      toast.success("Work submitted successfully");
-
-      // Refetch or update local task state with new file paths
-      const newFiles = res.data.files || [];
-      if (task) {
-        const existing = task.outputfilepath
-          ? task.outputfilepath.split(",").filter(Boolean)
-          : [];
-        const updated = [...existing, ...newFiles].join(",");
-        task.outputfilepath = updated;
-      }
-
-      setSelectedImage(null);
-      if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
-      setSelectedImagePreview(null);
-    } catch (error) {
-      console.error("Error submitting work:", error);
-      toast.error("Failed to submit work");
-    } finally {
-      setSubmittingWork(false);
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
-    };
-  }, [selectedImagePreview]);
 
   useEffect(() => {
     if (!task) {
@@ -261,7 +243,64 @@ export default function MytaskViewBC() {
     if (!task) return;
     const next = normalizeStatus(task.status, task.Approval);
     setStatusDisplay(next);
+    setReviewRemarkInput(task.review_remark || "");
   }, [task]);
+
+  const canReview =
+    (statusDisplay === "completed" || (task as any).review_required) &&
+    task?.assigned_to != null &&
+    task?.uploaderid != null &&
+    String(task.assigned_to) !== String(task.uploaderid) &&
+    task.Approval?.toLowerCase() !== "approved";
+
+  const handleApprove = async () => {
+    if (!task || approving) return;
+    setApproving(true);
+    try {
+      const isOutsource = (task as any).source === "Outsource";
+      const endpoint = isOutsource
+        ? `/api/vendors/vendor-tasks/${task.id}/status`
+        : `/api/tasks/${task.id}/status`;
+
+      await api.patch(endpoint, {
+        status: "Approved",
+        projectId: task.projectid,
+      });
+      setStatusDisplay("approved");
+      toast.success("Task Approved");
+    } catch (err) {
+      console.error("Error approving task:", err);
+      toast.error("Failed to approve task");
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const handleSendBackForCorrection = async () => {
+    if (!task || sendingBack) return;
+    const remark = (reviewRemarkInput || "").trim();
+    if (!remark) {
+      toast.error("Please enter review remark before sending back.");
+      return;
+    }
+    setSendingBack(true);
+    try {
+      await api.patch(`/api/tasks/${task.id}`, {
+        review_remark: remark,
+      });
+      await api.patch(`/api/tasks/${task.id}/status`, {
+        status: "Todo",
+        projectId: task.projectid,
+      });
+      setStatusDisplay("todo");
+      toast.success("Returned to assignee in To Do.");
+    } catch (error) {
+      console.error("Error sending task back:", error);
+      toast.error("Failed to send back task");
+    } finally {
+      setSendingBack(false);
+    }
+  };
 
   useEffect(() => {
     if (!statusDropdownOpen) return;
@@ -329,298 +368,249 @@ export default function MytaskViewBC() {
 
       <div className="flex-1 min-h-0 overflow-y-auto p-6 scroll-smooth">
         <div className="max-w-7xl mx-auto">
-        {/* Status row */}
-        <div className="flex items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <span className="text-md text-black">Status:</span>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${style.bg}`}
-            >
+          {/* Status row */}
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-2">
+              <span className="text-md text-black">Status:</span>
               <span
-                className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`}
-              />
-              {style.label}
-            </span>
-          </div>
-          <div className="relative" ref={statusDropdownRef}>
-            <button
-              type="button"
-              disabled={updatingStatus}
-              onClick={() => setStatusDropdownOpen((prev) => !prev)}
-              className={`rounded-[5px] bg-[#E8E8E8] px-3 py-2 text-[14px] text-[#8B8B8B] flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer border-0 ${updatingStatus ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
-              aria-expanded={statusDropdownOpen}
-              aria-haspopup="listbox"
-            >
-              {updatingStatus ? "Updating..." : "Select Status"}
-              <FiChevronDown className="w-5 h-5 text-[#8B8B8B]" />
-            </button>
-            {statusDropdownOpen && !updatingStatus && (
-              <div
-                className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200"
-                role="listbox"
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${style.bg}`}
               >
-                {STATUS_OPTIONS.filter(
-                  (opt) =>
-                    !(
-                      shouldHideInProgressInDropdown(statusDisplay) &&
-                      opt.value === "in_progress"
-                    ),
-                ).map((opt) => {
-                  const disabled = isStatusOptionDisabled(
-                    statusDisplay,
-                    opt.value,
-                  );
-                  return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    role="option"
-                    aria-disabled={disabled}
-                    disabled={disabled}
-                    aria-selected={statusDisplay === opt.value}
-                    onClick={() => handleStatusUpdate(opt.value)}
-                    className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors ${
-                      disabled
-                        ? "text-slate-300 cursor-not-allowed opacity-60"
-                        : "cursor-pointer text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
-                    } ${
-                      statusDisplay === opt.value && !disabled
-                        ? "bg-[#F2F2F2] text-[#353535] font-medium"
-                        : ""
-                    }`}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`}
-                    />
-                    {opt.label}
-                  </button>
-                  );
-                })}
-              </div>
-            )}
+                <span
+                  className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`}
+                />
+                {style.label}
+              </span>
+            </div>
+            <div className="relative" ref={statusDropdownRef}>
+              <button
+                type="button"
+                disabled={updatingStatus}
+                onClick={() => setStatusDropdownOpen((prev) => !prev)}
+                className={`rounded-[5px] bg-[#E8E8E8] px-3 py-2 text-[14px] text-[#8B8B8B] flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer border-0 ${updatingStatus ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                aria-expanded={statusDropdownOpen}
+                aria-haspopup="listbox"
+              >
+                {updatingStatus ? "Updating..." : "Select Status"}
+                <FiChevronDown className="w-5 h-5 text-[#8B8B8B]" />
+              </button>
+              {statusDropdownOpen && !updatingStatus && (
+                <div
+                  className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200"
+                  role="listbox"
+                >
+                  {STATUS_OPTIONS.filter(
+                    (opt) =>
+                      !(
+                        shouldHideInProgressInDropdown(statusDisplay) &&
+                        opt.value === "in_progress"
+                      ),
+                  ).map((opt) => {
+                    const disabled = isStatusOptionDisabled(
+                      statusDisplay,
+                      opt.value,
+                    );
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="option"
+                        aria-disabled={disabled}
+                        disabled={disabled}
+                        aria-selected={statusDisplay === opt.value}
+                        onClick={() => handleStatusUpdate(opt.value)}
+                        className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors ${disabled
+                            ? "text-slate-300 cursor-not-allowed opacity-60"
+                            : "cursor-pointer text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
+                          } ${statusDisplay === opt.value && !disabled
+                            ? "bg-[#F2F2F2] text-[#353535] font-medium"
+                            : ""
+                          }`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`}
+                        />
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Two columns: Task details (left) + Submit Work (right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border border-slate-200 rounded-xl p-6">
-          <div className="space-y-4 text-[14px]">
-            <div className="flex gap-2">
-              <span className="text-[#020202] font-medium shrink-0 w-32">Project Name</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">{task.project_name || "—"}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">
-                Modules Name
-              </span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {String(task.modules_name || task.module || "—")}
-              </span>
-            </div>
-            <div className="flex gap-2 items-center">
-              <span className="text-[#020202] font-medium shrink-0 w-32">Category</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {String(task.category || task.type || "—")}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] font-medium shrink-0 w-32">Assigned By</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {task.uploader_full_name ?? "—"}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] font-medium shrink-0 w-32">Assigned To</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {task.assigned_full_name ?? task.assign_to ?? "—"}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] font-medium shrink-0 w-32">Start Date</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {task.start_date || task.Actual_start_time
-                  ? formatDateDDMMYYYY(
+          <div className="border border-slate-200 rounded-xl p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 gap-x-6 text-[14px]">
+              <div className="flex gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">Project Name</span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">{task.project_name || "—"}</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">
+                  Modules Name
+                </span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">
+                  {String(task.modules_name || task.module || "—")}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">Assigned By</span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">
+                  {task.uploader_full_name ?? "—"}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">Assigned To</span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">
+                  {task.assigned_full_name ?? task.assign_to ?? "—"}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">Start Date</span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">
+                  {task.start_date || task.Actual_start_time
+                    ? formatDateDDMMYYYY(
                       task.start_date || task.Actual_start_time,
                     )
-                  : "-NIL-"}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] font-medium shrink-0 w-32">Due Date</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {task.due_date ? formatDateDDMMYYYY(task.due_date) : "-NIL-"}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">Start Time</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {task.perferstart_time || task.start_time
-                  ? formatTimeAMPM(task.perferstart_time || task.start_time)
-                  : "-NIL-"}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">End Time</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {task.perferend_time || task.due_time || task.end_time
-                  ? formatTimeAMPM(
+                    : "-NIL-"}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">End Date</span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">
+                  {task.due_date ? formatDateDDMMYYYY(task.due_date) : "-NIL-"}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">Start Time</span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">
+                  {task.perferstart_time || task.start_time
+                    ? formatTimeAMPM(task.perferstart_time || task.start_time)
+                    : "-NIL-"}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">End Time</span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">
+                  {task.perferend_time || task.due_time || task.end_time
+                    ? formatTimeAMPM(
                       task.perferend_time || task.due_time || task.end_time,
                     )
-                  : "-NIL-"}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">Attachments</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161] break-all">
-                {task.outputfilepath
-                  ? task.outputfilepath
+                    : "-NIL-"}
+                </span>
+              </div>
+              <div className="flex gap-2 lg:col-span-2">
+                <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">Attachments</span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <div className="flex flex-col gap-2 flex-1 min-w-0">
+                  {task.outputfilepath ? (
+                    task.outputfilepath
                       .split(",")
                       .map((f) => f.trim())
                       .filter(Boolean)
-                      .map((f) => {
+                      .map((f, idx) => {
+                        const url = getTaskImageUrl(f);
                         const base = f.split("/").pop() || f;
-                        const idx = base.indexOf("_");
-                        return idx > 8 ? base.slice(idx + 1) : base;
+                        const underscoreIdx = base.indexOf("_");
+                        const displayName = underscoreIdx > 8 ? base.slice(underscoreIdx + 1) : base;
+                        return (
+                          <div key={idx} className="flex items-center gap-3">
+                            <span className="text-[14px] font-medium text-[#616161] truncate font-Gantari">
+                              {displayName}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              {/* View Tooltip */}
+                              <div className="relative group/tooltip inline-flex shrink-0">
+                                <a
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 hover:bg-slate-100 rounded transition-colors"
+                                >
+                                  <img src={viewIcon} alt="View" className="w-4 h-4" />
+                                </a>
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
+                                    <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">View</span>
+                                  </div>
+                                  <div className="w-2 h-2 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[4.5px]"></div>
+                                </div>
+                              </div>
+                              {/* Download Tooltip */}
+                              <div className="relative group/tooltip inline-flex shrink-0">
+                                <a
+                                  href={url}
+                                  download
+                                  className="p-1 hover:bg-slate-100 rounded transition-colors"
+                                >
+                                  <img src={downloadIcon} alt="Download" className="w-4 h-4" />
+                                </a>
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
+                                    <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">Download</span>
+                                  </div>
+                                  <div className="w-2 h-2 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[4.5px]"></div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
                       })
-                      .join(", ")
-                  : "-NIL-"}
-              </span>
+                  ) : (
+                    <span className="text-[#616161]">-NIL-</span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="rounded-sm bg-[#F2F7FF] p-4 h-fit">
-            <h4 className="text-[#020202] text-[18px]  mb-1">Submit Work</h4>
-            <p className="text-[14px] text-[#8B8B8B] mb-4">
-              Choose your finished work or error screenshots to update the team
-              on your progress.
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              aria-label="Select image"
-              onChange={handleSelectImage}
+
+          {/* Task Description */}
+          <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6">
+            <h4 className=" text-black text-md mb-2">Task Description</h4>
+            <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+              {task.description || "Event (Consultant Partnership)..."}
+            </div>
+          </div>
+          {/* Review Remark */}
+          <div className="mt-6 border border-slate-200 rounded-xl p-6">
+            <h4 className="text-black text-md mb-2 font-medium font-Gantari">Review Remark</h4>
+            <textarea
+              value={reviewRemarkInput}
+              onChange={(e) => setReviewRemarkInput(e.target.value)}
+              readOnly={!canReview}
+              placeholder={canReview ? "Enter corrections / changes for assignee..." : "No review remark"}
+              rows={4}
+              className={`w-full rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 border border-transparent outline-none transition-all resize-none font-Gantari ${canReview ? "focus:border-slate-300" : ""}`}
             />
-            <div className="rounded-sm bg-[#FFFFFF] flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] relative transition-all duration-200">
-              {selectedImagePreview ? (
-                <>
-                  <button
-                    onClick={() => {
-                      setSelectedImage(null);
-                      setSelectedImagePreview(null);
-                    }}
-                    className="absolute top-2 right-2 p-1 bg-white/80 rounded-full shadow-sm hover:bg-white transition-colors z-10 cursor-pointer group"
-                  >
-                    <FiX className="w-4 h-4 text-slate-600" />
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
-                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                          Close
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-                  <img
-                    src={selectedImagePreview}
-                    alt="Selected"
-                    className="max-h-48 max-w-full object-contain rounded"
-                  />
-                </>
-              ) : (
-                <>
-                  <img src={ImageIcon} alt="Image" className="w-7 h-7" />
-                  <span className="text-xs mt-2">No Image Selected</span>
-                </>
-              )}
-            </div>
-            <div className="flex gap-4 mt-6 justify-center">
-              <button
-                type="button"
-                disabled={submittingWork}
-                onClick={() => fileInputRef.current?.click()}
-                className={`inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-2 text-[14px] text-black hover:bg-[#D5E6FF] whitespace-nowrap transition-all ${submittingWork ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
-              >
-                <img src={Upload} alt="Upload" className="w-3 h-3 mr-1" />
-                <span className="mr-2">Select Image</span>
-              </button>
-              <button
-                type="button"
-                disabled={!selectedImage || submittingWork}
-                onClick={handleImageSubmit}
-                className={`inline-flex items-center gap-1 rounded-md bg-[#E1F6EB] px-4 py-2 text-[14px] text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap transition-all ${!selectedImage || submittingWork ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
-              >
-                <FiCheck className="w-4 h-4 text-[#008F22]" />
-                {submittingWork ? "Submitting..." : "Submit Image"}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Uploaded Work Display */}
-        {task.outputfilepath &&
-          task.outputfilepath.split(",").filter(Boolean).length > 0 && (
-            <div className="mt-6 border border-slate-200 rounded-xl p-6">
-              <h4 className="text-black text-md mb-4 font-semibold">
-                Uploaded Work
-              </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {task.outputfilepath
-                  .split(",")
-                  .filter(Boolean)
-                  .map((filename, idx) => (
-                    <div
-                      key={idx}
-                      className="group relative aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-50"
-                    >
-                      <a
-                        href={getTaskImageUrl(filename)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block w-full h-full"
-                      >
-                        <img
-                          src={getTaskImageUrl(filename)}
-                          alt={`Uploaded work ${idx + 1}`}
-                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = ImageIcon;
-                            (e.target as HTMLImageElement).className =
-                              "w-10 h-10 m-auto mt-4 opacity-20";
-                          }}
-                        />
-                      </a>
-                    </div>
-                  ))}
+            {canReview && (
+              <div className="mt-3 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleSendBackForCorrection}
+                  disabled={sendingBack || approving}
+                  className="rounded-md bg-[#DBE9FE] px-4 py-2 text-[14px] font-semibold text-[#101827] disabled:opacity-50 cursor-pointer transition-colors"
+                >
+                  {sendingBack ? "Sending..." : "Send Back To Assignee"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApprove}
+                  disabled={approving || sendingBack}
+                  className="rounded-md bg-green-100 px-6 py-2 text-[14px] font-semibold text-green-700 hover:bg-green-600 hover:text-white transition-colors disabled:opacity-50 cursor-pointer border border-green-200"
+                >
+                  {approving ? "Approving..." : "Approve Task"}
+                </button>
               </div>
-            </div>
-          )}
-
-        {/* Task Description */}
-        <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6">
-          <h4 className=" text-black text-md mb-2">Task Description</h4>
-          <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-            {task.description || "Event (Consultant Partnership)..."}
+            )}
           </div>
-        </div>
-        {task.review_remark && (
-            <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6">
-              <h4 className="text-black text-md mb-2">Review Remark</h4>
-              <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-                {task.review_remark}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

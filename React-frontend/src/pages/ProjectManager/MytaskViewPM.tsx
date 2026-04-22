@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import api from "../../lib/api";
 import Upload from '../../assets/ProjectManager/MyTask/Upload.svg';
 import ImageIcon from '../../assets/ProjectManager/MyTask/image.svg';
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import downloadIcon from "../../assets/TechnicalDirector/download icon.svg";
 
 interface Task {
   id: number;
@@ -148,6 +150,9 @@ export default function MytaskViewPM() {
   const [submittingWork, setSubmittingWork] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [loading, setLoading] = useState(!task);
+  const [reviewRemarkInput, setReviewRemarkInput] = useState("");
+  const [sendingBack, setSendingBack] = useState(false);
+  const [approving, setApproving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -226,34 +231,102 @@ export default function MytaskViewPM() {
     };
   }, [selectedImagePreview]);
 
+  const { id: taskIdParam } = useParams();
   useEffect(() => {
-    if (!task) {
-      // For PM, the route is usually /tasks/view but let's check the path
-      const taskId = location.pathname.split("/").pop();
-      if (taskId && !isNaN(Number(taskId))) {
-        setLoading(true);
-        api.get(`/api/tasks/${taskId}`)
-          .then(res => {
-            if (res.data.task) {
-              const fetched = res.data.task || res.data;
-              setStatusDisplay(normalizeStatus(fetched.status, fetched.Approval));
-            }
-          })
-          .catch(err => {
-            console.error("Error fetching task:", err);
-          })
-          .finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
+    if (task) {
+      setLoading(false);
+      return;
     }
-  }, [task, location.pathname]);
+    const taskId = taskIdParam;
+    if (taskId) {
+      setLoading(true);
+      const searchParams = new URLSearchParams(location.search);
+      const isOutsource = searchParams.get("source") === "Outsource";
+      const endpoint = isOutsource 
+        ? `/api/vendors/vendor-tasks/${taskId}` 
+        : `/api/tasks/${taskId}`;
+
+      api.get(endpoint)
+        .then(res => {
+          const fetched = res.data.tasks?.[0] || res.data;
+          if (isOutsource) fetched.source = "Outsource";
+          setTask(fetched);
+          setStatusDisplay(normalizeStatus(fetched.status, fetched.Approval));
+          setReviewRemarkInput(fetched.review_remark || "");
+        })
+        .catch(err => {
+          console.error("Error fetching task:", err);
+          toast.error("Failed to load task details");
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [task, taskIdParam, location.search, location.pathname]);
 
   useEffect(() => {
     if (!task) return;
     const next = normalizeStatus(task.status, task.Approval);
     setStatusDisplay(next);
+    setReviewRemarkInput((task as any).review_remark || "");
   }, [task]);
+
+  const canReview =
+    (statusDisplay === "completed" || (task as any).review_required) &&
+    task?.assigned_to != null &&
+    task?.uploaderid != null &&
+    String(task.assigned_to) !== String(task.uploaderid) &&
+    task.Approval?.toLowerCase() !== "approved";
+
+  const handleApprove = async () => {
+    if (!task || approving) return;
+    setApproving(true);
+    try {
+      const isOutsource = (task as any).source === "Outsource";
+      const endpoint = isOutsource
+        ? `/api/vendors/vendor-tasks/${task.id}/status`
+        : `/api/tasks/${task.id}/status`;
+
+      await api.patch(endpoint, {
+        status: "Approved",
+        projectId: task.projectid,
+      });
+      // In PM view, task is often a direct object from state, we should update statusDisplay
+      setStatusDisplay("approved");
+      toast.success("Task Approved");
+    } catch (err) {
+      console.error("Error approving task:", err);
+      toast.error("Failed to approve task");
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const handleSendBackForCorrection = async () => {
+    if (!task || sendingBack) return;
+    const remark = (reviewRemarkInput || "").trim();
+    if (!remark) {
+      toast.error("Please enter review remark before sending back.");
+      return;
+    }
+    setSendingBack(true);
+    try {
+      await api.patch(`/api/tasks/${task.id}`, {
+        review_remark: remark,
+      });
+      await api.patch(`/api/tasks/${task.id}/status`, {
+        status: "Todo",
+        projectId: task.projectid,
+      });
+      setStatusDisplay("todo");
+      toast.success("Returned to assignee in To Do.");
+    } catch (error) {
+      console.error("Error sending task back:", error);
+      toast.error("Failed to send back task");
+    } finally {
+      setSendingBack(false);
+    }
+  };
 
   useEffect(() => {
     if (!statusDropdownOpen) return;
@@ -467,7 +540,7 @@ export default function MytaskViewPM() {
               </span>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-[#020202] font-medium shrink-0 w-32 lg:whitespace-nowrap">Preferred Time</span>
+              <span className="text-[#020202] font-medium shrink-0 w-32 lg:whitespace-nowrap">Start Time</span>
               <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.perferstart_time || task.start_time
@@ -489,20 +562,64 @@ export default function MytaskViewPM() {
             <div className="flex items-start gap-2">
               <span className="text-[#020202] font-medium shrink-0 w-32">Attachments</span>
               <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161] break-all">
-                {task.outputfilepath
-                  ? task.outputfilepath
-                      .split(",")
-                      .map((f) => f.trim())
-                      .filter(Boolean)
-                      .map((f) => {
-                        const base = f.split("/").pop() || f;
-                        const idx = base.indexOf("_");
-                        return idx > 8 ? base.slice(idx + 1) : base;
-                      })
-                      .join(", ")
-                  : "-NIL-"}
-              </span>
+              <div className="flex flex-col gap-2 flex-1 min-w-0">
+                {task.outputfilepath ? (
+                  task.outputfilepath
+                    .split(",")
+                    .map((f) => f.trim())
+                    .filter(Boolean)
+                    .map((f, idx) => {
+                      const url = getTaskImageUrl(f);
+                      const base = f.split("/").pop() || f;
+                      const underscoreIdx = base.indexOf("_");
+                      const displayName = underscoreIdx > 8 ? base.slice(underscoreIdx + 1) : base;
+                      return (
+                        <div key={idx} className="flex items-center gap-3">
+                          <span className="text-[14px] font-medium text-[#616161] truncate font-Gantari">
+                            {displayName}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {/* View Tooltip */}
+                            <div className="relative group/tooltip inline-flex shrink-0">
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1 hover:bg-slate-100 rounded transition-colors"
+                              >
+                                <img src={viewIcon} alt="View" className="w-4 h-4" />
+                              </a>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
+                                  <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">View</span>
+                                </div>
+                                <div className="w-2 h-2 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[4.5px]"></div>
+                              </div>
+                            </div>
+                            {/* Download Tooltip */}
+                            <div className="relative group/tooltip inline-flex shrink-0">
+                              <a
+                                href={url}
+                                download
+                                className="p-1 hover:bg-slate-100 rounded transition-colors"
+                              >
+                                <img src={downloadIcon} alt="Download" className="w-4 h-4" />
+                              </a>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
+                                  <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">Download</span>
+                                </div>
+                                <div className="w-2 h-2 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[4.5px]"></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                ) : (
+                  <span className="text-[#616161]">-NIL-</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -513,6 +630,38 @@ export default function MytaskViewPM() {
             <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
             {task.description || "Event (Consultant Partnership)..."}
             </div>
+          </div>
+
+          {/* Review Remark */}
+          <div className="mt-6 border border-slate-200 rounded-xl p-6">
+            <h4 className="text-black text-md mb-2">Review Remark</h4>
+            <textarea
+              value={reviewRemarkInput}
+              onChange={(e) => setReviewRemarkInput(e.target.value)}
+              placeholder="Enter corrections / changes for assignee..."
+              rows={4}
+              className="w-full rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 border border-transparent outline-none focus:border-slate-300 resize-none font-Gantari"
+            />
+            {canReview && (
+              <div className="mt-3 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleSendBackForCorrection}
+                  disabled={sendingBack || approving}
+                  className="rounded-md bg-[#DBE9FE] px-4 py-2 text-[14px] font-semibold text-[#101827] disabled:opacity-50 cursor-pointer transition-colors"
+                >
+                  {sendingBack ? "Sending..." : "Send Back To Assignee"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApprove}
+                  disabled={approving || sendingBack}
+                  className="rounded-md bg-green-100 px-6 py-2 text-[14px] font-semibold text-green-700 hover:bg-green-600 hover:text-white transition-colors disabled:opacity-50 cursor-pointer border border-green-200"
+                >
+                  {approving ? "Approving..." : "Approve Task"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
