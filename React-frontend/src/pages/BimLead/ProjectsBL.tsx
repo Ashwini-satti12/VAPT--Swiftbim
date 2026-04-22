@@ -55,25 +55,33 @@ const nameToId = (name: string, employeesList: Employee[]) => {
   return emp ? emp.id : undefined;
 };
 
-const nameOrCsvToIdCsv = (value: string, employeesList: Employee[]): string => {
-  if (!value) return "";
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .map((item) => {
-      if (/^\d+$/.test(item)) return item;
-      const id = nameToId(item, employeesList);
-      return id != null ? String(id) : "";
-    })
-    .filter(Boolean)
+const namesToIds = (names: string[], employeesList: Employee[]) => {
+  if (!Array.isArray(names)) return undefined;
+  return names
+    .map((name) => nameToId(name, employeesList))
+    .filter((id) => id !== undefined)
     .join(",");
 };
 
+const idToName = (id: string | number | undefined, employeesList: Employee[]) => {
+  if (!id) return '';
+  const emp = employeesList.find((e) => String(e.id) === String(id));
+  return emp ? emp.full_name : '';
+};
+
+const firstCsvValue = (value: string | undefined): string => {
+  if (!value) return '';
+  return value
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)[0] ?? '';
+};
+
 const decodeHtmlEntities = (value: string): string => {
-  const textarea = document.createElement("textarea");
-  textarea.innerHTML = value;
-  return textarea.value;
+  if (!value) return '';
+  const txt = document.createElement('textarea');
+  txt.innerHTML = value;
+  return txt.value;
 };
 
 const normalizeProjectDescriptionHtml = (raw?: string): string => {
@@ -123,29 +131,40 @@ const calculateTotalHours = (
   return (perDayNum * durationDays).toFixed(2);
 };
 
-// const idToName = (
-//   id: string | number | undefined,
-//   employeesList: Employee[],
-// ) => {
-//   if (!id) return "";
-//   const emp = employeesList.find((e) => String(e.id) === String(id));
-//   return emp ? emp.full_name : "";
-// };
+const nameOrCsvToIdCsv = (value: string, employeesList: Employee[]): string => {
+  if (!value) return "";
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      if (/^\d+$/.test(item)) return item;
+      const id = nameToId(item, employeesList);
+      return id != null ? String(id) : "";
+    })
+    .filter(Boolean)
+    .join(",");
+};
 
 function FormSelect({
   placeholder,
   options,
   value,
   onChange,
+  isMulti = false,
+  showTick = true,
 }: {
-  label: string;
+  label?: string;
   placeholder: string;
   options: string[];
-  value: string;
-  onChange: (v: string) => void;
+  value: string | string[];
+  onChange: (v: any) => void;
+  isMulti?: boolean;
+  showTick?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -155,6 +174,36 @@ function FormSelect({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
+
+  const handleSelect = (opt: string) => {
+    if (isMulti) {
+      const currentValues = Array.isArray(value) ? value : [];
+      if (currentValues.includes(opt)) {
+        onChange(currentValues.filter((v) => v !== opt));
+      } else {
+        onChange([...currentValues, opt]);
+      }
+    } else {
+      onChange(opt);
+      setOpen(false);
+    }
+  };
+
+  const getDisplayValue = () => {
+    if (isMulti) {
+      const vals = Array.isArray(value) ? value : [];
+      return vals.length > 0 ? vals.join(", ") : placeholder;
+    }
+    return (value as string) || placeholder;
+  };
+
+  const isSelected = (opt: string) => {
+    if (isMulti) {
+      return Array.isArray(value) && value.includes(opt);
+    }
+    return value === opt;
+  };
+
   return (
     <div className="relative w-full" ref={ref}>
       <button
@@ -164,13 +213,15 @@ function FormSelect({
       >
         <span
           className={
-            value ? "text-[#353535] font-medium" : "text-[#8B8B8B] font-medium"
+            (isMulti ? (Array.isArray(value) && value.length > 0) : value)
+              ? "text-[#353535] font-medium truncate pr-2"
+              : "text-[#8B8B8B] font-medium"
           }
         >
-          {value || placeholder}
+          {getDisplayValue()}
         </span>
         <svg
-          className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${open ? "rotate-180" : ""}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -184,19 +235,31 @@ function FormSelect({
         </svg>
       </button>
       {open && (
-        <div className="absolute z-[100] top-full left-0 right-0 mt-1 bg-white border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden max-h-48 overflow-y-auto">
+        <div className="absolute z-[100] top-full left-0 right-0 mt-1 bg-white border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
           {options.map((opt) => (
             <button
               key={opt}
               type="button"
-              onClick={() => {
-                onChange(opt);
-                setOpen(false);
-              }}
-              className={`w-full text-left px-4 py-2.5 text-[14px] font-Gantari transition-colors cursor-pointer  
-                ${value === opt ? "bg-[#FFF2F2] text-[#DD4342]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F4F4F4]"}`}
+              onClick={() => handleSelect(opt)}
+              className={`w-full text-left px-4 py-2.5 text-[14px] font-Gantari transition-colors cursor-pointer flex items-center justify-between
+                ${isSelected(opt) ? "bg-[#FFF2F2] text-[#DD4342]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F4F4F4]"}`}
             >
-              {opt}
+              <span className="truncate pr-2">{opt}</span>
+              {showTick && isSelected(opt) && (
+                <svg
+                  className="w-4 h-4 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              )}
             </button>
           ))}
         </div>
@@ -274,19 +337,19 @@ export default function ProjectsBL() {
   const [createTaskInput, setCreateTaskInput] = useState("");
   const [editPriority, setEditPriority] = useState("");
   const [editDepartment, setEditDepartment] = useState("");
-  const [editProjectManager, setEditProjectManager] = useState("");
-  const [editBIMLead, setEditBIMLead] = useState("");
-  const [editBIMCoOrd, setEditBIMCoOrd] = useState("");
+  const [editProjectManager, setEditProjectManager] = useState<string[]>([]);
+  const [editBIMLead, setEditBIMLead] = useState<string[]>([]);
+  const [editBIMCoOrd, setEditBIMCoOrd] = useState<string[]>([]);
   const [_editMember, _setEditMember] = useState("");
   const [createClientName, setCreateClientName] = useState("");
-  const [createProjectManager, setCreateProjectManager] = useState("");
+  const [createProjectManager, setCreateProjectManager] = useState<string[]>([]);
   const [createStartDate, setCreateStartDate] = useState("");
   const [createEndDate, setCreateEndDate] = useState("");
   const [createTotalHours, setCreateTotalHours] = useState("");
   const [createPerDay, setCreatePerDay] = useState("");
   const [createDepartment, setCreateDepartment] = useState("");
-  const [createBIMLead, setCreateBIMLead] = useState("");
-  const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState("");
+  const [createBIMLead, setCreateBIMLead] = useState<string[]>([]);
+  const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState<string[]>([]);
   const [createResources, setCreateResources] = useState("");
   const [createRequiredResources, setCreateRequiredResources] = useState("");
   const [createPriority, setCreatePriority] = useState("");
@@ -468,16 +531,16 @@ export default function ProjectsBL() {
     setCreateTaskInput("");
     setEditPriority("");
     setEditDepartment("");
-    setEditProjectManager("");
+    setEditProjectManager([]);
     setCreateClientName("");
-    setCreateProjectManager("");
+    setCreateProjectManager([]);
     setCreateStartDate("");
     setCreateEndDate("");
     setCreateTotalHours("");
     setCreatePerDay("");
     setCreateDepartment("");
-    setCreateBIMLead("");
-    setCreateBIMCoOrdinator("");
+    setCreateBIMLead([]);
+    setCreateBIMCoOrdinator([]);
     setSelectedMemberIds([]);
     setCreateResources("");
     setCreateRequiredResources("");
@@ -735,8 +798,16 @@ export default function ProjectsBL() {
       foundClient ? foundClient.full_name : (p.client_name ?? ""),
     );
 
-    setCreateProjectManager(p.project_manager ?? "");
-    setEditProjectManager(p.project_manager ?? "");
+    const pmList = (p.project_manager_name || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (pmList.length === 0 && p.project_manager_id) {
+      const idList = p.project_manager_id.split(',').map(s => s.trim()).filter(Boolean);
+      idList.forEach(id => {
+        const name = idToName(id, allEmployees);
+        if (name) pmList.push(name);
+      });
+    }
+    setCreateProjectManager(pmList);
+    setEditProjectManager(pmList);
 
     setCreateStartDate(p.start_date ?? "");
     setCreateEndDate(p.end_date ?? "");
@@ -747,10 +818,27 @@ export default function ProjectsBL() {
     setCreateDepartment(p.department ?? "");
     setEditDepartment(p.department ?? "");
 
-    setCreateBIMLead(p.bim_lead ?? "");
-    setEditBIMLead(p.bim_lead ?? "");
-    setCreateBIMCoOrdinator(p.bim_co_ordinator ?? "");
-    setEditBIMCoOrd(p.bim_co_ordinator ?? "");
+    const blList = (p.lead_name || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (blList.length === 0 && p.lead_id) {
+      const idList = p.lead_id.split(',').map(s => s.trim()).filter(Boolean);
+      idList.forEach(id => {
+        const name = idToName(id, allEmployees);
+        if (name) blList.push(name);
+      });
+    }
+    setCreateBIMLead(blList);
+    setEditBIMLead(blList);
+
+    const bcList = (p.bim_coordinator_name || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (bcList.length === 0 && p.bim_coordinator_id) {
+      const idList = p.bim_coordinator_id.split(',').map(s => s.trim()).filter(Boolean);
+      idList.forEach(id => {
+        const name = idToName(id, allEmployees);
+        if (name) bcList.push(name);
+      });
+    }
+    setCreateBIMCoOrdinator(bcList);
+    setEditBIMCoOrd(bcList);
 
     setCreateResources(p.resources ?? "");
     setCreateRequiredResources(p.required_resources ?? "");
@@ -2484,14 +2572,14 @@ export default function ProjectsBL() {
                   moduleNameTags.length === 0 ||
                   createTaskTags.length === 0 ||
                   !createClientName.trim() ||
-                  !createProjectManager.trim() ||
+                  createProjectManager.length === 0 ||
                   !createStartDate.trim() ||
                   !createEndDate.trim() ||
                   !createPerDay.trim() ||
                   !createTotalHours.trim() ||
                   !createDepartment.trim() ||
-                  !createBIMLead.trim() ||
-                  !createBIMCoOrdinator.trim() ||
+                  createBIMLead.length === 0 ||
+                  createBIMCoOrdinator.length === 0 ||
                   selectedMemberIds.length === 0 ||
                   !createResources.trim() ||
                   !createRequiredResources.trim() ||
@@ -2519,19 +2607,13 @@ export default function ProjectsBL() {
                 )?.id;
                 if (clientId) formData.append("client_id", String(clientId));
 
-                const pmIds = nameOrCsvToIdCsv(
-                  createProjectManager,
-                  allEmployees,
-                );
+                const pmIds = namesToIds(createProjectManager, allEmployees);
                 if (pmIds) formData.append("project_manager_id", pmIds);
 
-                const leadIds = nameOrCsvToIdCsv(createBIMLead, allEmployees);
+                const leadIds = namesToIds(createBIMLead, allEmployees);
                 if (leadIds) formData.append("lead_id", leadIds);
 
-                const bcIds = nameOrCsvToIdCsv(
-                  createBIMCoOrdinator,
-                  allEmployees,
-                );
+                const bcIds = namesToIds(createBIMCoOrdinator, allEmployees);
                 if (bcIds) formData.append("bim_coordinator_id", bcIds);
 
                 if (selectedMemberIds.length > 0)
@@ -2843,11 +2925,11 @@ export default function ProjectsBL() {
                     Project Manager <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
-                    label="Project Manager"
-                    placeholder="Select project manager"
+                    placeholder="Select Project Manager"
                     options={projectManagers}
                     value={createProjectManager}
-                    onChange={setCreateProjectManager}
+                    onChange={(val) => setCreateProjectManager(val)}
+                    isMulti={true}
                   />
                 </div>
 
@@ -2928,11 +3010,11 @@ export default function ProjectsBL() {
                     Select BIM Lead <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
-                    label="BIM Lead"
                     placeholder="Select BIM Lead"
                     options={bimLeads}
                     value={createBIMLead}
-                    onChange={setCreateBIMLead}
+                    onChange={(val) => setCreateBIMLead(val)}
+                    isMulti={true}
                   />
                 </div>
                 {/* ── BIM Co-ordinator dropdown ── */}
@@ -2942,11 +3024,11 @@ export default function ProjectsBL() {
                     <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
-                    label="BIM Co-Ordinator"
-                    placeholder="Select BIM Co-Ordinator"
+                    placeholder="Select BIM Coordinator"
                     options={bimCoordinators}
                     value={createBIMCoOrdinator}
-                    onChange={setCreateBIMCoOrdinator}
+                    onChange={(val) => setCreateBIMCoOrdinator(val)}
+                    isMulti={true}
                   />
                 </div>
                 {/* ── Members multi-select ── */}
@@ -3313,14 +3395,14 @@ export default function ProjectsBL() {
                   editModuleTags.length === 0 ||
                   editTaskTags.length === 0 ||
                   !createClientName.trim() ||
-                  !createProjectManager.trim() ||
+                  createProjectManager.length === 0 ||
                   !createStartDate.trim() ||
                   !createEndDate.trim() ||
                   !createPerDay.trim() ||
                   !createTotalHours.trim() ||
                   !createDepartment.trim() ||
-                  !createBIMLead.trim() ||
-                  !createBIMCoOrdinator.trim() ||
+                  createBIMLead.length === 0 ||
+                  createBIMCoOrdinator.length === 0 ||
                   selectedMemberIds.length === 0 ||
                   !createResources.trim() ||
                   !createRequiredResources.trim() ||
@@ -3345,19 +3427,13 @@ export default function ProjectsBL() {
                 )?.id;
                 if (clientId) formData.append("client_id", String(clientId));
 
-                const pmIds = nameOrCsvToIdCsv(
-                  createProjectManager,
-                  allEmployees,
-                );
+                const pmIds = namesToIds(createProjectManager, allEmployees);
                 if (pmIds) formData.append("project_manager_id", pmIds);
 
-                const leadIds = nameOrCsvToIdCsv(createBIMLead, allEmployees);
+                const leadIds = namesToIds(createBIMLead, allEmployees);
                 if (leadIds) formData.append("lead_id", leadIds);
 
-                const bcIds = nameOrCsvToIdCsv(
-                  createBIMCoOrdinator,
-                  allEmployees,
-                );
+                const bcIds = namesToIds(createBIMCoOrdinator, allEmployees);
                 if (bcIds) formData.append("bim_coordinator_id", bcIds);
 
                 if (selectedMemberIds.length > 0)
@@ -3752,11 +3828,11 @@ export default function ProjectsBL() {
                     <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
-                    label="Project Manager"
                     placeholder="Select Project Manager"
                     options={projectManagers}
                     value={editProjectManager}
-                    onChange={setEditProjectManager}
+                    onChange={(val) => setEditProjectManager(val)}
+                    isMulti={true}
                   />
                 </div>
 
@@ -3766,11 +3842,11 @@ export default function ProjectsBL() {
                     Select BIM Lead <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
-                    label="BIM Lead"
                     placeholder="Select BIM Lead"
                     options={bimLeads}
                     value={editBIMLead}
-                    onChange={setEditBIMLead}
+                    onChange={(val) => setEditBIMLead(val)}
+                    isMulti={true}
                   />
                 </div>
 
@@ -3781,11 +3857,11 @@ export default function ProjectsBL() {
                     <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
-                    label="BIM Co-Ordinator"
-                    placeholder="Select BIM Co-Ordinator"
+                    placeholder="Select BIM Coordinator"
                     options={bimCoordinators}
                     value={editBIMCoOrd}
-                    onChange={setEditBIMCoOrd}
+                    onChange={(val) => setEditBIMCoOrd(val)}
+                    isMulti={true}
                   />
                 </div>
 
