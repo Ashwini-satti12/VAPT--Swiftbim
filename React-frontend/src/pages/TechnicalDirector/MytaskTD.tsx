@@ -1593,8 +1593,8 @@ export default function MytaskTD() {
               >
                 <span
                   className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
-                      ? "text-[#8B8B8B]"
-                      : "text-[#353535]"
+                    ? "text-[#8B8B8B]"
+                    : "text-[#353535]"
                     }`}
                 >
                   {selectedShowEntries === "" ? (
@@ -1652,8 +1652,8 @@ export default function MytaskTD() {
                             setShowEntriesOpen(false);
                           }}
                           className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${isChosen
-                              ? "text-[#353535] bg-[#F2F2F2]"
-                              : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                            ? "text-[#353535] bg-[#F2F2F2]"
+                            : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
                             }`}
                         >
                           <span className="truncate min-w-0">{opt.label}</span>
