@@ -161,15 +161,23 @@ export default function MytaskViewTD() {
     if (task) return;
     const taskIdMatch =
       location.pathname.match(/\/tasks\/(\d+)/) ||
-      location.pathname.match(/\/view\/(\d+)/);
+      location.pathname.match(/\/view\/(\d+)/) ||
+      location.pathname.match(/\/taskview\/(\d+)/);
     const taskId = taskIdMatch ? taskIdMatch[1] : null;
 
     if (taskId) {
+      const searchParams = new URLSearchParams(location.search);
+      const isOutsource = searchParams.get("source") === "Outsource";
+      const endpoint = isOutsource 
+        ? `/api/vendors/vendor-tasks/${taskId}` 
+        : `/api/tasks/${taskId}`;
+
       api
-        .get(`/api/tasks/${taskId}`)
+        .get(endpoint)
         .then((res) => {
-          setTask(res.data.tasks?.[0] || res.data);
           const t = res.data.tasks?.[0] || res.data;
+          if (isOutsource) t.source = "Outsource";
+          setTask(t);
           setStatusDisplay(normalizeStatus(t.status, t.Approval));
         })
         .catch((err) => {
@@ -179,7 +187,7 @@ export default function MytaskViewTD() {
     } else {
       setLoading(false);
     }
-  }, [task, location.pathname]);
+  }, [task, location.pathname, location.search]);
 
   const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -277,11 +285,37 @@ export default function MytaskViewTD() {
     setReviewRemarkInput(task.review_remark || "");
   }, [task]);
 
-  const canSendBackForCorrection =
-    (statusDisplay === "completed" || statusDisplay === "in_progress") &&
+  const canReview =
+    (statusDisplay === "completed" || (task as any).review_required) &&
     task?.assigned_to != null &&
     task?.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid);
+    String(task.assigned_to) !== String(task.uploaderid) &&
+    task.Approval?.toLowerCase() !== "approved";
+
+  const [approving, setApproving] = useState(false);
+  const handleApprove = async () => {
+    if (!task || approving) return;
+    setApproving(true);
+    try {
+      const isOutsource = (task as any).source === "Outsource";
+      const endpoint = isOutsource
+        ? `/api/vendors/vendor-tasks/${task.id}/status`
+        : `/api/tasks/${task.id}/status`;
+
+      await api.patch(endpoint, {
+        status: "Approved",
+        projectId: task.projectid,
+      });
+      setTask((prev) => (prev ? { ...prev, Approval: "Approved" } : prev));
+      setStatusDisplay("approved");
+      toast.success("Task Approved");
+    } catch (err) {
+      console.error("Error approving task:", err);
+      toast.error("Failed to approve task");
+    } finally {
+      setApproving(false);
+    }
+  };
 
   const handleSendBackForCorrection = async () => {
     if (!task || sendingBack) return;
@@ -622,15 +656,23 @@ export default function MytaskViewTD() {
               rows={4}
               className="w-full rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 border border-transparent outline-none focus:border-slate-300 resize-none"
             />
-            {canSendBackForCorrection && (
-              <div className="mt-3 flex justify-end">
+            {canReview && (
+              <div className="mt-3 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={handleSendBackForCorrection}
-                  disabled={sendingBack}
+                  disabled={sendingBack || approving}
                   className="rounded-md bg-[#DBE9FE] px-4 py-2 text-[14px] font-semibold text-[#101827] disabled:opacity-50 cursor-pointer"
                 >
                   {sendingBack ? "Sending..." : "Send Back To Assignee"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApprove}
+                  disabled={approving || sendingBack}
+                  className="rounded-md bg-green-100 px-6 py-2 text-[14px] font-semibold text-green-700 hover:bg-green-600 hover:text-white transition-colors disabled:opacity-50 cursor-pointer border border-green-200"
+                >
+                  {approving ? "Approving..." : "Approve Task"}
                 </button>
               </div>
             )}

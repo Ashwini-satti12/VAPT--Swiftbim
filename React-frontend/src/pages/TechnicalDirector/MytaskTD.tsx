@@ -142,10 +142,10 @@ export function FormDropdown({
   const filteredOptions =
     searchable && isOpen && q
       ? options.filter(
-          (opt) =>
-            opt.label.toLowerCase().includes(q) ||
-            String(opt.value).toLowerCase().includes(q),
-        )
+        (opt) =>
+          opt.label.toLowerCase().includes(q) ||
+          String(opt.value).toLowerCase().includes(q),
+      )
       : options;
 
   const listMaxHeightPx = Math.max(120, maxVisibleRows * 40 + 8);
@@ -315,19 +315,19 @@ export function TaskDropdown({
   const q = (searchQuery || "").trim().toLowerCase();
   const filteredOptions = searchable
     ? (() => {
-        if (!q) return options;
-        const first = options[0];
-        const isPlaceholderOption = (o: string) =>
-          o === first &&
-          (first === "Select Employee" || first === "Select Projects");
-        return options.filter((opt) => {
-          if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
-          const name = String(opt ?? "")
-            .trim()
-            .toLowerCase();
-          return name.includes(q);
-        });
-      })()
+      if (!q) return options;
+      const first = options[0];
+      const isPlaceholderOption = (o: string) =>
+        o === first &&
+        (first === "Select Employee" || first === "Select Projects");
+      return options.filter((opt) => {
+        if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
+        const name = String(opt ?? "")
+          .trim()
+          .toLowerCase();
+        return name.includes(q);
+      });
+    })()
     : options;
 
   const positionClass = narrow
@@ -679,10 +679,10 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
     actualEndDate: endDate,
     startTime: timeOnly(
       t.perferstart_time ??
-        t.start_time ??
-        t.startTime ??
-        t.Actual_start_time ??
-        "",
+      t.start_time ??
+      t.startTime ??
+      t.Actual_start_time ??
+      "",
     ),
     dueTime: timeOnly(
       t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? "",
@@ -728,10 +728,10 @@ function TaskCard({
   onDeleteTask?: (task: Task) => void;
 }) {
   const progress =
-    status === "completed" &&
-    task.assigned_to != null &&
-    task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid)
+    (status === "completed" || (task as any).review_required) &&
+      task.assigned_to != null &&
+      task.uploaderid != null &&
+      String(task.assigned_to) !== String(task.uploaderid)
       ? task.Approval?.toLowerCase() === "approved"
         ? 100
         : 95
@@ -743,7 +743,7 @@ function TaskCard({
             ? 50
             : 100;
   const isUnderReview =
-    status === "completed" &&
+    (status === "completed" || (task as any).review_required) &&
     task.assigned_to != null &&
     task.uploaderid != null &&
     String(task.assigned_to) !== String(task.uploaderid) &&
@@ -926,9 +926,9 @@ function TaskCard({
                 const src =
                   task.assigned_to != null && task.assigned_profile_picture
                     ? getGlobalProfileUrl(
-                        task.assigned_to,
-                        task.assigned_profile_picture,
-                      )
+                      task.assigned_to,
+                      task.assigned_profile_picture,
+                    )
                     : task.assigned_profile_picture
                       ? getProfileUrl(task.assigned_profile_picture)
                       : "";
@@ -962,9 +962,9 @@ function TaskCard({
                 const src =
                   task.uploaderid != null && task.uploader_profile_picture
                     ? getGlobalProfileUrl(
-                        task.uploaderid,
-                        task.uploader_profile_picture,
-                      )
+                      task.uploaderid,
+                      task.uploader_profile_picture,
+                    )
                     : task.uploader_profile_picture
                       ? getProfileUrl(task.uploader_profile_picture)
                       : "";
@@ -1020,14 +1020,14 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-  { value: "1-50", label: "1-50", start: 0, end: 50 },
-  { value: "51-100", label: "51-100", start: 50, end: 100 },
-  { value: "101-150", label: "101-150", start: 100, end: 150 },
-  { value: "151-200", label: "151-200", start: 150, end: 200 },
-  { value: "201-250", label: "201-250", start: 200, end: 250 },
-  { value: "251-300", label: "251-300", start: 250, end: 300 },
-  { value: "all", label: "All", start: 0, end: null },
-];
+    { value: "1-50", label: "1-50", start: 0, end: 50 },
+    { value: "51-100", label: "51-100", start: 50, end: 100 },
+    { value: "101-150", label: "101-150", start: 100, end: 150 },
+    { value: "151-200", label: "151-200", start: 150, end: 200 },
+    { value: "201-250", label: "201-250", start: 200, end: 250 },
+    { value: "251-300", label: "251-300", start: 250, end: 300 },
+    { value: "all", label: "All", start: 0, end: null },
+  ];
 const PERIOD_OPTIONS = [
   "Period",
   "This Week",
@@ -1207,13 +1207,13 @@ export default function MytaskTD() {
       prev.map((t) =>
         t.id === taskId
           ? {
-              ...t,
-              status: statusMap[newStatus],
-              Approval:
-                newStatus === "completed" && String(t.uploaderid) === String(user?.id)
-                  ? "Approved"
-                  : t.Approval,
-            }
+            ...t,
+            status: statusMap[newStatus],
+            Approval:
+              newStatus === "completed" && String(t.uploaderid) === String(user?.id)
+                ? "Approved"
+                : t.Approval,
+          }
           : t,
       ),
     );
@@ -1286,7 +1286,8 @@ export default function MytaskTD() {
   };
 
   const openViewTask = (task: Task) => {
-    navigate("/td/mytasks/view", { state: { task, from: "mytasks" } });
+    const sourceQuery = task.source === "Outsource" ? "?source=Outsource" : "";
+    navigate(`/td/mytasks/view/${task.id}${sourceQuery}`, { state: { task, from: "mytasks" } });
   };
 
   const confirmDeleteTask = () => {
@@ -1591,11 +1592,10 @@ export default function MytaskTD() {
                 className="w-full flex items-center justify-between gap-2 px-3 py-1.5 sm:py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-Gantari transition-all cursor-pointer border-0 min-w-0"
               >
                 <span
-                  className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-                    selectedShowEntries === ""
+                  className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
                       ? "text-[#8B8B8B]"
                       : "text-[#353535]"
-                  }`}
+                    }`}
                 >
                   {selectedShowEntries === "" ? (
                     SHOW_ENTRIES_PLACEHOLDER
@@ -1613,13 +1613,11 @@ export default function MytaskTD() {
                 <img
                   src={ArrowDown}
                   alt=""
-                  className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
-                    showEntriesOpen ? "rotate-180" : ""
-                  } ${
-                    selectedShowEntries === ""
+                  className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                    } ${selectedShowEntries === ""
                       ? "opacity-60 grayscale"
                       : "opacity-90"
-                  }`}
+                    }`}
                   aria-hidden
                 />
               </button>
@@ -1653,11 +1651,10 @@ export default function MytaskTD() {
                             setSelectedShowEntries(opt.value);
                             setShowEntriesOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${
-                            isChosen
+                          className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${isChosen
                               ? "text-[#353535] bg-[#F2F2F2]"
                               : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
-                          }`}
+                            }`}
                         >
                           <span className="truncate min-w-0">{opt.label}</span>
                           {isChosen && (

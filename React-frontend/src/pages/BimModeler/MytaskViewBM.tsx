@@ -152,6 +152,9 @@ export default function MytaskViewBM() {
   const [submittingWork, setSubmittingWork] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [reviewRemarkInput, setReviewRemarkInput] = useState("");
+  const [sendingBack, setSendingBack] = useState(false);
+  const [approving, setApproving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -290,8 +293,70 @@ export default function MytaskViewBM() {
 
   useEffect(() => {
     if (!task) return;
-    setStatusDisplay(normalizeStatus(task.status, task.Approval));
+    const next = normalizeStatus(task.status, task.Approval);
+    setStatusDisplay(next);
+    setReviewRemarkInput(task.review_remark || "");
   }, [task]);
+
+  const canReview =
+    (statusDisplay === "completed" || (task as any).review_required) &&
+    task?.assigned_to != null &&
+    task?.uploaderid != null &&
+    String(task.assigned_to) !== String(task.uploaderid) &&
+    task.Approval?.toLowerCase() !== "approved";
+
+  const handleApprove = async () => {
+    if (!task || approving) return;
+    setApproving(true);
+    try {
+      const isOutsource = (task as any).source === "Outsource";
+      const endpoint = isOutsource
+        ? `/api/vendors/vendor-tasks/${task.id}/status`
+        : `/api/tasks/${task.id}/status`;
+
+      await api.patch(endpoint, {
+        status: "Approved",
+        projectId: task.projectid ?? task.project_id,
+      });
+      setTask((prev) => (prev ? { ...prev, Approval: "Approved" } : prev));
+      setStatusDisplay("approved");
+      toast.success("Task Approved");
+    } catch (err) {
+      console.error("Error approving task:", err);
+      toast.error("Failed to approve task");
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const handleSendBackForCorrection = async () => {
+    if (!task || sendingBack) return;
+    const remark = (reviewRemarkInput || "").trim();
+    if (!remark) {
+      toast.error("Please enter review remark before sending back.");
+      return;
+    }
+    setSendingBack(true);
+    try {
+      await api.patch(`/api/tasks/${task.id}`, {
+        review_remark: remark,
+      });
+      await api.patch(`/api/tasks/${task.id}/status`, {
+        status: "Todo",
+        projectId: task.projectid ?? task.project_id,
+      });
+      setTask((prev) =>
+        prev ? { ...prev, review_remark: remark, status: "To Do" } : prev,
+      );
+      setStatusDisplay("todo");
+      toast.success("Returned to assignee in To Do.");
+    } catch (error) {
+      console.error("Error sending task back:", error);
+      toast.error("Failed to send back task");
+    } finally {
+      setSendingBack(false);
+    }
+  };
 
   useEffect(() => {
     if (!statusDropdownOpen) return;
@@ -614,14 +679,38 @@ export default function MytaskViewBM() {
               {task.description || "Event (Consultant Partnership)..."}
             </div>
           </div>
-          {task.review_remark && (
-            <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6">
-              <h4 className="text-black text-md mb-2">Review Remark</h4>
-              <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-                {task.review_remark}
+          {/* Review Remark */}
+          <div className="mt-6 border border-slate-200 rounded-xl p-6">
+            <h4 className="text-black text-md mb-2 font-medium font-Gantari">Review Remark</h4>
+            <textarea
+              value={reviewRemarkInput}
+              onChange={(e) => setReviewRemarkInput(e.target.value)}
+              readOnly={!canReview}
+              placeholder={canReview ? "Enter corrections / changes for assignee..." : "No review remark"}
+              rows={4}
+              className={`w-full rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 border border-transparent outline-none transition-all resize-none font-Gantari ${canReview ? "focus:border-slate-300" : ""}`}
+            />
+            {canReview && (
+              <div className="mt-3 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleSendBackForCorrection}
+                  disabled={sendingBack || approving}
+                  className="rounded-md bg-[#DBE9FE] px-4 py-2 text-[14px] font-semibold text-[#101827] disabled:opacity-50 cursor-pointer transition-colors"
+                >
+                  {sendingBack ? "Sending..." : "Send Back To Assignee"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApprove}
+                  disabled={approving || sendingBack}
+                  className="rounded-md bg-green-100 px-6 py-2 text-[14px] font-semibold text-green-700 hover:bg-green-600 hover:text-white transition-colors disabled:opacity-50 cursor-pointer border border-green-200"
+                >
+                  {approving ? "Approving..." : "Approve Task"}
+                </button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

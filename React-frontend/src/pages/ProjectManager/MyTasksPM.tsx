@@ -268,19 +268,22 @@ function TaskCard({
 }) {
   const { user } = useAuth();
   const progress =
-    status === "todo"
-      ? 0
-      : status === "in_progress"
-        ? 50
-        : task.assigned_to != null &&
-            task.uploaderid != null &&
-            String(task.assigned_to) !== String(task.uploaderid)
-          ? task.Approval?.toLowerCase() === "approved"
-            ? 100
-            : 95
-          : 100;
+    (status === "completed" || (task as any).review_required) &&
+      task.assigned_to != null &&
+      task.uploaderid != null &&
+      String(task.assigned_to) !== String(task.uploaderid)
+      ? task.Approval?.toLowerCase() === "approved"
+        ? 100
+        : 95
+      : typeof task.progress === "number"
+        ? task.progress
+        : status === "todo"
+          ? 0
+          : status === "in_progress"
+            ? 50
+            : 100;
   const isUnderReview =
-    status === "completed" &&
+    (status === "completed" || (task as any).review_required) &&
     task.assigned_to != null &&
     task.uploaderid != null &&
     String(task.assigned_to) !== String(task.uploaderid) &&
@@ -593,8 +596,8 @@ export default function MyTasksPM() {
         status: statusMap[newStatus],
         projectId
       });
-      setList(prev => prev.map(t => t.id === taskId ? { 
-        ...t, 
+      setList(prev => prev.map(t => t.id === taskId ? {
+        ...t,
         status: statusMap[newStatus],
         Approval: (newStatus === "completed" && String(t.uploaderid) === String(user?.id)) ? "Approved" : t.Approval
       } : t));
@@ -639,7 +642,8 @@ export default function MyTasksPM() {
   };
 
   const openViewTask = (task: Task) => {
-    navigate("/tasks/taskview", { state: { task } });
+    const sourceQuery = task.source === "Outsource" ? "?source=Outsource" : "";
+    navigate(`/tasks/taskview/${task.id}${sourceQuery}`, { state: { task, from: "mytasks" } });
   };
 
   const confirmDeleteTask = async () => {

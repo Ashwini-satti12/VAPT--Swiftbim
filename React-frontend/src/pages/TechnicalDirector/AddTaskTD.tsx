@@ -308,13 +308,8 @@ export default function AddTaskTD() {
     const isCompletedTask =
         statusRaw === "completed" || statusRaw === "complete" || statusRaw === "done";
     const reviewRequired = Boolean((editingTask as any)?.review_required);
-    const isDelegatedCompletedTask =
-        isCompletedTask &&
-        editingTask?.assigned_to != null &&
-        editingTask?.uploaderid != null &&
-        String(editingTask.assigned_to) !== String(editingTask.uploaderid);
-    const showReviewRemarkField =
-        editingTaskId != null && (reviewRequired || isDelegatedCompletedTask);
+    const isDelegated = addTaskForm.assignTo && addTaskForm.assignTo !== user?.full_name;
+    const showReviewRemarkField = isDelegated;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

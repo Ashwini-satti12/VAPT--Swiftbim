@@ -169,19 +169,19 @@ export function TaskDropdown({
   const q = (searchQuery || "").trim().toLowerCase();
   const filteredOptions = searchable
     ? (() => {
-        if (!q) return options;
-        const first = options[0];
-        const isPlaceholderOption = (o: string) =>
-          o === first &&
-          (first === "Select Employee" || first === "Select Projects");
-        return options.filter((opt) => {
-          if (isPlaceholderOption(opt)) return false;
-          const name = String(opt ?? "")
-            .trim()
-            .toLowerCase();
-          return name.includes(q);
-        });
-      })()
+      if (!q) return options;
+      const first = options[0];
+      const isPlaceholderOption = (o: string) =>
+        o === first &&
+        (first === "Select Employee" || first === "Select Projects");
+      return options.filter((opt) => {
+        if (isPlaceholderOption(opt)) return false;
+        const name = String(opt ?? "")
+          .trim()
+          .toLowerCase();
+        return name.includes(q);
+      });
+    })()
     : options;
   const listMaxHeight = `${maxVisibleItems * 40}px`;
 
@@ -204,8 +204,8 @@ export function TaskDropdown({
         >
           {(label.toLowerCase() === "show entries" ||
             label.toLowerCase() === "show") &&
-          selected &&
-          selected !== label ? (
+            selected &&
+            selected !== label ? (
             <>
               <span className="text-[14px]">Show:</span>{" "}
               <span className="font-semibold">{selected}</span>
@@ -297,10 +297,10 @@ export function FormDropdown({
   const filteredOptions =
     searchable && q
       ? options.filter(
-          (opt) =>
-            opt.label.toLowerCase().includes(q) ||
-            String(opt.value).toLowerCase().includes(q),
-        )
+        (opt) =>
+          opt.label.toLowerCase().includes(q) ||
+          String(opt.value).toLowerCase().includes(q),
+      )
       : options;
 
   const displayLabel = value
@@ -419,21 +419,21 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
     actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
     startTime: timeOnly(
       t.perferstart_time ??
-        t.start_time ??
-        t.startTime ??
-        t.Actual_start_time ??
-        "",
+      t.start_time ??
+      t.startTime ??
+      t.Actual_start_time ??
+      "",
     ),
     dueTime: timeOnly(
       t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? "",
     ),
     assignTo: str(
       t.assigned_full_name ??
-        t.assign_to_name ??
-        t.assign_to ??
-        t.assignTo ??
-        t.assigned_to ??
-        "",
+      t.assign_to_name ??
+      t.assign_to ??
+      t.assignTo ??
+      t.assigned_to ??
+      "",
     ),
     description: str(t.description ?? ""),
     checklist: str(t.checklist ?? ""),
@@ -466,12 +466,13 @@ function TaskCard({
   onViewTask?: (task: Task) => void;
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (task: Task) => void;
+  onApproveTask?: (task: Task) => void;
 }) {
   const progress =
-    status === "completed" &&
-    task.assigned_to != null &&
-    task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid)
+    (status === "completed" || (task as any).review_required) &&
+      task.assigned_to != null &&
+      task.uploaderid != null &&
+      String(task.assigned_to) !== String(task.uploaderid)
       ? task.Approval?.toLowerCase() === "approved"
         ? 100
         : 95
@@ -483,7 +484,7 @@ function TaskCard({
             ? 50
             : 100;
   const isUnderReview =
-    status === "completed" &&
+    (status === "completed" || (task as any).review_required) &&
     task.assigned_to != null &&
     task.uploaderid != null &&
     String(task.assigned_to) !== String(task.uploaderid) &&
@@ -577,6 +578,7 @@ function TaskCard({
                       src={editIcon}
                       alt="edit"
                       className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                      onApproveTask={handleApproveTask}
                     />
                     <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                       Edit
@@ -595,12 +597,33 @@ function TaskCard({
                       src={deleteIcon}
                       alt="delete"
                       className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                      onApproveTask={handleApproveTask}
                     />
                     <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                       Delete
                     </span>
                   </button>
                 </>
+              )}
+              {isUnderReview && String(task.uploaderid) === String(user?.id) && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onApproveTask?.(task);
+                  }}
+                >
+                  <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 transition-colors group-hover:bg-green-600 group-hover:text-white">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-green-600">
+                    Approve
+                  </span>
+                </button>
               )}
             </div>
           )}
@@ -646,9 +669,9 @@ function TaskCard({
                 const src =
                   task.assigned_to != null && task.assigned_profile_picture
                     ? getGlobalProfileUrl(
-                        task.assigned_to,
-                        task.assigned_profile_picture,
-                      )
+                      task.assigned_to,
+                      task.assigned_profile_picture,
+                    )
                     : task.assigned_profile_picture
                       ? getProfileUrl(task.assigned_profile_picture)
                       : "";
@@ -682,9 +705,9 @@ function TaskCard({
                 const src =
                   task.uploaderid != null && task.uploader_profile_picture
                     ? getGlobalProfileUrl(
-                        task.uploaderid,
-                        task.uploader_profile_picture,
-                      )
+                      task.uploaderid,
+                      task.uploader_profile_picture,
+                    )
                     : task.uploader_profile_picture
                       ? getProfileUrl(task.uploader_profile_picture)
                       : "";
@@ -732,7 +755,7 @@ function TaskCard({
   );
 }
 
-const SHOW_OPTIONS = ["Show Entries", "0-50", "51-100", "101-150", "151-200","201-250","251-300", "All"];
+const SHOW_OPTIONS = ["Show Entries", "0-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
 const PERIOD_OPTIONS = [
   "Period",
   "This Week",
@@ -872,6 +895,20 @@ export default function MytaskBM() {
     "Show All",
     ...projects.map((p) => p.project_name),
   ];
+
+  const handleApproveTask = (task: Task) => {
+    const isOutsource = task.source === "Outsource";
+    const endpoint = isOutsource
+      ? `/api/vendors/vendor-tasks/${task.id}/status`
+      : `/api/tasks/${task.id}/status`;
+
+    api.patch(endpoint, { status: "Approved" })
+      .then(() => {
+        toast.success("Task Approved");
+        setList(prev => prev.map(t => t.id === task.id ? { ...t, Approval: "Approved", progress: 100 } : t));
+      })
+      .catch(() => toast.error("Failed to approve task"));
+  };
 
   const handleMoveTask = async (
     taskId: number,
@@ -1188,6 +1225,7 @@ export default function MytaskBM() {
                 onViewTask={openViewTask}
                 onEditTask={openEditTask}
                 onDeleteTask={openDeleteTask}
+                onApproveTask={handleApproveTask}
               />
             ))}
           </div>
@@ -1211,6 +1249,7 @@ export default function MytaskBM() {
                 onViewTask={openViewTask}
                 onEditTask={openEditTask}
                 onDeleteTask={openDeleteTask}
+                onApproveTask={handleApproveTask}
               />
             ))}
           </div>
@@ -1234,6 +1273,7 @@ export default function MytaskBM() {
                 onViewTask={openViewTask}
                 onEditTask={openEditTask}
                 onDeleteTask={openDeleteTask}
+                onApproveTask={handleApproveTask}
               />
             ))}
           </div>

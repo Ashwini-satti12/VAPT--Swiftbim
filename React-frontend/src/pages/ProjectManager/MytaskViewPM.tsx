@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import api from "../../lib/api";
@@ -150,6 +150,9 @@ export default function MytaskViewPM() {
   const [submittingWork, setSubmittingWork] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [loading, setLoading] = useState(!task);
+  const [reviewRemarkInput, setReviewRemarkInput] = useState("");
+  const [sendingBack, setSendingBack] = useState(false);
+  const [approving, setApproving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,34 +231,102 @@ export default function MytaskViewPM() {
     };
   }, [selectedImagePreview]);
 
+  const { id: taskIdParam } = useParams();
   useEffect(() => {
-    if (!task) {
-      // For PM, the route is usually /tasks/view but let's check the path
-      const taskId = location.pathname.split("/").pop();
-      if (taskId && !isNaN(Number(taskId))) {
-        setLoading(true);
-        api.get(`/api/tasks/${taskId}`)
-          .then(res => {
-            if (res.data.task) {
-              const fetched = res.data.task || res.data;
-              setStatusDisplay(normalizeStatus(fetched.status, fetched.Approval));
-            }
-          })
-          .catch(err => {
-            console.error("Error fetching task:", err);
-          })
-          .finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
+    if (task) {
+      setLoading(false);
+      return;
     }
-  }, [task, location.pathname]);
+    const taskId = taskIdParam;
+    if (taskId) {
+      setLoading(true);
+      const searchParams = new URLSearchParams(location.search);
+      const isOutsource = searchParams.get("source") === "Outsource";
+      const endpoint = isOutsource 
+        ? `/api/vendors/vendor-tasks/${taskId}` 
+        : `/api/tasks/${taskId}`;
+
+      api.get(endpoint)
+        .then(res => {
+          const fetched = res.data.tasks?.[0] || res.data;
+          if (isOutsource) fetched.source = "Outsource";
+          setTask(fetched);
+          setStatusDisplay(normalizeStatus(fetched.status, fetched.Approval));
+          setReviewRemarkInput(fetched.review_remark || "");
+        })
+        .catch(err => {
+          console.error("Error fetching task:", err);
+          toast.error("Failed to load task details");
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [task, taskIdParam, location.search, location.pathname]);
 
   useEffect(() => {
     if (!task) return;
     const next = normalizeStatus(task.status, task.Approval);
     setStatusDisplay(next);
+    setReviewRemarkInput((task as any).review_remark || "");
   }, [task]);
+
+  const canReview =
+    (statusDisplay === "completed" || (task as any).review_required) &&
+    task?.assigned_to != null &&
+    task?.uploaderid != null &&
+    String(task.assigned_to) !== String(task.uploaderid) &&
+    task.Approval?.toLowerCase() !== "approved";
+
+  const handleApprove = async () => {
+    if (!task || approving) return;
+    setApproving(true);
+    try {
+      const isOutsource = (task as any).source === "Outsource";
+      const endpoint = isOutsource
+        ? `/api/vendors/vendor-tasks/${task.id}/status`
+        : `/api/tasks/${task.id}/status`;
+
+      await api.patch(endpoint, {
+        status: "Approved",
+        projectId: task.projectid,
+      });
+      // In PM view, task is often a direct object from state, we should update statusDisplay
+      setStatusDisplay("approved");
+      toast.success("Task Approved");
+    } catch (err) {
+      console.error("Error approving task:", err);
+      toast.error("Failed to approve task");
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const handleSendBackForCorrection = async () => {
+    if (!task || sendingBack) return;
+    const remark = (reviewRemarkInput || "").trim();
+    if (!remark) {
+      toast.error("Please enter review remark before sending back.");
+      return;
+    }
+    setSendingBack(true);
+    try {
+      await api.patch(`/api/tasks/${task.id}`, {
+        review_remark: remark,
+      });
+      await api.patch(`/api/tasks/${task.id}/status`, {
+        status: "Todo",
+        projectId: task.projectid,
+      });
+      setStatusDisplay("todo");
+      toast.success("Returned to assignee in To Do.");
+    } catch (error) {
+      console.error("Error sending task back:", error);
+      toast.error("Failed to send back task");
+    } finally {
+      setSendingBack(false);
+    }
+  };
 
   useEffect(() => {
     if (!statusDropdownOpen) return;
@@ -559,6 +630,38 @@ export default function MytaskViewPM() {
             <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
             {task.description || "Event (Consultant Partnership)..."}
             </div>
+          </div>
+
+          {/* Review Remark */}
+          <div className="mt-6 border border-slate-200 rounded-xl p-6">
+            <h4 className="text-black text-md mb-2">Review Remark</h4>
+            <textarea
+              value={reviewRemarkInput}
+              onChange={(e) => setReviewRemarkInput(e.target.value)}
+              placeholder="Enter corrections / changes for assignee..."
+              rows={4}
+              className="w-full rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 border border-transparent outline-none focus:border-slate-300 resize-none font-Gantari"
+            />
+            {canReview && (
+              <div className="mt-3 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleSendBackForCorrection}
+                  disabled={sendingBack || approving}
+                  className="rounded-md bg-[#DBE9FE] px-4 py-2 text-[14px] font-semibold text-[#101827] disabled:opacity-50 cursor-pointer transition-colors"
+                >
+                  {sendingBack ? "Sending..." : "Send Back To Assignee"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApprove}
+                  disabled={approving || sendingBack}
+                  className="rounded-md bg-green-100 px-6 py-2 text-[14px] font-semibold text-green-700 hover:bg-green-600 hover:text-white transition-colors disabled:opacity-50 cursor-pointer border border-green-200"
+                >
+                  {approving ? "Approving..." : "Approve Task"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

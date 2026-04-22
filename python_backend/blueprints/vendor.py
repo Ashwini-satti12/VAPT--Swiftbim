@@ -5223,9 +5223,9 @@ def list_vendor_tasks():
             if staff_role not in VENDOR_TASK_STAFF_ROLES:
                 return jsonify({"tasks": []})
             
-            # Staff "My Task" view: only show tasks they are assigned.
-            where.append("vt.assigned_to = %s")
-            params.append(user_id)
+            # Staff "My Task" view: show tasks assigned to them OR tasks they assigned to others that are not yet approved by them.
+            where.append("(vt.assigned_to = %s OR (vt.vendor_id = %s AND vt.assigned_to <> vt.vendor_id AND vt.progress <> '100'))")
+            params.extend([user_id, user_id])
             
             if task_company_id is not None:
                 where.append(
@@ -5331,8 +5331,9 @@ def list_vendor_tasks():
             status_lower = str(r.get("status") or "").strip().lower()
             is_completed = status_lower == "completed"
 
-            # For delegated tasks, creator should not see it in My Task until receiver completes it.
-            if is_creator and (not is_self_assigned) and (not is_completed):
+            # For delegated tasks, creator should see it in My Task until it's approved (progress=100).
+            progress_val = str(r.get("progress") or "0").strip()
+            if is_creator and (not is_self_assigned) and progress_val == "100":
                 continue
 
         d = {k: _serialize(v) for k, v in r.items()}
@@ -5350,18 +5351,20 @@ def list_vendor_tasks():
         # For frontend compatibility
         d["projectid"] = d.get("project_id")
         d["due_date"] = d.get("due_date")
-        if not is_team_view and is_vendor_user_task:
+        if not is_team_view:
             creator_id = d.get("vendor_id")
             assignee_id = d.get("assigned_to")
             status_lower = str(d.get("status") or "").strip().lower()
             # Completed delegated tasks come back to creator My Task as To Do for review.
+            d_progress = str(d.get("progress") or "0").strip()
             if (
                 creator_id is not None
                 and assignee_id is not None
                 and str(creator_id).strip() == str(user_id).strip()
-                and str(assignee_id).strip() != str(creator_id).strip()
-                and status_lower == "completed"
+                and d_progress == "95"
             ):
+                d["review_required"] = True
+                d["status_original"] = d.get("status")
                 d["status"] = "Todo"
         tasks.append(d)
     return jsonify({"tasks": tasks})

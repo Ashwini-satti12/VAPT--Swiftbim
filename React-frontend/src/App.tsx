@@ -243,7 +243,7 @@ function App() {
             <Route path="tasks" element={<MyTasksPM />} />
             <Route path="tasks/add" element={<AddTaskPM />} />
             <Route path="teamtask/add" element={<AddTaskPM />} />
-            <Route path="tasks/taskview" element={<MytaskViewPM />} />
+            <Route path="tasks/taskview/:id" element={<MytaskViewPM />} />
             <Route path="tasks/team" element={<MyTasksPM />} />
             <Route path="tasks/:id" element={<TaskDetailPM />} />
             <Route path="teamtask" element={<TeamtaskPM />} />
@@ -280,7 +280,7 @@ function App() {
             <Route path="td/tracker" element={<TrackerTD />} />
             <Route path="td/teamreport" element={<TeamReportTD />} />
             <Route path="td/chat" element={<ChatTD />} />
-            <Route path="td/mytasks/view" element={<MytaskViewTD />} />
+            <Route path="td/mytasks/view/:id" element={<MytaskViewTD />} />
             <Route path="td/partner" element={<PartnerTD />} />
             <Route path="td/partner/:id" element={<PartnerView />} />
             <Route path="td/bidding" element={<BiddingTD />} />
@@ -316,7 +316,7 @@ function App() {
             <Route path="bl/tracker" element={<TrackerBL />} />
             <Route path="bl/teamreport" element={<TeamReportBL />} />
             <Route path="bl/chat" element={<ChatBL />} />
-            <Route path="bl/mytasks/view" element={<MytaskViewBL />} />
+            <Route path="bl/mytasks/view/:id" element={<MytaskViewBL />} />
             <Route path="bl/partner" element={<PartnerBL />} />
             <Route path="bl/partner/:id" element={<PartnerView />} />
             <Route path="bl/bidding" element={<BiddingTD />} />
@@ -343,7 +343,7 @@ function App() {
             <Route path="bc/tracker" element={<TrackerBC />} />
             <Route path="bc/teamreport" element={<TeamReportBC />} />
             <Route path="bc/chat" element={<ChatBC />} />
-            <Route path="bc/mytasks/view" element={<MytaskViewBC />} />
+            <Route path="bc/mytasks/view/:id" element={<MytaskViewBC />} />
             <Route path="bc/manage-leave" element={<ManageLeaveBC />} />
 
             {/* Bim Modeler Routes */}

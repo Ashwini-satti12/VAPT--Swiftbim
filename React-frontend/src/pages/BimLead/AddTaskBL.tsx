@@ -123,6 +123,7 @@ const initialForm = {
   assignTo: "",
   description: "",
   checklist: "",
+  reviewRemark: "",
 };
 
 export default function AddTaskBL() {
@@ -150,6 +151,9 @@ export default function AddTaskBL() {
     useState<PendingAttachmentDelete | null>(null);
   const [serverAttachmentDeleting, setServerAttachmentDeleting] =
     useState(false);
+
+  const showReviewRemarkField = 
+    addTaskForm.assignTo && addTaskForm.assignTo !== user?.full_name;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formProjectTriggerRef = useRef<HTMLElement | null>(null);
@@ -600,6 +604,7 @@ export default function AddTaskBL() {
         assign_to: addTaskForm.assignTo,
         description: addTaskForm.description,
         checklist: addTaskForm.checklist,
+        review_remark: addTaskForm.reviewRemark,
         status: isEditing
           ? list.find((t) => t.id === editingTaskId)?.status
           : "To Do",
@@ -621,6 +626,7 @@ export default function AddTaskBL() {
             category: addTaskForm.type || "task",
             description: addTaskForm.description,
             checklist: addTaskForm.checklist,
+            review_remark: addTaskForm.reviewRemark,
             modules: addTaskForm.module,
             start_date: addTaskForm.actualStartDate,
             start_time: addTaskForm.startTime,
@@ -1049,6 +1055,22 @@ export default function AddTaskBL() {
                   className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                 />
               </div>
+              {showReviewRemarkField && (
+                <div className="md:col-span-2">
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                    Review Remark
+                  </label>
+                  <textarea
+                    value={addTaskForm.reviewRemark}
+                    onChange={(e) =>
+                      setAddTaskForm((f) => ({ ...f, reviewRemark: e.target.value }))
+                    }
+                    placeholder="Enter correction remark"
+                    rows={3}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
+                  />
+                </div>
+              )}
               <div className="md:col-span-2 space-y-2">
                 <span className="block text-[16px] font-semibold text-[#000000] font-Gantari">
                   Attachments
