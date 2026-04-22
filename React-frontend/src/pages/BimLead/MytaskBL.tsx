@@ -110,19 +110,19 @@ function TaskDropdown({
   const q = (searchQuery || "").trim().toLowerCase();
   const filteredOptions = searchable
     ? (() => {
-        if (!q) return options;
-        const first = options[0];
-        const isPlaceholderOption = (o: string) =>
-          o === first &&
-          (first === "Select Employee" || first === "Select Projects");
-        return options.filter((opt) => {
-          if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
-          const name = String(opt ?? "")
-            .trim()
-            .toLowerCase();
-          return name.includes(q);
-        });
-      })()
+      if (!q) return options;
+      const first = options[0];
+      const isPlaceholderOption = (o: string) =>
+        o === first &&
+        (first === "Select Employee" || first === "Select Projects");
+      return options.filter((opt) => {
+        if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
+        const name = String(opt ?? "")
+          .trim()
+          .toLowerCase();
+        return name.includes(q);
+      });
+    })()
     : options;
   const listMaxHeight = `${maxVisibleItems * 40}px`;
 
@@ -263,10 +263,10 @@ function TaskCard({
 }) {
   const { user } = useAuth();
   const progress =
-    status === "completed" &&
-    task.assigned_to != null &&
-    task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid)
+    (status === "completed" || (task as any).review_required) &&
+      task.assigned_to != null &&
+      task.uploaderid != null &&
+      String(task.assigned_to) !== String(task.uploaderid)
       ? task.Approval?.toLowerCase() === "approved"
         ? 100
         : 95
@@ -278,7 +278,7 @@ function TaskCard({
             ? 50
             : 100;
   const isUnderReview =
-    status === "completed" &&
+    (status === "completed" || (task as any).review_required) &&
     task.assigned_to != null &&
     task.uploaderid != null &&
     String(task.assigned_to) !== String(task.uploaderid) &&
@@ -465,9 +465,9 @@ function TaskCard({
                 const src =
                   task.assigned_to != null && task.assigned_profile_picture
                     ? getGlobalProfileUrl(
-                        task.assigned_to,
-                        task.assigned_profile_picture,
-                      )
+                      task.assigned_to,
+                      task.assigned_profile_picture,
+                    )
                     : task.assigned_profile_picture
                       ? getProfileUrl(task.assigned_profile_picture)
                       : "";
@@ -501,9 +501,9 @@ function TaskCard({
                 const src =
                   task.uploaderid != null && task.uploader_profile_picture
                     ? getGlobalProfileUrl(
-                        task.uploaderid,
-                        task.uploader_profile_picture,
-                      )
+                      task.uploaderid,
+                      task.uploader_profile_picture,
+                    )
                     : task.uploader_profile_picture
                       ? getProfileUrl(task.uploader_profile_picture)
                       : "";
@@ -681,13 +681,13 @@ export default function MytaskBL() {
       prev.map((t) =>
         t.id === taskId
           ? {
-              ...t,
-              status: label,
-              Approval:
-                newStatus === "completed" && String(t.uploaderid) === String(user?.id)
-                  ? "Approved"
-                  : t.Approval,
-            }
+            ...t,
+            status: label,
+            Approval:
+              newStatus === "completed" && String(t.uploaderid) === String(user?.id)
+                ? "Approved"
+                : t.Approval,
+          }
           : t,
       ),
     );
@@ -734,7 +734,8 @@ export default function MytaskBL() {
   };
 
   const openViewTask = (task: Task) => {
-    navigate("/bl/mytasks/view", { state: { task } });
+    const sourceQuery = task.source === "Outsource" ? "?source=Outsource" : "";
+    navigate(`/bl/mytasks/view/${task.id}${sourceQuery}`, { state: { task, from: "mytasks" } });
   };
 
   const confirmDeleteTask = () => {

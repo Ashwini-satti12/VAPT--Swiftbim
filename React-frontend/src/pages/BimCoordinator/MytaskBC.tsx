@@ -633,10 +633,10 @@ export function TaskCard({
 }) {
   const { user } = useAuth();
   const progress =
-    status === "completed" &&
-    task.assigned_to != null &&
-    task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid)
+    (status === "completed" || (task as any).review_required) &&
+      task.assigned_to != null &&
+      task.uploaderid != null &&
+      String(task.assigned_to) !== String(task.uploaderid)
       ? task.Approval?.toLowerCase() === "approved"
         ? 100
         : 95
@@ -648,7 +648,7 @@ export function TaskCard({
             ? 50
             : 100;
   const isUnderReview =
-    status === "completed" &&
+    (status === "completed" || (task as any).review_required) &&
     task.assigned_to != null &&
     task.uploaderid != null &&
     String(task.assigned_to) !== String(task.uploaderid) &&
@@ -1054,13 +1054,13 @@ export default function MytaskBC() {
         prev.map((t) =>
           t.id === taskId
             ? {
-                ...t,
-                status: statusMap[newStatus],
-                Approval:
-                  newStatus === "completed" && String(t.uploaderid) === String(user?.id)
-                    ? "Approved"
-                    : t.Approval,
-              }
+              ...t,
+              status: statusMap[newStatus],
+              Approval:
+                newStatus === "completed" && String(t.uploaderid) === String(user?.id)
+                  ? "Approved"
+                  : t.Approval,
+            }
             : t,
         ),
       );
@@ -1097,7 +1097,8 @@ export default function MytaskBC() {
   };
 
   const openViewTask = (task: Task) => {
-    navigate("/bc/mytasks/view", { state: { task } });
+    const sourceQuery = task.source === "Outsource" ? "?source=Outsource" : "";
+    navigate(`/bc/mytasks/view/${task.id}${sourceQuery}`, { state: { task, from: "mytasks" } });
   };
 
   const dropdownsContainerRef = useRef<HTMLDivElement>(null);

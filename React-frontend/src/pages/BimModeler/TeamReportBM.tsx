@@ -57,6 +57,7 @@ export default function TimesheetPM() {
   const [loading, setLoading] = useState(true);
   const [employeeOpen, setEmployeeOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState("");
 
   const showEntriesOptions: {
     value: string;
@@ -97,6 +98,7 @@ export default function TimesheetPM() {
     () => ["All", ...employees.map((e) => e.full_name)],
     [employees],
   );
+
   const teamOptions = useMemo(
     () => ["All", ...teams.map((t) => t.teamname || `Team ${t.team_id}`)],
     [teams],
@@ -298,6 +300,7 @@ export default function TimesheetPM() {
         !employeeDropdownRef.current.contains(t)
       ) {
         setEmployeeOpen(false);
+        setEmployeeSearch("");
       }
       if (teamDropdownRef.current && !teamDropdownRef.current.contains(t)) {
         setTeamOpen(false);
@@ -586,26 +589,40 @@ export default function TimesheetPM() {
               />
             </button>
             {employeeOpen && (
-              <div className="absolute top-full left-0 mt-1 z-[200] bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] min-w-[160px] overflow-hidden">
-                <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-                  {employeeOptions.map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEmployee(opt);
-                        setEmployeeOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${
-                        employee === opt
-                          ? "text-[#353535] bg-[#F2F2F2]"
-                          : "text-[#8B8B8B] bg-transparent"
-                      }`}
-                    >
-                      {opt === "All" ? "Employee" : opt}
-                    </button>
-                  ))}
+              <div className="absolute top-full left-0 mt-1 z-[200] bg-white border border-[#E0E0E0] rounded-md min-w-[200px] overflow-hidden">
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Search..."
+                  value={employeeSearch}
+                  onChange={(e) => setEmployeeSearch(e.target.value)}
+                  className="w-full px-4 py-2 text-[14px] border-b border-[#E0E0E0] focus:outline-none font-gantari sticky top-0 bg-white"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <div className="max-h-[250px] overflow-y-auto custom-scrollbar">
+                  {employeeOptions
+                    .filter((opt) =>
+                      opt.toLowerCase().includes(employeeSearch.toLowerCase()),
+                    )
+                    .map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEmployee(opt);
+                          setEmployeeOpen(false);
+                          setEmployeeSearch("");
+                        }}
+                        className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${
+                          employee === opt
+                            ? "text-[#353535] bg-[#F2F2F2]"
+                            : "text-[#8B8B8B] bg-transparent"
+                        }`}
+                      >
+                        {opt === "All" ? "Employee" : opt}
+                      </button>
+                    ))}
                 </div>
               </div>
             )}

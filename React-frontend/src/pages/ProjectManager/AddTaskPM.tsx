@@ -232,6 +232,7 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
     })(),
     description: str(t.description ?? ""),
     checklist: str(t.checklist ?? ""),
+    reviewRemark: str(t.review_remark ?? ""),
   };
 }
 
@@ -247,6 +248,7 @@ const initialForm = {
   assignTo: "",
   description: "",
   checklist: "",
+  reviewRemark: "",
 };
 
 function isTechnicalDirectorRole(role: string | undefined): boolean {
@@ -277,6 +279,9 @@ export default function AddTaskPM() {
   const [tasklistOpen, setTasklistOpen] = useState(false);
   const [pendingAttachmentDelete, setPendingAttachmentDelete] =
     useState<PendingAttachmentDelete | null>(null);
+
+  const showReviewRemarkField = 
+    addTaskForm.assignTo && addTaskForm.assignTo !== user?.full_name;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formProjectTriggerRef = useRef<HTMLElement | null>(null);
@@ -700,13 +705,20 @@ export default function AddTaskPM() {
             start_time: addTaskForm.startTime,
             end_time: addTaskForm.dueTime,
             project_id: selectedProj?.id,
+            review_remark: addTaskForm.reviewRemark,
           });
         } else {
-          await api.patch(`${baseEndpoint}/${editingTaskId}`, payload);
+          await api.patch(`${baseEndpoint}/${editingTaskId}`, {
+            ...payload,
+            review_remark: addTaskForm.reviewRemark,
+          });
         }
         toast.success("Updated successfully");
       } else {
-        const res = await api.post<{ task_id: number }>(baseEndpoint, payload);
+        const res = await api.post<{ task_id: number }>(baseEndpoint, {
+          ...payload,
+          review_remark: addTaskForm.reviewRemark,
+        });
         taskId = res.data.task_id;
         toast.success("Task added successfully");
       }
@@ -1189,6 +1201,25 @@ export default function AddTaskPM() {
                   className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                 />
               </div>
+              {showReviewRemarkField && (
+                <div className="md:col-span-2">
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                    Review Remark
+                  </label>
+                  <textarea
+                    value={addTaskForm.reviewRemark}
+                    onChange={(e) =>
+                      setAddTaskForm((f) => ({
+                        ...f,
+                        reviewRemark: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter correction remark"
+                    rows={4}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
+                  />
+                </div>
+              )}
               <div className="md:col-span-2 space-y-2">
                 <span className="block text-[16px] font-semibold text-[#000000] font-Gantari">
                   Attachments

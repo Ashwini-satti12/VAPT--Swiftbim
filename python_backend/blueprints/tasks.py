@@ -224,41 +224,43 @@ def list_tasks():
     else:
         # My task / employee view:
         # 1) Keep all tasks assigned to me.
-        # 2) Keep self-created/self-assigned tasks.
-        # 3) For tasks I assigned to others:
-        #    - hide until they are completed (then return to creator for review in My Task -> To Do)
-        #    - if creator moves to InProgress for review AND review_remark is empty, keep in creator My Task
-        #    - once review_remark is entered (send back), remove from creator My Task (it will be visible in Team Task)
-        # Legacy frontend may send employeeid=all even for My Task. In that case,
-        # default to current user instead of filtering by literal string "all".
+        # 2) Keep self-created/completed tasks delegated to others (Review workflow).
         if employeeid_param is None or str(employeeid_param).strip() == "" or str(employeeid_param).strip().lower() == "all":
             employee_id = g.user_id
         else:
             employee_id = employeeid_param
-        where.append("t.assigned_to = %s")
-        params.append(employee_id)
+        
+        # Base ownership: either assigned to the employee, or uploaded/assigned-by them and not yet approved (Review workflow).
+        where.append(
+            """(
+                t.assigned_to = %s
+                OR (
+                    t.uploaderid = %s
+                    AND t.assigned_to <> t.uploaderid
+                    AND (t.Approval IS NULL OR t.Approval != 'Approved')
+                )
+            )"""
+        )
+        params.extend([employee_id, employee_id])
 
     if status:
         if status == 'todo':
-            # Backward compatibility: old rows may use "To Do", "Todo", or NULL.
-            if is_team_view:
-                where.append("(t.status IN ('Todo', 'To Do') OR t.status IS NULL OR TRIM(t.status) = '')")
-            else:
-                # In My Task, completed tasks assigned by me to others are review items:
-                # surface them under To Do.
-                where.append(
-                    """(
-                        t.status IN ('Todo', 'To Do')
-                        OR t.status IS NULL
-                        OR TRIM(t.status) = ''
-                        OR (
-                            t.uploaderid = %s
-                            AND t.assigned_to <> t.uploaderid
-                            AND t.status = 'Completed'
-                        )
-                    )"""
-                )
-                params.append(g.user_id)
+            # In My Task, completed tasks assigned by me to others are review items:
+            # surface them under To Do.
+            where.append(
+                """(
+                    t.status IN ('Todo', 'To Do')
+                    OR t.status IS NULL
+                    OR TRIM(t.status) = ''
+                    OR (
+                        t.uploaderid = %s
+                        AND t.assigned_to <> t.uploaderid
+                        AND (t.status = 'Completed' OR t.status IN ('Todo', 'To Do') OR t.status IS NULL)
+                        AND (t.Approval IS NULL OR t.Approval != 'Approved')
+                    )
+                )"""
+            )
+            params.append(employee_id)
         elif status == 'in_progress':
             where.append(
                 "(t.status IN ('InProgress', 'Started')) AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))"
@@ -275,11 +277,11 @@ def list_tasks():
                         AND NOT (
                             t.uploaderid = %s
                             AND t.assigned_to <> t.uploaderid
-                            AND t.status = 'Completed'
+                            AND (t.Approval IS NULL OR t.Approval != 'Approved')
                         )
                     )"""
                 )
-                params.append(g.user_id)
+                params.append(employee_id)
         else:
             where.append("t.status = %s")
             params.append(status)
