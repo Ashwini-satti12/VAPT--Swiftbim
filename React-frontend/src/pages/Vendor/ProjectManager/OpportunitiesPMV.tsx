@@ -48,12 +48,14 @@ function getInitials(name: string) {
     return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2) || '??';
 }
 
-function formatBudget(amount: number) {
+function formatBudget(amount: number, currency: string = 'INR') {
     if (!amount) return '—';
-    if (amount >= 10000000) return `₹ ${(amount / 10000000).toFixed(1)} Cr`;
-    if (amount >= 100000) return `₹ ${(amount / 100000).toFixed(1)} L`;
-    if (amount >= 1000) return `₹ ${(amount / 1000).toFixed(0)}K`;
-    return `₹ ${amount}`;
+    if (currency === 'INR') {
+        if (amount >= 10000000) return `${(amount / 10000000).toFixed(1)} Cr INR`;
+        if (amount >= 100000) return `${(amount / 100000).toFixed(1)} L INR`;
+        if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K INR`;
+    }
+    return `${amount.toLocaleString()} ${currency}`;
 }
 
 export default function OpportunitiesPMV() {
@@ -296,7 +298,7 @@ export default function OpportunitiesPMV() {
                                     {/* Budget + Check Details */}
                                     <div className="flex items-center justify-between">
                                         <p className="text-[16px] font-bold text-[#222] font-gantari">
-                                            {formatBudget(opp.budget_ceiling || opp.outsource_budget)}
+                                            {formatBudget(opp.budget_ceiling || opp.outsource_budget, opp.currency)}
                                         </p>
                                         <button
                                             onClick={() => setDetailOpportunity(opp)}
@@ -360,7 +362,7 @@ export default function OpportunitiesPMV() {
                             )}
                             <div className="flex gap-2"><span className="text-[#717171] font-medium w-28">Status</span><span className={`font-bold ${detailOpportunity.status === 'active' ? 'text-[#16A34A]' : 'text-[#DE3D3A]'}`}>{detailOpportunity.status === 'active' ? 'Open' : 'Closed'}</span></div>
                             <div className="flex gap-2"><span className="text-[#717171] font-medium w-28">Deadline</span><span className="text-[#353535] font-semibold">{detailOpportunity.bid_deadline ? new Date(detailOpportunity.bid_deadline).toLocaleDateString() : '—'}</span></div>
-                            <div className="flex gap-2"><span className="text-[#717171] font-medium w-28">Budget</span><span className="text-[#DE3D3A] font-bold">{formatBudget(detailOpportunity.budget_ceiling || detailOpportunity.outsource_budget)}</span></div>
+                            <div className="flex gap-2"><span className="text-[#717171] font-medium w-28">Budget</span><span className="text-[#DE3D3A] font-bold">{formatBudget(detailOpportunity.budget_ceiling || detailOpportunity.outsource_budget, detailOpportunity.currency)}</span></div>
                             {detailOpportunity.description && (
                                 <div className="flex flex-col gap-1"><span className="text-[#717171] font-medium">Description</span><p className="text-[#353535] leading-relaxed bg-[#F8F8F8] rounded-lg p-3">{detailOpportunity.description}</p></div>
                             )}
@@ -395,7 +397,7 @@ export default function OpportunitiesPMV() {
                         <p className="text-sm font-medium text-[#353535] font-gantari mb-6 bg-[#F8F8F8] p-4 rounded-xl">
                             📁 <span className="font-bold">{selectedOpportunity.project_name}</span>
                             {(selectedOpportunity.budget_ceiling || selectedOpportunity.outsource_budget) > 0 && (
-                                <> — Budget: <span className="text-[#DE3D3A] font-bold">{formatBudget(selectedOpportunity.budget_ceiling || selectedOpportunity.outsource_budget)}</span></>
+                                <> — Budget: <span className="text-[#DE3D3A] font-bold">{formatBudget(selectedOpportunity.budget_ceiling || selectedOpportunity.outsource_budget, selectedOpportunity.currency)}</span></>
                             )}
                         </p>
 

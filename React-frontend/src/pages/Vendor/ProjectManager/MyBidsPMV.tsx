@@ -32,9 +32,9 @@ export default function MyBidsPMV() {
             .finally(() => setLoading(false));
     }, []);
 
-    const formatBudget = (amount: number | undefined) => {
+    const formatBudget = (amount: number | undefined, currency: string = "INR") => {
         if (!amount) return '—';
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
+        return `${amount.toLocaleString()} ${currency}`;
     };
 
     const getStatusLabel = (status: string) => {
@@ -133,10 +133,10 @@ export default function MyBidsPMV() {
                                                 )}
                                             </td>
                                             <td className="px-3 py-3 text-center text-sm font-bold text-[#DE3D3A] font-gantari whitespace-nowrap align-middle">
-                                                {formatBudget(bid.bid_amount)}
+                                                {formatBudget(bid.bid_amount, bid.currency)}
                                             </td>
                                             <td className="px-3 py-3 text-center text-sm font-bold text-[#353535] font-gantari whitespace-nowrap align-middle">
-                                                {formatBudget(bid.outsource_budget)}
+                                                {formatBudget(bid.outsource_budget, bid.currency)}
                                             </td>
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">
                                                 {bid.bid_deadline
@@ -184,8 +184,8 @@ export default function MyBidsPMV() {
                         </div>
                         <div className="flex flex-col gap-3 text-sm font-gantari">
                             <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Project</span><span className="text-[#353535] font-semibold">{detailBid.project_name || `Opportunity #${detailBid.opportunity_id}`}</span></div>
-                            <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Bid Amount</span><span className="text-[#DE3D3A] font-bold">{formatBudget(detailBid.bid_amount)}</span></div>
-                            <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Budget</span><span className="text-[#353535] font-semibold">{formatBudget(detailBid.outsource_budget)}</span></div>
+                            <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Bid Amount</span><span className="text-[#DE3D3A] font-bold">{formatBudget(detailBid.bid_amount, detailBid.currency)}</span></div>
+                            <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Budget</span><span className="text-[#353535] font-semibold">{formatBudget(detailBid.outsource_budget, detailBid.currency)}</span></div>
                             <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Status</span><span className={`inline-flex px-3 py-1 rounded-lg text-xs font-bold ${getStatusBadge(detailBid.status)}`}>{getStatusLabel(detailBid.status)}</span></div>
                             <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Deadline</span><span className="text-[#353535] font-semibold">{detailBid.bid_deadline ? new Date(detailBid.bid_deadline).toLocaleDateString() : '—'}</span></div>
                             <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Submitted</span><span className="text-[#353535] font-semibold">{detailBid.created_at ? new Date(detailBid.created_at).toLocaleDateString() : '—'}</span></div>

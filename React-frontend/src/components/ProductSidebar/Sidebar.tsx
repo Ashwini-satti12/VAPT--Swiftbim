@@ -444,7 +444,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           { name: "Milestones", path: "/v/milestones", iconSrc: trackerIcon, activeIconSrc: whiteTrackerIcon, isVisible: true },
           { name: "Invoices", path: "/v/invoices", iconSrc: teamReportIcon, activeIconSrc: whiteTeamReportIcon, isVisible: true },
           // { name: "Communication", path: "/v/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
-          { name: "Performance", path: "/v/performance", iconSrc: teamReportIcon, activeIconSrc: whiteTeamReportIcon, isVisible: true },
+          // { name: "Performance", path: "/v/performance", iconSrc: teamReportIcon, activeIconSrc: whiteTeamReportIcon, isVisible: true },
         ];
       }
     }

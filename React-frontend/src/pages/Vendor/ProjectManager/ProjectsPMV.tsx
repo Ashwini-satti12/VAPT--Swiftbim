@@ -106,12 +106,7 @@ function vendorDocUrl(fileName: string): string {
 }
 
 function getCurrencySymbol(code?: string): string {
-    const c = (code || "").toUpperCase();
-    if (c === "USD") return "$";
-    if (c === "EUR") return "EUR";
-    if (c === "GBP") return "GBP";
-    if (c === "AED") return "AED";
-    return "₹";
+    return (code || "INR").toUpperCase();
 }
 
 export default function ProjectsPMV() {
@@ -1411,7 +1406,7 @@ export default function ProjectsPMV() {
                                             <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                                             <span className="text-[16px] font-gantari font-medium text-[#616161]">
                                                 {selectedProject.budget_ceiling
-                                                    ? `${getCurrencySymbol(projectCurrencyCode(selectedProject))} ${selectedProject.budget_ceiling}`
+                                                    ? `${selectedProject.budget_ceiling} ${projectCurrencyCode(selectedProject)}`
                                                     : "N/A"}
                                             </span>
                                         </div>

@@ -1231,7 +1231,7 @@ export default function ProjectsBL() {
                       <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                       <span className="text-[16px] font-Gantari font-medium text-[#616161]">
                         {selectedProjectForView.budget
-                          ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget}`
+                          ? `${selectedProjectForView.budget} ${selectedProjectForView.currency || "INR"}`
                           : "N/A"}
                       </span>
                     </div>
@@ -1241,7 +1241,7 @@ export default function ProjectsBL() {
                         <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                         <span className="text-[16px] font-Gantari font-medium text-[#616161]">
                           {selectedProjectForView.budget_ceiling
-                            ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget_ceiling}`
+                            ? `${selectedProjectForView.budget_ceiling} ${selectedProjectForView.currency || "INR"}`
                             : "N/A"}
                         </span>
                       </div>
@@ -1646,7 +1646,8 @@ export default function ProjectsBL() {
                     <div className="flex items-center gap-4 md:gap-8 w-full md:w-auto">
                       <div className="text-right">
                         <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
-                          ${Number(m.milestone_amount).toLocaleString()}
+                          {Number(m.milestone_amount).toLocaleString()}{" "}
+                          {selectedProjectForView.currency || "INR"}
                         </p>
                         <span
                           className={`inline-block px-3 py-1 rounded-full text-[12px] font-bold font-Gantari ${m.status === "Paid" ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"}`}
@@ -3608,7 +3609,7 @@ export default function ProjectsBL() {
 
               <div className="space-y-2">
                 <label className="block text-[14px] md:text-[15px] font-Gantari font-bold text-[#353535]">
-                  Amount ($)*
+                  Amount ({selectedProjectForView?.currency || "INR"})*
                 </label>
                 <input
                   type="number"
@@ -3620,8 +3621,8 @@ export default function ProjectsBL() {
                   required
                 />
                 <div className="flex flex-col sm:flex-row justify-between gap-1 text-[12px] md:text-[13px] font-Gantari font-bold text-[#999999]">
-                  <span>Project Budget: 5,000,00$</span>
-                  <span>Available Budget: 5,000,00$</span>
+                  <span>Project Budget: {selectedProjectForView?.budget || "0"} {selectedProjectForView?.currency || "INR"}</span>
+                  <span>Available Budget: {selectedProjectForView?.budget || "0"} {selectedProjectForView?.currency || "INR"}</span>
                 </div>
               </div>
 

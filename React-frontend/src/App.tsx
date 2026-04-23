@@ -359,6 +359,7 @@ function App() {
             <Route path="v/opportunities" element={<BiddingV />} />
             <Route path="v/mybids" element={<BiddingV />} />
             <Route path="v/proposals" element={<ProposalsV />} />
+            <Route path="v/view-proposal" element={<ViewProposalTD />} />
             <Route path="v/create-proposal" element={<CreateProposalV />} />
             <Route path="v/consultants" element={<ConsultantV />} />
             <Route path="v/consultants/:id" element={<ConsultantdetailsV />} />

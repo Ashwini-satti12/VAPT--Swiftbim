@@ -277,12 +277,7 @@ export default function ProjectEV() {
   const [selectedMember, setSelectedMember] = useState<VendorResourceProfileRow | null>(null);
 
   const getCurrencySymbol = (code?: string) => {
-    const c = (code || "").toUpperCase();
-    if (c === "USD") return "$";
-    if (c === "EUR") return "EUR";
-    if (c === "GBP") return "GBP";
-    if (c === "AED") return "AED";
-    return "₹";
+    return (code || "INR").toUpperCase();
   };
 
   const projectCurrencyCode = (p?: Project | null) =>
@@ -759,7 +754,7 @@ export default function ProjectEV() {
                         <span className="text-[#616161] mx-4 shrink-0">:</span>
                         <span className="text-[14px] font-medium text-[#616161] font-gantari">
                           {selectedProject.budget || selectedProject.budget_ceiling
-                            ? `${getCurrencySymbol(projectCurrencyCode(selectedProject))}${selectedProject.budget || selectedProject.budget_ceiling}`
+                            ? `${selectedProject.budget || selectedProject.budget_ceiling} ${projectCurrencyCode(selectedProject)}`
                             : "N/A"}
                         </span>
                       </div>
@@ -768,7 +763,7 @@ export default function ProjectEV() {
                         <span className="text-[#616161] mx-4 shrink-0">:</span>
                         <span className="text-[14px] font-medium text-[#616161]">
                           {selectedProject.budget_ceiling
-                            ? `${getCurrencySymbol(projectCurrencyCode(selectedProject))}${selectedProject.budget_ceiling}`
+                            ? `${selectedProject.budget_ceiling} ${projectCurrencyCode(selectedProject)}`
                             : "N/A"}
                         </span>
                       </div>

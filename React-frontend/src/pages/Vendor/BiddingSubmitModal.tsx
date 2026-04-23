@@ -209,17 +209,6 @@ export function BiddingSubmitModal({
     (selectedOpp.project_priority && String(selectedOpp.project_priority).trim()) ||
     emDash;
 
-  const bidAmountSummary = (() => {
-    const raw = String(bidForm.bid_amount ?? "").trim();
-    if (!raw) return emDash;
-    const n = parseBidAmountInput(raw);
-    if (n == null) {
-      const cur = bidForm.currency?.trim();
-      return cur ? `${raw} ${cur}` : raw;
-    }
-    return formatBudget(n, bidForm.currency);
-  })();
-
   /** Summary bar: project name, bid deadline, project due date, bid amount (px-5 py-2). */
   const opportunitySummaryBanner = (
     <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md px-5 py-2 flex flex-wrap items-stretch w-full">
@@ -256,9 +245,16 @@ export function BiddingSubmitModal({
         </p>
         <p
           className="text-[#616161] text-[13px] sm:text-[14px] font-gantari truncate"
-          title={bidAmountSummary !== emDash ? bidAmountSummary : undefined}
+          title={
+            selectedOpp.budget_ceiling || selectedOpp.outsource_budget 
+              ? String(selectedOpp.budget_ceiling || selectedOpp.outsource_budget) 
+              : undefined
+          }
         >
-          {bidAmountSummary}
+          {formatBudget(
+            Number(selectedOpp.budget_ceiling) || Number(selectedOpp.outsource_budget) || 0, 
+            selectedOpp.currency
+          )}
         </p>
       </div>
     </div>
@@ -461,7 +457,7 @@ export function BiddingSubmitModal({
         </div>
         <div>
           <label className="block text-[16px] font-medium text-[#353535] mb-2 font-gantari">
-            Bid Amount <span className="text-[#DE3D3A]">*</span>
+            Enter your Bid Amount <span className="text-[#DE3D3A]">*</span>
           </label>
           <input
             type="number"

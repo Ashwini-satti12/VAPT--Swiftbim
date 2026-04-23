@@ -1703,7 +1703,7 @@ export default function ProjectsPM() {
                           <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                           <span className="text-[16px] font-gantari font-medium text-[#616161]">
                             {selectedProjectForView.budget
-                              ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget}`
+                              ? `${selectedProjectForView.budget} ${selectedProjectForView.currency || "INR"}`
                               : "N/A"}
                           </span>
                         </div>
@@ -1715,7 +1715,7 @@ export default function ProjectsPM() {
                             <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                             <span className="text-[16px] font-gantari font-medium text-[#616161]">
                               {selectedProjectForView.budget_ceiling
-                                ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget_ceiling}`
+                                ? `${selectedProjectForView.budget_ceiling} ${selectedProjectForView.currency || "INR"}`
                                 : "N/A"}
                             </span>
                           </div>
@@ -1964,7 +1964,10 @@ export default function ProjectsPM() {
                           </div>
                           <div className="flex items-center gap-8">
                             <div className="text-right">
-                              <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">${Number(m.milestone_amount).toLocaleString()}</p>
+                              <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
+                                {Number(m.milestone_amount).toLocaleString()}{" "}
+                                {selectedProjectForView.currency || "INR"}
+                              </p>
                               <span className={`inline-block px-3 py-1 rounded-full text-[12px] font-bold font-Gantari ${m.status === 'Paid' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
                                 {m.status}
                               </span>

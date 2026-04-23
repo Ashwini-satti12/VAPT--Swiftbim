@@ -1993,7 +1993,7 @@ export default function ProjectsTD() {
                             </span>
                             <span className="text-[16px] font-gantari font-medium text-[#616161]">
                               {selectedProjectForView.budget
-                                ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget}`
+                                ? `${selectedProjectForView.budget} ${selectedProjectForView.currency || "INR"}`
                                 : "N/A"}
                             </span>
                           </div>
@@ -2007,7 +2007,7 @@ export default function ProjectsTD() {
                               </span>
                               <span className="text-[16px] font-gantari font-medium text-[#616161]">
                                 {selectedProjectForView.budget_ceiling
-                                  ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget_ceiling}`
+                                  ? `${selectedProjectForView.budget_ceiling} ${selectedProjectForView.currency || "INR"}`
                                   : "N/A"}
                               </span>
                             </div>
@@ -2290,9 +2290,7 @@ export default function ProjectsTD() {
                       (s, x) => s + Number(x.milestone_amount || 0),
                       0,
                     );
-                    const currencySymbol =
-                      CURRENCIES.find((c) => c.code === currentProject?.currency)
-                        ?.symbol ?? "₹";
+                    const currencyCode = currentProject?.currency || "INR";
 
                     return milestones.map((m) => {
                       const st = (m.status || "Pending").toLowerCase();
@@ -2362,8 +2360,8 @@ export default function ProjectsTD() {
                                 :
                               </span>
                               <span className="text-[15px] font-Gantari font-bold text-[#1A1A1A]">
-                                {currencySymbol}{" "}
-                                {Number(m.milestone_amount).toLocaleString()}
+                                {Number(m.milestone_amount).toLocaleString()}{" "}
+                                {currencyCode}
                               </span>
                             </div>
                           </div>
@@ -3161,7 +3159,7 @@ export default function ProjectsTD() {
                           className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-md transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] ${selectedProjectForEdit?.currency_locked ? "cursor-not-allowed opacity-80" : "cursor-pointer"} ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
                         >
                           <span className="text-[14px] text-[#353535] font-medium truncate">
-                            {CURRENCIES.find(c => c.code === createCurrency)?.symbol} {createCurrency}
+                            {createCurrency}
                           </span>
                           <img
                             src={ArrowDown}
@@ -3653,7 +3651,7 @@ export default function ProjectsTD() {
 
               <div className="space-y-2">
                 <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
-                  Amount ({CURRENCIES.find(c => c.code === currentProject?.currency)?.symbol || "$"})*
+                  Amount ({currentProject?.currency || "INR"})*
                 </label>
                 <input
                   type="number"
@@ -3943,7 +3941,7 @@ export default function ProjectsTD() {
                           className={`w-full h-[36px] flex items-center justify-between px-3 bg-[#F2F3F4] rounded-md transition-all focus:outline-none border-1 border-transparent focus:border-[#AEACAC52] ${selectedProjectForEdit?.currency_locked ? "cursor-not-allowed opacity-80" : "cursor-pointer"} ${currencyDropdownOpen ? "!border-[#AEACAC52]" : ""}`}
                         >
                           <span className="text-[14px] text-[#353535] font-medium truncate">
-                            {CURRENCIES.find(c => c.code === createCurrency)?.symbol} {createCurrency}
+                            {createCurrency}
                           </span>
                           <img
                             src={ArrowDown}

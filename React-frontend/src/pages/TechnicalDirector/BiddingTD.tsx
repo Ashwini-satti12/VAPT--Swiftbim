@@ -89,13 +89,9 @@ export default function BiddingTD() {
     return "bg-[#F2F2F2] text-[#616161]";
   };
 
-  const formatBudget = (amount: number | undefined) => {
+  const formatBudget = (amount: number | undefined, currency: string = "INR") => {
     if (!amount) return "—";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(amount);
+    return `${amount.toLocaleString()} ${currency}`;
   };
 
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
@@ -319,6 +315,7 @@ export default function BiddingTD() {
                       <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                         {formatBudget(
                           project.budget_ceiling || project.outsource_budget,
+                          project.currency || "INR"
                         )}
                       </td>
                       <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">

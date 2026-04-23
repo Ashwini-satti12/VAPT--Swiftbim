@@ -40,10 +40,11 @@ type Bid = {
   team_size?: number;
   created_at: string;
   project_name?: string;
-  outsource_budget?: number;
+  // outsource_budget?: number;
   bid_deadline?: string;
   currency?: string;
   project_due_date?: string | null;
+  outsource_budget?: number | string;
 };
 
 type BidFormState = {
@@ -162,19 +163,18 @@ function formatBudget(amount: number, currencyCode: string = "INR") {
   if (!amount) return "—";
 
   if (currencyCode === "INR") {
-    if (amount >= 10000000) return `₹ ${(amount / 10000000).toFixed(1)} Cr`;
-    if (amount >= 100000) return `₹ ${(amount / 100000).toFixed(1)} L`;
-    if (amount >= 1000) return `₹ ${(amount / 1000).toFixed(0)}K`;
-    return `₹ ${amount.toLocaleString("en-IN")}`;
+    if (amount >= 10000000) return `${(amount / 10000000).toFixed(1)} Cr INR`;
+    if (amount >= 100000) return `${(amount / 100000).toFixed(1)} L INR`;
+    if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K INR`;
+    return `${amount.toLocaleString("en-IN")} INR`;
   }
 
-  const symbol =
-    CURRENCIES.find((c) => c.code === currencyCode)?.symbol || currencyCode;
+  const code = currencyCode;
 
-  if (amount >= 1000000) return `${symbol} ${(amount / 1000000).toFixed(1)}M`;
-  if (amount >= 1000) return `${symbol} ${(amount / 1000).toFixed(1)}K`;
+  if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M ${code}`;
+  if (amount >= 1000) return `${(amount / 1000).toFixed(1)}K ${code}`;
 
-  return `${symbol} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  return `${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${code}`;
 }
 
 /** Budget from API (number or string with commas / ₹). */
@@ -408,7 +408,11 @@ export default function BiddingV() {
     setSubmitBidReturnView(returnTo);
     setBidError(null);
     setBidAmountError(null);
-    setBidForm({ ...EMPTY_BID_FORM, currency: opp.currency || "INR" });
+    setBidForm({ 
+      ...EMPTY_BID_FORM, 
+      currency: opp.currency || "INR",
+      bid_amount: ""
+    });
     setSelectedOpp(opp);
     void enrichOpportunityById(opp.id);
     setViewMode("submit-bid");
@@ -695,10 +699,12 @@ export default function BiddingV() {
                 Bid amount
               </p>
               <p className="text-[#616161] text-[13px] sm:text-[14px] font-gantari truncate">
-                {linkedBidForOpp 
-                  ? formatBudget(linkedBidForOpp.bid_amount, linkedBidForOpp.currency)
-                  : "—"
-                }
+                {formatBudget(
+                  parseBudgetNumeric(detailOpp.budget_ceiling) ??
+                    parseBudgetNumeric(detailOpp.outsource_budget) ??
+                    0,
+                  detailOpp.currency
+                )}
               </p>
             </div>
           </div>

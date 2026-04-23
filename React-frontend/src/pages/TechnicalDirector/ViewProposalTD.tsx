@@ -138,6 +138,10 @@ export default function ViewProposalTD() {
     state?.proposalId || Number(searchParams.get("proposalId") || 0) || null;
   const source = state?.source || searchParams.get("source") || "td_proposals";
   const returnTo = state?.returnTo || "/td/proposals";
+  const isVendorView =
+    location.pathname.startsWith("/v") ||
+    returnTo.startsWith("/v") ||
+    source === "vendor_submitted";
 
   const [loading, setLoading] = useState(!!proposalId);
   const [proposal, setProposal] = useState<Proposal | null>(null);
@@ -152,9 +156,6 @@ export default function ViewProposalTD() {
       setLoading(false);
       return;
     }
-
-    const isVendorView =
-      location.pathname.startsWith("/v") || returnTo.startsWith("/v");
 
     const fetchProposal = async () => {
       const primaryPath =
@@ -458,7 +459,7 @@ export default function ViewProposalTD() {
         </div>
 
         <div className="shrink-0 flex flex-wrap items-center justify-end gap-2 sm:gap-3">
-          {proposal && isProposalAccepted && (
+          {proposal && isProposalAccepted && !isVendorView && (
             <button
               type="button"
               onClick={() =>
@@ -483,7 +484,7 @@ export default function ViewProposalTD() {
             </span>
           )}
 
-          {proposal && !isProposalTerminal && (
+          {proposal && !isProposalTerminal && !isVendorView && (
             <div className="flex flex-row items-center justify-end gap-2 shrink-0">
               <button
                 type="button"
