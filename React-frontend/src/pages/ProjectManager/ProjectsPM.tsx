@@ -60,6 +60,14 @@ const nameToId = (name: string, employeesList: Employee[]) => {
   return emp ? emp.id : undefined;
 };
 
+const namesToIds = (names: string[], employeesList: Employee[]) => {
+  if (!Array.isArray(names)) return undefined;
+  return names
+    .map((name) => nameToId(name, employeesList))
+    .filter((id) => id !== undefined)
+    .join(",");
+};
+
 const nameOrCsvToIdCsv = (value: string, employeesList: Employee[]): string => {
   if (!value) return "";
   return value
@@ -278,41 +286,119 @@ function CustomDropdown({
 }
 
 function FormSelect({
-  placeholder, options, value, onChange,
-}: { label?: string; placeholder: string; options: string[]; value: string; onChange: (v: string) => void; }) {
+  placeholder,
+  options,
+  value,
+  onChange,
+  isMulti = false,
+  showTick = true,
+}: {
+  label?: string;
+  placeholder: string;
+  options: string[];
+  value: string | string[];
+  onChange: (v: any) => void;
+  isMulti?: boolean;
+  showTick?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, [open]);
+
+  const handleSelect = (opt: string) => {
+    if (isMulti) {
+      const currentValues = Array.isArray(value) ? value : [];
+      if (currentValues.includes(opt)) {
+        onChange(currentValues.filter((v) => v !== opt));
+      } else {
+        onChange([...currentValues, opt]);
+      }
+    } else {
+      onChange(opt);
+      setOpen(false);
+    }
+  };
+
+  const getDisplayValue = () => {
+    if (isMulti) {
+      const vals = Array.isArray(value) ? value : [];
+      return vals.length > 0 ? vals.join(", ") : placeholder;
+    }
+    return (value as string) || placeholder;
+  };
+
+  const isSelected = (opt: string) => {
+    if (isMulti) {
+      return Array.isArray(value) && value.includes(opt);
+    }
+    return value === opt;
+  };
+
   return (
     <div className="relative w-full" ref={ref}>
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-left transition-all focus:outline-none cursor-pointer"
+        onClick={() => setOpen((o) => !o)}
+        className={`w-full flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] font-Gantari transition-all outline-none cursor-pointer ${open ? "!border-[#AEACAC52]" : ""}`}
       >
-        <span className={value ? 'text-[#353535] font-medium text-[14px]' : 'text-gray-400 font-medium text-[14px]'}>
-          {value || placeholder}
+        <span
+          className={
+            (isMulti ? (Array.isArray(value) && value.length > 0) : value)
+              ? "text-[#353535] font-medium truncate pr-2"
+              : "text-[#8B8B8B] font-medium"
+          }
+        >
+          {getDisplayValue()}
         </span>
-        <svg className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform shrink-0 ${open ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
       {open && (
-        <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto">
-          {options.map(opt => (
+        <div className="absolute z-[100] top-full left-0 right-0 mt-1 bg-white border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+          {options.map((opt) => (
             <button
               key={opt}
               type="button"
-              onClick={() => { onChange(opt); setOpen(false); }}
-              className={`w-full text-left px-4 py-2.5 text-[14px] font-medium transition-colors cursor-pointer hover:bg-[#F2F2F2] hover:text-[#353535]
-                ${value === opt ? 'text-[#353535]' : 'text-gray-500'}`}
+              onClick={() => handleSelect(opt)}
+              className={`w-full text-left px-4 py-2.5 text-[14px] font-Gantari transition-colors cursor-pointer flex items-center justify-between
+                ${isSelected(opt) ? "bg-[#FFF2F2] text-[#DD4342]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F4F4F4]"}`}
             >
-              {opt}
+              <span className="truncate pr-2">{opt}</span>
+              {showTick && isSelected(opt) && (
+                <svg
+                  className="w-4 h-4 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              )}
             </button>
           ))}
         </div>
@@ -390,14 +476,14 @@ export default function ProjectsPM() {
   const [editPriority, setEditPriority] = useState('');
   const [editMember, setEditMember] = useState('');
   const [createClientName, setCreateClientName] = useState('');
-  const [createProjectManager, setCreateProjectManager] = useState('');
+  const [createProjectManager, setCreateProjectManager] = useState<string[]>([]);
   const [createStartDate, setCreateStartDate] = useState('');
   const [createEndDate, setCreateEndDate] = useState('');
   const [createTotalHours, setCreateTotalHours] = useState('');
   const [createPerDay, setCreatePerDay] = useState('');
   const [createDepartment, setCreateDepartment] = useState('');
-  const [createBIMLead, setCreateBIMLead] = useState('');
-  const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState('');
+  const [createBIMLead, setCreateBIMLead] = useState<string[]>([]);
+  const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState<string[]>([]);
   const [createResources, setCreateResources] = useState('');
   const [createRequiredResources, setCreateRequiredResources] = useState('');
   const [createPriority, setCreatePriority] = useState('');
@@ -589,14 +675,14 @@ export default function ProjectsPM() {
     setEditPriority('');
     setEditMember('');
     setCreateClientName('');
-    setCreateProjectManager(user?.full_name || '');
+    setCreateProjectManager(user?.full_name ? [user.full_name] : []);
     setCreateStartDate('');
     setCreateEndDate('');
     setCreateTotalHours('');
     setCreatePerDay('');
     setCreateDepartment('');
-    setCreateBIMLead('');
-    setCreateBIMCoOrdinator('');
+    setCreateBIMLead([]);
+    setCreateBIMCoOrdinator([]);
     setSelectedMemberIds([]);
     setCreateResources('');
     setCreateRequiredResources('');
@@ -1961,13 +2047,13 @@ export default function ProjectsPM() {
                       const clientId = clientsList.find(c => c.full_name === createClientName)?.id;
                       if (clientId) formData.append('client_id', String(clientId));
 
-                      const pmIds = nameOrCsvToIdCsv(createProjectManager, allEmployees);
+                      const pmIds = namesToIds(createProjectManager, allEmployees);
                       if (pmIds) formData.append('project_manager_id', pmIds);
 
-                      const leadIds = nameOrCsvToIdCsv(createBIMLead, allEmployees);
+                      const leadIds = namesToIds(createBIMLead, allEmployees);
                       if (leadIds) formData.append('lead_id', leadIds);
 
-                      const bcIds = nameOrCsvToIdCsv(createBIMCoOrdinator, allEmployees);
+                      const bcIds = namesToIds(createBIMCoOrdinator, allEmployees);
                       if (bcIds) formData.append('bim_coordinator_id', bcIds);
 
                       if (selectedMemberIds.length > 0) formData.append('members', selectedMemberIds.join(','));
@@ -2201,6 +2287,7 @@ export default function ProjectsPM() {
                         <FormSelect
                           label="Project Manager" placeholder="Select project manager"
                           options={projectManagers} value={createProjectManager}
+                          isMulti={true}
                           onChange={setCreateProjectManager}
                         />
                       </div>
@@ -2284,6 +2371,7 @@ export default function ProjectsPM() {
                         <FormSelect
                           label="BIM Lead" placeholder="Select BIM Lead"
                           options={bimLeads} value={createBIMLead}
+                          isMulti={true}
                           onChange={setCreateBIMLead}
                         />
                       </div>
@@ -2295,6 +2383,7 @@ export default function ProjectsPM() {
                         <FormSelect
                           label="BIM Co-Ordinator" placeholder="Select BIM Co-Ordinator"
                           options={bimCoordinators} value={createBIMCoOrdinator}
+                          isMulti={true}
                           onChange={setCreateBIMCoOrdinator}
                         />
                       </div>
@@ -2571,14 +2660,14 @@ export default function ProjectsPM() {
                         !createBudget.trim() ||
                         editModuleTags.length === 0 ||
                         !createClientName.trim() ||
-                        !createProjectManager.trim() ||
+                        createProjectManager.length === 0 ||
                         !createStartDate.trim() ||
                         !createEndDate.trim() ||
                         !createPerDay.trim() ||
                         !createTotalHours.trim() ||
                         !createDepartment.trim() ||
-                        !createBIMLead.trim() ||
-                        !createBIMCoOrdinator.trim() ||
+                        createBIMLead.length === 0 ||
+                        createBIMCoOrdinator.length === 0 ||
                         selectedMemberIds.length === 0 ||
                         !createResources.trim() ||
                         !createRequiredResources.trim() ||
@@ -2601,13 +2690,13 @@ export default function ProjectsPM() {
                       const client = clientsList.find(c => String(c.id) === String(createClientName) || c.full_name === createClientName);
                       if (client) formData.append('client_id', String(client.id));
 
-                      const pmIds = nameOrCsvToIdCsv(createProjectManager, allEmployees);
+                      const pmIds = namesToIds(createProjectManager, allEmployees);
                       if (pmIds) formData.append('project_manager_id', pmIds);
 
-                      const leadIds = nameOrCsvToIdCsv(createBIMLead, allEmployees);
+                      const leadIds = namesToIds(createBIMLead, allEmployees);
                       if (leadIds) formData.append('lead_id', leadIds);
 
-                      const bcIds = nameOrCsvToIdCsv(createBIMCoOrdinator, allEmployees);
+                      const bcIds = namesToIds(createBIMCoOrdinator, allEmployees);
                       if (bcIds) formData.append('bim_coordinator_id', bcIds);
 
                       if (selectedMemberIds.length > 0) formData.append('members', selectedMemberIds.join(','));
@@ -2855,6 +2944,7 @@ export default function ProjectsPM() {
                         <FormSelect
                           label="Project Manager" placeholder="Select project manager"
                           options={projectManagers} value={createProjectManager}
+                          isMulti={true}
                           onChange={setCreateProjectManager}
                         />
                       </div>
@@ -2939,6 +3029,7 @@ export default function ProjectsPM() {
                         <FormSelect
                           label="BIM Lead" placeholder="Select BIM Lead"
                           options={bimLeads} value={createBIMLead}
+                          isMulti={true}
                           onChange={setCreateBIMLead}
                         />
                       </div>
@@ -2951,6 +3042,7 @@ export default function ProjectsPM() {
                         <FormSelect
                           label="BIM Co-Ordinator" placeholder="Select BIM Co-Ordinator"
                           options={bimCoordinators} value={createBIMCoOrdinator}
+                          isMulti={true}
                           onChange={setCreateBIMCoOrdinator}
                         />
                       </div>
@@ -3366,17 +3458,41 @@ export default function ProjectsPM() {
                                           setCreateCurrency(p.currency || 'INR');
                                           const foundClient = clientsList.find(c => String(c.id) === String(p.client_name));
                                           setCreateClientName(foundClient ? foundClient.full_name : (p.client_name ?? ''));
-                                          const pmName = firstCsvValue(p.project_manager_name) || idToName(firstCsvValue(p.project_manager_id), allEmployees);
-                                          setCreateProjectManager(pmName);
+                                          const pmList = (p.project_manager_name || '').split(',').map(s => s.trim()).filter(Boolean);
+                                          if (pmList.length === 0 && p.project_manager_id) {
+                                            const idList = p.project_manager_id.split(',').map(s => s.trim()).filter(Boolean);
+                                            idList.forEach(id => {
+                                              const name = idToName(id, allEmployees);
+                                              if (name) pmList.push(name);
+                                            });
+                                          }
+                                          setCreateProjectManager(pmList);
+
                                           setCreateStartDate(p.start_date ? p.start_date.split('T')[0].split(' ')[0] : '');
                                           setCreateEndDate(p.end_date ? p.end_date.split('T')[0].split(' ')[0] : '');
                                           setCreateTotalHours(p.total_hours ?? '');
                                           setCreatePerDay(p.per_day ?? '');
                                           setCreateDepartment(p.department ?? '');
-                                          const blName = firstCsvValue(p.lead_name) || idToName(firstCsvValue(p.lead_id), allEmployees);
-                                          setCreateBIMLead(blName);
-                                          const bimCoName = firstCsvValue(p.bim_coordinator_name) || idToName(firstCsvValue(p.bim_coordinator_id), allEmployees);
-                                          setCreateBIMCoOrdinator(bimCoName);
+
+                                          const blList = (p.lead_name || '').split(',').map(s => s.trim()).filter(Boolean);
+                                          if (blList.length === 0 && p.lead_id) {
+                                            const idList = p.lead_id.split(',').map(s => s.trim()).filter(Boolean);
+                                            idList.forEach(id => {
+                                              const name = idToName(id, allEmployees);
+                                              if (name) blList.push(name);
+                                            });
+                                          }
+                                          setCreateBIMLead(blList);
+
+                                          const bcList = (p.bim_coordinator_name || '').split(',').map(s => s.trim()).filter(Boolean);
+                                          if (bcList.length === 0 && p.bim_coordinator_id) {
+                                            const idList = p.bim_coordinator_id.split(',').map(s => s.trim()).filter(Boolean);
+                                            idList.forEach(id => {
+                                              const name = idToName(id, allEmployees);
+                                              if (name) bcList.push(name);
+                                            });
+                                          }
+                                          setCreateBIMCoOrdinator(bcList);
                                           if (p.member) {
                                             const memIds = p.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
                                             setSelectedMemberIds(memIds);

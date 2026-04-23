@@ -951,8 +951,8 @@ const PERIOD_OPTIONS = [
 export default function MytaskBC() {
   const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
-  const isTeam =
-    searchParams.get("condition") === "1" || pathname.endsWith("/team");
+  // `/bc/mytasks` only — never use team task API here.
+  const isTeam = false;
   const statusFilter =
     searchParams.get("status") || searchParams.get("taskstatus");
   const [list, setList] = useState<Task[]>([]);
@@ -1149,6 +1149,7 @@ export default function MytaskBC() {
   }, []);
 
   useEffect(() => {
+    setLoading(true);
     const params: Record<string, string> = {};
     if (statusFilter) params.status = statusFilter;
     if (isTeam) {
@@ -1157,22 +1158,57 @@ export default function MytaskBC() {
     }
 
     const taskParams: Record<string, string> = { ...params };
+    let cancelled = false;
 
-    Promise.all([
-      api.get<{ tasks?: Task[] }>("/api/tasks", { params: taskParams }),
-      api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", {
-        params: taskParams,
-      }),
-    ])
-      .then(([res1, res2]) => {
-        const t1 = (res1.data.tasks ?? []).map((t) => ({
-          ...t,
-          source: "In House",
-        }));
-        const t2 = (res2.data.tasks ?? []).map((t) => ({
-          ...t,
-          source: "Outsource",
-        }));
+    (async () => {
+      const t1: Task[] = [];
+      const t2: Task[] = [];
+      try {
+        const res1 = await api.get<{ tasks?: Task[] }>("/api/tasks", {
+          params: taskParams,
+        });
+        if (!cancelled) {
+          t1.push(
+            ...(res1.data.tasks ?? []).map((t) => ({
+              ...t,
+              source: "In House" as const,
+            })),
+          );
+        }
+      } catch (err) {
+        console.error("In-house tasks fetch failed:", err);
+        if (!cancelled) {
+          toast.error(
+            (err as { response?: { data?: { message?: string } } })?.response
+              ?.data?.message || "Could not load in-house tasks.",
+            { id: "bc-mytasks-inhouse" },
+          );
+        }
+      }
+      try {
+        const res2 = await api.get<{ tasks?: Task[] }>(
+          "/api/vendors/vendor-tasks",
+          { params: taskParams },
+        );
+        if (!cancelled) {
+          t2.push(
+            ...(res2.data.tasks ?? []).map((t) => ({
+              ...t,
+              source: "Outsource" as const,
+            })),
+          );
+        }
+      } catch (err) {
+        console.error("Outsource tasks fetch failed:", err);
+        if (!cancelled) {
+          toast.error(
+            (err as { response?: { data?: { message?: string } } })?.response
+              ?.data?.message || "Could not load outsource tasks.",
+            { id: "bc-mytasks-outsource" },
+          );
+        }
+      }
+      if (!cancelled) {
         const combined = [...t1, ...t2] as Task[];
         combined.sort((a, b) => {
           const dateA = new Date(a.created_at || a.start_date || 0).getTime();
@@ -1181,9 +1217,13 @@ export default function MytaskBC() {
           return (b.id || 0) - (a.id || 0);
         });
         setList(combined);
-      })
-      .catch(() => setList([]))
-      .finally(() => setLoading(false));
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isTeam, statusFilter]);
 
   const confirmDeleteTask = async () => {

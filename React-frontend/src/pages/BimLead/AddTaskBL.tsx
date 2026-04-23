@@ -152,7 +152,7 @@ export default function AddTaskBL() {
   const [serverAttachmentDeleting, setServerAttachmentDeleting] =
     useState(false);
 
-  const showReviewRemarkField = 
+  const showReviewRemarkField =
     addTaskForm.assignTo && addTaskForm.assignTo !== user?.full_name;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -278,7 +278,7 @@ export default function AddTaskBL() {
             }
             applyRow(data as Record<string, unknown>, true);
           })
-          .catch(() => {});
+          .catch(() => { });
       });
 
     return () => {
@@ -305,15 +305,15 @@ export default function AddTaskBL() {
     const name = addTaskForm.projectName;
     const sourceHint =
       editingTaskId != null &&
-      editingTask &&
-      String(editingTask.project_name || "") === name
+        editingTask &&
+        String(editingTask.project_name || "") === name
         ? editingTask.source
         : undefined;
     const selectedProj =
       (sourceHint
         ? projects.find(
-            (p) => p.project_name === name && p.source === sourceHint,
-          )
+          (p) => p.project_name === name && p.source === sourceHint,
+        )
         : undefined) ?? projects.find((p) => p.project_name === name);
     if (!selectedProj) {
       setModules([]);
@@ -438,15 +438,15 @@ export default function AddTaskBL() {
     const name = addTaskForm.projectName;
     const sourceHint =
       editingTaskId != null &&
-      editingTask &&
-      String(editingTask.project_name || "") === name
+        editingTask &&
+        String(editingTask.project_name || "") === name
         ? editingTask.source
         : undefined;
     const selectedProj =
       (sourceHint
         ? projects.find(
-            (p) => p.project_name === name && p.source === sourceHint,
-          )
+          (p) => p.project_name === name && p.source === sourceHint,
+        )
         : undefined) ?? projects.find((p) => p.project_name === name);
     const isOutsourceTask =
       editingTask?.source === "Outsource" ||
@@ -567,20 +567,21 @@ export default function AddTaskBL() {
       const name = addTaskForm.projectName;
       const sourceHint =
         isEditing &&
-        editingTask &&
-        String(editingTask.project_name || "") === name
+          editingTask &&
+          String(editingTask.project_name || "") === name
           ? editingTask.source
           : undefined;
       const selectedProj =
         (sourceHint
           ? projects.find(
-              (p) => p.project_name === name && p.source === sourceHint,
-            )
+            (p) => p.project_name === name && p.source === sourceHint,
+          )
           : undefined) ?? projects.find((p) => p.project_name === name);
       const isOutsource = selectedProj?.source === "Outsource";
 
+      const assignToNorm = (addTaskForm.assignTo || "").trim().toLowerCase();
       const assignedId = employees.find(
-        (e) => e.full_name === addTaskForm.assignTo,
+        (e) => (e.full_name || "").trim().toLowerCase() === assignToNorm,
       )?.id;
 
       const payload = {
@@ -600,7 +601,7 @@ export default function AddTaskBL() {
         perferend_time: addTaskForm.dueTime,
         start_time: addTaskForm.startTime,
         end_time: addTaskForm.dueTime,
-        assigned_to: assignedId,
+        assigned_to: assignedId ?? addTaskForm.assignTo.trim(),
         assign_to: addTaskForm.assignTo,
         description: addTaskForm.description,
         checklist: addTaskForm.checklist,
@@ -644,6 +645,35 @@ export default function AddTaskBL() {
           payload,
         );
         taskId = res.data.task_id ?? res.data.id ?? null;
+
+        // Optimistic UI update for BIM Lead My Task
+        try {
+          if (taskId != null && addTaskForm.assignTo === user?.full_name) {
+            const STORAGE_KEY = "bl_myTask_localTasks";
+            const raw = localStorage.getItem(STORAGE_KEY);
+            const currentLocal = raw ? JSON.parse(raw) : [];
+            if (Array.isArray(currentLocal)) {
+              const newTask: any = {
+                id: taskId,
+                task_name: payload.task_name,
+                status: "Todo",
+                due_date: payload.due_date,
+                project_name: addTaskForm.projectName,
+                assigned_full_name: user?.full_name,
+                uploader_full_name: user?.full_name,
+                assigned_to: user?.id,
+                uploaderid: user?.id,
+                source: isOutsource ? "Outsource" : "In House",
+                created_at: new Date().toISOString()
+              };
+              currentLocal.unshift(newTask);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(currentLocal));
+            }
+          }
+        } catch (e) {
+          console.error("Local task storage failed:", e);
+        }
+
         toast.success("Task added successfully");
       }
 

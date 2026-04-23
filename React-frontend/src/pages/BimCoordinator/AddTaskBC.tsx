@@ -147,7 +147,7 @@ export default function AddTaskBC() {
                 if (cancelled) return;
                 setExistingOutputFilenames(parseOutputFilepaths(res.data?.outputfilepath));
             })
-            .catch(() => {});
+            .catch(() => { });
 
         return () => {
             cancelled = true;
@@ -400,12 +400,12 @@ export default function AddTaskBC() {
                     >
                         <img src={backIcon} alt="Back" className="w-5 h-5" />
                         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                          <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                          <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
-                            <span className="font-gantari text-[14px] font-medium text-[#353535] text-center block whitespace-nowrap">
-                              Go Back
-                            </span>
-                          </div>
+                            <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
+                                <span className="font-gantari text-[14px] font-medium text-[#353535] text-center block whitespace-nowrap">
+                                    Go Back
+                                </span>
+                            </div>
                         </div>
                     </button>
                     <h3 className="text-[20px] sm:text-[24px] font-medium text-[#000000] font-Gantari text-center flex-1">
@@ -415,358 +415,358 @@ export default function AddTaskBC() {
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-6">
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    tabIndex={-1}
-                    className="fixed left-[-9999px] top-0 h-px w-px opacity-0"
-                    onChange={handleAttachmentChange}
-                    accept="*/*"
-                />
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {addError && (
-                        <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
-                            <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
-                                !
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        tabIndex={-1}
+                        className="fixed left-[-9999px] top-0 h-px w-px opacity-0"
+                        onChange={handleAttachmentChange}
+                        accept="*/*"
+                    />
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {addError && (
+                            <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                                <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
+                                    !
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-[13px] primary text-red-700 leading-snug">{addError}</p>
+                                </div>
                             </div>
-                            <div className="flex-1">
-                                <p className="text-[13px] primary text-red-700 leading-snug">{addError}</p>
-                            </div>
-                        </div>
-                    )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
-                        <div className="md:col-span-2">
-                            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Project Name <span className="text-[#DD4342]">*</span></label>
-                            <FormDropdown
-                                label="Select Project name"
-                                options={[
-                                    { value: "", label: "Select Project name" },
-                                    ...projects.map((p) => ({ value: p.project_name, label: p.project_name })),
-                                ]}
-                                value={addTaskForm.projectName}
-                                onChange={(v) => setAddTaskForm((f) => ({ ...f, projectName: v }))}
-                                isOpen={openFormDropdown === "project"}
-                                onToggle={() => setOpenFormDropdown((d) => (d === "project" ? null : "project"))}
-                                onClose={() => setOpenFormDropdown(null)}
-                                triggerRef={formProjectTriggerRef}
-                                dropdownRef={formProjectMenuRef}
-                                searchable
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Select Module <span className="text-[#DD4342]">*</span></label>
-                            <FormDropdown
-                                label="Select Module"
-                                options={[
-                                    { value: "", label: "Select Module" },
-                                    ...(projects.find((p) => p.project_name === addTaskForm.projectName)?.modules
-                                        ? (projects
-                                            .find((p) => p.project_name === addTaskForm.projectName)!
-                                            .modules!.split(",")
-                                            .map((m) => m.trim())
-                                            .filter(Boolean)
-                                            .map((m) => ({ value: m, label: m })) as { value: string; label: string }[])
-                                        : []),
-                                ]}
-                                value={addTaskForm.module}
-                                onChange={(v) => setAddTaskForm((f) => ({ ...f, module: v }))}
-                                isOpen={openFormDropdown === "module"}
-                                onToggle={() => setOpenFormDropdown((d) => (d === "module" ? null : "module"))}
-                                onClose={() => setOpenFormDropdown(null)}
-                                triggerRef={formModuleTriggerRef}
-                                dropdownRef={formModuleMenuRef}
-                                searchable
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Task Name <span className="text-[#DD4342]">*</span></label>
-                            <input
-                                type="text"
-                                value={addTaskForm.taskName}
-                                onChange={(e) => setAddTaskForm((f) => ({ ...f, taskName: e.target.value }))}
-                                placeholder="Enter Task Name"
-                                className="w-full min-h-[42px] border border-transparent bg-[#F2F3F4] px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B] rounded-[5px] transition-colors focus:border-[#AEACAC52]"
-                            />
-                        </div>
-                        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
-                            <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Start Date <span className="text-[#DD4342]">*</span></label>
-                                <input
-                                    type="date"
-                                    value={addTaskForm.actualStartDate}
-                                    min={new Date().toISOString().split("T")[0]}
-                                    onChange={(e) => setAddTaskForm((f) => ({ ...f, actualStartDate: e.target.value }))}
-                                    placeholder="dd/mm/yyyy"
-                                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">End Date <span className="text-[#DD4342]">*</span></label>
-                                <input
-                                    type="date"
-                                    value={addTaskForm.actualEndDate}
-                                    min={addTaskForm.actualStartDate || new Date().toISOString().split("T")[0]}
-                                    onChange={(e) => setAddTaskForm((f) => ({ ...f, actualEndDate: e.target.value }))}
-                                    placeholder="dd/mm/yyyy"
-                                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                                />
-                            </div>
-                        </div>
-                        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
-                            <div className="relative w-full">
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Select Start Time <span className="text-[#DD4342]">*</span></label>
-                                <button
-                                    ref={formStartTimeTriggerRef}
-                                    type="button"
-                                    onClick={() =>
-                                        setOpenFormDropdown((d) => (d === "type_start_time" ? null : "type_start_time"))
-                                    }
-                                    className="flex w-full items-center justify-between rounded-[5px] bg-[#F2F3F4] border border-transparent px-4 py-2 text-left text-[14px] font-Gantari focus:border-[#AEACAC52] outline-none shadow-none transition-all cursor-pointer"
-                                    aria-expanded={openFormDropdown === "type_start_time"}
-                                    aria-haspopup="listbox"
-                                    aria-label="Select Start Time"
-                                >
-                                    <span className={addTaskForm.startTime ? "text-[#353535]" : "text-[#8B8B8B]"}>
-                                        {addTaskForm.startTime ? formatTimeForDisplay(addTaskForm.startTime) : "__:__"}
-                                    </span>
-                                    <img
-                                        src={ArrowDown}
-                                        alt=""
-                                        className={`ml-2 h-4 w-4 shrink-0 transition-transform ${openFormDropdown === "type_start_time" ? "rotate-180" : ""}`}
-                                    />
-                                </button>
-                                {openFormDropdown === "type_start_time" && (
-                                    <div
-                                        ref={formStartTimeMenuRef}
-                                        className="absolute top-full left-0 z-20 mt-2 w-full min-w-[200px] rounded-lg border border-[#AEACAC52] bg-white overflow-hidden shadow-none"
-                                    >
-                                        <TimePickerWheel
-                                            value={addTaskForm.startTime}
-                                            onChange={(v) => setAddTaskForm((f) => ({ ...f, startTime: v }))}
-                                            onClose={() => setOpenFormDropdown(null)}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                            <div className="relative w-full">
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Select End Time <span className="text-[#DD4342]">*</span></label>
-                                <button
-                                    ref={formEndTimeTriggerRef}
-                                    type="button"
-                                    onClick={() =>
-                                        setOpenFormDropdown((d) => (d === "type_end_time" ? null : "type_end_time"))
-                                    }
-                                    className="flex w-full items-center justify-between rounded-[5px] bg-[#F2F3F4] border border-transparent px-4 py-2 text-left text-[14px] font-Gantari focus:border-[#AEACAC52] outline-none shadow-none transition-all cursor-pointer"
-                                    aria-expanded={openFormDropdown === "type_end_time"}
-                                    aria-haspopup="listbox"
-                                    aria-label="Select End Time"
-                                >
-                                    <span className={addTaskForm.dueTime ? "text-[#353535]" : "text-[#8B8B8B]"}>
-                                        {addTaskForm.dueTime ? formatTimeForDisplay(addTaskForm.dueTime) : "__:__"}
-                                    </span>
-                                    <img
-                                        src={ArrowDown}
-                                        alt=""
-                                        className={`ml-2 h-4 w-4 shrink-0 transition-transform ${openFormDropdown === "type_end_time" ? "rotate-180" : ""}`}
-                                    />
-                                </button>
-                                {openFormDropdown === "type_end_time" && (
-                                    <div
-                                        ref={formEndTimeMenuRef}
-                                        className="absolute top-full left-0 z-20 mt-2 w-full min-w-[200px] rounded-lg border border-[#AEACAC52] bg-white overflow-hidden shadow-none"
-                                    >
-                                        <TimePickerWheel
-                                            value={addTaskForm.dueTime}
-                                            onChange={(v) => setAddTaskForm((f) => ({ ...f, dueTime: v }))}
-                                            onClose={() => setOpenFormDropdown(null)}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                            <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Assign To <span className="text-[#DD4342]">*</span></label>
+                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+                            <div className="md:col-span-2">
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Project Name <span className="text-[#DD4342]">*</span></label>
                                 <FormDropdown
-                                    label="Select Assign To"
-                                    options={getAssignToOptions()}
-                                    value={addTaskForm.assignTo}
-                                    onChange={(v) => setAddTaskForm((f) => ({ ...f, assignTo: v }))}
-                                    isOpen={openFormDropdown === "assignTo"}
-                                    onToggle={() => setOpenFormDropdown((d) => (d === "assignTo" ? null : "assignTo"))}
+                                    label="Select Project name"
+                                    options={[
+                                        { value: "", label: "Select Project name" },
+                                        ...projects.map((p) => ({ value: p.project_name, label: p.project_name })),
+                                    ]}
+                                    value={addTaskForm.projectName}
+                                    onChange={(v) => setAddTaskForm((f) => ({ ...f, projectName: v }))}
+                                    isOpen={openFormDropdown === "project"}
+                                    onToggle={() => setOpenFormDropdown((d) => (d === "project" ? null : "project"))}
                                     onClose={() => setOpenFormDropdown(null)}
-                                    triggerRef={formAssignTriggerRef}
-                                    dropdownRef={formAssignMenuRef}
+                                    triggerRef={formProjectTriggerRef}
+                                    dropdownRef={formProjectMenuRef}
                                     searchable
                                 />
                             </div>
-                        </div>
-                        <div className="md:col-span-2">
-                            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Description <span className="text-[#DD4342]">*</span></label>
-                            <textarea
-                                value={addTaskForm.description}
-                                onChange={(e) => setAddTaskForm((f) => ({ ...f, description: e.target.value }))}
-                                placeholder="Enter Description..."
-                                rows={4}
-                                className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
-                            />
-                        </div>
-                        <div className="md:col-span-2">
-                            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Checklist</label>
-                            <input
-                                type="text"
-                                value={addTaskForm.checklist}
-                                onChange={(e) => setAddTaskForm((f) => ({ ...f, checklist: e.target.value }))}
-                                placeholder="Enter Reference Link"
-                                className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                            />
-                        </div>
-                        <div className="md:col-span-2">
-                            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Review Remark</label>
-                            <textarea
-                                value={addTaskForm.reviewRemark}
-                                onChange={(e) => setAddTaskForm((f) => ({ ...f, reviewRemark: e.target.value }))}
-                                placeholder="Enter correction remark"
-                                rows={3}
-                                className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
-                            />
-                        </div>
-                        <div className="md:col-span-2 space-y-2">
-                            <span className="block text-[16px] font-semibold text-[#000000] font-Gantari">Attachments</span>
-                            <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
-                                <div className="flex-1 px-4 text-[14px] text-[#979797] truncate min-w-0 py-2">
-                                    {totalAttachmentCount > 0
-                                        ? `${totalAttachmentCount} file(s) attached`
-                                        : "Choose file"}
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={(ev) => {
-                                        ev.stopPropagation();
-                                        openFilePicker();
-                                    }}
-                                    className="px-5 py-2 bg-[#E2E2E2] text-[#8B8B8B] text-[14px] cursor-pointer transition-colors shrink-0 font-Gantari border-0"
-                                >
-                                    Browse File
-                                </button>
+                            <div>
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Select Module <span className="text-[#DD4342]">*</span></label>
+                                <FormDropdown
+                                    label="Select Module"
+                                    options={[
+                                        { value: "", label: "Select Module" },
+                                        ...(projects.find((p) => p.project_name === addTaskForm.projectName)?.modules
+                                            ? (projects
+                                                .find((p) => p.project_name === addTaskForm.projectName)!
+                                                .modules!.split(",")
+                                                .map((m) => m.trim())
+                                                .filter(Boolean)
+                                                .map((m) => ({ value: m, label: m })) as { value: string; label: string }[])
+                                            : []),
+                                    ]}
+                                    value={addTaskForm.module}
+                                    onChange={(v) => setAddTaskForm((f) => ({ ...f, module: v }))}
+                                    isOpen={openFormDropdown === "module"}
+                                    onToggle={() => setOpenFormDropdown((d) => (d === "module" ? null : "module"))}
+                                    onClose={() => setOpenFormDropdown(null)}
+                                    triggerRef={formModuleTriggerRef}
+                                    dropdownRef={formModuleMenuRef}
+                                    searchable
+                                />
                             </div>
-                            {totalAttachmentCount > 0 && (
-                                <div className="flex flex-col gap-2">
-                                    {existingOutputFilenames.map((stored) => (
-                                        <div
-                                            key={`server-${stored}`}
-                                            className="flex items-center gap-2 rounded-[5px] bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827]"
-                                        >
-                                            <div className="min-w-0 flex-1">
-                                                <span
-                                                    className="block truncate font-Gantari"
-                                                    title={displayNameFromStoredFilename(stored)}
-                                                >
-                                                    {displayNameFromStoredFilename(stored)}
-                                                </span>
-                                                <span className="text-xs text-[#8B8B8B]">Saved on task</span>
-                                            </div>
-                                            <div className="flex shrink-0 items-center gap-1">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openServerOutputInNewTab(stored)}
-                                                    className="relative p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer group"
-                                                    aria-label={`View ${displayNameFromStoredFilename(stored)} in new tab`}
-                                                >
-                                                    <img src={viewIcon} alt="" className="h-5 w-5" />
-                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 shadow-sm">
-                                                            <span className="font-Gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">View</span>
-                                                        </div>
-                                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 -mt-[5.5px]"></div>
-                                                    </div>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setPendingAttachmentDelete({ type: "server", stored })
-                                                    }
-                                                    className="relative p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer group"
-                                                    aria-label={`Remove ${displayNameFromStoredFilename(stored)}`}
-                                                >
-                                                    <img src={deleteIcon} alt="" className="h-5 w-5" />
-                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 shadow-sm">
-                                                            <span className="font-Gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Remove</span>
-                                                        </div>
-                                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 -mt-[5.5px]"></div>
-                                                    </div>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {attachmentFiles.map((file, index) => (
-                                        <div
-                                            key={`${file.name}-${index}-${file.size}`}
-                                            className="flex items-center gap-2 rounded-[5px] bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827]"
-                                        >
-                                            <div className="min-w-0 flex-1">
-                                                <span className="block truncate font-Gantari" title={file.name}>
-                                                    {file.name}
-                                                </span>
-                                                <span className="text-xs text-[#8B8B8B]">
-                                                    {formatFileSize(file.size)}
-                                                </span>
-                                            </div>
-                                            <div className="flex shrink-0 items-center gap-1">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openAttachmentInNewTab(file)}
-                                                    className="relative p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer group"
-                                                    aria-label={`View ${file.name} in new tab`}
-                                                >
-                                                    <img src={viewIcon} alt="" className="h-5 w-5" />
-                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 shadow-sm">
-                                                            <span className="font-Gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">View</span>
-                                                        </div>
-                                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 -mt-[5.5px]"></div>
-                                                    </div>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setPendingAttachmentDelete({ type: "local", index })
-                                                    }
-                                                    className="relative p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer group"
-                                                    aria-label={`Remove ${file.name}`}
-                                                >
-                                                    <img src={deleteIcon} alt="" className="h-5 w-5" />
-                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 shadow-sm">
-                                                            <span className="font-Gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Remove</span>
-                                                        </div>
-                                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 -mt-[5.5px]"></div>
-                                                    </div>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
+                            <div>
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Task Name <span className="text-[#DD4342]">*</span></label>
+                                <input
+                                    type="text"
+                                    value={addTaskForm.taskName}
+                                    onChange={(e) => setAddTaskForm((f) => ({ ...f, taskName: e.target.value }))}
+                                    placeholder="Enter Task Name"
+                                    className="w-full min-h-[42px] border border-transparent bg-[#F2F3F4] px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B] rounded-[5px] transition-colors focus:border-[#AEACAC52]"
+                                />
+                            </div>
+                            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
+                                <div>
+                                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Start Date <span className="text-[#DD4342]">*</span></label>
+                                    <input
+                                        type="date"
+                                        value={addTaskForm.actualStartDate}
+                                        min={new Date().toISOString().split("T")[0]}
+                                        onChange={(e) => setAddTaskForm((f) => ({ ...f, actualStartDate: e.target.value }))}
+                                        placeholder="dd/mm/yyyy"
+                                        className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                                    />
                                 </div>
-                            )}
+                                <div>
+                                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">End Date <span className="text-[#DD4342]">*</span></label>
+                                    <input
+                                        type="date"
+                                        value={addTaskForm.actualEndDate}
+                                        min={addTaskForm.actualStartDate || new Date().toISOString().split("T")[0]}
+                                        onChange={(e) => setAddTaskForm((f) => ({ ...f, actualEndDate: e.target.value }))}
+                                        placeholder="dd/mm/yyyy"
+                                        className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                                    />
+                                </div>
+                            </div>
+                            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
+                                <div className="relative w-full">
+                                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Select Start Time <span className="text-[#DD4342]">*</span></label>
+                                    <button
+                                        ref={formStartTimeTriggerRef}
+                                        type="button"
+                                        onClick={() =>
+                                            setOpenFormDropdown((d) => (d === "type_start_time" ? null : "type_start_time"))
+                                        }
+                                        className="flex w-full items-center justify-between rounded-[5px] bg-[#F2F3F4] border border-transparent px-4 py-2 text-left text-[14px] font-Gantari focus:border-[#AEACAC52] outline-none shadow-none transition-all cursor-pointer"
+                                        aria-expanded={openFormDropdown === "type_start_time"}
+                                        aria-haspopup="listbox"
+                                        aria-label="Select Start Time"
+                                    >
+                                        <span className={addTaskForm.startTime ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                                            {addTaskForm.startTime ? formatTimeForDisplay(addTaskForm.startTime) : "__:__"}
+                                        </span>
+                                        <img
+                                            src={ArrowDown}
+                                            alt=""
+                                            className={`ml-2 h-4 w-4 shrink-0 transition-transform ${openFormDropdown === "type_start_time" ? "rotate-180" : ""}`}
+                                        />
+                                    </button>
+                                    {openFormDropdown === "type_start_time" && (
+                                        <div
+                                            ref={formStartTimeMenuRef}
+                                            className="absolute top-full left-0 z-20 mt-2 w-full min-w-[200px] rounded-lg border border-[#AEACAC52] bg-white overflow-hidden shadow-none"
+                                        >
+                                            <TimePickerWheel
+                                                value={addTaskForm.startTime}
+                                                onChange={(v) => setAddTaskForm((f) => ({ ...f, startTime: v }))}
+                                                onClose={() => setOpenFormDropdown(null)}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="relative w-full">
+                                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Select End Time <span className="text-[#DD4342]">*</span></label>
+                                    <button
+                                        ref={formEndTimeTriggerRef}
+                                        type="button"
+                                        onClick={() =>
+                                            setOpenFormDropdown((d) => (d === "type_end_time" ? null : "type_end_time"))
+                                        }
+                                        className="flex w-full items-center justify-between rounded-[5px] bg-[#F2F3F4] border border-transparent px-4 py-2 text-left text-[14px] font-Gantari focus:border-[#AEACAC52] outline-none shadow-none transition-all cursor-pointer"
+                                        aria-expanded={openFormDropdown === "type_end_time"}
+                                        aria-haspopup="listbox"
+                                        aria-label="Select End Time"
+                                    >
+                                        <span className={addTaskForm.dueTime ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                                            {addTaskForm.dueTime ? formatTimeForDisplay(addTaskForm.dueTime) : "__:__"}
+                                        </span>
+                                        <img
+                                            src={ArrowDown}
+                                            alt=""
+                                            className={`ml-2 h-4 w-4 shrink-0 transition-transform ${openFormDropdown === "type_end_time" ? "rotate-180" : ""}`}
+                                        />
+                                    </button>
+                                    {openFormDropdown === "type_end_time" && (
+                                        <div
+                                            ref={formEndTimeMenuRef}
+                                            className="absolute top-full left-0 z-20 mt-2 w-full min-w-[200px] rounded-lg border border-[#AEACAC52] bg-white overflow-hidden shadow-none"
+                                        >
+                                            <TimePickerWheel
+                                                value={addTaskForm.dueTime}
+                                                onChange={(v) => setAddTaskForm((f) => ({ ...f, dueTime: v }))}
+                                                onClose={() => setOpenFormDropdown(null)}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Assign To <span className="text-[#DD4342]">*</span></label>
+                                    <FormDropdown
+                                        label="Select Assign To"
+                                        options={getAssignToOptions()}
+                                        value={addTaskForm.assignTo}
+                                        onChange={(v) => setAddTaskForm((f) => ({ ...f, assignTo: v }))}
+                                        isOpen={openFormDropdown === "assignTo"}
+                                        onToggle={() => setOpenFormDropdown((d) => (d === "assignTo" ? null : "assignTo"))}
+                                        onClose={() => setOpenFormDropdown(null)}
+                                        triggerRef={formAssignTriggerRef}
+                                        dropdownRef={formAssignMenuRef}
+                                        searchable
+                                    />
+                                </div>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Description <span className="text-[#DD4342]">*</span></label>
+                                <textarea
+                                    value={addTaskForm.description}
+                                    onChange={(e) => setAddTaskForm((f) => ({ ...f, description: e.target.value }))}
+                                    placeholder="Enter Description..."
+                                    rows={4}
+                                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Checklist</label>
+                                <input
+                                    type="text"
+                                    value={addTaskForm.checklist}
+                                    onChange={(e) => setAddTaskForm((f) => ({ ...f, checklist: e.target.value }))}
+                                    placeholder="Enter Reference Link"
+                                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Review Remark</label>
+                                <textarea
+                                    value={addTaskForm.reviewRemark}
+                                    onChange={(e) => setAddTaskForm((f) => ({ ...f, reviewRemark: e.target.value }))}
+                                    placeholder="Enter correction remark"
+                                    rows={3}
+                                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
+                                />
+                            </div>
+                            <div className="md:col-span-2 space-y-2">
+                                <span className="block text-[16px] font-semibold text-[#000000] font-Gantari">Attachments</span>
+                                <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
+                                    <div className="flex-1 px-4 text-[14px] text-[#979797] truncate min-w-0 py-2">
+                                        {totalAttachmentCount > 0
+                                            ? `${totalAttachmentCount} file(s) attached`
+                                            : "Choose file"}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={(ev) => {
+                                            ev.stopPropagation();
+                                            openFilePicker();
+                                        }}
+                                        className="px-5 py-2 bg-[#E2E2E2] text-[#8B8B8B] text-[14px] cursor-pointer transition-colors shrink-0 font-Gantari border-0"
+                                    >
+                                        Browse File
+                                    </button>
+                                </div>
+                                {totalAttachmentCount > 0 && (
+                                    <div className="flex flex-col gap-2">
+                                        {existingOutputFilenames.map((stored) => (
+                                            <div
+                                                key={`server-${stored}`}
+                                                className="flex items-center gap-2 rounded-[5px] bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827]"
+                                            >
+                                                <div className="min-w-0 flex-1">
+                                                    <span
+                                                        className="block truncate font-Gantari"
+                                                        title={displayNameFromStoredFilename(stored)}
+                                                    >
+                                                        {displayNameFromStoredFilename(stored)}
+                                                    </span>
+                                                    <span className="text-xs text-[#8B8B8B]">Saved on task</span>
+                                                </div>
+                                                <div className="flex shrink-0 items-center gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openServerOutputInNewTab(stored)}
+                                                        className="relative p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer group"
+                                                        aria-label={`View ${displayNameFromStoredFilename(stored)} in new tab`}
+                                                    >
+                                                        <img src={viewIcon} alt="" className="h-5 w-5" />
+                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 shadow-sm">
+                                                                <span className="font-Gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">View</span>
+                                                            </div>
+                                                            <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 -mt-[5.5px]"></div>
+                                                        </div>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setPendingAttachmentDelete({ type: "server", stored })
+                                                        }
+                                                        className="relative p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer group"
+                                                        aria-label={`Remove ${displayNameFromStoredFilename(stored)}`}
+                                                    >
+                                                        <img src={deleteIcon} alt="" className="h-5 w-5" />
+                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 shadow-sm">
+                                                                <span className="font-Gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Remove</span>
+                                                            </div>
+                                                            <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 -mt-[5.5px]"></div>
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {attachmentFiles.map((file, index) => (
+                                            <div
+                                                key={`${file.name}-${index}-${file.size}`}
+                                                className="flex items-center gap-2 rounded-[5px] bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827]"
+                                            >
+                                                <div className="min-w-0 flex-1">
+                                                    <span className="block truncate font-Gantari" title={file.name}>
+                                                        {file.name}
+                                                    </span>
+                                                    <span className="text-xs text-[#8B8B8B]">
+                                                        {formatFileSize(file.size)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex shrink-0 items-center gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openAttachmentInNewTab(file)}
+                                                        className="relative p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer group"
+                                                        aria-label={`View ${file.name} in new tab`}
+                                                    >
+                                                        <img src={viewIcon} alt="" className="h-5 w-5" />
+                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 shadow-sm">
+                                                                <span className="font-Gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">View</span>
+                                                            </div>
+                                                            <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 -mt-[5.5px]"></div>
+                                                        </div>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setPendingAttachmentDelete({ type: "local", index })
+                                                        }
+                                                        className="relative p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer group"
+                                                        aria-label={`Remove ${file.name}`}
+                                                    >
+                                                        <img src={deleteIcon} alt="" className="h-5 w-5" />
+                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 shadow-sm">
+                                                                <span className="font-Gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Remove</span>
+                                                            </div>
+                                                            <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 -mt-[5.5px]"></div>
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
-                        <button
-                            type="button"
-                            onClick={goBack}
-                            className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#000000] font-semibold text-[16px] transition-all font-Gantari cursor-pointer"
-                        >
-                            Discard
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={addSubmitting}
-                            className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari cursor-pointer disabled:opacity-50"
-                        >
-                            {addSubmitting ? "Submitting..." : "Submit"}
-                        </button>
-                    </div>
-                </form>
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
+                            <button
+                                type="button"
+                                onClick={goBack}
+                                className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#000000] font-semibold text-[16px] transition-all font-Gantari cursor-pointer"
+                            >
+                                Discard
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={addSubmitting}
+                                className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari cursor-pointer disabled:opacity-50"
+                            >
+                                {addSubmitting ? "Submitting..." : "Submit"}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
             {pendingAttachmentDelete !== null && (

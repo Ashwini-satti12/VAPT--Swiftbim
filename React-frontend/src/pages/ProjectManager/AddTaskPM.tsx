@@ -280,7 +280,7 @@ export default function AddTaskPM() {
   const [pendingAttachmentDelete, setPendingAttachmentDelete] =
     useState<PendingAttachmentDelete | null>(null);
 
-  const showReviewRemarkField = 
+  const showReviewRemarkField =
     addTaskForm.assignTo && addTaskForm.assignTo !== user?.full_name;
 
   const fileInputRef = useRef<HTMLInputElement>(null);

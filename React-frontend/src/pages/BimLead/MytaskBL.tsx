@@ -253,6 +253,7 @@ function TaskCard({
   onViewTask,
   onEditTask,
   onDeleteTask,
+  onApproveTask,
 }: {
   task: Task;
   status: "todo" | "in_progress" | "completed";
@@ -572,10 +573,12 @@ const PERIOD_OPTIONS = [
 export default function MytaskBL() {
   const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
-  const isTeam =
-    searchParams.get("condition") === "1" || pathname.endsWith("/team");
+  // This route is only `/bl/mytasks` — never use team (condition=1) API here; that mode
+  // excludes tasks assigned to the current user and would empty the assignee's My Task list.
+  const isTeam = false;
   const statusFilter =
     searchParams.get("status") || searchParams.get("taskstatus");
+  const { user } = useAuth();
   const [list, setList] = useState<Task[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -586,6 +589,24 @@ export default function MytaskBL() {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [selectedShow, setSelectedShow] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
+
+  const STORAGE_KEY = "bl_myTask_localTasks";
+  const [localTasks, setLocalTasks] = useState<Task[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(localTasks));
+    } catch {
+      // ignore
+    }
+  }, [localTasks]);
 
   const getEmployeeOptions = () => {
     if (
@@ -623,7 +644,7 @@ export default function MytaskBL() {
     const validEmployees = employees.filter(
       (e) =>
         e.full_name &&
-        involvedNames.has(e.full_name) &&
+        (involvedNames.has(e.full_name) || e.id === user?.id) &&
         isEmployeeActiveForProjectAssignment(e),
     );
 
@@ -778,6 +799,7 @@ export default function MytaskBL() {
   }, [openDropdown]);
 
   useEffect(() => {
+    setLoading(true);
     const params: Record<string, string> = {};
     if (statusFilter) params.status = statusFilter;
     if (isTeam) {
@@ -786,25 +808,89 @@ export default function MytaskBL() {
     }
 
     const taskParams: Record<string, string> = { ...params };
+    let cancelled = false;
 
-    Promise.all([
-      api.get<{ tasks?: Task[] }>("/api/tasks", { params: taskParams }),
-      api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", {
-        params: taskParams,
-      }),
-      api.get<{ employees?: Employee[] }>("/api/employees"),
-      api.get<{ projects?: Project[] }>("/api/projects"),
-      api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
-    ])
-      .then(([tasksRes, vTasksRes, empRes, projRes, vProjRes]) => {
-        const t1 = (tasksRes.data.tasks ?? []).map((t) => ({
-          ...t,
-          source: "In House",
-        }));
-        const t2 = (vTasksRes.data.tasks ?? []).map((t) => ({
-          ...t,
-          source: "Outsource",
-        }));
+    (async () => {
+      const t1: Task[] = [];
+      const t2: Task[] = [];
+      try {
+        const tasksRes = await api.get<{ tasks?: Task[] }>("/api/tasks", {
+          params: taskParams,
+        });
+        if (!cancelled) {
+          t1.push(
+            ...(tasksRes.data.tasks ?? []).map((t) => ({
+              ...t,
+              source: "In House" as const,
+            })),
+          );
+        }
+      } catch (err) {
+        console.error("In-house tasks fetch failed:", err);
+        if (!cancelled) {
+          toast.error(
+            (err as any)?.response?.data?.message ||
+              "Could not load in-house tasks.",
+            { id: "bl-mytasks-inhouse" },
+          );
+        }
+      }
+      try {
+        const vTasksRes = await api.get<{ tasks?: Task[] }>(
+          "/api/vendors/vendor-tasks",
+          { params: taskParams },
+        );
+        if (!cancelled) {
+          t2.push(
+            ...(vTasksRes.data.tasks ?? []).map((t) => ({
+              ...t,
+              source: "Outsource" as const,
+            })),
+          );
+        }
+      } catch (err) {
+        console.error("Outsource tasks fetch failed:", err);
+        if (!cancelled) {
+          toast.error(
+            (err as any)?.response?.data?.message ||
+              "Could not load outsource tasks.",
+            { id: "bl-mytasks-outsource" },
+          );
+        }
+      }
+
+      try {
+        const [empRes, projRes, vProjRes] = await Promise.all([
+          api.get<{ employees?: Employee[] }>("/api/employees"),
+          api.get<{ projects?: Project[] }>("/api/projects"),
+          api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
+        ]);
+        if (!cancelled) {
+          setEmployees(
+            (empRes.data.employees ?? []).filter(
+              isEmployeeActiveForProjectAssignment,
+            ),
+          );
+          const p1 = (projRes.data.projects ?? []).map((p) => ({
+            ...p,
+            source: "In House",
+          }));
+          const p2 = (vProjRes.data.projects ?? []).map((p) => ({
+            ...p,
+            source: "Outsource",
+          }));
+          setProjects([...p1, ...p2] as Project[]);
+        }
+      } catch (err) {
+        console.error("Employees/projects fetch failed:", err);
+        if (!cancelled) {
+          toast.error("Could not load employees or projects.", {
+            id: "bl-mytasks-meta",
+          });
+        }
+      }
+
+      if (!cancelled) {
         const combined = [...t1, ...t2] as Task[];
         combined.sort((a, b) => {
           const dateA = new Date(a.created_at || a.start_date || 0).getTime();
@@ -813,27 +899,13 @@ export default function MytaskBL() {
           return (b.id || 0) - (a.id || 0);
         });
         setList(combined);
+      }
+      if (!cancelled) setLoading(false);
+    })();
 
-        setEmployees(
-          (empRes.data.employees ?? []).filter(
-            isEmployeeActiveForProjectAssignment,
-          ),
-        );
-
-        const p1 = (projRes.data.projects ?? []).map((p) => ({
-          ...p,
-          source: "In House",
-        }));
-        const p2 = (vProjRes.data.projects ?? []).map((p) => ({
-          ...p,
-          source: "Outsource",
-        }));
-        setProjects([...p1, ...p2] as Project[]);
-      })
-      .catch(() => {
-        setList([]);
-      })
-      .finally(() => setLoading(false));
+    return () => {
+      cancelled = true;
+    };
   }, [isTeam, statusFilter]);
 
   const filteredTasks = useMemo(() => {
@@ -844,7 +916,11 @@ export default function MytaskBL() {
         selectedEmployee &&
         !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)
       ) {
-        if (t.assigned_full_name !== selectedEmployee) return false;
+        if (
+          (t.assigned_full_name || "").toLowerCase() !==
+          selectedEmployee.toLowerCase()
+        )
+          return false;
       }
       // Project filter
       if (
@@ -891,7 +967,13 @@ export default function MytaskBL() {
     });
   }, [list, searchParams, selectedEmployee, selectedProject, selectedPeriod]);
 
-  const allTasks = filteredTasks;
+  const safeLocal = Array.isArray(localTasks) ? localTasks : [];
+  const safeList = Array.isArray(filteredTasks) ? filteredTasks : [];
+
+  const allTasks = [
+    ...safeLocal,
+    ...safeList.filter((t) => t && !safeLocal.some((l) => l && l.id === t.id)),
+  ];
 
   const counts = {
     todo: allTasks.filter(

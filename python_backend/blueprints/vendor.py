@@ -5223,9 +5223,19 @@ def list_vendor_tasks():
             if staff_role not in VENDOR_TASK_STAFF_ROLES:
                 return jsonify({"tasks": []})
             
-            # Staff "My Task" view: show tasks assigned to them OR tasks they assigned to others that are not yet approved by them.
-            where.append("(vt.assigned_to = %s OR (vt.vendor_id = %s AND vt.assigned_to <> vt.vendor_id AND vt.progress <> '100'))")
-            params.extend([user_id, user_id])
+            # Fetch current user name for name-based matching (main DB cursor, not vendor DB)
+            cur.execute(
+                "SELECT full_name FROM employee WHERE id = %s AND Company_id = %s",
+                (user_id, task_company_id),
+            )
+            u_row = cur.fetchone()
+            user_name = (u_row.get("full_name") or "") if u_row else ""
+
+            # Staff "My Task" view: 
+            # 1) Tasks assigned to them (ID or Name).
+            # 2) Tasks assigned by them to others that are completed/progress=95 (Review workflow).
+            where.append("(vt.assigned_to = %s OR (vt.assigned_to IS NOT NULL AND TRIM(vt.assigned_to) = %s) OR (vt.vendor_id = %s AND vt.assigned_to <> vt.vendor_id AND vt.progress IN ('95', '100', 'completed')))")
+            params.extend([user_id, user_name, user_id])
             
             if task_company_id is not None:
                 where.append(
@@ -5242,9 +5252,16 @@ def list_vendor_tasks():
                     )"""
                 )
                 params.extend([task_company_id, task_company_id])
-    elif is_vendor_user_task:
-        # Team view for vendor: no vendor_id restriction (all tasks in project)
-        pass
+    elif is_team_view:
+        # Team Task view: strictly for delegated work (assigned to someone else).
+        where.append("vt.assigned_to <> vt.vendor_id")
+        
+        if is_vendor_user_task:
+            # Team view for vendor: no vendor_id restriction (all tasks in project)
+            pass
+        else:
+            # Staff callers for vendor team view
+            pass
     else:
         # Team view for staff (TD/PM/BL/BC): filter by company via vendor_projects join
         if staff_role not in VENDOR_TASK_STAFF_ROLES:
@@ -5265,8 +5282,26 @@ def list_vendor_tasks():
             )
             params.extend([task_company_id, task_company_id])
     if status:
-        where.append("vt.status = %s")
-        params.append(status)
+        if not is_team_view and status == "Todo":
+            where.append(
+                """(
+                    vt.status = %s
+                    OR (vt.vendor_id = %s AND vt.assigned_to <> vt.vendor_id AND vt.progress = '95')
+                )"""
+            )
+            params.extend([status, user_id])
+        elif not is_team_view and status == "Completed":
+            # Exclude delegated review items from assigner's Completed list (they are in Todo)
+            where.append(
+                """(
+                    vt.status = %s
+                    AND NOT (vt.vendor_id = %s AND vt.assigned_to <> vt.vendor_id AND vt.progress = '95')
+                )"""
+            )
+            params.extend([status, user_id])
+        else:
+            where.append("vt.status = %s")
+            params.append(status)
     if project_id:
         where.append("vt.project_id = %s")
         params.append(project_id)
