@@ -298,6 +298,7 @@ function TaskCard({
   onViewTask,
   onEditTask,
   onDeleteTask,
+  onApproveTask,
 }: {
   task: Task;
   status: "todo" | "in_progress" | "completed";
@@ -315,12 +316,12 @@ function TaskCard({
       ? task.Approval?.toLowerCase() === "approved"
         ? 100
         : 95
-      : typeof task.progress === "number"
-        ? task.progress
-        : status === "todo"
-          ? 0
-          : status === "in_progress"
-            ? 50
+      : status === "todo"
+        ? 0
+        : status === "in_progress"
+          ? 50
+          : typeof task.progress === "number"
+            ? task.progress
             : 100;
   const isUnderReview =
     status === "completed" &&
@@ -604,6 +605,7 @@ const PERIOD_OPTIONS = [
 ];
 
 export default function TeamtaskTD() {
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
   const isTeam =
@@ -864,7 +866,11 @@ export default function TeamtaskTD() {
   };
 
   const openViewTask = (task: Task) => {
-    navigate("/td/mytasks/view", { state: { task, from: "teamtask" } });
+    const sourceQuery =
+      task.source === "Outsource" ? "?source=Outsource" : "";
+    navigate(`/td/mytasks/view/${task.id}${sourceQuery}`, {
+      state: { task, from: "teamtask" },
+    });
   };
 
   const confirmDeleteTask = () => {

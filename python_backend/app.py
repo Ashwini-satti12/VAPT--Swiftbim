@@ -162,7 +162,7 @@ def create_app(config_class=Config):
             ["vendors", "vendor_resources", "vendor_docs", ""],
         )
 
-    @app.route("/api/view_profile_picture/<int:emp_id>")
+    @app.route("/api/view_profile_picture/<emp_id>")
     def view_profile_picture(emp_id):
         from flask import current_app, jsonify, send_file, request
         import os
@@ -172,15 +172,22 @@ def create_app(config_class=Config):
         
         try:
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(dictionary=True)
             user_type = (request.args.get("user_type") or "").strip().lower()
+            
+            # Check if emp_id is an integer ID or a name
+            is_digit = str(emp_id).isdigit()
+            
             if user_type == "vendor":
-                cur.execute(
-                    "SELECT profile_picture FROM vendor_employee WHERE id = %s",
-                    (emp_id,),
-                )
+                if is_digit:
+                    cur.execute("SELECT profile_picture FROM vendor_employee WHERE id = %s", (emp_id,))
+                else:
+                    cur.execute("SELECT profile_picture FROM vendor_employee WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(%s))", (emp_id,))
             else:
-                cur.execute("SELECT profile_picture FROM employee WHERE id = %s", (emp_id,))
+                if is_digit:
+                    cur.execute("SELECT profile_picture FROM employee WHERE id = %s", (emp_id,))
+                else:
+                    cur.execute("SELECT profile_picture FROM employee WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(%s))", (emp_id,))
             row = cur.fetchone()
             
             if not row or not row.get("profile_picture"):

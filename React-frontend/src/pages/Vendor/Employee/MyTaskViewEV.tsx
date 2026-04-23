@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
-import api from "../../../lib/api";
+import api, { appApiBase } from "../../../lib/api";
 import Upload from "../../../assets/ProjectManager/MyTask/Upload.svg";
 import ImageIcon from "../../../assets/ProjectManager/MyTask/image.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
@@ -91,10 +91,7 @@ function formatTimeDisplay(t?: string): string {
 }
 
 function getApiBase(): string {
-  return (import.meta.env.VITE_API_URL || "http://localhost:5000/").replace(
-    /\/$/,
-    "",
-  );
+  return appApiBase.replace(/\/$/, "");
 }
 
 function taskOutputFileUrl(storedName: string): string {

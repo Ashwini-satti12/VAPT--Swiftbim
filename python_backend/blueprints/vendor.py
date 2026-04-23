@@ -589,7 +589,8 @@ def vendor_employees_by_role():
                 role AS user_role,
                 email,
                 phone_number,
-                vendor_id
+                vendor_id,
+                profile_picture
             FROM vendor_employee
             WHERE status = 'active'
               AND role = %s
@@ -936,11 +937,15 @@ def vendor_dashboard_priority_tasks():
                 vt.assigned_to,
                 vt.vendor_id AS uploaderid,
                 COALESCE(ve_uploader.full_name, e_uploader.full_name) AS uploader_full_name,
-                COALESCE(ve_uploader.profile_picture, e_uploader.profile_picture) AS uploader_profile_picture
+                COALESCE(ve_uploader.profile_picture, e_uploader.profile_picture) AS uploader_profile_picture,
+                COALESCE(ve_assignee.full_name, e_assignee.full_name) AS assigned_full_name,
+                COALESCE(ve_assignee.profile_picture, e_assignee.profile_picture) AS assigned_profile_picture
             FROM snh6_swiftproject.vendor_task vt
             LEFT JOIN snh6_swiftproject.vendor_projects vp ON vt.project_id = vp.id
             LEFT JOIN snh6_swiftproject.vendor_employee ve_uploader ON vt.vendor_id = ve_uploader.id
             LEFT JOIN employee e_uploader ON e_uploader.id = vt.vendor_id AND ve_uploader.id IS NULL
+            LEFT JOIN snh6_swiftproject.vendor_employee ve_assignee ON vt.assigned_to = ve_assignee.id
+            LEFT JOIN employee e_assignee ON e_assignee.id = vt.assigned_to AND ve_assignee.id IS NULL
             WHERE (vt.vendor_id IN ({pslots_final}) OR vt.assigned_to IN ({pslots_final}))
               AND LOWER(vt.status) IN ('todo', 'inprogress', 'in progress', 'pause', 'active')
               AND DATE(vt.due_date) >= %s
@@ -963,6 +968,16 @@ def vendor_dashboard_priority_tasks():
                         "profile_picture": d.get("uploader_profile_picture"),
                     }
                 )
+            if d.get("assigned_to") and d.get("assigned_full_name"):
+                # Only add if not same person as uploader to avoid duplicates
+                if str(d.get("assigned_to")) != str(d.get("uploaderid")):
+                    involved.append(
+                        {
+                            "id": d["assigned_to"],
+                            "full_name": d["assigned_full_name"],
+                            "profile_picture": d.get("assigned_profile_picture"),
+                        }
+                    )
             d["involved_persons"] = involved
             tasks.append(d)
     except Exception:
@@ -5229,7 +5244,12 @@ def list_vendor_tasks():
                 (user_id, task_company_id),
             )
             u_row = cur.fetchone()
-            user_name = (u_row.get("full_name") or "") if u_row else ""
+            if not u_row:
+                user_name = ""
+            elif isinstance(u_row, dict):
+                user_name = (u_row.get("full_name") or "").strip()
+            else:
+                user_name = str(u_row[0] or "").strip() if u_row else ""
 
             # Staff "My Task" view: 
             # 1) Tasks assigned to them (ID or Name).
@@ -5241,12 +5261,12 @@ def list_vendor_tasks():
                 where.append(
                     """(
                         EXISTS (
-                            SELECT 1 FROM snh6_swiftproject.vendor_projects vp2
-                            LEFT JOIN snh6_swiftproject.projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci
+                            SELECT 1 FROM vendor_projects vp2
+                            LEFT JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci
                             WHERE vp2.id = vt.project_id AND mp.Company_id = %s
                         )
                         OR EXISTS (
-                            SELECT 1 FROM snh6_swiftproject.projects mp2
+                            SELECT 1 FROM projects mp2
                             WHERE mp2.id = vt.project_id AND mp2.Company_id = %s
                         )
                     )"""
@@ -5270,12 +5290,12 @@ def list_vendor_tasks():
             where.append(
                 """(
                     EXISTS (
-                        SELECT 1 FROM snh6_swiftproject.vendor_projects vp2
-                        LEFT JOIN snh6_swiftproject.projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci
+                        SELECT 1 FROM vendor_projects vp2
+                        LEFT JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci
                         WHERE vp2.id = vt.project_id AND mp.Company_id = %s
                     )
                     OR EXISTS (
-                        SELECT 1 FROM snh6_swiftproject.projects mp2
+                        SELECT 1 FROM projects mp2
                         WHERE mp2.id = vt.project_id AND mp2.Company_id = %s
                     )
                 )"""
@@ -5306,8 +5326,9 @@ def list_vendor_tasks():
         where.append("vt.project_id = %s")
         params.append(project_id)
 
-    cur.execute(
-        f"""
+    try:
+        cur.execute(
+            f"""
         SELECT
             vt.*,
             COALESCE(vp.project_name, mp_direct.project_name) AS project_name,
@@ -5317,17 +5338,20 @@ def list_vendor_tasks():
             COALESCE(va.profile_picture, e_as.profile_picture) AS assigned_profile_picture
         FROM vendor_task vt
         LEFT JOIN vendor_projects vp ON vt.project_id = vp.id
-        LEFT JOIN snh6_swiftproject.projects mp_direct ON vt.project_id = mp_direct.id
-        LEFT JOIN snh6_swiftproject.vendor_employee ve ON ve.id = vt.vendor_id
+        LEFT JOIN projects mp_direct ON vt.project_id = mp_direct.id
+        LEFT JOIN vendor_employee ve ON ve.id = vt.vendor_id
         LEFT JOIN employee e_up ON e_up.id = vt.vendor_id AND ve.id IS NULL
-        LEFT JOIN snh6_swiftproject.vendor_employee va ON va.id = vt.assigned_to
+        LEFT JOIN vendor_employee va ON va.id = vt.assigned_to
         LEFT JOIN employee e_as ON e_as.id = vt.assigned_to AND va.id IS NULL
         WHERE {(' AND '.join(where)) if where else '1=1'}
         ORDER BY vt.created_at DESC
         """,
-        params,
-    )
-    rows = cur.fetchall()
+            params,
+        )
+        rows = cur.fetchall()
+    except Exception as e:
+        current_app.logger.exception("list_vendor_tasks query failed: %s", e)
+        return jsonify({"tasks": []})
 
     # Build assignee name map from vendor_resource_profiles (new_swiftbim)
     name_map = {}
@@ -7477,7 +7501,8 @@ def list_all_vendor_resource_profiles():
                 email,
                 designation,
                 role,
-                vendor_id
+                vendor_id,
+                profile_picture
             FROM vendor_resource_profiles
             ORDER BY name
             """

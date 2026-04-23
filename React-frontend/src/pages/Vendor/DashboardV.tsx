@@ -349,7 +349,7 @@ export default function DashboardV() {
                                                                 <div className="absolute bottom-4 right-4 flex -space-x-3">
                                                                     {(task.involved_persons || []).slice(0, 3).map((v) => (
                                                                         <div key={v.id} className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden" title={v.full_name}>
-                                                                            {v.profile_picture ? <img src={getGlobalProfileUrl(v.id, v.profile_picture)} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[10px] font-bold text-[#353535]">{v.full_name?.slice(0, 2).toUpperCase() || '?'}</div>}
+                                                                            {v.profile_picture ? <img src={getGlobalProfileUrl(v.id, v.profile_picture, "vendor")} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[10px] font-bold text-[#353535]">{v.full_name?.slice(0, 2).toUpperCase() || '?'}</div>}
                                                                         </div>
                                                                     ))}
                                                                 </div>

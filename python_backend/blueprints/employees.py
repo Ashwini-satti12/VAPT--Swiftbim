@@ -316,7 +316,7 @@ def get_employee(emp_id):
     user_type = getattr(g, "user_type", "employee")
     if user_type == "vendor":
         cur.execute(
-            "SELECT id, empid, full_name, email, phone_number, 'vendor' AS user_type, role AS user_role, NULL AS profile_picture, NULL AS address, NULL AS doj, NULL AS dob, 'Vendor' AS department, status AS active, 'Vendor' AS Allpannel, NULL AS salary, NULL AS accountnumber FROM vendor_employee WHERE id = %s AND vendor_id = %s",
+            "SELECT id, empid, full_name, email, phone_number, 'vendor' AS user_type, role AS user_role, profile_picture, NULL AS address, NULL AS doj, NULL AS dob, 'Vendor' AS department, status AS active, 'Vendor' AS Allpannel, NULL AS salary, NULL AS accountnumber FROM vendor_employee WHERE id = %s AND vendor_id = %s",
             (emp_id, g.company_id)
         )
         row = cur.fetchone()
@@ -742,7 +742,7 @@ def list_members():
     
     if user_type == "vendor":
         cur.execute(
-            "SELECT id, full_name, email, role AS user_role, NULL AS profile_picture FROM vendor_employee WHERE vendor_id = %s AND status = 'active' ORDER BY full_name",
+            "SELECT id, full_name, email, role AS user_role, profile_picture FROM vendor_employee WHERE vendor_id = %s AND status = 'active' ORDER BY full_name",
             (g.company_id,),
         )
     else:

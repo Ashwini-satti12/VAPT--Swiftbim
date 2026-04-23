@@ -1,8 +1,19 @@
 import axios from 'axios';
 
-const baseURL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/"; 
-  // import.meta.env.VITE_API_URL || "https://projectmanagement.swifterz.ae/";
+/**
+ * API base URL:
+ * - Set `VITE_API_URL` in `.env` when the UI must call a remote API (staging/production).
+ * - In local dev, leave `VITE_API_URL` unset so requests stay on the Vite origin (`/api/...`)
+ *   and `vite.config.ts` proxies to Flask — works the same on every laptop (no hard-coded :5000 in the browser).
+ */
+/** Exported for asset URLs (`/uploads`, profile images) — same rules as Axios `baseURL`. */
+export const appApiBase =
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.DEV ? '' : 'http://127.0.0.1:5000/');
+
+const baseURL = appApiBase;
+
 export const api = axios.create({
   baseURL,
   headers: { 'Content-Type': 'application/json' },
