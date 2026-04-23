@@ -27,6 +27,13 @@ def _serialize_row(d):
     out = {}
     for k, v in d.items():
         out[k] = _serialize_value(v)
+    # `tasks.progress` is often VARCHAR; coerce so React `typeof === "number"` works.
+    pv = out.get("progress")
+    if pv not in (None, ""):
+        try:
+            out["progress"] = int(float(str(pv).strip()))
+        except (TypeError, ValueError):
+            pass
     return out
 
 
@@ -99,18 +106,62 @@ def update_status(task_id):
     if status_lower in ["inprogress", "started"]:
         cur.execute("UPDATE tasks SET status = 'InProgress', start_time = %s WHERE id = %s", (now, task_id))
     elif status_lower in ["completed", "done"]:
-        cur.execute("SELECT uploaderid FROM tasks WHERE id = %s", (task_id,))
+        cur.execute(
+            "SELECT uploaderid, assigned_to FROM tasks WHERE id = %s AND Company_id = %s",
+            (task_id, g.company_id),
+        )
         t_row = cur.fetchone()
-        is_assigner = False
-        if t_row:
-            up_id = t_row["uploaderid"] if isinstance(t_row, dict) else t_row[0]
-            if str(up_id) == str(getattr(g, "user_id", None)):
-                is_assigner = True
-        
-        if is_assigner:
-            cur.execute("UPDATE tasks SET status = 'Completed', end_time = %s, Approval = 'Approved' WHERE id = %s", (now, task_id))
+        if not t_row:
+            return jsonify({"success": False, "error": "Task not found"}), 404
+        if isinstance(t_row, dict):
+            up_id = t_row.get("uploaderid")
+            assign_raw = t_row.get("assigned_to")
         else:
-            cur.execute("UPDATE tasks SET status = 'Completed', end_time = %s WHERE id = %s", (now, task_id))
+            up_id = t_row[0]
+            assign_raw = t_row[1] if len(t_row) > 1 else None
+        uid = getattr(g, "user_id", None)
+        is_assigner = up_id is not None and str(up_id) == str(uid)
+        delegated = (
+            assign_raw is not None
+            and up_id is not None
+            and str(assign_raw).strip() != str(up_id).strip()
+        )
+        self_name = ""
+        cur.execute(
+            "SELECT full_name FROM employee WHERE id = %s AND Company_id = %s",
+            (uid, g.company_id),
+        )
+        nm_row = cur.fetchone()
+        if nm_row:
+            self_name = (
+                (nm_row.get("full_name") if isinstance(nm_row, dict) else nm_row[0]) or ""
+            )
+        self_name = str(self_name).strip()
+        # Assigner finalizes delegated work → 100% + Approved. Assignee finishes delegated work → 95% pending review.
+        if is_assigner:
+            cur.execute(
+                "UPDATE tasks SET status = 'Completed', end_time = %s, Approval = 'Approved', progress = '100' WHERE id = %s AND Company_id = %s",
+                (now, task_id, g.company_id),
+            )
+        elif delegated:
+            cur.execute(
+                """
+                UPDATE tasks SET status = 'Completed', end_time = %s, progress = '95'
+                WHERE id = %s AND Company_id = %s
+                  AND (
+                    TRIM(CAST(assigned_to AS CHAR)) = TRIM(CAST(%s AS CHAR))
+                    OR (%s <> '' AND LOWER(TRIM(CAST(assigned_to AS CHAR))) = LOWER(TRIM(%s)))
+                  )
+                """,
+                (now, task_id, g.company_id, uid, self_name, self_name),
+            )
+            if cur.rowcount == 0:
+                return jsonify({"success": False, "error": "Only the assignee can mark this task completed"}), 403
+        else:
+            cur.execute(
+                "UPDATE tasks SET status = 'Completed', end_time = %s, progress = '100', Approval = 'Approved' WHERE id = %s AND Company_id = %s",
+                (now, task_id, g.company_id),
+            )
     elif status_lower in ["todo", "new", "pending"]:
         cur.execute("UPDATE tasks SET status = 'To Do', start_time = NULL, end_time = NULL WHERE id = %s", (task_id,))
     elif status_lower == "pause":
@@ -118,7 +169,13 @@ def update_status(task_id):
     elif status_lower == "continue":
         cur.execute("UPDATE tasks SET status = 'InProgress', restart = %s WHERE id = %s", (now, task_id))
     elif status_lower == "approved":
-        cur.execute("UPDATE tasks SET Approval = 'Approved' WHERE id = %s", (task_id,))
+        cur.execute(
+            "UPDATE tasks SET Approval = 'Approved', progress = '100', status = 'Completed', end_time = IFNULL(end_time, %s) "
+            "WHERE id = %s AND uploaderid = %s AND Company_id = %s",
+            (now, task_id, g.user_id, g.company_id),
+        )
+        if cur.rowcount == 0:
+            return jsonify({"success": False, "error": "Only the task creator can approve this task"}), 403
     elif status_lower == "rejected":
         cur.execute("UPDATE tasks SET Approval = 'Rejected' WHERE id = %s", (task_id,))
     else:
@@ -350,22 +407,31 @@ def list_tasks():
     rows = cur.fetchall()
     tasks = [_serialize_row(_task_row_merge_joined_project_name(dict(r))) for r in rows]
     if not is_team_view:
-        # Creator-review flow: once assignee completes a delegated task, show it in My Task as To Do.
+        # Delegated review: assignee done → 95% pending; assigner's My Task shows same row in To Do until they approve → 100% for both.
         for t in tasks:
             try:
                 assigned_to = t.get("assigned_to")
                 uploaderid = t.get("uploaderid")
-                if (
-                    assigned_to is not None
-                    and uploaderid is not None
-                    and str(assigned_to) != str(uploaderid)
-                    and str(uploaderid) == str(g.user_id)
-                    and str(t.get("status") or "").strip().lower() == "completed"
-                ):
-                    # Mark as review item for frontend.
+                if assigned_to is None or uploaderid is None:
+                    continue
+                if str(assigned_to).strip() == str(uploaderid).strip():
+                    continue
+                st = str(t.get("status") or "").strip().lower()
+                is_completed = st in ("completed", "done")
+                approval = (t.get("Approval") or "").strip().lower()
+                pending_review = is_completed and approval not in ("approved", "rejected")
+                if not pending_review:
+                    continue
+                assignee_is_viewer = str(assigned_to).strip() == str(g.user_id).strip() or (
+                    user_name
+                    and str(assigned_to).strip().lower() == user_name.strip().lower()
+                )
+                if str(uploaderid) == str(g.user_id):
                     t["review_required"] = True
                     t["status_original"] = t.get("status")
                     t["status"] = "Todo"
+                elif assignee_is_viewer:
+                    t["review_required"] = True
             except Exception:
                 continue
     return jsonify({"tasks": tasks})
