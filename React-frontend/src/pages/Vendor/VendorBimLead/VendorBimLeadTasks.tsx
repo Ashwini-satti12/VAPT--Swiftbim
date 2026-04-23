@@ -1041,9 +1041,9 @@ export default function VendorBimLeadTasks() {
             >
               {displayedTasksByStatus[bucket].map((task) => {
                 const progress =
-                  normalizeStatus(task.status) === "todo"
+                  bucket === "todo"
                     ? 0
-                    : normalizeStatus(task.status) === "in_progress"
+                    : bucket === "in_progress"
                       ? 50
                       : task.assigned_to != null &&
                           task.uploaderid != null &&
