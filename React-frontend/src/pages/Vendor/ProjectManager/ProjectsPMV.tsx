@@ -12,6 +12,7 @@ import threedot from "../../../assets/ProjectManager/project/threedot.svg";
 import ProfileIcon from "../../../assets/ProductNavbarIcons/Profile.svg";
 import closeBtnIcon from "../../../assets/ProductNavbarIcons/close button.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
+import swifterzLogo from "../../../assets/ProductNavbarIcons/swifterzlogo.png";
 import downloadIcon from "../../../assets/TechnicalDirector/download icon.svg";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 
@@ -222,6 +223,16 @@ export default function ProjectsPMV() {
         return out;
     };
 
+    const resolveVendorMember = (id: string | number | undefined) => {
+        if (!id) return undefined;
+        return (
+            vendorResourceProfiles.find((e) => Number(e.id) === Number(id)) ||
+            projectManagers.find((e) => Number(e.id) === Number(id)) ||
+            bimLeads.find((e) => Number(e.id) === Number(id)) ||
+            allEmployees.find((e) => Number(e.id) === Number(id))
+        );
+    };
+
     const fetchProjects = (status?: string | null) => {
         const params: any = {};
         if (status) params.status = status;
@@ -356,11 +367,7 @@ export default function ProjectsPMV() {
     }, [showProjectView, selectedProject]);
 
     const getEmployeeName = (id: string | number | undefined): string => {
-        if (!id) return "";
-        const emp =
-            vendorResourceProfiles.find((e) => Number(e.id) === Number(id)) ||
-            allEmployees.find(e => e.id === Number(id));
-        return emp?.full_name || "";
+        return resolveVendorMember(id)?.full_name || "";
     };
     const openMemberProfile = (member?: Employee) => {
         if (!member) return;
@@ -1254,54 +1261,68 @@ export default function ProjectsPMV() {
                             {/* Team Roles Section - aligned with Vendor overview style */}
                             <div className="border border-slate-200 rounded-[10px] p-6 md:p-8 lg:p-4 space-y-6">
                                 <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-8">
-                                    Team Overview
-                                </h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                                    {[
-                                        { label: "Project Manager", id: selectedProject.project_manager_id },
-                                        { label: "BIM Lead", id: selectedProject.lead_id },
-                                    ].map((role) => (
-                                        <div key={role.label} className="space-y-3">
-                                            <p className="text-[16px] font-bold text-[#000000]">{role.label}</p>
-                                            <div className="flex items-center gap-4">
-                                                {(() => {
-                                                    const emp = vendorResourceProfiles.find(e => e.id === Number(role.id)) || allEmployees.find(e => e.id === Number(role.id));
-                                                    const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                                                    return (
-                                                        <>
-                                                            <div
-                                                                role="button"
-                                                                tabIndex={0}
-                                                                className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                                                onClick={() => openMemberProfile(emp)}
-                                                                onKeyDown={(e) => {
-                                                                    if (e.key === "Enter" || e.key === " ") {
-                                                                        e.preventDefault();
-                                                                        openMemberProfile(emp);
-                                                                    }
-                                                                }}
-                                                            >
-                                                                {profileUrl ? (
-                                                                    <img src={profileUrl} alt={role.label} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = ProfileIcon)} />
-                                                                ) : (
-                                                                    <img src={ProfileIcon} alt={role.label} className="w-full h-full object-cover p-1" />
-                                                                )}
-                                                            </div>
-                                                            <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
-                                                                {getEmployeeName(role.id) || "Not assigned"}
-                                                            </p>
-                                                        </>
-                                                    );
-                                                })()}
-                                            </div>
-                                        </div>
-                                    ))}
+                                     Team Overview
+                                 </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                                         {/* Project Manager */}
+                                         <div className="space-y-4">
+                                             <p className="text-[16px] font-medium text-[#000000]">Project Manager</p>
+                                             <div className="flex items-center gap-4">
+                                                 {(() => {
+                                                     const id = selectedProject.project_manager_id;
+                                                     const name = getEmployeeName(id);
+                                                     const emp = projectManagers.find(e => e.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
+                                                     const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : null;
+                                                     return (
+                                                         <>
+                                                             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                                                                 {profileUrl ? (
+                                                                     <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
+                                                                 ) : (
+                                                                     <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
+                                                                 )}
+                                                             </div>
+                                                             <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                                                                 {name || "Not assigned"}
+                                                             </p>
+                                                         </>
+                                                     );
+                                                 })()}
+                                             </div>
+                                         </div>
+
+                                         {/* BIM Lead */}
+                                         <div className="space-y-4">
+                                             <p className="text-[16px] font-medium text-[#000000]">BIM Lead</p>
+                                             <div className="flex items-center gap-4">
+                                                 {(() => {
+                                                     const id = selectedProject.lead_id;
+                                                     const name = getEmployeeName(id);
+                                                     const emp = bimLeads.find(e => e.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
+                                                     const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : null;
+                                                     return (
+                                                         <>
+                                                             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                                                                 {profileUrl ? (
+                                                                     <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
+                                                                 ) : (
+                                                                     <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
+                                                                 )}
+                                                             </div>
+                                                             <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                                                                 {name || "Not assigned"}
+                                                             </p>
+                                                         </>
+                                                     );
+                                                 })()}
+                                             </div>
+                                         </div>
                                     <div className="space-y-3">
                                         <p className="text-[16px] font-bold text-[#000000]">Members Involved</p>
                                         {(() => {
                                             const memberIds = (selectedProject.members || "").split(",").filter(Boolean).map((id) => Number(id));
                                             const projectMembers = memberIds
-                                                .map((id) => vendorResourceProfiles.find((e) => e.id === id) || allEmployees.find((e) => e.id === id))
+                                                .map((id) => resolveVendorMember(id))
                                                 .filter(Boolean) as Employee[];
                                             if (!projectMembers.length) {
                                                 return <div className="h-10 flex items-center text-[14px] font-bold text-[#666666]">N/A</div>;
@@ -1311,7 +1332,7 @@ export default function ProjectsPMV() {
                                             return (
                                                 <div className="flex items-center -space-x-3">
                                                     {visibleMembers.map((emp) => {
-                                                        const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                        const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : null;
                                                         return (
                                                             <div key={emp.id} className="relative group shrink-0">
                                                                 <div

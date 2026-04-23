@@ -329,14 +329,14 @@ function TaskCard({
                         {task.assigned_full_name && (
                             <div className="w-7 h-7 rounded-full border border-white bg-slate-200 flex items-center justify-center overflow-hidden" title={`Assigned: ${task.assigned_full_name}`}>
                                 {task.assigned_to && task.assigned_profile_picture ? (
-                                    <img src={getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture)} className="w-full h-full object-cover" alt="" />
+                                    <img src={getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture, "vendor")} className="w-full h-full object-cover" alt="" />
                                 ) : <span className="text-[10px] font-bold">{(task.assigned_full_name || "U")[0]}</span>}
                             </div>
                         )}
                         {task.uploader_full_name && (
                             <div className="w-7 h-7 rounded-full border border-white bg-slate-100 flex items-center justify-center overflow-hidden" title={`Uploader: ${task.uploader_full_name}`}>
                                 {task.uploaderid && task.uploader_profile_picture ? (
-                                    <img src={getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture)} className="w-full h-full object-cover" alt="" />
+                                    <img src={getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture, "vendor")} className="w-full h-full object-cover" alt="" />
                                 ) : <span className="text-[10px] font-bold">{(task.uploader_full_name || "S")[0]}</span>}
                             </div>
                         )}

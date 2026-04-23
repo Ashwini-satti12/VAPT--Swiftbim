@@ -465,7 +465,7 @@ function TaskCard({
                         >
                             {task.assigned_profile_picture ? (
                                 <img
-                                    src={getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture)}
+                                    src={getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture, "vendor")}
                                     alt="Assignee"
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
@@ -494,7 +494,7 @@ function TaskCard({
                         >
                             {task.uploader_profile_picture ? (
                                 <img
-                                    src={getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture)}
+                                    src={getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture, "vendor")}
                                     alt="Uploader"
                                     className="w-full h-full object-cover"
                                     onError={(e) => {

@@ -43,7 +43,7 @@ export default function ConsultantdetailsV() {
                         <div className="w-14 h-14 rounded-full bg-[#3d3399]/20 flex items-center justify-center text-xl font-semibold text-[#3d3399] overflow-hidden">
                             {emp.profile_picture ? (
                                 <img 
-                                    src={getGlobalProfileUrl(emp.id, emp.profile_picture)} 
+                                    src={getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor")} 
                                     alt={emp.full_name} 
                                     className="w-full h-full object-cover"
                                     onError={(e) => {

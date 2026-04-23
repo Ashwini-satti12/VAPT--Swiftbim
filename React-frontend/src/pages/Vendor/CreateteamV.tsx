@@ -190,7 +190,7 @@ function TeamCard({
                                     const emp = getEmp(eid);
                                     const name = emp?.full_name || 'N/A';
                                     const profileUrl = emp?.profile_picture
-                                        ? getGlobalProfileUrl(emp.id, emp.profile_picture)
+                                        ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor")
                                         : null;
 
                                     return (
@@ -1253,7 +1253,7 @@ export default function CreateteamV() {
                                         {(() => {
                                             const emp = getEmp(selectedTeam.leader);
                                             const name = emp?.full_name || 'N/A';
-                                            const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture) : '';
+                                            const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : '';
                                             return (
                                                 <>
                                                     <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center font-Gantari font-medium uppercase overflow-hidden shadow-sm">
@@ -1278,7 +1278,7 @@ export default function CreateteamV() {
                                         {selectedTeam.employee.split(',').filter(Boolean).map(eid => {
                                             const emp = getEmp(eid);
                                             const name = emp?.full_name || 'N/A';
-                                            const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture) : '';
+                                            const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : '';
                                             return (
                                                 <div key={eid} className="flex items-center gap-2.5 bg-[#F2F3F4] border-2 border-[#AEACAC52] py-3 px-2 rounded-lg group hover:bg-white transition-colors">
                                                     <div className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-[11px] font-bold text-slate-600 uppercase overflow-hidden shadow-sm">

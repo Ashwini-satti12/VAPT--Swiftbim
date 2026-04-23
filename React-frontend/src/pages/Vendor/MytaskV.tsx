@@ -693,6 +693,7 @@ function TaskCard({
                     ? getGlobalProfileUrl(
                       task.assigned_to,
                       task.assigned_profile_picture,
+                      "vendor"
                     )
                     : task.assigned_profile_picture
                       ? getProfileUrl(task.assigned_profile_picture)
@@ -728,6 +729,7 @@ function TaskCard({
                     ? getGlobalProfileUrl(
                       task.uploaderid,
                       task.uploader_profile_picture,
+                      "vendor"
                     )
                     : task.uploader_profile_picture
                       ? getProfileUrl(task.uploader_profile_picture)

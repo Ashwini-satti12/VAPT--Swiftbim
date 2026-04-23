@@ -808,6 +808,7 @@ export default function VendorBimLeadTeamTasks() {
                   ? getGlobalProfileUrl(
                       task.assigned_to,
                       (task as any).assigned_profile_picture,
+                      "vendor"
                     )
                   : (task as any).assigned_profile_picture
                     ? getProfileUrl((task as any).assigned_profile_picture)

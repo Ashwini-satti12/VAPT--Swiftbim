@@ -8,6 +8,7 @@ import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import ProfileIcon from "../../../assets/ProductNavbarIcons/Profile.svg";
 import closeBtnIcon from "../../../assets/ProductNavbarIcons/close button.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
+import swifterzLogo from "../../../assets/ProductNavbarIcons/swifterzlogo.png";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 
 type VendorResourceProfileRow = {
@@ -27,6 +28,8 @@ type VendorResourceProfileRow = {
   department?: string;
   address?: string;
 };
+
+type Employee = VendorResourceProfileRow;
 
 type Project = {
   id: number;
@@ -252,6 +255,9 @@ export default function ProjectEV() {
   const [resourceProfiles, setResourceProfiles] = useState<
     VendorResourceProfileRow[]
   >([]);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [projectManagers, setProjectManagers] = useState<Employee[]>([]);
+  const [bimLeads, setBimLeads] = useState<Employee[]>([]);
 
   const [showProjectView, setShowProjectView] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -299,7 +305,10 @@ export default function ProjectEV() {
   };
 
   const resolveVendorMember = (id: string | number) =>
-    resourceProfiles.find((e) => Number(e.id) === Number(id));
+    resourceProfiles.find((e) => Number(e.id) === Number(id)) ||
+    projectManagers.find((e) => Number(e.id) === Number(id)) ||
+    bimLeads.find((e) => Number(e.id) === Number(id)) ||
+    allEmployees.find((e) => Number(e.id) === Number(id));
 
   const getEmployeeName = (id: any) => resolveVendorMember(id)?.full_name || "";
 
@@ -327,17 +336,37 @@ export default function ProjectEV() {
       api.get<{ success?: boolean; resources?: VendorResourceProfileRow[] }>(
         "/api/vendors/vendor-resource-profiles",
       ),
+      api.get<{ employees?: Employee[] }>("/api/employees"),
+      api.get<{ success: boolean; employees?: Employee[] }>(
+        "/api/vendors/vendor-by-role?role=Vendor PM",
+      ),
+      api.get<{ success: boolean; employees?: Employee[] }>(
+        "/api/vendors/vendor-by-role?role=Vendor Bim Lead",
+      ),
     ])
-      .then(([myTasksRes, projectsRes, resRes]) => {
+      .then(([myTasksRes, projectsRes, resRes, allEmpRes, pmRes, blRes]) => {
         const myTasks = myTasksRes.data.tasks ?? [];
         const allProjects = (projectsRes.data.projects ?? []) as Project[];
         const profiles = resRes.data.resources ?? [];
+        const allEmp = allEmpRes.data.employees ?? [];
+        const pms = pmRes.data.employees ?? [];
+        const bls = blRes.data.employees ?? [];
+
         setResourceProfiles(profiles);
-        setProjects(filterInvolvedVendorProjects(allProjects, myTasks, user, profiles));
+        setAllEmployees(allEmp);
+        setProjectManagers(pms);
+        setBimLeads(bls);
+
+        setProjects(
+          filterInvolvedVendorProjects(allProjects, myTasks, user, profiles),
+        );
       })
       .catch(() => {
         setProjects([]);
         setResourceProfiles([]);
+        setAllEmployees([]);
+        setProjectManagers([]);
+        setBimLeads([]);
       })
       .finally(() => setLoading(false));
   }, [user]);
@@ -592,86 +621,122 @@ export default function ProjectEV() {
 
                 <div className="border border-slate-200 rounded-[10px] p-4 md:p-5 space-y-6">
                   <h4 className="text-[18px] md:text-[20px] font-semibold text-[#000000]">Team Overview</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {[
-                      { label: "Project Manager", id: selectedProject.project_manager_id },
-                      { label: "BIM Lead", id: selectedProject.lead_id },
-                    ].map((role) => {
-                      const emp = resolveVendorMember(role.id || "");
-                      const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                      return (
-                        <div key={role.label} className="flex items-center gap-3">
-                          <div
-                            role="button"
-                            tabIndex={0}
-                            className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 overflow-hidden shadow-sm cursor-pointer transition-all"
-                            onClick={() => openMemberProfile(emp)}
-                          >
-                            {profileUrl ? (
-                              <img src={profileUrl} alt={role.label} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                            ) : (
-                              <img src={ProfileIcon} alt={role.label} className="w-full h-full object-cover" />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[16px] font-medium text-[#1A1A1A] truncate">{getEmployeeName(role.id) || "Not assigned"}</p>
-                            <p className="text-[14px] font-medium text-[#8B8B8B]">{role.label}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    <div className="flex flex-col">
-                      <p className="text-[16px] font-medium text-[#353535]">BIM Coordinator</p>
-                      <p className="text-[14px] font-medium text-[#8B8B8B]">{selectedProject.bim_coordinator || selectedProject.bim_coordinator_name || "N/A"}</p>
-                    </div>
-                    <div className="flex flex-col">
-                      <p className="text-[16px] font-medium text-[#353535]">Members Involved</p>
-                      {(() => {
-                        const memberIds = (selectedProject.members || "").split(",").filter(Boolean).map((id) => Number(id));
-                        const projectMembers = memberIds.map((id) => resolveVendorMember(id)).filter(Boolean) as VendorResourceProfileRow[];
-                        if (!projectMembers.length) return <div className="text-[14px] font-medium text-[#8B8B8B]">N/A</div>;
-                        const visibleMembers = projectMembers.slice(0, 3);
-                        const remainingCount = Math.max(0, projectMembers.length - 3);
-                        return (
-                          <div className="flex items-center -space-x-4">
-                            {visibleMembers.map((emp) => {
-                              const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                              return (
-                                <div
-                                  key={emp.id}
-                                  role="button"
-                                  tabIndex={0}
-                                  className="w-9 h-9 rounded-full border border-white bg-slate-100 overflow-hidden cursor-pointer"
-                                  title={emp.full_name}
-                                  onClick={() => openMemberProfile(emp)}
-                                >
-                                  {profileUrl ? (
-                                    <img src={profileUrl} alt={emp.full_name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[12px] font-medium text-slate-600">
-                                      {(emp.full_name || "U").charAt(0).toUpperCase()}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                            {remainingCount > 0 && (
-                              <div
-                                role="button"
-                                tabIndex={0}
-                                className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
-                                onClick={() => {
-                                  setAllMembersList(projectMembers);
-                                  setShowAllMembersModal(true);
-                                }}
-                              >
-                                +{remainingCount}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                                         {/* Project Manager */}
+                                         <div className="space-y-4">
+                                             <p className="text-[16px] font-medium text-[#000000]">Project Manager</p>
+                                             <div className="flex items-center gap-4">
+                                                 {(() => {
+                                                     const id = selectedProject.project_manager_id;
+                                                     const name = getEmployeeName(id);
+                                                     const emp = projectManagers.find(e => e.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
+                                                     const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : null;
+                                                     return (
+                                                         <>
+                                                             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                                                                 {profileUrl ? (
+                                                                     <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
+                                                                 ) : (
+                                                                     <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
+                                                                 )}
+                                                             </div>
+                                                             <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                                                                 {name || "Not assigned"}
+                                                             </p>
+                                                         </>
+                                                     );
+                                                 })()}
+                                             </div>
+                                         </div>
+
+                                         {/* BIM Lead */}
+                                         <div className="space-y-4">
+                                             <p className="text-[16px] font-medium text-[#000000]">BIM Lead</p>
+                                             <div className="flex items-center gap-4">
+                                                 {(() => {
+                                                     const id = selectedProject.lead_id;
+                                                     const name = getEmployeeName(id);
+                                                     const emp = bimLeads.find(e => e.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
+                                                     const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : null;
+                                                     return (
+                                                         <>
+                                                             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                                                                 {profileUrl ? (
+                                                                     <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
+                                                                 ) : (
+                                                                     <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
+                                                                 )}
+                                                             </div>
+                                                             <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                                                                 {name || "Not assigned"}
+                                                             </p>
+                                                         </>
+                                                     );
+                                                 })()}
+                                             </div>
+                                         </div>
+                                         {/* Members Involved */}
+                                         <div className="space-y-4">
+                                             <p className="text-[16px] font-medium text-[#000000]">Members Involved</p>
+                                             {(() => {
+                                                 const memberIds = (selectedProject.members || "").split(",").filter(Boolean);
+                                                 const projectMembers = memberIds.map(id => {
+                                                     return resourceProfiles.find(r => r.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
+                                                 }).filter(Boolean);
+
+                                                 if (projectMembers.length === 0) {
+                                                     return (
+                                                         <div className="h-10 flex items-center text-[14px] font-bold text-[#666666]">
+                                                             N/A
+                                                         </div>
+                                                     );
+                                                 }
+
+                                                 return (
+                                                     <div className="flex items-center -space-x-3">
+                                                         {projectMembers.slice(0, 3).map((member: any) => {
+                                                             const profileUrl = member.profile_picture ? getGlobalProfileUrl(member.id, member.profile_picture, "vendor") : null;
+                                                             return (
+                                                                 <div key={member.id} className="relative group shrink-0">
+                                                                     <div
+                                                                         role="button"
+                                                                         tabIndex={0}
+                                                                         className="w-10 h-10 rounded-full bg-white flex items-center justify-center border-2 border-white overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                                                         onClick={() => openMemberProfile(member)}
+                                                                         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openMemberProfile(member); } }}
+                                                                     >
+                                                                         {profileUrl ? (
+                                                                             <img src={profileUrl} className="w-full h-full object-cover" alt={member.full_name || "Member"} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                                                         ) : (
+                                                                             <img src={ProfileIcon} className="w-full h-full object-cover p-1" alt={member.full_name || "Member"} />
+                                                                         )}
+                                                                     </div>
+                                                                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                                         <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                                                                             <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                                                                 {member.full_name || "Unknown"}
+                                                                             </span>
+                                                                         </div>
+                                                                         <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                                                     </div>
+                                                                 </div>
+                                                             );
+                                                         })}
+                                                         {projectMembers.length > 3 && (
+                                                             <div
+                                                                 role="button"
+                                                                 tabIndex={0}
+                                                                 className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                                                                 onClick={() => { setAllMembersList(projectMembers as any[]); setShowAllMembersModal(true); }}
+                                                                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAllMembersList(projectMembers as any[]); setShowAllMembersModal(true); } }}
+                                                             >
+                                                                 +{projectMembers.length - 3}
+                                                             </div>
+                                                         )}
+                                                     </div>
+                                                 );
+                                             })()}
+                                         </div>
                   </div>
                 </div>
 
@@ -870,7 +935,7 @@ export default function ProjectEV() {
                             return (
                               <>
                                 {visibleMembers.map((emp) => {
-                                  const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                  const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : null;
                                   return (
                                     <div
                                       key={emp.id}
@@ -938,7 +1003,16 @@ export default function ProjectEV() {
                     onClick={() => { openMemberProfile(member); setShowAllMembersModal(false); }}
                   >
                     <div className="w-12 h-12 rounded-full border-2 border-slate-200 overflow-hidden bg-slate-100 shrink-0">
-                      <img src={ProfileIcon} alt={member.full_name || "Member"} className="w-full h-full object-cover p-1" />
+                      {member.profile_picture ? (
+                        <img
+                          src={getGlobalProfileUrl(member.id, member.profile_picture, "vendor")}
+                          alt={member.full_name || "Member"}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }}
+                        />
+                      ) : (
+                        <img src={ProfileIcon} alt={member.full_name || "Member"} className="w-full h-full object-cover p-1" />
+                      )}
                     </div>
                     <div>
                       <p className="text-[16px] font-semibold text-[#1A1A1A] font-Gantari">{member.full_name || "Unknown"}</p>
