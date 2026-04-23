@@ -46,7 +46,9 @@ def _task_row_merge_joined_project_name(row_dict):
     d = dict(row_dict)
     join_name = d.pop("_join_project_name", None)
     if join_name is not None and str(join_name).strip() != "":
-        d["project_name"] = join_name
+        d["project_name"] = str(join_name).strip()
+    elif d.get("project_name") is None:
+        d["project_name"] = ""
     return d
 
 
@@ -398,8 +400,8 @@ def list_tasks():
               e_assigned.profile_picture AS assigned_profile_picture, e_uploader.profile_picture AS uploader_profile_picture,
               p.project_name AS _join_project_name
               FROM tasks t
-              LEFT JOIN employee e_assigned ON TRIM(CAST(t.assigned_to AS CHAR)) = TRIM(CAST(e_assigned.id AS CHAR))
-              LEFT JOIN employee e_uploader ON t.uploaderid = e_uploader.id
+              LEFT JOIN employee e_assigned ON (TRIM(CAST(t.assigned_to AS CHAR)) = TRIM(CAST(e_assigned.id AS CHAR)) OR LOWER(TRIM(t.assigned_to)) = LOWER(TRIM(e_assigned.full_name)))
+              LEFT JOIN employee e_uploader ON (TRIM(CAST(t.uploaderid AS CHAR)) = TRIM(CAST(e_uploader.id AS CHAR)) OR LOWER(TRIM(t.uploaderid)) = LOWER(TRIM(e_uploader.full_name)))
               LEFT JOIN projects p ON t.projectid = p.id
               WHERE {' AND '.join(where)}
               ORDER BY t.created_at DESC"""
@@ -450,16 +452,35 @@ def create_task():
         or data.get("projectid")
         or data.get("projectId")
     )
-    project_name = data.get("project_name")
-    if not project_id and project_name:
+    if project_id and not str(project_id).isdigit():
         cur.execute(
-            "SELECT id FROM projects WHERE project_name = %s AND Company_id = %s",
-            (project_name, g.company_id),
+            "SELECT id FROM projects WHERE LOWER(TRIM(project_name)) = LOWER(TRIM(%s)) AND Company_id = %s",
+            (project_id, g.company_id),
         )
         row = cur.fetchone()
         if row:
-            # handle dict-like or tuple-like row
             project_id = row["id"] if isinstance(row, dict) else row[0]
+        else:
+            # Maybe the name was passed in project_name field instead?
+            project_name = data.get("project_name")
+            if project_name:
+                cur.execute(
+                    "SELECT id FROM projects WHERE LOWER(TRIM(project_name)) = LOWER(TRIM(%s)) AND Company_id = %s",
+                    (project_name, g.company_id),
+                )
+                row = cur.fetchone()
+                if row:
+                    project_id = row["id"] if isinstance(row, dict) else row[0]
+    elif not project_id:
+        project_name = data.get("project_name")
+        if project_name:
+            cur.execute(
+                "SELECT id FROM projects WHERE LOWER(TRIM(project_name)) = LOWER(TRIM(%s)) AND Company_id = %s",
+                (project_name, g.company_id),
+            )
+            row = cur.fetchone()
+            if row:
+                project_id = row["id"] if isinstance(row, dict) else row[0]
 
     task_name = data.get("task_name") or data.get("taskName")
     assigned_to = (
@@ -587,12 +608,13 @@ def create_task():
 @project_app_required
 def get_task(task_id):
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(dictionary=True)
     cur.execute(
         """SELECT t.*, e_assigned.full_name AS assigned_full_name, e_uploader.full_name AS uploader_full_name,
+              e_assigned.profile_picture AS assigned_profile_picture, e_uploader.profile_picture AS uploader_profile_picture,
               p.project_name AS _join_project_name FROM tasks t
-              LEFT JOIN employee e_assigned ON t.assigned_to = e_assigned.id
-              LEFT JOIN employee e_uploader ON t.uploaderid = e_uploader.id
+              LEFT JOIN employee e_assigned ON (TRIM(CAST(t.assigned_to AS CHAR)) = TRIM(CAST(e_assigned.id AS CHAR)) OR LOWER(TRIM(t.assigned_to)) = LOWER(TRIM(e_assigned.full_name)))
+              LEFT JOIN employee e_uploader ON (TRIM(CAST(t.uploaderid AS CHAR)) = TRIM(CAST(e_uploader.id AS CHAR)) OR LOWER(TRIM(t.uploaderid)) = LOWER(TRIM(e_uploader.full_name)))
               LEFT JOIN projects p ON t.projectid = p.id
               WHERE t.id = %s AND t.Company_id = %s""",
         (task_id, g.company_id),
@@ -612,12 +634,23 @@ def update_task(task_id):
     cur = conn.cursor()
     _ensure_tasks_review_remark_column(cur)
     # Build dynamic update
-    allowed = ("task_name", "assigned_to", "due_date", "category", "description", "checklist", "review_remark", "status", "modules_name", "Actual_start_time", "perferstart_time", "perferend_time", "outputfilepath")
+    allowed = ("projectid", "project_id", "task_name", "assigned_to", "due_date", "category", "description", "checklist", "review_remark", "status", "modules_name", "Actual_start_time", "perferstart_time", "perferend_time", "outputfilepath")
     sets = []
     params = []
     for key in allowed:
         if key in data and data[key] is not None:
             val = data[key]
+            db_key = key
+            if key == "project_id" or key == "projectid":
+                db_key = "projectid"
+                if val and not str(val).isdigit():
+                    cur.execute(
+                        "SELECT id FROM projects WHERE LOWER(TRIM(project_name)) = LOWER(TRIM(%s)) AND Company_id = %s",
+                        (val, g.company_id),
+                    )
+                    p_row = cur.fetchone()
+                    if p_row:
+                        val = p_row["id"] if isinstance(p_row, dict) else p_row[0]
             if key == "assigned_to" and val and not str(val).isdigit():
                 cur.execute(
                     "SELECT id FROM employee WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(%s)) AND Company_id = %s",
@@ -628,7 +661,7 @@ def update_task(task_id):
                     val = row["id"] if isinstance(row, dict) else row[0]
                 else:
                     return jsonify({"success": False, "message": f"Employee '{val}' not found."}), 400
-            sets.append(f"`{key}` = %s")
+            sets.append(f"`{db_key}` = %s")
             params.append(val)
     if not sets:
         return jsonify({"success": False, "message": "No fields to update"}), 400
