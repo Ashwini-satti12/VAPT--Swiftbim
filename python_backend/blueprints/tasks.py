@@ -514,8 +514,8 @@ def create_task():
     modules = data.get("modules_name") or data.get("modules") or data.get("module") or ""
 
     # Preferred times
-    prefer_start = data.get("perferstart_time") or data.get("startTime") or data.get("start_time")
-    prefer_end = data.get("perferend_time") or data.get("dueTime") or data.get("due_time")
+    prefer_start = data.get("perferstart_time") or data.get("startTime") or data.get("start_time") or data.get("perfer_start_time") or data.get("preferstart_time")
+    prefer_end = data.get("perferend_time") or data.get("dueTime") or data.get("due_time") or data.get("end_time") or data.get("perfer_end_time") or data.get("preferend_time")
 
     status = data.get("status") or "Todo"
     import random
@@ -610,13 +610,16 @@ def get_task(task_id):
     conn = get_db()
     cur = conn.cursor(dictionary=True)
     cur.execute(
-        """SELECT t.*, e_assigned.full_name AS assigned_full_name, e_uploader.full_name AS uploader_full_name,
-              e_assigned.profile_picture AS assigned_profile_picture, e_uploader.profile_picture AS uploader_profile_picture,
-              p.project_name AS _join_project_name FROM tasks t
-              LEFT JOIN employee e_assigned ON (TRIM(CAST(t.assigned_to AS CHAR)) = TRIM(CAST(e_assigned.id AS CHAR)) OR LOWER(TRIM(t.assigned_to)) = LOWER(TRIM(e_assigned.full_name)))
-              LEFT JOIN employee e_uploader ON (TRIM(CAST(t.uploaderid AS CHAR)) = TRIM(CAST(e_uploader.id AS CHAR)) OR LOWER(TRIM(t.uploaderid)) = LOWER(TRIM(e_uploader.full_name)))
-              LEFT JOIN projects p ON t.projectid = p.id
-              WHERE t.id = %s AND t.Company_id = %s""",
+        """SELECT t.*, 
+                  COALESCE(t.perferstart_time, t.Actual_start_time) as start_time_merged,
+                  COALESCE(t.perferend_time, t.end_time) as end_time_merged,
+                  e_assigned.full_name AS assigned_full_name, e_uploader.full_name AS uploader_full_name,
+                  e_assigned.profile_picture AS assigned_profile_picture, e_uploader.profile_picture AS uploader_profile_picture,
+                  p.project_name AS _join_project_name FROM tasks t
+                  LEFT JOIN employee e_assigned ON (TRIM(CAST(t.assigned_to AS CHAR)) = TRIM(CAST(e_assigned.id AS CHAR)) OR LOWER(TRIM(t.assigned_to)) = LOWER(TRIM(e_assigned.full_name)))
+                  LEFT JOIN employee e_uploader ON (TRIM(CAST(t.uploaderid AS CHAR)) = TRIM(CAST(e_uploader.id AS CHAR)) OR LOWER(TRIM(t.uploaderid)) = LOWER(TRIM(e_uploader.full_name)))
+                  LEFT JOIN projects p ON t.projectid = p.id
+                  WHERE t.id = %s AND t.Company_id = %s""",
         (task_id, g.company_id),
     )
     row = cur.fetchone()
@@ -634,24 +637,54 @@ def update_task(task_id):
     cur = conn.cursor()
     _ensure_tasks_review_remark_column(cur)
     # Build dynamic update
-    allowed = ("projectid", "project_id", "task_name", "assigned_to", "due_date", "category", "description", "checklist", "review_remark", "status", "modules_name", "Actual_start_time", "perferstart_time", "perferend_time", "outputfilepath")
+    allowed = (
+        "projectid", "project_id", "project_name", "projectName",
+        "task_name", "taskName", "assigned_to", "assign_to", "assignTo",
+        "due_date", "dueDate", "category", "type", "description", "checklist",
+        "review_remark", "status", "modules_name", "module",
+        "Actual_start_time", "start_date", "startdate",
+        "perferstart_time", "startTime", "start_time",
+        "perferend_time", "dueTime", "due_time", "end_time", "outputfilepath"
+    )
     sets = []
     params = []
     for key in allowed:
         if key in data and data[key] is not None:
             val = data[key]
             db_key = key
-            if key == "project_id" or key == "projectid":
+            
+            # Map frontend keys to DB columns
+            if key in ("projectid", "project_id", "project_name", "projectName"):
                 db_key = "projectid"
-                if val and not str(val).isdigit():
-                    cur.execute(
-                        "SELECT id FROM projects WHERE LOWER(TRIM(project_name)) = LOWER(TRIM(%s)) AND Company_id = %s",
-                        (val, g.company_id),
-                    )
-                    p_row = cur.fetchone()
-                    if p_row:
-                        val = p_row["id"] if isinstance(p_row, dict) else p_row[0]
-            if key == "assigned_to" and val and not str(val).isdigit():
+            elif key in ("task_name", "taskName"):
+                db_key = "task_name"
+            elif key in ("assigned_to", "assign_to", "assignTo"):
+                db_key = "assigned_to"
+            elif key in ("due_date", "dueDate"):
+                db_key = "due_date"
+            elif key in ("category", "type"):
+                db_key = "category"
+            elif key in ("modules_name", "module"):
+                db_key = "modules_name"
+            elif key in ("Actual_start_time", "start_date", "startdate"):
+                db_key = "Actual_start_time"
+            elif key in ("perferstart_time", "startTime", "start_time"):
+                db_key = "perferstart_time"
+            elif key in ("perferend_time", "dueTime", "due_time", "end_time"):
+                db_key = "perferend_time"
+
+            # Handle name-to-ID lookups for projectid
+            if db_key == "projectid" and val and not str(val).isdigit():
+                cur.execute(
+                    "SELECT id FROM projects WHERE LOWER(TRIM(project_name)) = LOWER(TRIM(%s)) AND Company_id = %s",
+                    (val, g.company_id),
+                )
+                p_row = cur.fetchone()
+                if p_row:
+                    val = p_row["id"] if isinstance(p_row, dict) else p_row[0]
+
+            # Handle name-to-ID lookups for assigned_to
+            if db_key == "assigned_to" and val and not str(val).isdigit():
                 cur.execute(
                     "SELECT id FROM employee WHERE LOWER(TRIM(full_name)) = LOWER(TRIM(%s)) AND Company_id = %s",
                     (val, g.company_id),
@@ -661,6 +694,7 @@ def update_task(task_id):
                     val = row["id"] if isinstance(row, dict) else row[0]
                 else:
                     return jsonify({"success": False, "message": f"Employee '{val}' not found."}), 400
+            
             sets.append(f"`{db_key}` = %s")
             params.append(val)
     if not sets:

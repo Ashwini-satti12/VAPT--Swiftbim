@@ -15,29 +15,28 @@ export const getGlobalProfileUrl = (
   profilePicture: string | null | undefined,
   userType?: string,
 ): string => {
-  if (!profilePicture) return ""; // Reverts to placeholder in UI
+  if (!profilePicture || profilePicture === "null" || profilePicture === "undefined") return "";
 
-  if (
-    profilePicture.startsWith("http://") ||
-    profilePicture.startsWith("https://")
-  ) {
-    return profilePicture;
-  }
+  const baseUrl = apiBase.endsWith("/") ? apiBase.slice(0, -1) : apiBase;
 
+  // If no employee ID is provided, we must use the direct upload path.
   if (!empId) {
-    return `${apiBase}/uploads/${profilePicture}`;
+    if (profilePicture.startsWith("http")) return profilePicture;
+    const normalizedPath = profilePicture.replace(/\\/g, "/");
+    // If it's just a filename, assume it's in the employee directory as per user request.
+    if (!normalizedPath.includes("/")) {
+      return `${baseUrl}/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+    }
+    return `${baseUrl}/uploads/${normalizedPath}`;
   }
 
-  // Use the new global endpoint removing '/api' from apiBase if it already includes it
-  const baseUrl = apiBase.endsWith("/api") ? apiBase.slice(0, -4) : apiBase;
-  let url = `${baseUrl}/api/view_profile_picture/${empId}`;
+  // Use the API endpoint removing '/api' from apiBase if it already includes it
+  const apiRoot = baseUrl.endsWith("/api") ? baseUrl.slice(0, -4) : baseUrl;
+  let url = `${apiRoot}/api/view_profile_picture/${empId}`;
 
   const params = new URLSearchParams();
   if (userType) params.append("user_type", userType);
 
-  // Add a cache-buster query param using the filename itself if available
-  // This ensures that when the filename changes (e.g. includes a timestamp),
-  // the browser sees a new URL and reloads the image.
   if (profilePicture && typeof profilePicture === "string") {
     params.append("v", profilePicture);
   }

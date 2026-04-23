@@ -740,7 +740,7 @@ export default function ProjectEV() {
                   </div>
                 </div>
 
-                <div className="border border-slate-200 rounded-lg px-5 py-6">
+                {/* <div className="border border-slate-200 rounded-lg px-5 py-6">
                   <h4 className="text-[18px] md:text-[20px] font-semibold text-[#000000] mb-4">Project Details</h4>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 lg:gap-x-16">
                     <div className="space-y-3">
@@ -822,7 +822,7 @@ export default function ProjectEV() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </div> */}
               </div>
             </div>
         ) : (
