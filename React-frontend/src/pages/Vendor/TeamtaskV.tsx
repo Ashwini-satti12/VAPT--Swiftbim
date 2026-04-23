@@ -267,12 +267,12 @@ function TaskCard({
       ? task.Approval?.toLowerCase() === "approved"
         ? 100
         : 95
-      : typeof task.progress === "number"
-        ? task.progress
-        : status === "todo"
-          ? 0
-          : status === "in_progress"
-            ? 50
+      : status === "todo"
+        ? 0
+        : status === "in_progress"
+          ? 50
+          : typeof task.progress === "number"
+            ? task.progress
             : 100;
   const isUnderReview =
     status === "completed" &&
