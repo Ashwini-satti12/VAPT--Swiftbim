@@ -1875,8 +1875,7 @@ export default function ProjectsV() {
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     setOpenMenuProjectId(null);
-                                                                    setMilestonesProject(p);
-                                                                    setShowMilestones(true);
+                                                                    navigate(`/v/milestones?project_id=${p.id}`);
                                                                 }}
                                                                 className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                                                             >
