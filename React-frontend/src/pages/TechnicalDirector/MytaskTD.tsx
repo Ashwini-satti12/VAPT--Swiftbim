@@ -736,13 +736,13 @@ function TaskCard({
       String(task.assigned_to) !== String(task.uploaderid)
       ? task.Approval?.toLowerCase() === "approved"
         ? 100
-        : 95
-      : typeof task.progress === "number"
-        ? task.progress
-        : status === "todo"
-          ? 0
-          : status === "in_progress"
-            ? 50
+        : (status === "todo" ? 0 : status === "in_progress" ? 50 : 95)
+      : status === "todo"
+        ? 0
+        : status === "in_progress"
+          ? 50
+          : typeof task.progress === "number"
+            ? task.progress
             : 100;
   const isUnderReview =
     (status === "completed" || (task as any).review_required) &&
@@ -784,9 +784,14 @@ function TaskCard({
       className={`mt-2 rounded-lg border border-[#AEACAC52] bg-white p-3 shadow-sm relative mx-auto w-full max-w-full lg:max-w-none ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
       <div className="flex items-center justify-between gap-2 mb-4">
-        <h4 className="font-medium text-[#353535] text-[20px] truncate leading-tight">
-          {task.task_name || "Task Name"}
-        </h4>
+        <div className="flex flex-col min-w-0 flex-1">
+          <h4 className="font-medium text-[#353535] text-[20px] truncate leading-tight">
+            {task.task_name || "Task Name"}
+          </h4>
+          <span className="text-[12px] text-[#8B8B8B] truncate">
+            {task.project_name || "No Project"}
+          </span>
+        </div>
         <div className="relative" ref={menuRef}>
           <button
             type="button"
@@ -895,7 +900,7 @@ function TaskCard({
             Start Date
           </span>
           <span className="text-[14px] font-medium text-[#8B8B8B]">
-            {formatDateForDisplay(task.start_date || task.Actual_start_time) || "—"}
+            {formatDateForDisplay(task.start_date || (task as any).startdate || task.Actual_start_time) || "—"}
           </span>
         </div>
 
@@ -911,7 +916,13 @@ function TaskCard({
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-[12px] text-[#8B8B8B]">Progress</span>
         <span className="text-[12px] text-[#8B8B8B]">
-          {isUnderReview ? "95% (Under Review)" : `${progress}%`}
+          {isUnderReview
+            ? status === "todo"
+              ? "0% (Under Review)"
+              : status === "in_progress"
+                ? "50% (Under Review)"
+                : "95% (Under Review)"
+            : `${progress}%`}
         </span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
