@@ -619,9 +619,9 @@ export default function ResourcesV() {
 
   const renderList = () => (
     <>
-      <div className="sticky z-50 bg-white mb-4 mt-2 overflow-visible">
+      <div className="sticky z-50 bg-white overflow-visible px-2 mb-4">
         <div className="flex flex-col sm:flex-row w-full min-h-[44px] items-start sm:items-center gap-3 sm:gap-3 overflow-visible">
-          <h2 className="text-[20px] sm:text-[24px] font-medium text-[#000000] font-Gantari shrink-0 pr-1">
+          <h2 className="sm:text-[20px] md:text-[24px] font-medium text-[#000000] font-Gantari">
             {isVpmRoute ? "Vendor Project Manager Resources" : "Resources"}
           </h2>
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:flex-1 sm:justify-end overflow-visible">
@@ -637,7 +637,7 @@ export default function ResourcesV() {
                     </button>
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                       <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-4 py-0.5 relative z-10">
                         <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">List</span>
                       </div>
                     </div>
@@ -651,7 +651,7 @@ export default function ResourcesV() {
                     </button>
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                       <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-4 py-0.5 relative z-10">
                         <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Grid</span>
                       </div>
                     </div>
@@ -779,11 +779,11 @@ export default function ResourcesV() {
                     </div>
                   </div>
                   
-                  <div className="px-2.5 py-4 sm:px-3 sm:py-5 space-y-4 sm:space-y-5">
+                  <div className="px-2 py-4 sm:px-3 sm:py-5 space-y-4 sm:space-y-5">
                     <div className="flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => openEmailClient(emp.email)}
-                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
+                        className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                       >
                         <img src={mailIcon} className="w-4 h-4" />
                         Mail
@@ -794,14 +794,14 @@ export default function ResourcesV() {
                           if (waLink)
                             window.open(waLink, "_blank", "noopener,noreferrer");
                         }}
-                        className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                       >
                         <img src={messageIcon} className="w-4 h-4" />
                         Message
                       </button>
                       <button
                         onClick={() => openDialer(emp.phone_number)}
-                        className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                       >
                         <img src={callIcon} className="w-4 h-4" />
                         Call

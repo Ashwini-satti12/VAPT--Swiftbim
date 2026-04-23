@@ -333,7 +333,7 @@ export default function VendorBimLeadCreateTeam() {
       <div className="flex-shrink-0 px-4 md:px-5 py-2">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <h2 className="text-[20px] md:text-[24px] font-semibold text-slate-800">
-            Teams
+            Team Workspace
           </h2>
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -369,17 +369,17 @@ export default function VendorBimLeadCreateTeam() {
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium font-gantari text-white shadow-sm cursor-pointer"
             >
               <img src={AddBtn} alt="Add" className="h-5 w-5" />
-              Create Team
+              New Team
             </button>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 md:px-6 pb-6 custom-scrollbar">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 md:gap-8">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 md:px-5 pb-5 custom-scrollbar">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 md:gap-5">
           {displayedTeams.length === 0 ? (
             <div className="col-span-full py-20 text-center bg-white rounded-2xl border border-[#AEACAC52] flex flex-col items-center justify-center gap-4">
               <p className="text-gray-500 font-medium">
@@ -396,15 +396,15 @@ export default function VendorBimLeadCreateTeam() {
                 >
                   {/* Team Name */}
                   <div className="flex flex-col mb-4">
-                    <span className="text-[16px] font-medium text-[#999999]">
+                    <span className="text-[14px] font-medium font-gantari text-[#8B8B8B]">
                       Team Name
                     </span>
-                    <span className="text-[18px] font-medium text-[#353535] pr-8 truncate">
+                    <span className="text-[18px] font-medium font-gantari text-[#353535] truncate">
                       {team.team_name}
                     </span>
                   </div>
 
-                  <div className="absolute top-6 right-6 flex flex-col items-end">
+                  <div className="absolute  right-4 flex flex-col items-end">
                     <div className="group relative inline-flex">
                       <button
                         onMouseDown={(e) => e.stopPropagation()}
@@ -416,7 +416,7 @@ export default function VendorBimLeadCreateTeam() {
                               : ((team.id ?? team.team_id) as number),
                           );
                         }}
-                        className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+                        className="w-4 h-4 flex items-center justify-center cursor-pointer text-[#595959]"
                       >
                         <img
                           src={threeDotsIcon}
@@ -426,7 +426,7 @@ export default function VendorBimLeadCreateTeam() {
                       </button>
                     </div>
                     {openMenuTeamId === (team.id ?? team.team_id) && (
-                      <div className="absolute right-0 mt-3 w-[158px] bg-white/20 backdrop-blur rounded-[15px] border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
+                      <div className="absolute right-0 mt-5 w-[148px] bg-white/10 backdrop-blur rounded-[10px] border border-[#AEACAC52] py-2.5 z-[110] origin-top-right">
                         <button
                           onMouseDown={(e) => e.stopPropagation()}
                           onClick={(e) => {
@@ -468,16 +468,16 @@ export default function VendorBimLeadCreateTeam() {
 
                   {/* Team Leader */}
                   <div className="flex flex-col mb-4">
-                    <span className="text-[16px] font-medium text-[#999999]">
+                    <span className="text-[14px] font-medium text-[#8B8B8B] font-gantari">
                       Team Leader
                     </span>
-                    <span className="text-[18px] font-medium text-[#353535] truncate">
+                    <span className="text-[18px] font-medium text-[#353535] truncate font-gantari">
                       {getEmployeeName(team.leader_id) || "No Lead"}
                     </span>
                   </div>
 
                   {/* Divider */}
-                  <div className="h-[1px] w-full bg-[#E5E7EB] mb-4"></div>
+                  <div className="h-[1px] w-full bg-[#E8E8E8] mb-4"></div>
 
                   {/* Members + Details */}
                   <div className="mt-auto flex items-center justify-between">
@@ -510,7 +510,7 @@ export default function VendorBimLeadCreateTeam() {
                         setSelectedTeam(team);
                         setShowDetailsModal(true);
                       }}
-                      className="flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] hover:text-[#353535] transition-colors pr-1 cursor-pointer group/details"
+                      className="flex items-center gap-1.5 text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] transition-colors pr-1 cursor-pointer group/details font-gantari"
                     >
                       Details
                       <img
@@ -699,7 +699,7 @@ export default function VendorBimLeadCreateTeam() {
                       setShowCreateMemberDropdown(true);
                       setCreateMemberSearchQuery("");
                     }}
-                    className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#353535] focus:ring-1 focus:ring-[#AEACAC52] outline-none transition-all font-Gantari"
+                    className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#353535] focus:ring-[#AEACAC52] outline-none transition-all font-Gantari"
                   />
                   <img
                     src={ArrowDown}
@@ -708,7 +708,7 @@ export default function VendorBimLeadCreateTeam() {
                   />
                 </div>
                 {showCreateMemberDropdown && (
-                  <div className="absolute bottom-full left-0 right-0 z-[110] mb-1 bg-white border border-slate-100 rounded-[10px] shadow-2xl py-2 max-h-36 overflow-y-scroll custom-scrollbar">
+                  <div className="absolute top-full left-0 right-0 z-[110] bg-white border border-[#AEACAC52] rounded-[10px] overflow-y-scroll custom-scrollbar">
                     {employees
                       .filter(
                         (e) =>
@@ -945,7 +945,7 @@ export default function VendorBimLeadCreateTeam() {
                   />
                 </div>
                 {showEditMemberDropdown && (
-                  <div className="absolute bottom-full left-0 right-0 z-[110] mb-1 bg-white border border-slate-100 rounded-[10px] shadow-2xl py-2 max-h-36 overflow-y-scroll custom-scrollbar">
+                  <div className="absolute bottom-full left-0 right-0 z-[110] -mb-8 bg-white border border-slate-200 rounded-[10px] py-2 max-h-36 overflow-y-scroll custom-scrollbar">
                     {employees
                       .filter(
                         (e) =>
@@ -989,7 +989,7 @@ export default function VendorBimLeadCreateTeam() {
                 <button
                   type="submit"
                   disabled={createSubmitting}
-                  className="px-5 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-medium transition-all disabled:opacity-50 cursor-pointer shadow-sm hover:opacity-90"
+                  className="px-5 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-medium transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {createSubmitting ? "Updating..." : "Update"}
                 </button>
