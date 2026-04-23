@@ -460,7 +460,37 @@ export default function AddTaskTD() {
         } else {
             api.post(baseEndpoint, payload).then((res) => {
                 if (res.data.success && res.data.task_id) {
-                    handleFiles(res.data.task_id);
+                    const newTaskId = res.data.task_id;
+                    handleFiles(newTaskId);
+
+                    // Optimistic UI update for TD My Task
+                    try {
+                        if (newTaskId != null && addTaskForm.assignTo === user?.full_name) {
+                            const STORAGE_KEY = "td_myTask_localTasks";
+                            const raw = localStorage.getItem(STORAGE_KEY);
+                            const currentLocal = raw ? JSON.parse(raw) : [];
+                            if (Array.isArray(currentLocal)) {
+                                const newTask: any = {
+                                    id: newTaskId,
+                                    task_name: payload.taskName,
+                                    status: "Todo",
+                                    due_date: payload.dueDate,
+                                    project_name: addTaskForm.projectName,
+                                    assigned_full_name: user?.full_name,
+                                    uploader_full_name: user?.full_name,
+                                    assigned_to: user?.id,
+                                    uploaderid: user?.id,
+                                    source: isOutsource ? "Outsource" : "In House",
+                                    created_at: new Date().toISOString()
+                                };
+                                currentLocal.unshift(newTask);
+                                localStorage.setItem(STORAGE_KEY, JSON.stringify(currentLocal));
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Local task storage failed:", e);
+                    }
+
                     toast.success("Task added successfully");
                     navigate(fromTeamTasks ? "/td/teamtasks" : "/td/mytasks");
                 }

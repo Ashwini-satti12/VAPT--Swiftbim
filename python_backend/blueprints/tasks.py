@@ -137,8 +137,10 @@ def update_status(task_id):
 @project_app_required
 def list_tasks():
     """List tasks with optional filters: employeeid, condition, status, project.
-    When condition=1 (management/team view), omit employeeid or pass employeeid=all for all
-    assignees in scope; pass a numeric employeeid to restrict to one assignee."""
+    When condition=1 (team / management view): delegated tasks (uploader != assignee) appear
+    for users in scope; self-assigned rows are omitted (they use My Task only).
+    When condition is not 1 (My Task): rows assigned to the current employee appear for the
+    assignee; the assigner may also see completed delegated rows pending review."""
     employeeid_param = request.args.get("employeeid")
     condition = request.args.get("condition")
     assigned_by = request.args.get("assignedby")
@@ -147,18 +149,30 @@ def list_tasks():
     company_id = g.company_id
 
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(dictionary=True)
     where = ["t.Company_id = %s"]
     params = [company_id]
 
     user_role = (getattr(g, "user_role", None) or "").strip()
+    
+    # Fetch current user name for name-based matching
+    cur.execute("SELECT full_name FROM employee WHERE id = %s AND Company_id = %s", (g.user_id, company_id))
+    u_row = cur.fetchone()
+    if not u_row:
+        user_name = ""
+    elif isinstance(u_row, dict):
+        user_name = (u_row.get("full_name") or "").strip()
+    else:
+        user_name = (str(u_row[0]).strip() if u_row and u_row[0] is not None else "")
+
+    # Default for status=... filter clauses (also valid when condition=1 + status is passed).
+    employee_id = g.user_id
 
     is_team_view = condition == "1"
     if is_team_view:
-        # Management view: can see all tasks, or filter by Myself/Others or by employee
-        if assigned_by == "Myself":
-            where.append("t.assigned_to = t.uploaderid")
-        elif assigned_by == "Others":
+        # Management view: optional filter by Others (delegated) or by employee.
+        # Self-assigned tasks (uploader == assignee) are never listed here; they belong in My Task only.
+        if assigned_by == "Others":
             where.append("t.assigned_to != t.uploaderid")
         elif (
             employeeid_param is not None
@@ -169,12 +183,27 @@ def list_tasks():
             params.append(employeeid_param)
         # else: no assigned_to filter → all tasks in scope (not defaulted to current user;
         # defaulting omitted employeeid to g.user_id broke team/tracker views that need every assignee.)
-        
-        # Team Task view: strictly for delegated work (assigned to someone else).
-        where.append("t.assigned_to <> t.uploaderid")
+
+        # Exclude self-assigned work for any employee (creator assigned task to themselves).
+        where.append(
+            """(
+                t.uploaderid IS NULL
+                OR t.assigned_to IS NULL
+                OR TRIM(CAST(t.assigned_to AS CHAR)) <> TRIM(CAST(t.uploaderid AS CHAR))
+            )"""
+        )
+
+        # Team Task view: also hide tasks assigned to the current viewer (ID or name); those stay in My Task.
+        where.append(
+            """(
+                t.assigned_to IS NOT NULL 
+                AND t.assigned_to <> %s 
+                AND TRIM(t.assigned_to) <> %s
+            )"""
+        )
+        params.extend([g.user_id, user_name])
         
         # Add project level filtering for non-management roles to match dashboard.
-        # Always include tasks directly assigned to / created by current user.
         if user_role not in MANAGEMENT_ROLES:
             if user_role == "BIM Coordinator":
                 where.append(
@@ -204,7 +233,6 @@ def list_tasks():
                 )
                 params.extend([g.user_id, g.user_id, g.user_id])
             elif user_role == "Project Manager":
-                # Match projects.py and dashboard /stats: only projects where user is Project Manager
                 where.append(
                     """(
                         t.assigned_to = %s
@@ -214,7 +242,6 @@ def list_tasks():
                 )
                 params.extend([g.user_id, g.user_id, g.user_id])
             else:
-                # Consultant and other roles: any project involvement
                 where.append(
                     """(
                         t.assigned_to = %s
@@ -234,20 +261,21 @@ def list_tasks():
             employee_id = employeeid_param
         
         # Base ownership:
-        # 1) Tasks assigned to the employee.
+        # 1) Tasks assigned to the employee (ID or name; tolerate varchar/int mismatch).
         # 2) Tasks assigned by the employee to others that are COMPLETED (Review workflow).
         where.append(
             """(
-                t.assigned_to = %s
+                TRIM(CAST(t.assigned_to AS CHAR)) = TRIM(CAST(%s AS CHAR))
+                OR (t.assigned_to IS NOT NULL AND LOWER(TRIM(CAST(t.assigned_to AS CHAR))) = LOWER(TRIM(%s)))
                 OR (
                     t.uploaderid = %s
-                    AND t.assigned_to <> t.uploaderid
-                    AND (t.status = 'Completed')
+                    AND TRIM(CAST(t.assigned_to AS CHAR)) <> TRIM(CAST(t.uploaderid AS CHAR))
+                    AND (t.status = 'Completed' OR t.progress = '95' OR t.status = 'Done')
                     AND (t.Approval IS NULL OR t.Approval != 'Approved')
                 )
             )"""
         )
-        params.extend([employee_id, employee_id])
+        params.extend([employee_id, user_name, employee_id])
 
     if status:
         if status == 'todo':
@@ -258,7 +286,7 @@ def list_tasks():
                     OR TRIM(t.status) = ''
                     OR (
                         t.uploaderid = %s
-                        AND t.assigned_to <> t.uploaderid
+                        AND TRIM(CAST(t.assigned_to AS CHAR)) <> TRIM(CAST(t.uploaderid AS CHAR))
                         AND (t.status = 'Completed')
                         AND (t.Approval IS NULL OR t.Approval != 'Approved')
                     )
@@ -277,7 +305,7 @@ def list_tasks():
                     (t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))
                     AND NOT (
                         t.uploaderid = %s
-                        AND t.assigned_to <> t.uploaderid
+                        AND TRIM(CAST(t.assigned_to AS CHAR)) <> TRIM(CAST(t.uploaderid AS CHAR))
                         AND (t.status = 'Completed')
                         AND (t.Approval IS NULL OR t.Approval != 'Approved')
                     )
@@ -294,24 +322,26 @@ def list_tasks():
     # Outsource delivery is tracked in vendor_task; generally avoid parallel rows from `tasks`
     # for linked vendor projects. But keep directly involved rows visible so creators/assignees
     # (e.g., BIM Modeler who just added task) never lose their task.
+    # Use the same assignee matching as My Task: assigned_to may be stored as employee id or full name.
     where.append(
         """(
             NOT EXISTS (
-                SELECT 1 FROM snh6_swiftproject.vendor_projects vp
+                SELECT 1 FROM vendor_projects vp
                 INNER JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
                 WHERE mp.id = t.projectid AND mp.Company_id = t.Company_id
             )
             OR t.uploaderid = %s
-            OR t.assigned_to = %s
+            OR TRIM(CAST(t.assigned_to AS CHAR)) = TRIM(CAST(%s AS CHAR))
+            OR (t.assigned_to IS NOT NULL AND LOWER(TRIM(CAST(t.assigned_to AS CHAR))) = LOWER(TRIM(%s)))
         )"""
     )
-    params.extend([g.user_id, g.user_id])
+    params.extend([g.user_id, g.user_id, user_name])
 
     sql = f"""SELECT t.*, e_assigned.full_name AS assigned_full_name, e_uploader.full_name AS uploader_full_name,
               e_assigned.profile_picture AS assigned_profile_picture, e_uploader.profile_picture AS uploader_profile_picture,
               p.project_name AS _join_project_name
               FROM tasks t
-              LEFT JOIN employee e_assigned ON t.assigned_to = e_assigned.id
+              LEFT JOIN employee e_assigned ON TRIM(CAST(t.assigned_to AS CHAR)) = TRIM(CAST(e_assigned.id AS CHAR))
               LEFT JOIN employee e_uploader ON t.uploaderid = e_uploader.id
               LEFT JOIN projects p ON t.projectid = p.id
               WHERE {' AND '.join(where)}

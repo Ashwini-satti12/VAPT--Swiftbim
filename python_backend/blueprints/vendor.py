@@ -5223,11 +5223,19 @@ def list_vendor_tasks():
             if staff_role not in VENDOR_TASK_STAFF_ROLES:
                 return jsonify({"tasks": []})
             
+            # Fetch current user name for name-based matching (main DB cursor, not vendor DB)
+            cur.execute(
+                "SELECT full_name FROM employee WHERE id = %s AND Company_id = %s",
+                (user_id, task_company_id),
+            )
+            u_row = cur.fetchone()
+            user_name = (u_row.get("full_name") or "") if u_row else ""
+
             # Staff "My Task" view: 
-            # 1) Tasks assigned to them.
+            # 1) Tasks assigned to them (ID or Name).
             # 2) Tasks assigned by them to others that are completed/progress=95 (Review workflow).
-            where.append("(vt.assigned_to = %s OR (vt.vendor_id = %s AND vt.assigned_to <> vt.vendor_id AND vt.progress = '95'))")
-            params.extend([user_id, user_id])
+            where.append("(vt.assigned_to = %s OR (vt.assigned_to IS NOT NULL AND TRIM(vt.assigned_to) = %s) OR (vt.vendor_id = %s AND vt.assigned_to <> vt.vendor_id AND vt.progress IN ('95', '100', 'completed')))")
+            params.extend([user_id, user_name, user_id])
             
             if task_company_id is not None:
                 where.append(

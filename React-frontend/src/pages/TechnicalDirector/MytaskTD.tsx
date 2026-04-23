@@ -720,12 +720,14 @@ function TaskCard({
   onViewTask,
   onEditTask,
   onDeleteTask,
+  onApproveTask,
 }: {
   task: Task;
   status: "todo" | "in_progress" | "completed";
   onViewTask?: (task: Task) => void;
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (task: Task) => void;
+  onApproveTask?: (task: Task) => void;
 }) {
   const progress =
     (status === "completed" || (task as any).review_required) &&
@@ -748,6 +750,7 @@ function TaskCard({
     task.uploaderid != null &&
     String(task.assigned_to) !== String(task.uploaderid) &&
     task.Approval?.toLowerCase() !== "approved";
+  const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -1040,8 +1043,8 @@ export default function MytaskTD() {
   const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
   const { user } = useAuth();
-  const isTeam =
-    searchParams.get("condition") === "1" || pathname.endsWith("/team");
+  // `/td/mytasks` only — do not use team API (`condition=1` drops tasks assigned to you).
+  const isTeam = false;
   const statusFilter =
     searchParams.get("status") || searchParams.get("taskstatus");
   const STORAGE_KEY = "td_myTask_localTasks";
@@ -1134,7 +1137,11 @@ export default function MytaskTD() {
       selectedEmployee &&
       !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)
     ) {
-      if (t.assigned_full_name !== selectedEmployee) return false;
+      if (
+        (t.assigned_full_name || "").toLowerCase() !==
+        selectedEmployee.toLowerCase()
+      )
+        return false;
     }
     // Project filter
     if (
@@ -1258,6 +1265,14 @@ export default function MytaskTD() {
 
   useEffect(() => {
     try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(localTasks));
+    } catch {
+      // ignore
+    }
+  }, [localTasks]);
+
+  useEffect(() => {
+    try {
       localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(deletedIds));
     } catch {
       // ignore
@@ -1360,32 +1375,100 @@ export default function MytaskTD() {
   }, [showEntriesOpen]);
 
   useEffect(() => {
+    setLoading(true);
     const params: Record<string, string> = {};
+    if (statusFilter) params.status = statusFilter;
     if (isTeam) {
       params.condition = "1";
       params.employeeid = "all";
     }
 
     const taskParams: Record<string, string> = { ...params };
+    let cancelled = false;
 
-    Promise.all([
-      api.get<{ tasks?: Task[] }>("/api/tasks", { params: taskParams }),
-      api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", {
-        params: taskParams,
-      }),
-      api.get<{ employees?: Employee[] }>("/api/employees"),
-      api.get<{ projects?: Project[] }>("/api/projects"),
-      api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
-    ])
-      .then(([tasksRes, vTasksRes, empRes, projRes, vProjRes]) => {
-        const internalTasks = (tasksRes.data.tasks ?? []).map((t) => ({
-          ...t,
-          source: "In House",
-        }));
-        const vendorTasks = (vTasksRes.data.tasks ?? []).map((t) => ({
-          ...t,
-          source: "Outsource",
-        }));
+    (async () => {
+      const internalTasks: Task[] = [];
+      const vendorTasks: Task[] = [];
+      try {
+        const tasksRes = await api.get<{ tasks?: Task[] }>("/api/tasks", {
+          params: taskParams,
+        });
+        if (!cancelled) {
+          internalTasks.push(
+            ...(tasksRes.data.tasks ?? []).map((t) => ({
+              ...t,
+              source: "In House" as const,
+            })),
+          );
+        }
+      } catch (err) {
+        console.error("In-house tasks fetch failed:", err);
+        if (!cancelled) {
+          toast.error(
+            (err as { response?: { data?: { message?: string } } })?.response
+              ?.data?.message || "Could not load in-house tasks.",
+            { id: "td-mytasks-inhouse" },
+          );
+        }
+      }
+      try {
+        const vTasksRes = await api.get<{ tasks?: Task[] }>(
+          "/api/vendors/vendor-tasks",
+          { params: taskParams },
+        );
+        if (!cancelled) {
+          vendorTasks.push(
+            ...(vTasksRes.data.tasks ?? []).map((t) => ({
+              ...t,
+              source: "Outsource" as const,
+            })),
+          );
+        }
+      } catch (err) {
+        console.error("Outsource tasks fetch failed:", err);
+        if (!cancelled) {
+          toast.error(
+            (err as { response?: { data?: { message?: string } } })?.response
+              ?.data?.message || "Could not load outsource tasks.",
+            { id: "td-mytasks-outsource" },
+          );
+        }
+      }
+
+      try {
+        const [empRes, projRes, vProjRes] = await Promise.all([
+          api.get<{ employees?: Employee[] }>("/api/employees"),
+          api.get<{ projects?: Project[] }>("/api/projects"),
+          api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
+        ]);
+        if (!cancelled) {
+          setEmployees(
+            (empRes.data.employees ?? []).filter(
+              isEmployeeActiveForProjectAssignment,
+            ),
+          );
+          const internalProjs = (projRes.data.projects ?? []).map((p) => ({
+            ...p,
+            source: "In House",
+          }));
+          const vendorProjs = (vProjRes.data.projects ?? []).map((p) => ({
+            ...p,
+            source: "Outsource",
+          }));
+          setProjects([...internalProjs, ...vendorProjs] as Project[]);
+        }
+      } catch (err) {
+        console.error("Employees/projects fetch failed:", err);
+        if (!cancelled) {
+          toast.error(
+            (err as { response?: { data?: { message?: string } } })?.response
+              ?.data?.message || "Could not load employees or projects.",
+            { id: "td-mytasks-meta" },
+          );
+        }
+      }
+
+      if (!cancelled) {
         const combined = [...internalTasks, ...vendorTasks] as Task[];
         combined.sort((a, b) => {
           const dateA = new Date(a.created_at || a.start_date || 0).getTime();
@@ -1394,27 +1477,13 @@ export default function MytaskTD() {
           return (b.id || 0) - (a.id || 0);
         });
         setList(combined);
+      }
+      if (!cancelled) setLoading(false);
+    })();
 
-        setEmployees(
-          (empRes.data.employees ?? []).filter(
-            isEmployeeActiveForProjectAssignment,
-          ),
-        );
-
-        const internalProjs = (projRes.data.projects ?? []).map((p) => ({
-          ...p,
-          source: "In House",
-        }));
-        const vendorProjs = (vProjRes.data.projects ?? []).map((p) => ({
-          ...p,
-          source: "Outsource",
-        }));
-        setProjects([...internalProjs, ...vendorProjs] as Project[]);
-      })
-      .catch(() => {
-        setList([]);
-      })
-      .finally(() => setLoading(false));
+    return () => {
+      cancelled = true;
+    };
   }, [isTeam, statusFilter]);
 
   const employeeOptions = useMemo(() => {
