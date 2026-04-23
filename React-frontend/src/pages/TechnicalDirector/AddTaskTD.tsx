@@ -310,7 +310,7 @@ export default function AddTaskTD() {
         statusRaw === "completed" || statusRaw === "complete" || statusRaw === "done";
     const reviewRequired = Boolean((editingTask as any)?.review_required);
     const isDelegated = addTaskForm.assignTo && addTaskForm.assignTo !== user?.full_name;
-    const showReviewRemarkField = isDelegated;
+    const showReviewRemarkField = editingTaskId != null && isDelegated;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -468,6 +468,7 @@ export default function AddTaskTD() {
                     // Optimistic UI update for TD My Task
                     try {
                         if (newTaskId != null && addTaskForm.assignTo === user?.full_name) {
+                            const currentAssignee = employees.find((e) => e.full_name === addTaskForm.assignTo);
                             const STORAGE_KEY = "td_myTask_localTasks";
                             const raw = localStorage.getItem(STORAGE_KEY);
                             const currentLocal = raw ? JSON.parse(raw) : [];
@@ -478,12 +479,12 @@ export default function AddTaskTD() {
                                     status: "Todo",
                                     due_date: payload.dueDate,
                                     project_name: addTaskForm.projectName,
-                                    assigned_full_name: user?.full_name,
+                                    assigned_full_name: addTaskForm.assignTo,
                                     uploader_full_name: user?.full_name,
-                                    assigned_to: user?.id,
+                                    assigned_to: currentAssignee?.id || addTaskForm.assignTo,
                                     uploaderid: user?.id,
-                                    assigned_profile_picture: (user as any)?.profile_picture,
-                                    uploader_profile_picture: (user as any)?.profile_picture,
+                                    assigned_profile_picture: currentAssignee?.profile_picture || null,
+                                    uploader_profile_picture: (user as any)?.profile_picture || null,
                                     source: isOutsource ? "Outsource" : "In House",
                                     created_at: new Date().toISOString(),
                                     Actual_start_time: payload.startdate,

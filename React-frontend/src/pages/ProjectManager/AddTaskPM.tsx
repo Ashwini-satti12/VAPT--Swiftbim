@@ -166,45 +166,46 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
   const timeOnly = (v: unknown) => {
     if (v == null) return "";
     let s = str(v).trim();
-    if (!s) return "";
-    s = s.replace(/\.\d{3,9}(?:Z)?$/i, "");
-    const isoOrSpace = s.match(/(?:T|\s)(\d{1,2}):(\d{2})(?::\d{2})?/);
-    if (isoOrSpace) {
-      return `${isoOrSpace[1].padStart(2, "0")}:${isoOrSpace[2]}`;
-    }
-    const allClock = s.match(/\d{1,2}:\d{2}(?::\d{2})?/g);
-    if (allClock?.length) {
-      const last = allClock[allClock.length - 1]!;
-      const hm = last.match(/^(\d{1,2}):(\d{2})/);
-      if (hm) return `${hm[1].padStart(2, "0")}:${hm[2]}`;
-    }
-    const match = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+    if (!s || s.toLowerCase() === "null") return "";
+    // Match HH:MM or HH:MM:SS with optional AM/PM or date prefix
+    const match = s.match(/(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*(AM|PM))?/i);
     if (match) {
-      return `${match[1].padStart(2, "0")}:${match[2]}`;
+      let h = parseInt(match[1], 10);
+      const m = match[2].padStart(2, "0");
+      const ampm = match[3]?.toUpperCase();
+      if (ampm === "PM" && h < 12) h += 12;
+      if (ampm === "AM" && h === 12) h = 0;
+      return `${String(h).padStart(2, "0")}:${m}`;
     }
-    const loose = s.match(/(\d{1,2}):(\d{2})/);
-    return loose ? `${loose[1].padStart(2, "0")}:${loose[2]}` : "";
+    return "";
   };
   const firstNonEmpty = (...vals: unknown[]) => {
     for (const v of vals) {
       if (v == null) continue;
       const x = str(v).trim();
-      if (x) return v;
+      if (x && x.toLowerCase() !== "null") return v;
     }
     return "";
   };
   return {
-    projectName: str(t.project_name ?? t.projectName ?? ""),
+    projectName: str(t.project_name ?? t.projectName ?? t.projectid ?? t.projectId ?? ""),
     module: normalizeModuleDisplay(t.module ?? t.modules_name ?? t.modules ?? ""),
-    taskName: str(t.task_name ?? t.taskName ?? ""),
+    taskName: str(t.task_name ?? t.taskName ?? t.taskname ?? ""),
     type: str(t.type ?? t.category ?? ""),
     startDate: dateOnly(
-      t.start_date ?? t.startDate ?? t.Actual_start_time ?? "",
+      t.start_date ?? t.startDate ?? t.Actual_start_time ?? t.startdate ?? "",
     ),
-    endDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
+    endDate: dateOnly(t.due_date ?? t.dueDate ?? t.due_date ?? ""),
     startTime: timeOnly(
       firstNonEmpty(
+        t.start_time_merged,
         t.perferstart_time,
+        t.perfer_start_time,
+        t.perfer_start,
+        t.preferstart_time,
+        t.prefer_start_time,
+        t.prefer_start,
+        t.preferred_start_time,
         (t as { Perferstart_time?: unknown }).Perferstart_time,
         t.start_time,
         t.startTime,
@@ -213,7 +214,14 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
     ),
     dueTime: timeOnly(
       firstNonEmpty(
+        t.end_time_merged,
         t.perferend_time,
+        t.perfer_end_time,
+        t.perfer_end,
+        t.preferend_time,
+        t.prefer_end_time,
+        t.prefer_end,
+        t.preferred_end_time,
         (t as { Perferend_time?: unknown }).Perferend_time,
         t.due_time,
         t.dueTime,
@@ -408,6 +416,18 @@ export default function AddTaskPM() {
       return { ...prev, assignTo: emp.full_name };
     });
   }, [editingTaskId, employees, addTaskForm.assignTo]);
+
+  // Map numeric project id to project_name after projects load.
+  useEffect(() => {
+    if (editingTaskId == null || projects.length === 0) return;
+    setAddTaskForm((prev) => {
+      const v = (prev.projectName || "").trim();
+      if (!/^\d+$/.test(v)) return prev;
+      const proj = projects.find((p) => String(p.id) === v);
+      if (!proj?.project_name) return prev;
+      return { ...prev, projectName: proj.project_name };
+    });
+  }, [editingTaskId, projects, addTaskForm.projectName]);
 
   useEffect(() => {
     if (addTaskForm.projectName) {

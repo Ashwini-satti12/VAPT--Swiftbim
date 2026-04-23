@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { FiChevronDown } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import api from "../../lib/api";
+import { useAuth } from "../../contexts/AuthContext";
 import ImageIcon from "../../assets/ProjectManager/MyTask/image.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
@@ -131,6 +132,7 @@ function isStatusOptionDisabled(
 }
 
 export default function MytaskViewBC() {
+  const { user } = useAuth();
   const { id: taskIdParam } = useParams();
   const [task, setTask] = useState<Task | undefined>((location.state as { task?: Task } | null)?.task);
   const backToUrl = "/bc/mytasks";
@@ -246,10 +248,12 @@ export default function MytaskViewBC() {
     setReviewRemarkInput(task.review_remark || "");
   }, [task]);
 
+  const isAssigner = task?.uploaderid != null && String(task.uploaderid) === String(user?.id);
   const canReview =
     (statusDisplay === "completed" || (task as any).review_required) &&
     task?.assigned_to != null &&
     task?.uploaderid != null &&
+    isAssigner &&
     String(task.assigned_to) !== String(task.uploaderid) &&
     task.Approval?.toLowerCase() !== "approved";
 
@@ -297,6 +301,23 @@ export default function MytaskViewBC() {
     } catch (error) {
       console.error("Error sending task back:", error);
       toast.error("Failed to send back task");
+    } finally {
+      setSendingBack(false);
+    }
+  };
+
+  const handleSaveRemark = async () => {
+    if (!task || sendingBack) return;
+    const remark = (reviewRemarkInput || "").trim();
+    setSendingBack(true); // Reuse loading state
+    try {
+      await api.patch(`/api/tasks/${task.id}`, {
+        review_remark: remark,
+      });
+      toast.success("Remark saved successfully");
+    } catch (error) {
+      console.error("Error saving remark:", error);
+      toast.error("Failed to save remark");
     } finally {
       setSendingBack(false);
     }
@@ -582,34 +603,9 @@ export default function MytaskViewBC() {
           {/* Review Remark */}
           <div className="mt-6 border border-slate-200 rounded-xl p-6">
             <h4 className="text-black text-md mb-2 font-medium font-Gantari">Review Remark</h4>
-            <textarea
-              value={reviewRemarkInput}
-              onChange={(e) => setReviewRemarkInput(e.target.value)}
-              readOnly={!canReview}
-              placeholder={canReview ? "Enter corrections / changes for assignee..." : "No review remark"}
-              rows={4}
-              className={`w-full rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 border border-transparent outline-none transition-all resize-none font-Gantari ${canReview ? "focus:border-slate-300" : ""}`}
-            />
-            {canReview && (
-              <div className="mt-3 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={handleSendBackForCorrection}
-                  disabled={sendingBack || approving}
-                  className="rounded-md bg-[#DBE9FE] px-4 py-2 text-[14px] font-semibold text-[#101827] disabled:opacity-50 cursor-pointer transition-colors"
-                >
-                  {sendingBack ? "Sending..." : "Send Back To Assignee"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleApprove}
-                  disabled={approving || sendingBack}
-                  className="rounded-md bg-green-100 px-6 py-2 text-[14px] font-semibold text-green-700 hover:bg-green-600 hover:text-white transition-colors disabled:opacity-50 cursor-pointer border border-green-200"
-                >
-                  {approving ? "Approving..." : "Approve Task"}
-                </button>
-              </div>
-            )}
+            <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+              {task.review_remark || "No review remark provided."}
+            </div>
           </div>
         </div>
       </div>
