@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import api from '../../../lib/api';
+import api, { appApiBase } from '../../../lib/api';
 import type { ResourceProfile } from '../../TechnicalDirector/PartnerView/types';
 import { formatFileSize } from '../../TechnicalDirector/MytaskTD';
 import viewIcon from '../../../assets/ProjectManager/project/viewIcon.svg';
@@ -29,7 +29,7 @@ function resolveStoredCertUrl(stored: string): string {
     const t = stored.trim();
     if (!t) return '';
     if (t.startsWith('http://') || t.startsWith('https://')) return t;
-    const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000/').replace(/\/$/, '');
+    const base = appApiBase.replace(/\/$/, '');
     const path = t.startsWith('/') ? t : `/${t}`;
     return `${base}${path}`;
 }
