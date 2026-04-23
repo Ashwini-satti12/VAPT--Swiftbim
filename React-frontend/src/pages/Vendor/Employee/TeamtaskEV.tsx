@@ -305,12 +305,12 @@ function TaskCard({
             ? task.Approval?.toLowerCase() === "approved"
               ? 100
               : 95
-            : typeof task.progress === "number"
-                ? task.progress
-                : status === "todo"
-                    ? 0
-                    : status === "in_progress"
-                        ? 50
+            : status === "todo"
+                ? 0
+                : status === "in_progress"
+                    ? 50
+                    : typeof task.progress === "number"
+                        ? task.progress
                         : 100;
     const isCompletedCol = status === "completed";
     const isUnderReview =
@@ -486,7 +486,7 @@ function TaskCard({
                 <div className="flex items-center gap-2 overflow-hidden">
                     <div className="flex -space-x-2">
                         {(() => {
-                            const url = getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture);
+                            const url = getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture, "vendor");
                             return (
                                 <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-slate-100 flex-shrink-0">
                                     <img

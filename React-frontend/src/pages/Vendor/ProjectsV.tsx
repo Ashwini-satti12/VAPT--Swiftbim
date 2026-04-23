@@ -1457,8 +1457,8 @@ export default function ProjectsV() {
                                                 {(() => {
                                                     const id = selectedProject.project_manager_id;
                                                     const name = getEmployeeName(id);
-                                                    const emp = allEmployees.find(e => e.id === Number(id));
-                                                    const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                    const emp = projectManagers.find(e => e.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
+                                                    const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : null;
                                                     return (
                                                         <>
                                                             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
@@ -1485,7 +1485,7 @@ export default function ProjectsV() {
                                                     const id = selectedProject.lead_id;
                                                     const name = getEmployeeName(id);
                                                     const emp = bimLeads.find(e => e.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
-                                                    const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                    const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : null;
                                                     return (
                                                         <>
                                                             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
@@ -1534,7 +1534,7 @@ export default function ProjectsV() {
                                                 return (
                                                     <div className="flex items-center -space-x-3">
                                                         {projectMembers.slice(0, 3).map((member: any) => {
-                                                            const profileUrl = member.profile_picture ? getGlobalProfileUrl(member.id, member.profile_picture) : null;
+                                                            const profileUrl = member.profile_picture ? getGlobalProfileUrl(member.id, member.profile_picture, "vendor") : null;
                                                             return (
                                                                 <div key={member.id} className="relative group shrink-0">
                                                                     <div
@@ -1918,7 +1918,7 @@ export default function ProjectsV() {
                                                                 {(() => {
                                                                     const id = memberIds[0];
                                                                     const emp = getMemberForAvatar(id);
-                                                                    const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                                    const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : null;
                                                                     return (
                                                                         <>
                                                                             <div
@@ -1947,7 +1947,7 @@ export default function ProjectsV() {
                                                             <div className="flex items-center -space-x-4">
                                                                 {memberIds.slice(0, 3).map((id) => {
                                                                     const emp = getMemberForAvatar(id);
-                                                                    const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                                    const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : null;
                                                                     return (
                                                                         <div key={id} className="relative group shrink-0">
                                                                             <div
@@ -2089,7 +2089,7 @@ export default function ProjectsV() {
                             {allMembersList.length > 0 ? (
                                 <div className="space-y-4">
                                     {allMembersList.map((member, index) => {
-                                        const profileUrl = member.profile_picture ? getGlobalProfileUrl(member.id, member.profile_picture) : null;
+                                        const profileUrl = member.profile_picture ? getGlobalProfileUrl(member.id, member.profile_picture, "vendor") : null;
                                         return (
                                             <div key={member.id ?? index} className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 transition-colors">
                                                 <div className="w-12 h-12 rounded-full border-2 border-slate-200 overflow-hidden bg-slate-100 shrink-0">

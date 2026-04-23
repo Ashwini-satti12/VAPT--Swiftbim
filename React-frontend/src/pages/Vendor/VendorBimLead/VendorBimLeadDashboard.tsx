@@ -493,6 +493,7 @@ export default function VendorBimLeadDashboard() {
                                             src={getGlobalProfileUrl(
                                               person.id,
                                               person.profile_picture,
+                                              "vendor"
                                             )}
                                             alt=""
                                             className="w-full h-full object-cover"

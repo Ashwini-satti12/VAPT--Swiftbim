@@ -374,7 +374,7 @@ export default function ResourcesV() {
                     : "active",
                 department: "Vendor",
                 user_type: "vendor",
-                profile_picture: undefined,
+                profile_picture: r.profile_picture,
                 Allpannel: "Vendor",
                 phone_number: resolvedPhone,
                 address: (r.address || "").trim(),
@@ -758,6 +758,7 @@ export default function ResourcesV() {
                             src={getGlobalProfileUrl(
                               emp.id,
                               emp.profile_picture,
+                              "vendor"
                             )}
                             className="w-full h-full object-cover"
                           />
@@ -927,6 +928,7 @@ export default function ResourcesV() {
                                 src={getGlobalProfileUrl(
                                   emp.id,
                                   emp.profile_picture,
+                                  "vendor"
                                 )}
                                 className="w-full h-full object-cover"
                               />

@@ -179,8 +179,9 @@ export default function AddTaskTD() {
                 const merged: Task = {
                     ...editingTask,
                     ...row,
+                    project_name: (row.project_name || editingTask.project_name || ""),
                     id: editingTask.id,
-                    source: isOutsource ? "Outsource" : editingTask.source,
+                    source: isOutsource ? "Outsource" : (row.source || editingTask.source),
                 } as Task;
                 setAddTaskForm(taskToFormValues(merged));
                 const out = row.outputfilepath;
@@ -408,6 +409,7 @@ export default function AddTaskTD() {
                     Actual_start_time: payload.startdate,
                     perferstart_time: payload.startTime,
                     perferend_time: payload.dueTime,
+                    projectid: selectedProj?.id,
                 };
             const primaryUrl = `${baseEndpoint}/${editingTaskId}`;
             const fallbackBase = isOutsource ? "/api/tasks" : "/api/vendors/vendor-tasks";
@@ -480,8 +482,18 @@ export default function AddTaskTD() {
                                     uploader_full_name: user?.full_name,
                                     assigned_to: user?.id,
                                     uploaderid: user?.id,
+                                    assigned_profile_picture: (user as any)?.profile_picture,
+                                    uploader_profile_picture: (user as any)?.profile_picture,
                                     source: isOutsource ? "Outsource" : "In House",
-                                    created_at: new Date().toISOString()
+                                    created_at: new Date().toISOString(),
+                                    Actual_start_time: payload.startdate,
+                                    perferstart_time: payload.startTime,
+                                    perferend_time: payload.dueTime,
+                                    modules_name: payload.modules,
+                                    description: payload.description,
+                                    checklist: payload.checklist,
+                                    category: payload.category,
+                                    projectid: payload.projectid,
                                 };
                                 currentLocal.unshift(newTask);
                                 localStorage.setItem(STORAGE_KEY, JSON.stringify(currentLocal));
