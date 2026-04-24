@@ -862,18 +862,27 @@ export default function ConsultantBC() {
                     </div>
 
                     <div className="absolute top-3 right-3 z-10">
-                      <div
-                        className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.status === "Online" ? "bg-[#E0FFE8] border-emerald-100" : "bg-[#FFEEEE] border-red-100"}`}
-                      >
-                        <span
-                          className={`w-2 h-2 rounded-full ${emp.status === "Online" ? "bg-[#166534]" : "bg-[#E00100]"}`}
-                        />
-                        <span
-                          className={`text-[14px] font-semibold ${emp.status === "Online" ? "text-[#008F22]" : "text-[#E00100]"}`}
+                      {emp.active !== "active" ? (
+                        <div className="flex items-center gap-1.5 px-2 rounded-full border shadow-sm bg-[#FFEEEE] border-red-100">
+                          <span className="w-2 h-2 rounded-full bg-[#E00100]"></span>
+                          <span className="text-[14px] font-semibold text-[#E00100]">
+                            Inactive
+                          </span>
+                        </div>
+                      ) : (
+                        <div
+                          className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.status === "Online" ? "bg-[#E0FFE8] border-emerald-100" : "bg-[#FFEEEE] border-red-100"}`}
                         >
-                          {emp.status === "Online" ? "Online" : "Offline"}
-                        </span>
-                      </div>
+                          <span
+                            className={`w-2 h-2 rounded-full ${emp.status === "Online" ? "bg-[#166534]" : "bg-[#E00100]"}`}
+                          />
+                          <span
+                            className={`text-[14px] font-semibold ${emp.status === "Online" ? "text-[#008F22]" : "text-[#E00100]"}`}
+                          >
+                            {emp.status === "Online" ? "Online" : "Offline"}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="absolute inset-x-0 bottom-0 px-3 py-3 sm:px-3 sm:py-4 flex items-center gap-4 z-10">
@@ -1073,7 +1082,7 @@ export default function ConsultantBC() {
                                     )}
                                   </div>
                                   <span
-                                    className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.status === "Online" ? "bg-[#22c55e]" : "bg-[#ef4444]"}`}
+                                    className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active !== "active" ? "bg-[#ef4444]" : (emp.status === "Online" ? "bg-[#22c55e]" : "bg-[#ef4444]")}`}
                                   />
                                 </div>
                                 <span className="text-[14px] font-normal font-Gantari text-[#353535]">
