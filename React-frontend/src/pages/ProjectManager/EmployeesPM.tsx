@@ -45,6 +45,7 @@ interface Employee {
   email: string;
   user_role?: string;
   active?: string;
+  status?: string;
   empid?: string;
   phone_number?: string;
   department?: string;
@@ -460,7 +461,7 @@ export default function EmployeesPM() {
     if (statusFilter === 'Active') {
       const currentStatus = (emp.active || '').toLowerCase();
       if (currentStatus !== 'active') return false;
-    } else if (statusFilter === 'Deactivate') {
+    } else if (statusFilter === 'Inactive') {
       const currentStatus = (emp.active || '').toLowerCase();
       if (currentStatus === 'active') return false;
     }
@@ -593,8 +594,16 @@ export default function EmployeesPM() {
 
   function handleStatusToggle(id: number, newStatus: string) {
     const status = newStatus.toLowerCase() === 'active' ? 'active' : 'inactive';
+
+    // Optimistic update: Update UI immediately
+    setList(prev => prev.map(e => e.id === id ? { ...e, active: status } : e));
+
     api.post('/api/employees/bulk-status', { ids: [id], action: status }).then(() => {
-      setList(prev => prev.map(e => e.id === id ? { ...e, active: status } : e));
+      toast.success(`Status updated to ${newStatus} successfully.`);
+    }).catch(() => {
+      // Revert UI if API fails
+      setList(prev => prev.map(e => e.id === id ? { ...e, active: status === 'active' ? 'inactive' : 'active' } : e));
+      toast.error('Failed to update status.');
     });
   }
 
@@ -618,7 +627,7 @@ export default function EmployeesPM() {
       accountnumber: emp.accountnumber || '',
       profile_picture: null,
       roles: emp.Allpannel ? emp.Allpannel.split(',').map((r: string) => r.trim()) : [],
-      active: emp.active === 'active' ? 'Active' : 'Deactivate',
+      active: emp.active === 'active' ? 'Active' : 'Inactive',
     });
   }
 
@@ -811,7 +820,7 @@ export default function EmployeesPM() {
                         onClick={() => setActiveView('inactive')}
                         className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                       >
-                        Manage Deactive
+                        Manage Inactive
                       </button>
                     </>
                   )}
@@ -932,7 +941,7 @@ export default function EmployeesPM() {
                     />
                   ) : (
                     <CustomDropdown
-                      options={['All', 'Active', 'Deactivate']}
+                      options={['All', 'Active', 'Inactive']}
                       value={statusFilter}
                       onChange={(val) => setStatusFilter(val)}
                       placeholder="Status"
@@ -968,14 +977,22 @@ export default function EmployeesPM() {
                           <div className="absolute inset-0 bg-black/30" />
                         </div>
 
-                        {/* Top Status - Pill Shape */}
                         <div className="absolute top-3 right-3 z-10">
-                          <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === 'active' ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
-                            <span className={`w-2 h-2 rounded-full ${emp.active === 'active' ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
-                            <span className={`text-[14px] font-semibold ${emp.active === 'active' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
-                              {emp.active === 'active' ? 'Online' : 'Offline'}
-                            </span>
-                          </div>
+                          {emp.active !== 'active' ? (
+                            <div className="flex items-center gap-1.5 px-2 rounded-full border shadow-sm bg-[#FFEEEE] border-red-100">
+                              <span className="w-2 h-2 rounded-full bg-[#E00100]"></span>
+                              <span className="text-[14px] font-semibold text-[#E00100]">
+                                Inactive
+                              </span>
+                            </div>
+                          ) : (
+                            <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.status === 'Online' ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
+                              <span className={`w-2 h-2 rounded-full ${emp.status === 'Online' ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
+                              <span className={`text-[14px] font-semibold ${emp.status === 'Online' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
+                                {emp.status === 'Online' ? 'Online' : 'Offline'}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         {/* User info on image: show uploaded photo if available, otherwise initials */}
                         <div className="absolute inset-x-0 bottom-0 px-3 py-3 sm:px-3 sm:py-4 flex items-center gap-4 z-10">
@@ -1068,164 +1085,164 @@ export default function EmployeesPM() {
               <div className="border border-[#AEACAC52] rounded-md overflow-hidden bg-white">
                 <div className="overflow-x-auto custom-scrollbar">
                   <table className="min-w-full border-separate border-spacing-0">
-                  <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                    <tr className="bg-white">
-                      <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535]">
-                        Sl.No
-                      </th>
-                      <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
-                      <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
-                      <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
-                      <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Contact Info</th>
-                      <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Status</th>
-                      <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {displayedListTable.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-Gantari">
-                          No consultants found.
-                        </td>
+                    <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                      <tr className="bg-white">
+                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535]">
+                          Sl.No
+                        </th>
+                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
+                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
+                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
+                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Contact Info</th>
+                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Status</th>
+                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Action</th>
                       </tr>
-                    ) : (
-                      displayedListTable.map((emp, idx) => {
-                        const baseIndex = rangeStart + idx;
-                        const slNo = baseIndex + 1;
-                        const slNoDisplay = String(slNo).padStart(2, '0');
-                        return (
-                          <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
-                            <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#6B6B6B]">
-                              {slNoDisplay}
-                            </td>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {displayedListTable.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-Gantari">
+                            No consultants found.
+                          </td>
+                        </tr>
+                      ) : (
+                        displayedListTable.map((emp, idx) => {
+                          const baseIndex = rangeStart + idx;
+                          const slNo = baseIndex + 1;
+                          const slNoDisplay = String(slNo).padStart(2, '0');
+                          return (
+                            <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
+                              <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#6B6B6B]">
+                                {slNoDisplay}
+                              </td>
 
 
-                            <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#6B6B6B] whitespace-nowrap">
-                              {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
-                            </td>
+                              <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#6B6B6B] whitespace-nowrap">
+                                {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
+                              </td>
 
-                            <td className="px-6 py-5">
-                              <div className="flex items-center justify-center gap-4 min-w-0">
-                                <div className="relative shrink-0">
-                                  <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
-                                    {emp.profile_picture && emp.profile_picture.trim() ? (
-                                      <img
-                                        src={getProfileUrl(emp.profile_picture)}
-                                        alt={emp.full_name}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                          // Hide broken image; the status dot + name still show
-                                          (e.target as HTMLImageElement).style.display = 'none';
-                                        }}
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center">
-                                        <span className="text-[14px] font-Gantari text-[#1A1A1A]">
-                                          {toCamelCase(emp.full_name).charAt(0) || 'U'}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
-                                </div>
-                                <span
-                                  className={`text-[14px] font-semibold font-Gantari text-[#353535] min-w-0 ${nameExceedsThreeWords(toCamelCase(emp.full_name))
-                                    ? 'line-clamp-2 break-words'
-                                    : 'whitespace-nowrap'
-                                    }`}
-                                >
-                                  {toCamelCase(emp.full_name)}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#353535]">{emp.email}</td>
-                            <td className="px-6 py-5 text-center">
-                              <div className="flex items-center justify-center gap-3">
-                                <button
-                                  onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
-                                >
-                                  <img src={mailIcon} className="w-5 h-5" alt="Mail" />
-                                </button>
-                                <button
-                                  onClick={() => navigate('/chat')}
-                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
-                                >
-                                  <img src={messageIcon} className="w-5 h-5" alt="Message" />
-                                </button>
-                                <button
-                                  onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
-                                >
-                                  <img src={callIcon} className="w-5 h-5" alt="Call" />
-                                </button>
-                              </div>
-                            </td>
-                            <td className="px-6 py-5 text-center">
-                              <div className="inline-block min-w-[140px]">
-                                <CustomDropdown
-                                  options={['Active', 'Deactivate']}
-                                  className="cursor-pointer"
-                                  value={emp.active === 'active' ? 'Active' : 'Deactivate'}
-                                  onChange={(val) => handleStatusToggle(emp.id, val)}
-                                  placeholder="Status"
-                                  styleType="table"
-                                />
-                              </div>
-                            </td>
-                            <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
-                              <div className="flex items-center justify-center gap-3">
-                                <div className="relative group inline-flex shrink-0">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setSelectedEmployee(emp);
-                                      setShowDetailsModal(true);
-                                    }}
-                                    aria-label="View consultant"
-                                    className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#DD4342] text-white rounded-md transition-all cursor-pointer"
-                                  >
-                                    <img src={projectViewIcon} className="w-4 h-4 brightness-0 invert" alt="" aria-hidden />
-                                  </button>
-                                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
-                                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                        View
-                                      </span>
+                              <td className="px-6 py-5">
+                                <div className="flex items-center justify-center gap-4 min-w-0">
+                                  <div className="relative shrink-0">
+                                    <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
+                                      {emp.profile_picture && emp.profile_picture.trim() ? (
+                                        <img
+                                          src={getProfileUrl(emp.profile_picture)}
+                                          alt={emp.full_name}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            // Hide broken image; the status dot + name still show
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                          }}
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                          <span className="text-[14px] font-Gantari text-[#1A1A1A]">
+                                            {toCamelCase(emp.full_name).charAt(0) || 'U'}
+                                          </span>
+                                        </div>
+                                      )}
                                     </div>
+                                    <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active !== 'active' ? 'bg-[#ef4444]' : (emp.status === 'Online' ? 'bg-[#22c55e]' : 'bg-[#ef4444]')}`}></span>
                                   </div>
+                                  <span
+                                    className={`text-[14px] font-semibold font-Gantari text-[#353535] min-w-0 ${nameExceedsThreeWords(toCamelCase(emp.full_name))
+                                      ? 'line-clamp-2 break-words'
+                                      : 'whitespace-nowrap'
+                                      }`}
+                                  >
+                                    {toCamelCase(emp.full_name)}
+                                  </span>
                                 </div>
-                                {canAdd && (
+                              </td>
+                              <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#353535]">{emp.email}</td>
+                              <td className="px-6 py-5 text-center">
+                                <div className="flex items-center justify-center gap-3">
+                                  <button
+                                    onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
+                                  >
+                                    <img src={mailIcon} className="w-5 h-5" alt="Mail" />
+                                  </button>
+                                  <button
+                                    onClick={() => navigate('/chat')}
+                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
+                                  >
+                                    <img src={messageIcon} className="w-5 h-5" alt="Message" />
+                                  </button>
+                                  <button
+                                    onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
+                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
+                                  >
+                                    <img src={callIcon} className="w-5 h-5" alt="Call" />
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="px-6 py-5 text-center">
+                                <div className="inline-block min-w-[140px]">
+                                  <CustomDropdown
+                                    options={['Active', 'Inactive']}
+                                    className="cursor-pointer"
+                                    value={emp.active === 'active' ? 'Active' : 'Inactive'}
+                                    onChange={(val) => handleStatusToggle(emp.id, val)}
+                                    placeholder="Status"
+                                    styleType="table"
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
+                                <div className="flex items-center justify-center gap-3">
                                   <div className="relative group inline-flex shrink-0">
                                     <button
                                       type="button"
-                                      onClick={() => openEditModel(emp)}
-                                      aria-label="Edit consultant"
-                                      className={`flex py-2 px-2 shrink-0 items-center justify-center rounded-md transition-all cursor-pointer ${idx % 2 === 1 ? "bg-[#FFFFFF]" : "bg-[#F2F2F2]"}`}
+                                      onClick={() => {
+                                        setSelectedEmployee(emp);
+                                        setShowDetailsModal(true);
+                                      }}
+                                      aria-label="View consultant"
+                                      className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#DD4342] text-white rounded-md transition-all cursor-pointer"
                                     >
-                                      <img src={projectEditIcon} className="w-4 h-4" alt="" aria-hidden />
+                                      <img src={projectViewIcon} className="w-4 h-4 brightness-0 invert" alt="" aria-hidden />
                                     </button>
                                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                                       <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
                                       <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
                                         <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                          Edit
+                                          View
                                         </span>
                                       </div>
                                     </div>
                                   </div>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+                                  {canAdd && (
+                                    <div className="relative group inline-flex shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => openEditModel(emp)}
+                                        aria-label="Edit consultant"
+                                        className={`flex py-2 px-2 shrink-0 items-center justify-center rounded-md transition-all cursor-pointer ${idx % 2 === 1 ? "bg-[#FFFFFF]" : "bg-[#F2F2F2]"}`}
+                                      >
+                                        <img src={projectEditIcon} className="w-4 h-4" alt="" aria-hidden />
+                                      </button>
+                                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                          <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                            Edit
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
 
             )}
           </div>
@@ -1751,7 +1768,7 @@ export default function EmployeesPM() {
                 </div>
               </div>
               <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
-                Manage In-active Consultants
+                Manage Inactive Consultants
               </h3>
               <div className="w-10" />
             </div>
