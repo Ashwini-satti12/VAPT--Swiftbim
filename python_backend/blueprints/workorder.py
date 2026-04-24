@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS work_orders (
     terms_and_conditions TEXT NULL,
     payment_terms TEXT NULL,
     additional_terms TEXT NULL,
+    exclusions TEXT NULL,
     status VARCHAR(50) DEFAULT 'Created',
     created_by INT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -92,11 +93,9 @@ def _ensure_work_order_table():
     cur = conn.cursor(dictionary=True)
     cur.execute(_WO_TABLE_SQL)
     try:
-        cur.execute("SHOW COLUMNS FROM work_orders LIKE 'currency'")
+        cur.execute("SHOW COLUMNS FROM work_orders LIKE 'exclusions'")
         if cur.fetchone() is None:
-            cur.execute(
-                "ALTER TABLE work_orders ADD COLUMN currency VARCHAR(10) DEFAULT 'AED' AFTER deliverables"
-            )
+            cur.execute("ALTER TABLE work_orders ADD COLUMN exclusions TEXT NULL AFTER additional_terms")
     except Exception:
         pass
     conn.commit()
@@ -131,12 +130,15 @@ def list_work_orders():
             cur.execute(
                 f"""
                 SELECT
-                    id, proposal_id, project_name, vendor_name, vendor_address, po_date,
-                    po_number, project_location, work_description, scope_of_work,
-                    project_involves, deliverables, currency, amount_aed, duration,
-                    terms_and_conditions, payment_terms, additional_terms, status, created_at
-                FROM work_orders
-                WHERE LOWER(TRIM(vendor_name)) IN ({placeholders})
+                    wo.id, wo.proposal_id, wo.project_name, wo.vendor_name, wo.vendor_address, wo.po_date,
+                    wo.po_number, wo.project_location, wo.work_description, wo.scope_of_work,
+                    wo.project_involves, wo.deliverables,
+                    COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(wo.currency), ''), 'AED') AS currency,
+                    wo.amount_aed, wo.duration,
+                    wo.terms_and_conditions, wo.payment_terms, wo.additional_terms, wo.exclusions, wo.status, wo.created_at
+                FROM work_orders wo
+                LEFT JOIN projects p ON p.project_name = wo.project_name
+                WHERE LOWER(TRIM(wo.vendor_name)) IN ({placeholders})
                 ORDER BY id DESC
                 """,
                 tuple(n.lower() for n in names),
@@ -148,7 +150,7 @@ def list_work_orders():
                     id, proposal_id, project_name, vendor_name, vendor_address, po_date,
                     po_number, project_location, work_description, scope_of_work,
                     project_involves, deliverables, currency, amount_aed, duration,
-                    terms_and_conditions, payment_terms, additional_terms, status, created_at
+                    terms_and_conditions, payment_terms, additional_terms, exclusions, status, created_at
                 FROM work_orders
                 WHERE 1 = 0
                 """
@@ -157,12 +159,15 @@ def list_work_orders():
         cur.execute(
             """
             SELECT
-                id, proposal_id, project_name, vendor_name, vendor_address, po_date,
-                po_number, project_location, work_description, scope_of_work,
-                project_involves, deliverables, currency, amount_aed, duration,
-                terms_and_conditions, payment_terms, additional_terms, status, created_at
-            FROM work_orders
-            WHERE Company_id = %s
+                wo.id, wo.proposal_id, wo.project_name, wo.vendor_name, wo.vendor_address, wo.po_date,
+                wo.po_number, wo.project_location, wo.work_description, wo.scope_of_work,
+                wo.project_involves, wo.deliverables,
+                COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(wo.currency), ''), 'AED') AS currency,
+                wo.amount_aed, wo.duration,
+                wo.terms_and_conditions, wo.payment_terms, wo.additional_terms, wo.exclusions, wo.status, wo.created_at
+            FROM work_orders wo
+            LEFT JOIN projects p ON p.project_name = wo.project_name
+            WHERE wo.Company_id = %s
             ORDER BY id DESC
             """,
             (g.company_id,),
@@ -185,12 +190,15 @@ def get_work_order(work_order_id: int):
             cur.execute(
                 f"""
                 SELECT
-                    id, proposal_id, project_name, vendor_name, vendor_address, po_date,
-                    po_number, project_location, work_description, scope_of_work,
-                    project_involves, deliverables, currency, amount_aed, duration,
-                    terms_and_conditions, payment_terms, additional_terms, status, created_at
-                FROM work_orders
-                WHERE id = %s AND LOWER(TRIM(vendor_name)) IN ({placeholders})
+                    wo.id, wo.proposal_id, wo.project_name, wo.vendor_name, wo.vendor_address, wo.po_date,
+                    wo.po_number, wo.project_location, wo.work_description, wo.scope_of_work,
+                    wo.project_involves, wo.deliverables,
+                    COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(wo.currency), ''), 'AED') AS currency,
+                    wo.amount_aed, wo.duration,
+                    wo.terms_and_conditions, wo.payment_terms, wo.additional_terms, wo.exclusions, wo.status, wo.created_at
+                FROM work_orders wo
+                LEFT JOIN projects p ON p.project_name = wo.project_name
+                WHERE wo.id = %s AND LOWER(TRIM(wo.vendor_name)) IN ({placeholders})
                 LIMIT 1
                 """,
                 (work_order_id, *tuple(n.lower() for n in names)),
@@ -202,7 +210,7 @@ def get_work_order(work_order_id: int):
                     id, proposal_id, project_name, vendor_name, vendor_address, po_date,
                     po_number, project_location, work_description, scope_of_work,
                     project_involves, deliverables, currency, amount_aed, duration,
-                    terms_and_conditions, payment_terms, additional_terms, status, created_at
+                    terms_and_conditions, payment_terms, additional_terms, exclusions, status, created_at
                 FROM work_orders
                 WHERE 1 = 0
                 """
@@ -211,12 +219,15 @@ def get_work_order(work_order_id: int):
         cur.execute(
             """
             SELECT
-                id, proposal_id, project_name, vendor_name, vendor_address, po_date,
-                po_number, project_location, work_description, scope_of_work,
-                project_involves, deliverables, currency, amount_aed, duration,
-                terms_and_conditions, payment_terms, additional_terms, status, created_at
-            FROM work_orders
-            WHERE id = %s AND Company_id = %s
+                wo.id, wo.proposal_id, wo.project_name, wo.vendor_name, wo.vendor_address, wo.po_date,
+                wo.po_number, wo.project_location, wo.work_description, wo.scope_of_work,
+                wo.project_involves, wo.deliverables,
+                COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(wo.currency), ''), 'AED') AS currency,
+                wo.amount_aed, wo.duration,
+                wo.terms_and_conditions, wo.payment_terms, wo.additional_terms, wo.exclusions, wo.status, wo.created_at
+            FROM work_orders wo
+            LEFT JOIN projects p ON p.project_name = wo.project_name
+            WHERE wo.id = %s AND wo.Company_id = %s
             LIMIT 1
             """,
             (work_order_id, g.company_id),
@@ -331,12 +342,12 @@ def create_work_order():
             proposal_id, project_name, vendor_name, vendor_address, po_date, po_number,
             project_location, work_description, scope_of_work, project_involves,
             deliverables, currency, amount_aed, duration, terms_and_conditions, payment_terms,
-            additional_terms, status, created_by, Company_id
+            additional_terms, exclusions, status, created_by, Company_id
         ) VALUES (
             %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s
+            %s, %s, %s, %s, %s
         )
         """,
         (
@@ -357,6 +368,7 @@ def create_work_order():
             payload["terms_and_conditions"],
             payload["payment_terms"],
             payload["additional_terms"],
+            payload["exclusions"],
             payload["status"],
             payload["created_by"],
             payload["company_id"],
@@ -449,6 +461,7 @@ def update_work_order(work_order_id: int):
                 terms_and_conditions = %s,
                 payment_terms = %s,
                 additional_terms = %s,
+                exclusions = %s,
                 status = COALESCE(NULLIF(%s, ''), status)
             WHERE id = %s AND Company_id = %s
             """,
@@ -470,6 +483,7 @@ def update_work_order(work_order_id: int):
                 payload["terms_and_conditions"],
                 payload["payment_terms"],
                 payload["additional_terms"],
+                payload["exclusions"],
                 payload["status"],
                 work_order_id,
                 g.company_id,

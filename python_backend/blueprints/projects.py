@@ -1053,7 +1053,7 @@ def _sync_vendor_bidding_for_outsource_project(cur, company_id, project_id, depa
     Same rules as update_project OUTSOURCE BRIDGE.
     """
     department_val = department_val or ""
-    is_outsource = (department_val == "Submission Deadline") or (budget_ceiling and bidding_end_date)
+    is_outsource = (department_val == "Submission Deadline") or (budget_ceiling is not None) or (bidding_end_date is not None)
     if not is_outsource:
         return
     try:
@@ -1068,7 +1068,8 @@ def _sync_vendor_bidding_for_outsource_project(cur, company_id, project_id, depa
         project_name = proj["project_name"]
         outsource_budget = proj["budget"]
         description = proj.get("description") or ""
-        project_currency = (proj.get("currency") or "INR").strip() or "INR"
+        # Explicit fallback to AED if projects.currency is empty
+        project_currency = (proj.get("currency") or "AED").strip() or "AED"
         ceiling = budget_ceiling or outsource_budget
         cur.execute(
             """INSERT INTO vendor_bidding
@@ -1195,7 +1196,7 @@ def create_project():
     due_date = data.get("due_date")
     priority = data.get("priority") or "Low"
     budget = data.get("budget") or "0"
-    currency = data.get("currency") or "INR"
+    currency = data.get("currency") or "AED"
     modules = data.get("modules") or ""
     raw_client = data.get("client_id") or None
     raw_pm = data.get("project_manager_id") or None

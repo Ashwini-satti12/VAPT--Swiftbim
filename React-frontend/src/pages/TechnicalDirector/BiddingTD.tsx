@@ -89,7 +89,7 @@ export default function BiddingTD() {
     return "bg-[#F2F2F2] text-[#616161]";
   };
 
-  const formatBudget = (amount: number | undefined, currency: string = "INR") => {
+  const formatBudget = (amount: number | undefined, currency: string = "AED") => {
     if (!amount) return "—";
     return `${amount.toLocaleString()} ${currency}`;
   };
@@ -315,7 +315,7 @@ export default function BiddingTD() {
                       <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                         {formatBudget(
                           project.budget_ceiling || project.outsource_budget,
-                          project.currency || "INR"
+                          project.currency || "AED"
                         )}
                       </td>
                       <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">

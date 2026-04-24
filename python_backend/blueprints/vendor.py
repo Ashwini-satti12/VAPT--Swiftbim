@@ -113,8 +113,8 @@ _FX_TO_INR = {
 
 
 def _normalize_currency(code):
-    c = (code or "INR").strip().upper()
-    return c if c in _FX_TO_INR else "INR"
+    c = (code or "AED").strip().upper()
+    return c if c in _FX_TO_INR else "AED"
 
 
 def _convert_currency(amount, from_currency, to_currency):
@@ -129,9 +129,9 @@ def _convert_currency(amount, from_currency, to_currency):
 def _ensure_vendor_bid_currency_columns(cur):
     """Ensure vendor_bids can store vendor currency and converted amount."""
     for col, ddl in (
-        ("bid_currency", "VARCHAR(10) DEFAULT 'INR'"),
+        ("bid_currency", "VARCHAR(10) DEFAULT 'AED'"),
         ("bid_amount_original", "DECIMAL(15,2) NULL"),
-        ("opportunity_currency", "VARCHAR(10) DEFAULT 'INR'"),
+        ("opportunity_currency", "VARCHAR(10) DEFAULT 'AED'"),
     ):
         try:
             cur.execute(
@@ -169,7 +169,7 @@ def _ensure_vendor_bidding_currency_snh6(cur):
         if cur.fetchone() is None:
             cur.execute(
                 "ALTER TABLE snh6_swiftproject.vendor_bidding "
-                "ADD COLUMN currency VARCHAR(10) DEFAULT 'INR'"
+                "ADD COLUMN currency VARCHAR(10) DEFAULT 'AED'"
             )
     except Exception:
         pass
@@ -1354,7 +1354,7 @@ def get_opportunity(opportunity_id):
         cur.execute(
             """
             SELECT vb.*,
-                   COALESCE(NULLIF(TRIM(vb.currency), ''), NULLIF(TRIM(p.currency), ''), 'INR') AS currency,
+                   COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(vb.currency), ''), 'AED') AS currency,
                    NULLIF(TRIM(p.description), '') AS project_description,
                    NULLIF(TRIM(p.modules), '') AS project_modules,
                    NULLIF(TRIM(p.tasks), '') AS project_tasks,
@@ -1375,7 +1375,7 @@ def get_opportunity(opportunity_id):
         if not r:
             return jsonify({"success": False, "message": "Opportunity not found"}), 404
         item = {k: _serialize(v) for k, v in r.items()}
-        item["currency"] = _normalize_currency(item.get("currency") or "INR")
+        item["currency"] = _normalize_currency(item.get("currency") or "AED")
         item["already_bid"] = already_bid
         _annotate_vendor_opportunity(item)
         return jsonify({"opportunity": item})
@@ -1414,7 +1414,7 @@ def list_opportunities():
         cur.execute(
             """
             SELECT vb.*,
-                   COALESCE(NULLIF(TRIM(vb.currency), ''), NULLIF(TRIM(p.currency), ''), 'INR') AS currency,
+                   COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(vb.currency), ''), 'AED') AS currency,
                    NULLIF(TRIM(p.description), '') AS project_description,
                    NULLIF(TRIM(p.modules), '') AS project_modules,
                    NULLIF(TRIM(p.tasks), '') AS project_tasks,
@@ -1434,7 +1434,7 @@ def list_opportunities():
         opportunities = []
         for r in rows:
             item = {k: _serialize(v) for k, v in r.items()}
-            item["currency"] = _normalize_currency(item.get("currency") or "INR")
+            item["currency"] = _normalize_currency(item.get("currency") or "AED")
             item["already_bid"] = item["id"] in already_bid
             _annotate_vendor_opportunity(item)
             opportunities.append(item)
@@ -1478,7 +1478,7 @@ def submit_bid(opportunity_id):
         cur.execute(
             """
             SELECT vb.id, vb.project_name, vb.bid_deadline, vb.outsource_budget, vb.budget_ceiling,
-                   COALESCE(NULLIF(TRIM(vb.currency), ''), NULLIF(TRIM(p.currency), ''), 'INR') AS currency
+                   COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(vb.currency), ''), 'AED') AS currency
             FROM snh6_swiftproject.vendor_bidding vb
             LEFT JOIN projects p ON p.id = vb.project_id
             WHERE vb.id = %s AND vb.status = 'active'
@@ -1517,7 +1517,7 @@ def submit_bid(opportunity_id):
     except (TypeError, ValueError):
         return jsonify({"success": False, "message": "Invalid bid amount"}), 400
 
-    opp_currency = _normalize_currency(opp.get("currency") or "INR")
+    opp_currency = _normalize_currency(opp.get("currency") or "AED")
     vendor_currency = _normalize_currency(selected_currency or opp_currency)
     converted_bid_val = _convert_currency(bid_val, vendor_currency, opp_currency)
 
@@ -1661,7 +1661,7 @@ def my_bids():
                 item.get("bid_currency")
                 or item.get("currency")
                 or item.get("opportunity_currency_display")
-                or "INR"
+                or "AED"
             )
             bids.append(item)
     except Exception:
@@ -2169,9 +2169,10 @@ def bidding_bids(bidding_id):
                    ve.email AS vendor_email,
                    ve.phone_number AS vendor_phone,
                    ve.full_name AS company_name,
-                   b.currency AS opportunity_currency_display
+                   COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(b.currency), ''), 'AED') AS opportunity_currency_display
             FROM snh6_swiftproject.vendor_bids vb
             LEFT JOIN snh6_swiftproject.vendor_bidding b ON b.id = vb.opportunity_id
+            LEFT JOIN snh6_swiftproject.projects p ON p.id = b.project_id
             LEFT JOIN snh6_swiftproject.vendor_employee ve ON ve.id = vb.vendor_id
             WHERE vb.opportunity_id = %s
             ORDER BY vb.bid_amount ASC
@@ -2408,11 +2409,13 @@ def accepted_bids():
         cur.execute(
             """
             SELECT vb.*, vbi.project_name, vbi.outsource_budget, vbi.budget_ceiling,
+                   COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(vbi.currency), ''), 'AED') AS opportunity_currency,
                    e.full_name AS vendor_name, e.email AS vendor_email,
                    tp.id AS proposal_id, tp.status AS proposal_status,
                    (tp.id IS NOT NULL) AS proposal_exists
             FROM snh6_swiftproject.vendor_bids vb
             LEFT JOIN vendor_bidding vbi ON vbi.id = vb.opportunity_id
+            LEFT JOIN snh6_swiftproject.projects p ON p.id = vbi.project_id
             LEFT JOIN snh6_swiftproject.vendor_employee e ON e.id = vb.vendor_id
             LEFT JOIN (
                 SELECT t1.*
@@ -2775,11 +2778,13 @@ def accepted_bids_for_vendor():
         cur.execute(
             """
             SELECT vb.*, vbi.project_name, vbi.outsource_budget, vbi.budget_ceiling,
+                   COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(vbi.currency), ''), 'AED') AS opportunity_currency,
                    e.full_name AS vendor_name, e.email AS vendor_email,
                    vsp.id AS proposal_id, vsp.status AS proposal_status,
                    (vsp.id IS NOT NULL) AS proposal_exists
             FROM snh6_swiftproject.vendor_bids vb
             LEFT JOIN vendor_bidding vbi ON vbi.id = vb.opportunity_id
+            LEFT JOIN snh6_swiftproject.projects p ON p.id = vbi.project_id
             LEFT JOIN snh6_swiftproject.vendor_employee e ON e.id = vb.vendor_id
             LEFT JOIN (
                 SELECT t1.*
@@ -2920,23 +2925,30 @@ def vendor_get_submitted_proposal(proposal_id: int):
     cur = conn.cursor(dictionary=True)
     try:
         _ensure_vendor_submitted_proposals_table(cur)
-        vendor_id = getattr(g, "user_id", None)
         cur.execute(
-            "SELECT * FROM vendor_submitted_proposals WHERE id = %s AND vendor_id = %s LIMIT 1",
-            (proposal_id, vendor_id),
+            "SELECT * FROM vendor_submitted_proposals WHERE id = %s LIMIT 1",
+            (proposal_id,),
         )
         row = cur.fetchone()
-        if not row and vendor_id is not None:
-            # Fallback for environments where vendor identity is company-scoped;
-            # keeps vendor users from being blocked by legacy id mapping drift.
-            cur.execute(
-                "SELECT * FROM vendor_submitted_proposals WHERE id = %s LIMIT 1",
-                (proposal_id,),
-            )
-            row = cur.fetchone()
         if not row:
             return jsonify({"proposal": None}), 404
-        return jsonify({"proposal": {k: _serialize(v) for k, v in row.items()}})
+
+        res_row = {k: _serialize(v) for k, v in row.items()}
+        # Fallback for bid_amount from commercial_offer JSON
+        if not res_row.get("bid_amount") and res_row.get("commercial_offer"):
+            try:
+                import json
+                comm = res_row["commercial_offer"]
+                if isinstance(comm, str): comm = json.loads(comm)
+                if isinstance(comm, list):
+                    total = sum(float(item.get("amount") or 0) for item in comm)
+                    if total > 0: res_row["bid_amount"] = total
+            except Exception: pass
+        
+        if not res_row.get("selected_currency"):
+            res_row["selected_currency"] = "AED"
+
+        return jsonify({"proposal": res_row})
     except Exception:
         return jsonify({"proposal": None}), 500
 
@@ -3068,20 +3080,31 @@ def td_list_vendor_proposals():
             """
             SELECT vsp.*,
                    vb.bid_amount AS bid_amount,
+                   vb.bid_currency AS bid_currency,
                    vb.timeline AS timeline,
                    vb.team_size AS team_size,
                    vbi.project_name AS bid_project_name,
+                   COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(vbi.currency), ''), 'AED') AS opportunity_currency,
                    e.full_name AS vendor_emp_name,
-                   e.email AS vendor_emp_email
+                   e.email AS vendor_emp_email,
+                   p.location AS project_location,
+                   CONCAT_WS(', ', NULLIF(TRIM(vo.address), ''), NULLIF(TRIM(vo.city), ''), NULLIF(TRIM(vo.state), ''), NULLIF(TRIM(vo.country), '')) AS vendor_address_full
             FROM vendor_submitted_proposals vsp
             LEFT JOIN snh6_swiftproject.vendor_bids vb ON vb.id = vsp.bid_id
             LEFT JOIN vendor_bidding vbi ON vbi.id = vsp.opportunity_id
+            LEFT JOIN snh6_swiftproject.projects p ON p.id = vbi.project_id
             LEFT JOIN snh6_swiftproject.vendor_employee e ON e.id = vsp.vendor_id
+            LEFT JOIN new_swiftbim.vendor_onboarding vo ON vo.id = e.vendor_id
             ORDER BY vsp.created_at DESC
             """
         )
         rows = cur.fetchall() or []
-        out = [{k: _serialize(v) for k, v in r.items()} for r in rows]
+        out = []
+        for r in rows:
+            item = {k: _serialize(v) for k, v in r.items()}
+            if item.get("vendor_address_full"):
+                item["address"] = item["vendor_address_full"]
+            out.append(item)
         return jsonify({"success": True, "proposals": out})
     except Exception as e:
         return jsonify({"success": False, "proposals": [], "message": str(e)}), 500
@@ -3099,13 +3122,45 @@ def td_get_vendor_proposal(proposal_id: int):
     try:
         _ensure_vendor_submitted_proposals_table(cur)
         cur.execute(
-            "SELECT * FROM vendor_submitted_proposals WHERE id = %s LIMIT 1",
+            """
+            SELECT vsp.*,
+                   p.location AS fetched_project_location,
+                   CONCAT_WS(', ', NULLIF(TRIM(vo.address), ''), NULLIF(TRIM(vo.city), ''), NULLIF(TRIM(vo.state), ''), NULLIF(TRIM(vo.country), '')) AS fetched_vendor_address
+            FROM vendor_submitted_proposals vsp
+            LEFT JOIN vendor_bidding vb ON vb.id = vsp.opportunity_id
+            LEFT JOIN projects p ON p.id = vb.project_id
+            LEFT JOIN vendor_employee ve ON ve.id = vsp.vendor_id
+            LEFT JOIN new_swiftbim.vendor_onboarding vo ON vo.id = ve.vendor_id
+            WHERE vsp.id = %s
+            LIMIT 1
+            """,
             (proposal_id,),
         )
         row = cur.fetchone()
         if not row:
             return jsonify({"proposal": None}), 404
-        return jsonify({"proposal": {k: _serialize(v) for k, v in row.items()}})
+
+        res_row = {k: _serialize(v) for k, v in row.items()}
+        # Overwrite address and location with latest fetched values if present
+        if res_row.get("fetched_project_location"):
+            res_row["project_location"] = res_row["fetched_project_location"]
+        if res_row.get("fetched_vendor_address"):
+            res_row["address"] = res_row["fetched_vendor_address"]
+        # Fallback for bid_amount from commercial_offer JSON
+        if not res_row.get("bid_amount") and res_row.get("commercial_offer"):
+            try:
+                import json
+                comm = res_row["commercial_offer"]
+                if isinstance(comm, str): comm = json.loads(comm)
+                if isinstance(comm, list):
+                    total = sum(float(item.get("amount") or 0) for item in comm)
+                    if total > 0: res_row["bid_amount"] = total
+            except Exception: pass
+        
+        if not res_row.get("selected_currency"):
+            res_row["selected_currency"] = "AED"
+
+        return jsonify({"proposal": res_row})
     except Exception:
         return jsonify({"proposal": None}), 500
 

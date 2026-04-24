@@ -36,6 +36,8 @@ type AcceptedBid = {
     vendor_email: string;
     outsource_budget: number;
     budget_ceiling: number;
+    opportunity_currency?: string;
+    bid_currency?: string;
     proposal_exists?: boolean;
     proposal_id?: number;
     proposal_status?: string;
@@ -303,7 +305,7 @@ export default function ProposalsV() {
                                                 <div className="text-[14px] text-[#353535] font-gantari">{bid.vendor_name || '—'}</div>
                                             </td>
                                             <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                                                {bid.bid_amount != null ? String(bid.bid_amount) : '—'}
+                                                {bid.bid_amount != null ? `${bid.bid_amount} ${bid.bid_currency || bid.opportunity_currency || ""}` : "—"}
                                             </td>
                                             <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                                                 {bid.timeline || '—'}

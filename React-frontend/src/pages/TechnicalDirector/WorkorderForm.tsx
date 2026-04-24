@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import api from "../../lib/api";
+import ReactQuill from "react-quill-new";
+import "react-quill-new/dist/quill.snow.css";
 
 const CURRENCY_OPTIONS = [
   { code: "INR", label: "Indian Rupee (INR)" },
@@ -30,25 +32,121 @@ export default function WorkorderForm() {
   const editWO = state?.editWO;
   const editId = editWO?.id ? Number(editWO.id) : null;
 
+  const stripHtml = (html: string): string => {
+    if (!html) return "";
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    return (doc.body.textContent || "").trim();
+  };
+
+  const formatPaymentTermsToHtml = (terms: any): string => {
+    if (!terms) return "";
+    let parsed = terms;
+    if (typeof terms === "string") {
+      try {
+        parsed = JSON.parse(terms);
+      } catch {
+        return terms;
+      }
+    }
+    if (Array.isArray(parsed)) {
+      return `
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px; border: 1px solid #AEACAC;">
+          <thead>
+            <tr style="background-color: #f2f2f2;">
+              <th style="border: 1px solid #AEACAC; padding: 8px; text-align: left;">Sl.No</th>
+              <th style="border: 1px solid #AEACAC; padding: 8px; text-align: left;">Payment Basis</th>
+              <th style="border: 1px solid #AEACAC; padding: 8px; text-align: center;">Terms (%)</th>
+              <th style="border: 1px solid #AEACAC; padding: 8px; text-align: center;">Amount</th>
+              <th style="border: 1px solid #AEACAC; padding: 8px; text-align: center;">Timeline</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${parsed
+              .map(
+                (t, i) => `
+              <tr>
+                <td style="border: 1px solid #AEACAC; padding: 8px;">${i + 1}</td>
+                <td style="border: 1px solid #AEACAC; padding: 8px;">${
+                  t.basis || t.label || ""
+                }</td>
+                <td style="border: 1px solid #AEACAC; padding: 8px; text-align: center;">${
+                  t.terms || t.value || ""
+                }</td>
+                <td style="border: 1px solid #AEACAC; padding: 8px; text-align: center;">${
+                  t.amount || ""
+                }</td>
+                <td style="border: 1px solid #AEACAC; padding: 8px; text-align: center;">${
+                  t.timeline || ""
+                }</td>
+              </tr>
+            `,
+              )
+              .join("")}
+          </tbody>
+        </table>
+      `;
+    }
+    return String(terms);
+  };
+
   const [form, setForm] = useState({
     proposalId: state?.proposal?.id || null,
     vendorName: state?.proposal?.vendor_name || "",
-    vendorAddress: "",
+    vendorAddress: state?.proposal?.address || "",
     poDate: new Date().toISOString().split("T")[0],
     poNumber: "",
     projectName: state?.proposal?.project_name || "",
-    projectLocation: "",
+    projectLocation: state?.proposal?.project_location || "",
     workDescription: "",
-    scopeOfWork: "",
+    scopeOfWork: state?.proposal?.scope_of_work || "",
     projectInvolves: "",
-    deliverables: "",
-    currency: "",
+    deliverables:
+      state?.proposal?.deliverables ||
+      state?.proposal?.deliverables_intro ||
+      state?.proposal?.deliverables_list ||
+      "",
+    exclusions: state?.proposal?.exclusions || state?.proposal?.exclusions_list || "",
+    currency: (
+      state?.proposal?.selected_currency ||
+      state?.proposal?.bid_currency ||
+      ""
+    ).toUpperCase(),
     amountAED: state?.proposal?.bid_amount?.toString() || "",
-    duration: "",
+    duration: state?.proposal?.timeline || "",
     termsAndConditions: "",
-    paymentTerms: "",
+    paymentTerms: formatPaymentTermsToHtml(state?.proposal?.payment_terms || ""),
     additionalTerms: "",
   });
+
+  useEffect(() => {
+    if (state?.proposal?.opportunity_id && (!form.projectLocation || form.projectLocation === "Loading...")) {
+      api
+        .get(`/api/vendors/bidding`)
+        .then((res) => {
+          const bids = res.data?.bidding || [];
+          const matched = bids.find(
+            (b: any) => b.id === state.proposal.opportunity_id,
+          );
+          if (matched) {
+            const loc = matched.project_location || matched.location || "";
+            if (loc) {
+              setForm((prev) => ({ ...prev, projectLocation: loc }));
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [state?.proposal?.opportunity_id, form.projectLocation]);
+
+  const quillModules = {
+    toolbar: [
+      [{ header: [1, 2, 3, false] }],
+      ["bold", "italic", "underline", "strike"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      ["link", "clean"],
+    ],
+  };
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const mapWorkOrderToForm = (wo: any) => ({
@@ -67,10 +165,10 @@ export default function WorkorderForm() {
     amountAED:
       wo?.amount_aed != null ? String(wo.amount_aed) : wo?.amountAED || "",
     duration: wo?.duration || "",
-    termsAndConditions:
-      wo?.terms_and_conditions || wo?.termsAndConditions || "",
+    termsAndConditions: wo?.terms_and_conditions || wo?.termsAndConditions || "",
     paymentTerms: wo?.payment_terms || wo?.paymentTerms || "",
     additionalTerms: wo?.additional_terms || wo?.additionalTerms || "",
+    exclusions: wo?.exclusions || "",
   });
 
   useEffect(() => {
@@ -238,42 +336,52 @@ export default function WorkorderForm() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className={labelClass}>Work Description</label>
-                  <textarea
+                  <ReactQuill
+                    theme="snow"
                     value={form.workDescription}
-                    onChange={(e) =>
-                      setForm({ ...form, workDescription: e.target.value })
-                    }
-                    className={`${fieldClass} min-h-[100px]`}
+                    onChange={(val) => setForm({ ...form, workDescription: val })}
+                    modules={quillModules}
+                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[120px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className={labelClass}>Scope of Work</label>
-                  <textarea
+                  <ReactQuill
+                    theme="snow"
                     value={form.scopeOfWork}
-                    onChange={(e) =>
-                      setForm({ ...form, scopeOfWork: e.target.value })
-                    }
-                    className={`${fieldClass} min-h-[100px]`}
+                    onChange={(val) => setForm({ ...form, scopeOfWork: val })}
+                    modules={quillModules}
+                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[120px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className={labelClass}>Project Involves</label>
-                  <textarea
+                  <ReactQuill
+                    theme="snow"
                     value={form.projectInvolves}
-                    onChange={(e) =>
-                      setForm({ ...form, projectInvolves: e.target.value })
-                    }
-                    className={`${fieldClass} min-h-[150px]`}
+                    onChange={(val) => setForm({ ...form, projectInvolves: val })}
+                    modules={quillModules}
+                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[150px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className={labelClass}>Deliverables</label>
-                  <textarea
+                  <ReactQuill
+                    theme="snow"
                     value={form.deliverables}
-                    onChange={(e) =>
-                      setForm({ ...form, deliverables: e.target.value })
-                    }
-                    className={`${fieldClass} min-h-[150px]`}
+                    onChange={(val) => setForm({ ...form, deliverables: val })}
+                    modules={quillModules}
+                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[150px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className={labelClass}>Exclusions</label>
+                  <ReactQuill
+                    theme="snow"
+                    value={form.exclusions}
+                    onChange={(val) => setForm({ ...form, exclusions: val })}
+                    modules={quillModules}
+                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[150px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
                   />
                 </div>
               </div>
@@ -393,34 +501,34 @@ export default function WorkorderForm() {
                   <label className={labelClass}>
                     General Terms and Conditions
                   </label>
-                  <textarea
+                  <ReactQuill
+                    theme="snow"
                     value={form.termsAndConditions}
-                    onChange={(e) =>
-                      setForm({ ...form, termsAndConditions: e.target.value })
-                    }
-                    className={`${fieldClass} min-h-[120px]`}
+                    onChange={(val) => setForm({ ...form, termsAndConditions: val })}
+                    modules={quillModules}
+                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[120px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className={labelClass}>Payment Terms</label>
-                  <textarea
+                  <ReactQuill
+                    theme="snow"
                     value={form.paymentTerms}
-                    onChange={(e) =>
-                      setForm({ ...form, paymentTerms: e.target.value })
-                    }
-                    className={`${fieldClass} min-h-[150px]`}
+                    onChange={(val) => setForm({ ...form, paymentTerms: val })}
+                    modules={quillModules}
+                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[150px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className={labelClass}>
                     Additional Terms & Conditions (Annexure 1)
                   </label>
-                  <textarea
+                  <ReactQuill
+                    theme="snow"
                     value={form.additionalTerms}
-                    onChange={(e) =>
-                      setForm({ ...form, additionalTerms: e.target.value })
-                    }
-                    className={`${fieldClass} min-h-[150px]`}
+                    onChange={(val) => setForm({ ...form, additionalTerms: val })}
+                    modules={quillModules}
+                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[150px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
                   />
                 </div>
               </div>
@@ -447,4 +555,17 @@ export default function WorkorderForm() {
       </div>
     </div>
   );
+}
+
+const QUILL_STYLES = `
+  .ql-toolbar.ql-snow { border: 1px solid #AEACAC52; border-top-left-radius: 5px; border-top-right-radius: 5px; }
+  .ql-container.ql-snow { border: 1px solid #AEACAC52; border-bottom-left-radius: 5px; border-bottom-right-radius: 5px; font-family: 'Gantari', sans-serif !important; }
+  .ql-editor { font-size: 14px !important; color: #353535 !important; line-height: 1.6 !important; min-height: 120px; }
+  .ql-editor.ql-blank::before { color: #8B8B8B !important; font-style: normal !important; }
+`;
+
+if (typeof document !== 'undefined') {
+  const styleTag = document.createElement('style');
+  styleTag.innerHTML = QUILL_STYLES;
+  document.head.appendChild(styleTag);
 }

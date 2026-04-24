@@ -57,7 +57,7 @@ type BidFormState = {
 
 const EMPTY_BID_FORM: BidFormState = {
   bid_amount: "",
-  currency: "INR",
+  currency: "AED",
   notes: "",
   timeline: "",
   team_size: "",
@@ -144,8 +144,8 @@ const FX_TO_INR: Record<string, number> = {
 };
 
 function normalizeCurrency(code?: string): string {
-  const c = String(code || "INR").trim().toUpperCase();
-  return FX_TO_INR[c] ? c : "INR";
+  const c = String(code || "AED").trim().toUpperCase();
+  return FX_TO_INR[c] ? c : "AED";
 }
 
 function convertCurrency(
@@ -159,7 +159,7 @@ function convertCurrency(
   return Number((inInr / FX_TO_INR[to]).toFixed(2));
 }
 
-function formatBudget(amount: number, currencyCode: string = "INR") {
+function formatBudget(amount: number, currencyCode: string = "AED") {
   if (!amount) return "—";
 
   if (currencyCode === "INR") {
@@ -213,7 +213,7 @@ function maxBidAmountForOpportunity(opp: Opportunity): number | null {
   return Math.min(...caps);
 }
 
-function bidTooHighMessage(maxVal: number, currency: string = "INR"): string {
+function bidTooHighMessage(maxVal: number, currency: string = "AED"): string {
   return `Your bid amount is too high. It cannot exceed ${formatBudget(maxVal, currency)} for this opportunity.`;
 }
 
@@ -410,7 +410,7 @@ export default function BiddingV() {
     setBidAmountError(null);
     setBidForm({ 
       ...EMPTY_BID_FORM, 
-      currency: opp.currency || "INR",
+      currency: opp.currency || "AED",
       bid_amount: ""
     });
     setSelectedOpp(opp);
@@ -432,7 +432,7 @@ export default function BiddingV() {
       return;
     }
     const maxBid = maxBidAmountForOpportunity(selectedOpp);
-    const oppCurrency = normalizeCurrency(selectedOpp.currency || "INR");
+    const oppCurrency = normalizeCurrency(selectedOpp.currency || "AED");
     const enteredCurrency = normalizeCurrency(bidForm.currency);
     const enteredInOppCurrency = convertCurrency(
       amount,
@@ -515,7 +515,7 @@ export default function BiddingV() {
   const submitModalMaxBid =
     selectedOpp != null ? maxBidAmountForOpportunity(selectedOpp) : null;
   const submitBidParsed = parseBidAmountInput(bidForm.bid_amount);
-  const submitOppCurrency = normalizeCurrency(selectedOpp?.currency || "INR");
+  const submitOppCurrency = normalizeCurrency(selectedOpp?.currency || "AED");
   const submitEnteredCurrency = normalizeCurrency(bidForm.currency);
   const submitBidParsedInOpp =
     submitBidParsed != null

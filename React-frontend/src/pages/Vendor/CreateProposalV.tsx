@@ -30,7 +30,7 @@ export default function CreateProposalV() {
   const [aboutUs, setAboutUs] = useState("");
   const [locationAddress, setLocationAddress] = useState("");
   const [locationWebsite, setLocationWebsite] = useState("");
-  const [locationEmail, setLocationEmail] = useState(bid?.vendor_email || "");
+  const [locationEmail, setLocationEmail] = useState("");
   const [scopeDescription, setScopeDescription] = useState("");
   const [techRows, setTechRows] = useState([{ module: "" }]);
   const [deliverablesIntro, setDeliverablesIntro] = useState("");
@@ -181,7 +181,7 @@ export default function CreateProposalV() {
     setAboutUs("");
     setLocationAddress("");
     setLocationWebsite("");
-    setLocationEmail(bid?.vendor_email || "");
+    setLocationEmail("");
     setScopeDescription("");
     setDeliverablesIntro("");
     setExclusionsContent("");
@@ -205,7 +205,7 @@ export default function CreateProposalV() {
     setAboutUs("");
     setLocationAddress("");
     setLocationWebsite("");
-    setLocationEmail(bid?.vendor_email || "");
+    setLocationEmail("");
     setScopeDescription("");
     setDeliverablesIntro("");
     setExclusionsContent("");
@@ -375,7 +375,7 @@ export default function CreateProposalV() {
                 {bidAmount
                   ? new Intl.NumberFormat("en-US", {
                       style: "currency",
-                      currency: "USD",
+                      currency: (bid?.bid_currency || bid?.currency || "AED").toUpperCase(),
                       maximumFractionDigits: 0,
                     }).format(Number(bidAmount))
                   : "—"}

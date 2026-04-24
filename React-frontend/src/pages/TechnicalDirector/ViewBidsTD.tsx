@@ -174,10 +174,10 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showEntriesOpen]);
 
-  const formatCurrency = (amount: number, currencyCode = "INR") =>
+  const formatCurrency = (amount: number, currencyCode = "AED") =>
     new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: currencyCode || "INR",
+      currency: currencyCode || "AED",
       maximumFractionDigits: 0,
     }).format(amount);
 
@@ -305,9 +305,9 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
         ? "bg-green-50 text-green-600 border-green-100"
         : "bg-gray-50 text-gray-500 border-gray-100";
   const projectCurrency =
-    (String(opportunity.currency || opportunity.opportunity_currency_display || "INR")
+    (String(opportunity.currency || opportunity.opportunity_currency_display || "AED")
       .trim()
-      .toUpperCase()) || "INR";
+      .toUpperCase()) || "AED";
 
   return (
     <div className="h-full flex flex-col px-5 py-2 pt-1 pb-0 font-gantari bg-white">
