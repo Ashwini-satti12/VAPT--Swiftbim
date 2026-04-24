@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
-import { FiGrid, FiMenu, FiX } from "react-icons/fi";
+import { FiGrid, FiMenu, FiX, FiEye, FiEyeOff } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
 import { COUNTRY_CODES, getPhoneLength } from "../../utils/countryCodes";
@@ -241,6 +241,7 @@ export default function ResourcesV() {
   });
   const [inviteEmails, setInviteEmails] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
+  const [inviteEmailError, setInviteEmailError] = useState("");
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
   /** Inline success state on Invite Team view (same page, not a fixed toast). */
   const [inviteShowSuccess, setInviteShowSuccess] = useState(false);
@@ -278,6 +279,7 @@ export default function ResourcesV() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
+  const [showPassword, setShowPassword] = useState(false);
   const isVpmRoute = location.pathname.startsWith("/vpm/");
 
   const openEmailClient = (email?: string) => {
@@ -352,45 +354,43 @@ export default function ResourcesV() {
       .then(({ data }) => {
         const rows = data.resources ?? [];
         setList(
-          rows.map(
-            (r) => {
-              const resolvedEmail =
-                (r.email || "").trim() ||
-                (r.login_email || "").trim() ||
-                (r.contact_email || "").trim();
-              const resolvedPhone =
-                (r.phone_number || "").trim() ||
-                (r.mobile || "").trim() ||
-                (r.contact_number || "").trim() ||
-                (r.phone || "").trim();
-              return {
-                id: r.id,
-                full_name: r.name || "—",
-                email: resolvedEmail,
-                user_role: r.login_role || "",
-                active:
-                  String(r.active ?? "active").toLowerCase() === "inactive"
-                    ? "inactive"
-                    : "active",
-                department: "Vendor",
-                user_type: "vendor",
-                profile_picture: r.profile_picture,
-                Allpannel: "Vendor",
-                phone_number: resolvedPhone,
-                address: (r.address || "").trim(),
-                doj: "",
-                dob: "",
-                designation: r.designation,
-                discipline: r.discipline,
-                years_of_experience: r.years_of_experience,
-                expertise: r.expertise,
-                resource_role: r.role,
-                software: r.software,
-                certifications: r.certifications,
-                projects_worked_on: r.projects_worked_on,
-              } as Employee;
-            },
-          ),
+          rows.map((r) => {
+            const resolvedEmail =
+              (r.email || "").trim() ||
+              (r.login_email || "").trim() ||
+              (r.contact_email || "").trim();
+            const resolvedPhone =
+              (r.phone_number || "").trim() ||
+              (r.mobile || "").trim() ||
+              (r.contact_number || "").trim() ||
+              (r.phone || "").trim();
+            return {
+              id: r.id,
+              full_name: r.name || "—",
+              email: resolvedEmail,
+              user_role: r.login_role || "",
+              active:
+                String(r.active ?? "active").toLowerCase() === "inactive"
+                  ? "inactive"
+                  : "active",
+              department: "Vendor",
+              user_type: "vendor",
+              profile_picture: r.profile_picture,
+              Allpannel: "Vendor",
+              phone_number: resolvedPhone,
+              address: (r.address || "").trim(),
+              doj: "",
+              dob: "",
+              designation: r.designation,
+              discipline: r.discipline,
+              years_of_experience: r.years_of_experience,
+              expertise: r.expertise,
+              resource_role: r.role,
+              software: r.software,
+              certifications: r.certifications,
+              projects_worked_on: r.projects_worked_on,
+            } as Employee;
+          }),
         );
       })
       .catch((err) => {
@@ -438,7 +438,7 @@ export default function ResourcesV() {
           roles: emp.Allpannel
             ? emp.Allpannel.split(",").map((r) => r.trim())
             : [],
-          active: emp.active === "active" ? "Active" : "Deactivate",
+          active: emp.active === "active" ? "Active" : "Inactive",
         });
       }
     }
@@ -491,11 +491,23 @@ export default function ResourcesV() {
 
   function handleInvite(e: React.FormEvent) {
     e.preventDefault();
+    setInviteEmailError("");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const emails = inviteEmails
       .replace(/,/g, " ")
       .split(/\s+/)
       .filter((e) => e.trim());
-    if (!emails.length) return;
+    if (!emails.length) {
+      setInviteEmailError("Please enter at least one email address.");
+      return;
+    }
+    const invalidEmails = emails.filter((em) => !emailRegex.test(em.trim()));
+    if (invalidEmails.length > 0) {
+      setInviteEmailError(
+        `Invalid email${invalidEmails.length > 1 ? "s" : ""}: ${invalidEmails.join(", ")}`
+      );
+      return;
+    }
     setInviteSubmitting(true);
     api
       .post("/api/employees/invite", { emails, message: inviteMessage })
@@ -503,6 +515,7 @@ export default function ResourcesV() {
         toast.success("Invitations sent successfully!");
         setInviteEmails("");
         setInviteMessage("");
+        setInviteEmailError("");
         setInviteShowSuccess(true);
         setActiveView("list");
       })
@@ -638,7 +651,9 @@ export default function ResourcesV() {
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                       <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
                       <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-4 py-0.5 relative z-10">
-                        <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">List</span>
+                        <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                          List
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -652,7 +667,9 @@ export default function ResourcesV() {
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                       <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
                       <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-4 py-0.5 relative z-10">
-                        <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Grid</span>
+                        <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                          Grid
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -672,7 +689,6 @@ export default function ResourcesV() {
                     >
                       Invite
                     </button>
-                    
                   </div>
                   <div className="group relative">
                     <button
@@ -681,7 +697,6 @@ export default function ResourcesV() {
                     >
                       Manage Inactive
                     </button>
-                    
                   </div>
                 </>
               )}
@@ -737,7 +752,7 @@ export default function ResourcesV() {
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black/30" />
-                    
+
                     <div className="absolute top-3 right-3 z-10">
                       <div
                         className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === "active" ? "bg-[#E0FFE8] border-emerald-100" : "bg-[#FFEEEE] border-red-100"}`}
@@ -745,12 +760,14 @@ export default function ResourcesV() {
                         <span
                           className={`w-2 h-2 rounded-full ${emp.active === "active" ? "bg-[#166534]" : "bg-[#E00100]"}`}
                         />
-                         <span className={`text-[14px] font-semibold font-gantari ${emp.active === "active" ? "text-[#008F22]" : "text-[#E00100]"}`}>
-                          {emp.active === "active" ? "Active" : "Deactivate"}
+                        <span
+                          className={`text-[14px] font-semibold font-gantari ${emp.active === "active" ? "text-[#008F22]" : "text-[#E00100]"}`}
+                        >
+                          {emp.active === "active" ? "Active" : "Inactive"}
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="absolute inset-x-0 bottom-0 px-3 py-3 sm:px-3 sm:py-4 flex items-center gap-4 z-10">
                       <div className="w-14 h-14 sm:w-15 sm:h-15 rounded-full border-2 border-white overflow-hidden bg-white shrink-0 shadow-sm">
                         {emp.profile_picture ? (
@@ -758,7 +775,7 @@ export default function ResourcesV() {
                             src={getGlobalProfileUrl(
                               emp.id,
                               emp.profile_picture,
-                              "vendor"
+                              "vendor",
                             )}
                             className="w-full h-full object-cover"
                           />
@@ -778,7 +795,7 @@ export default function ResourcesV() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="px-2 py-4 sm:px-3 sm:py-5 space-y-4 sm:space-y-5">
                     <div className="flex flex-wrap items-center gap-2">
                       <button
@@ -792,7 +809,11 @@ export default function ResourcesV() {
                         onClick={() => {
                           const waLink = getWhatsAppLink(emp.phone_number);
                           if (waLink)
-                            window.open(waLink, "_blank", "noopener,noreferrer");
+                            window.open(
+                              waLink,
+                              "_blank",
+                              "noopener,noreferrer",
+                            );
                         }}
                         className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                       >
@@ -811,7 +832,7 @@ export default function ResourcesV() {
                     <hr className="border-slate-200" />
 
                     <div className="grid grid-cols-2 gap-2">
-                       <div className="relative group">
+                      <div className="relative group">
                         <button
                           onClick={() => {
                             setSelectedEmployee(emp);
@@ -833,20 +854,24 @@ export default function ResourcesV() {
                                 ? emp.Allpannel.split(",").map((r) => r.trim())
                                 : [],
                               active:
-                                emp.active === "active" ? "Active" : "Deactivate",
+                                emp.active === "active"
+                                  ? "Active"
+                                  : "Inactive",
                               profile_picture: null,
                             });
                           }}
                           className="w-full flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-md text-[12px] sm:text-[14px] font-medium font-gantari cursor-pointer"
                         >
-                          <img src={eyeIcon} className="w-4 h-4 brightness-0 invert" />
+                          <img
+                            src={eyeIcon}
+                            className="w-4 h-4 brightness-0 invert"
+                          />
                           View
                         </button>
-                        
                       </div>
 
                       {canAdd && (
-                         <div className="relative group">
+                        <div className="relative group">
                           <button
                             onClick={() => {
                               setEditId(emp.id);
@@ -865,12 +890,14 @@ export default function ResourcesV() {
                                 salary: emp.salary || "",
                                 accountnumber: emp.accountnumber || "",
                                 roles: emp.Allpannel
-                                  ? emp.Allpannel.split(",").map((r) => r.trim())
+                                  ? emp.Allpannel.split(",").map((r) =>
+                                      r.trim(),
+                                    )
                                   : [],
                                 active:
                                   emp.active === "active"
                                     ? "Active"
-                                    : "Deactivate",
+                                    : "Inactive",
                                 profile_picture: null,
                               });
                             }}
@@ -879,7 +906,6 @@ export default function ResourcesV() {
                             <img src={editIcon} className="w-4 h-4" />
                             Edit
                           </button>
-                         
                         </div>
                       )}
                     </div>
@@ -928,7 +954,7 @@ export default function ResourcesV() {
                                 src={getGlobalProfileUrl(
                                   emp.id,
                                   emp.profile_picture,
-                                  "vendor"
+                                  "vendor",
                                 )}
                                 className="w-full h-full object-cover"
                               />
@@ -979,9 +1005,9 @@ export default function ResourcesV() {
                       <td className="px-6 py-4 text-center">
                         <div className="inline-block min-w-[130px]">
                           <CustomDropdown
-                            options={["Active", "Deactivate"]}
+                            options={["Active", "Inactive"]}
                             value={
-                              emp.active === "active" ? "Active" : "Deactivate"
+                              emp.active === "active" ? "Active" : "Inactive"
                             }
                             onChange={(v) => handleStatusToggle(emp.id, v)}
                             placeholder="Status"
@@ -1008,20 +1034,22 @@ export default function ResourcesV() {
           <div className="bg-white rounded-md w-full max-w-3xl relative flex flex-col max-h-[80vh] overflow-hidden">
             <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between p-5 sm:p-8 shrink-0 gap-4">
               <div className="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-4">
-              <div className="group relative order-1">
-                <button
-                  onClick={() => setShowDetailsModal(false)}
-                  className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer border-0 shadow-none"
-                >
-                  <FiX className="w-5 h-5" />
-                </button>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
-                    <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Close</span>
+                <div className="group relative order-1">
+                  <button
+                    onClick={() => setShowDetailsModal(false)}
+                    className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer border-0 shadow-none"
+                  >
+                    <FiX className="w-5 h-5" />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
                 <span
                   className={`px-4 py-1 rounded-full text-[12px] font-medium shrink-0 sm:hidden ${selectedEmployee.active === "active" ? "bg-[#E0FFE8] text-[#008F22]" : "bg-[#FFEEEE] text-[#E00100]"}`}
                 >
@@ -1177,7 +1205,9 @@ export default function ResourcesV() {
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
                   <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-2 py-0.5 relative z-10">
-                    <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">Go Back</span>
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                      Go Back
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1264,34 +1294,50 @@ export default function ResourcesV() {
                         {activeView === "edit" && !isVpmRoute
                           ? "(Leave blank to keep current)"
                           : ""}
+                        <span className="text-red-500">*</span>
                         {activeView === "edit" && isVpmRoute ? (
                           <span className="text-red-500"> *</span>
                         ) : null}
                       </label>
-                      <input
-                        type="password"
-                        placeholder="••••••••"
-                        placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
-                        value={
-                          activeView === "edit" && isVpmRoute
-                            ? "********"
-                            : activeView === "add"
-                            ? form.password
-                            : editForm.password
-                        }
-                        onChange={(e) => {
-                          if (activeView === "edit" && isVpmRoute) return;
-                          activeView === "add"
-                            ? setForm({ ...form, password: e.target.value })
-                            : setEditForm({
-                                ...editForm,
-                                password: e.target.value,
-                              });
-                        }}
-                        className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
-                        required={activeView === "add"}
-                        disabled={activeView === "edit" && isVpmRoute}
-                      />
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
+                          value={
+                            activeView === "edit" && isVpmRoute
+                              ? "********"
+                              : activeView === "add"
+                                ? form.password
+                                : editForm.password
+                          }
+                          onChange={(e) => {
+                            if (activeView === "edit" && isVpmRoute) return;
+                            activeView === "add"
+                              ? setForm({ ...form, password: e.target.value })
+                              : setEditForm({
+                                  ...editForm,
+                                  password: e.target.value,
+                                });
+                          }}
+                          className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
+                          required={activeView === "add"}
+                          disabled={activeView === "edit" && isVpmRoute}
+                        />
+                        {!(activeView === "edit" && isVpmRoute) && (
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#353535] cursor-pointer"
+                          >
+                            {showPassword ? (
+                              <FiEye className="w-4 h-4" />
+                            ) : (
+                              <FiEyeOff className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
+                      </div>
                       {activeView === "edit" && isVpmRoute ? (
                         <p className="mt-2 text-[13px] text-[#6B7280] font-gantari">
                           Password is encrypted and cannot be viewed or edited
@@ -1304,6 +1350,7 @@ export default function ResourcesV() {
                     <div>
                       <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
                         Role
+                        <span className="text-red-500">*</span>
                       </label>
                       <CustomDropdown
                         options={
@@ -1328,6 +1375,7 @@ export default function ResourcesV() {
                     <div>
                       <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
                         Department
+                        <span className="text-red-500">*</span>
                       </label>
                       <CustomDropdown
                         options={
@@ -1356,7 +1404,8 @@ export default function ResourcesV() {
                     </div>
                     <div>
                       <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
-                        Phone
+                        Phone Number
+                        <span className="text-red-500">*</span>
                       </label>
                       <div className="flex flex-col sm:flex-row gap-2">
                         <select
@@ -1533,16 +1582,28 @@ export default function ResourcesV() {
                   <div className="space-y-6">
                     <div>
                       <label className="block text-[16px] font-medium text-[#353535] mb-2">
-                        Email Addresses
+                        Email Addresses<span className="text-red-500">*</span>
                       </label>
                       <textarea
                         value={inviteEmails}
-                        onChange={(e) => setInviteEmails(e.target.value)}
+                        onChange={(e) => {
+                          setInviteEmails(e.target.value);
+                          if (inviteEmailError) setInviteEmailError("");
+                        }}
                         rows={5}
-                        className="w-full px-5 py-4 bg-[#F2F3F4] rounded-md border-none outline-none text-sm leading-relaxed"
+                        className={`w-full px-5 py-4 bg-[#F2F3F4] rounded-md outline-none text-sm leading-relaxed transition-all ${
+                          inviteEmailError
+                            ? "border border-red-400 focus:border-red-400"
+                            : "border-none"
+                        }`}
                         placeholder="email1@example.com, email2@example.com"
                         placeholder-class="text-[#353535] text-[14px] font-medium"
                       ></textarea>
+                      {inviteEmailError && (
+                        <p className="text-[13px] text-red-500 mt-1.5 px-1 font-gantari">
+                          {inviteEmailError}
+                        </p>
+                      )}
                       <p className="text-[14px] text-[#353535] mt-2 italic px-1">
                         * Separate multiple emails with commas.
                       </p>
