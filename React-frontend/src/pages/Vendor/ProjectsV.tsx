@@ -241,12 +241,7 @@ export default function ProjectsV() {
     }, [createStartDate, createEndDate, createPerDay]);
 
     const getCurrencySymbol = (code?: string) => {
-        const c = (code || "").toUpperCase();
-        if (c === "USD") return "$";
-        if (c === "EUR") return "EUR";
-        if (c === "GBP") return "GBP";
-        if (c === "AED") return "AED";
-        return "₹";
+        return (code || "INR").toUpperCase();
     };
 
     const resolveVendorDocUrl = (rawPath: string) => {
@@ -823,7 +818,7 @@ export default function ProjectsV() {
                                 type="text"
                                 readOnly
                                 className="w-[120px] px-4 py-2 bg-[#F2F2F2] border-none rounded-md font-medium text-[#616161] cursor-not-allowed"
-                                value={`${getCurrencySymbol(createCurrency)} ${createCurrency}`}
+                                value={createCurrency}
                             />
                             <input
                                 type="text"
@@ -1614,7 +1609,7 @@ export default function ProjectsV() {
                                                         <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                                                         <span className="text-[16px] font-gantari font-medium text-[#616161]">
                                                             {selectedProject.budget
-                                                                ? `${getCurrencySymbol((selectedProject.selected_currency || selectedProject.currency || "INR").toUpperCase())} ${selectedProject.budget}`
+                                                                ? `${selectedProject.budget} ${(selectedProject.selected_currency || selectedProject.currency || "INR").toUpperCase()}`
                                                                 : "N/A"}
                                                         </span>
                                                     </div>
@@ -1880,8 +1875,7 @@ export default function ProjectsV() {
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     setOpenMenuProjectId(null);
-                                                                    setMilestonesProject(p);
-                                                                    setShowMilestones(true);
+                                                                    navigate(`/v/milestones?project_id=${p.id}`);
                                                                 }}
                                                                 className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                                                             >

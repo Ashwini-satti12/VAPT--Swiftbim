@@ -277,12 +277,7 @@ export default function ProjectEV() {
   const [selectedMember, setSelectedMember] = useState<VendorResourceProfileRow | null>(null);
 
   const getCurrencySymbol = (code?: string) => {
-    const c = (code || "").toUpperCase();
-    if (c === "USD") return "$";
-    if (c === "EUR") return "EUR";
-    if (c === "GBP") return "GBP";
-    if (c === "AED") return "AED";
-    return "₹";
+    return (code || "INR").toUpperCase();
   };
 
   const projectCurrencyCode = (p?: Project | null) =>
@@ -740,7 +735,7 @@ export default function ProjectEV() {
                   </div>
                 </div>
 
-                <div className="border border-slate-200 rounded-lg px-5 py-6">
+                {/* <div className="border border-slate-200 rounded-lg px-5 py-6">
                   <h4 className="text-[18px] md:text-[20px] font-semibold text-[#000000] mb-4">Project Details</h4>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 lg:gap-x-16">
                     <div className="space-y-3">
@@ -759,7 +754,7 @@ export default function ProjectEV() {
                         <span className="text-[#616161] mx-4 shrink-0">:</span>
                         <span className="text-[14px] font-medium text-[#616161] font-gantari">
                           {selectedProject.budget || selectedProject.budget_ceiling
-                            ? `${getCurrencySymbol(projectCurrencyCode(selectedProject))}${selectedProject.budget || selectedProject.budget_ceiling}`
+                            ? `${selectedProject.budget || selectedProject.budget_ceiling} ${projectCurrencyCode(selectedProject)}`
                             : "N/A"}
                         </span>
                       </div>
@@ -768,7 +763,7 @@ export default function ProjectEV() {
                         <span className="text-[#616161] mx-4 shrink-0">:</span>
                         <span className="text-[14px] font-medium text-[#616161]">
                           {selectedProject.budget_ceiling
-                            ? `${getCurrencySymbol(projectCurrencyCode(selectedProject))}${selectedProject.budget_ceiling}`
+                            ? `${selectedProject.budget_ceiling} ${projectCurrencyCode(selectedProject)}`
                             : "N/A"}
                         </span>
                       </div>
@@ -822,7 +817,7 @@ export default function ProjectEV() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </div> */}
               </div>
             </div>
         ) : (

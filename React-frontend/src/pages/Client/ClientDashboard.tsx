@@ -28,9 +28,9 @@ export default function ClientDashboard() {
       </div>
       {s.total_budget > 0 && (
         <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white rounded-xl border p-4"><p className="text-sm text-slate-500">Budget</p><p className="font-bold">₹{s.total_budget.toLocaleString()}</p></div>
-          <div className="bg-white rounded-xl border p-4"><p className="text-sm text-slate-500">Paid</p><p className="font-bold text-emerald-600">₹{s.total_paid.toLocaleString()}</p></div>
-          <div className="bg-white rounded-xl border p-4"><p className="text-sm text-slate-500">Pending</p><p className="font-bold text-amber-600">₹{s.total_pending.toLocaleString()}</p></div>
+          <div className="bg-white rounded-xl border p-4"><p className="text-sm text-slate-500">Budget</p><p className="font-bold">{s.total_budget.toLocaleString()} INR</p></div>
+          <div className="bg-white rounded-xl border p-4"><p className="text-sm text-slate-500">Paid</p><p className="font-bold text-emerald-600">{s.total_paid.toLocaleString()} INR</p></div>
+          <div className="bg-white rounded-xl border p-4"><p className="text-sm text-slate-500">Pending</p><p className="font-bold text-amber-600">{s.total_pending.toLocaleString()} INR</p></div>
         </div>
       )}
       <div>

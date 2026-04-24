@@ -1893,7 +1893,7 @@ export default function ProjectsBL() {
                       </span>
                       <span className="text-[16px] font-Gantari font-medium text-[#616161]">
                         {selectedProjectForView.budget
-                          ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget}`
+                          ? `${selectedProjectForView.budget} ${selectedProjectForView.currency || "INR"}`
                           : "N/A"}
                       </span>
                     </div>
@@ -1907,7 +1907,7 @@ export default function ProjectsBL() {
                         </span>
                         <span className="text-[16px] font-Gantari font-medium text-[#616161]">
                           {selectedProjectForView.budget_ceiling
-                            ? `${CURRENCIES.find((c) => c.code === selectedProjectForView.currency)?.symbol || ""} ${selectedProjectForView.budget_ceiling}`
+                            ? `${selectedProjectForView.budget_ceiling} ${selectedProjectForView.currency || "INR"}`
                             : "N/A"}
                         </span>
                       </div>

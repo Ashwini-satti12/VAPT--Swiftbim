@@ -44,6 +44,7 @@ interface Employee {
   email: string;
   user_role?: string;
   active?: string;
+  status?: string;
   empid?: string;
   phone_number?: string;
   department?: string;
@@ -687,7 +688,7 @@ export default function ConsultantBL() {
                     onClick={() => setShowInactiveModal(true)}
                     className="shrink-0 h-[36px] min-h-[36px] flex items-center justify-center px-3 sm:px-4 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
-                    Manage Deactive
+                    Manage Inactive
                   </button>
                 </>
               )}
@@ -709,7 +710,7 @@ export default function ConsultantBL() {
               {viewMode === "table" && (
                 <>
                   <CustomDropdown
-                    options={["All", "Active", "Deactivate"]}
+                    options={["All", "Active", "Inactive"]}
                     value={statusFilter}
                     onChange={(val) => setStatusFilter(val)}
                     placeholder="Status"
@@ -853,15 +854,15 @@ export default function ConsultantBL() {
                     {/* Top Status - Pill Shape */}
                     <div className="absolute top-3 right-3 z-10">
                       <div
-                        className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === "active" ? "bg-[#E0FFE8] border-emerald-100" : "bg-[#FFEEEE] border-red-100"}`}
+                        className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.status === "Online" ? "bg-[#E0FFE8] border-emerald-100" : "bg-[#FFEEEE] border-red-100"}`}
                       >
                         <span
-                          className={`w-2 h-2 rounded-full ${emp.active === "active" ? "bg-[#166534]" : "bg-[#E00100]"}`}
+                          className={`w-2 h-2 rounded-full ${emp.status === "Online" ? "bg-[#166534]" : "bg-[#E00100]"}`}
                         ></span>
                         <span
-                          className={`text-[14px] font-semibold ${emp.active === "active" ? "text-[#008F22]" : "text-[#E00100]"}`}
+                          className={`text-[14px] font-semibold ${emp.status === "Online" ? "text-[#008F22]" : "text-[#E00100]"}`}
                         >
-                          {emp.active === "active" ? "Active" : "Deactivate"}
+                          {emp.status === "Online" ? "Online" : "Offline"}
                         </span>
                       </div>
                     </div>
@@ -1086,7 +1087,7 @@ export default function ConsultantBL() {
                                     )}
                                   </div>
                                   <span
-                                    className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active === "active" ? "bg-[#22c55e]" : "bg-[#ef4444]"}`}
+                                    className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.status === "Online" ? "bg-[#22c55e]" : "bg-[#ef4444]"}`}
                                   />
                                 </div>
                                 <span className="text-[14px] font-normal font-Gantari text-[#353535]">
@@ -1144,11 +1145,11 @@ export default function ConsultantBL() {
                             <td className="px-4 py-2 text-center border-b border-[#AEACAC52] whitespace-nowrap">
                               <div className="flex items-center justify-center">
                                 <CustomDropdown
-                                  options={["Active", "Deactivate"]}
+                                  options={["Active", "Inactive"]}
                                   value={
                                     emp.active === "active"
                                       ? "Active"
-                                      : "Deactivate"
+                                      : "Inactive"
                                   }
                                   onChange={(val) =>
                                     handleStatusToggle(emp.id, val)
@@ -1344,7 +1345,7 @@ export default function ConsultantBL() {
                   </div>
                 </div>
                 <h3 className="text-[24px] font-semibold text-[#020202] text-center">
-                  Manage In-active Consultants
+                  Manage Inactive Consultants
                 </h3>
               </div>
 
