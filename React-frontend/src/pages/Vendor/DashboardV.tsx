@@ -318,8 +318,8 @@ export default function DashboardV() {
                                         }
                                         return Array.from(byProject.entries()).slice(0, 1).map(([id, { projectName, tasks: pTasks }]) => (
                                             <div key={id} className="px-2">
-                                                <p className="text-[16px] font-bold text-[#353535] font-gantari mb-3 truncate pr-2">
-                                                    <Link to="/v/projects" className="hover:text-[#DE3D3A] hover:underline font-gantari">{projectName}</Link>
+                                                <p className="text-[20px] font-normal text-[#353535] font-gantari mb-4 truncate">
+                                                    {projectName}
                                                 </p>
                                                 <div className="space-y-4">
                                                     {pTasks.slice(0, 1).map((task) => {
@@ -331,25 +331,25 @@ export default function DashboardV() {
                                                         const eT = he ? formatTimeStringToAMPM(task.perferend_time) : '—';
                                                         const tR = hs || he ? `${sT} — ${eT}` : '—';
                                                         return (
-                                                            <div key={task.id} className="flex items-center gap-4 p-4 bg-[#F8F8F8] rounded-md border border-[#AEACAC52] shadow-sm relative">
-                                                                <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
+                                                            <div key={task.id} className="flex items-center gap-6 p-8 bg-[#F8F9FA] rounded-[20px] border border-[#AEACAC52] shadow-sm relative min-h-[160px]">
+                                                                <div className="relative w-[110px] h-[110px] flex items-center justify-center shrink-0">
                                                                     <svg className="w-full h-full -rotate-90">
-                                                                        <circle cx="32" cy="32" r="28" stroke="#F1F5F9" strokeWidth="2" fill="#FFFFFF" />
-                                                                        <circle cx="32" cy="32" r="28" stroke="#00882E" strokeWidth="2" fill="transparent" strokeDasharray={176} strokeDashoffset={176 * (1 - progress / 100)} strokeLinecap="round" />
+                                                                        <circle cx="55" cy="55" r="50" stroke="#F1F5F9" strokeWidth="6" fill="white" />
+                                                                        <circle cx="55" cy="55" r="50" stroke="#00882E" strokeWidth="6" fill="transparent" strokeDasharray={314} strokeDashoffset={314 * (1 - progress / 100)} strokeLinecap="round" />
                                                                     </svg>
-                                                                    <span className="absolute text-[10px] font-bold text-black font-mono tracking-tighter">{countdown}</span>
+                                                                    <span className="absolute text-[15px] font-bold text-black font-mono tracking-tighter">{countdown}</span>
                                                                 </div>
-                                                                <div className="flex-1 min-w-0 pl-4">
-                                                                    <h3 className="text-[18px] font-bold text-black truncate mb-0.5 leading-none">{task.task_name ?? 'Task'}</h3>
-                                                                    <p className="text-[13px] text-[#6B7280] font-medium leading-tight">{dateL} — {tR}</p>
+                                                                <div className="flex-1 min-w-0 pl-2">
+                                                                    <h3 className="text-[28px] font-bold text-black truncate mb-1 font-gantari leading-tight">{task.task_name ?? 'Task'}</h3>
+                                                                    <p className="text-[18px] text-[#353535] font-medium font-gantari opacity-80">{dateL} — {tR}</p>
                                                                 </div>
-                                                                <div className="absolute top-4 right-4">
-                                                                    <span className="bg-[#3B82F6] text-white text-[11px] px-3 py-1 rounded-md font-medium font-gantari tracking-tight leading-none uppercase">{task.category || 'task'}</span>
+                                                                <div className="absolute top-6 right-6">
+                                                                    <span className="bg-[#3B82F6] text-white text-[14px] px-4 py-1.5 rounded-lg font-medium font-gantari tracking-tight leading-none lowercase shadow-sm">task</span>
                                                                 </div>
-                                                                <div className="absolute bottom-4 right-4 flex -space-x-3">
+                                                                <div className="absolute bottom-6 right-6 flex -space-x-4">
                                                                     {(task.involved_persons || []).slice(0, 3).map((v) => (
-                                                                        <div key={v.id} className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden" title={v.full_name}>
-                                                                            {v.profile_picture ? <img src={getGlobalProfileUrl(v.id, v.profile_picture, "vendor")} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[10px] font-bold text-[#353535]">{v.full_name?.slice(0, 2).toUpperCase() || '?'}</div>}
+                                                                        <div key={v.id} className="w-12 h-12 rounded-full border-2 border-white bg-white shadow-md flex items-center justify-center overflow-hidden" title={v.full_name}>
+                                                                            {v.profile_picture ? <img src={getGlobalProfileUrl(v.id, v.profile_picture, "vendor")} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[12px] font-bold text-[#353535]">{v.full_name?.slice(0, 2).toUpperCase() || '?'}</div>}
                                                                         </div>
                                                                     ))}
                                                                 </div>
