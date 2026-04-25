@@ -741,9 +741,11 @@ function TaskCard({
         ? 0
         : status === "in_progress"
           ? 50
-          : typeof task.progress === "number"
-            ? task.progress
-            : 100;
+          : status === "approved"
+            ? 100
+            : typeof task.progress === "number"
+              ? task.progress
+              : 100;
   const isUnderReview =
     (status === "completed" || (task as any).review_required) &&
     task.assigned_to != null &&
@@ -788,9 +790,6 @@ function TaskCard({
           <h4 className="font-medium text-[#353535] text-[20px] truncate leading-tight">
             {task.task_name || "Task Name"}
           </h4>
-          <span className="text-[12px] text-[#8B8B8B] truncate">
-            {task.project_name || "No Project"}
-          </span>
         </div>
         <div className="relative" ref={menuRef}>
           <button
@@ -870,26 +869,6 @@ function TaskCard({
                   </button>
                 </>
               )}
-              {isUnderReview && String(task.uploaderid) === String(user?.id) && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onApproveTask?.(task);
-                  }}
-                >
-                  <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 transition-colors group-hover:bg-green-600 group-hover:text-white">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-green-600">
-                    Approve
-                  </span>
-                </button>
-              )}
             </div>
           )}
         </div>
@@ -922,7 +901,9 @@ function TaskCard({
               : status === "in_progress"
                 ? "50% (Under Review)"
                 : "95% (Under Review)"
-            : `${progress}%`}
+            : status === "approved"
+              ? "100% (Reviewed)"
+              : `${progress}%`}
         </span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">

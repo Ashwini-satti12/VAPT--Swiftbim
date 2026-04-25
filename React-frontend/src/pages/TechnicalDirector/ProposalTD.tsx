@@ -15,6 +15,8 @@ interface VendorProposalRow {
   vendor_name?: string;
   vendor_email?: string;
   bid_amount?: number;
+  bid_currency?: string;
+  opportunity_currency?: string;
   timeline?: string;
   status: string;
   reason?: string;
@@ -76,12 +78,13 @@ export default function ProposalTD() {
       .finally(() => setLoading(false));
   }, []);
 
-  const formatCurrency = (amount: number | string | undefined) => {
+  const formatCurrency = (amount: number | string | undefined, currencyCode?: string) => {
     if (!amount) return "—";
     const num = typeof amount === "string" ? parseFloat(amount) : amount;
+    const currency = (currencyCode || "AED").toUpperCase();
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
+      currency: currency,
       maximumFractionDigits: 0,
     }).format(num);
   };
@@ -302,7 +305,7 @@ export default function ProposalTD() {
                             <div className="text-[14px] text-[#353535] font-gantari">{p.vendor_name || "—"}</div>
                           </td>
                           <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                            {formatCurrency(p.bid_amount as any)}
+                            {formatCurrency(p.bid_amount, p.bid_currency || p.opportunity_currency)}
                           </td>
                           <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{p.timeline || "—"}</td>
                           <td className="px-3 py-6 text-center whitespace-nowrap align-middle">

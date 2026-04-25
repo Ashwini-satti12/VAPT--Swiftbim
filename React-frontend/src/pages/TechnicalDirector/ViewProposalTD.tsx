@@ -8,8 +8,12 @@ import websiteIcon from "../../assets/TechnicalDirector/world-wide-web 1.svg";
 import emailIcon from "../../assets/TechnicalDirector/mail icon.svg";
 
 interface PaymentTerm {
-  label: string;
-  value: string;
+  label?: string;
+  value?: string;
+  basis?: string;
+  terms?: string;
+  timeline?: string;
+  amount?: string | number;
 }
 
 interface Proposal {
@@ -17,8 +21,12 @@ interface Proposal {
   project_name: string;
   vendor_name: string;
   vendor_email: string;
-  bid_amount: number;
-  timeline: string;
+  bid_amount?: number | string;
+  bid_currency?: string;
+  selected_currency?: string;
+  project_location?: string;
+  timeline?: string;
+  commercial_offer?: any;
   status: string;
   reason?: string;
   created_at: string;
@@ -26,19 +34,18 @@ interface Proposal {
   payment_terms?: string | PaymentTerm[];
   email_address?: string;
   opportunity_id?: number;
-  request_note?: string; // Added missing property
-  executive_summary?: string; // Added missing property
-  about_us?: string; // Added missing property
-  aboutus?: string; // Added missing property
-  address?: string; // Added missing property
-  website_url?: string; // Added missing property
-  scope_of_work?: string; // Added missing property
-  deliverables?: string; // Added missing property
-  deliverables_intro?: string; // Added missing property
-  deliverables_list?: string; // Added missing property
-  exclusions?: string; // Added missing property
-  exclusions_list?: string; // Added missing property
-  // Add other fields as they become relevant
+  request_note?: string;
+  executive_summary?: string;
+  about_us?: string;
+  aboutus?: string;
+  address?: string;
+  website_url?: string;
+  scope_of_work?: string;
+  deliverables?: string;
+  deliverables_intro?: string;
+  deliverables_list?: string;
+  exclusions?: string;
+  exclusions_list?: string;
 }
 
 function stripHtml(html: string): string {
@@ -107,16 +114,7 @@ function safeParsePayment(
     if (trimmed) {
       try {
         const parsed = JSON.parse(trimmed);
-        if (
-          Array.isArray(parsed) &&
-          parsed.every(
-            (item) =>
-              typeof item === "object" &&
-              item !== null &&
-              "label" in item &&
-              "value" in item,
-          )
-        ) {
+        if (Array.isArray(parsed)) {
           return parsed as PaymentTerm[];
         }
         return [];
@@ -138,9 +136,12 @@ export default function ViewProposalTD() {
     state?.proposalId || Number(searchParams.get("proposalId") || 0) || null;
   const source = state?.source || searchParams.get("source") || "td_proposals";
   const returnTo = state?.returnTo || "/td/proposals";
+  const isVendorView =
+    location.pathname.startsWith("/v") || returnTo.startsWith("/v");
 
   const [loading, setLoading] = useState(!!proposalId);
   const [proposal, setProposal] = useState<Proposal | null>(null);
+  const [bidState, setBidState] = useState<any>(state?.bid || null);
   const [hasWorkOrder, setHasWorkOrder] = useState(false);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectDescription, setRejectDescription] = useState("");
@@ -152,9 +153,6 @@ export default function ViewProposalTD() {
       setLoading(false);
       return;
     }
-
-    const isVendorView =
-      location.pathname.startsWith("/v") || returnTo.startsWith("/v");
 
     const fetchProposal = async () => {
       const primaryPath =
@@ -209,6 +207,14 @@ export default function ViewProposalTD() {
       isMounted = false;
     };
   }, [proposalId, source, location.pathname, returnTo]);
+
+  useEffect(() => {
+    if (proposal?.bid_id && !bidState) {
+      api.get(`/api/vendors/bids/${proposal.bid_id}`).then(({ data }) => {
+        if (data.bid) setBidState(data.bid);
+      });
+    }
+  }, [proposal?.bid_id, bidState]);
 
   useEffect(() => {
     const pId =
@@ -296,6 +302,35 @@ export default function ViewProposalTD() {
     } finally {
       setRejectSubmitting(false);
     }
+  };
+
+  const getBidAmount = () => {
+    if (proposal?.bid_amount) return Number(proposal.bid_amount);
+    // Fallback 1: Sum from commercial_offer JSON
+    if (proposal?.commercial_offer) {
+      let comm = proposal.commercial_offer;
+      if (typeof comm === "string") {
+        try { comm = JSON.parse(comm); } catch { comm = null; }
+      }
+      if (Array.isArray(comm)) {
+        const total = comm.reduce((sum: number, item: any) => sum + (Number(item.amount) || 0), 0);
+        if (total > 0) return total;
+      }
+    }
+    // Fallback 2: From bid state
+    const bAmt = bidState?.bid_amount ?? bidState?.bidAmount ?? bid?.bid_amount;
+    return bAmt ? Number(bAmt) : null;
+  };
+
+  const getCurrency = () => {
+    return (
+      (proposal?.selected_currency ||
+        proposal?.bid_currency ||
+        bidState?.bid_currency ||
+        bidState?.currency ||
+        bid?.bid_currency ||
+        "AED")
+    ).toUpperCase();
   };
 
   const techs = safeParse(proposal?.technologies_used);
@@ -458,7 +493,7 @@ export default function ViewProposalTD() {
         </div>
 
         <div className="shrink-0 flex flex-wrap items-center justify-end gap-2 sm:gap-3">
-          {proposal && isProposalAccepted && (
+          {proposal && isProposalAccepted && !isVendorView && (
             <button
               type="button"
               onClick={() =>
@@ -483,7 +518,7 @@ export default function ViewProposalTD() {
             </span>
           )}
 
-          {proposal && !isProposalTerminal && (
+          {proposal && !isProposalTerminal && !isVendorView && (
             <div className="flex flex-row items-center justify-end gap-2 shrink-0">
               <button
                 type="button"
@@ -522,7 +557,7 @@ export default function ViewProposalTD() {
           <div className="w-full space-y-10 relative">
             {/* Summary Banner — All key info inside the card */}
             <div className="mt-4">
-              <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-4 sm:py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-y-4">
+              <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-4 sm:py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-y-4">
                 <div className="px-4 sm:px-6 sm:border-r border-[#AEACAC52]">
                   <p className="text-base sm:text-[18px] font-bold text-[#020202] mb-1 tracking-wider text-center">
                     Project
@@ -550,16 +585,20 @@ export default function ViewProposalTD() {
                       "—"}
                   </p>
                 </div>
-                <div className="px-4 sm:px-6 sm:border-r border-[#AEACAC52] last:border-r-0">
-                  <p className="text-base sm:text-[18px] font-bold text-[#020202] mb-1 tracking-wider text-center">
-                    Service ID
+                <div className="flex-1 min-w-[100px] border-r border-[#AEACAC52] flex flex-col items-center justify-center">
+                  <p className="text-base sm:text-[18px] font-bold text-[#020202] mb-1 tracking-wider text-center uppercase">
+                    Currency
                   </p>
-                  <p className="text-[#616161] text-sm sm:text-[16px] text-center uppercase tracking-wide">
-                    {proposal.opportunity_id
-                      ? `OPP-${proposal.opportunity_id}`
-                      : bid?.opportunity_id
-                        ? `OPP-${bid.opportunity_id}`
-                        : "—"}
+                  <p className="text-[#DD4342] text-sm sm:text-[16px] text-center font-bold">
+                    {getCurrency()}
+                  </p>
+                </div>
+                <div className="flex-1 min-w-[100px] border-r border-[#AEACAC52] flex flex-col items-center justify-center">
+                  <p className="text-base sm:text-[18px] font-bold text-[#020202] mb-1 tracking-wider text-center uppercase">
+                    Bid Amount
+                  </p>
+                  <p className="text-[#DD4342] text-sm sm:text-[16px] text-center font-bold">
+                    {getBidAmount()?.toLocaleString() || "—"}
                   </p>
                 </div>
                 <div className="px-4 sm:px-6 last:border-r-0">
@@ -790,19 +829,19 @@ export default function ViewProposalTD() {
                   <table className="w-full">
                     <thead>
                       <tr className="bg-[#F2F2F2] border-b border-[#AEACAC52]">
-                        <th className="px-4 py-3 text-left w-16 font-gantari font-bold text-[#020202] text-[16px]">
+                        <th className="px-4 py-3 text-left w-16 font-gantari font-bold text-[#020202] text-sm uppercase">
                           Sl.No
                         </th>
-                        <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-[16px]">
+                        <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-sm uppercase">
                           Payment Basis
                         </th>
-                        <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-[16px]">
-                          Terms
+                        <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-sm uppercase">
+                          Terms (%)
                         </th>
-                        <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-[16px]">
+                        <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-sm uppercase">
                           Amount
                         </th>
-                        <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-[16px]">
+                        <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-sm uppercase">
                           Timeline (Weeks)
                         </th>
                       </tr>

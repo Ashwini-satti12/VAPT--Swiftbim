@@ -40,10 +40,11 @@ type Bid = {
   team_size?: number;
   created_at: string;
   project_name?: string;
-  outsource_budget?: number;
+  // outsource_budget?: number;
   bid_deadline?: string;
   currency?: string;
   project_due_date?: string | null;
+  outsource_budget?: number | string;
 };
 
 type BidFormState = {
@@ -56,7 +57,7 @@ type BidFormState = {
 
 const EMPTY_BID_FORM: BidFormState = {
   bid_amount: "",
-  currency: "INR",
+  currency: "AED",
   notes: "",
   timeline: "",
   team_size: "",
@@ -143,8 +144,8 @@ const FX_TO_INR: Record<string, number> = {
 };
 
 function normalizeCurrency(code?: string): string {
-  const c = String(code || "INR").trim().toUpperCase();
-  return FX_TO_INR[c] ? c : "INR";
+  const c = String(code || "AED").trim().toUpperCase();
+  return FX_TO_INR[c] ? c : "AED";
 }
 
 function convertCurrency(
@@ -158,23 +159,22 @@ function convertCurrency(
   return Number((inInr / FX_TO_INR[to]).toFixed(2));
 }
 
-function formatBudget(amount: number, currencyCode: string = "INR") {
+function formatBudget(amount: number, currencyCode: string = "AED") {
   if (!amount) return "—";
 
   if (currencyCode === "INR") {
-    if (amount >= 10000000) return `₹ ${(amount / 10000000).toFixed(1)} Cr`;
-    if (amount >= 100000) return `₹ ${(amount / 100000).toFixed(1)} L`;
-    if (amount >= 1000) return `₹ ${(amount / 1000).toFixed(0)}K`;
-    return `₹ ${amount.toLocaleString("en-IN")}`;
+    if (amount >= 10000000) return `${(amount / 10000000).toFixed(1)} Cr INR`;
+    if (amount >= 100000) return `${(amount / 100000).toFixed(1)} L INR`;
+    if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K INR`;
+    return `${amount.toLocaleString("en-IN")} INR`;
   }
 
-  const symbol =
-    CURRENCIES.find((c) => c.code === currencyCode)?.symbol || currencyCode;
+  const code = currencyCode;
 
-  if (amount >= 1000000) return `${symbol} ${(amount / 1000000).toFixed(1)}M`;
-  if (amount >= 1000) return `${symbol} ${(amount / 1000).toFixed(1)}K`;
+  if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M ${code}`;
+  if (amount >= 1000) return `${(amount / 1000).toFixed(1)}K ${code}`;
 
-  return `${symbol} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  return `${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${code}`;
 }
 
 /** Budget from API (number or string with commas / ₹). */
@@ -213,7 +213,7 @@ function maxBidAmountForOpportunity(opp: Opportunity): number | null {
   return Math.min(...caps);
 }
 
-function bidTooHighMessage(maxVal: number, currency: string = "INR"): string {
+function bidTooHighMessage(maxVal: number, currency: string = "AED"): string {
   return `Your bid amount is too high. It cannot exceed ${formatBudget(maxVal, currency)} for this opportunity.`;
 }
 
@@ -408,7 +408,11 @@ export default function BiddingV() {
     setSubmitBidReturnView(returnTo);
     setBidError(null);
     setBidAmountError(null);
-    setBidForm({ ...EMPTY_BID_FORM, currency: opp.currency || "INR" });
+    setBidForm({ 
+      ...EMPTY_BID_FORM, 
+      currency: opp.currency || "AED",
+      bid_amount: ""
+    });
     setSelectedOpp(opp);
     void enrichOpportunityById(opp.id);
     setViewMode("submit-bid");
@@ -428,7 +432,7 @@ export default function BiddingV() {
       return;
     }
     const maxBid = maxBidAmountForOpportunity(selectedOpp);
-    const oppCurrency = normalizeCurrency(selectedOpp.currency || "INR");
+    const oppCurrency = normalizeCurrency(selectedOpp.currency || "AED");
     const enteredCurrency = normalizeCurrency(bidForm.currency);
     const enteredInOppCurrency = convertCurrency(
       amount,
@@ -511,7 +515,7 @@ export default function BiddingV() {
   const submitModalMaxBid =
     selectedOpp != null ? maxBidAmountForOpportunity(selectedOpp) : null;
   const submitBidParsed = parseBidAmountInput(bidForm.bid_amount);
-  const submitOppCurrency = normalizeCurrency(selectedOpp?.currency || "INR");
+  const submitOppCurrency = normalizeCurrency(selectedOpp?.currency || "AED");
   const submitEnteredCurrency = normalizeCurrency(bidForm.currency);
   const submitBidParsedInOpp =
     submitBidParsed != null
@@ -695,10 +699,12 @@ export default function BiddingV() {
                 Bid amount
               </p>
               <p className="text-[#616161] text-[13px] sm:text-[14px] font-gantari truncate">
-                {linkedBidForOpp 
-                  ? formatBudget(linkedBidForOpp.bid_amount, linkedBidForOpp.currency)
-                  : "—"
-                }
+                {formatBudget(
+                  parseBudgetNumeric(detailOpp.budget_ceiling) ??
+                    parseBudgetNumeric(detailOpp.outsource_budget) ??
+                    0,
+                  detailOpp.currency
+                )}
               </p>
             </div>
           </div>

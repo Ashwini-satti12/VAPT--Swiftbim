@@ -414,7 +414,7 @@ export default function AddConsultantBC() {
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Salary <span className="text-[#DD4342]">*</span></label>
                 <input
                   type="text"
-                  placeholder="00$"
+                  placeholder="00"
                   value={form.salary}
                   onChange={(e) => setForm((f) => ({ ...f, salary: e.target.value }))}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"

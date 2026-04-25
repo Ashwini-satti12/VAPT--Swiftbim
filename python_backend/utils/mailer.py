@@ -98,7 +98,7 @@ def send_project_added_confirmation_email(full_name, email, project_name, start_
     return _send_mail(email, subject, "\n".join(body_lines))
 
 
-def send_vendor_outsource_opportunity_email(email, contact_name, project_name, bid_deadline, budget_ceiling, currency="INR"):
+def send_vendor_outsource_opportunity_email(email, contact_name, project_name, bid_deadline, budget_ceiling, currency="AED"):
     """Notify a vendor about a new outsource/bidding opportunity."""
     subject = f"New Outsource Opportunity: {project_name}"
     body_lines = [

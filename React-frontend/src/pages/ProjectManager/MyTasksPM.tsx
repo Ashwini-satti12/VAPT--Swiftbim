@@ -267,27 +267,29 @@ function TaskCard({
   onOpenInvolvedList?: (involved: Employee[]) => void;
 }) {
   const { user } = useAuth();
-  const progress =
-    (status === "completed" || (task as any).review_required) &&
-      task.assigned_to != null &&
-      task.uploaderid != null &&
-      String(task.assigned_to) !== String(task.uploaderid)
-      ? task.Approval?.toLowerCase() === "approved"
-        ? 100
-        : 95
-      : status === "todo"
-        ? 0
-        : status === "in_progress"
-          ? 50
-          : typeof task.progress === "number"
-            ? task.progress
-            : 100;
   const isUnderReview =
-    (status === "completed" || (task as any).review_required) &&
+    (status === "completed" || task.review_remark || (task as any).review_required) &&
     task.assigned_to != null &&
     task.uploaderid != null &&
     String(task.assigned_to) !== String(task.uploaderid) &&
     task.Approval?.toLowerCase() !== "approved";
+
+  const progress =
+    isUnderReview
+      ? status === "todo"
+        ? 0
+        : status === "in_progress"
+          ? 50
+          : 95
+      : status === "todo"
+        ? 0
+        : status === "in_progress"
+          ? 50
+          : status === "approved"
+            ? 100
+            : typeof task.progress === "number"
+              ? task.progress
+              : 100;
   void [employees, onOpenMemberProfile, onOpenInvolvedList];
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -447,7 +449,11 @@ function TaskCard({
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-[12px] text-[#8B8B8B]">Progress</span>
         <span className="text-[12px] text-[#8B8B8B]">
-          {isUnderReview ? "100% (Under Review)" : `${progress}%`}
+          {isUnderReview 
+            ? `${progress}% (Under Review)` 
+            : status === "approved" 
+              ? "100% (Reviewed)" 
+              : `${progress}%`}
         </span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">

@@ -42,6 +42,7 @@ interface Employee {
   email: string;
   user_role?: string;
   active?: string;
+  status?: string;
   empid?: string;
   phone_number?: string;
   department?: string;
@@ -127,9 +128,6 @@ const SCROLLBAR_STYLE = `
   }
 `;
 
-const isEmployeeActive = (emp: Employee) => {
-  return emp.active === "active" || emp.active === "Active";
-};
 
 const getAllowedRoles = () => [
   "Consultant",
@@ -439,7 +437,7 @@ export default function ConsultantBC() {
 
     if (statusFilter === "Active") {
       if (emp.active !== "active") return false;
-    } else if (statusFilter === "Deactivate") {
+    } else if (statusFilter === "Inactive") {
       if (emp.active !== "deactive" && emp.active !== "inactive") return false;
     }
     return true;
@@ -704,7 +702,7 @@ export default function ConsultantBC() {
                     onClick={() => setShowInactiveModal(true)}
                     className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
-                    Manage Deactive
+                    Manage Inactive
                   </button>
                 </>
               )}
@@ -825,7 +823,7 @@ export default function ConsultantBC() {
                 />
               ) : (
                 <CustomDropdown
-                  options={["All", "Active", "Deactivate"]}
+                  options={["All", "Active", "Inactive"]}
                   value={statusFilter}
                   onChange={(val) => setStatusFilter(val)}
                   placeholder="Status"
@@ -864,18 +862,27 @@ export default function ConsultantBC() {
                     </div>
 
                     <div className="absolute top-3 right-3 z-10">
-                      <div
-                        className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${isEmployeeActive(emp) ? "bg-[#E0FFE8] border-emerald-100" : "bg-[#FFEEEE] border-red-100"}`}
-                      >
-                        <span
-                          className={`w-2 h-2 rounded-full ${isEmployeeActive(emp) ? "bg-[#166534]" : "bg-[#E00100]"}`}
-                        />
-                        <span
-                          className={`text-[14px] font-semibold ${isEmployeeActive(emp) ? "text-[#008F22]" : "text-[#E00100]"}`}
+                      {emp.active !== "active" ? (
+                        <div className="flex items-center gap-1.5 px-2 rounded-full border shadow-sm bg-[#FFEEEE] border-red-100">
+                          <span className="w-2 h-2 rounded-full bg-[#E00100]"></span>
+                          <span className="text-[14px] font-semibold text-[#E00100]">
+                            Inactive
+                          </span>
+                        </div>
+                      ) : (
+                        <div
+                          className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.status === "Online" ? "bg-[#E0FFE8] border-emerald-100" : "bg-[#FFEEEE] border-red-100"}`}
                         >
-                          {isEmployeeActive(emp) ? "Active" : "Deactivate"}
-                        </span>
-                      </div>
+                          <span
+                            className={`w-2 h-2 rounded-full ${emp.status === "Online" ? "bg-[#166534]" : "bg-[#E00100]"}`}
+                          />
+                          <span
+                            className={`text-[14px] font-semibold ${emp.status === "Online" ? "text-[#008F22]" : "text-[#E00100]"}`}
+                          >
+                            {emp.status === "Online" ? "Online" : "Offline"}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="absolute inset-x-0 bottom-0 px-3 py-3 sm:px-3 sm:py-4 flex items-center gap-4 z-10">
@@ -1075,7 +1082,7 @@ export default function ConsultantBC() {
                                     )}
                                   </div>
                                   <span
-                                    className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${isEmployeeActive(emp) ? "bg-[#22c55e]" : "bg-[#ef4444]"}`}
+                                    className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active !== "active" ? "bg-[#ef4444]" : (emp.status === "Online" ? "bg-[#22c55e]" : "bg-[#ef4444]")}`}
                                   />
                                 </div>
                                 <span className="text-[14px] font-normal font-Gantari text-[#353535]">
@@ -1133,11 +1140,11 @@ export default function ConsultantBC() {
                             <td className="px-4 py-2 text-center border-b border-[#AEACAC52] whitespace-nowrap">
                               <div className="flex items-center justify-center">
                                 <CustomDropdown
-                                  options={["Active", "Deactivate"]}
+                                  options={["Active", "Inactive"]}
                                   value={
-                                    isEmployeeActive(emp)
+                                    emp.active === "active"
                                       ? "Active"
-                                      : "Deactivate"
+                                      : "Inactive"
                                   }
                                   onChange={(val) =>
                                     handleStatusChange(
@@ -1607,7 +1614,7 @@ export default function ConsultantBC() {
                   </div>
                 </button>
                 <h3 className="text-[24px] font-medium text-[#000000] font-Gantari">
-                  Manage In-active Consultants
+                  Manage Inactive Consultants
                 </h3>
               </div>
 
@@ -1682,9 +1689,9 @@ export default function ConsultantBC() {
                                 {emp.empid ? `(${emp.empid})` : ""}
                               </span>
                             </div>
-                            {!isEmployeeActive(emp) && (
+                            {emp.active !== "active" && (
                               <span className="px-3 py-1 bg-[#FFE3E3] text-[#FF4D4D] text-[12px] font-semibold rounded-full font-Gantari shrink-0">
-                                Currently In-Active
+                                Currently Inactive
                               </span>
                             )}
                           </div>
