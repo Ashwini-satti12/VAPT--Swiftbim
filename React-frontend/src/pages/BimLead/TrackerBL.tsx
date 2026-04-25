@@ -36,7 +36,7 @@ export default function TrackerBL() {
     // Show entries state and refs removed
     const [selectedTimeRange, setSelectedTimeRange] = useState('All Time');
     const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
-    // Pagination state removed
+    const [tableCurrentPage, setTableCurrentPage] = useState(1);
     const statusDropdownRef = useRef<HTMLDivElement>(null);
     const employeeDropdownRef = useRef<HTMLDivElement>(null);
     const timeDropdownRef = useRef<HTMLDivElement>(null);
@@ -192,8 +192,8 @@ export default function TrackerBL() {
     }, []);
 
     useEffect(() => {
-        // CurrentPage reset removed
-    }, [selectedStatus, selectedTimeRange]);
+        setTableCurrentPage(1);
+    }, [selectedStatus, selectedTimeRange, selectedEmployee, searchParams]);
 
     const filteredList = useMemo(() => {
         const q = searchParams.get("q")?.toLowerCase() || "";
@@ -245,7 +245,14 @@ export default function TrackerBL() {
         });
     }, [list, searchParams, selectedStatus, selectedTimeRange, selectedEmployee, busyMap]);
 
-    // Pagination logic removed
+    const tableRowsPerPage = 5;
+    const tableTotalPages = Math.max(1, Math.ceil(filteredList.length / tableRowsPerPage));
+    const safeTableCurrentPage = Math.min(tableCurrentPage, tableTotalPages);
+    const tablePageStartIndex = (safeTableCurrentPage - 1) * tableRowsPerPage;
+    const displayedList = filteredList.slice(tablePageStartIndex, tablePageStartIndex + tableRowsPerPage);
+    const tablePageRangeStart = filteredList.length === 0 ? 0 : tablePageStartIndex + 1;
+    const tablePageRangeEnd = filteredList.length === 0 ? 0 : Math.min(tablePageStartIndex + tableRowsPerPage, filteredList.length);
+    const tablePageRangeLabel = filteredList.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
 
     const handleDownload = () => {
         if (filteredList.length === 0) return;
@@ -479,15 +486,15 @@ export default function TrackerBL() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {filteredList.length === 0 ? (
+                            {displayedList.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white">
                                         No records found
                                     </td>
                                 </tr>
                             ) : (
-                                filteredList.map((entry, index) => {
-                                    const slNo = (index + 1).toString().padStart(2, '0');
+                                displayedList.map((entry, index) => {
+                                    const slNo = (tablePageStartIndex + index + 1).toString().padStart(2, '0');
                                     const formattedDate = entry.date ? entry.date.replace(/-/g, '/') : '-';
                                     const timeIn = formatTime(entry.time_in);
                                     const timeOut = formatTime(entry.time_out || null);
@@ -518,8 +525,48 @@ export default function TrackerBL() {
                     </table>
                 </div>
             </div>
+            {filteredList.length > 0 && (
+                <div className="w-full flex items-center justify-end py-2 pr-4">
+                    <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+                        <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
+                        <button
+                            type="button"
+                            onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={safeTableCurrentPage === 1}
+                            className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
+                                ? 'text-[#9CA3AF] opacity-50 cursor-not-allowed'
+                                : 'text-[#353535]'
+                                }`}
+                            aria-label="Previous page"
+                        >
+                            <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
+                            <span className="inline-flex items-center">Prev</span>
+                        </button>
+                        <button
+                            type="button"
+                            className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+                            aria-current="page"
+                        >
+                            {tablePageRangeLabel}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))}
+                            disabled={safeTableCurrentPage >= tableTotalPages}
+                            className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
+                                ? 'text-[#9CA3AF] opacity-40 cursor-not-allowed'
+                                : 'text-[#353535]'
+                                }`}
+                            aria-label="Next page"
+                        >
+                            <span className="inline-flex items-center">Next</span>
+                            <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
+                        </button>
+                    </div>
+                </div>
+            )}
 
-            {/* Pagination removed */}
+            {/* Pagination */}
 
             <style>{`
         .smooth-scroll {
