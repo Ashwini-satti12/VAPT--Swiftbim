@@ -465,8 +465,7 @@ export default function MytaskViewV() {
     );
   }
 
-    return "—";
-  })();
+
 
   const uploaderId = (task as any).uploaderid ?? (task as any).vendor_id;
   const isUnderReview =
