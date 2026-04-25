@@ -476,6 +476,64 @@ def update_work_order(work_order_id: int):
             ),
         )
     conn.commit()
-    if cur.rowcount == 0:
+    
+    # On Acceptance -> Create Vendor Project if not exists
+    if payload.get("status") == "Accepted":
+        try:
+            # Re-fetch or use existing data to ensure we have current state
+            cur.execute("SELECT * FROM work_orders WHERE id = %s", (work_order_id,))
+            wo = cur.fetchone()
+            if wo:
+                proposal_id = wo.get("proposal_id")
+                # Check if a vendor project already exists for this work order or proposal
+                cur.execute("SELECT id FROM vendor_projects WHERE proposal_id = %s OR project_name = %s LIMIT 1", (proposal_id, wo["project_name"]))
+                existing_vp = cur.fetchone()
+                if not existing_vp:
+                    vendor_id = None
+                    opportunity_id = None
+                    main_project_id = None
+                    
+                    if proposal_id:
+                        cur.execute("SELECT vendor_id, opportunity_id FROM new_swiftbim.proposals WHERE id = %s", (proposal_id,))
+                        prop = cur.fetchone()
+                        if prop:
+                            vendor_id = prop.get("vendor_id")
+                            opportunity_id = prop.get("opportunity_id")
+                    
+                    if not vendor_id:
+                        # Fallback: find vendor_id by name
+                        cur.execute("SELECT id FROM new_swiftbim.vendor_onboarding WHERE company_name = %s LIMIT 1", (wo["vendor_name"],))
+                        v_onb = cur.fetchone()
+                        if v_onb:
+                            vendor_id = v_onb["id"]
+                    
+                    if opportunity_id:
+                        cur.execute("SELECT project_id FROM snh6_swiftproject.vendor_bidding WHERE id = %s", (opportunity_id,))
+                        vb = cur.fetchone()
+                        if vb:
+                            main_project_id = vb.get("project_id")
+                    
+                    # Insert into vendor_projects
+                    # Note: Using snh6_swiftproject.vendor_projects safely by relying on current connection's DB
+                    cur.execute("""
+                        INSERT INTO vendor_projects (
+                            main_project_id, proposal_id, opportunity_id, vendor_id,
+                            project_name, description, deliverables, location,
+                            budget, Company_id
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (
+                        main_project_id, proposal_id, opportunity_id, vendor_id,
+                        wo["project_name"], wo["work_description"], wo["deliverables"],
+                        wo["project_location"], wo["amount_aed"], wo["Company_id"]
+                    ))
+                    conn.commit()
+        except Exception as e:
+            # We don't want to fail the whole update if auto-project creation fails,
+            # but we should log it.
+            print(f"Error auto-creating vendor project from work order {work_order_id}: {e}")
+
+    if cur.rowcount == 0 and payload.get("status") != "Accepted":
+        # Note: if it was Accepted, we might have successfully run the logic above even if rowcount was 0
+        # (e.g. if status was already Accepted). But usually rowcount 1 on success.
         return jsonify({"success": False, "message": "Work order not found"}), 404
     return jsonify({"success": True, "id": work_order_id})
