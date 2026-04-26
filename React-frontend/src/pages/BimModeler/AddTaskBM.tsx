@@ -339,30 +339,30 @@ export default function AddTaskBM() {
     if (editingTaskId != null) {
       const patchBody = isOutsource
         ? {
-            task_name: payload.taskName,
-            assigned_to: payload.assignedTo,
-            due_date: payload.dueDate,
-            category: payload.category,
-            description: payload.description,
-            checklist: payload.checklist,
-            modules: payload.modules,
-            start_date: payload.startdate,
-            start_time: payload.startTime,
-            end_time: payload.dueTime,
-            project_id: selectedProj?.id,
-          }
+          task_name: payload.taskName,
+          assigned_to: payload.assignedTo,
+          due_date: payload.dueDate,
+          category: payload.category,
+          description: payload.description,
+          checklist: payload.checklist,
+          modules: payload.modules,
+          start_date: payload.startdate,
+          start_time: payload.startTime,
+          end_time: payload.dueTime,
+          project_id: selectedProj?.id,
+        }
         : {
-            task_name: payload.taskName,
-            assigned_to: payload.assignedTo,
-            due_date: payload.dueDate,
-            category: payload.category,
-            description: payload.description,
-            checklist: payload.checklist,
-            modules_name: payload.modules,
-            Actual_start_time: payload.startdate,
-            perferstart_time: payload.startTime,
-            perferend_time: payload.dueTime,
-          };
+          task_name: payload.taskName,
+          assigned_to: payload.assignedTo,
+          due_date: payload.dueDate,
+          category: payload.category,
+          description: payload.description,
+          checklist: payload.checklist,
+          modules_name: payload.modules,
+          Actual_start_time: payload.startdate,
+          perferstart_time: payload.startTime,
+          perferend_time: payload.dueTime,
+        };
       api
         .patch(`${baseEndpoint}/${editingTaskId}`, patchBody)
         .then(() => {
@@ -512,7 +512,7 @@ export default function AddTaskBM() {
                   label="Select Project name"
                   options={[
                     { value: "", label: "Select Project name" },
-                    ...projects.map((p) => ({
+                    ...projects.filter((p) => p.source !== "Outsource").map((p) => ({
                       value: p.project_name,
                       label: p.project_name,
                     })),
@@ -545,13 +545,13 @@ export default function AddTaskBM() {
                       (p) => p.project_name === addTaskForm.projectName,
                     )?.modules
                       ? (projects
-                          .find(
-                            (p) => p.project_name === addTaskForm.projectName,
-                          )!
-                          .modules!.split(",")
-                          .map((m) => m.trim())
-                          .filter(Boolean)
-                          .map((m) => ({ value: m, label: m })) as {
+                        .find(
+                          (p) => p.project_name === addTaskForm.projectName,
+                        )!
+                        .modules!.split(",")
+                        .map((m) => m.trim())
+                        .filter(Boolean)
+                        .map((m) => ({ value: m, label: m })) as {
                           value: string;
                           label: string;
                         }[])
@@ -588,11 +588,11 @@ export default function AddTaskBM() {
                     placeholder="Enter Task / Select Task"
                     className="min-w-0 flex-1 border-0 bg-transparent px-4 py-[7px] text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B]"
                   />
-                  
+
                 </div>
               </div>
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-2 gap-x-10 gap-y-6">
-                
+
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Start Date <span className="text-[#DD4342]">*</span>

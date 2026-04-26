@@ -88,6 +88,7 @@ export interface Employee {
   id: number;
   full_name: string;
   active?: string | null;
+  profile_picture?: string;
 }
 
 export interface Project {
@@ -729,30 +730,26 @@ function TaskCard({
   onDeleteTask?: (task: Task) => void;
   onApproveTask?: (task: Task) => void;
 }) {
-  const progress =
-    (status === "completed" || (task as any).review_required) &&
-      task.assigned_to != null &&
-      task.uploaderid != null &&
-      String(task.assigned_to) !== String(task.uploaderid)
-      ? task.Approval?.toLowerCase() === "approved"
-        ? 100
-        : (status === "todo" ? 0 : status === "in_progress" ? 50 : 95)
-      : status === "todo"
-        ? 0
-        : status === "in_progress"
-          ? 50
-          : status === "approved"
-            ? 100
-            : typeof task.progress === "number"
-              ? task.progress
-              : 100;
-  const isUnderReview =
-    (status === "completed" || (task as any).review_required) &&
-    task.assigned_to != null &&
-    task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid) &&
-    task.Approval?.toLowerCase() !== "approved";
   const { user } = useAuth();
+  // A task is a "review task" when the current user assigned it to someone else
+  const isDelegated =
+    task.uploaderid != null &&
+    task.assigned_to != null &&
+    String(task.uploaderid) !== String(task.assigned_to);
+  const isReviewTask = isDelegated && String(task.uploaderid) === String(user?.id);
+  // Under review = delegated and not yet fully approved by assigner
+  const isUnderReview = isReviewTask && task.Approval?.toLowerCase() !== "approved";
+  const isReviewed = isReviewTask && task.Approval?.toLowerCase() === "approved";
+  const progress =
+    status === "todo"
+      ? 0
+      : status === "in_progress"
+        ? 50
+        : isReviewed
+          ? 100
+          : typeof task.progress === "number"
+            ? task.progress
+            : 100;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -896,13 +893,9 @@ function TaskCard({
         <span className="text-[12px] text-[#8B8B8B]">Progress</span>
         <span className="text-[12px] text-[#8B8B8B]">
           {isUnderReview
-            ? status === "todo"
-              ? "0% (Under Review)"
-              : status === "in_progress"
-                ? "50% (Under Review)"
-                : "95% (Under Review)"
-            : status === "approved"
-              ? "100% (Reviewed)"
+            ? (status === "in_progress" ? `${progress}% (Under Review)` : `${progress}% (Under Review)`)
+            : isReviewed
+              ? `${progress}% (Reviewed)`
               : `${progress}%`}
         </span>
       </div>
@@ -1028,7 +1021,6 @@ const PERIOD_OPTIONS = [
   "This Week",
   "This Month",
   "This Quarter",
-  "Custom",
 ];
 
 export default function MytaskTD() {
@@ -1530,6 +1522,7 @@ export default function MytaskTD() {
   const projectOptions = [
     "Select Projects",
     ...(Array.isArray(projects) ? projects : [])
+      .filter((p) => p?.source !== "Outsource")
       .map((p) => p?.project_name)
       .filter(Boolean),
   ];

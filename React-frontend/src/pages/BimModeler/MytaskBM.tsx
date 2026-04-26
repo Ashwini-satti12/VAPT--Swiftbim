@@ -20,6 +20,8 @@ import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import closeIcon from "../../assets/ProjectManager/project/close button.png";
+import { useAuth } from "../../contexts/AuthContext";
+
 
 export function formatTimeForDisplay(value: string): string {
   if (!value || !value.match(/^\d{1,2}:\d{2}$/)) return "--:--";
@@ -468,27 +470,20 @@ function TaskCard({
   onDeleteTask?: (task: Task) => void;
   onApproveTask?: (task: Task) => void;
 }) {
-  const progress =
-    (status === "completed" || (task as any).review_required) &&
-      task.assigned_to != null &&
-      task.uploaderid != null &&
-      String(task.assigned_to) !== String(task.uploaderid)
-      ? task.Approval?.toLowerCase() === "approved"
-        ? 100
-        : 95
-      : status === "todo"
-        ? 0
-        : status === "in_progress"
-          ? 50
-          : typeof task.progress === "number"
-            ? task.progress
-            : 100;
-  const isUnderReview =
-    (status === "completed" || (task as any).review_required) &&
-    task.assigned_to != null &&
+  const { user } = useAuth();
+  const isDelegated =
     task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid) &&
-    task.Approval?.toLowerCase() !== "approved";
+    task.assigned_to != null &&
+    String(task.uploaderid) !== String(task.assigned_to);
+  const isReviewTask = isDelegated && String(task.uploaderid) === String(user?.id);
+  const isUnderReview = isReviewTask && task.Approval?.toLowerCase() !== "approved";
+  const isReviewed = isReviewTask && task.Approval?.toLowerCase() === "approved";
+  const progress =
+    status === "todo"
+      ? 0
+      : status === "in_progress"
+        ? 50
+        : 95;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -578,7 +573,6 @@ function TaskCard({
                       src={editIcon}
                       alt="edit"
                       className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                      onApproveTask={handleApproveTask}
                     />
                     <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                       Edit
@@ -650,7 +644,9 @@ function TaskCard({
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-[12px] text-[#8B8B8B]">Progress</span>
         <span className="text-[12px] text-[#8B8B8B]">
-          {isUnderReview ? "95% (Under Review)" : `${progress}%`}
+          {status === "completed"
+            ? `${progress}% (Under Review)`
+            : `${progress}%`}
         </span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
@@ -892,7 +888,7 @@ export default function MytaskBM() {
   const projectOptions = [
     "Select Projects",
     "Show All",
-    ...projects.map((p) => p.project_name),
+    ...projects.filter((p) => p.source !== "Outsource").map((p) => p.project_name),
   ];
 
   const handleApproveTask = (task: Task) => {
