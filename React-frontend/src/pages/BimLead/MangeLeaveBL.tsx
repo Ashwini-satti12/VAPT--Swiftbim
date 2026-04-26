@@ -218,7 +218,7 @@ const showEntriesOptions: {
   { value: "all", label: "All", start: 0, end: null },
 ];
 
-const PER_PAGE = 10;
+const PER_PAGE = 5;
 const PAGINATION_VISIBLE = 4;
 
 /** Allow only letters, numbers, symbols; collapse multiple spaces to one (for Employee Name and Reason). */
@@ -555,6 +555,9 @@ export default function ManageLeave() {
     setPaginationWindowStart((s) =>
       Math.min(s + PAGINATION_VISIBLE, maxWindowStart),
     );
+  const tablePageRangeStart = listInRange.length === 0 ? 0 : rangeStart + (safePage - 1) * PER_PAGE + 1;
+  const tablePageRangeEnd = listInRange.length === 0 ? 0 : Math.min(rangeStart + safePage * PER_PAGE, rangeEnd);
+  const tablePageRangeLabel = listInRange.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
   void [
     activePage,
     visiblePageRanges,
@@ -966,29 +969,14 @@ export default function ManageLeave() {
     <div className="flex flex-col h-full font-gantari overflow-hidden">
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
         <div className="flex flex-col flex-1 min-h-0">
-          <div className="flex-shrink-0 mb-6 flex flex-col gap-4 px-2 sm:px-0 pt-0 sm:pt-0 -mt-1 sm:mt-0">
-            <div className="flex flex-row items-center justify-between w-full">
+          <div className="flex-shrink-0 mb-6 px-2 sm:px-0 pt-0 sm:pt-0 -mt-1 sm:mt-0 flex flex-row items-center justify-between gap-3">
+            <div className="flex items-center">
               <h1 className="text-[20px] sm:text-[24px] font-gantari font-semibold text-[#000000]">
                 Manage Leave
               </h1>
-              <button
-                type="button"
-                onClick={() => {
-                  const displayName = user
-                    ? `${user.full_name}${user.user_role ? ` - ${user.user_role}` : ""}`
-                    : "";
-                  setEmployeeName(displayName);
-                  setApplyModalOpen(true);
-                }}
-                className="px-4 py-1.5 bg-[#DD4342] text-white rounded-md text-[13px] font-gantari font-medium transition-all cursor-pointer whitespace-nowrap shadow-sm active:scale-[0.98] mt-2 sm:hidden"
-              >
-                Apply Leave
-              </button>
             </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between sm:gap-3 w-full">
-              <div className="hidden sm:block h-px w-px" />{" "}
-              {/* Spacer for desktop justify-between if needed */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            <div className="flex items-center gap-3 w-auto">
+              <div className="flex items-center gap-3 w-auto">
                 <button
                   type="button"
                   onClick={() => {
@@ -998,13 +986,13 @@ export default function ManageLeave() {
                     setEmployeeName(displayName);
                     setApplyModalOpen(true);
                   }}
-                  className="hidden sm:block px-6 py-2 bg-[#DD4346] text-white rounded-md text-[14px] font-gantari font-medium transition-all cursor-pointer whitespace-nowrap w-full sm:w-auto shadow-sm active:scale-[0.98]"
+                  className="px-4 sm:px-6 py-2 bg-[#DD4346] text-white rounded-md text-[13px] sm:text-[14px] font-gantari font-medium transition-all cursor-pointer whitespace-nowrap shadow-sm active:scale-[0.98]"
                 >
                   Apply Leave
                 </button>
-                <div className="grid grid-cols-2 gap-3 w-full sm:flex sm:items-center sm:w-auto">
+                <div className="flex items-center gap-3 w-auto">
                   <div
-                    className="relative w-full sm:w-[180px]"
+                    className="relative w-[180px]"
                     ref={employeeDropdownRef}
                   >
                     <button
@@ -1092,7 +1080,7 @@ export default function ManageLeave() {
                     )}
                   </div>
                   <div
-                    className="relative w-full sm:w-[160px]"
+                    className="relative w-[160px]"
                     ref={showEntriesDropdownRef}
                   >
                     <button
@@ -1457,6 +1445,46 @@ export default function ManageLeave() {
               </table>
             </div>
           </div>
+          {listInRange.length > 0 && (
+            <div className="w-full flex items-center justify-end py-2 pr-4">
+              <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+                <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage === 1}
+                  className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safePage === 1
+                    ? "text-[#9CA3AF] opacity-50 cursor-not-allowed"
+                    : "text-[#353535]"
+                    }`}
+                  aria-label="Previous page"
+                >
+                  <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
+                  <span className="inline-flex items-center">Prev</span>
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+                  aria-current="page"
+                >
+                  {tablePageRangeLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                  className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safePage >= totalPages
+                    ? "text-[#9CA3AF] opacity-40 cursor-not-allowed"
+                    : "text-[#353535]"
+                    }`}
+                  aria-label="Next page"
+                >
+                  <span className="inline-flex items-center">Next</span>
+                  <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

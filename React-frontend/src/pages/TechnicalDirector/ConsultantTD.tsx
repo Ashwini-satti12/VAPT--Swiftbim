@@ -425,6 +425,7 @@ export default function ConsultantTD() {
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedShowEntries, setSelectedShowEntries] = useState('');
+  const [tableCurrentPage, setTableCurrentPage] = useState(1);
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
   const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
@@ -593,6 +594,21 @@ export default function ConsultantTD() {
       ? filteredList.length
       : Math.min(selectedRange.end, filteredList.length);
   const displayedList = filteredList.slice(rangeStart, rangeEnd);
+  const tableRowsPerPage = 5;
+  const tableTotalPages = Math.max(1, Math.ceil(displayedList.length / tableRowsPerPage));
+  const safeTableCurrentPage = Math.min(tableCurrentPage, tableTotalPages);
+  const tablePageStartIndex = (safeTableCurrentPage - 1) * tableRowsPerPage;
+  const tablePageRows = displayedList.slice(tablePageStartIndex, tablePageStartIndex + tableRowsPerPage);
+  const tablePageRangeStart = displayedList.length === 0 ? 0 : rangeStart + tablePageStartIndex + 1;
+  const tablePageRangeEnd = displayedList.length === 0
+    ? 0
+    : Math.min(rangeStart + tablePageStartIndex + tableRowsPerPage, rangeEnd);
+  const tablePageRangeLabel = displayedList.length === 0 ? '0-0' : `${tablePageRangeStart}-${tablePageRangeEnd}`;
+
+  useEffect(() => {
+    // Reset to first page whenever filters/range/search/view changes.
+    setTableCurrentPage(1);
+  }, [selectedShowEntries, typeFilter, statusFilter, searchQuery, viewMode]);
 
   function handleInvite(e: React.FormEvent) {
     e.preventDefault();
@@ -1262,7 +1278,7 @@ export default function ConsultantTD() {
               </div>
             ) : (
               <div className="px-4">
-                <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-8">
+                <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-3">
                   <div className="overflow-x-auto overflow-y-visible custom-scrollbar smooth-scroll flex-1 min-h-[280px]">
                     <table className="min-w-full border-collapse">
                       <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
@@ -1277,15 +1293,15 @@ export default function ConsultantTD() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
-                        {displayedList.length === 0 ? (
+                        {tablePageRows.length === 0 ? (
                           <tr>
                             <td colSpan={7} className="px-3 py-20 text-center text-[14px] text-[#616161] font-normal font-Gantari bg-white">
                               No records found
                             </td>
                           </tr>
                         ) : (
-                          displayedList.map((emp, idx) => {
-                            const slNo = (rangeStart + idx + 1).toString().padStart(2, '0');
+                          tablePageRows.map((emp, idx) => {
+                            const slNo = (rangeStart + tablePageStartIndex + idx + 1).toString().padStart(2, '0');
                             return (
                               <tr key={emp.id} className={idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white hover:bg-slate-50 transition-colors'}>
                                 <td className="px-3 py-5 text-center text-[14px] font-normal font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
@@ -1398,6 +1414,46 @@ export default function ConsultantTD() {
                     </table>
                   </div>
                 </div>
+                {displayedList.length > 0 && (
+                  <div className="w-full flex items-center justify-end py-2 pr-4">
+                    <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+                      <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
+                      <button
+                        type="button"
+                        onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={safeTableCurrentPage === 1}
+                        className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
+                          ? 'text-[#9CA3AF] opacity-50 cursor-not-allowed'
+                          : 'text-[#353535]'
+                          }`}
+                        aria-label="Previous page"
+                      >
+                        <span className="relative -top-[3px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
+                        <span className="inline-flex items-center">Prev</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+                        aria-current="page"
+                      >
+                        {tablePageRangeLabel}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))}
+                        disabled={safeTableCurrentPage >= tableTotalPages}
+                        className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
+                          ? 'text-[#9CA3AF] opacity-40 cursor-not-allowed'
+                          : 'text-[#353535]'
+                          }`}
+                        aria-label="Next page"
+                      >
+                        <span className="inline-flex items-center">Next</span>
+                        <span className="relative -top-[3px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

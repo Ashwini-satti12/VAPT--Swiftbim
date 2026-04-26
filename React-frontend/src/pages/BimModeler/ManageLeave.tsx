@@ -180,6 +180,7 @@ export default function ManageLeave() {
     const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
     const employeeDropdownRef = useRef<HTMLDivElement>(null);
     const employeeDropdownContentRef = useRef<HTMLDivElement>(null);
+    const [tableCurrentPage, setTableCurrentPage] = useState(1);
 
     const employeeOptions = [
         'All',
@@ -300,9 +301,10 @@ export default function ManageLeave() {
 
     const employeeFilterShowsAll =
         selectedEmployee === '' || selectedEmployee === 'All';
+    const searchQueryKey = searchParams.get('q') ?? '';
 
     const filteredList = useMemo(() => {
-        const q = searchParams.get('q')?.toLowerCase() || '';
+        const q = searchQueryKey.toLowerCase();
         let base = leaves;
         if (!employeeFilterShowsAll) {
             base = base.filter((l) => l.employeeName === selectedEmployee);
@@ -319,7 +321,7 @@ export default function ManageLeave() {
                 l.role,
             ].some((f) => (f || '').toLowerCase().includes(q));
         });
-    }, [leaves, selectedEmployee, employeeFilterShowsAll, searchParams]);
+    }, [leaves, selectedEmployee, employeeFilterShowsAll, searchQueryKey]);
     const effectiveShowEntryValue =
       selectedShowEntries || showEntriesOptions[0].value;
     const selectedRange =
@@ -327,7 +329,21 @@ export default function ManageLeave() {
       showEntriesOptions[0];
     const rangeStart = selectedRange.start;
     const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
-    const displayedList = filteredList.slice(rangeStart, rangeEnd);
+    const listInRange = filteredList.slice(rangeStart, rangeEnd);
+    const tableRowsPerPage = 5;
+    const tableTotalPages = Math.max(1, Math.ceil(listInRange.length / tableRowsPerPage));
+    const safeTableCurrentPage = Math.min(tableCurrentPage, tableTotalPages);
+    const tablePageStartIndex = (safeTableCurrentPage - 1) * tableRowsPerPage;
+    const displayedList = listInRange.slice(tablePageStartIndex, tablePageStartIndex + tableRowsPerPage);
+    const tablePageRangeStart = listInRange.length === 0 ? 0 : rangeStart + tablePageStartIndex + 1;
+    const tablePageRangeEnd = listInRange.length === 0
+        ? 0
+        : Math.min(rangeStart + tablePageStartIndex + tableRowsPerPage, rangeEnd);
+    const tablePageRangeLabel = listInRange.length === 0 ? '0-0' : `${tablePageRangeStart}-${tablePageRangeEnd}`;
+
+    useEffect(() => {
+        setTableCurrentPage(1);
+    }, [selectedShowEntries, selectedEmployee, searchQueryKey]);
 
 
   const handleView = (row: LeaveEntry) => {
@@ -851,7 +867,7 @@ export default function ManageLeave() {
                                         </tr>
                                     ) : (
                                         displayedList.map((row, index) => {
-                                            const slNo = rangeStart + index + 1;
+                                            const slNo = rangeStart + tablePageStartIndex + index + 1;
                                             const slNoDisplay = String(slNo).padStart(2, '0');
                                             const isPending = row.statusCode === 0;
                                             return (
@@ -951,6 +967,46 @@ export default function ManageLeave() {
                             </table>
                         </div>
                     </div>
+                    {listInRange.length > 0 && (
+                        <div className="w-full flex items-center justify-end py-2 pr-4">
+                            <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+                                <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
+                                    disabled={safeTableCurrentPage === 1}
+                                    className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
+                                        ? 'text-[#9CA3AF] opacity-50 cursor-not-allowed'
+                                        : 'text-[#353535]'
+                                        }`}
+                                    aria-label="Previous page"
+                                >
+                                    <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
+                                    <span className="inline-flex items-center">Prev</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+                                    aria-current="page"
+                                >
+                                    {tablePageRangeLabel}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))}
+                                    disabled={safeTableCurrentPage >= tableTotalPages}
+                                    className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
+                                        ? 'text-[#9CA3AF] opacity-40 cursor-not-allowed'
+                                        : 'text-[#353535]'
+                                        }`}
+                                    aria-label="Next page"
+                                >
+                                    <span className="inline-flex items-center">Next</span>
+                                    <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

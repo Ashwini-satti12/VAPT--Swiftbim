@@ -59,7 +59,7 @@ export default function TrackerPM() {
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const [selectedTimeRange, setSelectedTimeRange] = useState("All Time");
   const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
-  const PER_PAGE = 10;
+  const PER_PAGE = 5;
   const PAGINATION_VISIBLE = 4;
   const [currentPage, setCurrentPage] = useState(1);
   const [paginationWindowStart, setPaginationWindowStart] = useState(1);
@@ -349,6 +349,9 @@ export default function TrackerPM() {
     setPaginationWindowStart((s) =>
       Math.min(s + PAGINATION_VISIBLE, maxWindowStart),
     );
+  const tablePageRangeStart = listInRange.length === 0 ? 0 : rangeStart + (safePage - 1) * PER_PAGE + 1;
+  const tablePageRangeEnd = listInRange.length === 0 ? 0 : Math.min(rangeStart + safePage * PER_PAGE, rangeEnd);
+  const tablePageRangeLabel = listInRange.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
   void [_activePage, _visiblePageRanges, _canPrevWindow, _canNextWindow, _goPrevWindow, _goNextWindow];
 
   const handleDownload = () => {
@@ -413,14 +416,15 @@ export default function TrackerPM() {
   return (
     <div className="p-1 md:p-2 space-y-8 flex flex-col h-full bg-white">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 flex-shrink-0 px-2">
         <div className="flex items-center justify-between w-full md:w-auto">
           <h2 className="text-[24px] font-semibold text-gray-900 font-Gantari">
             Employee Tracking
           </h2>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col items-stretch md:items-end gap-3 w-full md:w-auto">
+          <div className="order-2 flex flex-wrap items-center justify-end gap-3">
           {/* Employee Filter */}
           <div className="relative min-w-[190px]" ref={employeeDropdownRef}>
             <button
@@ -683,11 +687,12 @@ export default function TrackerPM() {
             )}
           </div>
 
-          {/* Download Button */}
+          </div>
+          {/* Download Button (kept on next line) */}
           <button
             onClick={handleDownload}
             disabled={filteredList.length === 0}
-            className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="order-1 self-end flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <svg
               width="24"
@@ -805,6 +810,46 @@ export default function TrackerPM() {
           </table>
         </div>
       </div>
+      {listInRange.length > 0 && (
+        <div className="w-full flex items-center justify-end py-2 pr-4">
+          <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+            <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safePage === 1}
+              className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safePage === 1
+                ? "text-[#9CA3AF] opacity-50 cursor-not-allowed"
+                : "text-[#353535]"
+                }`}
+              aria-label="Previous page"
+            >
+              <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
+              <span className="inline-flex items-center">Prev</span>
+            </button>
+            <button
+              type="button"
+              className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+              aria-current="page"
+            >
+              {tablePageRangeLabel}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safePage >= totalPages
+                ? "text-[#9CA3AF] opacity-40 cursor-not-allowed"
+                : "text-[#353535]"
+                }`}
+              aria-label="Next page"
+            >
+              <span className="inline-flex items-center">Next</span>
+              <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

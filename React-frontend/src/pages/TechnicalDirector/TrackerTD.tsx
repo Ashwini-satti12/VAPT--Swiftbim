@@ -48,6 +48,7 @@ export default function TrackerTD() {
         { value: 'all', label: 'All', start: 0, end: null },
     ];
     const [selectedShowEntries, setSelectedShowEntries] = useState('1-50');
+    const [tableCurrentPage, setTableCurrentPage] = useState(1);
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
     const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
@@ -413,7 +414,18 @@ export default function TrackerTD() {
     const rangeStart = selectedRange.start;
     const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
     const listInRange = filteredList.slice(rangeStart, rangeEnd);
-    const displayedList = listInRange;
+    const tableRowsPerPage = 5;
+    const tableTotalPages = Math.max(1, Math.ceil(listInRange.length / tableRowsPerPage));
+    const safeTableCurrentPage = Math.min(tableCurrentPage, tableTotalPages);
+    const tablePageStartIndex = (safeTableCurrentPage - 1) * tableRowsPerPage;
+    const displayedList = listInRange.slice(tablePageStartIndex, tablePageStartIndex + tableRowsPerPage);
+    const tablePageRangeStart = listInRange.length === 0 ? 0 : rangeStart + tablePageStartIndex + 1;
+    const tablePageRangeEnd = listInRange.length === 0 ? 0 : Math.min(rangeStart + tablePageStartIndex + tableRowsPerPage, rangeEnd);
+    const tablePageRangeLabel = listInRange.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
+
+    useEffect(() => {
+        setTableCurrentPage(1);
+    }, [selectedShowEntries, selectedEmployee, selectedStatus, selectedTime, searchQuery]);
 
     const handleDownload = () => {
         if (filteredList.length === 0) return;
@@ -709,7 +721,7 @@ export default function TrackerTD() {
                                 </tr>
                             ) : (
                                 displayedList.map((loc, index) => {
-                                    const baseIndex = rangeStart + index;
+                                    const baseIndex = rangeStart + tablePageStartIndex + index;
                                     const slNo = (baseIndex + 1).toString().padStart(2, '0');
                                     const dateKey = toLocalDateKey(loc.date_iso, loc.date ?? null);
                                     const [y, m, d] = dateKey ? dateKey.split('-') : ['', '', ''];
@@ -753,6 +765,46 @@ export default function TrackerTD() {
                     </table>
                 </div>
             </div>
+            {listInRange.length > 0 && (
+                <div className="w-full flex items-center justify-end py-2 pr-4">
+                    <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+                        <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
+                        <button
+                            type="button"
+                            onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={safeTableCurrentPage === 1}
+                            className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
+                                ? 'text-[#9CA3AF] opacity-50 cursor-not-allowed'
+                                : 'text-[#353535]'
+                                }`}
+                            aria-label="Previous page"
+                        >
+                            <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
+                            <span className="inline-flex items-center">Prev</span>
+                        </button>
+                        <button
+                            type="button"
+                            className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+                            aria-current="page"
+                        >
+                            {tablePageRangeLabel}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))}
+                            disabled={safeTableCurrentPage >= tableTotalPages}
+                            className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
+                                ? 'text-[#9CA3AF] opacity-40 cursor-not-allowed'
+                                : 'text-[#353535]'
+                                }`}
+                            aria-label="Next page"
+                        >
+                            <span className="inline-flex items-center">Next</span>
+                            <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
+                        </button>
+                    </div>
+                </div>
+            )}
 
 
 
