@@ -143,8 +143,10 @@ export default function MytaskViewBL() {
   const routeState =
     (location.state as { task?: Task; from?: string } | null) ?? null;
   const [task, setTask] = useState<Task | undefined>(routeState?.task);
+  const fromTeamTask =
+    routeState?.from === "teamtask" || routeState?.from === "teamtasks";
   const backToTasksPath =
-    routeState?.from === "teamtask" || routeState?.from === "teamtasks"
+    fromTeamTask
       ? "/bl/teamtasks"
       : "/bl/mytasks";
 
@@ -501,8 +503,8 @@ export default function MytaskViewBL() {
                         aria-selected={statusDisplay === opt.value}
                         onClick={() => handleStatusUpdate(opt.value)}
                         className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors ${disabled
-                            ? "text-slate-300 cursor-not-allowed opacity-60"
-                            : "cursor-pointer text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
+                          ? "text-slate-300 cursor-not-allowed opacity-60"
+                          : "cursor-pointer text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
                           } ${statusDisplay === opt.value && !disabled
                             ? "bg-[#F2F2F2] text-[#353535] font-medium"
                             : ""
@@ -787,14 +789,19 @@ export default function MytaskViewBL() {
               </div>
             </div>
 
-            <div className="mt-6 border border-slate-200 rounded-xl p-6 flex flex-col h-full bg-white">
-              <h4 className="text-[#020202] text-[18px] mb-2 font-semibold">
-                Review Remark
-              </h4>
-              <div className="flex-1 rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-                {task.review_remark || "No review remark provided."}
-              </div>
-            </div>
+            {!fromTeamTask &&
+              task.uploaderid != null &&
+              task.assigned_to != null &&
+              String(task.uploaderid) !== String(task.assigned_to) && (
+                <div className="mt-6 border border-slate-200 rounded-xl p-6 flex flex-col h-full bg-white">
+                  <h4 className="text-[#020202] text-[18px] mb-2 font-semibold">
+                    Review Remark
+                  </h4>
+                  <div className="flex-1 rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+                    {task.review_remark || "No review remark provided."}
+                  </div>
+                </div>
+              )}
           </div>
         </div>
       </div>
