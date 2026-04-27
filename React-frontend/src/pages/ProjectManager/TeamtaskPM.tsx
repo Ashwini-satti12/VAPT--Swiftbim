@@ -19,6 +19,8 @@ import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+import { formatDateForDisplay } from "../TechnicalDirector/MytaskTD";
+
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 import { TimePickerWheel } from "../../components/TimePickerWheel";
 import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
@@ -579,12 +581,11 @@ function TaskCard({
 
   const isCompleted = status === "completed";
 
-  const startStr = task.start_date
-    ? `${new Date(task.start_date).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date).getFullYear()}`
-    : "—";
-  const endStr = task.due_date
-    ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
-    : "";
+  const startStr =
+    formatDateForDisplay(
+      task.start_date || (task as any).startdate || task.Actual_start_time,
+    ) || "—";
+  const endStr = formatDateForDisplay(task.due_date || task.end_time) || "—";
 
   return (
     <div
@@ -1040,7 +1041,8 @@ export default function TeamtaskPM() {
   };
 
   const openViewTask = (task: Task) => {
-    navigate("/tasks/taskview", { state: { task, from: "teamtask" } });
+    navigate(`/tasks/taskview/${task.id}`, { state: { task, from: "teamtask" } });
+
   };
 
   const confirmDeleteTask = () => {
@@ -1187,7 +1189,7 @@ export default function TeamtaskPM() {
   
   const projectOptions = [
     "Select Projects",
-    ...projects.map((p) => p.project_name),
+    ...projects.filter((p) => p.source !== "Outsource").map((p) => p.project_name),
   ];
 
   const counts = {

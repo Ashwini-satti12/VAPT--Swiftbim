@@ -23,6 +23,8 @@ interface Task {
   start_time?: string;
   due_time?: string;
   assign_to?: string;
+  assigned_to?: number | string;
+  uploaderid?: number | string;
   description?: string;
   checklist?: string;
   assigned_full_name?: string;
@@ -133,6 +135,7 @@ function isStatusOptionDisabled(
 
 export default function MytaskViewBC() {
   const { user } = useAuth();
+  const location = useLocation();
   const { id: taskIdParam } = useParams();
   const [task, setTask] = useState<Task | undefined>((location.state as { task?: Task } | null)?.task);
   const backToUrl = "/bc/mytasks";
@@ -159,8 +162,8 @@ export default function MytaskViewBC() {
       setLoading(true);
       const searchParams = new URLSearchParams(location.search);
       const isOutsource = searchParams.get("source") === "Outsource";
-      const endpoint = isOutsource 
-        ? `/api/vendors/vendor-tasks/${taskId}` 
+      const endpoint = isOutsource
+        ? `/api/vendors/vendor-tasks/${taskId}`
         : `/api/tasks/${taskId}`;
 
       api.get(endpoint)
@@ -440,8 +443,8 @@ export default function MytaskViewBC() {
                         aria-selected={statusDisplay === opt.value}
                         onClick={() => handleStatusUpdate(opt.value)}
                         className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors ${disabled
-                            ? "text-slate-300 cursor-not-allowed opacity-60"
-                            : "cursor-pointer text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
+                          ? "text-slate-300 cursor-not-allowed opacity-60"
+                          : "cursor-pointer text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
                           } ${statusDisplay === opt.value && !disabled
                             ? "bg-[#F2F2F2] text-[#353535] font-medium"
                             : ""
@@ -592,7 +595,6 @@ export default function MytaskViewBC() {
             </div>
           </div>
 
-
           {/* Task Description */}
           <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6">
             <h4 className=" text-black text-md mb-2">Task Description</h4>
@@ -600,13 +602,25 @@ export default function MytaskViewBC() {
               {task.description || "Event (Consultant Partnership)..."}
             </div>
           </div>
-          {/* Review Remark */}
+          
+          {/* Checklist / References */}
           <div className="mt-6 border border-slate-200 rounded-xl p-6">
-            <h4 className="text-black text-md mb-2 font-medium font-Gantari">Review Remark</h4>
-            <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-              {task.review_remark || "No review remark provided."}
+            <h4 className="text-black text-md mb-2 font-medium font-Gantari">Checklist / References</h4>
+            <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px] whitespace-pre-wrap">
+              {task.checklist ? task.checklist.split(',').map((item, idx) => (
+                <div key={idx}>{item.trim()}</div>
+              )) : "No checklist provided."}
             </div>
           </div>
+
+           {String(task.uploaderid) !== String(task.assigned_to) && (
+            <div className="mt-6 border border-slate-200 rounded-xl p-6">
+              <h4 className="text-black text-md mb-2 font-medium font-Gantari">Review Remark</h4>
+              <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+                {task.review_remark || "No review remark provided."}
+              </div>
+            </div>
+           )}
         </div>
       </div>
     </div>

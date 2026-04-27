@@ -702,7 +702,7 @@ def update_task(task_id):
     params.append(task_id)
     params.append(g.company_id)
     cur.execute(
-        "UPDATE tasks SET " + ", ".join(sets) + " WHERE id = %s AND Company_id = %s",
+        "UPDATE tasks SET " + ", ".join(sets) + " WHERE id = %s AND (Company_id = %s OR Company_id IS NULL)",
         params,
     )
     # Review cycle rule:
@@ -735,7 +735,7 @@ def update_task(task_id):
                         Approval = NULL,
                         start_time = NULL,
                         end_time = NULL
-                    WHERE id = %s AND Company_id = %s
+                    WHERE id = %s AND (Company_id = %s OR Company_id IS NULL)
                     """,
                     (task_id, g.company_id),
                 )
@@ -753,7 +753,7 @@ def update_task(task_id):
 def delete_task(task_id):
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("DELETE FROM tasks WHERE id = %s AND Company_id = %s", (task_id, g.company_id))
+    cur.execute("DELETE FROM tasks WHERE id = %s AND (Company_id = %s OR Company_id IS NULL)", (task_id, g.company_id))
     conn.commit()
     if cur.rowcount:
         return jsonify({"success": True})

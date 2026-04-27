@@ -1,6 +1,9 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
+import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
+
+const SHOW_ENTRIES_PLACEHOLDER = 'Show Entries';
 
 interface AttendanceEntry {
     id: number;
@@ -33,13 +36,33 @@ export default function TrackerBL() {
     const [employeeSearch, setEmployeeSearch] = useState('');
     const [statusOpen, setStatusOpen] = useState(false);
     const statusOptions = ['', 'Available', 'Busy'];
-    // Show entries state and refs removed
+    const showEntriesOptions: {
+        value: string;
+        label: string;
+        start: number;
+        end: number | null;
+    }[] = [
+            { value: '1-50', label: '1-50', start: 0, end: 50 },
+            { value: '51-100', label: '51-100', start: 50, end: 100 },
+            { value: '101-150', label: '101-150', start: 100, end: 150 },
+            { value: '151-200', label: '151-200', start: 150, end: 200 },
+            { value: '201-250', label: '201-250', start: 200, end: 250 },
+            { value: '251-300', label: '251-300', start: 250, end: 300 },
+            { value: '101-200', label: '101-200', start: 100, end: 200 },
+            { value: '201-300', label: '201-300', start: 200, end: 300 },
+            { value: '301-400', label: '301-400', start: 300, end: 400 },
+            { value: 'all', label: 'All', start: 0, end: null },
+        ];
     const [selectedTimeRange, setSelectedTimeRange] = useState('All Time');
     const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
-    // Pagination state removed
+    const [tableCurrentPage, setTableCurrentPage] = useState(1);
+    const [selectedShowEntries, setSelectedShowEntries] = useState('');
+    const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const statusDropdownRef = useRef<HTMLDivElement>(null);
     const employeeDropdownRef = useRef<HTMLDivElement>(null);
     const timeDropdownRef = useRef<HTMLDivElement>(null);
+    const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+    const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
     const [searchParams] = useSearchParams();
     const [busyMap, setBusyMap] = useState<Record<string, boolean>>({});
     const employeeOptions = useMemo(
@@ -51,6 +74,12 @@ export default function TrackerBL() {
         [employeeOptions, employeeSearch],
     );
     const timeRangeOptions = ['All Time', '09:00 AM - 12:00 PM', '12:00 PM - 04:00 PM', '04:00 PM - 08:00 PM'];
+
+    useEffect(() => {
+        if (showEntriesOpen && showEntriesDropdownContentRef.current) {
+            showEntriesDropdownContentRef.current.scrollTop = 0;
+        }
+    }, [showEntriesOpen]);
 
     // Determine status from task assignments: if the employee has at least one
     // task on the selected date → Busy, otherwise Available.
@@ -186,14 +215,15 @@ export default function TrackerBL() {
             if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) setStatusOpen(false);
             if (employeeDropdownRef.current && !employeeDropdownRef.current.contains(event.target as Node)) setEmployeeOpen(false);
             if (timeDropdownRef.current && !timeDropdownRef.current.contains(event.target as Node)) setTimeDropdownOpen(false);
+            if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) setShowEntriesOpen(false);
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     useEffect(() => {
-        // CurrentPage reset removed
-    }, [selectedStatus, selectedTimeRange]);
+        setTableCurrentPage(1);
+    }, [selectedShowEntries, selectedStatus, selectedTimeRange, selectedEmployee, searchParams]);
 
     const filteredList = useMemo(() => {
         const q = searchParams.get("q")?.toLowerCase() || "";
@@ -245,7 +275,24 @@ export default function TrackerBL() {
         });
     }, [list, searchParams, selectedStatus, selectedTimeRange, selectedEmployee, busyMap]);
 
-    // Pagination logic removed
+    const effectiveShowEntryValue = selectedShowEntries || showEntriesOptions[0].value;
+    const selectedRange =
+        showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ??
+        showEntriesOptions[0];
+    const rangeStart = selectedRange.start;
+    const rangeEnd =
+        selectedRange.end === null
+            ? filteredList.length
+            : Math.min(selectedRange.end, filteredList.length);
+    const listInRange = filteredList.slice(rangeStart, rangeEnd);
+    const tableRowsPerPage = 5;
+    const tableTotalPages = Math.max(1, Math.ceil(listInRange.length / tableRowsPerPage));
+    const safeTableCurrentPage = Math.min(tableCurrentPage, tableTotalPages);
+    const tablePageStartIndex = (safeTableCurrentPage - 1) * tableRowsPerPage;
+    const displayedList = listInRange.slice(tablePageStartIndex, tablePageStartIndex + tableRowsPerPage);
+    const tablePageRangeStart = listInRange.length === 0 ? 0 : rangeStart + tablePageStartIndex + 1;
+    const tablePageRangeEnd = listInRange.length === 0 ? 0 : Math.min(rangeStart + tablePageStartIndex + tableRowsPerPage, rangeEnd);
+    const tablePageRangeLabel = listInRange.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
 
     const handleDownload = () => {
         if (filteredList.length === 0) return;
@@ -292,39 +339,33 @@ export default function TrackerBL() {
     }
 
     return (
-        <div className="flex flex-col h-full bg-white p-4 sm:p-6 overflow-hidden">
+        <div className="p-1 md:p-2 space-y-8 flex flex-col h-full bg-white">
             {/* Header Section */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6 font-gantari px-1 sm:px-0 sm:mt-0">
-            <h2 className="text-[20px] sm:text-[24px] font-medium text-gray-900 whitespace-nowrap">Employee Tracking</h2>
-            
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto sm:justify-end">
-                <div className="grid grid-cols-2 gap-3 w-full sm:flex sm:items-center sm:min-w-0 sm:w-auto">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 flex-shrink-0 px-2">
+                <div className="flex items-center justify-between w-full md:w-auto">
+                    <h2 className="text-[24px] font-semibold text-gray-900 font-Gantari">Employee Tracking</h2>
+                </div>
+
+                <div className="flex flex-col items-stretch md:items-end gap-3 w-full md:w-auto">
+                    <div className="order-2 flex flex-wrap items-center justify-end gap-3">
                     {/* Employee Filter */}
-                    <div className="relative w-full sm:min-w-[190px] sm:w-auto" ref={employeeDropdownRef}>
+                    <div className="relative min-w-[190px]" ref={employeeDropdownRef}>
                         <button
                             type="button"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setEmployeeOpen((o) => !o);
                             }}
-                            className="w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md text-sm font-medium text-[#353535] border-0 cursor-pointer"
+                            className="w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md text-sm font-semibold font-gantari text-[#353535] border-0 cursor-pointer"
                         >
                             <span className={`${selectedEmployee ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
                                 {selectedEmployee || 'Select Employee'}
                             </span>
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="#616161"
-                                strokeWidth="2.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                style={{ transform: employeeOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
-                            >
-                                <path d="M6 9l6 6 6-6" />
-                            </svg>
+                            <img
+                                src={ArrowDown}
+                                alt=""
+                                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${employeeOpen ? 'rotate-180' : ''}`}
+                            />
                         </button>
                         {employeeOpen && (
                             <div className="absolute top-full left-0 mt-2 z-[220] bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15)] w-full overflow-hidden">
@@ -367,14 +408,14 @@ export default function TrackerBL() {
                     </div>
 
                     {/* Time Range Filter dropdown with AM/PM ranges */}
-                    <div className="relative w-full sm:min-w-[170px] sm:w-auto" ref={timeDropdownRef}>
+                    <div className="relative min-w-[170px]" ref={timeDropdownRef}>
                         <button
                             type="button"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setTimeDropdownOpen((o) => !o);
                             }}
-                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer"
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold font-Gantari transition-all cursor-pointer border-0"
                         >
                             <div className="flex items-center gap-2">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -382,7 +423,7 @@ export default function TrackerBL() {
                                     <polyline points="12 6 12 12" />
                                     <polyline points="12 12 16 14" />
                                 </svg>
-                                <span className="text-sm font-medium text-[#353535]">
+                                <span className="text-[14px] font-semibold text-[#353535]">
                                     {selectedTimeRange}
                                 </span>
                             </div>
@@ -401,7 +442,7 @@ export default function TrackerBL() {
                             </svg>
                         </button>
                         {timeDropdownOpen && (
-                            <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg w-full sm:min-w-[170px] py-1">
+                            <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[170px] py-1">
                                 {timeRangeOptions.map((opt) => (
                                     <button
                                         key={opt}
@@ -411,7 +452,7 @@ export default function TrackerBL() {
                                             setSelectedTimeRange(opt);
                                             setTimeDropdownOpen(false);
                                         }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                                        className={`w-full text-left px-4 py-2 text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${
                                             selectedTimeRange === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]'
                                         }`}
                                     >
@@ -423,10 +464,13 @@ export default function TrackerBL() {
                     </div>
 
                     {/* Status Custom Dropdown */}
-                    <div className="relative w-full sm:min-w-[120px] sm:w-auto" ref={statusDropdownRef}>
-                        <button type="button" onClick={() => setStatusOpen(o => !o)}
-                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer">
-                            <span className={`text-sm font-medium ${selectedStatus ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
+                    <div className="relative min-w-[120px]" ref={statusDropdownRef}>
+                        <button type="button" onClick={(e) => {
+                            e.stopPropagation();
+                            setStatusOpen(o => !o);
+                        }}
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold font-Gantari transition-all cursor-pointer border-0">
+                            <span className={`text-[14px] font-semibold ${selectedStatus ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
                                 {selectedStatus || 'Status'}
                             </span>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -437,8 +481,8 @@ export default function TrackerBL() {
                         {statusOpen && (
                             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg w-full sm:min-w-[130px] py-1">
                                 {statusOptions.map(opt => (
-                                    <button key={opt} type="button" onClick={() => { setSelectedStatus(opt); setStatusOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${selectedStatus === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]'}`}>
+                                    <button key={opt} type="button" onClick={(e) => { e.stopPropagation(); setSelectedStatus(opt); setStatusOpen(false); }}
+                                        className={`w-full text-left px-4 py-2 text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${selectedStatus === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]'}`}>
                                         {opt === '' ? 'Status' : opt}
                                     </button>
                                 ))}
@@ -446,21 +490,104 @@ export default function TrackerBL() {
                         )}
                     </div>
 
+                    {/* Show entries */}
+                    <div className="relative w-[140px]" ref={showEntriesDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowEntriesOpen((o) => !o);
+                            }}
+                            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                        >
+                            <span
+                                className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === '' ? 'text-[#8B8B8B]' : 'text-[#353535]'
+                                    }`}
+                            >
+                                {selectedShowEntries === '' ? (
+                                    SHOW_ENTRIES_PLACEHOLDER
+                                ) : (
+                                    <>
+                                        <span className="text-[14px]">Show:</span>{' '}
+                                        <span className="font-semibold">{selectedRange.label}</span>
+                                    </>
+                                )}
+                            </span>
+                            <img
+                                src={ArrowDown}
+                                alt=""
+                                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''
+                                    } ${selectedShowEntries === '' ? 'opacity-60 grayscale' : 'opacity-90'}`}
+                                aria-hidden
+                            />
+                        </button>
+                        {showEntriesOpen && (
+                            <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                                <div
+                                    ref={showEntriesDropdownContentRef}
+                                    className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                                >
+                                    <button
+                                        type="button"
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setSelectedShowEntries('');
+                                            setShowEntriesOpen(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                    >
+                                        {SHOW_ENTRIES_PLACEHOLDER}
+                                    </button>
+                                    {showEntriesOptions.map((opt) => (
+                                        <button
+                                            key={`${opt.value}-${opt.start}-${opt.end}`}
+                                            type="button"
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setSelectedShowEntries(opt.value);
+                                                setShowEntriesOpen(false);
+                                            }}
+                                            className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${selectedShowEntries === opt.value
+                                                ? 'text-[#353535] bg-[#F2F2F2]'
+                                                : 'text-[#8B8B8B] bg-transparent'
+                                                }`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    </div>
+                    {/* Download Button (kept on next line) */}
+                    <button
+                        onClick={handleDownload}
+                        disabled={filteredList.length === 0}
+                        className="order-1 self-end flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                        <svg
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19"
+                                stroke="white"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            />
+                        </svg>
+                        <span className="text-[16px]">Download</span>
+                    </button>
                 </div>
-
-                {/* Unified Download Button */}
-                <button
-                    onClick={handleDownload}
-                    disabled={filteredList.length === 0}
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
-                >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <span className="text-[14px]">Download</span>
-                </button>
             </div>
-        </div>
+            
 
             {/* Table Section - scrollable when many rows */}
             <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
@@ -479,15 +606,15 @@ export default function TrackerBL() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {filteredList.length === 0 ? (
+                            {displayedList.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white">
                                         No records found
                                     </td>
                                 </tr>
                             ) : (
-                                filteredList.map((entry, index) => {
-                                    const slNo = (index + 1).toString().padStart(2, '0');
+                                displayedList.map((entry, index) => {
+                                    const slNo = (tablePageStartIndex + index + 1).toString().padStart(2, '0');
                                     const formattedDate = entry.date ? entry.date.replace(/-/g, '/') : '-';
                                     const timeIn = formatTime(entry.time_in);
                                     const timeOut = formatTime(entry.time_out || null);
@@ -518,8 +645,48 @@ export default function TrackerBL() {
                     </table>
                 </div>
             </div>
+            {listInRange.length > 0 && (
+                <div className="w-full flex items-center justify-end py-2 pr-4">
+                    <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+                        <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
+                        <button
+                            type="button"
+                            onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={safeTableCurrentPage === 1}
+                            className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
+                                ? 'text-[#9CA3AF] opacity-50 cursor-not-allowed'
+                                : 'text-[#353535]'
+                                }`}
+                            aria-label="Previous page"
+                        >
+                            <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
+                            <span className="inline-flex items-center">Prev</span>
+                        </button>
+                        <button
+                            type="button"
+                            className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+                            aria-current="page"
+                        >
+                            {tablePageRangeLabel}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))}
+                            disabled={safeTableCurrentPage >= tableTotalPages}
+                            className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
+                                ? 'text-[#9CA3AF] opacity-40 cursor-not-allowed'
+                                : 'text-[#353535]'
+                                }`}
+                            aria-label="Next page"
+                        >
+                            <span className="inline-flex items-center">Next</span>
+                            <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
+                        </button>
+                    </div>
+                </div>
+            )}
 
-            {/* Pagination removed */}
+            {/* Pagination */}
 
             <style>{`
         .smooth-scroll {

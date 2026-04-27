@@ -29,6 +29,8 @@ interface Task {
   checklist?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
+  assigned_to?: number;
+  uploaderid?: number;
   Approval?: string;
   modules_name?: string;
   category?: string;
@@ -302,9 +304,10 @@ export default function MytaskViewBM() {
 
   const isAssigner = task?.uploaderid != null && String(task.uploaderid) === String(user?.id);
   const canReview =
+    task != null &&
     (statusDisplay === "completed" || (task as any).review_required) &&
-    task?.assigned_to != null &&
-    task?.uploaderid != null &&
+    task.assigned_to != null &&
+    task.uploaderid != null &&
     isAssigner &&
     String(task.assigned_to) !== String(task.uploaderid) &&
     task.Approval?.toLowerCase() !== "approved";

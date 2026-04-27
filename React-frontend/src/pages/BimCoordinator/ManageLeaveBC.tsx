@@ -132,7 +132,7 @@ const showEntriesOptions: {
   { value: "all", label: "All", start: 0, end: null },
 ];
 
-const PER_PAGE = 10;
+const PER_PAGE = 5;
 const PAGINATION_VISIBLE = 4;
 
 export default function ManageLeaveBC() {
@@ -532,6 +532,9 @@ export default function ManageLeaveBC() {
     setPaginationWindowStart((s) =>
       Math.min(s + PAGINATION_VISIBLE, maxWindowStart),
     );
+  const tablePageRangeStart = listInRange.length === 0 ? 0 : rangeStart + (safePage - 1) * PER_PAGE + 1;
+  const tablePageRangeEnd = listInRange.length === 0 ? 0 : Math.min(rangeStart + safePage * PER_PAGE, rangeEnd);
+  const tablePageRangeLabel = listInRange.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
   void [
     activePage,
     visiblePageRanges,
@@ -941,6 +944,46 @@ export default function ManageLeaveBC() {
               </table>
             </div>
           </div>
+          {listInRange.length > 0 && (
+            <div className="w-full flex items-center justify-end py-2 pr-4">
+              <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+                <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage === 1}
+                  className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safePage === 1
+                    ? "text-[#9CA3AF] opacity-50 cursor-not-allowed"
+                    : "text-[#353535]"
+                    }`}
+                  aria-label="Previous page"
+                >
+                  <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
+                  <span className="inline-flex items-center">Prev</span>
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+                  aria-current="page"
+                >
+                  {tablePageRangeLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                  className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safePage >= totalPages
+                    ? "text-[#9CA3AF] opacity-40 cursor-not-allowed"
+                    : "text-[#353535]"
+                    }`}
+                  aria-label="Next page"
+                >
+                  <span className="inline-flex items-center">Next</span>
+                  <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -959,21 +1002,31 @@ export default function ManageLeaveBC() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative flex items-center justify-center px-6 py-5 ">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewModalOpen(false);
-                    setSelectedLeave(null);
-                  }}
-                  className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] hover:bg-[#E8E8E8] transition-colors"
-                  aria-label="Close"
-                >
-                  <img
-                    src={closeIcon}
-                    alt=""
-                    className="w-5 h-5 object-contain"
-                  />
-              </button>
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 group inline-flex shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewModalOpen(false);
+                      setSelectedLeave(null);
+                    }}
+                    className="cursor-pointer p-2 rounded-md bg-[#F2F2F2] hover:bg-[#E8E8E8] transition-colors"
+                    aria-label="Close"
+                  >
+                    <img
+                      src={closeIcon}
+                      alt=""
+                      className="w-5 h-5 object-contain"
+                    />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <h3 className="text-[24px] font-medium text-[#000000]">
                   Leave Details
                 </h3>
@@ -1072,14 +1125,24 @@ export default function ManageLeaveBC() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative flex items-center justify-center px-6 py-5 ">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="hover:cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] transition-colors"
-                  aria-label="Close"
-                >
-                  <img src={closeIcon} alt="" className="w-5 h-5 object-contain" />
-                </button>
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 group inline-flex shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="hover:cursor-pointer p-2 rounded-md bg-[#F2F2F2] transition-colors"
+                    aria-label="Close"
+                  >
+                    <img src={closeIcon} alt="" className="w-5 h-5 object-contain" />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <h3 className="text-[24px] font-semibold text-[#000000]">
                   Apply Leave
                 </h3>
@@ -1349,14 +1412,24 @@ export default function ManageLeaveBC() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative flex items-center justify-center px-6 py-5">
-                <button
-                  type="button"
-                  onClick={handleCloseEditModal}
-                  className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] transition-colors"
-                  aria-label="Close"
-                >
-                  <img src={closeIcon} alt="" className="w-5 h-5 object-contain" />
-                </button>
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 group inline-flex shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleCloseEditModal}
+                    className="cursor-pointer p-2 rounded-md bg-[#F2F2F2] transition-colors"
+                    aria-label="Close"
+                  >
+                    <img src={closeIcon} alt="" className="w-5 h-5 object-contain" />
+                  </button>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                        Close
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <h3 className="text-[24px] font-medium text-[#000000]">Edit Leave</h3>
             </div>
               <form onSubmit={handleSubmitEdit} className="px-6 py-6 space-y-4">
@@ -1613,26 +1686,36 @@ export default function ManageLeaveBC() {
       {deleteLeave !== null && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
-            <button
-              type="button"
-              onClick={() => setDeleteLeave(null)}
-              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-              title="Close"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <div className="absolute left-4 top-4 group inline-flex shrink-0">
+              <button
+                type="button"
+                onClick={() => setDeleteLeave(null)}
+                className="p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+                title="Close"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Close
+                  </span>
+                </div>
+              </div>
+            </div>
             <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
               Delete Leave
             </h3>
@@ -1663,26 +1746,36 @@ export default function ManageLeaveBC() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
             <div className="w-full flex items-center justify-between px-4 py-3 relative">
-              <button
-                type="button"
-                onClick={() => setApproveLeave(null)}
-                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
-                aria-label="Close"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <div className="relative group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setApproveLeave(null)}
+                  className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
+                  aria-label="Close"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="absolute left-1/2 -translate-x-1/2 text-[18px] font-gantari font-semibold text-[#020202] whitespace-nowrap">
                 Approve leave
               </h3>
@@ -1715,26 +1808,36 @@ export default function ManageLeaveBC() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
             <div className="w-full flex items-center justify-between px-4 py-3 relative">
-              <button
-                type="button"
-                onClick={() => setRejectLeave(null)}
-                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
-                aria-label="Close"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <div className="relative group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setRejectLeave(null)}
+                  className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
+                  aria-label="Close"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
+              </div>
               <h3 className="absolute left-1/2 -translate-x-1/2 text-[18px] font-gantari font-semibold text-[#020202] whitespace-nowrap">
                 Reject leave
               </h3>

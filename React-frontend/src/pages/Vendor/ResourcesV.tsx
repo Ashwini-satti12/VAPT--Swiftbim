@@ -28,6 +28,7 @@ interface Employee {
   email: string;
   user_role?: string;
   active?: string;
+  status?: string;
   empid?: string;
   phone_number?: string;
   department?: string;
@@ -373,6 +374,7 @@ export default function ResourcesV() {
                 String(r.active ?? "active").toLowerCase() === "inactive"
                   ? "inactive"
                   : "active",
+              status: r.status || "Offline",
               department: "Vendor",
               user_type: "vendor",
               profile_picture: r.profile_picture,
@@ -445,10 +447,16 @@ export default function ResourcesV() {
   }, [editParam, list]);
 
   const filteredList = list.filter((emp: Employee) => {
-    if (statusFilter === "All") return true;
-    const currentStatus = (emp.active || "").toLowerCase();
-    if (statusFilter === "Active") return currentStatus === "active";
-    if (statusFilter === "Inactive") return currentStatus !== "active";
+    if (statusFilter === "All" || !statusFilter) return true;
+    const currentActive = (emp.active || "").toLowerCase();
+    const currentStatus = emp.status || "Offline";
+
+    if (statusFilter === "Active") return currentActive === "active";
+    if (statusFilter === "Inactive") return currentActive !== "active";
+    if (statusFilter === "Online")
+      return currentActive === "active" && currentStatus === "Online";
+    if (statusFilter === "Offline")
+      return currentActive === "active" && currentStatus === "Offline";
     return true;
   });
 
@@ -703,27 +711,13 @@ export default function ResourcesV() {
             </div>
             <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
               <CustomDropdown
-                options={["All", "Online", "Offline"]}
-                value={
-                  statusFilter === "All"
-                    ? ""
-                    : statusFilter === "Active"
-                      ? "Online"
-                      : statusFilter === "Inactive"
-                        ? "Offline"
-                        : ""
-                }
+                options={["All", "Active", "Inactive", "Online", "Offline"]}
+                value={statusFilter}
                 onChange={(val) => {
-                  const mapped =
-                    val === "Online"
-                      ? "Active"
-                      : val === "Offline"
-                        ? "Inactive"
-                        : "All";
-                  setStatusFilter(mapped);
+                  setStatusFilter(val);
                   setCurrentPage(1);
                 }}
-                placeholder="Type"
+                placeholder="Status"
                 className="w-full sm:w-[130px]"
                 styleType="header"
                 alignMenu="right"
@@ -755,15 +749,37 @@ export default function ResourcesV() {
 
                     <div className="absolute top-3 right-3 z-10">
                       <div
-                        className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === "active" ? "bg-[#E0FFE8] border-emerald-100" : "bg-[#FFEEEE] border-red-100"}`}
+                        className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${
+                          emp.active !== "active"
+                            ? "bg-[#FFEEEE] border-red-100"
+                            : emp.status === "Online"
+                              ? "bg-[#E0FFE8] border-emerald-100"
+                              : "bg-[#FFEEEE] border-red-100"
+                        }`}
                       >
                         <span
-                          className={`w-2 h-2 rounded-full ${emp.active === "active" ? "bg-[#166534]" : "bg-[#E00100]"}`}
+                          className={`w-2 h-2 rounded-full ${
+                            emp.active !== "active"
+                              ? "bg-[#E00100]"
+                              : emp.status === "Online"
+                                ? "bg-[#166534]"
+                                : "bg-[#E00100]"
+                          }`}
                         />
                         <span
-                          className={`text-[14px] font-semibold font-gantari ${emp.active === "active" ? "text-[#008F22]" : "text-[#E00100]"}`}
+                          className={`text-[14px] font-semibold font-gantari ${
+                            emp.active !== "active"
+                              ? "text-[#E00100]"
+                              : emp.status === "Online"
+                                ? "text-[#008F22]"
+                                : "text-[#E00100]"
+                          }`}
                         >
-                          {emp.active === "active" ? "Active" : "Inactive"}
+                          {emp.active !== "active"
+                            ? "Inactive"
+                            : emp.status === "Online"
+                              ? "Online"
+                              : "Offline"}
                         </span>
                       </div>
                     </div>
@@ -948,21 +964,32 @@ export default function ResourcesV() {
                       </td>
                       <td className="px-3 py-5 text-center whitespace-nowrap align-middle lg:min-w-[200px]">
                         <div className="flex items-center justify-center gap-3">
-                          <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                            {emp.profile_picture ? (
-                              <img
-                                src={getGlobalProfileUrl(
-                                  emp.id,
-                                  emp.profile_picture,
-                                  "vendor",
-                                )}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[14px] font-medium">
-                                ?
-                              </div>
-                            )}
+                          <div className="relative shrink-0">
+                            <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200">
+                              {emp.profile_picture ? (
+                                <img
+                                  src={getGlobalProfileUrl(
+                                    emp.id,
+                                    emp.profile_picture,
+                                    "vendor",
+                                  )}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-[14px] font-medium">
+                                  ?
+                                </div>
+                              )}
+                            </div>
+                            <span
+                              className={`absolute top-0 left-0 w-2.5 h-2.5 border-2 border-white rounded-full ${
+                                emp.active !== "active"
+                                  ? "bg-[#ef4444]"
+                                  : emp.status === "Online"
+                                    ? "bg-[#22c55e]"
+                                    : "bg-[#ef4444]"
+                              }`}
+                            ></span>
                           </div>
                           <span className="text-[14px] font-medium text-[#353535]">
                             {toCamelCase(emp.full_name)}
@@ -1051,10 +1078,20 @@ export default function ResourcesV() {
                   </div>
                 </div>
                 <span
-                  className={`px-4 py-1 rounded-full text-[12px] font-medium shrink-0 sm:hidden ${selectedEmployee.active === "active" ? "bg-[#E0FFE8] text-[#008F22]" : "bg-[#FFEEEE] text-[#E00100]"}`}
+                  className={`px-4 py-1 rounded-full text-[12px] font-medium shrink-0 sm:hidden ${
+                    selectedEmployee.active !== "active"
+                      ? "bg-[#FFEEEE] text-[#E00100]"
+                      : selectedEmployee.status === "Online"
+                        ? "bg-[#E0FFE8] text-[#008F22]"
+                        : "bg-[#FFEEEE] text-[#E00100]"
+                  }`}
                 >
                   ●{" "}
-                  {selectedEmployee.active === "active" ? "Active" : "Inactive"}
+                  {selectedEmployee.active !== "active"
+                    ? "Inactive"
+                    : selectedEmployee.status === "Online"
+                      ? "Online"
+                      : "Offline"}
                 </span>
               </div>
 
@@ -1068,9 +1105,20 @@ export default function ResourcesV() {
               </div>
 
               <span
-                className={`hidden sm:inline px-4 py-1 rounded-full text-[12px] font-medium shrink-0 mt-2 ${selectedEmployee.active === "active" ? "bg-[#E0FFE8] text-[#008F22]" : "bg-[#FFEEEE] text-[#E00100]"}`}
+                className={`hidden sm:inline px-4 py-1 rounded-full text-[12px] font-medium shrink-0 mt-2 ${
+                  selectedEmployee.active !== "active"
+                    ? "bg-[#FFEEEE] text-[#E00100]"
+                    : selectedEmployee.status === "Online"
+                      ? "bg-[#E0FFE8] text-[#008F22]"
+                      : "bg-[#FFEEEE] text-[#E00100]"
+                }`}
               >
-                ● {selectedEmployee.active === "active" ? "Active" : "Inactive"}
+                ●{" "}
+                {selectedEmployee.active !== "active"
+                  ? "Inactive"
+                  : selectedEmployee.status === "Online"
+                    ? "Online"
+                    : "Offline"}
               </span>
             </div>
 

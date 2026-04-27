@@ -310,7 +310,9 @@ function App() {
             <Route path="bl/projects" element={<ProjectsBL />} />
             <Route path="bl/mytasks" element={<MytaskBL />} />
             <Route path="bl/mytasks/add" element={<AddTaskBL />} />
+            <Route path="bl/mytasks/edit/:id" element={<AddTaskBL />} />
             <Route path="bl/teamtasks/add" element={<AddTaskBL />} />
+            <Route path="bl/teamtasks/edit/:id" element={<AddTaskBL />} />
             <Route path="bl/teamtasks" element={<TeamtaskBL />} />
             <Route path="bl/createteam" element={<CreateteamBL />} />
             <Route path="bl/tracker" element={<TrackerBL />} />

@@ -62,21 +62,22 @@ export default function TimesheetPM() {
   const showEntriesOptions: {
     value: string;
     label: string;
-    limit: number | null;
+    start: number;
+    end: number | null;
   }[] = [
-    { value: "1-50", label: "1-50", limit: 50 },
-    { value: "51-100", label: "51-100", limit: 100 },
-    { value: "101-150", label: "101-150", limit: 150 },
-    { value: "151-200", label: "151-200", limit: 200 },
-    { value: "201-250", label: "201-250", limit: 250 },
-    { value: "251-300", label: "251-300", limit: 300 },
-    { value: "all", label: "All", limit: null },
+    { value: "1-50", label: "1-50", start: 0, end: 50 },
+    { value: "51-100", label: "51-100", start: 50, end: 100 },
+    { value: "101-150", label: "101-150", start: 100, end: 150 },
+    { value: "151-200", label: "151-200", start: 150, end: 200 },
+    { value: "201-250", label: "201-250", start: 200, end: 250 },
+    { value: "251-300", label: "251-300", start: 250, end: 300 },
+    { value: "all", label: "All", start: 0, end: null },
   ];
   const [selectedShowEntries, setSelectedShowEntries] = useState("");
+  const [tableCurrentPage, setTableCurrentPage] = useState(1);
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
   const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
-  const [_paginationWindowStart, setPaginationWindowStart] = useState(1);
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -311,10 +312,6 @@ export default function TimesheetPM() {
     }
   }, [showEntriesOpen]);
 
-  useEffect(() => {
-    setPaginationWindowStart(1);
-  }, [selectedShowEntries]);
-
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
 
   const filteredList = useMemo(() => {
@@ -348,14 +345,24 @@ export default function TimesheetPM() {
     return base;
   }, [list, searchQuery, startDate, endDate]);
 
+  const effectiveShowEntryValue = selectedShowEntries || showEntriesOptions[0].value;
   const selectedRangeOpt =
-    showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? null;
-  const displayedList =
-    selectedRangeOpt === null || selectedRangeOpt.limit === null
-      ? filteredList
-      : filteredList.slice(0, selectedRangeOpt.limit);
+    showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ?? showEntriesOptions[0];
+  const rangeStart = selectedRangeOpt.start;
+  const rangeEnd = selectedRangeOpt.end === null ? filteredList.length : Math.min(selectedRangeOpt.end, filteredList.length);
+  const listInRange = filteredList.slice(rangeStart, rangeEnd);
+  const tableRowsPerPage = 5;
+  const tableTotalPages = Math.max(1, Math.ceil(listInRange.length / tableRowsPerPage));
+  const safeTableCurrentPage = Math.min(tableCurrentPage, tableTotalPages);
+  const tablePageStartIndex = (safeTableCurrentPage - 1) * tableRowsPerPage;
+  const displayedList = listInRange.slice(tablePageStartIndex, tablePageStartIndex + tableRowsPerPage);
+  const tablePageRangeStart = listInRange.length === 0 ? 0 : rangeStart + tablePageStartIndex + 1;
+  const tablePageRangeEnd = listInRange.length === 0 ? 0 : Math.min(rangeStart + tablePageStartIndex + tableRowsPerPage, rangeEnd);
+  const tablePageRangeLabel = listInRange.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
 
-  void setPaginationWindowStart;
+  useEffect(() => {
+    setTableCurrentPage(1);
+  }, [selectedShowEntries, employee, team, startDate, endDate, searchQuery]);
 
   const handleDownload = () => {
     if (filteredList.length === 0) return;
@@ -727,6 +734,7 @@ export default function TimesheetPM() {
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
           </div>
         ) : (
+          <>
           <div
             className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1"
 
@@ -773,7 +781,7 @@ export default function TimesheetPM() {
                   </tr>
                 ) : (
                   displayedList.map((row, index) => {
-                    const slNo = (index + 1).toString().padStart(2, "0");
+                    const slNo = (rangeStart + tablePageStartIndex + index + 1).toString().padStart(2, "0");
                     const startDate = formatDate(pickReportStart(row));
                     const endDate = formatDate(pickReportEnd(row));
                     const duration = calculateDuration(row);
@@ -823,6 +831,47 @@ export default function TimesheetPM() {
               </tbody>
             </table>
           </div>
+          {listInRange.length > 0 && (
+            <div className="w-full flex items-center justify-end py-2 pr-4">
+              <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+                <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
+                <button
+                  type="button"
+                  onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={safeTableCurrentPage === 1}
+                  className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
+                    ? 'text-[#9CA3AF] opacity-50 cursor-not-allowed'
+                    : 'text-[#353535]'
+                    }`}
+                  aria-label="Previous page"
+                >
+                  <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
+                  <span className="inline-flex items-center">Prev</span>
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+                  aria-current="page"
+                >
+                  {tablePageRangeLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))}
+                  disabled={safeTableCurrentPage >= tableTotalPages}
+                  className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
+                    ? 'text-[#9CA3AF] opacity-40 cursor-not-allowed'
+                    : 'text-[#353535]'
+                    }`}
+                  aria-label="Next page"
+                >
+                  <span className="inline-flex items-center">Next</span>
+                  <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
+                </button>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
     </div>

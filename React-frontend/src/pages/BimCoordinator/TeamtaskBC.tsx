@@ -110,7 +110,7 @@ export default function TeamtaskBC() {
 
         return [...baseOptions, ...filtered.map(e => e.full_name)];
     }, [employees, projects, selectedProject]);
-    const projectOptions = ["Select Projects", ...projects.map(p => p.project_name)];
+    const projectOptions = ["Select Projects", ...projects.filter(p => p.source !== "Outsource").map(p => p.project_name)];
 
     const handleMoveTask = (
         taskId: number,
@@ -135,18 +135,18 @@ export default function TeamtaskBC() {
 
         // Visual update immediately
         setList((prev) =>
-          prev.map((t) =>
-            t.id === taskId
-              ? {
-                  ...t,
-                  status: label,
-                  Approval:
-                    newStatus === "completed" && String(t.uploaderid) === String(user?.id)
-                      ? "Approved"
-                      : t.Approval,
-                }
-              : t,
-          ),
+            prev.map((t) =>
+                t.id === taskId
+                    ? {
+                        ...t,
+                        status: label,
+                        Approval:
+                            newStatus === "completed" && String(t.uploaderid) === String(user?.id)
+                                ? "Approved"
+                                : t.Approval,
+                    }
+                    : t,
+            ),
         );
         setLocalTasks((prev) => {
             const idx = prev.findIndex((t) => t.id === taskId);
@@ -197,7 +197,8 @@ export default function TeamtaskBC() {
     };
 
     const openViewTask = (task: Task) => {
-        navigate("/bc/mytasks/view", { state: { task } });
+        const sourceQuery = task.source === "Outsource" ? "?source=Outsource" : "";
+        navigate(`/bc/mytasks/view/${task.id}${sourceQuery}`, { state: { task, from: "teamtasks" } });
     };
 
     const dropdownsContainerRef = useRef<HTMLDivElement>(null);

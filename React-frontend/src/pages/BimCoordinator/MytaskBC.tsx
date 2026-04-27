@@ -632,27 +632,23 @@ export function TaskCard({
   onApproveTask?: (task: Task) => void;
 }) {
   const { user } = useAuth();
+  const isDelegated =
+    task.uploaderid != null &&
+    task.assigned_to != null &&
+    String(task.uploaderid) !== String(task.assigned_to);
+  const isReviewTask = isDelegated && String(task.uploaderid) === String(user?.id);
+  const isUnderReview = isReviewTask && task.Approval?.toLowerCase() !== "approved";
+  const isReviewed = isReviewTask && task.Approval?.toLowerCase() === "approved";
   const progress =
-    (status === "completed" || (task as any).review_required) &&
-      task.assigned_to != null &&
-      task.uploaderid != null &&
-      String(task.assigned_to) !== String(task.uploaderid)
-      ? task.Approval?.toLowerCase() === "approved"
-        ? 100
-        : 95
-      : status === "todo"
-        ? 0
-        : status === "in_progress"
-          ? 50
-          : task.progress !== undefined
+    status === "todo"
+      ? 0
+      : status === "in_progress"
+        ? 50
+        : isReviewed
+          ? 100
+          : typeof task.progress === "number"
             ? task.progress
             : 100;
-  const isUnderReview =
-    (status === "completed" || (task as any).review_required) &&
-    task.assigned_to != null &&
-    task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid) &&
-    task.Approval?.toLowerCase() !== "approved";
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -780,26 +776,7 @@ export function TaskCard({
                   </button>
                 </>
               )}
-              {isUnderReview && String(task.uploaderid) === String(user?.id) && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onApproveTask?.(task);
-                  }}
-                >
-                  <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 transition-colors group-hover:bg-green-600 group-hover:text-white">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-green-600">
-                    Approve
-                  </span>
-                </button>
-              )}
+
             </div>
           )}
         </div>
@@ -825,7 +802,11 @@ export function TaskCard({
       <div className="flex items-center justify-between gap-2 mb-1 text-[12px] text-[#8B8B8B]">
         <span>Progress</span>
         <span className="font-medium">
-          {isUnderReview ? "95% (Under Review)" : `${progress}%`}
+          {isUnderReview
+            ? (status === "in_progress" ? `${progress}% (Under Review)` : `${progress}% (Under Review)`)
+            : isReviewed
+              ? `${progress}% (Reviewed)`
+              : `${progress}%`}
         </span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-4">
@@ -951,6 +932,7 @@ const PERIOD_OPTIONS = [
 export default function MytaskBC() {
   const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
+  const { user } = useAuth();
   // `/bc/mytasks` only — never use team task API here.
   const isTeam = false;
   const statusFilter =
@@ -1001,7 +983,7 @@ export default function MytaskBC() {
   }, [employees, projects, selectedProject]);
   const projectOptions = [
     "Select Projects",
-    ...projects.map((p) => p.project_name),
+    ...projects.filter((p) => p.source !== "Outsource").map((p) => p.project_name),
   ];
 
   const statusToLabel = (
