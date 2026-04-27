@@ -481,12 +481,13 @@ export default function TrackerTD() {
     return (
         <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 flex-shrink-0 px-2">
                 <div className="flex items-center justify-between w-full md:w-auto">
                     <h2 className="text-2xl font-semibold text-[#000000]">Employee Tracking</h2>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-col items-stretch md:items-end gap-3 w-full md:w-auto">
+                    <div className="order-2 flex flex-wrap items-center justify-end gap-3">
                     {/* Employee Filter */}
                     <div className="relative min-w-[190px]" ref={employeeDropdownRef}>
                         <button
@@ -547,16 +548,16 @@ export default function TrackerTD() {
                     </div>
 
                     {/* Time picker (today only, date hidden) */}
-                    <div className="relative">
+                    <div className="relative min-w-[170px]">
                         <button
                             type="button"
                             onClick={() => {
                                 timeInputRef.current?.showPicker?.();
                                 timeInputRef.current?.focus();
                             }}
-                            className="flex items-center gap-6 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 group"
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 group"
                         >
-                            <span className={`text-sm ${selectedTime ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
+                            <span className={`text-[14px] font-semibold ${selectedTime ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
                                 {formatTime12(selectedTime)}
                             </span>
                             <svg
@@ -584,16 +585,16 @@ export default function TrackerTD() {
                     </div>
 
                     {/* Status Custom Dropdown */}
-                    <div className="relative" ref={statusDropdownRef}>
+                    <div className="relative min-w-[120px]" ref={statusDropdownRef}>
                         <button
                             type="button"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setStatusOpen(o => !o);
                             }}
-                            className="flex items-center justify-between gap-6 px-2 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0"
                         >
-                            <span className={`min-w-0 flex-1 truncate text-left text-sm ${selectedStatus ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
+                            <span className={`text-[14px] font-semibold ${selectedStatus ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
                                 {selectedStatus || 'Status'}
                             </span>
                             <img
@@ -627,11 +628,11 @@ export default function TrackerTD() {
                         )}
                     </div>
 
-                    <div className="relative min-w-[140px] max-w-[200px] w-[150px]" ref={showEntriesDropdownRef}>
+                    <div className="relative w-[140px]" ref={showEntriesDropdownRef}>
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
-                            className="w-full flex items-center justify-between  px-2 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                         >
                             <span className={`min-w-0 flex-1 truncate overflow-hidden text-left text-sm ${selectedShowEntries === '' ? 'text-[#8B8B8B]' : 'text-[#353535]'}`}>
                                 {selectedShowEntries === '' ? (
@@ -683,11 +684,12 @@ export default function TrackerTD() {
                         )}
                     </div>
 
+                    </div>
                     {/* Download Button */}
                     <button
                         onClick={handleDownload}
                         disabled={filteredList.length === 0}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        className="order-1 self-end flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
