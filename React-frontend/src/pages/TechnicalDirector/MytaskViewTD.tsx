@@ -30,7 +30,6 @@ interface Task {
   uploader_full_name?: string;
   Approval?: string;
   modules_name?: string;
-  category?: string;
   Actual_start_time?: string;
   perferstart_time?: string;
   perferend_time?: string;
@@ -139,7 +138,7 @@ export default function MytaskViewTD() {
   const location = useLocation();
   const state = location.state as { task?: Task; from?: string } | null;
   const [task, setTask] = useState<Task | undefined>(state?.task);
-  const fromTeamTask = state?.from === "teamtask";
+  const fromTeamTask = state?.from === "teamtask" || state?.from === "teamtasks";
   const backToUrl = fromTeamTask ? "/td/teamtasks" : "/td/mytasks";
   const [loading, setLoading] = useState(!task);
 
@@ -172,8 +171,8 @@ export default function MytaskViewTD() {
     if (taskId) {
       const searchParams = new URLSearchParams(location.search);
       const isOutsource = searchParams.get("source") === "Outsource";
-      const endpoint = isOutsource 
-        ? `/api/vendors/vendor-tasks/${taskId}` 
+      const endpoint = isOutsource
+        ? `/api/vendors/vendor-tasks/${taskId}`
         : `/api/tasks/${taskId}`;
 
       api
@@ -225,19 +224,19 @@ export default function MytaskViewTD() {
       setTask((prev) =>
         prev
           ? {
-              ...prev,
-              status:
-                newStatus === "completed"
-                  ? "Completed"
-                  : newStatus === "todo"
-                    ? "To Do"
-                    : "InProgress",
-              // Clear Approval when manually changing status so useEffect doesn't re-lock to "approved"
-              Approval: newStatus === "completed" && prev.uploaderid != null && prev.assigned_to != null &&
-                String(prev.uploaderid) === String(prev.assigned_to)
-                  ? "Approved"
-                  : undefined,
-            }
+            ...prev,
+            status:
+              newStatus === "completed"
+                ? "Completed"
+                : newStatus === "todo"
+                  ? "To Do"
+                  : "InProgress",
+            // Clear Approval when manually changing status so useEffect doesn't re-lock to "approved"
+            Approval: newStatus === "completed" && prev.uploaderid != null && prev.assigned_to != null &&
+              String(prev.uploaderid) === String(prev.assigned_to)
+              ? "Approved"
+              : undefined,
+          }
           : prev,
       );
       toast.success(`Status Updated Successfully`);
@@ -491,27 +490,27 @@ export default function MytaskViewTD() {
                       opt.value,
                     );
                     return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      role="option"
-                      aria-disabled={disabled}
-                      disabled={disabled}
-                      aria-selected={statusDisplay === opt.value}
-                      onClick={() => handleStatusUpdate(opt.value)}
-                      className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors ${disabled
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="option"
+                        aria-disabled={disabled}
+                        disabled={disabled}
+                        aria-selected={statusDisplay === opt.value}
+                        onClick={() => handleStatusUpdate(opt.value)}
+                        className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors ${disabled
                           ? "text-slate-300 cursor-not-allowed opacity-60"
                           : "cursor-pointer text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
-                        } ${statusDisplay === opt.value && !disabled
-                          ? "bg-[#F2F2F2] text-[#353535] font-medium"
-                          : ""
-                        }`}
-                    >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`}
-                      />
-                      {opt.label}
-                    </button>
+                          } ${statusDisplay === opt.value && !disabled
+                            ? "bg-[#F2F2F2] text-[#353535] font-medium"
+                            : ""
+                          }`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`}
+                        />
+                        {opt.label}
+                      </button>
                     );
                   })}
                 </div>
@@ -521,7 +520,7 @@ export default function MytaskViewTD() {
           {/* Task Details Card */}
           <div className="w-full border border-slate-200 rounded-xl p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 text-[14px]">
-              
+
               {/* Row 1: Project Name | Modules Name */}
               <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 w-32">Project Name</span>
@@ -536,14 +535,6 @@ export default function MytaskViewTD() {
                 </span>
               </div>
 
-              {/* Row 2: Category | Assigned By */}
-              <div className="flex items-start gap-2">
-                <span className="text-[#020202] font-medium shrink-0 w-32">Category</span>
-                <span className="text-[#020202] shrink-0">:</span>
-                <span className="text-[#616161]">
-                  {String(task.category || task.type || "—")}
-                </span>
-              </div>
               <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 w-32">Assigned By</span>
                 <span className="text-[#020202] shrink-0">:</span>
@@ -681,17 +672,17 @@ export default function MytaskViewTD() {
             </div>
           </div>
 
-          {/* Review Remark — only show for delegated tasks (uploader != assignee) */}
-          {task.uploaderid != null &&
+          {/* Review Remark — only show for delegated tasks (uploader != assignee), hidden in team tasks */}
+          {!fromTeamTask && task.uploaderid != null &&
             task.assigned_to != null &&
             String(task.uploaderid) !== String(task.assigned_to) && (
-            <div className="mt-6 border border-slate-200 rounded-xl p-6">
-              <h4 className="text-black text-md mb-2">Review Remark</h4>
-              <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-                {task.review_remark || "No review remark provided."}
+              <div className="mt-6 border border-slate-200 rounded-xl p-6">
+                <h4 className="text-black text-md mb-2">Review Remark</h4>
+                <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+                  {task.review_remark || "No review remark provided."}
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </div>
     </div>

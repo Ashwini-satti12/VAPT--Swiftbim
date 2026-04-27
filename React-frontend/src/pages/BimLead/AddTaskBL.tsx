@@ -152,11 +152,14 @@ export default function AddTaskBL() {
   const [serverAttachmentDeleting, setServerAttachmentDeleting] =
     useState(false);
 
+  const fromTeamTasks =
+    location.state?.from === "teamtask" || location.state?.from === "teamtasks";
   // Only show Review Remark in EDIT mode for delegated tasks (not during Add New Task)
   const showReviewRemarkField =
     !!editingTask &&
     addTaskForm.assignTo &&
-    addTaskForm.assignTo !== user?.full_name;
+    addTaskForm.assignTo !== user?.full_name &&
+    !fromTeamTasks;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formProjectTriggerRef = useRef<HTMLElement | null>(null);
@@ -754,7 +757,6 @@ export default function AddTaskBL() {
     }
   };
 
-  const fromTeamTasks = location.state?.from === "teamtasks";
   const goBack = () =>
     navigate(fromTeamTasks ? "/bl/teamtasks" : "/bl/mytasks");
 

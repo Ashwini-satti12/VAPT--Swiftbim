@@ -269,8 +269,8 @@ function TaskCard({
     task.assigned_to != null &&
     String(task.uploaderid) !== String(task.assigned_to);
   const isReviewTask = isDelegated;
-  // Show (Under Review) for ALL statuses of delegated tasks not yet approved
-  const isUnderReview = isReviewTask && task.Approval?.toLowerCase() !== "approved";
+  // Show (Under Review) for completed delegated tasks not yet approved
+  const isUnderReview = isReviewTask && status === "completed" && task.Approval?.toLowerCase() !== "approved";
   // Show (Reviewed) for ALL statuses of delegated tasks that are approved
   const isReviewed = isReviewTask && task.Approval?.toLowerCase() === "approved";
   const progress =
@@ -449,11 +449,13 @@ function TaskCard({
       <div className="flex items-center justify-between gap-2 mb-1 text-[12px] text-[#8B8B8B]">
         <span>Progress</span>
         <span className="font-medium">
-          {isUnderReview
+          {isReviewTask && !isReviewed
             ? `${progress}% (Under Review)`
             : isReviewed
-              ? `${progress}% (Reviewed)`
-              : `${progress}%`}
+              ? `100% (Reviewed)`
+              : isUnderReview
+                ? `95% (Under Review)`
+                : `${progress}%`}
         </span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">

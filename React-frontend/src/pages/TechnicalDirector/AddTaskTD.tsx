@@ -310,7 +310,12 @@ export default function AddTaskTD() {
         statusRaw === "completed" || statusRaw === "complete" || statusRaw === "done";
     const reviewRequired = Boolean((editingTask as any)?.review_required);
     const isDelegated = addTaskForm.assignTo && addTaskForm.assignTo !== user?.full_name;
-    const showReviewRemarkField = editingTaskId != null && isDelegated;
+    const fromState = String(location.state?.from || "").toLowerCase();
+    const fromTeamTasks =
+        fromState === "teamtasks" ||
+        fromState === "teamtask" ||
+        location.pathname.includes("/td/teamtasks");
+    const showReviewRemarkField = editingTaskId != null && isDelegated && !fromTeamTasks;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -515,10 +520,6 @@ export default function AddTaskTD() {
         }
     };
 
-    const fromState = String(location.state?.from || "").toLowerCase();
-    const fromTeamTasks =
-        fromState === "teamtasks" ||
-        location.pathname.includes("/td/teamtasks");
     const goBack = () => navigate(fromTeamTasks ? "/td/teamtasks" : "/td/mytasks");
 
     const getAssignToOptions = () => {

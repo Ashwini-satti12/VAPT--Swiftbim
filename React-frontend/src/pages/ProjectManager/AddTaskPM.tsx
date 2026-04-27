@@ -282,6 +282,9 @@ export default function AddTaskPM() {
   >([]);
   const [serverAttachmentDeleting, setServerAttachmentDeleting] =
     useState(false);
+  const locationState = location.state as { task?: Task; from?: string } | null;
+  const fromTeamTask = locationState?.from === "teamtask" || locationState?.from === "teamtasks";
+
   const [openFormDropdown, setOpenFormDropdown] =
     useState<FormDropdownId>(null);
   const [tasklistOpen, setTasklistOpen] = useState(false);
@@ -289,6 +292,7 @@ export default function AddTaskPM() {
     useState<PendingAttachmentDelete | null>(null);
 
   const showReviewRemarkField =
+    !fromTeamTask &&
     editingTaskId !== null &&
     addTaskForm.assignTo &&
     addTaskForm.assignTo !== user?.full_name;
@@ -625,7 +629,6 @@ export default function AddTaskPM() {
   const totalAttachmentCount =
     existingOutputFilenames.length + attachmentFiles.length;
 
-  const fromTeamTask = location.state?.from === "teamtask";
   const goBack = () => navigate(fromTeamTask ? "/teamtask" : "/tasks");
 
   const handleSubmit = async (e: React.FormEvent) => {

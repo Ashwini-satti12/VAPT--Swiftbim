@@ -137,11 +137,12 @@ export default function MytaskViewPM() {
   const { user } = useAuth();
   const locationState = (location.state as { task?: Task; from?: string } | null) ?? null;
   const [task, setTask] = useState<Task | undefined>(locationState?.task);
-  
+  const fromTeamTask =
+    locationState?.from === "teamtask" || locationState?.from === "teamtasks";
   const backTo =
     locationState?.from === "ve-team"
       ? "/ve/teamtasks"
-      : locationState?.from === "teamtask"
+      : fromTeamTask
         ? "/teamtask"
         : locationState?.from === "ve"
           ? "/ve/mytasks"
@@ -567,8 +568,8 @@ export default function MytaskViewPM() {
           </div>
 
 
-          {/* Review Remark — only for delegated tasks */}
-          {task.uploaderid != null &&
+          {/* Review Remark — only for delegated tasks, hidden in team tasks */}
+          {!fromTeamTask && task.uploaderid != null &&
             task.assigned_to != null &&
             String(task.uploaderid) !== String(task.assigned_to) && (
             <div className="mt-6 border border-slate-200 rounded-xl p-6">
