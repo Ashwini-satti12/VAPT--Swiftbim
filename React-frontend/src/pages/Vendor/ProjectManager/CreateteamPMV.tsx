@@ -222,12 +222,12 @@ export default function CreateteamPMV() {
     useEffect(() => {
         Promise.all([
             api.get<{ teams?: Team[] }>('/api/vendors/vendor-teams'),
-            api.get<{ employees?: Employee[] }>('/api/employees'),
+            api.get<{ success?: boolean; resources?: Employee[] }>('/api/vendors/vendor-resource-profiles'),
             api.get<{ projects?: Project[] }>('/api/vendors/vendor-projects')
         ])
             .then(([teamsRes, empsRes, projectsRes]) => {
                 setTeams(teamsRes.data.teams ?? []);
-                setEmployees(empsRes.data.employees ?? []);
+                setEmployees(empsRes.data.resources ?? []);
                 setProjects(projectsRes.data.projects ?? []);
             })
             .catch(() => {

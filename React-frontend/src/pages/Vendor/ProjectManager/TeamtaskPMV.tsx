@@ -17,6 +17,7 @@ import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
+import { useAuth } from "../../../contexts/AuthContext";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 
@@ -163,14 +164,15 @@ function TaskCard({
     onEditTask?: (task: Task) => void;
     onDeleteTask?: (task: Task) => void;
 }) {
+    const { user } = useAuth();
     const progress =
-        status === "completed" &&
+        (status === "completed" || (task as any).review_required) &&
             task.assigned_to != null &&
-            task.uploaderid != null &&
-            String(task.assigned_to) !== String(task.uploaderid)
+            ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
+            String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id)
             ? task.Approval?.toLowerCase() === "approved"
-              ? 100
-              : 95
+                ? 100
+                : (status === "todo" ? 0 : status === "in_progress" ? 50 : 95)
             : status === "todo"
                 ? 0
                 : status === "in_progress"
@@ -179,10 +181,11 @@ function TaskCard({
                         ? task.progress
                         : 100;
     const isUnderReview =
-        status === "completed" &&
+        (status === "completed" || (task as any).review_required) &&
         task.assigned_to != null &&
-        task.uploaderid != null &&
-        String(task.assigned_to) !== String(task.uploaderid);
+        ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
+        String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id) &&
+        task.Approval?.toLowerCase() !== "approved";
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -317,6 +320,13 @@ function TaskCard({
                     {isUnderReview ? "95% (Under Review)" : `${progress}%`}
                 </span>
             </div>
+            {(progress === 95 || progress === "95" || (task as any).review_required) && (
+                <div className="mb-2">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800">
+                        Pending Review
+                    </span>
+                </div>
+            )}
             <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-3">
                 <div
                     className="h-full bg-slate-400 transition-all rounded-full"
@@ -355,6 +365,7 @@ const SHOW_OPTIONS = ["Show Entries", "1-50", "51-100", "All"];
 const PERIOD_OPTIONS = ["Period", "This Week", "This Month", "This Quarter"];
 
 export default function TeamtaskPMV() {
+    const { user } = useAuth();
     const [searchParams] = useSearchParams();
     const { pathname } = useLocation();
     const navigate = useNavigate();
@@ -401,29 +412,8 @@ export default function TeamtaskPMV() {
             api.get<{ resources?: Employee[] }>("/api/vendors/vendor-resource-profiles"),
             api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
         ]).then(([myTasksRes, allTasksRes, resourcesRes, projectsRes]) => {
-            const myTasks = myTasksRes.data.tasks ?? [];
-            const allTasks = allTasksRes.data.tasks ?? [];
-            const allProjects = projectsRes.data.projects ?? [];
-
-            const involvedProjectIds = new Set<number>(
-                myTasks
-                    .map((t) => Number(t.project_id ?? t.projectid))
-                    .filter((id) => !Number.isNaN(id) && id > 0),
-            );
-
-            const scopedTasks = involvedProjectIds.size > 0
-                ? allTasks.filter((t) => {
-                    const pid = Number(t.project_id ?? t.projectid);
-                    return !Number.isNaN(pid) && involvedProjectIds.has(pid);
-                })
-                : allTasks;
-
-            const scopedProjects = involvedProjectIds.size > 0
-                ? allProjects.filter((p) => involvedProjectIds.has(Number(p.id)))
-                : allProjects;
-
-            setList(uniqueById(scopedTasks));
-            setProjects(uniqueById(scopedProjects));
+            setList(uniqueById(allTasksRes.data.tasks ?? []));
+            setProjects(uniqueById(projectsRes.data.projects ?? []));
             setEmployees(resourcesRes.data.resources ?? []);
         }).catch(() => {
             setList([]);
@@ -449,6 +439,8 @@ export default function TeamtaskPMV() {
 
     const filteredTasks = useMemo(() => {
         return list.filter(t => {
+            // Trust the backend's filtering
+
             if (selectedEmployee && !["Select Employee", "Employee"].includes(selectedEmployee) && t.assigned_full_name !== selectedEmployee) return false;
             if (selectedProject && !["Select Projects", "Projects"].includes(selectedProject) && t.project_name !== selectedProject) return false;
 
@@ -465,12 +457,28 @@ export default function TeamtaskPMV() {
             }
             return true;
         });
-    }, [list, selectedEmployee, selectedProject, selectedPeriod]);
+    }, [list, selectedEmployee, selectedProject, selectedPeriod, user]);
+
+    const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" => {
+        const status = normalizeStatus(t.status, t.Approval);
+        const progress = t.progress ?? (t as any).progress;
+        const uploaderId = (t as any).uploaderid ?? (t as any).vendor_id;
+        const isOwner = String(uploaderId) === String(user?.id);
+        const userName = (user?.full_name || user?.name || "").trim().toLowerCase();
+        const taskAssigneeName = (t.assigned_full_name || t.assign_to || "").trim().toLowerCase();
+        const isAssignedToMe = String(t.assigned_to) === String(user?.id) || (userName && taskAssigneeName === userName);
+        const isAssignedToOthers = t.assigned_to != null && !isAssignedToMe;
+
+        if ((isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && status === "completed") || (t as any).review_required === true) {
+            return "todo";
+        }
+        return status;
+    };
 
     const tasksByStatus = {
-        todo: filteredTasks.filter(t => normalizeStatus(t.status, t.Approval) === "todo"),
-        in_progress: filteredTasks.filter(t => normalizeStatus(t.status, t.Approval) === "in_progress"),
-        completed: filteredTasks.filter(t => normalizeStatus(t.status, t.Approval) === "completed"),
+        todo: filteredTasks.filter(t => getEffectiveStatus(t) === "todo"),
+        in_progress: filteredTasks.filter(t => getEffectiveStatus(t) === "in_progress"),
+        completed: filteredTasks.filter(t => getEffectiveStatus(t) === "completed"),
     };
 
     const displayTasks = {
@@ -482,20 +490,37 @@ export default function TeamtaskPMV() {
     const handleMoveTask = (id: number, status: string) => {
         const next = status as "todo" | "in_progress" | "completed";
         const taskRow = list.find((t) => t.id === id);
-        if (taskRow) {
-            const current = normalizeStatus(taskRow.status, taskRow.Approval);
-            if (current === "todo" && next === "completed") {
-                toast.error("Move the task to In Progress before marking it completed.");
-                return;
-            }
-            if (current === "completed" && next !== "completed") {
-                toast.error("Completed tasks cannot be moved.");
-                return;
-            }
+        if (!taskRow) return;
+
+        const current = getEffectiveStatus(taskRow);
+        if (current === next) return;
+
+        if (current === "todo" && next === "completed") {
+            toast.error("Move the task to In Progress before marking it completed.");
+            return;
         }
+        if (current === "completed" && next !== "completed") {
+            toast.error("Completed tasks cannot be moved.");
+            return;
+        }
+
+        const uploaderId = (taskRow as any).uploaderid ?? (taskRow as any).vendor_id;
+        const isOwner = String(uploaderId) === String(user?.id);
         const sMap = { todo: "Todo", in_progress: "InProgress", completed: "Completed" };
-        api.patch(`/api/vendors/vendor-tasks/${id}/status`, { status: (sMap as any)[status] })
-            .then(() => loadScopedTeamData())
+        const nextProgress = next === "completed" ? (isOwner ? 100 : 95) : next === "in_progress" ? 50 : 0;
+
+        api.patch(`/api/vendors/vendor-tasks/${id}/status`, {
+            status: (sMap as any)[status],
+            progress: nextProgress
+        })
+            .then(() => {
+                setList(prev => prev.map(t =>
+                    t.id === id
+                        ? { ...t, status: (sMap as any)[status], progress: nextProgress }
+                        : t
+                ));
+                toast.success(`Task moved to ${next}`);
+            })
             .catch(() => toast.error("Failed to update status"));
     };
 

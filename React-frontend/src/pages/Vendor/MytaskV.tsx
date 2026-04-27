@@ -998,6 +998,13 @@ function TaskCard({
             : `${progress}%`}
         </span>
       </div>
+      {(progress === 95 || progress === "95" || (task as any).review_required) && (
+        <div className="mb-2">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800">
+            Pending Review
+          </span>
+        </div>
+      )}
       <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
         <div
           className="h-full rounded-full bg-[#8B8B8B]"
@@ -1210,6 +1217,8 @@ export default function MytaskV() {
     (t) => t && t.id != null && !deletedIds.includes(t.id),
   );
   const allTasks = allTasksBase.filter((t) => {
+    // Trust the backend filtering
+
     // Search Filter
     const searchQuery = searchParams.get("q")?.toLowerCase() || "";
     if (searchQuery) {
@@ -1268,9 +1277,12 @@ export default function MytaskV() {
     const progress = t.progress ?? (t as any).progress;
     const uploaderId = (t as any).uploaderid ?? (t as any).vendor_id;
     const isOwner = String(uploaderId) === String(user?.id);
-    const isAssignedToOthers = t.assigned_to != null && String(t.assigned_to) !== String(uploaderId);
+    const userName = (user?.full_name || user?.name || "").trim().toLowerCase();
+    const taskAssigneeName = (t.assigned_full_name || t.assign_to || "").trim().toLowerCase();
+    const isAssignedToMe = String(t.assigned_to) === String(user?.id) || (userName && taskAssigneeName === userName);
+    const isAssignedToOthers = t.assigned_to != null && !isAssignedToMe;
 
-    if (isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && status === "completed") {
+    if ((isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && status === "completed") || (t as any).review_required === true) {
       return "todo";
     }
     return status;

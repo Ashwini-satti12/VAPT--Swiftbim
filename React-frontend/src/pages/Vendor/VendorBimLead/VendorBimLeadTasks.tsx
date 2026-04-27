@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import api from "../../../lib/api";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +15,7 @@ import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 import { FiX } from "react-icons/fi";
+import { useAuth } from "../../../contexts/AuthContext";
 
 function formatDateDDMMYYYY(d?: string): string {
   if (!d) return "—";
@@ -50,6 +51,10 @@ interface Task {
   uploaderid?: number;
   assigned_to_name?: string;
   category?: string;
+  assigned_profile_picture?: string;
+  uploader_full_name?: string;
+  is_assigned_to_me?: boolean;
+  is_owned_by_me?: boolean;
   assigned_full_name?: string;
   start_date?: string;
   start_time?: string;
@@ -86,6 +91,7 @@ const emptyTaskForm = {
 };
 
 export default function VendorBimLeadTasks() {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -131,6 +137,7 @@ export default function VendorBimLeadTasks() {
           assigned_to_name: t.assigned_to_name ?? t.assigned_full_name,
           assigned_by_name: (t as any).assigned_by_name ?? "-",
           priority: (t as any).priority ?? (t as any).category ?? t.priority,
+          uploader_full_name: (t as any).uploader_full_name || (t as any).uploader_name || "-",
         }));
         setTasks(mapped);
       })
@@ -144,8 +151,10 @@ export default function VendorBimLeadTasks() {
       .get<{ projects?: Project[] }>("/api/vendors/vendor-projects")
       .then(({ data }) => setProjects(data.projects ?? []));
     api
-      .get<{ employees?: Employee[] }>("/api/employees")
-      .then(({ data }) => setEmployees(data.employees ?? []));
+      .get<{ success?: boolean; resources?: Employee[] }>(
+        "/api/vendors/vendor-resource-profiles",
+      )
+      .then(({ data }) => setEmployees(data.resources ?? []));
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -346,7 +355,10 @@ export default function VendorBimLeadTasks() {
 
   const normalizeStatus = (
     s: string | undefined,
+    approval?: string,
   ): "todo" | "in_progress" | "completed" => {
+    if (approval?.toLowerCase() === "approved" || approval?.toLowerCase() === "rejected")
+      return "completed";
     if (!s) return "todo";
     const lower = s.toLowerCase().replace(/\s+/g, "_");
     if (lower.includes("progress") || lower === "in_progress")
@@ -360,26 +372,44 @@ export default function VendorBimLeadTasks() {
     newBucket: "todo" | "in_progress" | "completed",
   ) => {
     const taskRow = tasks.find((t) => t.id === taskId);
-    if (taskRow) {
-      const current = normalizeStatus(taskRow.status);
-      if (current === "completed" && newBucket !== "completed") {
-        toast.error("Completed tasks cannot be moved.");
-        return;
-      }
-      if (current === newBucket) return;
+    if (!taskRow) return;
+
+    const current = getEffectiveStatus(taskRow);
+    if (current === newBucket) return;
+
+    if (current === "todo" && newBucket === "completed") {
+      toast.error("Move task to In Progress before completing.");
+      return;
     }
+    if (current === "completed" && newBucket !== "completed") {
+      toast.error("Completed tasks cannot be moved.");
+      return;
+    }
+
+    const uploaderId = (taskRow as any).uploaderid ?? (taskRow as any).vendor_id;
+    const isOwner = String(uploaderId) === String(user?.id);
     const statusMap = {
       todo: "Todo",
       in_progress: "InProgress",
       completed: "Completed",
     } as const;
     const apiStatus = statusMap[newBucket];
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: apiStatus } : t)),
-    );
+    const nextProgress = newBucket === "completed" ? (isOwner ? 100 : 95) : newBucket === "in_progress" ? 50 : 0;
+
     api
       .patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
         status: apiStatus,
+        progress: nextProgress,
+      })
+      .then(() => {
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === taskId
+              ? { ...t, status: apiStatus, progress: nextProgress }
+              : t,
+          ),
+        );
+        toast.success(`Task moved to ${newBucket}`);
       })
       .catch(() => {
         toast.error("Failed to update status");
@@ -387,12 +417,74 @@ export default function VendorBimLeadTasks() {
       });
   };
 
+  const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" => {
+    const status = normalizeStatus(t.status, t.Approval);
+    const progress = (t as any).progress;
+    const uploaderId = (t as any).uploaderid ?? (t as any).vendor_id;
+    const isOwner = String(uploaderId) === String(user?.id);
+    const userName = (user?.full_name || user?.name || "").trim().toLowerCase();
+    const taskAssigneeName = (t.assigned_full_name || t.assign_to || "").trim().toLowerCase();
+    const isAssignedToMe = String(t.assigned_to) === String(user?.id) || (userName && taskAssigneeName === userName);
+    const isAssignedToOthers = t.assigned_to != null && !isAssignedToMe;
+
+    if ((isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && status === "completed") || (t as any).review_required === true) {
+      return "todo";
+    }
+    return status;
+  };
+
+  const activeForm = currentPage === "edit" ? editForm : createForm;
+
+  const employeesForAssignDropdown = useMemo(() => {
+    let all = Array.isArray(employees) ? [...employees] : [];
+    
+    // Ensure current user is in the list
+    if (user) {
+      const userIdStr = String(user.id);
+      const alreadyInList = all.some((e) => String(e.id) === userIdStr);
+      if (!alreadyInList) {
+        all.push({
+          id: user.id,
+          full_name: user.full_name || user.name || "Me",
+          active: "1",
+        } as any);
+      }
+    }
+
+    const meta = projects.find(
+      (p) => String(p.id) === activeForm.project_id,
+    );
+    const members = (meta?.members || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    
+    if (members.length === 0) return all;
+    
+    return all.filter((e) => {
+      const name = (e.full_name || "").trim();
+      const idStr = String(e.id);
+      const isAllowedByProject = members.some(m => m === idStr || m.toLowerCase() === name.toLowerCase() || name === m);
+      const isCurrentUser = String(e.id) === String(user?.id);
+      
+      return isAllowedByProject || isCurrentUser;
+    });
+  }, [employees, projects, activeForm.project_id, user]);
+
+  const myFilteredTasks = tasks.filter((t) => {
+    const isAssignedToMe = Boolean(t.is_assigned_to_me);
+    const isOwner = Boolean(t.is_owned_by_me);
+    const isUnderReview = (t as any).review_required === true || ((t as any).progress === 95 && (t.status === "Completed" || t.status === "completed"));
+
+    if (isAssignedToMe) return true;
+    if (isOwner && isUnderReview && t.assigned_to != null) return true;
+    return false;
+  });
+
   const tasksByStatus = {
-    todo: tasks.filter((t) => normalizeStatus(t.status) === "todo"),
-    in_progress: tasks.filter(
-      (t) => normalizeStatus(t.status) === "in_progress",
-    ),
-    completed: tasks.filter((t) => normalizeStatus(t.status) === "completed"),
+    todo: myFilteredTasks.filter((t) => getEffectiveStatus(t) === "todo"),
+    in_progress: myFilteredTasks.filter((t) => getEffectiveStatus(t) === "in_progress"),
+    completed: myFilteredTasks.filter((t) => getEffectiveStatus(t) === "completed"),
   };
   const showLimit =
     selectedShow === "All" || selectedShow === "Show Entries"
@@ -732,9 +824,15 @@ export default function VendorBimLeadTasks() {
                         form.assigned_to ? "text-[#353535]" : "text-[#8B8B8B]"
                       }
                     >
-                      {employees.find(
-                        (emp) => emp.id.toString() === form.assigned_to,
-                      )?.full_name || "Select Assign To"}
+                      {(() => {
+                        const found = employeesForAssignDropdown.find(
+                          (emp) => emp.id.toString() === form.assigned_to,
+                        );
+                        if (!found) return "Select Assign To";
+                        return String(found.id) === String(user?.id)
+                          ? `${found.full_name} (Me)`
+                          : found.full_name;
+                      })()}
                     </span>
                     <img
                       src={ArrowDown}
@@ -754,7 +852,7 @@ export default function VendorBimLeadTasks() {
                       >
                         Select Assign To
                       </button>
-                      {employees.map((emp) => (
+                      {employeesForAssignDropdown.map((emp) => (
                         <button
                           key={emp.id}
                           type="button"
@@ -767,7 +865,9 @@ export default function VendorBimLeadTasks() {
                           }}
                           className="block w-full text-left px-4 py-2 text-[14px] font-Gantari text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] cursor-pointer"
                         >
-                          {emp.full_name}
+                          {String(emp.id) === String(user?.id)
+                            ? `${emp.full_name} (Me)`
+                            : emp.full_name}
                         </button>
                       ))}
                     </div>
@@ -1040,25 +1140,28 @@ export default function VendorBimLeadTasks() {
               }}
             >
               {displayedTasksByStatus[bucket].map((task) => {
-                const progress =
+                const progressValue =
                   bucket === "todo"
                     ? 0
                     : bucket === "in_progress"
                       ? 50
                       : task.assigned_to != null &&
-                          task.uploaderid != null &&
-                          String(task.assigned_to) !== String(task.uploaderid)
+                        ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
+                        String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id)
                         ? task.Approval?.toLowerCase() === "approved"
                           ? 100
                           : 95
                         : 100;
-                const isUnderReview =
-                  normalizeStatus(task.status) === "completed" &&
+
+                const isReviewState =
+                  (bucket === "completed" || (task as any).review_required) &&
                   task.assigned_to != null &&
-                  task.uploaderid != null &&
-                  String(task.assigned_to) !== String(task.uploaderid);
+                  ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
+                  String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id) &&
+                  task.Approval?.toLowerCase() !== "approved";
+
                 const isCompletedCol =
-                  normalizeStatus(task.status) === "completed";
+                  getEffectiveStatus(task) === "completed";
                 return (
                   <div
                     key={task.id}
@@ -1204,13 +1307,13 @@ export default function VendorBimLeadTasks() {
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <span className="text-[12px] text-[#8B8B8B]">Progress</span>
                       <span className="text-[12px] text-[#8B8B8B]">
-                        {isUnderReview ? "95% (Under Review)" : `${progress}%`}
+                        {isReviewState ? "95% (Under Review)" : `${progressValue}%`}
                       </span>
                     </div>
                     <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
                       <div
                         className="h-full rounded-full bg-[#8B8B8B]"
-                        style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                        style={{ width: `${Math.min(100, Math.max(0, progressValue))}%` }}
                       />
                     </div>
 

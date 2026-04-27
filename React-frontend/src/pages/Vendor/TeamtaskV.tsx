@@ -1130,6 +1130,8 @@ export default function TeamtaskV() {
     (t) => t && t.id != null && !deletedIds.includes(t.id),
   );
   const allTasks = allTasksBase.filter((t) => {
+    // Trust the backend filtering
+
     const searchQuery = searchParams.get("q")?.toLowerCase() || "";
     if (searchQuery) {
       const matchesSearch =
@@ -1184,9 +1186,12 @@ export default function TeamtaskV() {
     const progress = t.progress ?? (t as any).progress;
     const uploaderId = (t as any).uploaderid ?? (t as any).vendor_id;
     const isOwner = String(uploaderId) === String(user?.id);
-    const isAssignedToOthers = t.assigned_to != null && String(t.assigned_to) !== String(uploaderId);
+    const userName = (user?.full_name || user?.name || "").trim().toLowerCase();
+    const taskAssigneeName = (t.assigned_full_name || t.assign_to || "").trim().toLowerCase();
+    const isAssignedToMe = String(t.assigned_to) === String(user?.id) || (userName && taskAssigneeName === userName);
+    const isAssignedToOthers = t.assigned_to != null && !isAssignedToMe;
 
-    if (isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && status === "completed") {
+    if ((isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && status === "completed") || (t as any).review_required === true) {
       return "todo";
     }
     return status;

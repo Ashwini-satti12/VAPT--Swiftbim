@@ -7,6 +7,7 @@ import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
 import closeButtonIcon from "../../assets/ProductNavbarIcons/close button.svg";
+import { useAuth } from "../../contexts/AuthContext";
 
 import {
   FormDropdown,
@@ -38,6 +39,7 @@ const initialForm = {
 export default function AddTaskV() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const editingTask = location.state?.task as Task | undefined;
   const fromState = location.state?.from;
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
@@ -391,6 +393,21 @@ export default function AddTaskV() {
   }, [projects, addTaskForm.projectName]);
 
   const employeesForAssignDropdown = useMemo(() => {
+    let all = Array.isArray(employees) ? [...employees] : [];
+    
+    // Ensure current user is in the list
+    if (user) {
+      const userIdStr = String(user.id);
+      const alreadyInList = all.some((e) => String(e.id) === userIdStr);
+      if (!alreadyInList) {
+        all.push({
+          id: user.id,
+          full_name: user.full_name || user.name || "Me",
+          active: "1",
+        } as any);
+      }
+    }
+
     const meta = projects.find(
       (p) => p.project_name === addTaskForm.projectName,
     );
@@ -398,11 +415,18 @@ export default function AddTaskV() {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-    if (members.length === 0) return employees;
-    return employees.filter(
-      (e) => members.includes(String(e.id)) || members.includes(e.full_name),
-    );
-  }, [employees, projects, addTaskForm.projectName]);
+    
+    if (members.length === 0) return all;
+    
+    return all.filter((e) => {
+      const name = (e.full_name || "").trim();
+      const idStr = String(e.id);
+      const isAllowedByProject = members.some(m => m === idStr || m.toLowerCase() === name.toLowerCase() || name === m);
+      const isCurrentUser = String(e.id) === String(user?.id);
+      
+      return isAllowedByProject || isCurrentUser;
+    });
+  }, [employees, projects, addTaskForm.projectName, user]);
 
   const sameCalendarDay =
     addTaskForm.actualStartDate === addTaskForm.actualEndDate;
@@ -622,7 +646,10 @@ export default function AddTaskV() {
                       { value: "", label: "Select Assign To" },
                       ...employeesForAssignDropdown.map((e) => ({
                         value: e.full_name,
-                        label: e.full_name,
+                        label:
+                          String(e.id) === String(user?.id)
+                            ? `${e.full_name} (Me)`
+                            : e.full_name,
                       })),
                     ]}
                     value={addTaskForm.assignTo}
