@@ -329,6 +329,7 @@ def create_work_order():
         "terms_and_conditions": (data.get("termsAndConditions") or data.get("terms_and_conditions") or "").strip(),
         "payment_terms": (data.get("paymentTerms") or data.get("payment_terms") or "").strip(),
         "additional_terms": (data.get("additionalTerms") or data.get("additional_terms") or "").strip(),
+        "exclusions": (data.get("exclusions") or "").strip(),
         "status": (data.get("status") or "Created").strip() or "Created",
         "created_by": getattr(g, "user_id", None),
         "company_id": g.company_id,
@@ -415,6 +416,7 @@ def update_work_order(work_order_id: int):
         "terms_and_conditions": (data.get("termsAndConditions") or data.get("terms_and_conditions") or "").strip(),
         "payment_terms": (data.get("paymentTerms") or data.get("payment_terms") or "").strip(),
         "additional_terms": (data.get("additionalTerms") or data.get("additional_terms") or "").strip(),
+        "exclusions": (data.get("exclusions") or "").strip(),
         "status": (data.get("status") or "").strip(),
     }
 
