@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import api from "../../../lib/api";
+import { useAuth } from "../../../contexts/AuthContext";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
@@ -42,6 +43,9 @@ interface Task {
   /** Use vendor_task.modules to store selected Team/Department */
   modules?: string;
   assigned_profile_picture?: string;
+  uploader_full_name?: string;
+  is_assigned_to_me?: boolean;
+  is_owned_by_me?: boolean;
 }
 
 interface Project {
@@ -174,6 +178,7 @@ function FormDropdown({
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function VendorBimLeadTeamTasks() {
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const projectFilter = searchParams.get("project");
@@ -229,13 +234,33 @@ export default function VendorBimLeadTeamTasks() {
 
   const normalizeStatus = (
     s: string | undefined,
+    approval?: string,
   ): "todo" | "in_progress" | "completed" => {
+    if (approval?.toLowerCase() === "approved" || approval?.toLowerCase() === "rejected")
+      return "completed";
     if (!s) return "todo";
     const lower = s.toLowerCase().replace(/\s+/g, "_");
     if (lower.includes("progress") || lower === "in_progress")
       return "in_progress";
     if (lower.includes("complete") || lower === "done") return "completed";
     return "todo";
+  };
+
+  const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" => {
+    const status = normalizeStatus(t.status, (t as any).Approval);
+    const progress = (t as any).progress;
+    const uploaderId = (t as any).uploaderid ?? (t as any).vendor_id;
+    const isOwner = String(uploaderId) === String(user?.id);
+
+    const userName = (user?.full_name || user?.name || "").trim().toLowerCase();
+    const taskAssigneeName = ((t as any).assigned_full_name || (t as any).assigned_to_name || (t as any).assign_to || "").trim().toLowerCase();
+    const isAssignedToMe = String(t.assigned_to) === String(user?.id) || (userName && taskAssigneeName === userName);
+    const isAssignedToOthers = t.assigned_to != null && !isAssignedToMe;
+
+    if (isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && status === "completed") {
+      return "todo";
+    }
+    return status;
   };
 
   const fetchData = () => {
@@ -247,7 +272,7 @@ export default function VendorBimLeadTeamTasks() {
         params: taskParams,
       }),
       api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
-      api.get<{ employees?: Employee[] }>("/api/employees"),
+      api.get<{ success?: boolean; resources?: Employee[] }>("/api/vendors/vendor-resource-profiles"),
       api.get<{ teams?: Team[] }>("/api/vendors/vendor-teams"),
     ])
       .then(([tasksRes, projectsRes, empRes, teamsRes]) => {
@@ -257,10 +282,11 @@ export default function VendorBimLeadTeamTasks() {
           assigned_to_name: t.assigned_to_name ?? t.assigned_full_name,
           // Backend stores priority in `category`
           priority: (t as any).priority ?? (t as any).category ?? t.priority,
+          uploader_full_name: (t as any).uploader_full_name || (t as any).uploader_name || "-",
         }));
         setTasks(mapped);
         setProjects(projectsRes.data.projects ?? []);
-        setEmployees(empRes.data.employees ?? []);
+        setEmployees(empRes.data.resources ?? []);
         const normalizedTeams = (teamsRes.data.teams ?? []).map((t: Team) => ({
           ...t,
           id: (t as any).id ?? (t as any).team_id,
@@ -299,26 +325,42 @@ export default function VendorBimLeadTeamTasks() {
 
   // Employees filtered by selected project members
   const employeesForAssignDropdown = useMemo(() => {
-    const all = Array.isArray(employees) ? employees : [];
+    let all = Array.isArray(employees) ? [...employees] : [];
+    
+    // Ensure current user is in the list
+    if (user && !all.some(e => String(e.id) === String(user.id))) {
+      all.push({
+        id: Number(user.id),
+        full_name: user.full_name || user.name || "Me",
+        active: "1"
+      } as any);
+    }
+
     const meta = projects.find(
       (p) => p.project_name === createForm.projectName,
     );
     const raw = (meta?.members || "").trim();
     if (!raw) return all;
+    
     const tokens = raw
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
+    
     if (tokens.length === 0) return all;
+    
     return all.filter((emp) => {
       const name = (emp.full_name || "").trim();
       const idStr = String(emp.id);
-      return tokens.some((t) => {
+      const isAllowedByProject = tokens.some((t) => {
         const tl = t.toLowerCase();
         return t === idStr || tl === name.toLowerCase() || name === t;
       });
+      const isCurrentUser = String(emp.id) === String(user?.id);
+      
+      return isAllowedByProject || isCurrentUser;
     });
-  }, [employees, projects, createForm.projectName]);
+  }, [employees, projects, createForm.projectName, user]);
 
   const modalAssignOptions = employeesForAssignDropdown
     .filter(isEmployeeActiveForProjectAssignment)
@@ -538,10 +580,19 @@ export default function VendorBimLeadTeamTasks() {
   const [selectedEmployeeFilter, setSelectedEmployeeFilter] =
     useState("All Employees");
 
-  const filteredTasks = tasks.filter((t) => {
+  const baseTeamFilteredTasks = tasks.filter((t) => {
+    const isAssignedToMe = Boolean(t.is_assigned_to_me);
+    const isOwner = Boolean(t.is_owned_by_me);
+    const isUnderReview = (t as any).review_required === true || ((t as any).progress === 95 && (t.status === "Completed" || t.status === "completed"));
+
+    // Team Tasks: Tasks I assigned to others that are NOT currently under review (pending my approval)
+    return isOwner && !isAssignedToMe && !isUnderReview;
+  });
+
+  const filteredTasks = baseTeamFilteredTasks.filter((t) => {
     const matchesStatus =
       !statusFilter ||
-      normalizeStatus(t.status) === normalizeStatus(statusFilter);
+      getEffectiveStatus(t) === normalizeStatus(statusFilter);
     const matchesEmployee =
       selectedEmployeeFilter === "All Employees" ||
       t.assigned_to_name === selectedEmployeeFilter;
@@ -549,7 +600,7 @@ export default function VendorBimLeadTeamTasks() {
     return matchesStatus && matchesEmployee && matchesProject;
   });
 
-  const baseFilteredTasks = tasks.filter((t) => {
+  const baseFilteredTasks = baseTeamFilteredTasks.filter((t) => {
     const matchesEmployee =
       selectedEmployeeFilter === "All Employees" ||
       t.assigned_to_name === selectedEmployeeFilter;
@@ -558,23 +609,23 @@ export default function VendorBimLeadTeamTasks() {
   });
 
   const counts = {
-    todo: baseFilteredTasks.filter((t) => normalizeStatus(t.status) === "todo")
+    todo: baseFilteredTasks.filter((t) => getEffectiveStatus(t) === "todo")
       .length,
     in_progress: baseFilteredTasks.filter(
-      (t) => normalizeStatus(t.status) === "in_progress",
+      (t) => getEffectiveStatus(t) === "in_progress",
     ).length,
     completed: baseFilteredTasks.filter(
-      (t) => normalizeStatus(t.status) === "completed",
+      (t) => getEffectiveStatus(t) === "completed",
     ).length,
   };
 
   const displayedTasksByStatus = {
-    todo: filteredTasks.filter((t) => normalizeStatus(t.status) === "todo"),
+    todo: filteredTasks.filter((t) => getEffectiveStatus(t) === "todo"),
     in_progress: filteredTasks.filter(
-      (t) => normalizeStatus(t.status) === "in_progress",
+      (t) => getEffectiveStatus(t) === "in_progress",
     ),
     completed: filteredTasks.filter(
-      (t) => normalizeStatus(t.status) === "completed",
+      (t) => getEffectiveStatus(t) === "completed",
     ),
   };
 
@@ -583,26 +634,44 @@ export default function VendorBimLeadTeamTasks() {
     newBucket: "todo" | "in_progress" | "completed",
   ) => {
     const taskRow = tasks.find((t) => t.id === taskId);
-    if (taskRow) {
-      const current = normalizeStatus(taskRow.status);
-      if (current === "completed" && newBucket !== "completed") {
-        toast.error("Completed tasks cannot be moved.");
-        return;
-      }
-      if (current === newBucket) return;
+    if (!taskRow) return;
+
+    const current = getEffectiveStatus(taskRow);
+    if (current === newBucket) return;
+
+    if (current === "todo" && newBucket === "completed") {
+      toast.error("Move the task to In Progress before marking it completed.");
+      return;
     }
+    if (current === "completed" && newBucket !== "completed") {
+      toast.error("Completed tasks cannot be moved.");
+      return;
+    }
+
+    const uploaderId = (taskRow as any).uploaderid ?? (taskRow as any).vendor_id;
+    const isOwner = String(uploaderId) === String(user?.id);
     const statusMap = {
       todo: "Todo",
       in_progress: "InProgress",
       completed: "Completed",
     } as const;
     const apiStatus = statusMap[newBucket];
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: apiStatus } : t)),
-    );
+    const nextProgress = newBucket === "completed" ? (isOwner ? 100 : 95) : newBucket === "in_progress" ? 50 : 0;
+
     api
       .patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
         status: apiStatus,
+        progress: nextProgress,
+      })
+      .then(() => {
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === taskId
+              ? { ...t, status: apiStatus, progress: nextProgress }
+              : t,
+          ),
+        );
+        toast.success(`Task moved to ${newBucket}`);
       })
       .catch(() => {
         toast.error("Failed to update status");
@@ -619,13 +688,13 @@ export default function VendorBimLeadTeamTasks() {
     status: "todo" | "in_progress" | "completed";
   }) => {
     const progress =
-      status === "completed" &&
+      (status === "completed" || (task as any).review_required) &&
         task.assigned_to != null &&
-        task.uploaderid != null &&
-        String(task.assigned_to) !== String(task.uploaderid)
-        ? task.Approval?.toLowerCase() === "approved"
+        ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
+        String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id)
+        ? (task as any).Approval?.toLowerCase() === "approved"
           ? 100
-          : 95
+          : (status === "todo" ? 0 : status === "in_progress" ? 50 : 95)
         : status === "todo"
           ? 0
           : status === "in_progress"
@@ -634,10 +703,11 @@ export default function VendorBimLeadTeamTasks() {
               ? (task as any).progress
               : 100;
     const isUnderReview =
-      status === "completed" &&
+      (status === "completed" || (task as any).review_required) &&
       task.assigned_to != null &&
-      task.uploaderid != null &&
-      String(task.assigned_to) !== String(task.uploaderid);
+      ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
+      String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id) &&
+      (task as any).Approval?.toLowerCase() !== "approved";
     const isCompleted = normalizeStatus(task.status) === "completed";
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);

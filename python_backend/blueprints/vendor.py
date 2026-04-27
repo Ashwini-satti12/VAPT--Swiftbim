@@ -3780,6 +3780,32 @@ def _profile_completeness(v: dict) -> int:
     return int(((filled + has_portfolio + has_docs) / (len(fields) + 2)) * 100)
 
 
+def _get_all_my_ids():
+    """Return list of all IDs (primary + resource profiles) representing g.user_id."""
+    user_id = getattr(g, "user_id", None)
+    if not user_id:
+        return []
+    my_ids = [user_id]
+    if getattr(g, "user_type", None) == "vendor":
+        try:
+            vendor_onboard_id = _current_vendor_onboarding_id()
+            if vendor_onboard_id:
+                vcur = vendor_cursor()
+                vcur.execute(
+                    "SELECT id FROM vendor_resource_profiles WHERE vendor_id = %s AND vendor_employee_id = %s",
+                    (vendor_onboard_id, user_id),
+                )
+                for r in vcur.fetchall() or []:
+                    pid = r.get("id")
+                    if pid is not None:
+                        try:
+                            my_ids.append(int(pid))
+                        except (TypeError, ValueError):
+                            pass
+        except Exception:
+            pass
+    return list(set(my_ids))
+
 def _current_vendor_onboarding_id():
     """
     Resolve the vendor_onboarding.id for the current user.
@@ -5255,107 +5281,57 @@ def list_vendor_tasks():
         "BIM Coordinator",
     }
 
+    # Identify all IDs that represent this user (their primary ID + any resource profile IDs)
+    my_ids = _get_all_my_ids()
+    
+    # Get user name for fallback name-based matching (available from g via load_user_context)
+    user_full_name = (getattr(g, "user_full_name", None) or "").strip()
+
     where = []
     params = []
+
+    # SQL fragments for "Assigned to Me"
+    placeholders = ",".join(["%s"] * len(my_ids))
+    if user_full_name:
+        assigned_to_me_sql = f"(vt.assigned_to IN ({placeholders}) OR (vt.assigned_to IS NOT NULL AND TRIM(vt.assigned_to) = %s))"
+        assigned_to_me_params = my_ids + [user_full_name]
+    else:
+        assigned_to_me_sql = f"vt.assigned_to IN ({placeholders})"
+        assigned_to_me_params = my_ids
+
     if not is_team_view:
-        if is_vendor_user_task:
-            # vendor_task.vendor_id is the creator's vendor_employee.id.
-            # Assign Task dropdown stores vendor_resource_profiles.id in assigned_to;
-            # JWT user_id is vendor_employee.id — include both so assignees see their tasks.
-            profile_ids: list = []
-            try:
-                vendor_onboard_id = _current_vendor_onboarding_id()
-                if vendor_onboard_id:
-                    vcur = vendor_cursor()
-                    vcur.execute(
-                        "SELECT id FROM vendor_resource_profiles WHERE vendor_id = %s AND vendor_employee_id = %s",
-                        (vendor_onboard_id, user_id),
-                    )
-                    for r in vcur.fetchall() or []:
-                        pid = r.get("id")
-                        if pid is not None:
-                            try:
-                                profile_ids.append(int(pid))
-                            except (TypeError, ValueError):
-                                pass
-            except Exception:
-                profile_ids = []
-            if profile_ids:
-                ph = ",".join(["%s"] * len(profile_ids))
-                where.append(f"(vt.assigned_to = %s OR vt.assigned_to IN ({ph}))")
-                params.append(user_id)
-                params.extend(profile_ids)
-            else:
-                where.append("vt.assigned_to = %s")
-                params.append(user_id)
-        else:
-            # Staff callers: allow role-based company visibility.
+        # My Tasks logic:
+        # 1. Assigned to me.
+        # 2. I assigned it to someone else AND it's under review (progress=95/100 or completed).
+        review_sql = "(vt.vendor_id = %s AND vt.assigned_to NOT IN (" + placeholders + ") AND vt.progress IN ('95', '100', 'completed'))"
+        review_params = [user_id] + my_ids
+        
+        where.append(f"({assigned_to_me_sql} OR {review_sql})")
+        params.extend(assigned_to_me_params)
+        params.extend(review_params)
+
+        if not is_vendor_user_task:
             if staff_role not in VENDOR_TASK_STAFF_ROLES:
                 return jsonify({"tasks": []})
-            
-            # Fetch current user name for name-based matching (main DB cursor, not vendor DB)
-            cur.execute(
-                "SELECT full_name FROM employee WHERE id = %s AND Company_id = %s",
-                (user_id, task_company_id),
-            )
-            u_row = cur.fetchone()
-            if not u_row:
-                user_name = ""
-            elif isinstance(u_row, dict):
-                user_name = (u_row.get("full_name") or "").strip()
-            else:
-                user_name = str(u_row[0] or "").strip() if u_row else ""
-
-            # Staff "My Task" view: 
-            # 1) Tasks assigned to them (ID or Name).
-            # 2) Tasks assigned by them to others that are completed/progress=95 (Review workflow).
-            where.append("(vt.assigned_to = %s OR (vt.assigned_to IS NOT NULL AND TRIM(vt.assigned_to) = %s) OR (vt.vendor_id = %s AND vt.assigned_to <> vt.vendor_id AND vt.progress IN ('95', '100', 'completed')))")
-            params.extend([user_id, user_name, user_id])
-            
             if task_company_id is not None:
-                where.append(
-                    """(
-                        EXISTS (
-                            SELECT 1 FROM vendor_projects vp2
-                            LEFT JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci
-                            WHERE vp2.id = vt.project_id AND mp.Company_id = %s
-                        )
-                        OR EXISTS (
-                            SELECT 1 FROM projects mp2
-                            WHERE mp2.id = vt.project_id AND mp2.Company_id = %s
-                        )
-                    )"""
-                )
+                where.append("""(EXISTS (SELECT 1 FROM vendor_projects vp2 LEFT JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci WHERE vp2.id = vt.project_id AND mp.Company_id = %s) OR EXISTS (SELECT 1 FROM projects mp2 WHERE mp2.id = vt.project_id AND mp2.Company_id = %s))""")
                 params.extend([task_company_id, task_company_id])
-    elif is_team_view:
-        # Team Task view: strictly for delegated work (assigned to someone else).
-        where.append("vt.assigned_to <> vt.vendor_id")
+    else:
+        # Team Tasks logic:
+        # 1. Assigned to someone ELSE.
+        where.append(f"NOT ({assigned_to_me_sql})")
+        params.extend(assigned_to_me_params)
         
         if is_vendor_user_task:
-            # Team view for vendor: no vendor_id restriction (all tasks in project)
+            # Vendor Team view can see all tasks for the project assigned to others
             pass
         else:
-            # Staff callers for vendor team view
-            pass
-    else:
-        # Team view for staff (TD/PM/BL/BC): filter by company via vendor_projects join
-        if staff_role not in VENDOR_TASK_STAFF_ROLES:
-            return jsonify({"tasks": []})
-        if task_company_id is not None:
-            where.append(
-                """(
-                    EXISTS (
-                        SELECT 1 FROM vendor_projects vp2
-                        LEFT JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci
-                        WHERE vp2.id = vt.project_id AND mp.Company_id = %s
-                    )
-                    OR EXISTS (
-                        SELECT 1 FROM projects mp2
-                        WHERE mp2.id = vt.project_id AND mp2.Company_id = %s
-                    )
-                )"""
-            )
-            params.extend([task_company_id, task_company_id])
+            if staff_role not in VENDOR_TASK_STAFF_ROLES:
+                return jsonify({"tasks": []})
+            if task_company_id is not None:
+                where.append("""(EXISTS (SELECT 1 FROM vendor_projects vp2 LEFT JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci WHERE vp2.id = vt.project_id AND mp.Company_id = %s) OR EXISTS (SELECT 1 FROM projects mp2 WHERE mp2.id = vt.project_id AND mp2.Company_id = %s))""")
+                params.extend([task_company_id, task_company_id])
+
     if status:
         if not is_team_view and status == "Todo":
             where.append(
@@ -5465,6 +5441,16 @@ def list_vendor_tasks():
         # For frontend compatibility
         d["projectid"] = d.get("project_id")
         d["due_date"] = d.get("due_date")
+
+        # Set flags for frontend partitioning
+        assignee_val = str(r.get("assigned_to")).strip() if r.get("assigned_to") is not None else None
+        d["is_assigned_to_me"] = (
+            (assignee_val in [str(x) for x in my_ids]) 
+            or (user_full_name and assignee_val == user_full_name)
+        )
+        uploader_val = str(r.get("vendor_id")).strip() if r.get("vendor_id") is not None else None
+        d["is_owned_by_me"] = (uploader_val in [str(x) for x in my_ids])
+
         if not is_team_view:
             creator_id = d.get("vendor_id")
             assignee_id = d.get("assigned_to")
@@ -7293,6 +7279,9 @@ def list_vendor_teams():
     _ensure_vendor_team_table()
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+    my_ids = _get_all_my_ids()
+    if not my_ids:
+        return jsonify({"teams": []})
 
     cur.execute(
         """
@@ -7310,10 +7299,10 @@ def list_vendor_teams():
         FROM vendor_team vt
         LEFT JOIN employee e_leader ON vt.leader = e_leader.id
         LEFT JOIN employee e_pl ON vt.project_lead = e_pl.id
-        WHERE vt.vendor_id = %s
+        WHERE vt.vendor_id IN ({",".join(["%s"] * len(my_ids))})
         ORDER BY vt.created_at DESC
         """,
-        (user_id,),
+        tuple(my_ids),
     )
     rows = cur.fetchall()
     teams = [{k: _serialize(v) for k, v in r.items()} for r in rows]

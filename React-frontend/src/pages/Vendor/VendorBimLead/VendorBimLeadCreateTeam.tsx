@@ -117,7 +117,9 @@ export default function VendorBimLeadCreateTeam() {
     Promise.all([
       api.get<{ teams?: Team[] }>("/api/vendors/vendor-teams"),
       api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
-      api.get<{ employees?: Employee[] }>("/api/employees"),
+      api.get<{ success?: boolean; resources?: Employee[] }>(
+        "/api/vendors/vendor-resource-profiles",
+      ),
     ])
       .then(([teamsRes, projectsRes, employeesRes]) => {
         // Normalize backend response fields to match UI usage.
@@ -129,7 +131,7 @@ export default function VendorBimLeadCreateTeam() {
         }));
         setTeams(normalized);
         setProjects(projectsRes.data.projects ?? []);
-        setEmployees(employeesRes.data.employees ?? []);
+        setEmployees(employeesRes.data.resources ?? []);
       })
       .finally(() => setLoading(false));
   };
