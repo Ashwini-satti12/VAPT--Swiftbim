@@ -230,6 +230,15 @@ def change_password():
     # Store md5 hash for compatibility with legacy schema/data.
     # (Other auth paths already support md5 and this avoids column-length issues.)
     hashed = hashlib.md5(new_password.encode()).hexdigest()
-    cur.execute(f"UPDATE {table} SET password = %s WHERE id = %s", (hashed, g.user_id))
+    
+    # Update both tables to ensure no duplicate email records cause login confusion
+    email = getattr(g, "user_email", None)
+    if email:
+        cur.execute("UPDATE employee SET password = %s WHERE email = %s", (hashed, email))
+        cur.execute("UPDATE vendor_employee SET password = %s WHERE email = %s", (hashed, email))
+    else:
+        # Fallback to ID-based update if email is somehow missing from context
+        cur.execute(f"UPDATE {table} SET password = %s WHERE id = %s", (hashed, g.user_id))
+        
     conn.commit()
-    return jsonify({"success": True, "message": "Password updated"})
+    return jsonify({"success": True, "message": "Password updated successfully"})
