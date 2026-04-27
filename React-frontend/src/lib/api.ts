@@ -7,10 +7,17 @@ import axios from 'axios';
  *   and `vite.config.ts` proxies to Flask — works the same on every laptop (no hard-coded :5000 in the browser).
  */
 /** Exported for asset URLs (`/uploads`, profile images) — same rules as Axios `baseURL`. */
+// local development
 export const appApiBase =
   import.meta.env.VITE_API_URL ||
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? '' : 'http://127.0.0.1:5000/');
+
+// // remote development
+// export const appApiBase =
+//   import.meta.env.VITE_API_URL ||
+//   import.meta.env.VITE_API_BASE_URL ||
+//   (import.meta.env.DEV ? '' : 'https://projectmanagement.swifterz.ae/');
 
 const baseURL = appApiBase;
 
