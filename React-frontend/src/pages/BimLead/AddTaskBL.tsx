@@ -152,8 +152,11 @@ export default function AddTaskBL() {
   const [serverAttachmentDeleting, setServerAttachmentDeleting] =
     useState(false);
 
+  // Only show Review Remark in EDIT mode for delegated tasks (not during Add New Task)
   const showReviewRemarkField =
-    addTaskForm.assignTo && addTaskForm.assignTo !== user?.full_name;
+    !!editingTask &&
+    addTaskForm.assignTo &&
+    addTaskForm.assignTo !== user?.full_name;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formProjectTriggerRef = useRef<HTMLElement | null>(null);
@@ -637,6 +640,37 @@ export default function AddTaskBL() {
         } else {
           await api.patch(url, payload);
         }
+        try {
+          const STORAGE_KEY = "bl_myTask_localTasks";
+          const raw = localStorage.getItem(STORAGE_KEY);
+          const currentLocal = raw ? JSON.parse(raw) : [];
+          if (Array.isArray(currentLocal)) {
+            const index = currentLocal.findIndex((t: any) => t.id === editingTaskId);
+            if (index !== -1) {
+              currentLocal[index] = {
+                ...currentLocal[index],
+                task_name: payload.task_name,
+                due_date: payload.due_date,
+                project_name: addTaskForm.projectName,
+                start_date: payload.start_date,
+                Actual_start_time: payload.start_date,
+                perferstart_time: payload.perferstart_time,
+                start_time: payload.perferstart_time,
+                perferend_time: payload.perferend_time,
+                end_time: payload.perferend_time,
+                due_time: payload.perferend_time,
+                modules_name: payload.modules_name,
+                module: payload.modules_name,
+                description: payload.description,
+                checklist: payload.checklist,
+                review_remark: payload.review_remark
+              };
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(currentLocal));
+            }
+          }
+        } catch (e) {
+          console.error("Local task update failed:", e);
+        }
         toast.success("Updated successfully");
       } else {
         const url = isOutsource ? "/api/vendors/vendor-tasks" : "/api/tasks";
@@ -663,8 +697,22 @@ export default function AddTaskBL() {
                 uploader_full_name: user?.full_name,
                 assigned_to: user?.id,
                 uploaderid: user?.id,
+                assigned_profile_picture: user?.profile_picture,
+                uploader_profile_picture: user?.profile_picture,
                 source: isOutsource ? "Outsource" : "In House",
-                created_at: new Date().toISOString()
+                created_at: new Date().toISOString(),
+                start_date: payload.start_date,
+                Actual_start_time: payload.start_date,
+                perferstart_time: payload.perferstart_time,
+                start_time: payload.perferstart_time,
+                perferend_time: payload.perferend_time,
+                end_time: payload.perferend_time,
+                due_time: payload.perferend_time,
+                modules_name: payload.modules_name,
+                module: payload.modules_name,
+                description: payload.description,
+                checklist: payload.checklist,
+                review_remark: payload.review_remark
               };
               currentLocal.unshift(newTask);
               localStorage.setItem(STORAGE_KEY, JSON.stringify(currentLocal));
@@ -771,7 +819,7 @@ export default function AddTaskBL() {
                   label="Select Project name"
                   options={[
                     { value: "", label: "Select Project name" },
-                    ...projects.map((p) => ({
+                    ...projects.filter((p) => p.source !== "Outsource").map((p) => ({
                       value: p.project_name,
                       label: p.project_name,
                     })),
@@ -861,30 +909,6 @@ export default function AddTaskBL() {
                 </div>
               </div>
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
-                <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Type <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <FormDropdown
-                    label="Select Type"
-                    options={[
-                      { value: "", label: "Select Type" },
-                      { value: "task", label: "Task" },
-                      { value: "bug", label: "Bug" },
-                      { value: "feature", label: "Feature" },
-                    ]}
-                    value={addTaskForm.type}
-                    onChange={(v) => setAddTaskForm((f) => ({ ...f, type: v }))}
-                    isOpen={openFormDropdown === "type"}
-                    onToggle={() =>
-                      setOpenFormDropdown((d) => (d === "type" ? null : "type"))
-                    }
-                    onClose={() => setOpenFormDropdown(null)}
-                    triggerRef={formTypeTriggerRef}
-                    dropdownRef={formTypeMenuRef}
-                    searchable
-                  />
-                </div>
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Start Date <span className="text-[#DD4342]">*</span>

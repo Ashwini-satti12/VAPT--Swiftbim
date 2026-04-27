@@ -638,7 +638,7 @@ export default function AddTaskTD() {
                                     label="Select Project name"
                                     options={[
                                         { value: "", label: "Select Project name" },
-                                        ...projects.map((p) => ({ value: p.project_name, label: p.project_name })),
+                                        ...projects.filter(p => p.source !== "Outsource").map((p) => ({ value: p.project_name, label: p.project_name })),
                                     ]}
                                     value={addTaskForm.projectName}
                                     onChange={(v) => setAddTaskForm((f) => ({ ...f, projectName: v }))}
