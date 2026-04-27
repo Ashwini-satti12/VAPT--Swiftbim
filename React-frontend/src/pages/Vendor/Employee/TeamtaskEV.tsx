@@ -181,6 +181,8 @@ interface Task {
     module?: string;
     modules_name?: string;
     type?: string;
+    category?: string;
+    category_name?: string;
     start_time?: string;
     due_time?: string;
     end_time?: string;
@@ -354,6 +356,8 @@ function TaskCard({
         const year = date.getFullYear();
         return `${day}/${month}/${year}`;
     };
+
+    const isCompletedCol = status === "completed";
 
     return (
         <div

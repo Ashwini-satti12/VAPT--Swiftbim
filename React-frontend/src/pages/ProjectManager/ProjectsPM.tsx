@@ -1966,7 +1966,7 @@ export default function ProjectsPM() {
                             <div className="text-right">
                               <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
                                 {Number(m.milestone_amount).toLocaleString()}{" "}
-                                {selectedProjectForView.currency || "INR"}
+                                {selectedProjectForView?.currency || "INR"}
                               </p>
                               <span className={`inline-block px-3 py-1 rounded-full text-[12px] font-bold font-Gantari ${m.status === 'Paid' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
                                 {m.status}

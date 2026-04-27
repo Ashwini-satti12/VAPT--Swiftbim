@@ -419,6 +419,7 @@ function TaskCard({
     onViewTask,
     onEditTask,
     onDeleteTask,
+    onApproveTask,
 }: {
     task: Task;
     status: "todo" | "in_progress" | "completed";

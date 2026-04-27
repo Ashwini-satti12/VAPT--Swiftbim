@@ -390,6 +390,7 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
   assignTo: string;
   description: string;
   checklist: string;
+  reviewRemark: string;
 } {
   const t = task as Record<string, unknown>;
   const str = (v: unknown) => (v != null ? String(v) : "");
@@ -439,6 +440,7 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
     ),
     description: str(t.description ?? ""),
     checklist: str(t.checklist ?? ""),
+    reviewRemark: str(t.review_remark ?? ""),
   };
 }
 
@@ -462,6 +464,7 @@ function TaskCard({
   onViewTask,
   onEditTask,
   onDeleteTask,
+  onApproveTask,
 }: {
   task: Task;
   status: "todo" | "in_progress" | "completed";

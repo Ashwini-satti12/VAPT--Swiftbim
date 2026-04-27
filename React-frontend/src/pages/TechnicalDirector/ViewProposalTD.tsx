@@ -21,6 +21,8 @@ interface Proposal {
   project_name: string;
   vendor_name: string;
   vendor_email: string;
+  /** Used to fetch vendor bid details in some flows. */
+  bid_id?: number | string;
   bid_amount?: number | string;
   bid_currency?: string;
   selected_currency?: string;
