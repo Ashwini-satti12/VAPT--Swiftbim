@@ -12,6 +12,7 @@ import ImageIcon from "../../assets/ProjectManager/MyTask/image.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import downloadIcon from "../../assets/TechnicalDirector/download icon.svg";
+import { useAuth } from "../../contexts/AuthContext";
 
 
 interface Task {
@@ -180,6 +181,7 @@ export default function MytaskViewV() {
   const initialTask = state?.task;
   const fromTeamTask = state?.from === "teamtask";
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [task, setTask] = useState<Task | undefined>(initialTask);
 
@@ -201,6 +203,8 @@ export default function MytaskViewV() {
   const [vendorResourceProfiles, setVendorResourceProfiles] = useState<
     Employee[]
   >([]);
+  const [reviewRemarkInput, setReviewRemarkInput] = useState("");
+  const [sendingBack, setSendingBack] = useState(false);
 
   const submittedOutputFiles = useMemo(() => {
     return (task?.outputfilepath || "")
@@ -260,18 +264,19 @@ export default function MytaskViewV() {
         : newStatus === "todo"
           ? "Todo"
           : "InProgress";
+    const uploaderId = (task as any).uploaderid ?? (task as any).vendor_id;
     const isAssignedBySomeoneElse =
       task.assigned_to != null &&
-      task.uploaderid != null &&
-      String(task.assigned_to) !== String(task.uploaderid);
-    const nextProgress =
-      newStatus === "completed"
-        ? isAssignedBySomeoneElse
-          ? 95  // Under review, waiting for approval
-          : 100
-        : newStatus === "in_progress"
-          ? 50
-          : 0;
+      uploaderId != null &&
+      String(task.assigned_to) !== String(uploaderId);
+    const isCurrentUserAssigner = String(uploaderId) === String(user?.id);
+
+    let nextProgress = 0;
+    if (newStatus === "completed") {
+      nextProgress = (isAssignedBySomeoneElse && !isCurrentUserAssigner) ? 95 : 100;
+    } else if (newStatus === "in_progress") {
+      nextProgress = 50;
+    }
 
     try {
       await api.patch(`/api/vendors/vendor-tasks/${task.id}/status`, {
@@ -294,6 +299,54 @@ export default function MytaskViewV() {
     } finally {
       setUpdatingStatus(false);
       setStatusDropdownOpen(false);
+    }
+  };
+
+  const handleApproveWork = async () => {
+    if (!task || updatingStatus) return;
+    setUpdatingStatus(true);
+    try {
+      await api.patch(`/api/vendors/vendor-tasks/${task.id}/status`, {
+        status: "Approved",
+      });
+      setTask((prev) =>
+        prev ? { ...prev, Approval: "Approved", progress: 100 } : prev,
+      );
+      setStatusDisplay("approved");
+      toast.success("Task Approved");
+    } catch (error) {
+      toast.error("Failed to approve task");
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const handleSendBackWork = async () => {
+    if (!task || sendingBack) return;
+    const remark = (reviewRemarkInput || "").trim();
+    if (!remark) {
+      toast.error("Please enter review remark before sending back.");
+      return;
+    }
+    setSendingBack(true);
+    try {
+      // Logic from MytaskViewTD but for vendor-tasks
+      await api.patch(`/api/vendors/vendor-tasks/${task.id}`, {
+        review_remark: remark,
+      });
+      await api.patch(`/api/vendors/vendor-tasks/${task.id}/status`, {
+        status: "Todo",
+      });
+      setTask((prev) =>
+        prev ? { ...prev, review_remark: remark, status: "Todo", progress: 0 } : prev,
+      );
+      setStatusDisplay("todo");
+      toast.success("Returned to assignee in To Do.");
+    } catch (error) {
+      console.error("Error sending task back:", error);
+      toast.error("Failed to send back task");
+    } finally {
+      setSendingBack(false);
     }
   };
 
@@ -378,6 +431,7 @@ export default function MytaskViewV() {
     if (!task) return;
     const next = normalizeStatus(task.status, task.Approval);
     setStatusDisplay(next);
+    setReviewRemarkInput((task as any).review_remark || "");
   }, [task]);
 
   useEffect(() => {
@@ -411,11 +465,18 @@ export default function MytaskViewV() {
     );
   }
 
+
+
+  const uploaderId = (task as any).uploaderid ?? (task as any).vendor_id;
   const isUnderReview =
     statusDisplay === "completed" &&
     task.assigned_to != null &&
-    task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid);
+    uploaderId != null &&
+    String(task.assigned_to) !== String(uploaderId) &&
+    task.Approval?.toLowerCase() !== "approved";
+
+  const isCurrentUserAssigner = String(uploaderId) === String(user?.id);
+
   const style = {
     ...STATUS_STYLE[statusDisplay],
     label: isUnderReview ? "Under Review" : STATUS_STYLE[statusDisplay].label,
@@ -604,6 +665,19 @@ export default function MytaskViewV() {
                 {formatTimeDisplay(task.due_time ?? task.end_time)}
               </span>
             </div>
+            <div className="flex gap-2">
+              <span className="text-[#020202] shrink-0 w-28">Progress</span>
+              <span className="text-[#020202] shrink-0">:</span>
+              <span className="text-[#616161]">
+                {isUnderReview
+                  ? statusDisplay === "todo"
+                    ? "0% (Under Review)"
+                    : statusDisplay === "in_progress"
+                      ? "50% (Under Review)"
+                      : "95% (Under Review)"
+                  : `${task.progress ?? 0}%`}
+              </span>
+            </div>
             <div className="flex flex-col gap-2">
               <div className="flex gap-2">
                 <span className="text-[#020202] shrink-0 w-28 ">Attachments</span>
@@ -712,17 +786,39 @@ export default function MytaskViewV() {
           </div>
         </div>
 
-        {/* Review Remark (Optional context for assignee) */}
-        {task.review_remark && (
-          <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col mb-10">
-            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">
-              Review Remark
-            </h4>
-            <div className="rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 font-Gantari min-h-[80px]">
-              {task.review_remark}
+        {/* Review Remark Section */}
+        <div className="mt-8 border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col mb-10">
+          <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">
+            Review Remark
+          </h4>
+          <textarea
+            value={reviewRemarkInput}
+            onChange={(e) => setReviewRemarkInput(e.target.value)}
+            placeholder="Enter corrections / changes for assignee..."
+            rows={4}
+            className="w-full rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 font-Gantari border border-transparent outline-none focus:border-slate-300 resize-none mb-4"
+          />
+          {isUnderReview && isCurrentUserAssigner && (
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={handleSendBackWork}
+                disabled={sendingBack || updatingStatus}
+                className="rounded-md bg-[#DBE9FE] px-4 py-2 text-[14px] font-semibold text-[#101827] disabled:opacity-50 cursor-pointer"
+              >
+                {sendingBack ? "Sending..." : "Send Back To Assignee"}
+              </button>
+              <button
+                type="button"
+                onClick={handleApproveWork}
+                disabled={updatingStatus || sendingBack}
+                className="rounded-md bg-green-100 px-6 py-2 text-[14px] font-semibold text-green-700 hover:bg-green-600 hover:text-white transition-colors disabled:opacity-50 cursor-pointer border border-green-200"
+              >
+                {updatingStatus ? "Approving..." : "Approve Task"}
+              </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

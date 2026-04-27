@@ -47,6 +47,7 @@ export default function BiddingTD() {
     null,
   );
   const [selectedShowEntries, setSelectedShowEntries] = useState("");
+  const [tableCurrentPage, setTableCurrentPage] = useState(1);
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
   const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
@@ -117,7 +118,33 @@ export default function BiddingTD() {
     selectedRange.end === null
       ? filtered.length
       : Math.min(selectedRange.end, filtered.length);
-  const displayList = filtered.slice(selectedRange.start, rangeEnd);
+  const listInRange = filtered.slice(selectedRange.start, rangeEnd);
+  const tableRowsPerPage = 5;
+  const tableTotalPages = Math.max(
+    1,
+    Math.ceil(listInRange.length / tableRowsPerPage),
+  );
+  const safeTableCurrentPage = Math.min(tableCurrentPage, tableTotalPages);
+  const tablePageStartIndex = (safeTableCurrentPage - 1) * tableRowsPerPage;
+  const displayList = listInRange.slice(
+    tablePageStartIndex,
+    tablePageStartIndex + tableRowsPerPage,
+  );
+  const tablePageRangeStart =
+    listInRange.length === 0 ? 0 : selectedRange.start + tablePageStartIndex + 1;
+  const tablePageRangeEnd =
+    listInRange.length === 0
+      ? 0
+      : Math.min(
+          selectedRange.start + tablePageStartIndex + tableRowsPerPage,
+          rangeEnd,
+        );
+  const tablePageRangeLabel =
+    listInRange.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
+
+  useEffect(() => {
+    setTableCurrentPage(1);
+  }, [selectedShowEntries, searchQuery]);
 
   if (selectedProject) {
     return (
@@ -240,13 +267,12 @@ export default function BiddingTD() {
 
       {/* Table Card */}
       <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mx-2 mb-2 sm:mx-0 sm:mb-0">
-        <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-250px)] sm:max-h-[calc(100vh-220px)]">
-          {loading ? (
-            <div className="flex justify-center items-center py-20">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="py-20 text-center text-[#616161] font-gantari">
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-20 text-center text-[#616161] font-gantari">
               <svg
                 className="w-14 h-14 mx-auto mb-4 text-[#AEACAC]"
                 fill="none"
@@ -266,8 +292,10 @@ export default function BiddingTD() {
               <p className="text-sm">
                 When a project is marked as Outsource, it will appear here.
               </p>
-            </div>
-          ) : (
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-250px)] sm:max-h-[calc(100vh-220px)]">
             <table className="min-w-full border-collapse">
               <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                 <tr className="border-b border-gray-100 bg-white">
@@ -298,7 +326,12 @@ export default function BiddingTD() {
                 {displayList.map((project, index) => {
                   const label = getStatusLabel(project);
                   const isOpen = label === "Open";
-                  const slNo = (selectedRange.start + index + 1)
+                  const slNo = (
+                    selectedRange.start +
+                    tablePageStartIndex +
+                    index +
+                    1
+                  )
                     .toString()
                     .padStart(2, "0");
                   return (
@@ -366,9 +399,60 @@ export default function BiddingTD() {
                 })}
               </tbody>
             </table>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
+      {!loading && filtered.length > 0 && listInRange.length > 0 && (
+        <div className="w-full flex items-center justify-end py-2 pr-4">
+          <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+            <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">
+              Showing:
+            </span>
+            <button
+              type="button"
+              onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safeTableCurrentPage === 1}
+              className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
+                safeTableCurrentPage === 1
+                  ? "text-[#9CA3AF] opacity-50 cursor-not-allowed"
+                  : "text-[#353535]"
+              }`}
+              aria-label="Previous page"
+            >
+              <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">
+                &#8249;
+              </span>
+              <span className="inline-flex items-center">Prev</span>
+            </button>
+            <button
+              type="button"
+              className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+              aria-current="page"
+            >
+              {tablePageRangeLabel}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))
+              }
+              disabled={safeTableCurrentPage >= tableTotalPages}
+              className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
+                safeTableCurrentPage >= tableTotalPages
+                  ? "text-[#9CA3AF] opacity-40 cursor-not-allowed"
+                  : "text-[#353535]"
+              }`}
+              aria-label="Next page"
+            >
+              <span className="inline-flex items-center">Next</span>
+              <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">
+                &#8250;
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

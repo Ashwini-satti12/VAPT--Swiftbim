@@ -56,12 +56,12 @@ def load_user_context():
     user_type = getattr(g, "user_type", "employee")
     if user_type == "vendor":
         cur.execute(
-            "SELECT id, role AS user_role, 'Vendor' AS Allpannel, status AS active FROM vendor_employee WHERE id = %s",
+            "SELECT id, full_name, role AS user_role, 'Vendor' AS Allpannel, status AS active FROM vendor_employee WHERE id = %s",
             (g.user_id,),
         )
     else:
         cur.execute(
-            "SELECT id, user_role, Allpannel, active FROM employee WHERE id = %s AND Company_id = %s",
+            "SELECT id, full_name, user_role, Allpannel, active FROM employee WHERE id = %s AND Company_id = %s",
             (g.user_id, g.company_id),
         )
     row = cur.fetchone()
@@ -71,6 +71,7 @@ def load_user_context():
         g.is_super_admin = False
     else:
         g.user_role = (row.get("user_role") or "").strip()
+        g.user_full_name = (row.get("full_name") or "").strip()
         raw = (row.get("Allpannel") or "").strip()
         g.allpannel = [p.strip() for p in raw.split(",") if p.strip()]
         g.is_super_admin = row.get("id") == 1

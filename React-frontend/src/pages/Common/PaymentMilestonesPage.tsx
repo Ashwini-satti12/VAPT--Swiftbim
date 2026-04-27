@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
+import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
 
 type Scope = {
   project_id: number;
@@ -66,6 +67,9 @@ export default function PaymentMilestonesPage() {
   const [loading, setLoading] = useState(true);
   const [creatingId, setCreatingId] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
+  const [showProjectCards, setShowProjectCards] = useState<boolean>(
+    !Number(searchParams.get("project_id") || 0),
+  );
 
   useEffect(() => {
     let dead = false;
@@ -185,6 +189,15 @@ export default function PaymentMilestonesPage() {
     setSearchParams(params, { replace: true });
   };
 
+  const openProjectDetails = (projectId: number) => {
+    onScopeChange(projectId);
+    setShowProjectCards(false);
+  };
+
+  const backToProjects = () => {
+    setShowProjectCards(true);
+  };
+
   const createInvoice = async (m: Milestone) => {
     try {
       setCreatingId(m.id);
@@ -206,7 +219,7 @@ export default function PaymentMilestonesPage() {
   const vendorRows = useMemo(() => rows.filter((r) => r.side === "vendor"), [rows]);
 
   const renderRows = (title: string, list: Milestone[]) => (
-    <div className="border border-[rgb(89,89,89)]/20 rounded-xl p-4 bg-white">
+    <div className="border border-[#AEACAC52] rounded-xl p-4 bg-white">
       <h3 className="font-semibold text-[18px] text-[#000000] mb-3">{title}</h3>
       {list.length === 0 ? (
         <p className="text-[14px] text-[#666]">No milestones available.</p>
@@ -220,7 +233,7 @@ export default function PaymentMilestonesPage() {
               (isCommercial && m.side === "client") || (!isCommercial && m.side === "vendor");
             const isCommercialVendor = isCommercial && m.side === "vendor";
             return (
-              <div key={m.id} className="border border-slate-200 rounded-lg px-4 py-4 bg-[#F9FAFB]">
+              <div key={m.id} className="border border-[#AEACAC52] rounded-lg px-4 py-4 bg-[#F9FAFB]">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-bold text-[#353535] text-[15px]">{m.title || "Milestone"}</h4>
                   <span
@@ -281,23 +294,67 @@ export default function PaymentMilestonesPage() {
     <div className="h-full min-h-0 flex flex-col">
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <h1 className="text-[24px] font-semibold">Payment Milestones</h1>
-        <select
-          className="bg-[#E8E8E8] rounded-lg px-4 py-2 text-sm min-w-[280px]"
-          value={scope?.project_id || ""}
-          onChange={(e) => onScopeChange(Number(e.target.value))}
-        >
-          {!scopes.length ? <option value="">No projects</option> : null}
-          {scopes.map((s) => (
-            <option key={s.project_id} value={s.project_id}>
-              {s.project_name}
-            </option>
-          ))}
-        </select>
+        {showProjectCards ? (
+          <div className="text-sm text-[#666]">{scopes.length} Projects</div>
+        ) : (
+          <div className="relative group">
+            <button
+              type="button"
+              onClick={backToProjects}
+              className="h-10 w-10 inline-flex items-center justify-center rounded-md bg-[#E8E8E8] text-[#353535] hover:bg-[#DFDFDF] transition-colors"
+              aria-label="Back to projects"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <div className="pointer-events-none absolute right-0 top-full mt-1 whitespace-nowrap rounded bg-[#353535] px-2 py-1 text-[11px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+              Back to projects
+            </div>
+          </div>
+        )}
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto pr-1">
         {error ? <p className="text-sm text-red-600 mb-3">{error}</p> : null}
         {loading ? (
           <p className="text-[#666]">Loading milestones...</p>
+        ) : showProjectCards ? (
+          scopes.length === 0 ? (
+            <p className="text-[#666]">No projects available.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {scopes.map((s) => {
+                const isActive = scope?.project_id === s.project_id;
+                return (
+                  <button
+                    key={s.project_id}
+                    type="button"
+                    onClick={() => openProjectDetails(s.project_id)}
+                    className={`text-left border rounded-xl p-5 bg-white hover:shadow-sm transition-all ${
+                      isActive ? "border-[#DD4342]" : "border-[#AEACAC52]"
+                    }`}
+                  >
+                    <h3 className="text-[18px] font-medium text-[#353535] break-words line-clamp-2 min-h-[56px]">
+                      {s.project_name}
+                    </h3>
+                    <div className="mt-4 pt-4 border-t border-[#AEACAC52] flex items-center justify-between">
+                      <span className="inline-flex items-center bg-[#FFEAD6] text-[#D08A3A] rounded-md px-3 py-1 text-[14px] font-semibold">
+                        View Milestones
+                      </span>
+                      <span className="group inline-flex items-center text-[#8B8B8B] text-[14px] font-medium gap-2">
+                        Details
+                        <img
+                          src={Arrow}
+                          alt="arrow"
+                          className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
+                        />
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )
         ) : isCommercial && scope?.is_outsource ? (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {renderRows("Client Side (Receivables)", clientRows)}

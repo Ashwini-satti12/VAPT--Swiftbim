@@ -157,6 +157,8 @@ export default function MytaskViewTD() {
   const [reviewRemarkInput, setReviewRemarkInput] = useState("");
   const [sendingBack, setSendingBack] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Track when we're manually updating status so the task-sync useEffect doesn't override it
+  const manualStatusUpdateRef = useRef(false);
 
   // Fetch task if missing (on refresh)
   useEffect(() => {
@@ -218,6 +220,7 @@ export default function MytaskViewTD() {
         status: backendStatus,
         projectId: task.projectid,
       });
+      manualStatusUpdateRef.current = true;
       setStatusDisplay(newStatus);
       setTask((prev) =>
         prev
@@ -229,6 +232,11 @@ export default function MytaskViewTD() {
                   : newStatus === "todo"
                     ? "To Do"
                     : "InProgress",
+              // Clear Approval when manually changing status so useEffect doesn't re-lock to "approved"
+              Approval: newStatus === "completed" && prev.uploaderid != null && prev.assigned_to != null &&
+                String(prev.uploaderid) === String(prev.assigned_to)
+                  ? "Approved"
+                  : undefined,
             }
           : prev,
       );
@@ -282,6 +290,12 @@ export default function MytaskViewTD() {
 
   useEffect(() => {
     if (!task) return;
+    // Don't override status if we just manually updated it
+    if (manualStatusUpdateRef.current) {
+      manualStatusUpdateRef.current = false;
+      setReviewRemarkInput(task.review_remark || "");
+      return;
+    }
     const next = normalizeStatus(task.status, task.Approval);
     setStatusDisplay(next);
     setReviewRemarkInput(task.review_remark || "");
@@ -667,13 +681,17 @@ export default function MytaskViewTD() {
             </div>
           </div>
 
-          {/* Review Remark (after checklist) */}
-          <div className="mt-6 border border-slate-200 rounded-xl p-6">
-            <h4 className="text-black text-md mb-2">Review Remark</h4>
-            <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-              {task.review_remark || "No review remark provided."}
+          {/* Review Remark — only show for delegated tasks (uploader != assignee) */}
+          {task.uploaderid != null &&
+            task.assigned_to != null &&
+            String(task.uploaderid) !== String(task.assigned_to) && (
+            <div className="mt-6 border border-slate-200 rounded-xl p-6">
+              <h4 className="text-black text-md mb-2">Review Remark</h4>
+              <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+                {task.review_remark || "No review remark provided."}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

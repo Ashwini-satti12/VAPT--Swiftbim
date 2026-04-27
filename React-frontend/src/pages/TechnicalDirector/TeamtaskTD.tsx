@@ -695,7 +695,7 @@ export default function TeamtaskTD() {
 
   const projectOptions = [
     "Select Projects",
-    ...projects.map((p) => p.project_name),
+    ...projects.filter((p) => p.source !== "Outsource").map((p) => p.project_name),
   ];
 
 

@@ -129,13 +129,26 @@ def task_notifications():
     rows = cur.fetchall()
     from datetime import datetime
     today_str = datetime.now().strftime("%d %B %Y")
+    
+    def format_date(d):
+        if not d:
+            return ""
+        if hasattr(d, "strftime"):
+            return d.strftime("%d %B %Y")
+        if isinstance(d, str):
+            try:
+                return datetime.strptime(d.split()[0], "%Y-%m-%d").strftime("%d %B %Y")
+            except Exception:
+                return d
+        return str(d)
+
     notifications = []
     for r in rows:
         due = r.get("due_date")
-        due_str = due.strftime("%d %B %Y") if due else ""
+        due_str = format_date(due)
         status = r.get("status") or ""
         created = r.get("created_at")
-        created_str = created.strftime("%d %B %Y") if created else ""
+        created_str = format_date(created)
         message = ""
         if status in ("Todo", "InProgress") and due_str == today_str and due_str != created_str:
             message = "Due today"

@@ -26,6 +26,7 @@ interface Task {
   assign_to?: string;
   description?: string;
   checklist?: string;
+  review_remark?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
   assigned_to?: number;
@@ -33,7 +34,6 @@ interface Task {
   Approval?: string;
   modules_name?: string;
   modules?: string;
-  category?: string;
   Actual_start_time?: string;
   perferstart_time?: string;
   perferend_time?: string;
@@ -415,36 +415,73 @@ export default function MytaskViewPM() {
               </span>
             </div>
             <div className="relative" ref={statusDropdownRef}>
-              <button
-                type="button"
-                disabled={updatingStatus}
-                onClick={() => setStatusDropdownOpen((prev) => !prev)}
-                className="rounded-[5px] bg-[#E8E8E8] px-3 py-2 text-[14px] text-[#8B8B8B] flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer border-0"
-              >
-                {updatingStatus ? "Updating..." : "Select Status"}
-                <FiChevronDown className="w-5 h-5 text-[#8B8B8B]" />
-              </button>
-              {statusDropdownOpen && !updatingStatus && (
-                <div className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200">
-                  {STATUS_OPTIONS.filter(opt => !(shouldHideInProgressInDropdown(statusDisplay) && opt.value === "in_progress")).map((opt) => {
-                    const disabled = isStatusOptionDisabled(statusDisplay, opt.value);
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => handleStatusUpdate(opt.value)}
-                        className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors ${disabled ? "text-slate-300 cursor-not-allowed opacity-60" : "cursor-pointer text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"} ${statusDisplay === opt.value && !disabled ? "bg-[#F2F2F2] text-[#353535] font-medium" : ""}`}
-                      >
-                        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`} />
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
+              {/* If it's a review task, don't show the status dropdown. They use Approve/Reject below. */}
+              {!canReview && (
+                <>
+                  <button
+                    type="button"
+                    disabled={updatingStatus}
+                    onClick={() => setStatusDropdownOpen((prev) => !prev)}
+                    className="rounded-[5px] bg-[#E8E8E8] px-3 py-2 text-[14px] text-[#8B8B8B] flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer border-0"
+                  >
+                    {updatingStatus ? "Updating..." : "Select Status"}
+                    <FiChevronDown className="w-5 h-5 text-[#8B8B8B]" />
+                  </button>
+                  {statusDropdownOpen && !updatingStatus && (
+                    <div className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200">
+                      {STATUS_OPTIONS.filter(opt => !(shouldHideInProgressInDropdown(statusDisplay) && opt.value === "in_progress")).map((opt) => {
+                        const disabled = isStatusOptionDisabled(statusDisplay, opt.value);
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => handleStatusUpdate(opt.value)}
+                            className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors ${disabled ? "text-slate-300 cursor-not-allowed opacity-60" : "cursor-pointer text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"} ${statusDisplay === opt.value && !disabled ? "bg-[#F2F2F2] text-[#353535] font-medium" : ""}`}
+                          >
+                            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`} />
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
+
+          {/* Assigner Review Actions */}
+          {canReview && (
+            <div className="mb-6 p-4 border border-[#FFE5E5] bg-[#FFF9F9] rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div>
+                <h4 className="text-[#E00100] font-semibold text-md">Task Pending Review</h4>
+                <p className="text-slate-600 text-sm mt-1">
+                  The assignee has marked this task as completed. Please review their work.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleSendBackForCorrection}
+                  disabled={sendingBack || approving}
+                  className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors cursor-pointer flex items-center gap-2"
+                >
+                  <FiX className="w-4 h-4" />
+                  {sendingBack ? "Sending..." : "Send Back to To Do"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApprove}
+                  disabled={approving || sendingBack}
+                  className="px-4 py-2 bg-[#E00100] text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors cursor-pointer flex items-center gap-2"
+                >
+                  <FiCheck className="w-4 h-4" />
+                  {approving ? "Approving..." : "Approve & Mark 100%"}
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="w-full border border-slate-200 rounded-xl p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 text-[14px]">
@@ -457,11 +494,6 @@ export default function MytaskViewPM() {
                 <span className="text-[#020202] font-medium shrink-0 w-32">Modules Name</span>
                 <span className="text-[#020202] shrink-0">:</span>
                 <span className="text-[#616161] break-words">{moduleNameDisplay}</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-[#020202] font-medium shrink-0 w-32">Category</span>
-                <span className="text-[#020202] shrink-0">:</span>
-                <span className="text-[#616161]">{String(task.category || task.type || "—")}</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 w-32">Assigned By</span>
@@ -527,13 +559,25 @@ export default function MytaskViewPM() {
               {task.description || "Event (Consultant Partnership)..."}
             </div>
           </div>
-
           <div className="mt-6 border border-slate-200 rounded-xl p-6">
-            <h4 className="text-black text-md mb-2">Review Remark</h4>
+            <h4 className="text-black text-md mb-2">Checklist/references</h4>
             <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-              {task.review_remark || "No review remark provided."}
+              {task.checklist || "Event (Consultant Partnership)..."}
             </div>
           </div>
+
+
+          {/* Review Remark — only for delegated tasks */}
+          {task.uploaderid != null &&
+            task.assigned_to != null &&
+            String(task.uploaderid) !== String(task.assigned_to) && (
+            <div className="mt-6 border border-slate-200 rounded-xl p-6">
+              <h4 className="text-black text-md mb-2">Review Remark</h4>
+              <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+                {task.review_remark || "No review remark provided."}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

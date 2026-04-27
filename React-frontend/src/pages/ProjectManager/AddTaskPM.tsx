@@ -289,7 +289,9 @@ export default function AddTaskPM() {
     useState<PendingAttachmentDelete | null>(null);
 
   const showReviewRemarkField =
-    addTaskForm.assignTo && addTaskForm.assignTo !== user?.full_name;
+    editingTaskId !== null &&
+    addTaskForm.assignTo &&
+    addTaskForm.assignTo !== user?.full_name;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formProjectTriggerRef = useRef<HTMLElement | null>(null);
@@ -904,10 +906,12 @@ export default function AddTaskPM() {
                   label="Select Project"
                   options={[
                     { value: "", label: "Select Project" },
-                    ...projects.map((p) => ({
-                      value: p.project_name,
-                      label: p.project_name,
-                    })),
+                    ...projects
+                      .filter(p => p.source !== "Outsource")
+                      .map((p) => ({
+                        value: p.project_name,
+                        label: p.project_name,
+                      })),
                   ]}
                   value={addTaskForm.projectName}
                   onChange={(v) =>
@@ -1095,7 +1099,7 @@ export default function AddTaskPM() {
                     >
                       {addTaskForm.startTime
                         ? formatTimeForDisplay(addTaskForm.startTime)
-                        : "__:__"}
+                        : "--:--"}
                     </span>
                     <img
                       src={ArrowDown}
@@ -1141,7 +1145,7 @@ export default function AddTaskPM() {
                     >
                       {addTaskForm.dueTime
                         ? formatTimeForDisplay(addTaskForm.dueTime)
-                        : "__:__"}
+                        : "--:--"}
                     </span>
                     <img
                       src={ArrowDown}

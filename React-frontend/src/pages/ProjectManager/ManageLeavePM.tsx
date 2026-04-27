@@ -129,7 +129,7 @@ const showEntriesOptions: {
   { value: "all", label: "All", start: 0, end: null },
 ];
 
-const PER_PAGE = 10;
+const PER_PAGE = 5;
 const PAGINATION_VISIBLE = 4;
 
 const getTodayInputDate = (): string => {
@@ -600,7 +600,9 @@ export default function ManageLeavePM() {
   const canEditOwnLeave = (row: LeaveEntry): boolean => {
     const currentName = (user?.full_name || "").trim();
     if (!currentName) return false;
-    return row.employeeName.trim() === currentName && row.statusCode === 0;
+    const isOwnLeave = row.employeeName.trim() === currentName;
+    const isPendingState = (row.currentStatus || "").toLowerCase().includes("pending");
+    return isOwnLeave && isPendingState;
   };
 
   const handleApproveLeave = async (row: LeaveEntry) => {
@@ -703,6 +705,9 @@ export default function ManageLeavePM() {
     setPaginationWindowStart((s) =>
       Math.min(s + PAGINATION_VISIBLE, maxWindowStart),
     );
+  const tablePageRangeStart = listInRange.length === 0 ? 0 : rangeStart + (safePage - 1) * PER_PAGE + 1;
+  const tablePageRangeEnd = listInRange.length === 0 ? 0 : Math.min(rangeStart + safePage * PER_PAGE, rangeEnd);
+  const tablePageRangeLabel = listInRange.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
   void [
     activePage,
     visiblePageRanges,
@@ -1081,14 +1086,35 @@ export default function ManageLeavePM() {
                                   <button
                                     type="button"
                                     onClick={() => handleEdit(row)}
-                                    className={`inline-flex items-center justify-center p-2 rounded-md cursor-pointer ${
-                                      index % 2 === 1
-                                        ? "bg-[#FFFFFF]"
-                                        : "bg-[#F2F2F2]"
+                                    className={`inline-flex items-center justify-center px-4 py-2 rounded-md cursor-pointer ${
+                                      index % 2 === 0
+                                        ? "bg-[#F2F2F2]"
+                                        : "bg-[#FFFFFF]"
                                     }`}
                                     title="Edit"
                                   >
-                                    <img src={editIcon} alt="" className="w-4 h-4" />
+                                    <span className="relative inline-flex items-center justify-center w-4 h-4">
+                                      <img
+                                        src={editIcon}
+                                        alt=""
+                                        className="w-4 h-4 object-contain block"
+                                        onError={(e) => {
+                                          (e.currentTarget as HTMLImageElement).style.display = "none";
+                                        }}
+                                      />
+                                      <svg
+                                        className="absolute inset-0 w-4 h-4 text-[#616161]"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                        strokeWidth={2}
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        aria-hidden
+                                      >
+                                        <path d="M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4 12.5-12.5z" />
+                                      </svg>
+                                    </span>
                                   </button>
                                   <button
                                     type="button"
@@ -1114,6 +1140,46 @@ export default function ManageLeavePM() {
               </table>
             </div>
           </div>
+          {listInRange.length > 0 && (
+            <div className="w-full flex items-center justify-end py-2 pr-4">
+              <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+                <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage === 1}
+                  className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safePage === 1
+                    ? "text-[#9CA3AF] opacity-50 cursor-not-allowed"
+                    : "text-[#353535]"
+                    }`}
+                  aria-label="Previous page"
+                >
+                  <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
+                  <span className="inline-flex items-center">Prev</span>
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+                  aria-current="page"
+                >
+                  {tablePageRangeLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                  className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safePage >= totalPages
+                    ? "text-[#9CA3AF] opacity-40 cursor-not-allowed"
+                    : "text-[#353535]"
+                    }`}
+                  aria-label="Next page"
+                >
+                  <span className="inline-flex items-center">Next</span>
+                  <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

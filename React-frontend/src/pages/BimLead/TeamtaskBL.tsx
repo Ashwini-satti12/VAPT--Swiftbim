@@ -434,8 +434,8 @@ function TaskCard({
             task.uploaderid != null &&
             String(task.assigned_to) !== String(task.uploaderid)
             ? task.Approval?.toLowerCase() === "approved"
-              ? 100
-              : 95
+                ? 100
+                : 95
             : status === "todo"
                 ? 0
                 : status === "in_progress"
@@ -993,12 +993,12 @@ export default function TeamtaskBL() {
             status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
             projectId
         })
-        .then(() => toast.success(`Task moved to ${label} successfully!`))
-        .catch(err => {
-            console.error("Failed to update task status:", err);
-            toast.error(err.response?.data?.message || "Failed to update task status.");
-            // Optionally revert local state on error
-        });
+            .then(() => toast.success(`Task moved to ${label} successfully!`))
+            .catch(err => {
+                console.error("Failed to update task status:", err);
+                toast.error(err.response?.data?.message || "Failed to update task status.");
+                // Optionally revert local state on error
+            });
     };
 
     const handleApproveTask = (task: Task) => {
@@ -1043,7 +1043,7 @@ export default function TeamtaskBL() {
     };
 
     const openViewTask = (task: Task) => {
-        navigate("/bl/mytasks/view", { state: { task, from: "teamtask" } });
+        navigate(`/bl/mytasks/view/${task.id}`, { state: { task, from: "teamtask" } });
     };
 
     const confirmDeleteTask = () => {
@@ -1233,9 +1233,9 @@ export default function TeamtaskBL() {
 
     const projectOptions = [
         "Select Projects",
-        ...projects.map(p => p.project_name)
+        ...projects.filter(p => p.source !== "Outsource").map(p => p.project_name)
     ];
-    const modalProjectOptions = projects.map(p => ({ value: p.project_name, label: p.project_name }));
+    const modalProjectOptions = projects.filter(p => p.source !== "Outsource").map(p => ({ value: p.project_name, label: p.project_name }));
     const modalModuleOptions = modules.map(m => ({ value: m, label: m }));
 
 
@@ -1410,77 +1410,77 @@ export default function TeamtaskBL() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pl-5 pr-2 py-2">
                         <div
                             className="space-y-3 rounded-lg border-2 border-dashed border-transparent transition-colors"
-                        onDragOver={(e) => {
-                            e.preventDefault();
-                            e.dataTransfer.dropEffect = "move";
-                        }}
-                        onDrop={(e) => {
-                            e.preventDefault();
-                            const taskId = Number(e.dataTransfer.getData("taskId"));
-                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
-                        }}
-                    >
-                        {displayedTasksByStatus.todo.map((task) => (
-                            <TaskCard
-                                key={task.id}
-                                task={task}
-                                status={normalizeStatus(task.status, task.Approval)}
-                                onViewTask={openViewTask}
-                                onEditTask={openEditTask}
-                                onDeleteTask={openDeleteTask}
-                            />
-                        ))}
-                    </div>
-                    <div
-                        className="space-y-3 rounded-lg border-2 border-dashed border-transparent transition-colors"
-                        onDragOver={(e) => {
-                            e.preventDefault();
-                            e.dataTransfer.dropEffect = "move";
-                        }}
-                        onDrop={(e) => {
-                            e.preventDefault();
-                            const taskId = Number(e.dataTransfer.getData("taskId"));
-                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
-                        }}
-                    >
-                        {displayedTasksByStatus.in_progress.map((task) => (
-                            <TaskCard
-                                key={task.id}
-                                task={task}
-                                status={normalizeStatus(task.status, task.Approval)}
-                                onViewTask={openViewTask}
-                                onEditTask={openEditTask}
-                                onDeleteTask={openDeleteTask}
-                            />
-                        ))}
-                    </div>
-                    <div
-                        className="space-y-3 rounded-lg border-2 border-dashed border-transparent transition-colors"
-                        onDragOver={(e) => {
-                            e.preventDefault();
-                            e.dataTransfer.dropEffect = "move";
-                        }}
-                        onDrop={(e) => {
-                            e.preventDefault();
-                            const taskId = Number(e.dataTransfer.getData("taskId"));
-                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
-                        }}
-                    >
-                        {displayedTasksByStatus.completed.map((task) => (
-                            <TaskCard
-                                key={task.id}
-                                task={task}
-                                status={normalizeStatus(task.status, task.Approval)}
-                                onViewTask={openViewTask}
-                                onEditTask={openEditTask}
-                                onDeleteTask={openDeleteTask}
-                                onApproveTask={handleApproveTask}
-                            />
-                        ))}
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                                e.dataTransfer.dropEffect = "move";
+                            }}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                const taskId = Number(e.dataTransfer.getData("taskId"));
+                                if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
+                            }}
+                        >
+                            {displayedTasksByStatus.todo.map((task) => (
+                                <TaskCard
+                                    key={task.id}
+                                    task={task}
+                                    status={normalizeStatus(task.status, task.Approval)}
+                                    onViewTask={openViewTask}
+                                    onEditTask={openEditTask}
+                                    onDeleteTask={openDeleteTask}
+                                />
+                            ))}
+                        </div>
+                        <div
+                            className="space-y-3 rounded-lg border-2 border-dashed border-transparent transition-colors"
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                                e.dataTransfer.dropEffect = "move";
+                            }}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                const taskId = Number(e.dataTransfer.getData("taskId"));
+                                if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
+                            }}
+                        >
+                            {displayedTasksByStatus.in_progress.map((task) => (
+                                <TaskCard
+                                    key={task.id}
+                                    task={task}
+                                    status={normalizeStatus(task.status, task.Approval)}
+                                    onViewTask={openViewTask}
+                                    onEditTask={openEditTask}
+                                    onDeleteTask={openDeleteTask}
+                                />
+                            ))}
+                        </div>
+                        <div
+                            className="space-y-3 rounded-lg border-2 border-dashed border-transparent transition-colors"
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                                e.dataTransfer.dropEffect = "move";
+                            }}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                const taskId = Number(e.dataTransfer.getData("taskId"));
+                                if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
+                            }}
+                        >
+                            {displayedTasksByStatus.completed.map((task) => (
+                                <TaskCard
+                                    key={task.id}
+                                    task={task}
+                                    status={normalizeStatus(task.status, task.Approval)}
+                                    onViewTask={openViewTask}
+                                    onEditTask={openEditTask}
+                                    onDeleteTask={openDeleteTask}
+                                    onApproveTask={handleApproveTask}
+                                />
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
             {deleteTask !== null && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">

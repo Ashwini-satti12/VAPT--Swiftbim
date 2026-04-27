@@ -13,6 +13,7 @@ import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
+import { useAuth } from "../../../contexts/AuthContext";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 export type FormDropdownId =
@@ -447,14 +448,15 @@ function TaskCard({
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (task: Task) => void;
 }) {
+  const { user } = useAuth();
   const progress =
-    status === "completed" &&
-    task.assigned_to != null &&
-    task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid)
+    (status === "completed" || (task as any).review_required) &&
+      task.assigned_to != null &&
+      ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
+      String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id)
       ? task.Approval?.toLowerCase() === "approved"
         ? 100
-        : 95
+        : (status === "todo" ? 0 : status === "in_progress" ? 50 : 95)
       : status === "todo"
         ? 0
         : status === "in_progress"
@@ -462,12 +464,13 @@ function TaskCard({
           : typeof task.progress === "number"
             ? task.progress
             : 100;
+
   const isUnderReview =
-    status === "completed" &&
+    (status === "completed" || (task as any).review_required) &&
     task.assigned_to != null &&
-    task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid) &&
+    String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id) &&
     task.Approval?.toLowerCase() !== "approved";
+
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -602,6 +605,13 @@ function TaskCard({
           {isUnderReview ? "95% (Under Review)" : `${progress}%`}
         </span>
       </div>
+      {(progress === 95 || progress === "95" || (task as any).review_required) && (
+        <div className="mb-2">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800">
+            Pending Review
+          </span>
+        </div>
+      )}
       <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
         <div
           className="h-full rounded-full bg-[#8B8B8B]"
@@ -712,6 +722,7 @@ const PERIOD_OPTIONS = [
 ];
 
 export default function MytaskPMV() {
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -773,32 +784,14 @@ export default function MytaskPMV() {
       api.get<{ resources?: Employee[] }>("/api/vendors/vendor-resource-profiles"),
       api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
     ]).then(([myTasksRes, allTasksRes, resourcesRes, projRes]) => {
-      const myTasks = myTasksRes.data.tasks ?? [];
-      const allTasks = allTasksRes.data.tasks ?? [];
-      const allProjects = projRes.data.projects ?? [];
+      const vendorTasks = (allTasksRes.data.tasks ?? []).map(t => ({
+        ...t,
+        source: "Outsource" as const
+      }));
 
-      const involvedProjectIds = new Set<number>(
-        myTasks
-          .map((t) => Number(t.project_id ?? t.projectid))
-          .filter((id) => !Number.isNaN(id) && id > 0),
-      );
-
-      const scopedTasks =
-        involvedProjectIds.size > 0
-          ? allTasks.filter((t) => {
-            const pid = Number(t.project_id ?? t.projectid);
-            return !Number.isNaN(pid) && involvedProjectIds.has(pid);
-          })
-          : allTasks;
-
-      const scopedProjects =
-        involvedProjectIds.size > 0
-          ? allProjects.filter((p) => involvedProjectIds.has(Number(p.id)))
-          : allProjects;
-
-      setList(uniqueById(scopedTasks));
+      setList(uniqueById(vendorTasks));
       setEmployees(resourcesRes.data.resources ?? []);
-      setProjects(uniqueById(scopedProjects));
+      setProjects(uniqueById(projRes.data.projects ?? []));
     }).catch(() => {
       toast.error("Failed to load tasks");
     }).finally(() => setLoading(false));
@@ -822,6 +815,9 @@ export default function MytaskPMV() {
   }, [openDropdown]);
 
   const allTasks = list.filter((t) => t && t.id != null).filter((t) => {
+    // Trust the backend's filtering for MyTasks/TeamTasks. 
+    // We only apply UI-level filters here (Search, Employee, Project, Period).
+
     if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
       if (t.assigned_full_name !== selectedEmployee) return false;
     }
@@ -848,8 +844,62 @@ export default function MytaskPMV() {
     return true;
   });
 
-  const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" =>
-    normalizeStatus(t.status, t.Approval);
+  const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" => {
+    const status = normalizeStatus(t.status);
+    const progress = t.progress ?? (t as any).progress;
+    const uploaderId = (t as any).uploaderid ?? (t as any).vendor_id;
+    const isOwner = String(uploaderId) === String(user?.id);
+    
+    const userName = (user?.full_name || user?.name || "").trim().toLowerCase();
+    const taskAssigneeName = (t.assigned_full_name || t.assign_to || "").trim().toLowerCase();
+    const isAssignedToMe = String(t.assigned_to) === String(user?.id) || (userName && taskAssigneeName === userName);
+    const isAssignedToOthers = t.assigned_to != null && !isAssignedToMe;
+
+    if ((isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && status === "completed") || (t as any).review_required === true) {
+      return "todo";
+    }
+    return status;
+  };
+
+  const handleMoveTask = (taskId: number, newBucket: "todo" | "in_progress" | "completed") => {
+    const task = list.find((t) => t.id === taskId);
+    if (!task) return;
+
+    const currentBucket = getEffectiveStatus(task);
+    if (currentBucket === newBucket) return;
+
+    if (currentBucket === "todo" && newBucket === "completed") {
+      toast.error("Move task to In Progress before completing.");
+      return;
+    }
+    if (currentBucket === "completed" && newBucket !== "completed") {
+      toast.error("Completed tasks cannot be moved.");
+      return;
+    }
+
+    const uploaderId = (task as any).uploaderid ?? (task as any).vendor_id;
+    const isOwner = String(uploaderId) === String(user?.id);
+
+    const statusMap = { todo: "Todo", in_progress: "InProgress", completed: "Completed" };
+    const nextProgress = newBucket === "completed" ? (isOwner ? 100 : 95) : newBucket === "in_progress" ? 50 : 0;
+
+    api
+      .patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
+        status: statusMap[newBucket],
+        progress: nextProgress,
+      })
+      .then(() => {
+        setList((prev) =>
+          prev.map((t) =>
+            t.id === taskId
+              ? { ...t, status: statusMap[newBucket], progress: nextProgress }
+              : t,
+          ),
+        );
+        toast.success(`Task moved to ${newBucket}`);
+      })
+      .catch(() => toast.error("Failed to move task"));
+  };
 
 
 
@@ -1013,10 +1063,25 @@ export default function MytaskPMV() {
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
           {["todo", "in_progress", "completed"].map((stat) => (
-            <div key={stat} className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1">
-               {(displayedTasksByStatus as any)[stat].map((t: Task) => (
-                 <TaskCard key={t.id} task={t} status={stat as any} onEditTask={openEditTask} onDeleteTask={openDeleteTask} onViewTask={openViewTask} />
-               ))}
+            <div
+              key={stat}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                const tid = Number(e.dataTransfer.getData("taskId"));
+                if (tid) handleMoveTask(tid, stat as any);
+              }}
+              className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+            >
+              {(displayedTasksByStatus as any)[stat].map((t: Task) => (
+                <TaskCard
+                  key={t.id}
+                  task={t}
+                  status={stat as any}
+                  onEditTask={openEditTask}
+                  onDeleteTask={openDeleteTask}
+                  onViewTask={openViewTask}
+                />
+              ))}
             </div>
           ))}
         </div>

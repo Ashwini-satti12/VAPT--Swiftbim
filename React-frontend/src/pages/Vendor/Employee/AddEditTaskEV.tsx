@@ -13,6 +13,7 @@ import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg"
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
 import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 import { EyeIcon } from "@heroicons/react/24/outline";
+import { useAuth } from "../../../contexts/AuthContext";
 
 type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
 
@@ -313,6 +314,7 @@ export default function AddEditTaskEV({
   const [searchParams] = useSearchParams();
   const { pathname, state: locationState } = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const editingTaskId =
     propTaskId ?? (idParam && /^\d+$/.test(idParam) ? Number(idParam) : null);
@@ -484,7 +486,21 @@ export default function AddEditTaskEV({
     .filter((m) => m.length > 0);
 
   const employeesForAssignDropdown = useMemo(() => {
-    const all = Array.isArray(employees) ? employees : [];
+    let all = Array.isArray(employees) ? [...employees] : [];
+    
+    // Ensure current user is in the list
+    if (user) {
+      const userIdStr = String(user.id);
+      const alreadyInListByRef = all.some((e) => String(e.id) === userIdStr);
+      if (!alreadyInListByRef) {
+        all.push({
+          id: user.id,
+          full_name: user.full_name || user.name || "Me",
+          active: "1",
+        });
+      }
+    }
+
     const meta = projects.find(
       (p) => p?.project_name === addTaskForm.projectName,
     );
@@ -494,16 +510,24 @@ export default function AddEditTaskEV({
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-    if (tokens.length === 0) return all;
-    return all.filter(isEmployeeActiveForProjectAssignment).filter((emp) => {
+    
+    // If we have specific project members, we filter 'all', 
+    // but we should still allow the current user to assign to themselves.
+    return all.filter((emp) => {
       const name = (emp.full_name || emp.name || "").trim();
       const idStr = String(emp.id);
-      return tokens.some((t) => {
+      
+      // Allow if active for project OR if it's the current user
+      const isAllowedByProject = tokens.some((t) => {
         const tl = t.toLowerCase();
         return t === idStr || tl === name.toLowerCase() || name === t;
       });
+      
+      const isCurrentUser = String(emp.id) === String(user?.id);
+      
+      return (isAllowedByProject || isCurrentUser) && isEmployeeActiveForProjectAssignment(emp);
     });
-  }, [employees, projects, addTaskForm.projectName]);
+  }, [employees, projects, addTaskForm.projectName, user]);
 
   const todayInputDate = getTodayInputDate();
 
@@ -1002,8 +1026,12 @@ export default function AddEditTaskEV({
                       (emp) => (emp.full_name || emp.name || "").trim() !== "",
                     )
                     .map((emp) => {
-                      const label = emp.full_name || emp.name || "";
-                      return { value: label, label };
+                      const baseLabel = emp.full_name || emp.name || "";
+                      const displayLabel =
+                        String(emp.id) === String(user?.id)
+                          ? `${baseLabel} (Me)`
+                          : baseLabel;
+                      return { value: baseLabel, label: displayLabel };
                     }),
                 ]}
                 value={addTaskForm.assignTo}

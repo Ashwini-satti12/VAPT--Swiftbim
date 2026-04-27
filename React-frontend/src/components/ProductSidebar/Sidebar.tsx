@@ -603,7 +603,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
     const openedFromTeamTask = fromState === "teamtask" || fromState === "teamtasks";
     const fromTeamTaskView =
       openedFromTeamTask &&
-      (normalizedCurrent === "/tasks/taskview" ||
+      (normalizedCurrent.startsWith("/tasks/taskview") ||
         normalizedCurrent.includes("/mytasks/view") ||
         normalizedCurrent.includes("/mytasks/add") ||
         normalizedCurrent.includes("/mytasks/edit") ||
@@ -619,12 +619,12 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
     // Vendor employee task detail: dedicated view route or legacy /tasks/taskview
     if (
       normalizedCurrent.startsWith("/ve/mytasks/view") ||
-      (fromState === "ve" && normalizedCurrent === "/tasks/taskview")
+      (fromState === "ve" && normalizedCurrent.startsWith("/tasks/taskview"))
     ) {
       return name === "My Task" && normalizedTarget === "/ve/mytasks";
     }
 
-    if (fromState === "ve-team" && normalizedCurrent === "/tasks/taskview") {
+    if (fromState === "ve-team" && normalizedCurrent.startsWith("/tasks/taskview")) {
       return name === "Team Task" && normalizedTarget === "/ve/teamtasks";
     }
 

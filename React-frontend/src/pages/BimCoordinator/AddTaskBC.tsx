@@ -442,7 +442,7 @@ export default function AddTaskBC() {
                                     label="Select Project name"
                                     options={[
                                         { value: "", label: "Select Project name" },
-                                        ...projects.map((p) => ({ value: p.project_name, label: p.project_name })),
+                                        ...projects.filter((p) => p.source !== "Outsource").map((p) => ({ value: p.project_name, label: p.project_name })),
                                     ]}
                                     value={addTaskForm.projectName}
                                     onChange={(v) => setAddTaskForm((f) => ({ ...f, projectName: v }))}
@@ -620,16 +620,7 @@ export default function AddTaskBC() {
                                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                                 />
                             </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Review Remark</label>
-                                <textarea
-                                    value={addTaskForm.reviewRemark}
-                                    onChange={(e) => setAddTaskForm((f) => ({ ...f, reviewRemark: e.target.value }))}
-                                    placeholder="Enter correction remark"
-                                    rows={3}
-                                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
-                                />
-                            </div>
+                            
                             <div className="md:col-span-2 space-y-2">
                                 <span className="block text-[16px] font-semibold text-[#000000] font-Gantari">Attachments</span>
                                 <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">

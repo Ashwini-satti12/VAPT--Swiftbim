@@ -7,6 +7,7 @@ import Group1 from "../../../assets/ProjectManager/MyTask/Group1.svg";
 import Group2 from "../../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
+import { useAuth } from "../../../contexts/AuthContext";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
@@ -237,7 +238,10 @@ const getProfileUrl = (path: string | undefined): string => {
 
 function normalizeStatus(
     s: string | undefined,
+    approval?: string,
 ): "todo" | "in_progress" | "completed" {
+    if (approval?.toLowerCase() === "approved" || approval?.toLowerCase() === "rejected")
+        return "completed";
     if (!s) return "todo";
     const lower = s.toLowerCase().replace(/\s+/g, "_");
     if (lower.includes("progress") || lower === "in_progress")
@@ -260,13 +264,13 @@ function TaskCard({
     onDeleteTask?: (task: Task) => void;
 }) {
     const progress =
-        status === "completed" &&
+        (status === "completed" || (task as any).review_required) &&
             task.assigned_to != null &&
-            task.uploaderid != null &&
-            String(task.assigned_to) !== String(task.uploaderid)
+            ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
+            String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id)
             ? task.Approval?.toLowerCase() === "approved"
-              ? 100
-              : 95
+                ? 100
+                : (status === "todo" ? 0 : status === "in_progress" ? 50 : 95)
             : status === "todo"
                 ? 0
                 : status === "in_progress"
@@ -275,10 +279,11 @@ function TaskCard({
                         ? task.progress
                         : 100;
     const isUnderReview =
-        status === "completed" &&
+        (status === "completed" || (task as any).review_required) &&
         task.assigned_to != null &&
-        task.uploaderid != null &&
-        String(task.assigned_to) !== String(task.uploaderid);
+        ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
+        String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id) &&
+        task.Approval?.toLowerCase() !== "approved";
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -546,6 +551,7 @@ const PERIOD_OPTIONS = [
 ];
 
 export default function MytaskEV() {
+    const { user } = useAuth();
     const [searchParams] = useSearchParams();
     const { pathname } = useLocation();
     const isTeam =
@@ -570,6 +576,8 @@ export default function MytaskEV() {
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
 
     const allTasks = list.filter((t) => t && t.id != null).filter((t) => {
+        // Trust the backend filtering
+
         // Employee filter
         if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
             if (t.assigned_full_name !== selectedEmployee) return false;
@@ -599,8 +607,21 @@ export default function MytaskEV() {
         return true;
     });
 
-    const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" =>
-        normalizeStatus(t.status);
+    const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" => {
+        const status = normalizeStatus(t.status, (t as any).Approval);
+        const progress = t.progress ?? (t as any).progress;
+        const uploaderId = (t as any).uploaderid ?? (t as any).vendor_id;
+        const isOwner = String(uploaderId) === String(user?.id);
+        const userName = (user?.full_name || user?.name || "").trim().toLowerCase();
+        const taskAssigneeName = (t.assigned_full_name || t.assign_to || "").trim().toLowerCase();
+        const isAssignedToMe = String(t.assigned_to) === String(user?.id) || (userName && taskAssigneeName === userName);
+        const isAssignedToOthers = t.assigned_to != null && !isAssignedToMe;
+
+        if (isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && status === "completed") {
+            return "todo";
+        }
+        return status;
+    };
 
     const statusMap: Record<"todo" | "in_progress" | "completed", string> = {
         todo: "Todo",
@@ -610,22 +631,41 @@ export default function MytaskEV() {
 
     const handleMoveTask = (
         taskId: number,
-        newStatus: "todo" | "in_progress" | "completed"
+        newBucket: "todo" | "in_progress" | "completed"
     ) => {
         const taskRow = list.find((t) => t && t.id === taskId);
-        if (taskRow) {
-            const current = getEffectiveStatus(taskRow);
-            if (current === "completed" && newStatus !== "completed") {
-                toast.error("Completed tasks cannot be moved.");
-                return;
-            }
+        if (!taskRow) return;
+
+        const currentBucket = getEffectiveStatus(taskRow);
+        if (currentBucket === newBucket) return;
+
+        if (currentBucket === "todo" && newBucket === "completed") {
+            toast.error("Move task to In Progress before completing.");
+            return;
         }
-        setList((prev) =>
-            prev.map((t) => (t && t.id === taskId ? { ...t, status: statusMap[newStatus] } : t))
-        );
+        if (currentBucket === "completed" && newBucket !== "completed") {
+            toast.error("Completed tasks cannot be moved.");
+            return;
+        }
+
+        const uploaderId = (taskRow as any).uploaderid ?? (taskRow as any).vendor_id;
+        const isOwner = String(uploaderId) === String(user?.id);
+
+        const statusMapApi = { todo: "Todo", in_progress: "InProgress", completed: "Completed" };
+        const nextProgress = newBucket === "completed" ? (isOwner ? 100 : 95) : newBucket === "in_progress" ? 50 : 0;
 
         api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
-            status: statusMap[newStatus],
+            status: statusMapApi[newBucket],
+            progress: nextProgress,
+        }).then(() => {
+            setList((prev) =>
+                prev.map((t) =>
+                    t && t.id === taskId
+                        ? { ...t, status: statusMapApi[newBucket], progress: nextProgress }
+                        : t
+                )
+            );
+            toast.success(`Task moved to ${newBucket}`);
         }).catch((err) => {
             console.error("Failed to update status:", err);
             toast.error("Failed to update status");

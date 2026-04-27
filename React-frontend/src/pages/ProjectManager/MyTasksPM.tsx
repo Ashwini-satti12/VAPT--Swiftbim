@@ -213,6 +213,7 @@ interface Task {
   assign_to?: string;
   description?: string;
   checklist?: string;
+  review_remark?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
   assigned_to?: number;
@@ -253,6 +254,7 @@ function TaskCard({
   onViewTask,
   onEditTask,
   onDeleteTask,
+  onApproveTask,
   onOpenMemberProfile,
   onOpenInvolvedList,
 }: {
@@ -267,26 +269,27 @@ function TaskCard({
   onOpenInvolvedList?: (involved: Employee[]) => void;
 }) {
   const { user } = useAuth();
-  const isUnderReview =
-    (status === "completed" || task.review_remark || (task as any).review_required) &&
-    task.assigned_to != null &&
+  const isDelegated =
     task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid) &&
+    task.assigned_to != null &&
+    String(task.uploaderid) !== String(task.assigned_to);
+  const isReviewTask = isDelegated && String(task.uploaderid) === String(user?.id);
+  // Show "Under Review" for any delegated completed task not yet approved
+  const isUnderReview =
+    isDelegated &&
+    status === "completed" &&
     task.Approval?.toLowerCase() !== "approved";
+  const isReviewed = isReviewTask && task.Approval?.toLowerCase() === "approved";
 
   const progress =
-    isUnderReview
-      ? status === "todo"
-        ? 0
-        : status === "in_progress"
-          ? 50
-          : 95
-      : status === "todo"
-        ? 0
-        : status === "in_progress"
-          ? 50
-          : status === "approved"
-            ? 100
+    status === "todo"
+      ? 0
+      : status === "in_progress"
+        ? 50
+        : isReviewed
+          ? 100
+          : isUnderReview
+            ? 95
             : typeof task.progress === "number"
               ? task.progress
               : 100;
@@ -449,10 +452,10 @@ function TaskCard({
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-[12px] text-[#8B8B8B]">Progress</span>
         <span className="text-[12px] text-[#8B8B8B]">
-          {isUnderReview 
-            ? `${progress}% (Under Review)` 
-            : status === "approved" 
-              ? "100% (Reviewed)" 
+          {isUnderReview
+            ? `${progress}% (Under Review)`
+            : isReviewed
+              ? `${progress}% (Reviewed)`
               : `${progress}%`}
         </span>
       </div>
@@ -753,7 +756,7 @@ export default function MyTasksPM() {
 
     return [...baseOptions, ...filtered.map(e => e.full_name)];
   }, [employees, projects, selectedProject]);
-  const projectOptions = ["Select Projects", ...projects.map(p => p.project_name)];
+  const projectOptions = ["Select Projects", ...projects.filter(p => p.source !== "Outsource").map(p => p.project_name)];
 
   const involvedTasks = useMemo(() => {
     if (isTeam) return list;

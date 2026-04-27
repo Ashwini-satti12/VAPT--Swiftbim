@@ -48,6 +48,7 @@ export default function TrackerTD() {
         { value: 'all', label: 'All', start: 0, end: null },
     ];
     const [selectedShowEntries, setSelectedShowEntries] = useState('1-50');
+    const [tableCurrentPage, setTableCurrentPage] = useState(1);
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
     const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
@@ -413,7 +414,18 @@ export default function TrackerTD() {
     const rangeStart = selectedRange.start;
     const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
     const listInRange = filteredList.slice(rangeStart, rangeEnd);
-    const displayedList = listInRange;
+    const tableRowsPerPage = 5;
+    const tableTotalPages = Math.max(1, Math.ceil(listInRange.length / tableRowsPerPage));
+    const safeTableCurrentPage = Math.min(tableCurrentPage, tableTotalPages);
+    const tablePageStartIndex = (safeTableCurrentPage - 1) * tableRowsPerPage;
+    const displayedList = listInRange.slice(tablePageStartIndex, tablePageStartIndex + tableRowsPerPage);
+    const tablePageRangeStart = listInRange.length === 0 ? 0 : rangeStart + tablePageStartIndex + 1;
+    const tablePageRangeEnd = listInRange.length === 0 ? 0 : Math.min(rangeStart + tablePageStartIndex + tableRowsPerPage, rangeEnd);
+    const tablePageRangeLabel = listInRange.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
+
+    useEffect(() => {
+        setTableCurrentPage(1);
+    }, [selectedShowEntries, selectedEmployee, selectedStatus, selectedTime, searchQuery]);
 
     const handleDownload = () => {
         if (filteredList.length === 0) return;
@@ -469,12 +481,13 @@ export default function TrackerTD() {
     return (
         <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 flex-shrink-0 px-2">
                 <div className="flex items-center justify-between w-full md:w-auto">
                     <h2 className="text-2xl font-semibold text-[#000000]">Employee Tracking</h2>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-col items-stretch md:items-end gap-3 w-full md:w-auto">
+                    <div className="order-2 flex flex-wrap items-center justify-end gap-3">
                     {/* Employee Filter */}
                     <div className="relative min-w-[190px]" ref={employeeDropdownRef}>
                         <button
@@ -535,16 +548,16 @@ export default function TrackerTD() {
                     </div>
 
                     {/* Time picker (today only, date hidden) */}
-                    <div className="relative">
+                    <div className="relative min-w-[170px]">
                         <button
                             type="button"
                             onClick={() => {
                                 timeInputRef.current?.showPicker?.();
                                 timeInputRef.current?.focus();
                             }}
-                            className="flex items-center gap-6 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 group"
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 group"
                         >
-                            <span className={`text-sm ${selectedTime ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
+                            <span className={`text-[14px] font-semibold ${selectedTime ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
                                 {formatTime12(selectedTime)}
                             </span>
                             <svg
@@ -572,16 +585,16 @@ export default function TrackerTD() {
                     </div>
 
                     {/* Status Custom Dropdown */}
-                    <div className="relative" ref={statusDropdownRef}>
+                    <div className="relative min-w-[120px]" ref={statusDropdownRef}>
                         <button
                             type="button"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setStatusOpen(o => !o);
                             }}
-                            className="flex items-center justify-between gap-6 px-2 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0"
                         >
-                            <span className={`min-w-0 flex-1 truncate text-left text-sm ${selectedStatus ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
+                            <span className={`text-[14px] font-semibold ${selectedStatus ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
                                 {selectedStatus || 'Status'}
                             </span>
                             <img
@@ -615,11 +628,11 @@ export default function TrackerTD() {
                         )}
                     </div>
 
-                    <div className="relative min-w-[140px] max-w-[200px] w-[150px]" ref={showEntriesDropdownRef}>
+                    <div className="relative w-[140px]" ref={showEntriesDropdownRef}>
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
-                            className="w-full flex items-center justify-between  px-2 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                         >
                             <span className={`min-w-0 flex-1 truncate overflow-hidden text-left text-sm ${selectedShowEntries === '' ? 'text-[#8B8B8B]' : 'text-[#353535]'}`}>
                                 {selectedShowEntries === '' ? (
@@ -671,11 +684,12 @@ export default function TrackerTD() {
                         )}
                     </div>
 
+                    </div>
                     {/* Download Button */}
                     <button
                         onClick={handleDownload}
                         disabled={filteredList.length === 0}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        className="order-1 self-end flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -709,7 +723,7 @@ export default function TrackerTD() {
                                 </tr>
                             ) : (
                                 displayedList.map((loc, index) => {
-                                    const baseIndex = rangeStart + index;
+                                    const baseIndex = rangeStart + tablePageStartIndex + index;
                                     const slNo = (baseIndex + 1).toString().padStart(2, '0');
                                     const dateKey = toLocalDateKey(loc.date_iso, loc.date ?? null);
                                     const [y, m, d] = dateKey ? dateKey.split('-') : ['', '', ''];
@@ -753,6 +767,46 @@ export default function TrackerTD() {
                     </table>
                 </div>
             </div>
+            {listInRange.length > 0 && (
+                <div className="w-full flex items-center justify-end py-2 pr-4">
+                    <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+                        <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
+                        <button
+                            type="button"
+                            onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={safeTableCurrentPage === 1}
+                            className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
+                                ? 'text-[#9CA3AF] opacity-50 cursor-not-allowed'
+                                : 'text-[#353535]'
+                                }`}
+                            aria-label="Previous page"
+                        >
+                            <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
+                            <span className="inline-flex items-center">Prev</span>
+                        </button>
+                        <button
+                            type="button"
+                            className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+                            aria-current="page"
+                        >
+                            {tablePageRangeLabel}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))}
+                            disabled={safeTableCurrentPage >= tableTotalPages}
+                            className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
+                                ? 'text-[#9CA3AF] opacity-40 cursor-not-allowed'
+                                : 'text-[#353535]'
+                                }`}
+                            aria-label="Next page"
+                        >
+                            <span className="inline-flex items-center">Next</span>
+                            <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
+                        </button>
+                    </div>
+                </div>
+            )}
 
 
 

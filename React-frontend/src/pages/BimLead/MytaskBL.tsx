@@ -73,6 +73,7 @@ interface Project {
   lead_name?: string | null;
   bim_coordinator_name?: string | null;
   uploader_name?: string | null;
+  source?: "In House" | "Outsource";
 }
 
 interface TaskDropdownProps {
@@ -263,27 +264,27 @@ function TaskCard({
   onApproveTask?: (task: Task) => void;
 }) {
   const { user } = useAuth();
-  const progress =
-    (status === "completed" || (task as any).review_required) &&
-      task.assigned_to != null &&
-      task.uploaderid != null &&
-      String(task.assigned_to) !== String(task.uploaderid)
-      ? task.Approval?.toLowerCase() === "approved"
-        ? 100
-        : 95
-      : status === "todo"
-        ? 0
-        : status === "in_progress"
-          ? 50
-          : typeof task.progress === "number"
-            ? task.progress
-            : 100;
-  const isUnderReview =
-    (status === "completed" || (task as any).review_required) &&
-    task.assigned_to != null &&
+  const isDelegated =
     task.uploaderid != null &&
-    String(task.assigned_to) !== String(task.uploaderid) &&
-    task.Approval?.toLowerCase() !== "approved";
+    task.assigned_to != null &&
+    String(task.uploaderid) !== String(task.assigned_to);
+  const isReviewTask = isDelegated;
+  // Show (Under Review) for ALL statuses of delegated tasks not yet approved
+  const isUnderReview = isReviewTask && task.Approval?.toLowerCase() !== "approved";
+  // Show (Reviewed) for ALL statuses of delegated tasks that are approved
+  const isReviewed = isReviewTask && task.Approval?.toLowerCase() === "approved";
+  const progress =
+    status === "todo"
+      ? 0
+      : status === "in_progress"
+        ? 50
+        : isReviewed
+          ? 100
+          : isUnderReview
+            ? 95
+            : typeof task.progress === "number"
+              ? task.progress
+              : 100;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -448,7 +449,11 @@ function TaskCard({
       <div className="flex items-center justify-between gap-2 mb-1 text-[12px] text-[#8B8B8B]">
         <span>Progress</span>
         <span className="font-medium">
-          {isUnderReview ? "95% (Under Review)" : `${progress}%`}
+          {isUnderReview
+            ? `${progress}% (Under Review)`
+            : isReviewed
+              ? `${progress}% (Reviewed)`
+              : `${progress}%`}
         </span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
@@ -659,7 +664,7 @@ export default function MytaskBL() {
   const employeeOptions = getEmployeeOptions();
   const projectOptions = [
     "Select Projects",
-    ...projects.map((p) => p.project_name),
+    ...projects.filter((p) => p.source !== "Outsource").map((p) => p.project_name),
   ];
 
   const statusToLabel = (
@@ -697,18 +702,24 @@ export default function MytaskBL() {
       task?.projectid ||
       projects.find((p) => p.project_name === task?.project_name)?.id;
 
-    // Visual update immediately
+    const newApproval =
+      newStatus === "completed" && task && String(task.uploaderid) === String(user?.id)
+        ? "Approved"
+        : task?.Approval;
+
+    // Visual update immediately in both list and localTasks
     setList((prev) =>
       prev.map((t) =>
         t.id === taskId
-          ? {
-            ...t,
-            status: label,
-            Approval:
-              newStatus === "completed" && String(t.uploaderid) === String(user?.id)
-                ? "Approved"
-                : t.Approval,
-          }
+          ? { ...t, status: label, Approval: newApproval ?? t.Approval }
+          : t,
+      ),
+    );
+    // Also update localTasks so localStorage-cached tasks reflect the new status
+    setLocalTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? { ...t, status: label, Approval: newApproval ?? t.Approval }
           : t,
       ),
     );
@@ -718,12 +729,16 @@ export default function MytaskBL() {
       ? `/api/vendors/vendor-tasks/${taskId}/status`
       : `/api/tasks/${taskId}/status`;
 
-    // Backend update
+    // Correct backend status format
+    const backendStatus =
+      newStatus === "completed"
+        ? "Completed"
+        : newStatus === "todo"
+          ? "Todo"
+          : "InProgress";
+
     api
-      .patch(endpoint, {
-        status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
-        projectId,
-      })
+      .patch(endpoint, { status: backendStatus, projectId })
       .catch((err) => {
         console.error("Failed to update task status:", err);
       });
@@ -830,7 +845,7 @@ export default function MytaskBL() {
         if (!cancelled) {
           toast.error(
             (err as any)?.response?.data?.message ||
-              "Could not load in-house tasks.",
+            "Could not load in-house tasks.",
             { id: "bl-mytasks-inhouse" },
           );
         }
@@ -853,7 +868,7 @@ export default function MytaskBL() {
         if (!cancelled) {
           toast.error(
             (err as any)?.response?.data?.message ||
-              "Could not load outsource tasks.",
+            "Could not load outsource tasks.",
             { id: "bl-mytasks-outsource" },
           );
         }

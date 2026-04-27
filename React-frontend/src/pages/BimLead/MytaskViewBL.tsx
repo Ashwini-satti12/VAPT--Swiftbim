@@ -19,18 +19,19 @@ interface Task {
   projectid?: number;
   start_date?: string;
   progress?: number;
-  module?: string;
   type?: string;
   start_time?: string;
   due_time?: string;
   assign_to?: string;
+  assigned_to?: number | string;
+  uploaderid?: number | string;
+  module?: string;
   description?: string;
   checklist?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
   Approval?: string;
   modules_name?: string;
-  category?: string;
   Actual_start_time?: string;
   perferstart_time?: string;
   perferend_time?: string;
@@ -113,10 +114,10 @@ const STATUS_OPTIONS: {
   value: "todo" | "in_progress" | "completed";
   label: string;
 }[] = [
-  { value: "todo", label: "To Do" },
-  { value: "in_progress", label: "Inprogress" },
-  { value: "completed", label: "Completed" },
-];
+    { value: "todo", label: "To Do" },
+    { value: "in_progress", label: "Inprogress" },
+    { value: "completed", label: "Completed" },
+  ];
 
 function shouldHideInProgressInDropdown(status: StatusKey): boolean {
   return status === "approved" || status === "rejected";
@@ -176,8 +177,8 @@ export default function MytaskViewBL() {
       setLoading(true);
       const searchParams = new URLSearchParams(location.search);
       const isOutsource = searchParams.get("source") === "Outsource";
-      const endpoint = isOutsource 
-        ? `/api/vendors/vendor-tasks/${taskId}` 
+      const endpoint = isOutsource
+        ? `/api/vendors/vendor-tasks/${taskId}`
         : `/api/tasks/${taskId}`;
 
       api
@@ -229,14 +230,14 @@ export default function MytaskViewBL() {
       setTask((prev) =>
         prev
           ? {
-              ...prev,
-              status:
-                newStatus === "completed"
-                  ? "Completed"
-                  : newStatus === "todo"
-                    ? "To Do"
-                    : "InProgress",
-            }
+            ...prev,
+            status:
+              newStatus === "completed"
+                ? "Completed"
+                : newStatus === "todo"
+                  ? "To Do"
+                  : "InProgress",
+          }
           : prev,
       );
       toast.success(`Status Updated Successfully`);
@@ -287,31 +288,7 @@ export default function MytaskViewBL() {
     }
   };
 
-  useEffect(() => {
-    if (!task) {
-      const taskIdMatch =
-        location.pathname.match(/\/tasks\/(\d+)/) ||
-        location.pathname.match(/\/view\/(\d+)/);
-      const taskId = taskIdMatch ? taskIdMatch[1] : null;
 
-      if (taskId) {
-        setLoading(true);
-        api
-          .get(`/api/tasks/${taskId}`)
-          .then((res) => {
-            const fetched = res.data.tasks?.[0] || res.data.task || res.data;
-            setTask(fetched);
-            setStatusDisplay(normalizeStatus(fetched.status, fetched.Approval));
-          })
-          .catch((err) => {
-            console.error("Error fetching task:", err);
-          })
-          .finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
-    }
-  }, [task, location.pathname]);
 
   useEffect(() => {
     return () => {
@@ -523,15 +500,13 @@ export default function MytaskViewBL() {
                         disabled={disabled}
                         aria-selected={statusDisplay === opt.value}
                         onClick={() => handleStatusUpdate(opt.value)}
-                        className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors ${
-                          disabled
+                        className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors ${disabled
                             ? "text-slate-300 cursor-not-allowed opacity-60"
                             : "cursor-pointer text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
-                        } ${
-                          statusDisplay === opt.value && !disabled
+                          } ${statusDisplay === opt.value && !disabled
                             ? "bg-[#F2F2F2] text-[#353535] font-medium"
                             : ""
-                        }`}
+                          }`}
                       >
                         <span
                           className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`}
@@ -568,16 +543,6 @@ export default function MytaskViewBL() {
                 </span>
               </div>
 
-              {/* Row 2: Category | Assigned By */}
-              <div className="flex items-start gap-2">
-                <span className="text-[#020202] font-medium shrink-0 w-32">
-                  Category
-                </span>
-                <span className="text-[#020202] shrink-0">:</span>
-                <span className="text-[#616161]">
-                  {String(task.category || task.type || "—")}
-                </span>
-              </div>
               <div className="flex items-start gap-2">
                 <span className="text-[#020202] font-medium shrink-0 w-32">
                   Assigned By
@@ -606,8 +571,8 @@ export default function MytaskViewBL() {
                 <span className="text-[#616161]">
                   {task.start_date || task.Actual_start_time
                     ? formatDateDDMMYYYY(
-                        task.start_date || task.Actual_start_time,
-                      )
+                      task.start_date || task.Actual_start_time,
+                    )
                     : "-NIL-"}
                 </span>
               </div>
@@ -643,8 +608,8 @@ export default function MytaskViewBL() {
                 <span className="text-[#616161]">
                   {task.perferend_time || task.due_time || task.end_time
                     ? formatTimeAMPM(
-                        task.perferend_time || task.due_time || task.end_time,
-                      )
+                      task.perferend_time || task.due_time || task.end_time,
+                    )
                     : "-NIL-"}
                 </span>
               </div>
@@ -813,12 +778,23 @@ export default function MytaskViewBL() {
                 {task.description || "No description provided."}
               </div>
             </div>
-          <div className="mt-6 border border-slate-200 rounded-xl p-6">
-            <h4 className="text-black text-md mb-2">Review Remark</h4>
-            <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-              {task.review_remark || "No review remark provided."}
+            <div className="mt-6 border border-slate-200 rounded-xl p-6 flex flex-col h-full bg-white">
+              <h4 className="text-[#020202] text-[18px] mb-2 font-semibold">
+                Checklist
+              </h4>
+              <div className="flex-1 rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+                {task.checklist || "No checklist provided."}
+              </div>
             </div>
-          </div>
+
+            <div className="mt-6 border border-slate-200 rounded-xl p-6 flex flex-col h-full bg-white">
+              <h4 className="text-[#020202] text-[18px] mb-2 font-semibold">
+                Review Remark
+              </h4>
+              <div className="flex-1 rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+                {task.review_remark || "No review remark provided."}
+              </div>
+            </div>
           </div>
         </div>
       </div>
