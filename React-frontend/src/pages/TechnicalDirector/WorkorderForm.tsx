@@ -39,6 +39,12 @@ export default function WorkorderForm() {
   const editWO = state?.editWO;
   const editId = editWO?.id ? Number(editWO.id) : null;
 
+  const stripHtmlText = (html: string): string => {
+    if (!html) return "";
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    return (doc.body.textContent || "").replace(/\s+/g, " ").trim();
+  };
+
   const parsePaymentTermsRows = (value: unknown): PaymentTermRow[] => {
     if (!value) return [];
     let parsed: unknown = value;
@@ -247,10 +253,68 @@ export default function WorkorderForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!(form.currency || "").trim()) {
-      alert("Please select currency.");
+    const requiredText = [
+      { key: "Vendor Name", value: form.vendorName },
+      { key: "PO Number", value: form.poNumber },
+      { key: "PO Date", value: form.poDate },
+      { key: "Project Name", value: form.projectName },
+      { key: "Project Location", value: form.projectLocation },
+      { key: "Vendor Address", value: form.vendorAddress },
+      { key: "Currency", value: form.currency },
+      { key: "Bid Amount", value: form.amountAED },
+      { key: "Duration", value: form.duration },
+    ];
+
+    const requiredHtml = [
+      { key: "Description", value: form.workDescription },
+      { key: "Scope of Work", value: form.scopeOfWork },
+      { key: "Project Involves", value: form.projectInvolves },
+      { key: "Deliverables", value: form.deliverables },
+      { key: "General Terms and Conditions", value: form.termsAndConditions },
+      { key: "Additional Terms & Conditions (Annexure 1)", value: form.additionalTerms },
+      { key: "Exclusions", value: form.exclusions },
+    ];
+
+    for (const f of requiredText) {
+      if (!String(f.value || "").trim()) {
+        toast.error(`${f.key} is required.`);
+        return;
+      }
+    }
+
+    for (const f of requiredHtml) {
+      if (!stripHtmlText(String(f.value || ""))) {
+        toast.error(`${f.key} is required.`);
+        return;
+      }
+    }
+
+    if (!paymentRows.length) {
+      toast.error("Payment Terms is required. Please add at least one row.");
       return;
     }
+
+    for (let i = 0; i < paymentRows.length; i++) {
+      const row = paymentRows[i];
+      const prefix = `Payment Terms row ${i + 1}`;
+      if (!String(row.basis || "").trim()) {
+        toast.error(`${prefix}: Payment Basis is required.`);
+        return;
+      }
+      if (!String(row.terms || "").trim()) {
+        toast.error(`${prefix}: Terms (%) is required.`);
+        return;
+      }
+      if (!String(row.amount || "").trim()) {
+        toast.error(`${prefix}: Amount is required.`);
+        return;
+      }
+      if (!String(row.timeline || "").trim()) {
+        toast.error(`${prefix}: Timeline is required.`);
+        return;
+      }
+    }
+
     try {
       setIsSubmitting(true);
       const payload = {
@@ -295,7 +359,7 @@ export default function WorkorderForm() {
             {/* Basic Information */}
             <div className="p-0 mb-8">
               <h4 className="text-[16px] font-bold mb-3 text-[#1A1A1A]">
-                1. Basic Information
+                1. Basic Information <span className="text-[#DD4342]">*</span>
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -370,13 +434,15 @@ export default function WorkorderForm() {
             {/* Work Scope & Description */}
             <div className="p-0 mb-8">
               <h4 className="text-[16px] font-bold mb-3 text-[#1A1A1A]">
-                2. Work Scope & Description
+                2. Work Scope & Description{" "}
+                <span className="text-[#DD4342]">*</span>
               </h4>
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className={labelClass}>Description</label>
                   <ReactQuill
                     theme="snow"
+                    placeholder="Enter description..."
                     value={form.workDescription}
                     onChange={(val) =>
                       setForm({ ...form, workDescription: val })
@@ -389,6 +455,7 @@ export default function WorkorderForm() {
                   <label className={labelClass}>Scope of Work</label>
                   <ReactQuill
                     theme="snow"
+                    placeholder="Enter scope of work..."
                     value={form.scopeOfWork}
                     onChange={(val) => setForm({ ...form, scopeOfWork: val })}
                     modules={quillModules}
@@ -399,6 +466,7 @@ export default function WorkorderForm() {
                   <label className={labelClass}>Project Involves</label>
                   <ReactQuill
                     theme="snow"
+                    placeholder="Enter project involves..."
                     value={form.projectInvolves}
                     onChange={(val) =>
                       setForm({ ...form, projectInvolves: val })
@@ -411,6 +479,7 @@ export default function WorkorderForm() {
                   <label className={labelClass}>Deliverables</label>
                   <ReactQuill
                     theme="snow"
+                    placeholder="Enter deliverables..."
                     value={form.deliverables}
                     onChange={(val) => setForm({ ...form, deliverables: val })}
                     modules={quillModules}
@@ -423,7 +492,7 @@ export default function WorkorderForm() {
             {/* Financials & Timeline */}
             <div className="p-0 mb-8">
               <h4 className="text-[16px] font-bold mb-3 text-[#1A1A1A]">
-                3. Financials & Timeline
+                3. Financials & Timeline <span className="text-[#DD4342]">*</span>
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -527,7 +596,7 @@ export default function WorkorderForm() {
             {/* Terms & Conditions */}
             <div className="p-0 mb-8">
               <h4 className="text-[16px] font-bold mb-3 text-[#1A1A1A]">
-                4. Terms & Conditions
+                4. Terms & Conditions <span className="text-[#DD4342]">*</span>
               </h4>
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -536,6 +605,7 @@ export default function WorkorderForm() {
                   </label>
                   <ReactQuill
                     theme="snow"
+                    placeholder="Enter general terms and conditions..."
                     value={form.termsAndConditions}
                     onChange={(val) =>
                       setForm({ ...form, termsAndConditions: val })
@@ -705,6 +775,7 @@ export default function WorkorderForm() {
                   </label>
                   <ReactQuill
                     theme="snow"
+                    placeholder="Enter additional terms & conditions..."
                     value={form.additionalTerms}
                     onChange={(val) =>
                       setForm({ ...form, additionalTerms: val })
@@ -717,6 +788,7 @@ export default function WorkorderForm() {
                   <label className={labelClass}>Exclusions</label>
                   <ReactQuill
                     theme="snow"
+                    placeholder="Enter exclusions..."
                     value={form.exclusions}
                     onChange={(val) => setForm({ ...form, exclusions: val })}
                     modules={quillModules}
