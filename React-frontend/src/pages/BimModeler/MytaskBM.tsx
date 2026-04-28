@@ -196,7 +196,7 @@ export function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? (label === "Period" ? "min-w-[100px]" : "min-w-[150px]") : "min-w-[160px]"}`}
+        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? (label === "Period" ? "min-w-[130px]" : "min-w-[150px]") : "min-w-[160px]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
@@ -390,6 +390,7 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
   assignTo: string;
   description: string;
   checklist: string;
+  reviewRemark: string;
 } {
   const t = task as Record<string, unknown>;
   const str = (v: unknown) => (v != null ? String(v) : "");
@@ -439,6 +440,7 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
     ),
     description: str(t.description ?? ""),
     checklist: str(t.checklist ?? ""),
+    reviewRemark: str(t.review_remark ?? ""),
   };
 }
 
@@ -462,6 +464,7 @@ function TaskCard({
   onViewTask,
   onEditTask,
   onDeleteTask,
+  onApproveTask,
 }: {
   task: Task;
   status: "todo" | "in_progress" | "completed";

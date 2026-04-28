@@ -50,6 +50,7 @@ interface Task {
   assigned_to?: number;
   uploaderid?: number;
   assigned_to_name?: string;
+  assign_to?: string;
   category?: string;
   assigned_profile_picture?: string;
   uploader_full_name?: string;
@@ -61,11 +62,13 @@ interface Task {
   end_time?: string;
   checklist?: string;
   assigned_by_name?: string;
+  Approval?: string;
 }
 
 interface Project {
   id: number;
   project_name: string;
+  members?: string;
 }
 
 interface Employee {
@@ -456,7 +459,7 @@ export default function VendorBimLeadTasks() {
     );
     const members = (meta?.members || "")
       .split(",")
-      .map((s) => s.trim())
+      .map((s: string) => s.trim())
       .filter(Boolean);
     
     if (members.length === 0) return all;
@@ -464,7 +467,12 @@ export default function VendorBimLeadTasks() {
     return all.filter((e) => {
       const name = (e.full_name || "").trim();
       const idStr = String(e.id);
-      const isAllowedByProject = members.some(m => m === idStr || m.toLowerCase() === name.toLowerCase() || name === m);
+      const isAllowedByProject = members.some(
+        (m: string) =>
+          m === idStr ||
+          m.toLowerCase() === name.toLowerCase() ||
+          name === m,
+      );
       const isCurrentUser = String(e.id) === String(user?.id);
       
       return isAllowedByProject || isCurrentUser;

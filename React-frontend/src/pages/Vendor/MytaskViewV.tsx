@@ -670,11 +670,7 @@ export default function MytaskViewV() {
               <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {isUnderReview
-                  ? statusDisplay === "todo"
-                    ? "0% (Under Review)"
-                    : statusDisplay === "in_progress"
-                      ? "50% (Under Review)"
-                      : "95% (Under Review)"
+                  ? "95% (Under Review)"
                   : `${task.progress ?? 0}%`}
               </span>
             </div>

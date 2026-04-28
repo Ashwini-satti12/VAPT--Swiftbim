@@ -1018,7 +1018,7 @@ export default function BiddingV() {
                     </span>
                     <span className="text-[24px] font-bold text-[#353535] font-gantari">
                       {formatBudget(
-                        detailBid.outsource_budget || 0,
+                        Number(detailBid.outsource_budget || 0),
                         detailBid.currency,
                       )}
                     </span>
@@ -1579,7 +1579,7 @@ export default function BiddingV() {
                         </td>
                         <td className="px-4 py-6 text-center text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
                           {formatBudget(
-                            bid.outsource_budget || 0,
+                            Number(bid.outsource_budget || 0),
                             bid.currency,
                           )}
                         </td>

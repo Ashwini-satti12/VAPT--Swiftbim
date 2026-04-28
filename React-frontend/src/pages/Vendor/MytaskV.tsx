@@ -998,7 +998,7 @@ function TaskCard({
             : `${progress}%`}
         </span>
       </div>
-      {(progress === 95 || progress === "95" || (task as any).review_required) && (
+      {(Number(progress) === 95 || (task as any).review_required) && (
         <div className="mb-2">
           <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800">
             Pending Review

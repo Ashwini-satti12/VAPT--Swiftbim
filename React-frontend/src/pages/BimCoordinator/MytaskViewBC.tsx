@@ -606,15 +606,7 @@ export default function MytaskViewBC() {
             </div>
           </div>
 
-          {/* Checklist / References */}
-          <div className="mt-6 border border-slate-200 rounded-xl p-6">
-            <h4 className="text-black text-md mb-2 font-medium font-Gantari">Checklist / References</h4>
-            <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px] whitespace-pre-wrap">
-              {task.checklist ? task.checklist.split(',').map((item, idx) => (
-                <div key={idx}>{item.trim()}</div>
-              )) : "No checklist provided."}
-            </div>
-          </div>
+
 
           {!fromTeamTask && String(task.uploaderid) !== String(task.assigned_to) && (
             <div className="mt-6 border border-slate-200 rounded-xl p-6">

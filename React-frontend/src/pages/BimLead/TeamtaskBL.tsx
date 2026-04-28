@@ -218,7 +218,7 @@ function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-3 sm:px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer w-full transition-colors ${narrow ? (label === "Period" ? "lg:min-w-[100px]" : "lg:min-w-[150px]") : "lg:min-w-[160px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-3 sm:px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer transition-colors ${narrow ? "lg:w-[130px]" : "lg:min-w-[160px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
@@ -419,6 +419,7 @@ function TaskCard({
     onViewTask,
     onEditTask,
     onDeleteTask,
+    onApproveTask,
 }: {
     task: Task;
     status: "todo" | "in_progress" | "completed";
@@ -1268,9 +1269,8 @@ export default function TeamtaskBL() {
                                 }
                                 className={`inline-flex items-center justify-center gap-2 rounded-md px-3 sm:px-4 py-2 text-[14px] font-medium cursor-pointer transition-all ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-white"}`}
                             >
-                                <img src={AddBtn} alt="Add" className="h-4 w-4 sm:h-5 sm:w-5" />
                                 <span className="hidden sm:inline whitespace-nowrap">Add Task</span>
-                                <span className="sm:hidden whitespace-nowrap">Add</span>
+                                <span className="sm:hidden whitespace-nowrap">Add Task</span>
                             </button>
                         </div>
                     </div>
@@ -1351,7 +1351,6 @@ export default function TeamtaskBL() {
                             }
                             className={`hidden lg:inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-[14px] font-medium cursor-pointer transition-all ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-white"}`}
                         >
-                            <img src={AddBtn} alt="Add" className="h-5 w-5" />
                             <span className="whitespace-nowrap">Add Task</span>
                         </button>
                     </div>
@@ -1893,23 +1892,7 @@ export default function TeamtaskBL() {
                                         className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
                                     />
                                 </div>
-                                <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
-                                        Checklist
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={addTaskForm.checklist}
-                                        onChange={(e) =>
-                                            setAddTaskForm((f) => ({
-                                                ...f,
-                                                checklist: e.target.value,
-                                            }))
-                                        }
-                                        placeholder="Enter Reference Link"
-                                        className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
-                                    />
-                                </div>
+
                                 <div className="sm:col-span-2">
                                     <label className="block text-sm font-medium text-black mb-1">
                                         Attachments

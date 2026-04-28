@@ -154,6 +154,7 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
   assignTo: string;
   description: string;
   checklist: string;
+  reviewRemark: string;
 } {
   const t = task as Record<string, unknown>;
   const str = (v: unknown) => (v != null ? String(v) : "");

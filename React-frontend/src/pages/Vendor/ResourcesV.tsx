@@ -339,6 +339,8 @@ export default function ResourcesV() {
           mobile?: string;
           contact_number?: string;
           phone?: string;
+          status?: string;
+          profile_picture?: string;
           login_role?: string;
           designation?: string;
           discipline?: string;

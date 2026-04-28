@@ -20,14 +20,14 @@ const showEntriesOptions: {
   start: number;
   end: number | null;
 }[] = [
-  { value: "1-50", label: "1-50", start: 0, end: 50 },
-  { value: "51-100", label: "51-100", start: 50, end: 100 },
-  { value: "101-150", label: "101-150", start: 100, end: 150 },
-  { value: "151-200", label: "151-200", start: 150, end: 200 },
-  { value: "201-250", label: "201-250", start: 200, end: 250 },
-  { value: "251-300", label: "251-300", start: 250, end: 300 },
-  { value: "all", label: "All", start: 0, end: null },
-];
+    { value: "1-50", label: "1-50", start: 0, end: 50 },
+    { value: "51-100", label: "51-100", start: 50, end: 100 },
+    { value: "101-150", label: "101-150", start: 100, end: 150 },
+    { value: "151-200", label: "151-200", start: 150, end: 200 },
+    { value: "201-250", label: "201-250", start: 200, end: 250 },
+    { value: "251-300", label: "251-300", start: 250, end: 300 },
+    { value: "all", label: "All", start: 0, end: null },
+  ];
 
 interface Employee {
   id: number;
@@ -470,9 +470,9 @@ export default function CreateteamBL() {
         ? String(team.project_id)
         : team.project_name
           ? String(
-              projects.find((p) => p.project_name === team.project_name)?.id ??
-                "",
-            )
+            projects.find((p) => p.project_name === team.project_name)?.id ??
+            "",
+          )
           : "";
     setSelectedTeam(team);
     setEditForm({
@@ -676,7 +676,7 @@ export default function CreateteamBL() {
               }}
               className="flex items-center justify-center gap-2 px-6 py-2 bg-[#DD4342] text-[#F2F2F2] rounded-md transition-all font-medium text-[14px] shadow-sm cursor-pointer whitespace-nowrap w-full"
             >
-              <PlusIcon className="w-5 h-5 stroke-[2.5]" />
+
               New Team
             </button>
           </div>
@@ -804,8 +804,8 @@ export default function CreateteamBL() {
                           ? leaderSearchQuery
                           : form.leader
                             ? (employees.find(
-                                (emp) => String(emp.id) === form.leader,
-                              )?.full_name ?? "")
+                              (emp) => String(emp.id) === form.leader,
+                            )?.full_name ?? "")
                             : ""
                       }
                       onChange={(e) => {
@@ -826,8 +826,8 @@ export default function CreateteamBL() {
                         setLeaderSearchQuery(
                           form.leader
                             ? (employees.find(
-                                (emp) => String(emp.id) === form.leader,
-                              )?.full_name ?? "")
+                              (emp) => String(emp.id) === form.leader,
+                            )?.full_name ?? "")
                             : "",
                         );
                       }}
@@ -1074,8 +1074,8 @@ export default function CreateteamBL() {
                           ? leaderSearchQuery
                           : editForm.leader
                             ? (employees.find(
-                                (emp) => String(emp.id) === editForm.leader,
-                              )?.full_name ?? "")
+                              (emp) => String(emp.id) === editForm.leader,
+                            )?.full_name ?? "")
                             : ""
                       }
                       onChange={(e) => {
@@ -1096,8 +1096,8 @@ export default function CreateteamBL() {
                         setLeaderSearchQuery(
                           editForm.leader
                             ? (employees.find(
-                                (emp) => String(emp.id) === editForm.leader,
-                              )?.full_name ?? "")
+                              (emp) => String(emp.id) === editForm.leader,
+                            )?.full_name ?? "")
                             : "",
                         );
                       }}
@@ -1518,161 +1518,110 @@ export default function CreateteamBL() {
       {/* Member Profile Modal */}
       {showMemberProfileModal && selectedMember && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen overflow-y-auto p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-md shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col my-auto animate-in zoom-in-95 duration-200 shrink-0">
-            <div className="relative flex items-center justify-between px-10 py-6 border-b border-slate-100 shrink-0 group">
+          <div className="bg-white rounded-xl shadow-2xl max-w-[440px] w-full max-h-[90vh] flex flex-col my-auto animate-in zoom-in-95 duration-200 overflow-hidden">
+
+            {/* Header */}
+            <div className="relative flex items-center justify-between px-6 py-5 border-b border-[#F0F0F0] shrink-0 group">
               <button
                 type="button"
                 onClick={() => {
                   setShowMemberProfileModal(false);
                   setSelectedMember(null);
                 }}
-                className="p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors cursor-pointer"
+                className="p-2 rounded-md bg-[#F2F2F2] hover:bg-gray-200 transition-colors cursor-pointer"
                 title="Close"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-              <div className="absolute top-full left-14 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[0px_4px_10px_rgba(0,0,0,0.1)] px-3 py-0.5 relative z-10">
-                  <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                    Close
-                  </span>
+              <div className="absolute top-full left-10 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-white border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-white border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                  <span className="font-Gantari text-[13px] font-semibold text-[#353535] whitespace-nowrap">Close</span>
                 </div>
               </div>
-              <h3 className="flex-1 text-center text-[24px] font-Gantari font-bold text-[#1A1A1A]">
-                Member Profile
-              </h3>
-              <div className="w-10" />
+              <h3 className="flex-1 text-center text-[20px] font-Gantari font-bold text-[#1A1A1A]">Member Profile</h3>
+              <div className="w-8" />
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-10 py-8 custom-scrollbar">
-              <div className="flex flex-col items-center">
+
+            {/* Scrollable Content */}
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 py-6">
+
+              {/* Profile row: photo + name + empid */}
+              <div className="flex items-center gap-4 mb-6 pb-5 border-b border-[#F0F0F0]">
                 {getEmployeeProfileUrl(selectedMember) ? (
                   <img
                     src={getEmployeeProfileUrl(selectedMember)}
                     alt={selectedMember.full_name || "Member"}
-                    className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover mb-6"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = ProfileIcon;
-                    }}
+                    className="w-14 h-14 rounded-full border-2 border-[#E8E8E8] object-cover shrink-0"
+                    onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }}
                   />
                 ) : (
-                  <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-slate-200 flex items-center justify-center mb-6">
-                    <span className="text-slate-600 font-bold text-3xl">
-                      {(selectedMember.full_name || `E${selectedMember.id}`)
-                        .charAt(0)
-                        .toUpperCase()}
+                  <div className="w-14 h-14 rounded-full border-2 border-[#E8E8E8] bg-slate-200 flex items-center justify-center shrink-0">
+                    <span className="text-slate-600 font-bold text-xl">
+                      {(selectedMember.full_name || `E${selectedMember.id}`).charAt(0).toUpperCase()}
                     </span>
                   </div>
                 )}
-                <div className="w-full space-y-4">
-                  <div>
-                    <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                      Full Name
-                    </p>
-                    <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
-                      {selectedMember.full_name || "Not Available"}
-                    </p>
-                  </div>
+                <div className="min-w-0">
+                  <p className="text-[17px] font-Gantari font-bold text-[#1A1A1A] leading-snug">
+                    {selectedMember.full_name || "Not Available"}
+                  </p>
                   {selectedMember.empid && (
-                    <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                        Employee ID
-                      </p>
-                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {selectedMember.empid}
-                      </p>
-                    </div>
-                  )}
-                  {selectedMember.dob && (
-                    <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                        Date of Birth
-                      </p>
-                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {new Date(selectedMember.dob).toLocaleDateString(
-                          "en-GB",
-                          { day: "2-digit", month: "2-digit", year: "numeric" },
-                        )}
-                      </p>
-                    </div>
-                  )}
-                  {selectedMember.phone_number && (
-                    <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                        Phone Number
-                      </p>
-                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {selectedMember.phone_number}
-                      </p>
-                    </div>
-                  )}
-                  {selectedMember.email && (
-                    <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                        Email
-                      </p>
-                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {selectedMember.email}
-                      </p>
-                    </div>
-                  )}
-                  {selectedMember.user_role && (
-                    <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                        Role
-                      </p>
-                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {selectedMember.user_role}
-                      </p>
-                    </div>
-                  )}
-                  {selectedMember.address && (
-                    <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                        Address
-                      </p>
-                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {selectedMember.address}
-                      </p>
-                    </div>
-                  )}
-                  {selectedMember.department && (
-                    <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                        Department
-                      </p>
-                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {selectedMember.department}
-                      </p>
-                    </div>
-                  )}
-                  {selectedMember.doj && (
-                    <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                        Date of Joining
-                      </p>
-                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {new Date(selectedMember.doj).toLocaleDateString(
-                          "en-GB",
-                          { day: "2-digit", month: "2-digit", year: "numeric" },
-                        )}
-                      </p>
-                    </div>
+                    <p className="text-[14px] font-Gantari font-semibold text-[#353535] mt-0.5">
+                      {selectedMember.empid}
+                    </p>
                   )}
                 </div>
               </div>
+
+              {/* Fields: Label : Value */}
+              <div className="space-y-4">
+                {selectedMember.dob && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-[14px] font-Gantari text-[#8B8B8B] w-36 shrink-0">Date of Birth</span>
+                    <span className="text-[14px] font-Gantari text-[#353535] font-medium">: {new Date(selectedMember.dob).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })}</span>
+                  </div>
+                )}
+                {selectedMember.phone_number && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-[14px] font-Gantari text-[#8B8B8B] w-36 shrink-0">Phone Number</span>
+                    <span className="text-[14px] font-Gantari text-[#353535] font-medium">: {selectedMember.phone_number}</span>
+                  </div>
+                )}
+                {selectedMember.email && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-[14px] font-Gantari text-[#8B8B8B] w-36 shrink-0">Email</span>
+                    <span className="text-[14px] font-Gantari text-[#353535] font-medium break-all">: {selectedMember.email}</span>
+                  </div>
+                )}
+                {selectedMember.user_role && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-[14px] font-Gantari text-[#8B8B8B] w-36 shrink-0">User Role</span>
+                    <span className="text-[14px] font-Gantari text-[#353535] font-medium">: {selectedMember.user_role}</span>
+                  </div>
+                )}
+                {selectedMember.address && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-[14px] font-Gantari text-[#8B8B8B] w-36 shrink-0">Address</span>
+                    <span className="text-[14px] font-Gantari text-[#353535] font-medium">: {selectedMember.address}</span>
+                  </div>
+                )}
+                {selectedMember.department && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-[14px] font-Gantari text-[#8B8B8B] w-36 shrink-0">Department</span>
+                    <span className="text-[14px] font-Gantari text-[#353535] font-medium">: {selectedMember.department}</span>
+                  </div>
+                )}
+                {selectedMember.doj && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-[14px] font-Gantari text-[#8B8B8B] w-36 shrink-0">Joined Date</span>
+                    <span className="text-[14px] font-Gantari text-[#353535] font-medium">: {new Date(selectedMember.doj).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })}</span>
+                  </div>
+                )}
+              </div>
+
             </div>
           </div>
         </div>

@@ -411,38 +411,41 @@ export default function TeamtaskBC() {
                             searchPlaceholder="Search project..."
                             maxVisibleItems={4}
                         />
-                        <TaskDropdown
-                            label="Show Entries"
-                            options={SHOW_OPTIONS}
-                            selected={selectedShow}
-                            onSelect={setSelectedShow}
-                            isOpen={openDropdown === "show"}
-                            onToggle={() => setOpenDropdown((d) => (d === "show" ? null : "show"))}
-                            onClose={() => setOpenDropdown(null)}
-                            triggerRef={showTriggerRef}
-                            dropdownRef={showMenuRef}
-                            narrow
-                            maxVisibleItems={4}
-                        />
-                        <TaskDropdown
-                            label="Period"
-                            options={PERIOD_OPTIONS}
-                            selected={selectedPeriod}
-                            onSelect={setSelectedPeriod}
-                            isOpen={openDropdown === "period"}
-                            onToggle={() => setOpenDropdown((d) => (d === "period" ? null : "period"))}
-                            onClose={() => setOpenDropdown(null)}
-                            triggerRef={periodTriggerRef}
-                            dropdownRef={periodMenuRef}
-                            narrow
-                            maxVisibleItems={4}
-                        />
+                        <div className="w-[130px]">
+                            <TaskDropdown
+                                label="Show Entries"
+                                options={SHOW_OPTIONS}
+                                selected={selectedShow}
+                                onSelect={setSelectedShow}
+                                isOpen={openDropdown === "show"}
+                                onToggle={() => setOpenDropdown((d) => (d === "show" ? null : "show"))}
+                                onClose={() => setOpenDropdown(null)}
+                                triggerRef={showTriggerRef}
+                                dropdownRef={showMenuRef}
+                                narrow
+                                maxVisibleItems={4}
+                            />
+                        </div>
+                        <div className="w-[130px]">
+                            <TaskDropdown
+                                label="Period"
+                                options={PERIOD_OPTIONS}
+                                selected={selectedPeriod}
+                                onSelect={setSelectedPeriod}
+                                isOpen={openDropdown === "period"}
+                                onToggle={() => setOpenDropdown((d) => (d === "period" ? null : "period"))}
+                                onClose={() => setOpenDropdown(null)}
+                                triggerRef={periodTriggerRef}
+                                dropdownRef={periodMenuRef}
+                                narrow
+                                maxVisibleItems={4}
+                            />
+                        </div>
                         <button
                             type="button"
                             onClick={() => navigate("/bc/teamtasks/add", { state: { from: "teamtasks" } })}
                             className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-white cursor-pointer"
                         >
-                            <img src={AddBtn} alt="Add" className="h-5 w-5" />
                             Add task
                         </button>
                     </div>

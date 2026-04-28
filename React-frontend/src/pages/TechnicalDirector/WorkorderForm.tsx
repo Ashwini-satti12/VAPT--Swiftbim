@@ -6,6 +6,13 @@ import api from "../../lib/api";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 
+type PaymentTermRow = {
+  basis: string;
+  terms: string;
+  amount: string;
+  timeline: string;
+};
+
 const CURRENCY_OPTIONS = [
   { code: "INR", label: "Indian Rupee (INR)" },
   { code: "USD", label: "US Dollar (USD)" },
@@ -32,10 +39,24 @@ export default function WorkorderForm() {
   const editWO = state?.editWO;
   const editId = editWO?.id ? Number(editWO.id) : null;
 
-  const stripHtml = (html: string): string => {
-    if (!html) return "";
-    const doc = new DOMParser().parseFromString(html, "text/html");
-    return (doc.body.textContent || "").trim();
+  const parsePaymentTermsRows = (value: unknown): PaymentTermRow[] => {
+    if (!value) return [];
+    let parsed: unknown = value;
+    if (typeof value === "string") {
+      try {
+        parsed = JSON.parse(value);
+      } catch {
+        return [];
+      }
+    }
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((t: any) => ({
+      basis: String(t?.basis ?? t?.label ?? ""),
+      // UI requirement: user must fill these manually (start blank)
+      terms: "",
+      amount: "",
+      timeline: "",
+    }));
   };
 
   const formatPaymentTermsToHtml = (terms: any): string => {
@@ -105,7 +126,8 @@ export default function WorkorderForm() {
       state?.proposal?.deliverables_intro ||
       state?.proposal?.deliverables_list ||
       "",
-    exclusions: state?.proposal?.exclusions || state?.proposal?.exclusions_list || "",
+    exclusions:
+      state?.proposal?.exclusions || state?.proposal?.exclusions_list || "",
     currency: (
       state?.proposal?.selected_currency ||
       state?.proposal?.bid_currency ||
@@ -114,12 +136,21 @@ export default function WorkorderForm() {
     amountAED: state?.proposal?.bid_amount?.toString() || "",
     duration: state?.proposal?.timeline || "",
     termsAndConditions: "",
-    paymentTerms: formatPaymentTermsToHtml(state?.proposal?.payment_terms || ""),
+    paymentTerms: formatPaymentTermsToHtml(
+      state?.proposal?.payment_terms || "",
+    ),
     additionalTerms: "",
   });
 
+  const [paymentRows, setPaymentRows] = useState<PaymentTermRow[]>(
+    parsePaymentTermsRows(state?.proposal?.payment_terms || ""),
+  );
+
   useEffect(() => {
-    if (state?.proposal?.opportunity_id && (!form.projectLocation || form.projectLocation === "Loading...")) {
+    if (
+      state?.proposal?.opportunity_id &&
+      (!form.projectLocation || form.projectLocation === "Loading...")
+    ) {
       api
         .get(`/api/vendors/bidding`)
         .then((res) => {
@@ -165,7 +196,8 @@ export default function WorkorderForm() {
     amountAED:
       wo?.amount_aed != null ? String(wo.amount_aed) : wo?.amountAED || "",
     duration: wo?.duration || "",
-    termsAndConditions: wo?.terms_and_conditions || wo?.termsAndConditions || "",
+    termsAndConditions:
+      wo?.terms_and_conditions || wo?.termsAndConditions || "",
     paymentTerms: wo?.payment_terms || wo?.paymentTerms || "",
     additionalTerms: wo?.additional_terms || wo?.additionalTerms || "",
     exclusions: wo?.exclusions || "",
@@ -179,6 +211,9 @@ export default function WorkorderForm() {
         const wo = res.data?.work_order;
         if (wo) {
           setForm(mapWorkOrderToForm(wo));
+          setPaymentRows(
+            parsePaymentTermsRows(wo?.payment_terms || wo?.paymentTerms || ""),
+          );
         }
       })
       .catch((err) => {
@@ -188,9 +223,9 @@ export default function WorkorderForm() {
   }, [editId]);
 
   const fieldClass =
-    "w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-white border border-[#E0E0E0] rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52]";
+    "w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F3F3F3] border border-[#E6E6E6] rounded-[4px] font-Gantari transition-all outline-none focus:bg-white focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52]";
   const labelClass =
-    "block text-[16px] font-Gantari font-semibold text-[#000000] mb-2";
+    "block text-[14px] font-Gantari font-semibold text-[#000000] mb-2";
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const currencyWrapRef = useRef<HTMLDivElement>(null);
   const selectedCurrencyLabel =
@@ -218,11 +253,15 @@ export default function WorkorderForm() {
     }
     try {
       setIsSubmitting(true);
+      const payload = {
+        ...form,
+        paymentTerms: formatPaymentTermsToHtml(paymentRows),
+      };
       if (editId) {
-        await api.put(`/api/workorders/${editId}`, form);
+        await api.put(`/api/workorders/${editId}`, payload);
         toast.success("Work order updated successfully.");
       } else {
-        await api.post("/api/workorders", form);
+        await api.post("/api/workorders", payload);
         toast.success("Work order created successfully.");
       }
       navigate("/td/workorder");
@@ -236,7 +275,7 @@ export default function WorkorderForm() {
 
   return (
     <div className="flex-1 overflow-y-auto p-4 bg-white font-Gantari">
-      <div className="max-w-5xl mx-auto">
+      <div className="mx-auto">
         <div className="flex items-center justify-between mb-8">
           <button
             type="button"
@@ -252,11 +291,11 @@ export default function WorkorderForm() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="bg-[#F9F9F9] rounded-lg shadow-sm border border-[#AEACAC52] overflow-hidden">
+          <div className="bg-white overflow-hidden">
             {/* Basic Information */}
-            <div className="p-6">
-              <h4 className="text-[18px] font-bold mb-4 text-[#1A1A1A] border-b border-[#AEACAC52] pb-2">
-                Basic Information
+            <div className="p-0 mb-8">
+              <h4 className="text-[16px] font-bold mb-3 text-[#1A1A1A]">
+                1. Basic Information
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -329,19 +368,21 @@ export default function WorkorderForm() {
             </div>
 
             {/* Work Scope & Description */}
-            <div className="p-6 border-[#AEACAC52]">
-              <h4 className="text-[18px] font-bold mb-4 text-[#1A1A1A] border-b border-[#AEACAC52] pb-2">
-                Work Scope & Description
+            <div className="p-0 mb-8">
+              <h4 className="text-[16px] font-bold mb-3 text-[#1A1A1A]">
+                2. Work Scope & Description
               </h4>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className={labelClass}>Work Description</label>
+                  <label className={labelClass}>Description</label>
                   <ReactQuill
                     theme="snow"
                     value={form.workDescription}
-                    onChange={(val) => setForm({ ...form, workDescription: val })}
+                    onChange={(val) =>
+                      setForm({ ...form, workDescription: val })
+                    }
                     modules={quillModules}
-                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[120px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
+                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -351,7 +392,7 @@ export default function WorkorderForm() {
                     value={form.scopeOfWork}
                     onChange={(val) => setForm({ ...form, scopeOfWork: val })}
                     modules={quillModules}
-                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[120px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
+                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -359,9 +400,11 @@ export default function WorkorderForm() {
                   <ReactQuill
                     theme="snow"
                     value={form.projectInvolves}
-                    onChange={(val) => setForm({ ...form, projectInvolves: val })}
+                    onChange={(val) =>
+                      setForm({ ...form, projectInvolves: val })
+                    }
                     modules={quillModules}
-                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[150px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
+                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -371,26 +414,16 @@ export default function WorkorderForm() {
                     value={form.deliverables}
                     onChange={(val) => setForm({ ...form, deliverables: val })}
                     modules={quillModules}
-                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[150px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className={labelClass}>Exclusions</label>
-                  <ReactQuill
-                    theme="snow"
-                    value={form.exclusions}
-                    onChange={(val) => setForm({ ...form, exclusions: val })}
-                    modules={quillModules}
-                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[150px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
+                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
                   />
                 </div>
               </div>
             </div>
 
             {/* Financials & Timeline */}
-            <div className="p-6 border-[#AEACAC52]">
-              <h4 className="text-[18px] font-bold mb-4 text-[#1A1A1A] border-b border-[#AEACAC52] pb-2">
-                Financials & Timeline
+            <div className="p-0 mb-8">
+              <h4 className="text-[16px] font-bold mb-3 text-[#1A1A1A]">
+                3. Financials & Timeline
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -492,9 +525,9 @@ export default function WorkorderForm() {
             </div>
 
             {/* Terms & Conditions */}
-            <div className="p-6 border-[#AEACAC52]">
-              <h4 className="text-[18px] font-bold mb-4 text-[#1A1A1A] border-b border-[#AEACAC52] pb-2">
-                Terms & Conditions
+            <div className="p-0 mb-8">
+              <h4 className="text-[16px] font-bold mb-3 text-[#1A1A1A]">
+                4. Terms & Conditions
               </h4>
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -504,20 +537,167 @@ export default function WorkorderForm() {
                   <ReactQuill
                     theme="snow"
                     value={form.termsAndConditions}
-                    onChange={(val) => setForm({ ...form, termsAndConditions: val })}
+                    onChange={(val) =>
+                      setForm({ ...form, termsAndConditions: val })
+                    }
                     modules={quillModules}
-                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[120px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
+                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className={labelClass}>Payment Terms</label>
-                  <ReactQuill
-                    theme="snow"
-                    value={form.paymentTerms}
-                    onChange={(val) => setForm({ ...form, paymentTerms: val })}
-                    modules={quillModules}
-                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[150px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
-                  />
+                  <div className="flex items-center justify-between">
+                    <label className={labelClass}>Payment Terms</label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPaymentRows((prev) => [
+                          ...prev,
+                          {
+                            basis: "",
+                            terms: "",
+                            amount: "",
+                            timeline: "",
+                          },
+                        ])
+                      }
+                      className="h-9 px-4 rounded-[4px] bg-[#DD4342] text-white text-[13px] font-semibold hover:opacity-90 transition-all"
+                    >
+                      + Add Row
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto rounded-[6px] border border-[#E6E6E6] bg-white">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-[#F2F2F2] text-[13px] text-[#1A1A1A]">
+                          <th className="px-4 py-3 text-left font-semibold w-[90px]">
+                            Sl.No
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold">
+                            Payment Basis
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold w-[180px]">
+                            Terms (%)
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold w-[180px]">
+                            Amount
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold w-[220px]">
+                            Timeline
+                          </th>
+                          <th className="px-3 py-3 w-[50px]" />
+                        </tr>
+                      </thead>
+                      <tbody className="text-[13px]">
+                        {(paymentRows.length
+                          ? paymentRows
+                          : [
+                              {
+                                basis: "",
+                                terms: "",
+                                amount: "",
+                                timeline: "",
+                              },
+                            ]
+                        ).map((row, idx) => {
+                          const isProtected =
+                            (row.basis || "").trim().toLowerCase() ===
+                              "advance (on signing)" ||
+                            (row.basis || "").trim().toLowerCase() ===
+                              "final payment";
+                          const canDelete = paymentRows.length > 0 && !isProtected;
+                          return (
+                            <tr key={idx} className="border-t border-[#EFEFEF]">
+                              <td className="px-4 py-3 text-[#1A1A1A]">
+                                {idx + 1}.
+                              </td>
+                              <td className="px-4 py-3">
+                                <input
+                                  value={row.basis}
+                                  onChange={(e) =>
+                                    setPaymentRows((prev) =>
+                                      prev.map((r, i) =>
+                                        i === idx
+                                          ? { ...r, basis: e.target.value }
+                                          : r,
+                                      ),
+                                    )
+                                  }
+                                  placeholder="Advance (on signing)"
+                                  className="w-full bg-transparent outline-none placeholder-[#9B9B9B]"
+                                />
+                              </td>
+                              <td className="px-4 py-3">
+                                <input
+                                  value={row.terms}
+                                  onChange={(e) =>
+                                    setPaymentRows((prev) =>
+                                      prev.map((r, i) =>
+                                        i === idx
+                                          ? { ...r, terms: e.target.value }
+                                          : r,
+                                      ),
+                                    )
+                                  }
+                                  placeholder="eg. 10%"
+                                  className="w-full bg-transparent outline-none placeholder-[#9B9B9B]"
+                                />
+                              </td>
+                              <td className="px-4 py-3">
+                                <input
+                                  value={row.amount}
+                                  onChange={(e) =>
+                                    setPaymentRows((prev) =>
+                                      prev.map((r, i) =>
+                                        i === idx
+                                          ? { ...r, amount: e.target.value }
+                                          : r,
+                                      ),
+                                    )
+                                  }
+                                  placeholder="Enter amount"
+                                  className="w-full bg-transparent outline-none placeholder-[#9B9B9B]"
+                                />
+                              </td>
+                              <td className="px-4 py-3">
+                                <input
+                                  value={row.timeline}
+                                  onChange={(e) =>
+                                    setPaymentRows((prev) =>
+                                      prev.map((r, i) =>
+                                        i === idx
+                                          ? { ...r, timeline: e.target.value }
+                                          : r,
+                                      ),
+                                    )
+                                  }
+                                  placeholder="eg. 2 weeks"
+                                  className="w-full bg-transparent outline-none placeholder-[#9B9B9B]"
+                                />
+                              </td>
+                              <td className="px-3 py-3 text-right">
+                                {canDelete ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setPaymentRows((prev) =>
+                                        prev.filter((_, i) => i !== idx),
+                                      )
+                                    }
+                                    className="text-[#DD4342] font-semibold"
+                                    aria-label="Remove row"
+                                    title="Remove"
+                                  >
+                                    ×
+                                  </button>
+                                ) : null}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <label className={labelClass}>
@@ -526,15 +706,27 @@ export default function WorkorderForm() {
                   <ReactQuill
                     theme="snow"
                     value={form.additionalTerms}
-                    onChange={(val) => setForm({ ...form, additionalTerms: val })}
+                    onChange={(val) =>
+                      setForm({ ...form, additionalTerms: val })
+                    }
                     modules={quillModules}
-                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[150px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
+                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className={labelClass}>Exclusions</label>
+                  <ReactQuill
+                    theme="snow"
+                    value={form.exclusions}
+                    onChange={(val) => setForm({ ...form, exclusions: val })}
+                    modules={quillModules}
+                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-center gap-4 px-6 py-6 border-[#AEACAC52] pb-10">
+            <div className="flex justify-center gap-4 py-6 pb-10">
               <button
                 type="button"
                 onClick={() => navigate("/td/workorder")}
@@ -564,8 +756,8 @@ const QUILL_STYLES = `
   .ql-editor.ql-blank::before { color: #8B8B8B !important; font-style: normal !important; }
 `;
 
-if (typeof document !== 'undefined') {
-  const styleTag = document.createElement('style');
+if (typeof document !== "undefined") {
+  const styleTag = document.createElement("style");
   styleTag.innerHTML = QUILL_STYLES;
   document.head.appendChild(styleTag);
 }

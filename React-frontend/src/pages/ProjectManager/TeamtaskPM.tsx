@@ -406,6 +406,9 @@ interface Task {
   type?: string;
   start_time?: string;
   due_time?: string;
+  /** Some APIs return these alternate keys. */
+  Actual_start_time?: string;
+  end_time?: string;
   assign_to?: string;
   description?: string;
   checklist?: string;
