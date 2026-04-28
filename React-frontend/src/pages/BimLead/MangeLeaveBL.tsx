@@ -17,6 +17,7 @@ const EMPLOYEE_FILTER_PLACEHOLDER = "Employee";
 interface LeaveEntry {
   id: number;
   slNo: number;
+  employeeId?: number;
   employeeName: string;
   role?: string;
   leaveType: string;
@@ -52,7 +53,9 @@ function mapLeaveStatusFromApi(
   const s = Number(status);
   if (s === 1) return "Approved";
   if (s === 2) return "Rejected";
-  if (s === 3) return "Pending";
+  if (s === 3) return "Pending";  // BIM Modeler: waiting for BIM Lead
+  // BIM Coordinator at status 4: BL already approved, forwarded to PM
+  if (s === 4 && isBimCoordinatorRole(applicantRole)) return "Approved";
   if (s === 4) return "Pending";
   if (s === 5) return "Pending";
   if (s === 0 && isBimLeadRole(applicantRole)) return "Pending";
@@ -369,6 +372,7 @@ export default function ManageLeave() {
         const mapped: LeaveEntry[] = filteredApps.map((app, index) => ({
           id: app.lid,
           slNo: index + 1,
+          employeeId: app.employee_id,
           employeeName: app.full_name || "Unknown",
           role: app.role || undefined,
           leaveType: app.title || app.leave_type || "Others",
@@ -646,6 +650,7 @@ export default function ManageLeave() {
         const mapped: LeaveEntry[] = filteredApps.map((app, index) => ({
           id: app.lid,
           slNo: index + 1,
+          employeeId: app.employee_id,
           employeeName: app.full_name || "Unknown",
           role: app.role || undefined,
           leaveType: app.title || app.leave_type || "Others",
@@ -775,6 +780,7 @@ export default function ManageLeave() {
         const mapped: LeaveEntry[] = filteredApps.map((app, index) => ({
           id: app.lid,
           slNo: index + 1,
+          employeeId: app.employee_id,
           employeeName: app.full_name || "Unknown",
           role: app.role || undefined,
           leaveType: app.title || app.leave_type || "Others",
@@ -831,6 +837,7 @@ export default function ManageLeave() {
       const mapped: LeaveEntry[] = filteredApps.map((app, index) => ({
         id: app.lid,
         slNo: index + 1,
+        employeeId: app.employee_id,
         employeeName: app.full_name || "Unknown",
         role: app.role || undefined,
         leaveType: app.title || app.leave_type || "Others",
@@ -884,22 +891,24 @@ export default function ManageLeave() {
         return;
       }
       if (data?.stage === "pending_bim_lead") {
+        // BL (as BC's approver for BIM Modeler) forwarded to BIM Lead — not applicable here
         toast.success("Forwarded to BIM Lead for final approval");
         setLeaves((prev) =>
           prev.map((l) =>
             l.id === approveLeave.id
-              ? { ...l, currentStatus: "Pending ", statusCode: 3 }
+              ? { ...l, currentStatus: "Approved", statusCode: 3 }
               : l,
           ),
         );
       } else if (data?.stage === "pending_project_manager") {
+        // BL approved BC's leave → forwarded to PM
         toast.success("Forwarded to Project Manager for final approval");
         setLeaves((prev) =>
           prev.map((l) =>
             l.id === approveLeave.id
               ? {
                   ...l,
-                  currentStatus: "Pending",
+                  currentStatus: "Approved",
                   statusCode: 4,
                 }
               : l,
@@ -941,19 +950,24 @@ export default function ManageLeave() {
     }
   };
 
-  // BIM Lead: final approve/reject for BIM Modeler (after coordinator) or BIM Coordinator;
-  // never for their own applications.
+  // BIM Lead: final approve/reject for BIM Modeler (after BC forwards, status=3)
+  // or first approve/reject for BIM Coordinator own leave (status=0).
+  // Never act on own applications.
   const canActOnLeave = (row: LeaveEntry): boolean => {
-    const currentName = (user?.full_name || "").trim();
-    if (!currentName) return false;
-
-    if (row.employeeName.trim() === currentName) return false;
-
-    if (isBimModelerRole(row.role)) {
-      return row.currentStatus === "Pending ";
+    // Exclude own applications (use ID if available, fall back to name)
+    if (row.employeeId !== undefined && row.employeeId === user?.id) return false;
+    if (row.employeeId === undefined) {
+      const currentName = (user?.full_name || "").trim();
+      if (currentName && row.employeeName.trim() === currentName) return false;
     }
+
+    // BIM Modeler: BIM Lead is 2nd approver; leave arrives here at status 3
+    if (isBimModelerRole(row.role)) {
+      return row.statusCode === 3;
+    }
+    // BIM Coordinator: BIM Lead is 1st approver; leave starts at status 0
     if (isBimCoordinatorRole(row.role)) {
-      return row.currentStatus === "Pending ";
+      return row.statusCode === 0;
     }
     return false;
   };
@@ -2432,13 +2446,13 @@ export default function ManageLeave() {
                     } else {
                       if (r.includes('bim modeler')) {
                         statuses.push({ label: 'BIM Coordinator', text: sc === 1 || (sc !== undefined && sc >= 3) ? 'Approved' : 'Pending' });
-                        statuses.push({ label: 'BIM Lead', text: sc === 1 ? 'Approved' : (sc === 3 ? 'Pending' : '-') });
+                        statuses.push({ label: 'BIM Lead', text: sc === 1 ? 'Approved' : 'Pending' });
                       } else if (r.includes('bim coordinator')) {
                         statuses.push({ label: 'BIM Lead', text: sc === 1 || (sc !== undefined && sc >= 4) ? 'Approved' : 'Pending' });
-                        statuses.push({ label: 'Project Manager', text: sc === 1 ? 'Approved' : (sc === 4 ? 'Pending' : '-') });
+                        statuses.push({ label: 'Project Manager', text: sc === 1 ? 'Approved' : 'Pending' });
                       } else if (r.includes('bim lead')) {
                         statuses.push({ label: 'Project Manager', text: sc === 1 || (sc !== undefined && sc >= 5) ? 'Approved' : 'Pending' });
-                        statuses.push({ label: 'Technical Director', text: sc === 1 ? 'Approved' : (sc === 5 ? 'Pending' : '-') });
+                        statuses.push({ label: 'Technical Director', text: sc === 1 ? 'Approved' : 'Pending' });
                       } else if (r.includes('project manager')) {
                         statuses.push({ label: 'Technical Director', text: sc === 1 ? 'Approved' : 'Pending' });
                       } else {

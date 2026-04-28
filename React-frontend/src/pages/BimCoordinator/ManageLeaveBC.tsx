@@ -51,8 +51,10 @@ function mapLeaveStatusFromApi(
   const s = Number(status);
   if (s === 1) return "Approved";
   if (s === 2) return "Rejected";
+  // BIM Modeler at status 3: BC already approved and forwarded to BIM Lead
+  if (s === 3 && isBimModelerRole(applicantRole)) return "Approved";
   if (s === 3) return "Pending";
-  if (s === 4) return "Pending ";
+  if (s === 4) return "Pending";
   if (isBimModelerRole(applicantRole)) return "Pending";
   if (isBimCoordinatorRole(applicantRole)) return "Pending";
   return "Pending";
@@ -1112,13 +1114,13 @@ export default function ManageLeaveBC() {
                     } else {
                       if (r.includes('bim modeler')) {
                         statuses.push({ label: 'BIM Coordinator', text: sc === 1 || sc >= 3 ? 'Approved' : 'Pending' });
-                        statuses.push({ label: 'BIM Lead', text: sc === 1 ? 'Approved' : (sc === 3 ? 'Pending' : '-') });
+                        statuses.push({ label: 'BIM Lead', text: sc === 1 ? 'Approved' : 'Pending' });
                       } else if (r.includes('bim coordinator')) {
                         statuses.push({ label: 'BIM Lead', text: sc === 1 || sc >= 4 ? 'Approved' : 'Pending' });
-                        statuses.push({ label: 'Project Manager', text: sc === 1 ? 'Approved' : (sc === 4 ? 'Pending' : '-') });
+                        statuses.push({ label: 'Project Manager', text: sc === 1 ? 'Approved' : 'Pending' });
                       } else if (r.includes('bim lead')) {
                         statuses.push({ label: 'Project Manager', text: sc === 1 || sc >= 5 ? 'Approved' : 'Pending' });
-                        statuses.push({ label: 'Technical Director', text: sc === 1 ? 'Approved' : (sc === 5 ? 'Pending' : '-') });
+                        statuses.push({ label: 'Technical Director', text: sc === 1 ? 'Approved' : 'Pending' });
                       } else if (r.includes('project manager')) {
                         statuses.push({ label: 'Technical Director', text: sc === 1 ? 'Approved' : 'Pending' });
                       } else {
