@@ -121,7 +121,6 @@ export interface Task {
   due_time?: string;
   assign_to?: string;
   description?: string;
-  checklist?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
   assigned_to?: number;
@@ -196,7 +195,7 @@ export function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? (label === "Period" ? "min-w-[130px]" : "min-w-[150px]") : "min-w-[160px]"}`}
+        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? "w-full" : "min-w-[160px]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
@@ -226,7 +225,7 @@ export function TaskDropdown({
         <div
           ref={dropdownRef}
           role="listbox"
-          className={`absolute top-full z-10 mt-1 rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 min-w-[110px]" : "left-0 min-w-[160px]"}`}
+          className={`absolute top-full z-10 mt-1 rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 w-full" : "left-0 min-w-[160px]"}`}
         >
           {searchable && (
             <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
@@ -389,7 +388,6 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
   dueTime: string;
   assignTo: string;
   description: string;
-  checklist: string;
   reviewRemark: string;
 } {
   const t = task as Record<string, unknown>;
@@ -439,7 +437,6 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
       "",
     ),
     description: str(t.description ?? ""),
-    checklist: str(t.checklist ?? ""),
     reviewRemark: str(t.review_remark ?? ""),
   };
 }
@@ -1080,70 +1077,77 @@ export default function MytaskBM() {
           </h1>
           <div
             ref={dropdownsContainerRef}
-            className="flex flex-wrap items-center gap-2"
+            className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto"
           >
-            <TaskDropdown
-              label="Select Employee"
-              options={employeeOptions}
-              selected={selectedEmployee}
-              onSelect={setSelectedEmployee}
-              isOpen={openDropdown === "employee"}
-              onToggle={() =>
-                setOpenDropdown((d) => (d === "employee" ? null : "employee"))
-              }
-              onClose={() => setOpenDropdown(null)}
-              triggerRef={employeeTriggerRef}
-              dropdownRef={employeeMenuRef}
-              searchable
-            />
-            <TaskDropdown
-              label="Select Projects"
-              options={projectOptions}
-              selected={selectedProject}
-              onSelect={setSelectedProject}
-              isOpen={openDropdown === "projects"}
-              onToggle={() =>
-                setOpenDropdown((d) => (d === "projects" ? null : "projects"))
-              }
-              onClose={() => setOpenDropdown(null)}
-              triggerRef={projectsTriggerRef}
-              dropdownRef={projectsMenuRef}
-              searchable
-            />
-            <TaskDropdown
-              label="Show Entries"
-              options={SHOW_OPTIONS}
-              selected={selectedShow}
-              onSelect={setSelectedShow}
-              isOpen={openDropdown === "show"}
-              onToggle={() =>
-                setOpenDropdown((d) => (d === "show" ? null : "show"))
-              }
-              onClose={() => setOpenDropdown(null)}
-              triggerRef={showTriggerRef}
-              dropdownRef={showMenuRef}
-              narrow
-            />
-            <TaskDropdown
-              label="Period"
-              options={PERIOD_OPTIONS}
-              selected={selectedPeriod}
-              onSelect={setSelectedPeriod}
-              isOpen={openDropdown === "period"}
-              onToggle={() =>
-                setOpenDropdown((d) => (d === "period" ? null : "period"))
-              }
-              onClose={() => setOpenDropdown(null)}
-              triggerRef={periodTriggerRef}
-              dropdownRef={periodMenuRef}
-              narrow
-            />
+            <div className="w-full lg:w-auto">
+              <TaskDropdown
+                label="Select Employee"
+                options={employeeOptions}
+                selected={selectedEmployee}
+                onSelect={setSelectedEmployee}
+                isOpen={openDropdown === "employee"}
+                onToggle={() =>
+                  setOpenDropdown((d) => (d === "employee" ? null : "employee"))
+                }
+                onClose={() => setOpenDropdown(null)}
+                triggerRef={employeeTriggerRef}
+                dropdownRef={employeeMenuRef}
+                searchable
+              />
+            </div>
+            <div className="w-full lg:w-auto">
+              <TaskDropdown
+                label="Select Projects"
+                options={projectOptions}
+                selected={selectedProject}
+                onSelect={setSelectedProject}
+                isOpen={openDropdown === "projects"}
+                onToggle={() =>
+                  setOpenDropdown((d) => (d === "projects" ? null : "projects"))
+                }
+                onClose={() => setOpenDropdown(null)}
+                triggerRef={projectsTriggerRef}
+                dropdownRef={projectsMenuRef}
+                searchable
+              />
+            </div>
+            <div className="w-full lg:w-[130px]">
+              <TaskDropdown
+                label="Show Entries"
+                options={SHOW_OPTIONS}
+                selected={selectedShow}
+                onSelect={setSelectedShow}
+                isOpen={openDropdown === "show"}
+                onToggle={() =>
+                  setOpenDropdown((d) => (d === "show" ? null : "show"))
+                }
+                onClose={() => setOpenDropdown(null)}
+                triggerRef={showTriggerRef}
+                dropdownRef={showMenuRef}
+                narrow
+              />
+            </div>
+            <div className="w-full lg:w-[130px]">
+              <TaskDropdown
+                label="Period"
+                options={PERIOD_OPTIONS}
+                selected={selectedPeriod}
+                onSelect={setSelectedPeriod}
+                isOpen={openDropdown === "period"}
+                onToggle={() =>
+                  setOpenDropdown((d) => (d === "period" ? null : "period"))
+                }
+                onClose={() => setOpenDropdown(null)}
+                triggerRef={periodTriggerRef}
+                dropdownRef={periodMenuRef}
+                narrow
+              />
+            </div>
             <button
               type="button"
               onClick={() => navigate("/bm/mytasks/add")}
               className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-white shadow-sm cursor-pointer"
             >
-              <img src={AddBtn} alt="Add" className="h-4 w-4" />
               Add Task
             </button>
           </div>
