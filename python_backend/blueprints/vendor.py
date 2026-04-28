@@ -5135,6 +5135,9 @@ CREATE TABLE IF NOT EXISTS vendor_task (
     description TEXT,
     checklist TEXT,
     outputfilepath TEXT,
+    progress VARCHAR(255),
+    review_remark TEXT,
+    Approval VARCHAR(100),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 )
@@ -5159,6 +5162,9 @@ def _ensure_vendor_task_table():
         "assigned_to": "INT NULL",
         "modules": "VARCHAR(255) DEFAULT ''",
         "outputfilepath": "TEXT NULL",
+        "progress": "VARCHAR(255) NULL",
+        "review_remark": "TEXT NULL",
+        "Approval": "VARCHAR(100) NULL",
     }
     for col, col_type in expected.items():
         if col.lower() not in existing_cols:
@@ -5834,6 +5840,9 @@ def update_vendor_task(task_id):
         "checklist",
         "project_id",
         "outputfilepath",
+        "progress",
+        "review_remark",
+        "Approval",
     )
     sets = []
     params = []
@@ -5844,6 +5853,20 @@ def update_vendor_task(task_id):
             if key == "assigned_to":
                 try:
                     val = int(str(val).strip())
+                    # Auto-reset status and clear Approval if reassigned
+                    if old_row.get("assigned_to") and int(old_row["assigned_to"]) != val:
+                        if "status" not in data:
+                            sets.append("`status` = %s")
+                            params.append("Todo")
+                            changed_fields.append("status")
+                        if "progress" not in data:
+                            sets.append("`progress` = %s")
+                            params.append("0")
+                            changed_fields.append("progress")
+                        if "Approval" not in data:
+                            sets.append("`Approval` = %s")
+                            params.append("")
+                            changed_fields.append("Approval")
                 except (TypeError, ValueError):
                     pass
             if str(old_row.get(key) or "").strip() != str(val or "").strip():
@@ -6030,14 +6053,24 @@ def update_vendor_task_status(task_id):
             progress = "100"
         else:
             progress = "95" if is_assigned_by_someone_else else "100"
-    elif status == "Approved":
+    approval_val = None
+    if status == "Approved":
         progress = "100"
         status = "Completed"
+        approval_val = "Approved"
+    elif status == "Todo" or status == "InProgress":
+        approval_val = ""
 
-    cur.execute(
-        "UPDATE vendor_task SET status = %s, progress = %s WHERE id = %s",
-        (status, progress, task_id),
-    )
+    if approval_val is not None:
+        cur.execute(
+            "UPDATE vendor_task SET status = %s, progress = %s, Approval = %s WHERE id = %s",
+            (status, progress, approval_val, task_id),
+        )
+    else:
+        cur.execute(
+            "UPDATE vendor_task SET status = %s, progress = %s WHERE id = %s",
+            (status, progress, task_id),
+        )
     conn.commit()
     return jsonify({"success": True})
 

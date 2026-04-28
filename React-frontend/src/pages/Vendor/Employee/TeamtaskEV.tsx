@@ -79,7 +79,7 @@ function TaskDropdown({
             if (!q) return options;
             const first = options[0];
             const isPlaceholderOption = (o: string) =>
-                o === first && (first === "Select Employee" || first === "Select Projects");
+                o === first && (first === "Select Employee" || first === "Select Project");
             return options.filter((opt) => {
                 if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
                 const name = String(opt ?? "").trim().toLowerCase();
@@ -186,7 +186,6 @@ interface Task {
     end_time?: string;
     assign_to?: string;
     description?: string;
-    checklist?: string;
     assigned_full_name?: string;
     uploader_full_name?: string;
     created_at?: string;
@@ -299,27 +298,22 @@ function TaskCard({
     isTeam?: boolean;
 }) {
     const { user } = useAuth();
-    const progress =
-        (status === "completed" || (task as any).review_required) &&
-            task.assigned_to != null &&
-            ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
-            String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id)
-            ? task.Approval?.toLowerCase() === "approved"
-                ? 100
-                : (status === "todo" ? 0 : status === "in_progress" ? 50 : 95)
-            : status === "todo"
-                ? 0
-                : status === "in_progress"
-                    ? 50
-                    : typeof task.progress === "number"
-                        ? task.progress
-                        : 100;
     const isUnderReview =
-        (status === "completed" || (task as any).review_required) &&
+        status === "completed" &&
         task.assigned_to != null &&
         ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
         String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id) &&
         task.Approval?.toLowerCase() !== "approved";
+
+    const progress = isUnderReview
+        ? 95
+        : status === "todo"
+            ? 0
+            : status === "in_progress"
+                ? 50
+                : task.Approval?.toLowerCase() === "approved"
+                    ? 100
+                    : 100;
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -355,10 +349,16 @@ function TaskCard({
         return `${day}/${month}/${year}`;
     };
 
+    const isCompletedCol = status === "completed";
+
     return (
         <div
             draggable={!isCompletedCol}
             onDragStart={(e) => {
+                if (isCompletedCol) {
+                    e.preventDefault();
+                    return;
+                }
                 e.dataTransfer.setData("taskId", String(task.id));
                 e.dataTransfer.effectAllowed = "move";
                 e.dataTransfer.setData("text/plain", task.task_name || "Task");
@@ -370,11 +370,6 @@ function TaskCard({
                     <h4 className="text-[20px] font-semibold text-[#353535] truncate leading-tight" title={task.task_name}>
                         {task.task_name || "Task Name"}
                     </h4>
-                    {task.project_name && (
-                        <p className="text-[13px] font-medium text-[#8B8B8B] truncate mt-0.5" title={task.project_name}>
-                            {task.project_name}
-                        </p>
-                    )}
                 </div>
                 <div className="absolute top-4 right-4" ref={menuRef}>
                     <button
@@ -470,9 +465,16 @@ function TaskCard({
 
             <div className="flex items-center justify-between gap-2 mb-2">
                 <span className="text-xs text-[#8B8B8B]">Progress</span>
-                <span className="text-xs font-medium text-[#8B8B8B]">
-                    {isUnderReview ? "95% (Under Review)" : `${progress}%`}
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-[#8B8B8B]">
+                        {progress}%
+                    </span>
+                    {isUnderReview && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800">
+                            Under Review
+                        </span>
+                    )}
+                </div>
             </div>
             <div className="h-1.5 rounded-full bg-[#EAEAEA] overflow-hidden mb-5">
                 <div
@@ -559,7 +561,7 @@ export default function TeamtaskEV() {
             if (t.assigned_full_name !== selectedEmployee) return false;
         }
         // Project filter
-        if (selectedProject && !["Select Projects", "Show All", "Projects"].includes(selectedProject)) {
+        if (selectedProject && !["Select Project", "Show All", "Projects"].includes(selectedProject)) {
             if (t.project_name !== selectedProject) return false;
         }
         // Period filter 
@@ -774,7 +776,7 @@ export default function TeamtaskEV() {
     // Data maps for dropdowns
     const getEmployeeOptions = () => {
         const rawEmployees = Array.isArray(employees) ? employees : [];
-        if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
+        if (!selectedProject || selectedProject === "Select Project" || selectedProject === "Show All") {
             return ["Select Employee", ...rawEmployees.map((e) => e?.full_name || e?.name).filter(Boolean) as string[]];
         }
         const proj = (Array.isArray(projects) ? projects : []).find((p) => p?.project_name === selectedProject);
@@ -800,7 +802,7 @@ export default function TeamtaskEV() {
     const employeeOptions = getEmployeeOptions();
 
     const projectOptions = [
-        "Select Projects",
+        "Select Project",
         ...(Array.isArray(projects) ? projects : [])
             .map((p) => p?.project_name)
             .filter(Boolean),
@@ -860,91 +862,110 @@ export default function TeamtaskEV() {
     return (
         <div className="h-full min-h-0 flex flex-col overflow-hidden px-5 font-Gantari">
             {/* Top row: title + dropdowns + Add task */}
-            <div className="bg-white px-0 md:px-1 py-4 flex-shrink-0">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                <h2 className="text-[20px] md:text-[24px] font-semibold text-slate-800 font-Gantari">
-                    {isTeam ? "Team Task" : "My Task"}
-                </h2>
-                <div
-                    ref={dropdownsContainerRef}
-                    className="flex flex-wrap items-center gap-2 w-fit"
-                >
-                    <TaskDropdown
-                        label="Select Employee"
-                        options={employeeOptions}
-                        selected={selectedEmployee}
-                        onSelect={setSelectedEmployee}
-                        isOpen={openDropdown === "employee"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "employee" ? null : "employee"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={employeeTriggerRef}
-                        dropdownRef={employeeMenuRef}
-                        searchable
-                        searchPlaceholder="Search employee..."
-                        maxVisibleItems={5}
-                    />
-                    <TaskDropdown
-                        label="Select Projects"
-                        options={projectOptions}
-                        selected={selectedProject}
-                        onSelect={setSelectedProject}
-                        isOpen={openDropdown === "projects"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "projects" ? null : "projects"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={projectsTriggerRef}
-                        dropdownRef={projectsMenuRef}
-                        searchable
-                        searchPlaceholder="Search project..."
-                        maxVisibleItems={5}
-                    />
-                    <TaskDropdown
-                        label="Show Entries"
-                        options={SHOW_OPTIONS}
-                        selected={selectedShow}
-                        onSelect={setSelectedShow}
-                        isOpen={openDropdown === "show"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "show" ? null : "show"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={showTriggerRef}
-                        dropdownRef={showMenuRef}
-                        narrow
-                        maxVisibleItems={4}
-                    />
-                    <TaskDropdown
-                        label="Period"
-                        options={PERIOD_OPTIONS}
-                        selected={selectedPeriod}
-                        onSelect={setSelectedPeriod}
-                        isOpen={openDropdown === "period"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "period" ? null : "period"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={periodTriggerRef}
-                        dropdownRef={periodMenuRef}
-                        narrow
-                        maxVisibleItems={4}
-                    />
-                        <button
-                            type="button"
-                            onClick={openAddTask}
-                            className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] border border-[#DD4342] px-4 py-2 text-sm font-semibold text-white cursor-pointer font-Gantari"
-                        >
-                            <img
-                                src={AddBtn}
-                                alt="Add"
-                                className="h-5 w-5"
-                            />
-                            Create Task
-                        </button>
-                </div>
+        <div className="bg-white flex-shrink-0 px-5 pt-0 sm:pt-0 sm:mt-2">
+          {/* Row 1: Title and Add Task button for mobile only (hidden on lg) */}
+          <div className="flex flex-row items-center justify-between w-full mb-4 lg:hidden">
+            <h2 className="text-[20px] sm:text-[24px] font-semibold text-slate-800 font-Gantari">
+              {isTeam ? "Team Task" : "My Task"}
+            </h2>
+            <button
+              type="button"
+              onClick={openAddTask}
+              className="sm:hidden inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-2 py-1.5 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all border-0"
+            >
+              <img src={AddBtn} alt="Add" className="h-4 w-4" />
+              Add Task
+            </button>
+          </div>
+
+          {/* Row 2: Title (LG only) + Filters + Desktop Add Task button */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
+            <h2 className="hidden lg:block text-[24px] font-semibold text-slate-800 font-Gantari">
+              {isTeam ? "Team Task" : "My Task"}
+            </h2>
+            <div
+              ref={dropdownsContainerRef}
+              className="grid grid-cols-2 lg:flex lg:flex-row lg:items-center gap-2.5 w-full lg:w-auto font-Gantari"
+            >
+              <div className="w-full lg:w-auto">
+                <TaskDropdown
+                  label="Select Employee"
+                  options={employeeOptions}
+                  selected={selectedEmployee}
+                  onSelect={setSelectedEmployee}
+                  isOpen={openDropdown === "employee"}
+                  onToggle={() =>
+                    setOpenDropdown((d) => (d === "employee" ? null : "employee"))
+                  }
+                  onClose={() => setOpenDropdown(null)}
+                  triggerRef={employeeTriggerRef}
+                  dropdownRef={employeeMenuRef}
+                  searchable
+                  searchPlaceholder="Search employee..."
+                  maxVisibleItems={5}
+                />
+              </div>
+              <div className="w-full lg:w-auto">
+                <TaskDropdown
+                  label="Select Project"
+                  options={projectOptions}
+                  selected={selectedProject}
+                  onSelect={setSelectedProject}
+                  isOpen={openDropdown === "projects"}
+                  onToggle={() =>
+                    setOpenDropdown((d) => (d === "projects" ? null : "projects"))
+                  }
+                  onClose={() => setOpenDropdown(null)}
+                  triggerRef={projectsTriggerRef}
+                  dropdownRef={projectsMenuRef}
+                  searchable
+                  searchPlaceholder="Search project..."
+                  maxVisibleItems={5}
+                />
+              </div>
+              <div className="w-full lg:w-auto">
+                <TaskDropdown
+                  label="Show Entries"
+                  options={SHOW_OPTIONS}
+                  selected={selectedShow}
+                  onSelect={setSelectedShow}
+                  isOpen={openDropdown === "show"}
+                  onToggle={() =>
+                    setOpenDropdown((d) => (d === "show" ? null : "show"))
+                  }
+                  onClose={() => setOpenDropdown(null)}
+                  triggerRef={showTriggerRef}
+                  dropdownRef={showMenuRef}
+                  narrow
+                />
+              </div>
+              <div className="w-full lg:w-auto">
+                <TaskDropdown
+                  label="Period"
+                  options={PERIOD_OPTIONS}
+                  selected={selectedPeriod}
+                  onSelect={setSelectedPeriod}
+                  isOpen={openDropdown === "period"}
+                  onToggle={() =>
+                    setOpenDropdown((d) => (d === "period" ? null : "period"))
+                  }
+                  onClose={() => setOpenDropdown(null)}
+                  triggerRef={periodTriggerRef}
+                  dropdownRef={periodMenuRef}
+                  narrow
+                />
+              </div>
+              <button
+                type="button"
+                onClick={openAddTask}
+                className="hidden sm:inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-semibold text-white shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all border-0 font-Gantari h-[38px]"
+              >
+                <img src={AddBtn} alt="Add" className="h-5 w-5" />
+                Add Task
+              </button>
             </div>
+          </div>
+        </div>
 
             {/* Status summary cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-5 pt-2">
@@ -990,7 +1011,6 @@ export default function TeamtaskEV() {
                         <img src={Group3} alt="Group3" className="w-6 h-6 md:w-8 md:h-8" />
                     </div>
                 </Link>
-            </div>
             </div>
 
             {/* Task cards under each status - drag and drop columns */}

@@ -57,7 +57,6 @@ interface Task {
   end_time?: string;
   assign_to?: string;
   description?: string;
-  checklist?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
   assigned_to?: number;
@@ -197,7 +196,6 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
   dueTime: string;
   assignTo: string;
   description: string;
-  checklist: string;
 } {
   const t = task as Record<string, unknown>;
   const str = (v: unknown) => (v != null ? String(v) : "");
@@ -242,7 +240,6 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
       t.assign_to ?? t.assignTo ?? t.assigned_to ?? t.assigned_full_name ?? "",
     ),
     description: str(t.description ?? ""),
-    checklist: str(t.checklist ?? ""),
   };
 }
 
@@ -356,7 +353,6 @@ export default function AddEditTaskEV({
     dueTime: "",
     assignTo: "",
     description: "",
-    checklist: "",
   });
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [openFormDropdown, setOpenFormDropdown] =
@@ -636,14 +632,14 @@ export default function AddEditTaskEV({
       projects.find((p) => p.project_name === addTaskForm.projectName)?.id ??
       null;
     const assignTrim = addTaskForm.assignTo.trim();
-    const assigneeId = employees.find((emp) => {
+    const assigneeId = employeesForAssignDropdown.find((emp) => {
       const n = (emp.full_name || emp.name || "").trim();
       return n === assignTrim || n.toLowerCase() === assignTrim.toLowerCase();
     })?.id;
-    let assignedToVal: number | string =
+    let assignedToVal: number | null =
       assigneeId != null && !Number.isNaN(Number(assigneeId))
-        ? assigneeId
-        : addTaskForm.assignTo;
+        ? Number(assigneeId)
+        : (addTaskForm.assignTo && !isNaN(Number(addTaskForm.assignTo)) ? Number(addTaskForm.assignTo) : null);
 
     if (isTeamTasksRoute) {
       if (assigneeId == null || Number.isNaN(Number(assigneeId))) {
@@ -663,7 +659,6 @@ export default function AddEditTaskEV({
       dueTime: addTaskForm.dueTime,
       assignedTo: assignedToVal,
       description: addTaskForm.description,
-      checklist: addTaskForm.checklist,
       modules: moduleValue,
     };
 
@@ -694,7 +689,6 @@ export default function AddEditTaskEV({
             category: categoryValue,
             modules: moduleValue,
             description: addTaskForm.description,
-            checklist: addTaskForm.checklist,
           })
           .then(() => {
             handleFiles(editingTaskId);
@@ -712,7 +706,6 @@ export default function AddEditTaskEV({
             due_date: addTaskForm.actualEndDate || undefined,
             category: categoryValue,
             description: addTaskForm.description,
-            checklist: addTaskForm.checklist,
             modules_name: moduleValue,
             Actual_start_time: addTaskForm.actualStartDate || undefined,
             perferstart_time: addTaskForm.startTime || undefined,
@@ -804,228 +797,165 @@ export default function AddEditTaskEV({
       </div>
 
       <form
-        className="flex-1 overflow-y-auto px-4 md:px-8 pb-24 custom-scrollbar"
-        noValidate
         onSubmit={handleFormSubmit}
+        className="max-w-[1174px] mx-auto flex-1 overflow-y-auto px-6 pb-24 custom-scrollbar"
       >
-        <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
-          <div className="sm:col-span-2">
-            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-              Project Name
-              <span className="text-[#DD4342]">*</span>
-            </label>
-            <FormDropdown
-              label="Select Project name"
-              options={[
-                { value: "", label: "Select Project name" },
-                ...projects.map((p) => ({
-                  value: p.project_name,
-                  label: p.project_name,
-                  required: true,
-                })),
-              ]}
-              value={addTaskForm.projectName}
-              onChange={(v) =>
-                setAddTaskForm((f) => ({
-                  ...f,
-                  projectName: v,
-                  module: "",
-                  assignTo: "",
-                }))
-              }
-              isOpen={openFormDropdown === "project"}
-              onToggle={() =>
-                setOpenFormDropdown((d) => (d === "project" ? null : "project"))
-              }
-              onClose={() => setOpenFormDropdown(null)}
-              triggerRef={formProjectTriggerRef}
-              dropdownRef={formProjectMenuRef}
-            />
-          </div>
-          <div>
-            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-              Select Module
-              <span className="text-[#DD4342]">*</span>
-            </label>
-            <FormDropdown
-              label="Select Module"
-              options={[
-                { value: "", label: "Select Module" },
-                ...dynamicModuleOptions.map((m) => ({
-                  value: m,
-                  label: m,
-                  required: true,
-                })),
-              ]}
-              value={addTaskForm.module}
-              onChange={(v) => setAddTaskForm((f) => ({ ...f, module: v }))}
-              isOpen={openFormDropdown === "module"}
-              onToggle={() =>
-                setOpenFormDropdown((d) => (d === "module" ? null : "module"))
-              }
-              onClose={() => setOpenFormDropdown(null)}
-              triggerRef={formModuleTriggerRef}
-              dropdownRef={formModuleMenuRef}
-            />
-          </div>
-
-          <div>
-            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-              Task Name
-              <span className="text-[#DD4342]">*</span>
-            </label>
-            <div className="relative flex min-h-[42px] items-stretch overflow-hidden rounded-[5px] border border-transparent bg-[#F2F3F4] transition-colors focus-within:border-[#AEACAC52]">
-              <input
-                type="text"
-                value={addTaskForm.taskName}
-                onChange={(e) =>
-                  setAddTaskForm((f) => ({
-                    ...f,
-                    taskName: e.target.value,
-                  }))
-                }
-                placeholder="Enter Task / Select Task"
-                className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B]"
-              />
-              {/* {!isEdit && (
-                <button
-                  type="button"
-                  className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-[14px] font-medium text-[#8B8B8B]"
-                >
-                  Tasklist
-                </button>
-              )} */}
-            </div>
-          </div>
-
-          {/* <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-[16px] font-medium text-[#353535] mb-1">
-                Type
-                <span className="text-red-500">*</span>
+        <div className="space-y-6">
+          {/* Form Content */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+            {/* Project Name */}
+            <div className="md:col-span-2">
+              <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                Project Name <span className="text-[#DD4342]">*</span>
               </label>
               <FormDropdown
-                label="Select Type"
+                label="Select Project"
                 options={[
-                  { value: "", label: "Select Type" },
-                  { value: "task", label: "Task" },
-                  { value: "bug", label: "Bug" },
-                  { value: "feature", label: "Feature" },
-                  { value: "other", label: "Other" },
+                  { value: "", label: "Select Project" },
+                  ...projects.map((p) => ({
+                    value: p.project_name,
+                    label: p.project_name,
+                  })),
                 ]}
-                value={addTaskForm.type}
-                onChange={(v) => setAddTaskForm((f) => ({ ...f, type: v }))}
-                isOpen={openFormDropdown === "type"}
+                value={addTaskForm.projectName}
+                onChange={(v) =>
+                  setAddTaskForm((f) => ({
+                    ...f,
+                    projectName: v,
+                    module: "",
+                    assignTo: "",
+                  }))
+                }
+                isOpen={openFormDropdown === "project"}
                 onToggle={() =>
-                  setOpenFormDropdown((d) => (d === "type" ? null : "type"))
+                  setOpenFormDropdown((d) => (d === "project" ? null : "project"))
                 }
                 onClose={() => setOpenFormDropdown(null)}
-                triggerRef={formTypeTriggerRef}
-                dropdownRef={formTypeMenuRef}
+                triggerRef={formProjectTriggerRef}
+                dropdownRef={formProjectMenuRef}
               />
             </div>
-            <div>
-              <label className="block text-[16px] font-medium text-[#353535] mb-1">
-                Start Date
-                <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                min={isEdit ? undefined : todayInputDate}
-                value={addTaskForm.actualStartDate}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setAddTaskForm((f) => {
-                    const next = { ...f, actualStartDate: v };
-                    if (f.actualEndDate && v && f.actualEndDate < v) {
-                      next.actualEndDate = v;
-                    }
-                    return next;
-                  });
-                }}
-                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none required"
-              />
-            </div>
-            <div>
-              <label className="block text-[16px] font-medium text-[#353535] mb-1">
-                End Date
-                <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                min={
-                  isEdit
-                    ? addTaskForm.actualStartDate || undefined
-                    : addTaskForm.actualStartDate || todayInputDate
-                }
-                value={addTaskForm.actualEndDate}
-                onChange={(e) =>
-                  setAddTaskForm((f) => ({
-                    ...f,
-                    actualEndDate: e.target.value,
-                  }))
-                }
-                className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none required"
-              />
-            </div>
-          </div> */}
-          <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
+
+            {/* Select Module */}
             <div>
               <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                Select Start Time
-                <span className="text-[#DD4342]">*</span>
-              </label>
-              <input
-                type="time"
-                value={addTaskForm.startTime}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setAddTaskForm((f) => {
-                    const next = { ...f, startTime: v };
-                    const same =
-                      f.actualStartDate &&
-                      f.actualEndDate &&
-                      f.actualStartDate === f.actualEndDate;
-                    if (same && f.dueTime && v && f.dueTime < v) {
-                      next.dueTime = v;
-                    }
-                    return next;
-                  });
-                }}
-                className="w-full rounded-[5px] bg-[#F2F3F4] border border-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] focus:outline-none focus:border-[#AEACAC52]"
-              />
-            </div>
-            <div>
-              <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                Select End Time
-                <span className="text-[#DD4342]">*</span>
-              </label>
-              <input
-                type="time"
-                value={addTaskForm.dueTime}
-                onChange={(e) =>
-                  setAddTaskForm((f) => ({
-                    ...f,
-                    dueTime: e.target.value,
-                  }))
-                }
-                className="w-full rounded-[5px] bg-[#F2F3F4] border border-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] focus:outline-none focus:border-[#AEACAC52]"
-              />
-            </div>
-            <div>
-              <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                Assign To
-                <span className="text-[#DD4342]">*</span>
+                Select Module <span className="text-[#DD4342]">*</span>
               </label>
               <FormDropdown
-                label="Select Assign To"
+                label="Select Module"
                 options={[
-                  { value: "", label: "Select Assign To" },
-                  ...employeesForAssignDropdown
-                    .filter(
-                      (emp) => (emp.full_name || emp.name || "").trim() !== "",
-                    )
-                    .map((emp) => {
+                  { value: "", label: "Select Module" },
+                  ...dynamicModuleOptions.map((m) => ({
+                    value: m,
+                    label: m,
+                  })),
+                ]}
+                value={addTaskForm.module}
+                onChange={(v) => setAddTaskForm((f) => ({ ...f, module: v }))}
+                isOpen={openFormDropdown === "module"}
+                onToggle={() =>
+                  setOpenFormDropdown((d) => (d === "module" ? null : "module"))
+                }
+                onClose={() => setOpenFormDropdown(null)}
+                triggerRef={formModuleTriggerRef}
+                dropdownRef={formModuleMenuRef}
+              />
+            </div>
+
+            {/* Task Name */}
+            <div>
+              <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                Task Name <span className="text-[#DD4342]">*</span>
+              </label>
+              <div className="relative flex min-h-[42px] items-stretch overflow-hidden rounded-[5px] border border-transparent bg-[#F2F3F4] transition-colors focus-within:border-[#AEACAC52]">
+                <input
+                  type="text"
+                  value={addTaskForm.taskName}
+                  onChange={(e) =>
+                    setAddTaskForm((f) => ({
+                      ...f,
+                      taskName: e.target.value,
+                    }))
+                  }
+                  placeholder="Task Name"
+                  className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B]"
+                />
+              </div>
+            </div>
+
+            {/* Start Date & End Date Row */}
+            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-x-10 gap-y-6">
+              <div>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                  Start Date <span className="text-[#DD4342]">*</span>
+                </label>
+                <input
+                  type="date"
+                  min={isEdit ? undefined : todayInputDate}
+                  value={addTaskForm.actualStartDate}
+                  onChange={(e) =>
+                    setAddTaskForm((f) => ({
+                      ...f,
+                      actualStartDate: e.target.value,
+                    }))
+                  }
+                  onClick={(e) => e.currentTarget.showPicker()}
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] cursor-pointer"
+                />
+              </div>
+              <div>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                  End Date <span className="text-[#DD4342]">*</span>
+                </label>
+                <input
+                  type="date"
+                  min={addTaskForm.actualStartDate || todayInputDate}
+                  value={addTaskForm.actualEndDate}
+                  onChange={(e) =>
+                    setAddTaskForm((f) => ({
+                      ...f,
+                      actualEndDate: e.target.value,
+                    }))
+                  }
+                  onClick={(e) => e.currentTarget.showPicker()}
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* Times & Assign To Row */}
+            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
+              <div>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                  Select Start Time <span className="text-[#DD4342]">*</span>
+                </label>
+                <input
+                  type="time"
+                  value={addTaskForm.startTime}
+                  onChange={(e) => setAddTaskForm((f) => ({ ...f, startTime: e.target.value }))}
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                />
+              </div>
+              <div>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                  Select End Time <span className="text-[#DD4342]">*</span>
+                </label>
+                <input
+                  type="time"
+                  value={addTaskForm.dueTime}
+                  onChange={(e) => setAddTaskForm((f) => ({ ...f, dueTime: e.target.value }))}
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                />
+              </div>
+              <div>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                  Assign To <span className="text-[#DD4342]">*</span>
+                </label>
+                <FormDropdown
+                  label="Select Assign To"
+                  options={[
+                    { value: "", label: "Select Assign To" },
+                    ...employeesForAssignDropdown.map((emp) => {
                       const baseLabel = emp.full_name || emp.name || "";
                       const displayLabel =
                         String(emp.id) === String(user?.id)
@@ -1033,162 +963,112 @@ export default function AddEditTaskEV({
                           : baseLabel;
                       return { value: baseLabel, label: displayLabel };
                     }),
-                ]}
-                value={addTaskForm.assignTo}
-                onChange={(v) => setAddTaskForm((f) => ({ ...f, assignTo: v }))}
-                isOpen={openFormDropdown === "assignTo"}
-                onToggle={() =>
-                  setOpenFormDropdown((d) =>
-                    d === "assignTo" ? null : "assignTo",
-                  )
-                }
-                onClose={() => setOpenFormDropdown(null)}
-                triggerRef={formAssignTriggerRef}
-                dropdownRef={formAssignMenuRef}
+                  ]}
+                  value={addTaskForm.assignTo}
+                  onChange={(v) => setAddTaskForm((f) => ({ ...f, assignTo: v }))}
+                  isOpen={openFormDropdown === "assignTo"}
+                  onToggle={() =>
+                    setOpenFormDropdown((d) =>
+                      d === "assignTo" ? null : "assignTo",
+                    )
+                  }
+                  onClose={() => setOpenFormDropdown(null)}
+                  triggerRef={formAssignTriggerRef}
+                  dropdownRef={formAssignMenuRef}
+                />
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="md:col-span-2">
+              <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                Description <span className="text-[#DD4342]">*</span>
+              </label>
+              <textarea
+                value={addTaskForm.description}
+                onChange={(e) => setAddTaskForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="Description"
+                rows={4}
+                className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
               />
             </div>
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-              Description
-              <span className="text-[#DD4342]">*</span>
-            </label>
-            <textarea
-              value={addTaskForm.description}
-              onChange={(e) =>
-                setAddTaskForm((f) => ({
-                  ...f,
-                  description: e.target.value,
-                }))
-              }
-              placeholder="Enter Description..."
-              rows={4}
-              className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-              Checklist
-            </label>
-            <input
-              type="text"
-              value={addTaskForm.checklist}
-              onChange={(e) =>
-                setAddTaskForm((f) => ({
-                  ...f,
-                  checklist: e.target.value,
-                }))
-              }
-              placeholder="Enter Reference Link"
-              className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-              Attachments
-            </label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={handleAttachmentChange}
-              accept="*/*"
-            />
-            <div className="flex flex-col gap-4">
-              <div className="w-full">
-                <div className="flex items-center">
-                  <input
-                    type="text"
-                    readOnly
-                    value={
-                      attachmentFiles.length > 0
-                        ? `${attachmentFiles.length} file(s) selected`
-                        : ""
-                    }
-                    placeholder="Upload Files"
-                    className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] focus:outline-none truncate"
-                  />
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      fileInputRef.current?.click();
-                    }}
-                    className="rounded-r-sm rounded-l-none bg-[#E2E2E2] px-4 py-2 text-[14px] font-medium text-[#8B8B8B] cursor-pointer inline-flex items-center whitespace-nowrap"
-                  >
-                    Browse File
-                  </button>
+
+            {/* Attachments */}
+            <div className="md:col-span-2 space-y-2">
+              <span className="block text-[16px] font-semibold text-[#000000] font-Gantari">
+                Attachments
+              </span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={handleAttachmentChange}
+                accept="*/*"
+              />
+              <div className="flex bg-[#F2F3F4] rounded-[5px] overflow-hidden">
+                <div className="flex-1 px-4 py-2 text-[14px] text-[#979797] truncate min-w-0">
+                  {attachmentFiles.length > 0
+                    ? `${attachmentFiles.length} file(s) selected`
+                    : "Upload Files"}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-5 py-2 bg-[#E2E2E2] text-[#8B8B8B] text-[14px] font-semibold cursor-pointer transition-colors shrink-0 font-Gantari border-0"
+                >
+                  Browse File
+                </button>
               </div>
 
               {attachmentFiles.length > 0 && (
-                <div className="w-full">
-                  <ul className="space-y-2">
-                    {attachmentFiles.map((file, index) => (
-                      <li
-                        key={`${file.name}-${index}`}
-                        className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] group"
-                      >
-                        <span
-                          className="truncate min-w-0 font-medium"
-                          title={file.name}
+                <ul className="space-y-2 mt-2">
+                  {attachmentFiles.map((file, index) => (
+                    <li
+                      key={`${file.name}-${index}`}
+                      className="flex items-center justify-between rounded-[5px] bg-[#F2F3F4] px-4 py-2 text-[14px] text-[#353535]"
+                    >
+                      <span className="truncate font-medium">{file.name}</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => viewAttachment(file)}
+                          className="p-1 rounded hover:bg-slate-200 transition-colors cursor-pointer border-0 bg-transparent"
                         >
-                          {file.name}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => viewAttachment(file)}
-                            className="shrink-0 p-1 rounded-full hover:bg-slate-100 text-[#353535] transition-colors"
-                            aria-label={`View ${file.name}`}
-                          >
-                            <EyeIcon className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeAttachment(index)}
-                            className="shrink-0 p-1 rounded-full hover:bg-red-50 hover:text-red-500 transition-colors text-[#353535]"
-                            aria-label={`Remove ${file.name}`}
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                          <img src={viewIcon} alt="view" className="w-5 h-5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(index)}
+                          className="p-1 rounded hover:bg-red-50 transition-colors cursor-pointer border-0 bg-transparent"
+                        >
+                          <img src={deleteIcon} alt="delete" className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           </div>
-        </div>
-        <div className="max-w-4xl mx-auto flex justify-center gap-4 mt-8 pt-4">
-          <button
-            type="button"
-            onClick={goBackToList}
-            className="rounded-[5px] bg-[#F4F4F4] px-6 py-2 text-[14px] font-semibold text-[#353535] font-Gantari cursor-pointer"
-          >
-            Discard
-          </button>
-          <button
-            type="button"
-            onClick={executeTaskSave}
-            className="rounded-[5px] bg-[#DBE9FE] px-6 py-2 text-[14px] font-semibold text-[#353535] font-Gantari cursor-pointer"
-          >
-            Submit
-          </button>
+
+          {/* Action Buttons */}
+          <div className="flex justify-center gap-4 mt-12">
+            <button
+              type="button"
+              onClick={goBackToList}
+              className="px-10 py-2 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-semibold text-[14px] transition-all cursor-pointer border-0"
+            >
+              Discard
+            </button>
+            <button
+              type="submit"
+              disabled={loadingMeta}
+              className="px-10 py-2 rounded-[5px] bg-[#DBE9FE] text-[#353535] font-semibold text-[14px] transition-all cursor-pointer border-0 disabled:opacity-50"
+            >
+              Submit
+            </button>
+          </div>
         </div>
       </form>
     </div>

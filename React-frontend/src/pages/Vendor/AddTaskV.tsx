@@ -33,7 +33,6 @@ const initialForm = {
   dueTime: "",
   assignTo: "",
   description: "",
-  checklist: "",
 };
 
 export default function AddTaskV() {
@@ -302,10 +301,10 @@ export default function AddTaskV() {
     const projectId = projects.find(
       (p) => p.project_name === addTaskForm.projectName,
     )?.id;
-    const assigneeId = employees.find(
+    const assigneeId = employeesForAssignDropdown.find(
       (e) => e.full_name === addTaskForm.assignTo,
     )?.id;
-    const assignedToVal = assigneeId ?? addTaskForm.assignTo;
+    const assignedToVal = assigneeId ?? (addTaskForm.assignTo && !isNaN(Number(addTaskForm.assignTo)) ? Number(addTaskForm.assignTo) : null);
 
     const payload = {
       projectid: projectId ?? addTaskForm.projectName,
@@ -317,7 +316,6 @@ export default function AddTaskV() {
       dueTime: addTaskForm.dueTime,
       assignedTo: assignedToVal,
       description: addTaskForm.description,
-      checklist: addTaskForm.checklist,
       modules: addTaskForm.module,
     };
 
@@ -334,7 +332,13 @@ export default function AddTaskV() {
           modules: addTaskForm.module,
           assigned_to: assignedToVal,
           description: addTaskForm.description,
-          checklist: addTaskForm.checklist,
+          // Reset status to Todo if assignee changed
+          ...(String(assignedToVal) !== String(editingTask?.assigned_to) && {
+            status: "Todo",
+            progress: 0,
+            Approval: "",
+            review_remark: ""
+          })
         })
         .then(async () => {
           if (attachmentFiles.length > 0) {
@@ -484,9 +488,9 @@ export default function AddTaskV() {
                   Project Name <span className="text-[#DD4342]">*</span>
                 </label>
                 <FormDropdown
-                  label="Select Project name"
+                  label="Select Project"
                   options={[
-                    { value: "", label: "Select Project name" },
+                    { value: "", label: "Select Project" },
                     ...projects.map((p) => ({
                       value: p.project_name,
                       label: p.project_name,
@@ -689,20 +693,6 @@ export default function AddTaskV() {
                 />
               </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2">
-                  Checklist
-                </label>
-                <input
-                  type="text"
-                  value={addTaskForm.checklist}
-                  onChange={(e) =>
-                    setAddTaskForm((f) => ({ ...f, checklist: e.target.value }))
-                  }
-                  placeholder="Enter Reference Link"
-                  className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none placeholder-[#8B8B8B] focus:border-[#AEACAC52]"
-                />
-              </div>
 
               <div className="md:col-span-2 space-y-2">
                 <span className="block text-[16px] font-semibold text-[#000000] font-Gantari">
