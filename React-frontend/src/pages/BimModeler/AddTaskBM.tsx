@@ -31,7 +31,6 @@ const initialForm = {
   dueTime: "",
   assignTo: "",
   description: "",
-  checklist: "",
   reviewRemark: "",
 };
 
@@ -314,7 +313,6 @@ export default function AddTaskBM() {
         employees.find((e) => e.full_name === addTaskForm.assignTo)?.id ||
         addTaskForm.assignTo,
       description: addTaskForm.description,
-      checklist: addTaskForm.checklist,
       modules: addTaskForm.module,
     };
 
@@ -344,7 +342,6 @@ export default function AddTaskBM() {
           due_date: payload.dueDate,
           category: payload.category,
           description: payload.description,
-          checklist: payload.checklist,
           modules: payload.modules,
           start_date: payload.startdate,
           start_time: payload.startTime,
@@ -357,7 +354,6 @@ export default function AddTaskBM() {
           due_date: payload.dueDate,
           category: payload.category,
           description: payload.description,
-          checklist: payload.checklist,
           modules_name: payload.modules,
           Actual_start_time: payload.startdate,
           perferstart_time: payload.startTime,
@@ -767,20 +763,7 @@ export default function AddTaskBM() {
                   className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                 />
               </div>
-              <div className="md:col-span-2">
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                  Checklist
-                </label>
-                <input
-                  type="text"
-                  value={addTaskForm.checklist}
-                  onChange={(e) =>
-                    setAddTaskForm((f) => ({ ...f, checklist: e.target.value }))
-                  }
-                  placeholder="Enter Reference Link"
-                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                />
-              </div>
+
               {addTaskForm.reviewRemark && (
                 <div className="md:col-span-2">
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
