@@ -44,9 +44,9 @@ function mapLeaveStatusFromApi(
   const s = Number(status);
   if (s === 1) return "Approved";
   if (s === 2) return "Rejected";
-  if (s === 5) return "Pending (Technical Director)";
-  if (s === 0 && isBimLeadRole(applicantRole)) return "Pending (Project Manager)";
-  if (s === 0 && isProjectManagerRole(applicantRole)) return "Pending (Technical Director)";
+  if (s === 5) return "Pending";
+  if (s === 0 && isBimLeadRole(applicantRole)) return "Pending";
+  if (s === 0 && isProjectManagerRole(applicantRole)) return "Pending";
   return "Pending";
 }
 
@@ -400,7 +400,7 @@ export default function ManageLeave() {
     if (!currentName) return false;
     if (row.employeeName.trim() === currentName) return false;
     const isTdTarget = isBimLeadRole(row.role) || isProjectManagerRole(row.role);
-    return isTdTarget && row.currentStatus === "Pending (Technical Director)";
+    return isTdTarget && row.currentStatus === "Pending";
   };
 
   return (
@@ -945,17 +945,43 @@ export default function ManageLeave() {
                       {selectedLeave.description ?? "–"}
                     </span>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
-                      Current Status
-                    </span>
-                    <span className="shrink-0 text-[#616161]">:</span>
-                    <span
-                      className={`inline-flex px-3 py-1 rounded-md text-xs font-semibold ${selectedLeave.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : selectedLeave.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFEAD6] text-[#EB7200]"}`}
-                    >
-                      {selectedLeave.currentStatus}
-                    </span>
-                  </div>
+                  {(() => {
+                    const getBadge = (statusText: string) => {
+                      if (statusText === 'Approved') return <span className="inline-flex px-3 py-1 rounded-md text-xs font-semibold bg-[#E1F6EB] text-[#008F22]">Approved</span>;
+                      if (statusText === 'Rejected') return <span className="inline-flex px-3 py-1 rounded-md text-xs font-semibold bg-[#FFE5E5] text-[#C62828]">Rejected</span>;
+                      if (statusText === 'Pending') return <span className="inline-flex px-3 py-1 rounded-md text-xs font-semibold bg-[#FFEAD6] text-[#EB7200]">Pending</span>;
+                      return <span className="text-[#8B8B8B]">-</span>;
+                    };
+                    const r = (selectedLeave.role || '').toLowerCase();
+                    const sc = selectedLeave.statusCode;
+                    const st = selectedLeave.currentStatus;
+                    let statuses = [];
+                    if (sc === 2) {
+                      statuses.push({ label: 'Current Status', text: 'Rejected' });
+                    } else {
+                      if (r.includes('bim modeler')) {
+                        statuses.push({ label: 'BIM Coordinator', text: sc === 1 || sc >= 3 ? 'Approved' : 'Pending' });
+                        statuses.push({ label: 'BIM Lead', text: sc === 1 ? 'Approved' : (sc === 3 ? 'Pending' : '-') });
+                      } else if (r.includes('bim coordinator')) {
+                        statuses.push({ label: 'BIM Lead', text: sc === 1 || sc >= 4 ? 'Approved' : 'Pending' });
+                        statuses.push({ label: 'Project Manager', text: sc === 1 ? 'Approved' : (sc === 4 ? 'Pending' : '-') });
+                      } else if (r.includes('bim lead')) {
+                        statuses.push({ label: 'Project Manager', text: sc === 1 || sc >= 5 ? 'Approved' : 'Pending' });
+                        statuses.push({ label: 'Technical Director', text: sc === 1 ? 'Approved' : (sc === 5 ? 'Pending' : '-') });
+                      } else if (r.includes('project manager')) {
+                        statuses.push({ label: 'Technical Director', text: sc === 1 ? 'Approved' : 'Pending' });
+                      } else {
+                        statuses.push({ label: 'Current Status', text: st });
+                      }
+                    }
+                    return statuses.map((item, idx) => (
+                      <div key={idx} className="flex items-start gap-2">
+                        <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">{item.label}</span>
+                        <span className="shrink-0 text-[#616161]">:</span>
+                        {getBadge(item.text)}
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
             </div>
