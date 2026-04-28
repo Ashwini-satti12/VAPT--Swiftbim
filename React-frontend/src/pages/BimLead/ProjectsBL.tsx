@@ -4442,24 +4442,36 @@ export default function ProjectsBL() {
                                         ? foundClient.full_name
                                         : (p.client_name ?? ""),
                                     );
-                                    setCreateProjectManager(
-                                      p.project_manager ?? "",
-                                    );
-                                    setEditProjectManager(
-                                      p.project_manager ?? "",
-                                    );
+                                    const pmList = (p.project_manager ?? "")
+                                      .split(",")
+                                      .map((s) => s.trim())
+                                      .filter(Boolean);
+                                    setCreateProjectManager(pmList);
+                                    setEditProjectManager(pmList);
                                     setCreateStartDate(p.start_date ?? "");
                                     setCreateEndDate(p.end_date ?? "");
                                     setCreateTotalHours(p.total_hours ?? "");
                                     setCreatePerDay(p.per_day ?? "");
                                     setCreateDepartment(p.department ?? "");
                                     setEditDepartment(p.department ?? "");
-                                    setCreateBIMLead(p.bim_lead ?? "");
-                                    setEditBIMLead(p.bim_lead ?? "");
+                                    const blList = (p.bim_lead ?? "")
+                                      .split(",")
+                                      .map((s) => s.trim())
+                                      .filter(Boolean);
+                                    setCreateBIMLead(blList);
+                                    setEditBIMLead(blList);
                                     setCreateBIMCoOrdinator(
-                                      p.bim_co_ordinator ?? "",
+                                      (p.bim_co_ordinator ?? "")
+                                        .split(",")
+                                        .map((s) => s.trim())
+                                        .filter(Boolean),
                                     );
-                                    setEditBIMCoOrd(p.bim_co_ordinator ?? "");
+                                    setEditBIMCoOrd(
+                                      (p.bim_co_ordinator ?? "")
+                                        .split(",")
+                                        .map((s) => s.trim())
+                                        .filter(Boolean),
+                                    );
                                     setCreateResources(p.resources ?? "");
                                     setCreateRequiredResources(
                                       p.required_resources ?? "",

@@ -102,6 +102,28 @@ function hasProjectDescriptionContent(raw?: string): boolean {
   return text.length > 0;
 }
 
+/** Normalize API / input value to YYYY-MM-DD for date inputs and day math. */
+function toCalendarYmd(raw: string): string | null {
+  if (!raw?.trim()) return null;
+  const s = raw.trim().split("T")[0];
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  return s;
+}
+
+function countInclusiveProjectDays(startYmd: string, endYmd: string): number | null {
+  const a = toCalendarYmd(startYmd);
+  const b = toCalendarYmd(endYmd);
+  if (!a || !b) return null;
+  const [ys, ms, ds] = a.split("-").map(Number);
+  const [ye, me, de] = b.split("-").map(Number);
+  const start = new Date(ys, ms - 1, ds);
+  const end = new Date(ye, me - 1, de);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+  const diffDays = Math.round((end.getTime() - start.getTime()) / 86400000);
+  if (diffDays < 0) return null;
+  return diffDays + 1;
+}
+
 export default function VendorBimLeadProjects() {
   const getCurrencySymbol = (code?: string) => {
     return (code || "INR").toUpperCase();
@@ -145,7 +167,6 @@ export default function VendorBimLeadProjects() {
   const [createProjectManager, setCreateProjectManager] = useState("");
   const [createStartDate, setCreateStartDate] = useState("");
   const [createEndDate, setCreateEndDate] = useState("");
-  const [createTotalHours, setCreateTotalHours] = useState("");
   const [createPerDay, setCreatePerDay] = useState("");
   const [createBIMLead, setCreateBIMLead] = useState("");
   const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState("");
@@ -182,6 +203,15 @@ export default function VendorBimLeadProjects() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [editError, setEditError] = useState("");
+
+  const computedTotalHours = useMemo(() => {
+    const days = countInclusiveProjectDays(createStartDate, createEndDate);
+    const per = parseFloat(String(createPerDay).trim().replace(/,/g, ""));
+    if (days === null || days < 1 || !Number.isFinite(per) || per <= 0) {
+      return "";
+    }
+    return (days * per).toFixed(2);
+  }, [createStartDate, createEndDate, createPerDay]);
   const resolveVendorDocUrl = (rawPath: string) => {
     const cleaned = (rawPath || "").trim();
     if (!cleaned) return "";
@@ -398,7 +428,6 @@ export default function VendorBimLeadProjects() {
     );
     setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
     setCreateEndDate(p.end_date || p.due_date || "");
-    setCreateTotalHours(p.totalhours || "");
     setCreatePerDay(p.per_day || p.perday || "");
     setCreateBIMLead(
       idToName(p.lead_id, bimLeads) || idToName(p.lead_id, allEmployees),
@@ -432,6 +461,8 @@ export default function VendorBimLeadProjects() {
       !createName.trim() ||
       !createStartDate ||
       !createEndDate ||
+      !createPerDay ||
+      !computedTotalHours ||
       !createPriority ||
       !createDescription
     ) {
@@ -449,7 +480,7 @@ export default function VendorBimLeadProjects() {
         project_manager_id: nameToId(createProjectManager, projectManagers),
         start_date: createStartDate,
         end_date: createEndDate,
-        totalhours: createTotalHours,
+        totalhours: computedTotalHours,
         per_day: createPerDay,
         lead_id: nameToId(createBIMLead, bimLeads),
         bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
@@ -489,7 +520,6 @@ export default function VendorBimLeadProjects() {
           setCreateProjectManager("");
           setCreateStartDate("");
           setCreateEndDate("");
-          setCreateTotalHours("");
           setCreatePerDay("");
           setCreateBIMLead("");
           setCreateBIMCoOrdinator("");
@@ -521,7 +551,7 @@ export default function VendorBimLeadProjects() {
                 project_manager_id: nameToId(createProjectManager, projectManagers),
                 start_date: createStartDate,
                 end_date: createEndDate,
-                totalhours: createTotalHours,
+                totalhours: computedTotalHours,
                 per_day: createPerDay,
                 lead_id: nameToId(createBIMLead, bimLeads),
                 bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
@@ -1064,11 +1094,12 @@ export default function VendorBimLeadProjects() {
           </label>
           <input
             type="text"
-            className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-            placeholder="e.g. 500"
-            value={createTotalHours}
-            onChange={(e) => setCreateTotalHours(e.target.value)}
+            readOnly
+            className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:font-medium bg-[#F2F2F2] border border-transparent rounded-[5px] font-Gantari transition-all outline-none cursor-not-allowed"
+            placeholder="Total Estimated Hours"
+            value={computedTotalHours}
           />
+          <p className="text-[10px] text-gray-400 mt-1">Auto-calculated from project dates and per day.</p>
         </div>
 
         <div className="space-y-2">
@@ -1250,7 +1281,6 @@ export default function VendorBimLeadProjects() {
                     setCreateProjectManager("");
                     setCreateStartDate("");
                     setCreateEndDate("");
-                    setCreateTotalHours("");
                     setCreatePerDay("");
                     setCreateBIMLead("");
                     setCreateBIMCoOrdinator("");

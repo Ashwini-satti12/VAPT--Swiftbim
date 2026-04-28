@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS work_orders (
     created_by INT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     Company_id INT NOT NULL
-)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 """
 
 
@@ -92,6 +92,11 @@ def _ensure_work_order_table():
     conn = get_db()
     cur = conn.cursor(dictionary=True)
     cur.execute(_WO_TABLE_SQL)
+    try:
+        # Convert existing table and its columns to a consistent collation
+        cur.execute("ALTER TABLE work_orders CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci")
+    except Exception:
+        pass
     try:
         cur.execute("SHOW COLUMNS FROM work_orders LIKE 'exclusions'")
         if cur.fetchone() is None:
@@ -137,7 +142,7 @@ def list_work_orders():
                     wo.amount_aed, wo.duration,
                     wo.terms_and_conditions, wo.payment_terms, wo.additional_terms, wo.exclusions, wo.status, wo.created_at
                 FROM work_orders wo
-                LEFT JOIN projects p ON p.project_name = wo.project_name
+                LEFT JOIN projects p ON p.project_name COLLATE utf8mb4_general_ci = wo.project_name COLLATE utf8mb4_general_ci
                 WHERE LOWER(TRIM(wo.vendor_name)) IN ({placeholders})
                 ORDER BY id DESC
                 """,
@@ -166,7 +171,7 @@ def list_work_orders():
                 wo.amount_aed, wo.duration,
                 wo.terms_and_conditions, wo.payment_terms, wo.additional_terms, wo.exclusions, wo.status, wo.created_at
             FROM work_orders wo
-            LEFT JOIN projects p ON p.project_name = wo.project_name
+            LEFT JOIN projects p ON p.project_name COLLATE utf8mb4_general_ci = wo.project_name COLLATE utf8mb4_general_ci
             WHERE wo.Company_id = %s
             ORDER BY id DESC
             """,
@@ -197,7 +202,7 @@ def get_work_order(work_order_id: int):
                     wo.amount_aed, wo.duration,
                     wo.terms_and_conditions, wo.payment_terms, wo.additional_terms, wo.exclusions, wo.status, wo.created_at
                 FROM work_orders wo
-                LEFT JOIN projects p ON p.project_name = wo.project_name
+                LEFT JOIN projects p ON p.project_name COLLATE utf8mb4_general_ci = wo.project_name COLLATE utf8mb4_general_ci
                 WHERE wo.id = %s AND LOWER(TRIM(wo.vendor_name)) IN ({placeholders})
                 LIMIT 1
                 """,
@@ -226,7 +231,7 @@ def get_work_order(work_order_id: int):
                 wo.amount_aed, wo.duration,
                 wo.terms_and_conditions, wo.payment_terms, wo.additional_terms, wo.exclusions, wo.status, wo.created_at
             FROM work_orders wo
-            LEFT JOIN projects p ON p.project_name = wo.project_name
+            LEFT JOIN projects p ON p.project_name COLLATE utf8mb4_general_ci = wo.project_name COLLATE utf8mb4_general_ci
             WHERE wo.id = %s AND wo.Company_id = %s
             LIMIT 1
             """,
@@ -329,6 +334,7 @@ def create_work_order():
         "terms_and_conditions": (data.get("termsAndConditions") or data.get("terms_and_conditions") or "").strip(),
         "payment_terms": (data.get("paymentTerms") or data.get("payment_terms") or "").strip(),
         "additional_terms": (data.get("additionalTerms") or data.get("additional_terms") or "").strip(),
+        "exclusions": (data.get("exclusions") or "").strip(),
         "status": (data.get("status") or "Created").strip() or "Created",
         "created_by": getattr(g, "user_id", None),
         "company_id": g.company_id,
@@ -415,6 +421,7 @@ def update_work_order(work_order_id: int):
         "terms_and_conditions": (data.get("termsAndConditions") or data.get("terms_and_conditions") or "").strip(),
         "payment_terms": (data.get("paymentTerms") or data.get("payment_terms") or "").strip(),
         "additional_terms": (data.get("additionalTerms") or data.get("additional_terms") or "").strip(),
+        "exclusions": (data.get("exclusions") or "").strip(),
         "status": (data.get("status") or "").strip(),
     }
 

@@ -138,7 +138,10 @@ export default function MytaskViewBC() {
   const location = useLocation();
   const { id: taskIdParam } = useParams();
   const [task, setTask] = useState<Task | undefined>((location.state as { task?: Task } | null)?.task);
-  const backToUrl = "/bc/mytasks";
+  const fromTeamTask =
+    (location.state as { from?: string } | null)?.from === "teamtask" ||
+    (location.state as { from?: string } | null)?.from === "teamtasks";
+  const backToUrl = fromTeamTask ? "/bc/teamtasks" : "/bc/mytasks";
 
   const [statusDisplay, setStatusDisplay] = useState<StatusKey>(() =>
     task ? normalizeStatus(task.status, task.Approval) : "todo",
@@ -602,25 +605,17 @@ export default function MytaskViewBC() {
               {task.description || "Event (Consultant Partnership)..."}
             </div>
           </div>
-          
-          {/* Checklist / References */}
-          <div className="mt-6 border border-slate-200 rounded-xl p-6">
-            <h4 className="text-black text-md mb-2 font-medium font-Gantari">Checklist / References</h4>
-            <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px] whitespace-pre-wrap">
-              {task.checklist ? task.checklist.split(',').map((item, idx) => (
-                <div key={idx}>{item.trim()}</div>
-              )) : "No checklist provided."}
-            </div>
-          </div>
 
-           {String(task.uploaderid) !== String(task.assigned_to) && (
+
+
+          {!fromTeamTask && String(task.uploaderid) !== String(task.assigned_to) && (
             <div className="mt-6 border border-slate-200 rounded-xl p-6">
               <h4 className="text-black text-md mb-2 font-medium font-Gantari">Review Remark</h4>
               <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
                 {task.review_remark || "No review remark provided."}
               </div>
             </div>
-           )}
+          )}
         </div>
       </div>
     </div>

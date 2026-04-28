@@ -101,7 +101,7 @@ function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-3 py-1.5 sm:py-2 text-[14px] font-semibold font-Gantari cursor-pointer border-0 outline-none transition-all ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-3 py-1.5 sm:py-2 text-[14px] font-semibold font-Gantari cursor-pointer border-0 outline-none transition-all ${narrow ? "w-full" : "min-w-[140px]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
@@ -132,7 +132,7 @@ function TaskDropdown({
         <div
           ref={dropdownRef}
           role="listbox"
-          className={`absolute top-full z-[100] mt-1 rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 min-w-[110px]" : "left-0 min-w-[160px]"}`}
+          className={`absolute top-full z-[100] mt-1 rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 w-full" : "left-0 min-w-[160px]"}`}
         >
           {searchable && (
             <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
@@ -1083,7 +1083,6 @@ export default function TeamtaskTD() {
                 onClick={() => navigate("/td/teamtasks/add", { state: { from: "teamtasks" } })}
                 className={`sm:hidden inline-flex items-center justify-center gap-2 rounded-md px-4 py-1.5 text-[13px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all ${isProjOutsource ? "bg-gray-400 cursor-not-allowed" : "bg-[#DD4342]"}`}
               >
-                <img src={AddBtn} alt="Add" className="h-4 w-4" />
                 Add task
               </button>
             );
@@ -1237,7 +1236,7 @@ export default function TeamtaskTD() {
                 </div>
               )}
             </div>
-            <div className="w-full lg:w-auto">
+            <div className="w-full lg:w-[130px]">
               <TaskDropdown
                 label="Period"
                 options={PERIOD_OPTIONS}
@@ -1265,7 +1264,6 @@ export default function TeamtaskTD() {
                   }
                   className={`hidden sm:inline-flex items-center justify-center gap-2 rounded-md px-6 py-1.5 lg:py-2 text-white rounded-md font-Gantari font-semibold transition-all shadow-sm cursor-pointer ${isProjOutsource ? "bg-gray-400 cursor-not-allowed" : "bg-[#DD4342]"}`}
                 >
-                  <img src={AddBtn} alt="Add" className="h-5 w-5" />
                   Add task
                 </button>
               );
