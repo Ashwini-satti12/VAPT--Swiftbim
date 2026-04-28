@@ -394,7 +394,7 @@ export function TaskDropdown({
       const first = options[0];
       const isPlaceholderOption = (o: string) =>
         o === first &&
-        (first === "Select Employee" || first === "Select Projects");
+        (first === "Select Employee" || first === "Select Project");
       return options.filter((opt) => {
         if (isPlaceholderOption(opt)) return false;
         const name = String(opt ?? "")
@@ -690,7 +690,6 @@ export interface Task {
   due_time?: string;
   assign_to?: string;
   description?: string;
-  checklist?: string;
   review_remark?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
@@ -721,7 +720,6 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
   dueTime: string;
   assignTo: string;
   description: string;
-  checklist: string;
   reviewRemark: string;
 } {
   const t = task as Record<string, unknown>;
@@ -771,7 +769,6 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
       return "";
     })(),
     description: str(t.description ?? ""),
-    checklist: str(t.checklist ?? ""),
     reviewRemark: str(t.review_remark ?? t.reviewRemark ?? ""),
   };
 }
@@ -802,27 +799,20 @@ function TaskCard({
   onDeleteTask?: (task: Task) => void;
   onApproveTask?: (task: Task) => void;
 }) {
-  const progress =
-    (status === "completed" || (task as any).review_required) &&
-      task.assigned_to != null &&
-      ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
-      String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id)
-      ? task.Approval?.toLowerCase() === "approved"
-        ? 100
-        : (status === "todo" ? 0 : status === "in_progress" ? 50 : 95)
-      : status === "todo"
-        ? 0
-        : status === "in_progress"
-          ? 50
-          : typeof task.progress === "number"
-            ? task.progress
-            : 100;
   const isUnderReview =
-    (status === "completed" || (task as any).review_required) &&
+    status === "completed" &&
     task.assigned_to != null &&
     ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
     String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id) &&
     task.Approval?.toLowerCase() !== "approved";
+
+  const progress = isUnderReview
+    ? 95
+    : status === "todo"
+      ? (task.progress && !isNaN(Number(task.progress)) ? Number(task.progress) : 0)
+      : status === "in_progress"
+        ? (task.progress && !isNaN(Number(task.progress)) ? Number(task.progress) : 50)
+        : 100;
   const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -861,9 +851,6 @@ function TaskCard({
           <h4 className="font-medium text-[#353535] text-[20px] truncate leading-tight">
             {task.task_name || "Task Name"}
           </h4>
-          <span className="text-[12px] text-[#8B8B8B] truncate">
-            {task.project_name || "No Project"}
-          </span>
         </div>
         <div className="relative" ref={menuRef}>
           <button
@@ -988,23 +975,17 @@ function TaskCard({
       </div>
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-[12px] text-[#8B8B8B]">Progress</span>
-        <span className="text-[12px] text-[#8B8B8B]">
-          {isUnderReview
-            ? status === "todo"
-              ? "0% (Under Review)"
-              : status === "in_progress"
-                ? "50% (Under Review)"
-                : "95% (Under Review)"
-            : `${progress}%`}
-        </span>
-      </div>
-      {(Number(progress) === 95 || (task as any).review_required) && (
-        <div className="mb-2">
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800">
-            Pending Review
+        <div className="flex items-center gap-2">
+          <span className="text-[12px] text-[#8B8B8B]">
+            {progress}%
           </span>
+          {isUnderReview && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800">
+              Under Review
+            </span>
+          )}
         </div>
-      )}
+      </div>
       <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
         <div
           className="h-full rounded-full bg-[#8B8B8B]"
@@ -1247,7 +1228,7 @@ export default function MytaskV() {
     // Project filter
     if (
       selectedProject &&
-      !["Select Projects", "Show All", "Projects"].includes(selectedProject)
+      !["Select Project", "Show All", "Projects"].includes(selectedProject)
     ) {
       if (t.project_name !== selectedProject) return false;
     }
@@ -1553,7 +1534,7 @@ export default function MytaskV() {
 
     if (
       !selectedProject ||
-      selectedProject === "Select Projects" ||
+      selectedProject === "Select Project" ||
       selectedProject === "Show All" ||
       selectedProject === "Projects"
     ) {
@@ -1597,7 +1578,7 @@ export default function MytaskV() {
   }, [employees, projects, selectedProject, user]);
 
   const projectOptions = [
-    "Select Projects",
+    "Select Project",
     ...(Array.isArray(projects) ? projects : [])
       .map((p) => p?.project_name)
       .filter(Boolean),
@@ -1691,7 +1672,7 @@ export default function MytaskV() {
             </div>
             <div className="w-full lg:w-auto">
               <TaskDropdown
-                label="Select Projects"
+                label="Select Project"
                 options={projectOptions}
                 selected={selectedProject}
                 onSelect={setSelectedProject}

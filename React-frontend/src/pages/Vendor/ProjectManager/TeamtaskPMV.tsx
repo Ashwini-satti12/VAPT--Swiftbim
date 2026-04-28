@@ -38,7 +38,6 @@ interface Task {
     end_time?: string;
     assign_to?: string;
     description?: string;
-    checklist?: string;
     assigned_full_name?: string;
     uploader_full_name?: string;
     Approval?: string;
@@ -97,7 +96,7 @@ function TaskDropdown({
     const q = (searchQuery || "").trim().toLowerCase();
     const filteredOptions = searchable
         ? options.filter(opt => {
-            if (opt === options[0] && (opt === "Select Employee" || opt === "Select Projects")) return false;
+            if (opt === options[0] && (opt === "Select Employee" || opt === "Select Project")) return false;
             return String(opt ?? "").toLowerCase().includes(q);
         })
         : options;
@@ -165,27 +164,20 @@ function TaskCard({
     onDeleteTask?: (task: Task) => void;
 }) {
     const { user } = useAuth();
-    const progress =
-        (status === "completed" || (task as any).review_required) &&
-            task.assigned_to != null &&
-            ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
-            String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id)
-            ? task.Approval?.toLowerCase() === "approved"
-                ? 100
-                : (status === "todo" ? 0 : status === "in_progress" ? 50 : 95)
-            : status === "todo"
-                ? 0
-                : status === "in_progress"
-                    ? 50
-                    : typeof task.progress === "number"
-                        ? task.progress
-                        : 100;
     const isUnderReview =
-        (status === "completed" || (task as any).review_required) &&
+        (status === "completed" || (status === "todo" && (task.progress === 95 || task.progress === "95"))) &&
         task.assigned_to != null &&
         ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
         String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id) &&
         task.Approval?.toLowerCase() !== "approved";
+
+    const progress = isUnderReview
+        ? 95
+        : status === "todo"
+            ? (task.progress && !isNaN(Number(task.progress)) ? Number(task.progress) : 0)
+            : status === "in_progress"
+                ? (task.progress && !isNaN(Number(task.progress)) ? Number(task.progress) : 50)
+                : 100;
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -210,153 +202,175 @@ function TaskCard({
             onDragStart={handleDragStart}
             className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"} mb-3 last:mb-0`}
         >
-            <div className="flex items-center justify-between gap-2 mb-2">
-                <h4 className="font-semibold text-[#353535] text-[20px] truncate font-Gantari">
-                    {task.task_name || "Task Name"}
-                </h4>
-                <div className="relative" ref={menuRef}>
-                    <button
-                        type="button"
-                        draggable={false}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setMenuOpen((prev) => !prev);
-                        }}
-                        className="p-0.5 rounded cursor-pointer border-0 bg-transparent shadow-none outline-none"
-                        aria-label="More options"
-                        aria-expanded={menuOpen}
-                    >
-                        <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
-                    </button>
-                    {menuOpen && (
-                        <div
-                            className={`absolute top-full mt-1 z-50 min-w-[170px] bg-white rounded-lg border border-[#AEACAC52] shadow-xl transition-all duration-200 ease-out font-Gantari ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}`}
-                            role="menu"
+            <>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                    <h4 className="font-semibold text-[#353535] text-[20px] truncate font-Gantari">
+                        {task.task_name || "Task Name"}
+                    </h4>
+                    <div className="relative" ref={menuRef}>
+                        <button
+                            type="button"
+                            draggable={false}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setMenuOpen((prev) => !prev);
+                            }}
+                            className="p-0.5 rounded cursor-pointer border-0 bg-transparent shadow-none outline-none"
+                            aria-label="More options"
+                            aria-expanded={menuOpen}
                         >
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer border-0 bg-transparent shadow-none"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onViewTask?.(task);
-                                }}
+                            <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+                        </button>
+                        {menuOpen && (
+                            <div
+                                className={`absolute top-full mt-1 z-50 min-w-[170px] bg-white rounded-lg border border-[#AEACAC52] shadow-xl transition-all duration-200 ease-out font-Gantari ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}`}
+                                role="menu"
                             >
-                                <img
-                                    src={viewIcon}
-                                    alt="view"
-                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                />
-                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    View
-                                </span>
-                            </button>
-                            {!isCompleted && (
-                                <>
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer border-0 bg-transparent shadow-none"
+                                    onClick={() => {
+                                        setMenuOpen(false);
+                                        onViewTask?.(task);
+                                    }}
+                                >
+                                    <img
+                                        src={viewIcon}
+                                        alt="view"
+                                        className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                    />
+                                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                        View
+                                    </span>
+                                </button>
+                                {!isCompleted && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            role="menuitem"
+                                            className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer border-0 bg-transparent shadow-none"
+                                            onClick={() => {
+                                                setMenuOpen(false);
+                                                onEditTask?.(task);
+                                            }}
+                                        >
+                                            <img
+                                                src={editIcon}
+                                                alt="edit"
+                                                className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                            />
+                                            <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                                Edit
+                                            </span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            role="menuitem"
+                                            className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer border-0 bg-transparent shadow-none"
+                                            onClick={() => {
+                                                setMenuOpen(false);
+                                                onDeleteTask?.(task);
+                                            }}
+                                        >
+                                            <img
+                                                src={deleteIcon}
+                                                alt="delete"
+                                                className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                            />
+                                            <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                                Delete
+                                            </span>
+                                        </button>
+                                    </>
+                                )}
+                                {isUnderReview && String((task as any).uploaderid ?? (task as any).vendor_id) === String(user?.id) && (
                                     <button
                                         type="button"
                                         role="menuitem"
                                         className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer border-0 bg-transparent shadow-none"
                                         onClick={() => {
                                             setMenuOpen(false);
-                                            onEditTask?.(task);
+                                            (window as any).handleApproveTask?.(task);
                                         }}
                                     >
-                                        <img
-                                            src={editIcon}
-                                            alt="edit"
-                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                        />
-                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                            Edit
+                                        <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 transition-colors group-hover:bg-green-600 group-hover:text-white">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-green-600">
+                                            Approve
                                         </span>
                                     </button>
-                                    <button
-                                        type="button"
-                                        role="menuitem"
-                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer border-0 bg-transparent shadow-none"
-                                        onClick={() => {
-                                            setMenuOpen(false);
-                                            onDeleteTask?.(task);
-                                        }}
-                                    >
-                                        <img
-                                            src={deleteIcon}
-                                            alt="delete"
-                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                        />
-                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                            Delete
-                                        </span>
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-            <div className="flex items-center justify-between gap-2 mb-3 font-Gantari">
-                <div className="flex flex-col text-left">
-                    <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
-                    <span className="text-[14px] font-medium text-[#8B8B8B]">
-                        {task.start_date || (task as any).Actual_start_time
-                            ? `${new Date(task.start_date || (task as any).Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || (task as any).Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || (task as any).Actual_start_time!).getFullYear()}`
-                            : "—"}
-                    </span>
-                </div>
-
-                <div className="flex flex-col items-end text-right">
-                    <span className="text-[14px] font-medium text-[#000000]">End Date</span>
-                    <span className="text-[14px] font-medium text-[#8B8B8B]">
-                        {task.due_date
-                            ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
-                            : "—"}
-                    </span>
-                </div>
-            </div>
-            <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-xs text-[#8B8B8B] font-Gantari">Progress</span>
-                <span className="text-xs font-medium text-[#8B8B8B] font-Gantari">
-                    {isUnderReview ? "95% (Under Review)" : `${progress}%`}
-                </span>
-            </div>
-            {(Number(progress) === 95 || (task as any).review_required) && (
-                <div className="mb-2">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800">
-                        Pending Review
-                    </span>
-                </div>
-            )}
-            <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-3">
-                <div
-                    className="h-full bg-slate-400 transition-all rounded-full"
-                    style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-                />
-            </div>
-            <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1">
-                    <div className="flex -space-x-2">
-                        {task.assigned_full_name && (
-                            <div className="w-7 h-7 rounded-full border border-white bg-slate-200 flex items-center justify-center overflow-hidden" title={`Assigned: ${task.assigned_full_name}`}>
-                                {task.assigned_to && task.assigned_profile_picture ? (
-                                    <img src={getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture, "vendor")} className="w-full h-full object-cover" alt="" />
-                                ) : <span className="text-[10px] font-bold">{(task.assigned_full_name || "U")[0]}</span>}
-                            </div>
-                        )}
-                        {task.uploader_full_name && (
-                            <div className="w-7 h-7 rounded-full border border-white bg-slate-100 flex items-center justify-center overflow-hidden" title={`Uploader: ${task.uploader_full_name}`}>
-                                {task.uploaderid && task.uploader_profile_picture ? (
-                                    <img src={getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture, "vendor")} className="w-full h-full object-cover" alt="" />
-                                ) : <span className="text-[10px] font-bold">{(task.uploader_full_name || "S")[0]}</span>}
+                                )}
                             </div>
                         )}
                     </div>
                 </div>
-                <button onClick={() => onViewTask?.(task)} className="text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] inline-flex items-center gap-1 border-0 bg-transparent cursor-pointer group font-Gantari shadow-none outline-none">
-                    Details
-                    <img src={Arrow} alt="" className="w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform" />
-                </button>
-            </div>
+                <div className="flex items-center justify-between gap-2 mb-3 font-Gantari">
+                    <div className="flex flex-col text-left">
+                        <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
+                        <span className="text-[14px] font-medium text-[#8B8B8B]">
+                            {task.start_date || (task as any).Actual_start_time
+                                ? `${new Date(task.start_date || (task as any).Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || (task as any).Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || (task as any).Actual_start_time!).getFullYear()}`
+                                : "—"}
+                        </span>
+                    </div>
+
+                    <div className="flex flex-col items-end text-right">
+                        <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+                        <span className="text-[14px] font-medium text-[#8B8B8B]">
+                            {task.due_date
+                                ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
+                                : "—"}
+                        </span>
+                    </div>
+                </div>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-xs text-[#8B8B8B] font-Gantari">Progress</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-[#8B8B8B] font-Gantari">
+                            {progress}%
+                        </span>
+                        {isUnderReview && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800">
+                                Under Review
+                            </span>
+                        )}
+                    </div>
+                </div>
+                <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-3">
+                    <div
+                        className="h-full bg-slate-400 transition-all rounded-full"
+                        style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                    />
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1">
+                        <div className="flex -space-x-2">
+                            {task.assigned_full_name && (
+                                <div className="w-7 h-7 rounded-full border border-white bg-slate-200 flex items-center justify-center overflow-hidden" title={`Assigned: ${task.assigned_full_name}`}>
+                                    {task.assigned_to && task.assigned_profile_picture ? (
+                                        <img src={getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture, "vendor")} className="w-full h-full object-cover" alt="" />
+                                    ) : <span className="text-[10px] font-bold">{(task.assigned_full_name || "U")[0]}</span>}
+                                </div>
+                            )}
+                            {task.uploader_full_name && (
+                                <div className="w-7 h-7 rounded-full border border-white bg-slate-100 flex items-center justify-center overflow-hidden" title={`Uploader: ${task.uploader_full_name}`}>
+                                    {task.uploaderid && task.uploader_profile_picture ? (
+                                        <img src={getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture, "vendor")} className="w-full h-full object-cover" alt="" />
+                                    ) : <span className="text-[10px] font-bold">{(task.uploader_full_name || "S")[0]}</span>}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <button onClick={() => onViewTask?.(task)} className="text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] inline-flex items-center gap-1 border-0 bg-transparent cursor-pointer group font-Gantari shadow-none outline-none">
+                        Details
+                        <img src={Arrow} alt="" className="w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                </div>
+            </>
         </div>
     );
 }
@@ -442,7 +456,7 @@ export default function TeamtaskPMV() {
             // Trust the backend's filtering
 
             if (selectedEmployee && !["Select Employee", "Employee"].includes(selectedEmployee) && t.assigned_full_name !== selectedEmployee) return false;
-            if (selectedProject && !["Select Projects", "Projects"].includes(selectedProject) && t.project_name !== selectedProject) return false;
+            if (selectedProject && !["Select Project", "Projects"].includes(selectedProject) && t.project_name !== selectedProject) return false;
 
             if (selectedPeriod && selectedPeriod !== "Period") {
                 const date = new Date(t.created_at || t.start_date || "");
@@ -533,6 +547,16 @@ export default function TeamtaskPMV() {
         }).catch(() => toast.error("Failed to delete task"));
     };
 
+    const handleApproveTask = (task: Task) => {
+        api.patch(`/api/vendors/vendor-tasks/${task.id}/status`, { status: "Approved" })
+            .then(() => {
+                toast.success("Task Approved");
+                setList(prev => prev.map(t => t.id === task.id ? { ...t, Approval: "Approved", progress: 100 } : t));
+            })
+            .catch(() => toast.error("Failed to approve task"));
+    };
+    (window as any).handleApproveTask = handleApproveTask;
+
     function normalizeStatus(s?: string, approval?: string) {
         if (approval?.toLowerCase() === "approved" || approval?.toLowerCase() === "rejected")
             return "completed";
@@ -549,7 +573,7 @@ export default function TeamtaskPMV() {
                     <h2 className="text-[24px] font-semibold text-slate-800">Team Tasks</h2>
                     <div className="flex flex-wrap items-center gap-2">
                         <TaskDropdown label="Employee" options={["Employee", ...employees.map(e => e.full_name)]} selected={selectedEmployee} onSelect={setSelectedEmployee} isOpen={openDropdown === "employee"} onToggle={() => setOpenDropdown(d => d === "employee" ? null : "employee")} onClose={() => setOpenDropdown(null)} triggerRef={empTriggerRef} dropdownRef={empMenuRef} searchable />
-                        <TaskDropdown label="Projects" options={["Projects", ...projects.map(p => p.project_name)]} selected={selectedProject} onSelect={setSelectedProject} isOpen={openDropdown === "projects"} onToggle={() => setOpenDropdown(d => d === "projects" ? null : "projects")} onClose={() => setOpenDropdown(null)} triggerRef={projTriggerRef} dropdownRef={projMenuRef} searchable />
+                        <TaskDropdown label="Select Project" options={["Select Project", ...projects.map(p => p.project_name)]} selected={selectedProject} onSelect={setSelectedProject} isOpen={openDropdown === "projects"} onToggle={() => setOpenDropdown(d => d === "projects" ? null : "projects")} onClose={() => setOpenDropdown(null)} triggerRef={projTriggerRef} dropdownRef={projMenuRef} searchable />
                         <TaskDropdown label="Show Entries" options={SHOW_OPTIONS} selected={selectedShow} onSelect={setSelectedShow} isOpen={openDropdown === "show"} onToggle={() => setOpenDropdown(d => d === "show" ? null : "show")} onClose={() => setOpenDropdown(null)} triggerRef={showTriggerRef} dropdownRef={showMenuRef} narrow />
                         <TaskDropdown label="Period" options={PERIOD_OPTIONS} selected={selectedPeriod} onSelect={setSelectedPeriod} isOpen={openDropdown === "period"} onToggle={() => setOpenDropdown(d => d === "period" ? null : "period")} onClose={() => setOpenDropdown(null)} triggerRef={periodTriggerRef} dropdownRef={periodMenuRef} narrow />
                         <button onClick={() => navigate("/vpm/teamtasks/add", { state: { from: "teamtasks" } })} className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#c93a39] transition-colors border-0">

@@ -96,7 +96,6 @@ export interface Task {
   due_time?: string;
   assign_to?: string;
   description?: string;
-  checklist?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
   assigned_to?: number;
@@ -160,7 +159,6 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
   dueTime: string;
   assignTo: string;
   description: string;
-  checklist: string;
 } {
   const t = task as Record<string, unknown>;
   const str = (v: unknown) => (v != null ? String(v) : "");
@@ -187,7 +185,6 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
       t.assign_to ?? t.assignTo ?? t.assigned_to ?? t.assigned_full_name ?? "",
     ),
     description: str(t.description ?? ""),
-    checklist: str(t.checklist ?? ""),
   };
 }
 
@@ -343,7 +340,7 @@ export function TaskDropdown({
       const first = options[0];
       const isPlaceholderOption = (o: string) =>
         o === first &&
-        (first === "Select Employee" || first === "Select Projects");
+        (first === "Select Employee" || first === "Select Project");
       return options.filter((opt) => {
         if (isPlaceholderOption(opt)) return false;
         const name = String(opt ?? "")
@@ -449,27 +446,19 @@ function TaskCard({
   onDeleteTask?: (task: Task) => void;
 }) {
   const { user } = useAuth();
-  const progress =
-    (status === "completed" || (task as any).review_required) &&
-      task.assigned_to != null &&
-      ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
-      String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id)
-      ? task.Approval?.toLowerCase() === "approved"
-        ? 100
-        : (status === "todo" ? 0 : status === "in_progress" ? 50 : 95)
-      : status === "todo"
-        ? 0
-        : status === "in_progress"
-          ? 50
-          : typeof task.progress === "number"
-            ? task.progress
-            : 100;
-
   const isUnderReview =
-    (status === "completed" || (task as any).review_required) &&
+    (status === "completed" || (status === "todo" && (task.progress === 95 || task.progress === "95"))) &&
     task.assigned_to != null &&
     String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id) &&
     task.Approval?.toLowerCase() !== "approved";
+
+  const progress = isUnderReview
+    ? 95
+    : status === "todo"
+      ? (task.progress && !isNaN(Number(task.progress)) ? Number(task.progress) : 0)
+      : status === "in_progress"
+        ? (task.progress && !isNaN(Number(task.progress)) ? Number(task.progress) : 50)
+        : 100;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -576,6 +565,26 @@ function TaskCard({
                   </button>
                 </>
               )}
+              {isUnderReview && String((task as any).uploaderid ?? (task as any).vendor_id) === String(user?.id) && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer border-0 bg-transparent shadow-none"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    (window as any).handleApproveTask?.(task);
+                  }}
+                >
+                  <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 transition-colors group-hover:bg-green-600 group-hover:text-white">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-green-600">
+                    Approve
+                  </span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -601,17 +610,17 @@ function TaskCard({
       </div>
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-xs text-[#8B8B8B] font-Gantari">Progress</span>
-        <span className="text-xs font-medium text-[#8B8B8B] font-Gantari">
-          {isUnderReview ? "95% (Under Review)" : `${progress}%`}
-        </span>
-      </div>
-      {(Number(progress) === 95 || (task as any).review_required) && (
-        <div className="mb-2">
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800">
-            Pending Review
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-[#8B8B8B] font-Gantari">
+            {progress}%
           </span>
+          {isUnderReview && (
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800">
+              Under Review
+            </span>
+          )}
         </div>
-      )}
+      </div>
       <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
         <div
           className="h-full rounded-full bg-[#8B8B8B]"
@@ -814,6 +823,16 @@ export default function MytaskPMV() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, [openDropdown]);
 
+  const handleApproveTask = (task: Task) => {
+    api.patch(`/api/vendors/vendor-tasks/${task.id}/status`, { status: "Approved" })
+      .then(() => {
+        toast.success("Task Approved");
+        setList(prev => prev.map(t => t.id === task.id ? { ...t, Approval: "Approved", progress: 100 } : t));
+      })
+      .catch(() => toast.error("Failed to approve task"));
+  };
+  (window as any).handleApproveTask = handleApproveTask;
+
   const allTasks = list.filter((t) => t && t.id != null).filter((t) => {
     // Trust the backend's filtering for MyTasks/TeamTasks. 
     // We only apply UI-level filters here (Search, Employee, Project, Period).
@@ -821,7 +840,7 @@ export default function MytaskPMV() {
     if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
       if (t.assigned_full_name !== selectedEmployee) return false;
     }
-    if (selectedProject && !["Select Projects", "Show All", "Projects"].includes(selectedProject)) {
+    if (selectedProject && !["Select Project", "Show All", "Projects"].includes(selectedProject)) {
       if (t.project_name !== selectedProject) return false;
     }
     if (selectedPeriod && !["Period", "Show All"].includes(selectedPeriod)) {
@@ -917,7 +936,7 @@ export default function MytaskPMV() {
   const openViewTask = (task: Task) => navigate(`/vpm/mytasks/view/${task.id}`, { state: { task } });
 
   const employeeOptions = ["Select Employee", "Show All", ...employees.map(e => e.full_name).filter(Boolean)];
-  const projectOptions = ["Select Projects", "Show All", ...projects.map(p => p.project_name).filter(Boolean)];
+  const projectOptions = ["Select Project", "Show All", ...projects.map(p => p.project_name).filter(Boolean)];
 
   const counts = {
     todo: allTasks.filter(t => getEffectiveStatus(t) === "todo").length,
@@ -976,7 +995,7 @@ export default function MytaskPMV() {
               maxVisibleItems={5}
             />
             <TaskDropdown
-              label="Select Projects"
+              label="Select Project"
               options={projectOptions}
               selected={selectedProject}
               onSelect={setSelectedProject}

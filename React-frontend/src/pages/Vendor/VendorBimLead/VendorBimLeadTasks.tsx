@@ -60,7 +60,6 @@ interface Task {
   start_date?: string;
   start_time?: string;
   end_time?: string;
-  checklist?: string;
   assigned_by_name?: string;
   Approval?: string;
 }
@@ -88,7 +87,6 @@ const emptyTaskForm = {
   category: "",
   actual_start_date: "",
   actual_end_date: "",
-  checklist: "",
   start_time: "",
   end_time: "",
 };
@@ -211,7 +209,6 @@ export default function VendorBimLeadTasks() {
       project_id: form.project_id ? Number(form.project_id) : undefined,
       assigned_to: form.assigned_to ? Number(form.assigned_to) : undefined,
       modules: form.category || undefined,
-      checklist: form.checklist || undefined,
     };
 
     api
@@ -293,7 +290,6 @@ export default function VendorBimLeadTasks() {
         ? Number(editForm.assigned_to)
         : undefined,
       modules: editForm.category || undefined,
-      checklist: editForm.checklist || undefined,
     };
 
     api
@@ -435,6 +431,16 @@ export default function VendorBimLeadTasks() {
     }
     return status;
   };
+
+  const handleApproveTask = (task: Task) => {
+    api.patch(`/api/vendors/vendor-tasks/${task.id}/status`, { status: "Approved" })
+      .then(() => {
+        toast.success("Task Approved");
+        setTasks(prev => prev.map(t => t.id === task.id ? { ...t, Approval: "Approved", progress: 100 } : t));
+      })
+      .catch(() => toast.error("Failed to approve task"));
+  };
+  (window as any).handleApproveTask = handleApproveTask;
 
   const activeForm = currentPage === "edit" ? editForm : createForm;
 
@@ -900,21 +906,6 @@ export default function VendorBimLeadTasks() {
               />
             </div>
 
-            {/* Checklist */}
-            <div>
-              <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                Checklist
-              </label>
-              <input
-                type="text"
-                value={form.checklist}
-                onChange={(e) =>
-                  setForm({ ...form, checklist: e.target.value })
-                }
-                placeholder="Enter Reference Link"
-                className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] min-h-[42px]"
-              />
-            </div>
 
             {/* Attachments */}
             <div>
@@ -1162,7 +1153,7 @@ export default function VendorBimLeadTasks() {
                         : 100;
 
                 const isReviewState =
-                  (bucket === "completed" || (task as any).review_required) &&
+                  (bucket === "completed" || (task as any).review_required || task.progress === 95 || task.progress === "95") &&
                   task.assigned_to != null &&
                   ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
                   String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id) &&
@@ -1249,8 +1240,6 @@ export default function VendorBimLeadTasks() {
                                       actual_start_date:
                                         (task as any).start_date || "",
                                       actual_end_date: task.due_date || "",
-                                      checklist:
-                                        (task as any).checklist || "",
                                       start_time:
                                         (task as any).start_time || "",
                                       end_time: (task as any).end_time || "",
@@ -1289,6 +1278,26 @@ export default function VendorBimLeadTasks() {
                                   </span>
                                 </button>
                               </>
+                            )}
+                            {isReviewState && String((task as any).uploaderid ?? (task as any).vendor_id) === String(user?.id) && (
+                              <button
+                                type="button"
+                                role="menuitem"
+                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer border-0 bg-transparent shadow-none"
+                                onClick={() => {
+                                  setOpenMenuTaskId(null);
+                                  (window as any).handleApproveTask?.(task);
+                                }}
+                              >
+                                <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 transition-colors group-hover:bg-green-600 group-hover:text-white">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </div>
+                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-green-600">
+                                  Approve
+                                </span>
+                              </button>
                             )}
                           </div>
                         )}

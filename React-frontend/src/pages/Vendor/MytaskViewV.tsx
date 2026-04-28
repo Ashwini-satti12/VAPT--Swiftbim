@@ -37,8 +37,6 @@ interface Task {
   assigned_to?: number;
   uploaderid?: number;
   description?: string;
-  checklist?: string;
-  assigned_full_name?: string;
   uploader_full_name?: string;
   Approval?: string;
   /** Comma-separated filenames under uploads/task/ */
@@ -321,6 +319,7 @@ export default function MytaskViewV() {
     }
   };
 
+
   const handleSendBackWork = async () => {
     if (!task || sendingBack) return;
     const remark = (reviewRemarkInput || "").trim();
@@ -338,7 +337,15 @@ export default function MytaskViewV() {
         status: "Todo",
       });
       setTask((prev) =>
-        prev ? { ...prev, review_remark: remark, status: "Todo", progress: 0 } : prev,
+        prev
+          ? {
+            ...prev,
+            review_remark: remark,
+            status: "Todo",
+            progress: 0,
+            Approval: "",
+          }
+          : prev,
       );
       setStatusDisplay("todo");
       toast.success("Returned to assignee in To Do.");
@@ -475,11 +482,23 @@ export default function MytaskViewV() {
     String(task.assigned_to) !== String(uploaderId) &&
     task.Approval?.toLowerCase() !== "approved";
 
+  const progress = isUnderReview
+    ? 95
+    : statusDisplay === "approved" || task.Approval?.toLowerCase() === "approved"
+      ? 100
+      : statusDisplay === "completed"
+        ? 100
+        : statusDisplay === "in_progress"
+          ? 50
+          : 0;
+
   const isCurrentUserAssigner = String(uploaderId) === String(user?.id);
+
+  const isCurrentUserAssignee = String(task.assigned_to) === String(user?.id);
 
   const style = {
     ...STATUS_STYLE[statusDisplay],
-    label: isUnderReview ? "Under Review" : STATUS_STYLE[statusDisplay].label,
+    label: (isUnderReview && isCurrentUserAssignee) ? "Reviewed" : STATUS_STYLE[statusDisplay].label,
   };
   const taskRecord = task as unknown as Record<string, unknown>;
   const moduleNameDisplay = (() => {
@@ -506,177 +525,187 @@ export default function MytaskViewV() {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-y-auto custom-scrollbar px-5 py-2">
-      <div className="flex items-center justify-between py-4">
-        <div className="group relative">
+    <div className="flex-1 flex flex-col min-h-0 bg-white font-Gantari">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 pt-4 shrink-0">
+        <div className="group relative inline-flex shrink-0">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer border-0 shadow-none group"
+            className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
-            {/* Tooltip */}
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
-                <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Go Back</span>
-              </div>
-            </div>
           </button>
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+            <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+              <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                Go Back
+              </span>
+            </div>
+          </div>
         </div>
-        <h1 className="flex-1 text-center text-2xl font-semibold text-black">
-          {task.project_name || task.task_name || "Task Name"}
+        <h1 className="flex-1 text-center text-[24px] font-semibold text-black">
+          {task.task_name || "Task Name"}
         </h1>
         <div className="w-9" />
       </div>
 
-      <div className="max-w-7xl mx-auto w-full">
-        <div className="flex items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <span className="text-md text-black">Status:</span>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${style.bg}`}
-            >
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 scroll-smooth custom-scrollbar">
+        <div className="max-w-7xl mx-auto">
+          {/* Status row */}
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-2">
+              <span className="text-md text-black font-Gantari">Status:</span>
               <span
-                className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`}
-              />
-              {style.label}
-            </span>
-          </div>
-          <div className="relative" ref={statusDropdownRef}>
-            <button
-              type="button"
-              disabled={updatingStatus}
-              onClick={() => setStatusDropdownOpen((prev) => !prev)}
-              className="rounded bg-[#E8E8E8] px-3 py-2 text-xs text-black flex items-center gap-1 disabled:opacity-50"
-              aria-expanded={statusDropdownOpen}
-              aria-haspopup="listbox"
-            >
-              {updatingStatus ? "Updating..." : "Select Status"}
-              <FiChevronDown className="w-4 h-4" />
-            </button>
-            {statusDropdownOpen && !updatingStatus && (
-              <div
-                className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-md bg-white py-1 border border-slate-200"
-                role="listbox"
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium font-Gantari ${style.bg}`}
               >
-                {STATUS_OPTIONS.filter(
-                  (opt) =>
-                    !(
-                      shouldHideInProgressInDropdown(statusDisplay) &&
-                      opt.value === "in_progress"
-                    ),
-                ).map((opt) => {
-                  const disabled = isStatusOptionDisabled(
-                    statusDisplay,
-                    opt.value,
-                  );
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      role="option"
-                      aria-disabled={disabled}
-                      disabled={disabled}
-                      aria-selected={statusDisplay === opt.value}
-                      onClick={() => handleStatusUpdate(opt.value)}
-                      className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 ${disabled
-                          ? "text-slate-300 cursor-not-allowed opacity-60"
-                          : "hover:bg-[#F2F2F2]"
-                        } ${statusDisplay === opt.value && !disabled
-                          ? "bg-[#F2F2F2] font-medium"
-                          : ""
-                        }`}
-                    >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`}
-                      />
-                      {opt.label}
-                    </button>
-                  );
-                })}
+                <span
+                  className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`}
+                />
+                {style.label}
+              </span>
+            </div>
+
+            {!shouldHideInProgressInDropdown(statusDisplay) && (
+              <div className="relative" ref={statusDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                  disabled={updatingStatus}
+                  className="flex items-center justify-between gap-2 rounded-[5px] bg-[#F2F2F2] px-4 py-2 text-[14px] text-slate-700 min-w-[140px] hover:bg-[#E5E5E5] transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <span className="font-Gantari text-[#8B8B8B]">Select Status</span>
+                  <FiChevronDown
+                    className={`transition-transform text-[#8B8B8B] duration-200 ${statusDropdownOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+                {statusDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1 z-50 w-[140px] rounded-[5px] border border-slate-200 bg-white py-1 shadow-lg">
+                    {STATUS_OPTIONS.map((opt) => {
+                      const disabled = isStatusOptionDisabled(statusDisplay, opt.value);
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => handleStatusUpdate(opt.value)}
+                          disabled={disabled}
+                          className={`flex w-full items-center gap-2 px-4 py-2 text-[14px] font-Gantari transition-colors ${
+                            disabled
+                              ? "cursor-not-allowed opacity-50 text-[#8B8B8B]"
+                              : "hover:bg-[#F2F2F2] cursor-pointer text-[#8B8B8B]"
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                              opt.value === "todo"
+                                ? "bg-[#F35C08]"
+                                : opt.value === "in_progress"
+                                  ? "bg-[#09B8FF]"
+                                  : "bg-[#03D955]"
+                            }`}
+                          />
+                          <span>{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
-        </div>
 
-        <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 text-sm">
-            <div className="flex gap-2">
-              <span className="text-[#020202] shrink-0 w-28">Project Name</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {task.project_name || "—"}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] shrink-0 w-28">Module Name</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {moduleNameDisplay}
-              </span>
-            </div>
-            {/* <div className="flex gap-2">
-              <span className="text-[#020202] shrink-0 w-28">Category</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {task.category || task.type || "—"}
-              </span>
-            </div> */}
-            <div className="flex gap-2">
-              <span className="text-[#020202] shrink-0 w-28">Assigned By</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {task.uploader_full_name ?? "—"}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] shrink-0 w-28">Assigned To</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">{resolveAssignedName()}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] shrink-0 w-28">
-                Start Date
-              </span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {task.start_date ? formatDateDDMMYYYY(task.start_date) : "—"}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] shrink-0 w-28">Start Time</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {formatTimeDisplay(task.start_time)}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] shrink-0 w-28">End Date</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {task.due_date ? formatDateDDMMYYYY(task.due_date) : "—"}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] shrink-0 w-28">End Time</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {formatTimeDisplay(task.due_time ?? task.end_time)}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-[#020202] shrink-0 w-28">Progress</span>
-              <span className="text-[#020202] shrink-0">:</span>
-              <span className="text-[#616161]">
-                {isUnderReview
-                  ? "95% (Under Review)"
-                  : `${task.progress ?? 0}%`}
-              </span>
-            </div>
-            <div className="flex flex-col gap-2">
-              <div className="flex gap-2">
-                <span className="text-[#020202] shrink-0 w-28 ">Attachments</span>
+          {/* Task Details Card */}
+          <div className="w-full border border-slate-200 rounded-xl p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 text-[14px]">
+              <div className="flex items-start gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
+                  Project Name
+                </span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161] break-words">
+                  {task.project_name || "—"}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
+                  Modules Name
+                </span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161] break-words">
+                  {moduleNameDisplay}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
+                  Assigned By
+                </span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">
+                  {task.uploader_full_name ?? "—"}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
+                  Assigned To
+                </span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">{resolveAssignedName()}</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
+                  Start Date
+                </span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">
+                  {task.start_date ? formatDateDDMMYYYY(task.start_date) : "—"}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
+                  Start Time
+                </span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">
+                  {formatTimeDisplay(task.start_time)}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
+                  End Date
+                </span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">
+                  {task.due_date ? formatDateDDMMYYYY(task.due_date) : "—"}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
+                  End Time
+                </span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">
+                  {formatTimeDisplay(task.due_time ?? task.end_time)}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
+                  Progress
+                </span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161] flex items-center gap-2">
+                  {progress}%
+                  {isUnderReview && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800">
+                      Under Review
+                    </span>
+                  )}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
+                  Attachments
+                </span>
                 <span className="text-[#020202] shrink-0">:</span>
                 <div className="flex flex-col gap-2 flex-1 min-w-0">
                   {submittedOutputFiles.length > 0 ? (
@@ -684,8 +713,9 @@ export default function MytaskViewV() {
                       const url = taskOutputFileUrl(f);
                       const base = f.split("/").pop() || f;
                       const underscoreIdx = base.indexOf("_");
-                      const displayName = underscoreIdx > 8 ? base.slice(underscoreIdx + 1) : base;
-                      
+                      const displayName =
+                        underscoreIdx > 8 ? base.slice(underscoreIdx + 1) : base;
+
                       return (
                         <div key={idx} className="flex items-center gap-3">
                           <span className="text-[14px] font-medium text-[#616161] truncate font-Gantari">
@@ -703,23 +733,31 @@ export default function MytaskViewV() {
                               </a>
                               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                                 <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
-                                  <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">View</span>
+                                  <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                    View
+                                  </span>
                                 </div>
                                 <div className="w-2 h-2 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[4.5px]"></div>
                               </div>
                             </div>
-                            
+
                             <div className="relative group/tooltip inline-flex shrink-0">
                               <a
                                 href={url}
                                 download
                                 className="p-1 hover:bg-slate-100 rounded transition-colors"
                               >
-                                <img src={downloadIcon} alt="Download" className="w-4 h-4" />
+                                <img
+                                  src={downloadIcon}
+                                  alt="Download"
+                                  className="w-4 h-4"
+                                />
                               </a>
                               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                                 <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
-                                  <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">Download</span>
+                                  <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                    Download
+                                  </span>
                                 </div>
                                 <div className="w-2 h-2 bg-[#FFFFFF] border-r border-b border-[#C1C1C1] rotate-45 relative z-20 -mt-[4.5px]"></div>
                               </div>
@@ -729,28 +767,22 @@ export default function MytaskViewV() {
                       );
                     })
                   ) : (
-                    <span className="text-[#616161]">No Attachment Available</span>
+                    <span className="text-[#616161]">-NIL-</span>
                   )}
                 </div>
               </div>
             </div>
           </div>
 
-
-        </div>
-
-        {/* Task Description & Checklist */}
-        <div className="mt-8 space-y-6 mb-10">
-          <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
-            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">
-              Task Description
-            </h4>
-            <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 font-Gantari min-h-[80px]">
+          {/* Task Description */}
+          <div className="mt-6 border border-slate-200 rounded-xl p-6">
+            <h4 className="text-black text-md mb-2">Task Description</h4>
+            <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
               {task.description &&
-                task.description
-                  .replace(/<[^>]*>?/gm, "")
-                  .replace(/&nbsp;/g, "")
-                  .trim().length > 0 ? (
+              task.description
+                .replace(/<[^>]*>?/gm, "")
+                .replace(/&nbsp;/g, "")
+                .trim().length > 0 ? (
                 <div
                   className="prose prose-sm max-w-none prose-p:my-0"
                   dangerouslySetInnerHTML={{ __html: task.description }}
@@ -761,57 +793,44 @@ export default function MytaskViewV() {
             </div>
           </div>
 
-          <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
-            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">
-              Checklist / Reference
-            </h4>
-            <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 font-Gantari min-h-[80px]">
-              {task.checklist &&
-                task.checklist
-                  .replace(/<[^>]*>?/gm, "")
-                  .replace(/&nbsp;/g, "")
-                  .trim().length > 0 ? (
-                <div
-                  className="prose prose-sm max-w-none prose-p:my-0"
-                  dangerouslySetInnerHTML={{ __html: task.checklist }}
-                />
+          {/* Review Remark — only show for delegated tasks (uploader != assignee) */}
+          {(isUnderReview ||
+            (task.review_remark && task.review_remark.trim() !== "")) && (
+            <div className="mt-6 border border-slate-200 rounded-xl p-6">
+              <h4 className="text-black text-md mb-2">Review Remark</h4>
+              {isCurrentUserAssigner && isUnderReview ? (
+                <div className="flex flex-col gap-4">
+                  <textarea
+                    value={reviewRemarkInput}
+                    onChange={(e) => setReviewRemarkInput(e.target.value)}
+                    placeholder="Enter corrections / changes for assignee..."
+                    rows={4}
+                    className="w-full rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 font-Gantari border border-transparent outline-none focus:border-slate-300 resize-none"
+                  />
+                  <div className="flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={handleSendBackWork}
+                      disabled={sendingBack || updatingStatus}
+                      className="rounded-md bg-[#DBE9FE] px-4 py-2 text-[14px] font-semibold text-[#101827] disabled:opacity-50 cursor-pointer transition-colors hover:bg-blue-200"
+                    >
+                      {sendingBack ? "Sending..." : "Send Back To Assignee"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleApproveWork}
+                      disabled={updatingStatus || sendingBack}
+                      className="rounded-md bg-green-100 px-6 py-2 text-[14px] font-semibold text-green-700 hover:bg-green-600 hover:text-white transition-colors disabled:opacity-50 cursor-pointer border border-green-200"
+                    >
+                      {updatingStatus ? "Approving..." : "Approve Task"}
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <span className="text-slate-400">—</span>
+                <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+                  {task.review_remark || "No review remark provided."}
+                </div>
               )}
-            </div>
-          </div>
-        </div>
-
-        {/* Review Remark Section */}
-        <div className="mt-8 border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col mb-10">
-          <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">
-            Review Remark
-          </h4>
-          <textarea
-            value={reviewRemarkInput}
-            onChange={(e) => setReviewRemarkInput(e.target.value)}
-            placeholder="Enter corrections / changes for assignee..."
-            rows={4}
-            className="w-full rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 font-Gantari border border-transparent outline-none focus:border-slate-300 resize-none mb-4"
-          />
-          {isUnderReview && isCurrentUserAssigner && (
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={handleSendBackWork}
-                disabled={sendingBack || updatingStatus}
-                className="rounded-md bg-[#DBE9FE] px-4 py-2 text-[14px] font-semibold text-[#101827] disabled:opacity-50 cursor-pointer"
-              >
-                {sendingBack ? "Sending..." : "Send Back To Assignee"}
-              </button>
-              <button
-                type="button"
-                onClick={handleApproveWork}
-                disabled={updatingStatus || sendingBack}
-                className="rounded-md bg-green-100 px-6 py-2 text-[14px] font-semibold text-green-700 hover:bg-green-600 hover:text-white transition-colors disabled:opacity-50 cursor-pointer border border-green-200"
-              >
-                {updatingStatus ? "Approving..." : "Approve Task"}
-              </button>
             </div>
           )}
         </div>
