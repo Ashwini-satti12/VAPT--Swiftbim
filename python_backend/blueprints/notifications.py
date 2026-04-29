@@ -180,3 +180,13 @@ def mark_task_notification_read(task_id):
     if cur.rowcount:
         return jsonify({"success": True, "message": "Task notification marked as read"})
     return jsonify({"success": False, "message": "Failed to mark notification as read"}), 400
+@bp.route("/tasks/read-all", methods=["POST"])
+@project_app_required
+def mark_tasks_all_read():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE tasks SET ring = 1 WHERE assigned_to = %s AND Company_id = %s AND ring = 0",
+        (g.user_id, g.company_id),
+    )
+    return jsonify({"success": True, "message": "All task notifications marked as read"})

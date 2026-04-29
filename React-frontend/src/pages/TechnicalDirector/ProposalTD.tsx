@@ -1,10 +1,218 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 import api from "../../lib/api";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 // import editIcon from '../../assets/ProjectManager/project/editIcon.svg';
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+
+const toCamelCase = (str: string): string => {
+  if (!str) return str;
+  return str.toLowerCase().split(' ').map(word =>
+    word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ');
+};
+
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+  .hide-scrollbar-x::-webkit-scrollbar:horizontal {
+    display: none;
+  }
+  .hide-scrollbar-x {
+    -ms-overflow-style: none;
+  }
+`;
+
+function CustomDropdown({
+  options,
+  value,
+  onChange,
+  placeholder,
+  className = "",
+  styleType = "form",
+  menuMaxHeightClass = "max-h-[220px]",
+  direction = "down",
+}: {
+  options: string[];
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  className?: string;
+  styleType?: "form" | "header" | "table";
+  /** Max height for header/form menu list (scroll when content exceeds), e.g. ~4 rows */
+  menuMaxHeightClass?: string;
+  /** Direction to open the dropdown menu */
+  direction?: "up" | "down";
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, bottom: 0 });
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      const isInsideTrigger = dropdownRef.current && dropdownRef.current.contains(target);
+      const isInsideMenu = menuRef.current && menuRef.current.contains(target);
+
+      if (!isInsideTrigger && !isInsideMenu) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && dropdownRef.current) {
+      const updatePosition = () => {
+        if (dropdownRef.current) {
+          const rect = dropdownRef.current.getBoundingClientRect();
+          setCoords({
+            top: rect.bottom,
+            left: rect.left,
+            width: rect.width,
+            bottom: window.innerHeight - rect.top,
+          });
+        }
+      };
+
+      updatePosition();
+      window.addEventListener("scroll", updatePosition, true);
+      window.addEventListener("resize", updatePosition);
+
+      return () => {
+        window.removeEventListener("scroll", updatePosition, true);
+        window.removeEventListener("resize", updatePosition);
+      };
+    }
+  }, [isOpen]);
+
+  // Determine if we should show placeholder color or prefix
+  const isPlaceholder = !value || value === placeholder;
+
+  const menuContent = (
+    <div
+      ref={menuRef}
+      className={`fixed z-[9999] bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden`}
+      style={{
+        width: coords.width,
+        left: coords.left,
+        ...(direction === "up"
+          ? { bottom: coords.bottom + 4 }
+          : { top: coords.top + 4 }
+        ),
+      }}
+    >
+      <div className={`${menuMaxHeightClass} overflow-y-auto custom-scrollbar`}>
+        {(styleType === "header" || styleType === "form") && (
+          <button
+            type="button"
+            onClick={() => {
+              onChange("");
+              setIsOpen(false);
+            }}
+            className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${isPlaceholder
+              ? "text-[#353535] bg-[#F2F2F2]"
+              : "text-[#8B8B8B] bg-[#FFFFFF]"
+              }`}
+          >
+            {`All ${placeholder}`}
+          </button>
+        )}
+        {options.map((option) => {
+          const isChosen = value === option;
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => {
+                onChange(option);
+                setIsOpen(false);
+              }}
+              className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
+                ? 'text-[#353535] bg-[#F2F2F2]'
+                : 'text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]'
+                }`}
+            >
+              <span className="truncate min-w-0">{option}</span>
+              {isChosen && (
+                <svg
+                  className="w-4 h-4 shrink-0 text-[#353535]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={`relative ${className}`} ref={dropdownRef}>
+      <input
+        type="text"
+        value={value && value !== placeholder ? value : ""}
+        required
+        className="absolute opacity-0 pointer-events-none"
+        tabIndex={-1}
+        readOnly
+      />
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-2 transition-all outline-none font-gantari min-w-0 ${styleType === "header"
+          ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[12px] sm:text-[14px] font-semibold"
+          : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[12px] sm:text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+          }`}
+      >
+        <span className={`min-w-0 flex-1 truncate overflow-hidden text-left ${styleType === "header" || styleType === "form"
+          ? (isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535]")
+          : ""
+          }`}>
+          {styleType === "header" && value && !isPlaceholder ? (
+            <span className="font-semibold">{toCamelCase(value)}</span>
+          ) : (
+            placeholder
+          )}
+        </span>
+        <img
+          src={ArrowDown}
+          alt=""
+          className={`w-3 h-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""} ${isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
+          aria-hidden
+        />
+      </button>
+      {isOpen && createPortal(menuContent, document.body)}
+    </div>
+  );
+}
 
 interface VendorProposalRow {
   id: number;
@@ -46,6 +254,8 @@ export default function ProposalTD() {
   const [loading, setLoading] = useState(true);
   const [proposals, setProposals] = useState<VendorProposalRow[]>([]);
   const [selectedShowEntries, setSelectedShowEntries] = useState("");
+  const [projectFilter, setProjectFilter] = useState("");
+  const [vendorFilter, setVendorFilter] = useState("");
   const [tableCurrentPage, setTableCurrentPage] = useState(1);
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
@@ -57,6 +267,15 @@ export default function ProposalTD() {
       showEntriesDropdownContentRef.current.scrollTop = 0;
     }
   }, [showEntriesOpen]);
+
+  useEffect(() => {
+    const styleTag = document.createElement("style");
+    styleTag.innerHTML = SCROLLBAR_STYLE;
+    document.head.appendChild(styleTag);
+    return () => {
+      document.head.removeChild(styleTag);
+    };
+  }, []);
 
   useEffect(() => {
     const state =
@@ -110,6 +329,11 @@ export default function ProposalTD() {
 
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const filtered = proposals.filter((p) => {
+    // Dropdown filters
+    if (projectFilter && p.project_name !== projectFilter) return false;
+    if (vendorFilter && p.vendor_name !== vendorFilter) return false;
+
+    // Search query
     if (!searchQuery) return true;
     return (
       (p.project_name || "").toLowerCase().includes(searchQuery) ||
@@ -119,6 +343,9 @@ export default function ProposalTD() {
       (p.timeline || "").toLowerCase().includes(searchQuery)
     );
   });
+
+  const projectNames = Array.from(new Set(proposals.map(p => p.project_name || "").filter(Boolean))).sort();
+  const vendorNames = Array.from(new Set(proposals.map(p => p.vendor_name || "").filter(Boolean))).sort();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -170,7 +397,7 @@ export default function ProposalTD() {
 
   useEffect(() => {
     setTableCurrentPage(1);
-  }, [selectedShowEntries, searchQuery]);
+  }, [selectedShowEntries, searchQuery, projectFilter, vendorFilter]);
 
   return (
     <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
@@ -182,6 +409,26 @@ export default function ProposalTD() {
           </h2>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
+          {/* Project Name Filter */}
+          <CustomDropdown
+            options={projectNames}
+            value={projectFilter}
+            onChange={setProjectFilter}
+            placeholder="Project Name"
+            styleType="header"
+            className="w-full sm:w-[180px]"
+          />
+
+          {/* Vendor Name Filter */}
+          <CustomDropdown
+            options={vendorNames}
+            value={vendorFilter}
+            onChange={setVendorFilter}
+            placeholder="Vendor Name"
+            styleType="header"
+            className="w-full sm:w-[180px]"
+          />
+
           {/* Show entries dropdown */}
           <div
             className="relative w-full sm:w-[150px]"

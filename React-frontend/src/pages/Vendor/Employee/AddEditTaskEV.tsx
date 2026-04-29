@@ -569,10 +569,7 @@ export default function AddEditTaskEV({
       toast.error("Please fill in the Task Name.");
       return;
     }
-    if (!categoryValue) {
-      toast.error("Please select the Type.");
-      return;
-    }
+
     if (!addTaskForm.actualStartDate.trim()) {
       toast.error("Please fill in the Start Date.");
       return;

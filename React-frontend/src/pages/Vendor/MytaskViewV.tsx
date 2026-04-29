@@ -556,9 +556,9 @@ export default function MytaskViewV() {
           {/* Status row */}
           <div className="flex items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-2">
-              <span className="text-md text-black">Status:</span>
+              <span className="text-md text-black font-Gantari">Status:</span>
               <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${style.bg}`}
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium font-Gantari ${style.bg}`}
               >
                 <span
                   className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`}
@@ -566,6 +566,53 @@ export default function MytaskViewV() {
                 {style.label}
               </span>
             </div>
+
+            {!shouldHideInProgressInDropdown(statusDisplay) && (
+              <div className="relative" ref={statusDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                  disabled={updatingStatus}
+                  className="flex items-center justify-between gap-2 rounded-[5px] bg-[#F2F2F2] px-4 py-2 text-[14px] text-slate-700 min-w-[140px] hover:bg-[#E5E5E5] transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <span className="font-Gantari text-[#8B8B8B]">Select Status</span>
+                  <FiChevronDown
+                    className={`transition-transform text-[#8B8B8B] duration-200 ${statusDropdownOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+                {statusDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1 z-50 w-[140px] rounded-[5px] border border-slate-200 bg-white py-1 shadow-lg">
+                    {STATUS_OPTIONS.map((opt) => {
+                      const disabled = isStatusOptionDisabled(statusDisplay, opt.value);
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => handleStatusUpdate(opt.value)}
+                          disabled={disabled}
+                          className={`flex w-full items-center gap-2 px-4 py-2 text-[14px] font-Gantari transition-colors ${
+                            disabled
+                              ? "cursor-not-allowed opacity-50 text-[#8B8B8B]"
+                              : "hover:bg-[#F2F2F2] cursor-pointer text-[#8B8B8B]"
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                              opt.value === "todo"
+                                ? "bg-[#F35C08]"
+                                : opt.value === "in_progress"
+                                  ? "bg-[#09B8FF]"
+                                  : "bg-[#03D955]"
+                            }`}
+                          />
+                          <span>{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Task Details Card */}

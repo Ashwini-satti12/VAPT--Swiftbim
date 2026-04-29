@@ -1,9 +1,216 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import ViewBidsTD from "./ViewBidsTD";
 import viewIcon from "../../assets/ProjectManager/Client/whiteviewicon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+
+const toCamelCase = (str: string): string => {
+  if (!str) return str;
+  return str.toLowerCase().split(' ').map(word =>
+    word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ');
+};
+
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+  .hide-scrollbar-x::-webkit-scrollbar:horizontal {
+    display: none;
+  }
+  .hide-scrollbar-x {
+    -ms-overflow-style: none;
+  }
+`;
+
+function CustomDropdown({
+  options,
+  value,
+  onChange,
+  placeholder,
+  className = "",
+  styleType = "form",
+  menuMaxHeightClass = "max-h-[220px]",
+  direction = "down",
+}: {
+  options: string[];
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  className?: string;
+  styleType?: "form" | "header" | "table";
+  /** Max height for header/form menu list (scroll when content exceeds), e.g. ~4 rows */
+  menuMaxHeightClass?: string;
+  /** Direction to open the dropdown menu */
+  direction?: "up" | "down";
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, bottom: 0 });
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      const isInsideTrigger = dropdownRef.current && dropdownRef.current.contains(target);
+      const isInsideMenu = menuRef.current && menuRef.current.contains(target);
+
+      if (!isInsideTrigger && !isInsideMenu) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && dropdownRef.current) {
+      const updatePosition = () => {
+        if (dropdownRef.current) {
+          const rect = dropdownRef.current.getBoundingClientRect();
+          setCoords({
+            top: rect.bottom,
+            left: rect.left,
+            width: rect.width,
+            bottom: window.innerHeight - rect.top,
+          });
+        }
+      };
+
+      updatePosition();
+      window.addEventListener("scroll", updatePosition, true);
+      window.addEventListener("resize", updatePosition);
+
+      return () => {
+        window.removeEventListener("scroll", updatePosition, true);
+        window.removeEventListener("resize", updatePosition);
+      };
+    }
+  }, [isOpen]);
+
+  // Determine if we should show placeholder color or prefix
+  const isPlaceholder = !value || value === placeholder;
+
+  const menuContent = (
+    <div
+      ref={menuRef}
+      className={`fixed z-[9999] bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden`}
+      style={{
+        width: coords.width,
+        left: coords.left,
+        ...(direction === "up"
+          ? { bottom: coords.bottom + 4 }
+          : { top: coords.top + 4 }
+        ),
+      }}
+    >
+      <div className={`${menuMaxHeightClass} overflow-y-auto custom-scrollbar`}>
+        {(styleType === "header" || styleType === "form") && (
+          <button
+            type="button"
+            onClick={() => {
+              onChange("");
+              setIsOpen(false);
+            }}
+            className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${isPlaceholder
+              ? "text-[#353535] bg-[#F2F2F2]"
+              : "text-[#8B8B8B] bg-[#FFFFFF]"
+              }`}
+          >
+            {`All ${placeholder}`}
+          </button>
+        )}
+        {options.map((option) => {
+          const isChosen = value === option;
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => {
+                onChange(option);
+                setIsOpen(false);
+              }}
+              className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
+                ? 'text-[#353535] bg-[#F2F2F2]'
+                : 'text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]'
+                }`}
+            >
+              <span className="truncate min-w-0">{option}</span>
+              {isChosen && (
+                <svg
+                  className="w-4 h-4 shrink-0 text-[#353535]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={`relative ${className}`} ref={dropdownRef}>
+      <input
+        type="text"
+        value={value && value !== placeholder ? value : ""}
+        required
+        className="absolute opacity-0 pointer-events-none"
+        tabIndex={-1}
+        readOnly
+      />
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-2 transition-all outline-none font-gantari min-w-0 ${styleType === "header"
+          ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[12px] sm:text-[14px] font-semibold"
+          : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[12px] sm:text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+          }`}
+      >
+        <span className={`min-w-0 flex-1 truncate overflow-hidden text-left ${styleType === "header" || styleType === "form"
+          ? (isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535]")
+          : ""
+          }`}>
+          {styleType === "header" && value && !isPlaceholder ? (
+            <span className="font-semibold">{toCamelCase(value)}</span>
+          ) : (
+            value || placeholder
+          )}
+        </span>
+        <img
+          src={ArrowDown}
+          alt="arrow"
+          className={`w-3 h-3 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''} ${isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
+        />
+      </button>
+      {isOpen && createPortal(menuContent, document.body)}
+    </div>
+  );
+}
 
 export interface BiddingEntry {
   id: number;
@@ -51,7 +258,15 @@ export default function BiddingTD() {
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
   const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
+  const [projectFilter, setProjectFilter] = useState("");
   const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const styleTag = document.createElement('style');
+    styleTag.textContent = SCROLLBAR_STYLE;
+    document.head.appendChild(styleTag);
+    return () => { document.head.removeChild(styleTag); };
+  }, []);
 
   useEffect(() => {
     api
@@ -97,16 +312,19 @@ export default function BiddingTD() {
 
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const filtered = projects.filter((p) => {
-    if (!searchQuery) return true;
-
     const statusLabel = getStatusLabel(p).toLowerCase();
-    return (
+    const matchesSearch = !searchQuery ||
       (p.project_name || "").toLowerCase().includes(searchQuery) ||
       (p.description || "").toLowerCase().includes(searchQuery) ||
       (p.status || "").toLowerCase().includes(searchQuery) ||
       (p.computed_status || "").toLowerCase().includes(searchQuery) ||
-      statusLabel.includes(searchQuery)
-    );
+      statusLabel.includes(searchQuery);
+
+    if (!matchesSearch) return false;
+
+    if (projectFilter && p.project_name !== projectFilter) return false;
+
+    return true;
   });
 
   const effectiveShowEntryValue =
@@ -136,15 +354,15 @@ export default function BiddingTD() {
     listInRange.length === 0
       ? 0
       : Math.min(
-          selectedRange.start + tablePageStartIndex + tableRowsPerPage,
-          rangeEnd,
-        );
+        selectedRange.start + tablePageStartIndex + tableRowsPerPage,
+        rangeEnd,
+      );
   const tablePageRangeLabel =
     listInRange.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
 
   useEffect(() => {
     setTableCurrentPage(1);
-  }, [selectedShowEntries, searchQuery]);
+  }, [selectedShowEntries, searchQuery, projectFilter]);
 
   if (selectedProject) {
     return (
@@ -156,13 +374,22 @@ export default function BiddingTD() {
   }
 
   return (
-    <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
+    <div className="pb-0 space-y-6 flex flex-col h-full bg-white px-2">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0 px-4 py-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
         <div className="flex items-center justify-between w-full sm:w-auto">
           <h2 className="text-xl sm:text-2xl font-semibold text-[#000000]">Bidding</h2>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
+          <CustomDropdown
+            options={Array.from(new Set(projects.map(p => p.project_name).filter(Boolean).sort())) as string[]}
+            value={projectFilter}
+            onChange={(val) => setProjectFilter(val)}
+            placeholder="Project Name"
+            className="w-[140px] sm:w-[160px]"
+            styleType="header"
+          />
+
           <div
             className="relative w-full sm:w-[150px]"
             ref={showEntriesDropdownRef}
@@ -177,8 +404,8 @@ export default function BiddingTD() {
             >
               <span
                 className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
-                    ? "text-[#8B8B8B]"
-                    : "text-[#353535]"
+                  ? "text-[#8B8B8B]"
+                  : "text-[#353535]"
                   }`}
               >
                 {selectedShowEntries === "" ? (
@@ -234,8 +461,8 @@ export default function BiddingTD() {
                           setShowEntriesOpen(false);
                         }}
                         className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
-                            ? "text-[#353535] bg-[#F2F2F2]"
-                            : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                          ? "text-[#353535] bg-[#F2F2F2]"
+                          : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
                           }`}
                       >
                         <span className="truncate min-w-0">{opt.label}</span>
@@ -273,139 +500,154 @@ export default function BiddingTD() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-20 text-center text-[#616161] font-gantari">
-              <svg
-                className="w-14 h-14 mx-auto mb-4 text-[#AEACAC]"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.5"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              <p className="text-lg font-semibold mb-1 text-[#353535]">
-                No outsourced projects yet
-              </p>
-              <p className="text-sm">
-                When a project is marked as Outsource, it will appear here.
-              </p>
+            <svg
+              className="w-14 h-14 mx-auto mb-4 text-[#AEACAC]"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.5"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            <p className="text-lg font-semibold mb-1 text-[#353535]">
+              No outsourced projects yet
+            </p>
+            <p className="text-sm">
+              When a project is marked as Outsource, it will appear here.
+            </p>
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-250px)] sm:max-h-[calc(100vh-220px)]">
-            <table className="min-w-full border-collapse">
-              <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                <tr className="border-b border-gray-100 bg-white">
-                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
-                    Sl.No
-                  </th>
-                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
-                    Project Name
-                  </th>
-                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
-                    Outsourcing Budget
-                  </th>
-                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
-                    Bidding End Date
-                  </th>
-                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
-                    Total Bids
-                  </th>
-                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
-                    Status
-                  </th>
-                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {displayList.map((project, index) => {
-                  const label = getStatusLabel(project);
-                  const isOpen = label === "Open";
-                  const slNo = (
-                    selectedRange.start +
-                    tablePageStartIndex +
-                    index +
-                    1
-                  )
-                    .toString()
-                    .padStart(2, "0");
-                  return (
-                    <tr
-                      key={project.id}
-                      className={`${index % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"} transition-colors`}
-                    >
-                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                        {slNo}
-                      </td>
-                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                        {project.project_name}
-                      </td>
-                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                        {formatBudget(
-                          project.budget_ceiling || project.outsource_budget,
-                          project.currency || "AED"
-                        )}
-                      </td>
-                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
-                        {project.bid_deadline
-                          ? new Date(project.bid_deadline).toLocaleDateString(
-                            "en-US",
-                            {
-                              month: "short",
-                              day: "2-digit",
-                              year: "numeric",
-                            },
-                          )
-                          : "—"}
-                      </td>
-                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                        <span
-                          className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-[14px] font-gantari`}
-                        >
-                          {project.total_bids ?? 0}
-                        </span>
-                      </td>
-                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                        <span
-                          className={`inline-flex px-4 py-1.5 rounded-lg text-[14px] font-bold font-gantari ${getStatusBadge(project.computed_status || project.status)}`}
-                        >
-                          {label}
-                        </span>
-                      </td>
-                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                        <button
-                          className={`flex items-center justify-center gap-2 mx-auto px-4 py-3 rounded-md text-xs font-bold font-gantari transition-all cursor-pointer ${isOpen && project.total_bids === 0
+            <div className="overflow-x-auto overflow-y-auto custom-scrollbar hide-scrollbar-x smooth-scroll flex-1 min-h-[280px]">
+              <table className="min-w-full border-collapse">
+                <thead className="sticky top-0 z-30 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                  <tr className="border-b border-gray-100 bg-white">
+                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                      Sl.No
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                      Project Name
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                      Bidding Initiation Date
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                      Outsourcing Budget
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                      Bidding End Date
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                      Total Bids
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                      Status
+                    </th>
+                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {displayList.map((project, index) => {
+                    const label = getStatusLabel(project);
+                    const isOpen = label === "Open";
+                    const slNo = (
+                      selectedRange.start +
+                      tablePageStartIndex +
+                      index +
+                      1
+                    )
+                      .toString()
+                      .padStart(2, "0");
+                    return (
+                      <tr
+                        key={project.id}
+                        className={`${index % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"} transition-colors`}
+                      >
+                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          {slNo}
+                        </td>
+                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          {project.project_name}
+                        </td>
+                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          {project.created_at
+                            ? new Date(project.created_at).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "2-digit",
+                                year: "numeric",
+                              },
+                            )
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          {formatBudget(
+                            project.budget_ceiling || project.outsource_budget,
+                            project.currency || "AED"
+                          )}
+                        </td>
+                        <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          {project.bid_deadline
+                            ? new Date(project.bid_deadline).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "2-digit",
+                                year: "numeric",
+                              },
+                            )
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                          <span
+                            className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-[14px] font-gantari`}
+                          >
+                            {project.total_bids ?? 0}
+                          </span>
+                        </td>
+                        <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                          <span
+                            className={`inline-flex px-4 py-1.5 rounded-lg text-[14px] font-normal font-gantari ${getStatusBadge(project.computed_status || project.status)}`}
+                          >
+                            {label}
+                          </span>
+                        </td>
+                        <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                          <button
+                            className={`flex items-center justify-center gap-2 mx-auto px-4 py-3 rounded-md text-xs font-bold font-gantari transition-all cursor-pointer ${isOpen && project.total_bids === 0
                               ? "bg-[#F2F2F2] text-[#616161] cursor-not-allowed opacity-60"
                               : "bg-[#DD4342] text-white shadow-sm shadow-red-100"
-                            }`}
-                          onClick={() => setSelectedProject(project)}
-                          disabled={isOpen && project.total_bids === 0}
-                        >
-                          <img
-                            src={viewIcon}
-                            alt="View"
-                            className="w-4 h-4 object-contain"
-                          />
-                          View Bids
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                              }`}
+                            onClick={() => setSelectedProject(project)}
+                            disabled={isOpen && project.total_bids === 0}
+                          >
+                            <img
+                              src={viewIcon}
+                              alt="View"
+                              className="w-4 h-4 object-contain"
+                            />
+                            View Bids
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </>
         )}
       </div>
       {!loading && filtered.length > 0 && listInRange.length > 0 && (
-        <div className="w-full flex items-center justify-end py-2 pr-4">
-          <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+        <div className="w-full flex items-center justify-end mt-2 mb-[-6px]">
+          <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
             <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">
               Showing:
             </span>
@@ -413,11 +655,10 @@ export default function BiddingTD() {
               type="button"
               onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
               disabled={safeTableCurrentPage === 1}
-              className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
-                safeTableCurrentPage === 1
+              className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
                   ? "text-[#9CA3AF] opacity-50 cursor-not-allowed"
                   : "text-[#353535]"
-              }`}
+                }`}
               aria-label="Previous page"
             >
               <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">
@@ -427,7 +668,7 @@ export default function BiddingTD() {
             </button>
             <button
               type="button"
-              className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+              className="px-4 py-1 rounded-md bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
               aria-current="page"
             >
               {tablePageRangeLabel}
@@ -438,11 +679,10 @@ export default function BiddingTD() {
                 setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))
               }
               disabled={safeTableCurrentPage >= tableTotalPages}
-              className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
-                safeTableCurrentPage >= tableTotalPages
+              className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
                   ? "text-[#9CA3AF] opacity-40 cursor-not-allowed"
                   : "text-[#353535]"
-              }`}
+                }`}
               aria-label="Next page"
             >
               <span className="inline-flex items-center">Next</span>

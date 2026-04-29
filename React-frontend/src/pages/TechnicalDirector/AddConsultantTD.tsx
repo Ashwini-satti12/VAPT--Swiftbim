@@ -29,7 +29,17 @@ function openAttachmentInNewTab(file: File) {
   window.setTimeout(() => URL.revokeObjectURL(url), 300_000);
 }
 
-const ROLE_OPTIONS: string[] = [];
+const ROLE_OPTIONS: string[] = [
+  "Bim Lead",
+  "Project Manager",
+  "Bim Consultant",
+  "Technical Director",
+  "Bim Coordinator"
+];
+
+const PANEL_ACCESS_OPTIONS = [
+  'Management', 'Accounts', 'Technical Director', 'Admin', 'Project Manager', 'Client', 'Sales', 'BIM Lead', 'Employee', 'All'
+];
 
 function CustomDropdown({
   options,
@@ -93,8 +103,7 @@ export default function AddConsultantTD() {
   const [addError, setAddError] = useState('');
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [roleOptions, setRoleOptions] = useState<string[]>([]);
-  const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
+
   const [successMsg, setSuccessMsg] = useState('');
   const [form, setForm] = useState({
     full_name: '',
@@ -102,11 +111,11 @@ export default function AddConsultantTD() {
     phone_number: '',
     email: '',
     password: '',
-    type: '',
+    type: 'Employee',
     user_role: '',
     joining_date: '',
-    department: '',
     address: '',
+    roles: ['Employee'],
     profile_picture: null as File | null,
   });
   const [countryCode, setCountryCode] = useState('+91');
@@ -114,31 +123,7 @@ export default function AddConsultantTD() {
   const todayISO = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
-    api.get<{ roles?: string[] }>('/api/employees/roles').then(({ data }) => {
-      if (data.roles && Array.isArray(data.roles)) {
-        const map = new Map<string, string>();
-        data.roles.filter(Boolean).forEach((name) => {
-          const trimmed = name.trim();
-          if (!trimmed) return;
-          const key = trimmed.toLowerCase();
-          if (!map.has(key)) map.set(key, trimmed);
-        });
-        setRoleOptions(Array.from(map.values()));
-      }
-    }).catch(() => setRoleOptions([]));
-
-    api.get<{ departments?: string[] }>('/api/departments').then(({ data }) => {
-      if (data.departments && Array.isArray(data.departments)) {
-        const map = new Map<string, string>();
-        data.departments.filter(Boolean).forEach((name) => {
-          const trimmed = name.trim();
-          if (!trimmed) return;
-          const key = trimmed.toLowerCase();
-          if (!map.has(key)) map.set(key, trimmed);
-        });
-        setDepartmentOptions(Array.from(map.values()));
-      }
-    }).catch(() => setDepartmentOptions([]));
+    // Roles and Departments are now localized/removed per requirements
   }, []);
 
   function handleAddSubmit(e: React.FormEvent) {
@@ -179,7 +164,7 @@ export default function AddConsultantTD() {
     if (form.dob) formData.append('dob', form.dob);
     if (form.type) formData.append('user_type', form.type);
     if (form.joining_date) formData.append('doj', form.joining_date);
-    if (form.department) formData.append('department', form.department);
+    if (form.roles.length) formData.append('roles', form.roles.join(','));
     formData.append('active', 'active');
     if (form.profile_picture) formData.append('profile_picture', form.profile_picture);
 
@@ -330,19 +315,10 @@ export default function AddConsultantTD() {
               <div className="relative">
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role <span className="text-[#DD4342]">*</span></label>
                 <CustomDropdown
-                  options={roleOptions.length > 0 ? roleOptions : ROLE_OPTIONS}
+                  options={ROLE_OPTIONS}
                   value={form.user_role}
                   onChange={(val) => setForm((f) => ({ ...f, user_role: val }))}
                   placeholder="Select Role"
-                />
-              </div>
-              <div className="relative">
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department <span className="text-[#DD4342]">*</span></label>
-                <CustomDropdown
-                  options={departmentOptions}
-                  value={form.department}
-                  onChange={(val) => setForm((f) => ({ ...f, department: val }))}
-                  placeholder="Select Department"
                 />
               </div>
             </div>
@@ -473,6 +449,33 @@ export default function AddConsultantTD() {
               onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
               className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
             />
+          </div>
+
+          <div className="mt-8">
+            <label className="block text-[18px] font-semibold text-[#000000] mb-4 font-Gantari">Select Panel Access Control</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-y-4 gap-x-6 p-6 bg-[#F2F3F4] rounded-[10px]">
+              {PANEL_ACCESS_OPTIONS.map((role) => (
+                <div key={role} className="flex items-center gap-3">
+                  <div
+                    onClick={() => {
+                      const newRoles = form.roles.includes(role)
+                        ? form.roles.filter(r => r !== role)
+                        : [...form.roles, role];
+                      setForm({ ...form, roles: newRoles });
+                    }}
+                    className={`w-6 h-6 rounded-[4px] border-2 flex items-center justify-center cursor-pointer transition-all ${form.roles.includes(role) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#E0E0E0]'
+                      }`}
+                  >
+                    {form.roles.includes(role) && (
+                      <svg width="14" height="11" viewBox="0 0 14 11" fill="none">
+                        <path d="M1 5L5 9L13 1" stroke="#1A1A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-[14px] font-medium text-[#353535] font-Gantari">{role}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8 ">

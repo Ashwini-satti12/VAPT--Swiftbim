@@ -574,9 +574,9 @@ export default function MyTaskViewEV({
         <div className="max-w-7xl mx-auto p-6 space-y-6">
           <div className="flex items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-2">
-              <span className="text-md text-black">Status:</span>
+              <span className="text-md text-black font-Gantari">Status:</span>
               <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${style.bg}`}
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium font-Gantari ${style.bg}`}
               >
                 <span
                   className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`}
@@ -584,6 +584,53 @@ export default function MyTaskViewEV({
                 {isUnderReview ? "Reviewed" : style.label}
               </span>
             </div>
+
+            {!shouldHideInProgressInDropdown(statusDisplay) && (
+              <div className="relative" ref={statusDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                  disabled={updatingStatus}
+                  className="flex items-center justify-between gap-2 rounded-[5px] bg-[#F2F2F2] px-4 py-2 text-[14px] text-slate-700 min-w-[140px] hover:bg-[#E5E5E5] transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <span className="font-Gantari text-[#8B8B8B]">Select Status</span>
+                  <FiChevronDown
+                    className={`transition-transform text-[#8B8B8B] duration-200 ${statusDropdownOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+                {statusDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1 z-50 w-[140px] rounded-[5px] border border-slate-200 bg-white py-1 shadow-lg">
+                    {STATUS_OPTIONS.map((opt) => {
+                      const disabled = isStatusOptionDisabled(statusDisplay, opt.value);
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => handleStatusUpdate(opt.value)}
+                          disabled={disabled}
+                          className={`flex w-full items-center gap-2 px-4 py-2 text-[14px] font-Gantari transition-colors ${
+                            disabled
+                              ? "cursor-not-allowed opacity-50 text-[#8B8B8B]"
+                              : "hover:bg-[#F2F2F2] cursor-pointer text-[#8B8B8B]"
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                              opt.value === "todo"
+                                ? "bg-[#F35C08]"
+                                : opt.value === "in_progress"
+                                  ? "bg-[#09B8FF]"
+                                  : "bg-[#03D955]"
+                            }`}
+                          />
+                          <span>{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="w-full border border-slate-200 rounded-xl p-6">
@@ -613,15 +660,6 @@ export default function MyTaskViewEV({
                 <span className="text-[#020202] shrink-0">:</span>
                 <span className="text-[#616161]">
                   {displayModule()}
-                </span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-[#020202] font-medium shrink-0 w-32">
-                  Type
-                </span>
-                <span className="text-[#020202] shrink-0">:</span>
-                <span className="text-[#616161]">
-                  {displayType()}
                 </span>
               </div>
               <div className="flex items-start gap-2">
@@ -750,104 +788,7 @@ export default function MyTaskViewEV({
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 p-6 bg-[#F2F7FF] shadow-sm">
-            <h4 className="text-black text-[18px] font-semibold mb-1">Submit Work</h4>
-            <p className="text-[14px] text-[#8B8B8B] mb-4 font-medium">
-              Choose your finished work or error screenshots to update the team
-              on your progress.
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              onChange={handleSelectImage}
-            />
-            <div className="rounded-sm bg-[#FFFFFF] flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] mb-4">
-              {selectedImagePreview ? (
-                <div className="relative group">
-                  <img
-                    src={selectedImagePreview}
-                    alt="Selected"
-                    className="max-h-48 max-w-full object-contain rounded-md"
-                  />
-                  <button
-                    onClick={() => {
-                      setSelectedImage(null);
-                      setSelectedImagePreview(null);
-                    }}
-                    className="absolute -top-2 -right-2 p-1 bg-white rounded-full shadow-md hover:bg-slate-50 transition-colors"
-                  >
-                    <FiX className="w-4 h-4 text-slate-600" />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <img src={ImageIcon} alt="Image" className="w-8 h-8 opacity-40" />
-                  <span className="text-[14px] mt-2 font-medium text-slate-400">No Image Selected</span>
-                </>
-              )}
-            </div>
-            <div className="flex gap-4 justify-center mt-4">
-              <button
-                type="button"
-                disabled={submittingWork}
-                onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-2 rounded-md bg-[#DBE9FE] px-4 py-2 text-[14px] font-medium text-blue-700 hover:bg-[#D5E6FF] disabled:opacity-50 cursor-pointer transition-colors"
-              >
-                <img src={Upload} alt="Upload" className="w-4 h-4" />
-                Select Image
-              </button>
-              <button
-                type="button"
-                disabled={!selectedImage || submittingWork}
-                onClick={handleImageSubmit}
-                className="inline-flex items-center gap-2 rounded-md bg-[#E1F6EB] px-4 py-2 text-[14px] font-semibold text-[#008F22] hover:bg-[#D6F5E8] disabled:opacity-50 cursor-pointer transition-colors"
-              >
-                <FiCheck className="w-4 h-4" />
-                {submittingWork ? "Submitting..." : "Submit Image"}
-              </button>
-            </div>
-            {submittedOutputFiles.length > 0 && (
-              <div className="mt-6 border-t border-slate-200 pt-4">
-                <p className="text-[14px] font-semibold text-black mb-3">
-                  Submitted files (saved)
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  {submittedOutputFiles.map((fname) => {
-                    const src = taskOutputFileUrl(fname);
-                    const label = displayStoredFileName(fname);
-                    return (
-                      <a
-                        key={fname}
-                        href={src}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block rounded-lg border border-slate-200 overflow-hidden bg-white max-w-[180px] hover:border-blue-400 transition-colors shadow-sm"
-                        title={label}
-                      >
-                        {isImageFile(fname) ? (
-                          <img
-                            src={src}
-                            alt={label}
-                            className="max-h-28 w-full object-contain"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="px-3 py-3 text-xs text-[#353535] break-all flex items-center gap-2">
-                             <div className="w-8 h-8 bg-slate-50 flex items-center justify-center rounded">
-                                <span className="text-[10px] uppercase font-bold text-slate-400">{fname.split('.').pop()}</span>
-                             </div>
-                            {label}
-                          </div>
-                        )}
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
+
         </div>
 
         <div className="mt-8 space-y-6 mb-10">
