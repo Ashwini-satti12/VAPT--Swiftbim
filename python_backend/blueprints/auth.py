@@ -104,19 +104,10 @@ def login():
                     row["phone_number"] = onboarding_phone
         except Exception:
             pass
-        
-with conn.cursor() as cur:
-    if user_type == "vendor":
-        cur.execute(
-            "UPDATE vendor_employee SET status = 'Online' WHERE email = %s",
-            (email,)
-        )
-    else:
-        cur.execute(
-            "UPDATE employee SET status = 'Online' WHERE email = %s",
-            (email,)
-        )
-conn.commit()
+
+    # Update status to Online
+    with conn.cursor() as cur:
+        cur.execute("UPDATE employee SET status = 'Online' WHERE email = %s", (email,))
 
     # Record attendance if not exists (date format d-m-Y as in PHP)
     today = datetime.now().strftime("%d-%m-%Y")
