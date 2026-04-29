@@ -454,7 +454,10 @@ export default function WorkorderForm() {
                           <select
                             value={form.currency || ""}
                             onChange={(e) =>
-                              setForm({ ...form, currency: e.target.value.toUpperCase() })
+                              setForm({
+                                ...form,
+                                currency: e.target.value.toUpperCase(),
+                              })
                             }
                             className="bg-[#F3F3F3] border border-[#E6E6E6] rounded-[4px] px-2 py-1 text-[13px] font-Gantari outline-none"
                           >
@@ -484,7 +487,9 @@ export default function WorkorderForm() {
                             className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
                           />
                           <div>
-                            <label className={labelClass}>Project Involves</label>
+                            <label className={labelClass}>
+                              Project Involves
+                            </label>
                             <ReactQuill
                               theme="snow"
                               placeholder="Enter project involves..."
@@ -531,7 +536,9 @@ export default function WorkorderForm() {
                           theme="snow"
                           placeholder="Enter duration..."
                           value={form.duration}
-                          onChange={(val) => setForm({ ...form, duration: val })}
+                          onChange={(val) =>
+                            setForm({ ...form, duration: val })
+                          }
                           modules={quillModules}
                           className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
                         />
@@ -540,7 +547,10 @@ export default function WorkorderForm() {
                     </tr>
                     <tr>
                       <td className="border border-[#AEACAC] px-3 py-2 text-right text-[16px] font-bold">
-                        Total Amount{currencyCodeForDisplay ? ` (${currencyCodeForDisplay})` : ""}
+                        Total Amount
+                        {currencyCodeForDisplay
+                          ? ` (${currencyCodeForDisplay})`
+                          : ""}
                       </td>
                       <td className="border border-[#AEACAC] p-3">
                         <input
@@ -841,11 +851,30 @@ export default function WorkorderForm() {
                       </tbody>
                     </table>
                   </div>
+                  <div className="grid grid-cols-2 gap-4 mt-10">
+                    <div>
+                      <p className="text-[14px] text-[#000000]">For,</p>
+                      <p className="mt-8 text-[14px] text-[#000000]">
+                        Swifterz Creative Engineering Services LLC,
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[14px] text-[#000000]">For,</p>
+                      <p className="mt-8 text-[14px] text-[#000000]">LetzBIM</p>
+                    </div>
+                  </div>
+                  {/* logo */}
+                  <div>
+
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className={labelClass}>
-                    Additional Terms & Conditions (Annexure 1)
-                  </label>
+                <div className="space-y-2 mt-10">
+                  <div className="text-center">
+                    <label className={labelClass}>
+                      Additional Terms & Conditions (Annexure 1)
+                    </label>
+                  </div>
+
                   <ReactQuill
                     theme="snow"
                     placeholder="Enter additional terms & conditions..."
@@ -857,7 +886,7 @@ export default function WorkorderForm() {
                     className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
                   />
                 </div>
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className={labelClass}>Exclusions</label>
                   <ReactQuill
                     theme="snow"
@@ -867,7 +896,7 @@ export default function WorkorderForm() {
                     modules={quillModules}
                     className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
                   />
-                </div>
+                </div> */}
               </div>
             </div>
 
