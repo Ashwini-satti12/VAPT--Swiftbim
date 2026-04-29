@@ -262,6 +262,7 @@ function TaskCard({
     onEditTask?: (task: Task) => void;
     onDeleteTask?: (task: Task) => void;
 }) {
+    const { user } = useAuth();
     const isUnderReview =
         status === "completed" &&
         task.assigned_to != null &&

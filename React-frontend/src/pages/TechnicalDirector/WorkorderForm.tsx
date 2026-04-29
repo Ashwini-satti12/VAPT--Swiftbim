@@ -437,62 +437,114 @@ export default function WorkorderForm() {
                 2. Work Scope & Description{" "}
                 <span className="text-[#DD4342]">*</span>
               </h4>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className={labelClass}>Description</label>
-                  <ReactQuill
-                    theme="snow"
-                    placeholder="Enter description..."
-                    value={form.workDescription}
-                    onChange={(val) =>
-                      setForm({ ...form, workDescription: val })
-                    }
-                    modules={quillModules}
-                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className={labelClass}>Scope of Work</label>
-                  <ReactQuill
-                    theme="snow"
-                    placeholder="Enter scope of work..."
-                    value={form.scopeOfWork}
-                    onChange={(val) => setForm({ ...form, scopeOfWork: val })}
-                    modules={quillModules}
-                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className={labelClass}>Project Involves</label>
-                  <ReactQuill
-                    theme="snow"
-                    placeholder="Enter project involves..."
-                    value={form.projectInvolves}
-                    onChange={(val) =>
-                      setForm({ ...form, projectInvolves: val })
-                    }
-                    modules={quillModules}
-                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className={labelClass}>Deliverables</label>
-                  <ReactQuill
-                    theme="snow"
-                    placeholder="Enter deliverables..."
-                    value={form.deliverables}
-                    onChange={(val) => setForm({ ...form, deliverables: val })}
-                    modules={quillModules}
-                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
-                  />
-                </div>
+              <div className="overflow-x-auto rounded-[6px] border border-[#AEACAC] bg-white">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="border border-[#AEACAC] px-3 py-2 text-left text-[16px] font-bold">
+                        Description
+                      </th>
+                      <th className="border border-[#AEACAC] px-3 py-2 text-left text-[16px] font-bold w-[260px]">
+                        Amount ({form.currency || "AED"})
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-[#AEACAC] p-3 align-top">
+                        <div className="space-y-3">
+                          <ReactQuill
+                            theme="snow"
+                            placeholder="Enter description..."
+                            value={form.workDescription}
+                            onChange={(val) =>
+                              setForm({ ...form, workDescription: val })
+                            }
+                            modules={quillModules}
+                            className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
+                          />
+                          <div>
+                            <label className={labelClass}>Project Involves</label>
+                            <ReactQuill
+                              theme="snow"
+                              placeholder="Enter project involves..."
+                              value={form.projectInvolves}
+                              onChange={(val) =>
+                                setForm({ ...form, projectInvolves: val })
+                              }
+                              modules={quillModules}
+                              className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
+                            />
+                          </div>
+                          <div>
+                            <label className={labelClass}>Deliverables</label>
+                            <ReactQuill
+                              theme="snow"
+                              placeholder="Enter deliverables..."
+                              value={form.deliverables}
+                              onChange={(val) =>
+                                setForm({ ...form, deliverables: val })
+                              }
+                              modules={quillModules}
+                              className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="border border-[#AEACAC] p-3 align-top">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="Enter amount"
+                          value={form.amountAED}
+                          onChange={(e) =>
+                            setForm({ ...form, amountAED: e.target.value })
+                          }
+                          className={fieldClass}
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-[#AEACAC] p-3 align-top">
+                        <label className={labelClass}>Duration</label>
+                        <ReactQuill
+                          theme="snow"
+                          placeholder="Enter duration..."
+                          value={form.duration}
+                          onChange={(val) => setForm({ ...form, duration: val })}
+                          modules={quillModules}
+                          className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
+                        />
+                      </td>
+                      <td className="border border-[#AEACAC] p-3" />
+                    </tr>
+                    <tr>
+                      <td className="border border-[#AEACAC] px-3 py-2 text-right text-[16px] font-bold">
+                        Total Amount ({form.currency || "AED"})
+                      </td>
+                      <td className="border border-[#AEACAC] p-3">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="Enter amount"
+                          value={form.amountAED}
+                          onChange={(e) =>
+                            setForm({ ...form, amountAED: e.target.value })
+                          }
+                          className={fieldClass}
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
             {/* Financials & Timeline */}
-            <div className="p-0 mb-8">
+            {/* <div className="p-0 mb-8">
               <h4 className="text-[16px] font-bold mb-3 text-[#1A1A1A]">
-                3. Financials & Timeline <span className="text-[#DD4342]">*</span>
+                3. Financials & Timeline{" "}
+                <span className="text-[#DD4342]">*</span>
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -591,12 +643,12 @@ export default function WorkorderForm() {
                   />
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Terms & Conditions */}
             <div className="p-0 mb-8">
               <h4 className="text-[16px] font-bold mb-3 text-[#1A1A1A]">
-                4. Terms & Conditions <span className="text-[#DD4342]">*</span>
+                3. Terms & Conditions <span className="text-[#DD4342]">*</span>
               </h4>
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -675,7 +727,8 @@ export default function WorkorderForm() {
                               "advance (on signing)" ||
                             (row.basis || "").trim().toLowerCase() ===
                               "final payment";
-                          const canDelete = paymentRows.length > 0 && !isProtected;
+                          const canDelete =
+                            paymentRows.length > 0 && !isProtected;
                           return (
                             <tr key={idx} className="border-t border-[#EFEFEF]">
                               <td className="px-4 py-3 text-[#1A1A1A]">

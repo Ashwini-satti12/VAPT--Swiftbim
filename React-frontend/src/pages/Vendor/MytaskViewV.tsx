@@ -795,7 +795,8 @@ export default function MytaskViewV() {
 
           {/* Review Remark — only show for delegated tasks (uploader != assignee) */}
           {(isUnderReview ||
-            (task.review_remark && task.review_remark.trim() !== "")) && (
+            ((task as any).review_remark &&
+              String((task as any).review_remark).trim() !== "")) && (
             <div className="mt-6 border border-slate-200 rounded-xl p-6">
               <h4 className="text-black text-md mb-2">Review Remark</h4>
               {isCurrentUserAssigner && isUnderReview ? (
@@ -828,7 +829,8 @@ export default function MytaskViewV() {
                 </div>
               ) : (
                 <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-                  {task.review_remark || "No review remark provided."}
+                  {(task as any).review_remark ||
+                    "No review remark provided."}
                 </div>
               )}
             </div>

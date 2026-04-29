@@ -523,8 +523,8 @@ export default function ProjectsPM() {
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [typeFilter, setTypeFilter] = useState<
-    "Type" | "All" | "In House" | "Outsource"
-  >("Type");
+    "Execution Type"| "In House" | "Outsource"
+  >("Execution Type");
 
   // Select Options States
   const [projectManagers, setProjectManagers] = useState<string[]>([]);
@@ -1038,27 +1038,26 @@ export default function ProjectsPM() {
 
               {/* Project View Content */}
               <div className="flex-1 flex flex-col overflow-hidden mt-4">
-                {/* Task Status Cards - Static at top */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-6 mb-4 shrink-0">
-                  {/* To Do Tasks */}
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 px-4 md:px-6 pb-6">
+                  {/* Task Status Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-4 shrink-0">
                   <button
                     type="button"
                     onClick={() =>
                       navigate(
-                        "/teamtask?status=todo" +
+                        "/pm/teamtasks?status=todo" +
                         (selectedProjectForView?.project_name
                           ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
                           : ""),
                       )
                     }
-                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                    className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                        To Do Tasks
-                      </p>
-                    </div>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                      To Do Tasks
+                    </p>
+                    <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
                       {pmTaskStatsLoading ? "..." : pmTaskStats.todo}
                     </p>
                   </button>
@@ -1074,14 +1073,12 @@ export default function ProjectsPM() {
                           : ""),
                       )
                     }
-                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                    className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                        In Progress Tasks
-                      </p>
-                    </div>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                      In Progress Tasks
+                    </p>
+                    <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
                       {pmTaskStatsLoading ? "..." : pmTaskStats.inProgress}
                     </p>
                   </button>
@@ -1097,14 +1094,12 @@ export default function ProjectsPM() {
                           : ""),
                       )
                     }
-                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                    className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                        Paused Tasks
-                      </p>
-                    </div>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                      Paused Tasks
+                    </p>
+                    <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
                       {pmTaskStatsLoading ? "..." : pmTaskStats.paused}
                     </p>
                   </button>
@@ -1120,22 +1115,18 @@ export default function ProjectsPM() {
                           : ""),
                       )
                     }
-                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                    className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                        Completed Tasks
-                      </p>
-                    </div>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                      Completed Tasks
+                    </p>
+                    <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
                       {pmTaskStatsLoading ? "..." : pmTaskStats.completed}
                     </p>
                   </button>
                 </div>
 
-                {/* Scrollable Content below KPI cards */}
-                <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 px-4 md:px-6 pb-6">
-                  {/* Tower Progress Grid */}
+                {/* Tower Progress Grid */}
                   <div className="border border-slate-200 rounded-md md:rounded-md p-6 md:p-8 lg:p-4">
                     <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">
                       Modules
@@ -1150,7 +1141,7 @@ export default function ProjectsPM() {
                             return (
                               <div key={i} className="bg-white border border-slate-200 rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[126px]">
                                 <div className="flex justify-between items-start min-h-0 pb-2">
-                                  <h5 className="text-[16px] font-Gantari font-medium text-[#000000] truncate pr-2 w-full">{mod}</h5>
+                                  <h5 className="text-[16px] font-Gantari font-medium text-[#000000] truncate pr-2 w-full" title={mod}>{mod}</h5>
                                 </div>
                                 <div className="flex items-center justify-between mt-2 mb-2">
                                   <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
@@ -1214,18 +1205,13 @@ export default function ProjectsPM() {
                           ? String(selectedProjectForView.project_manager_id).split(',').map(id => id.trim()).filter(Boolean)
                           : [];
                         const pmNames = selectedProjectForView.project_manager_name
-                          ? String(selectedProjectForView.project_manager_name).split(',').map(n => n.trim()).filter(Boolean)
+                          ? String(selectedProjectForView.project_manager_name).split(',').map(n => n.trim()).filter((n) => Boolean(n) && !["unknown", "nothing selected", "not assigned"].includes(n.toLowerCase()))
                           : [];
 
                         if (pmIds.length === 0 && pmNames.length === 0) {
                           return (
                             <div className="min-w-0">
-                              <p className="text-md font-Gantari font-semibold text-[#000000] text-[20px] mb-2">Project Manager</p>
-                              <div className="flex items-center -space-x-3">
-                                <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
-                                  <span className="text-[#8B8B8B] text-[14px] font-bold">PM</span>
-                                </div>
-                              </div>
+                              <p className="text-md font-Gantari font-semibold text-[#000000] text-[20px]">Project Manager</p>
                             </div>
                           );
                         }
@@ -1302,25 +1288,15 @@ export default function ProjectsPM() {
                           ? String(selectedProjectForView.lead_id).split(",").map((id) => id.trim()).filter(Boolean)
                           : [];
                         const blNames = selectedProjectForView.lead_name
-                          ? String(selectedProjectForView.lead_name).split(",").map((n) => n.trim()).filter(Boolean)
+                          ? String(selectedProjectForView.lead_name).split(",").map((n) => n.trim()).filter((n) => Boolean(n) && !["unknown", "nothing selected", "not assigned"].includes(n.toLowerCase()))
                           : [];
 
                         if (blIds.length === 0 && blNames.length === 0) {
                           return (
                             <div className="min-w-0">
-                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                              <p className="text-md font-Gantari font-semibold text-[#000000]">
                                 BIM Lead
                               </p>
-                              <div className="flex items-center -space-x-3">
-                                <div
-                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
-                                  title="Not assigned"
-                                >
-                                  <span className="text-slate-600 text-xs font-bold">
-                                    BL
-                                  </span>
-                                </div>
-                              </div>
                             </div>
                           );
                         }
@@ -1432,25 +1408,15 @@ export default function ProjectsPM() {
                           ? String(selectedProjectForView.bim_coordinator_name)
                               .split(",")
                               .map((n) => n.trim())
-                              .filter(Boolean)
+                              .filter((n) => Boolean(n) && !["unknown", "nothing selected", "not assigned"].includes(n.toLowerCase()))
                           : [];
 
                         if (bcIds.length === 0 && bcNames.length === 0) {
                           return (
                             <div className="min-w-0">
-                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                              <p className="text-md font-Gantari font-semibold text-[#000000]">
                                 BIM Coordinator
                               </p>
-                              <div className="flex items-center -space-x-3">
-                                <div
-                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
-                                  title="Not assigned"
-                                >
-                                  <span className="text-slate-600 text-xs font-bold">
-                                    BC
-                                  </span>
-                                </div>
-                              </div>
                             </div>
                           );
                         }
@@ -2014,7 +1980,7 @@ export default function ProjectsPM() {
               ) : showCreateModal ? (
               <div className="flex flex-col h-full bg-white">
                 {/* Create Project Header */}
-                <div className="relative flex items-center justify-center px-4 md:px-6 py-2 border-b border-slate-50">
+                <div className="relative flex items-center justify-center px-4 md:px-5 py-2 border-b border-slate-50">
                   <div className="absolute left-6 group">
                     <button
                       type="button"
@@ -2025,7 +1991,7 @@ export default function ProjectsPM() {
                     </button>
                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                       <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-4 py-0.5 relative z-10">
                         <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                           Go Back
                         </span>
@@ -2034,7 +2000,7 @@ export default function ProjectsPM() {
                   </div>
                   <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">Add New Project</h3>
                 </div>
-                <div className="flex-1 overflow-y-auto py-4 md:py-6 px-4 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto py-4 md:py-4 px-5 custom-scrollbar">
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -2112,7 +2078,7 @@ export default function ProjectsPM() {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6 -mt-4">
                       {/* ── Project Name ── */}
                       <div>
                         <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
@@ -3329,15 +3295,15 @@ export default function ProjectsPM() {
                       <div className="flex flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 px-0.5 custom-scrollbar min-w-0">
                         <div className="shrink-0">
                           <CustomDropdown
-                            options={["Type", "All", "In House", "Outsource"]}
+                            options={["Execution Type", "In House", "Outsource"]}
                             value={typeFilter}
                             onChange={(val) =>
                               setTypeFilter(
-                                val as "Type" | "All" | "In House" | "Outsource",
+                                val as any,
                               )
                             }
-                            placeholder="Type"
-                            className="w-[100px] sm:w-[130px]"
+                            placeholder="Execution Type"
+                            className="w-[130px] sm:w-[160px]"
                             styleType="header"
                             direction="down"
                           />
@@ -3351,12 +3317,6 @@ export default function ProjectsPM() {
                             }}
                             className="flex items-center gap-1 sm:gap-2 shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-1.5 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
                           >
-                            <img
-                              src={plusIcon}
-                              alt=""
-                              className="w-3 h-3 sm:w-3 sm:h-3"
-                              aria-hidden
-                            />
                             Create Project
                           </button>
                         )}
@@ -3370,7 +3330,7 @@ export default function ProjectsPM() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-4 pb-2">
                     {(() => {
                       const displayList =
-                        typeFilter === "All" || typeFilter === "Type"
+                        typeFilter === "Execution Type"
                           ? filteredList
                           : filteredList.filter((p) => p.source === typeFilter);
 
@@ -3390,7 +3350,7 @@ export default function ProjectsPM() {
                           circumference - (progress / 100) * circumference;
 
                         return (
-                          <div key={p.id} className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300">
+                          <div key={p.id} className="bg-white rounded-md border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300">
                             <div>
                               <div className="flex items-start justify-between mb-4 mt-2 pr-0">
                                 <div className="relative flex items-center justify-center">
