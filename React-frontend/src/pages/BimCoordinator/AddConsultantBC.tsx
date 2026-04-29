@@ -6,6 +6,18 @@ import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import { COUNTRY_CODES, getPhoneLength } from '../../utils/countryCodes';
 
+const ROLE_OPTIONS: string[] = [
+  "Bim Lead",
+  "Project Manager",
+  "Bim Consultant",
+  "Technical Director",
+  "Bim Coordinator"
+];
+
+const PANEL_ACCESS_OPTIONS = [
+  'Management', 'Accounts', 'Technical Director', 'Admin', 'Project Manager', 'Client', 'Sales', 'BIM Lead', 'Employee', 'All'
+];
+
 function CustomDropdown({
   options,
   value,
@@ -69,21 +81,20 @@ export default function AddConsultantBC() {
   const [addError, setAddError] = useState('');
   const [addSuccess, setAddSuccess] = useState('');
   const [addSubmitting, setAddSubmitting] = useState(false);
-  const [roles, setRoles] = useState<string[]>([]);
-  const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
+
   const [form, setForm] = useState({
     full_name: '',
     email: '',
     password: '',
     phone_number: '',
     user_role: '',
-    department: '',
     address: '',
     dob: '',
-    type: '',
+    type: 'Employee',
     joining_date: '',
     salary: '',
     accountnumber: '',
+    roles: ['Employee'],
     profile_picture: null as File | null,
     active: 'Active',
   });
@@ -93,65 +104,10 @@ export default function AddConsultantBC() {
     return val.replace(/^\s+/, '').replace(/\s{2,}/g, ' ');
   };
 
-  // Filter roles based on user's permissions (BIM Coordinator restrictions)
-  const getAllowedRoles = (currentRoles: string[]): string[] => {
-    const userRole = user?.user_role || '';
-    const restrictedRoles: string[] = [];
-    
-    if (userRole === 'BIM Coordinator') {
-        restrictedRoles.push('CEO', 'CTO', 'Technical Director', 'Project Manager', 'BIM Lead');
-    } else if (userRole === 'BIM Lead') {
-        restrictedRoles.push('CEO', 'CTO', 'Technical Director', 'Project Manager');
-    } else if (userRole === 'Project Manager') {
-        restrictedRoles.push('CEO', 'CTO', 'Technical Director', 'BIM Lead');
-    }
-    
-    return currentRoles.filter(role => !restrictedRoles.includes(role));
-  };
+
 
   useEffect(() => {
-    const normalizeString = (str: string) => {
-      if (!str) return '';
-      const s = str.trim().toLowerCase().replace(/\s+/g, ' ');
-      if (s === 'hr exceutive' || s === 'hr executive') return 'HR Executive';
-      if (s === 'hr') return 'HR';
-      if (s === 'sales') return 'Sales';
-      if (s === 'admin') return 'Admin';
-      if (s === 'management') return 'Management';
-      if (s === 'hub coordinator') return 'HUB Coordinator';
-      if (s === 'inside sales') return 'Inside Sales';
-      if (s === 'it & networking') return 'IT & Networking';
-      if (s === 'ceo') return 'CEO';
-      if (s === 'cto') return 'CTO';
-      if (s === 'bim lead') return 'BIM Lead';
-      
-      // Default formatting: Capitalize each word
-      return s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    };
-
-    // Fetch roles
-    api.get<{ roles?: string[] }>('/api/employees/roles')
-        .then(({ data }) => {
-            const standardizedRoles = (data.roles || []).map(r => normalizeString(r));
-            const uniqueRoles = [...new Set(standardizedRoles)].filter(Boolean);
-            setRoles(uniqueRoles);
-        })
-        .catch((error) => {
-            console.error('Error fetching roles:', error);
-            setRoles([]);
-        });
-
-    // Fetch departments
-    api.get<{ departments?: string[] }>('/api/departments')
-        .then(({ data }) => {
-            const standardizedDepts = (data.departments || []).map(d => normalizeString(d));
-            const uniqueDepts = [...new Set(standardizedDepts)].filter(Boolean);
-            setDepartmentOptions(uniqueDepts);
-        })
-        .catch((error) => {
-            console.error('Error fetching departments:', error);
-            setDepartmentOptions([]);
-        });
+    // Roles and Departments are now localized/removed per requirements
   }, []);
 
   function handleAddSubmit(e: React.FormEvent) {
@@ -201,9 +157,9 @@ export default function AddConsultantBC() {
     if (form.dob) formData.append('dob', form.dob);
     if (form.type) formData.append('user_type', form.type);
     if (form.joining_date) formData.append('doj', form.joining_date);
-    if (form.department) formData.append('department', form.department);
     if (form.salary) formData.append('salary', form.salary);
     if (form.accountnumber) formData.append('accountnumber', form.accountnumber);
+    if (form.roles.length) formData.append('roles', form.roles.join(','));
     formData.append('active', form.active === 'Active' ? 'active' : 'inactive');
     if (form.profile_picture) {
         formData.append('profile_picture', form.profile_picture);
@@ -224,13 +180,13 @@ export default function AddConsultantBC() {
                     password: '',
                     phone_number: '',
                     user_role: '',
-                    department: '',
                     address: '',
                     dob: '',
-                    type: '',
+                    type: 'Employee',
                     joining_date: '',
                     salary: '',
                     accountnumber: '',
+                    roles: ['Employee'],
                     profile_picture: null,
                     active: 'Active',
                 });
@@ -245,7 +201,7 @@ export default function AddConsultantBC() {
         .finally(() => setAddSubmitting(false));
   }
 
-  const allowedRoles = getAllowedRoles(roles);
+
 
   return (
     <div className="flex-1 overflow-y-auto p-2 bg-white">
@@ -343,19 +299,10 @@ export default function AddConsultantBC() {
               <div className="relative">
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role <span className="text-[#DD4342]">*</span></label>
                 <CustomDropdown
-                  options={allowedRoles}
+                  options={ROLE_OPTIONS}
                   value={form.user_role}
                   onChange={(val) => setForm((f) => ({ ...f, user_role: val }))}
                   placeholder="Select Role"
-                />
-              </div>
-              <div className="relative">
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department <span className="text-[#DD4342]">*</span></label>
-                <CustomDropdown
-                  options={departmentOptions}
-                  value={form.department}
-                  onChange={(val) => setForm((f) => ({ ...f, department: val }))}
-                  placeholder="Select Department"
                 />
               </div>
               <div>
@@ -450,6 +397,33 @@ export default function AddConsultantBC() {
               onChange={(e) => setForm((f) => ({ ...f, address: normalizeSpaces(e.target.value) }))}
               className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
             />
+          </div>
+
+          <div className="mt-8">
+            <h4 className="text-[18px] font-bold text-[#000000] mb-8 font-Gantari">Select Panel Access Control</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-y-4 gap-x-6 p-6 bg-[#F2F3F4] rounded-[10px]">
+              {PANEL_ACCESS_OPTIONS.map((role) => (
+                <div key={role} className="flex items-center gap-3">
+                  <div
+                    onClick={() => {
+                      const newRoles = form.roles.includes(role)
+                        ? form.roles.filter(r => r !== role)
+                        : [...form.roles, role];
+                      setForm({ ...form, roles: newRoles });
+                    }}
+                    className={`w-6 h-6 rounded-[4px] border-2 flex items-center justify-center cursor-pointer transition-all ${form.roles.includes(role) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#E0E0E0]'
+                      }`}
+                  >
+                    {form.roles.includes(role) && (
+                      <svg width="14" height="11" viewBox="0 0 14 11" fill="none">
+                        <path d="M1 5L5 9L13 1" stroke="#1A1A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-[14px] font-medium text-[#353535] font-Gantari">{role}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8 ">

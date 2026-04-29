@@ -208,7 +208,6 @@ export default function VendorBimLeadTeamTasks() {
     dueTime: "",
     assignTo: "",
     description: "",
-    checklist: "",
   };
   const [createForm, setCreateForm] = useState(emptyForm);
   const [createSubmitting, setCreateSubmitting] = useState(false);
@@ -445,7 +444,6 @@ export default function VendorBimLeadTeamTasks() {
       project_id: projectId || undefined,
       assigned_to: assigneeId || undefined,
       modules: editForm.teamId || undefined,
-      checklist: editForm.checklist || undefined,
     };
 
     api
@@ -524,7 +522,6 @@ export default function VendorBimLeadTeamTasks() {
       assigned_to: assignedToVal,
       // Store selected Team/Department in modules column
       modules: createForm.teamId || undefined,
-      checklist: createForm.checklist,
       start_date: createForm.actualStartDate,
       start_time: createForm.startTime,
       due_time: createForm.dueTime,
@@ -687,27 +684,22 @@ export default function VendorBimLeadTeamTasks() {
     task: Task;
     status: "todo" | "in_progress" | "completed";
   }) => {
-    const progress =
-      (status === "completed" || (task as any).review_required) &&
-        task.assigned_to != null &&
-        ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
-        String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id)
-        ? (task as any).Approval?.toLowerCase() === "approved"
-          ? 100
-          : (status === "todo" ? 0 : status === "in_progress" ? 50 : 95)
-        : status === "todo"
-          ? 0
-          : status === "in_progress"
-            ? 50
-            : typeof (task as any).progress === "number"
-              ? (task as any).progress
-              : 100;
     const isUnderReview =
-      (status === "completed" || (task as any).review_required) &&
+      status === "completed" &&
       task.assigned_to != null &&
       ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
       String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id) &&
       (task as any).Approval?.toLowerCase() !== "approved";
+
+    const progress = isUnderReview
+      ? 95
+      : status === "todo"
+        ? 0
+        : status === "in_progress"
+          ? 50
+          : (task as any).Approval?.toLowerCase() === "approved"
+            ? 100
+            : 100;
     const isCompleted = normalizeStatus(task.status) === "completed";
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -794,7 +786,6 @@ export default function VendorBimLeadTeamTasks() {
                       dueTime: (task as any).end_time || "",
                       assignTo: task.assigned_to_name || "",
                       description: task.description || "",
-                      checklist: (task as any).checklist || "",
                     });
                     setEditAttachmentFiles([]);
                     setShowEditModal(true);
@@ -863,9 +854,16 @@ export default function VendorBimLeadTeamTasks() {
 
         <div className="flex items-center justify-between gap-2 mb-2">
           <span className="text-xs text-[#8B8B8B]">Progress</span>
-          <span className="text-xs font-medium text-[#8B8B8B]">
-            {isUnderReview ? "95% (Under Review)" : `${progress}%`}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-[#8B8B8B]">
+              {progress}%
+            </span>
+            {isUnderReview && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800">
+                Reviewed
+              </span>
+            )}
+          </div>
         </div>
         <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
           <div
@@ -1322,24 +1320,6 @@ export default function VendorBimLeadTeamTasks() {
                   />
                 </div>
 
-                {/* Checklist */}
-                <div className="sm:col-span-2">
-                  <label className="block text-[16px] font-medium text-[#3535335] mb-1">
-                    Checklist
-                  </label>
-                  <input
-                    type="text"
-                    value={editForm.checklist}
-                    onChange={(e) =>
-                      setEditForm((f) => ({
-                        ...f,
-                        checklist: e.target.value,
-                      }))
-                    }
-                    placeholder="Enter Reference Link"
-                    className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
-                  />
-                </div>
 
                 {/* Attachments */}
                 <div className="sm:col-span-2">
@@ -1720,24 +1700,6 @@ export default function VendorBimLeadTeamTasks() {
                   />
                 </div>
 
-                {/* Checklist */}
-                <div className="sm:col-span-2">
-                  <label className="block text-[16px] font-medium text-[#353535] mb-1">
-                    Checklist
-                  </label>
-                  <input
-                    type="text"
-                    value={createForm.checklist}
-                    onChange={(e) =>
-                      setCreateForm((f) => ({
-                        ...f,
-                        checklist: e.target.value,
-                      }))
-                    }
-                    placeholder="Enter Reference Link"
-                    className="w-full rounded-md bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
-                  />
-                </div>
 
                 {/* Attachments */}
                 <div className="sm:col-span-2">

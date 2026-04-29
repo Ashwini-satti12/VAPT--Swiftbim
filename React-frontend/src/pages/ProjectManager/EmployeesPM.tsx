@@ -117,23 +117,11 @@ const Departments_options = [
   'Technical', 'Sales', 'Operations', 'Human Resources', 'Accounts', 'Designing'
 ];
 const ROLE_OPTIONS = [
-  'Consultant',
-  'BIM Coordinator',
-  'BIM Lead',
-  'Project Manager',
-  'BIM Modeler',
-  'BIM Architect',
-  'BIM Architect Lead',
-  'Tekla Modeler',
-  'BIM Project Manager',
-  'Business Development Manager',
-  'Vice President Projects',
-  'Junior BIM Modeler',
-  'Architect Intern',
-  'BIM Modeler- MEP',
-  'HR Executive',
-  'Graphic Designer',
-  'Management'
+  "Bim Lead",
+  "Project Manager",
+  "Bim Consultant",
+  "Technical Director",
+  "Bim Coordinator"
 ];
 
 const PANEL_ACCESS_OPTIONS = [
@@ -310,14 +298,13 @@ export default function EmployeesPM() {
     country_code: '+91',
     email: '',
     password: '',
-    type: '',
+    type: 'Employee',
     user_role: '',
     joining_date: '',
-    department: '',
     address: '',
     salary: '',
     accountnumber: '',
-    roles: [] as string[],
+    roles: ['Employee'],
     profile_picture: null as File | null,
     active: 'Active',
   });
@@ -333,16 +320,16 @@ export default function EmployeesPM() {
     phone_number: '',
     country_code: '+91',
     user_role: '',
-    department: '',
     address: '',
+    department: '',
     dob: '',
     password: '',
-    user_type: '',
+    user_type: 'Employee',
     doj: '',
     salary: '',
     accountnumber: '',
     profile_picture: null as File | null,
-    roles: [] as string[],
+    roles: ['Employee'],
     active: 'Active',
   });
   const [editSubmitting, setEditSubmitting] = useState(false);
@@ -384,7 +371,7 @@ export default function EmployeesPM() {
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
   const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
-  const [departmentOptions, setDepartmentOptions] = useState<string[]>(Departments_options);
+
 
   const canAdd = user?.panel_type === 1;
 
@@ -393,34 +380,7 @@ export default function EmployeesPM() {
     api.get<{ employees?: Employee[] }>('/api/employees').then(({ data }) => setList(data.employees ?? [])).catch(() => setList([])).finally(() => setLoading(false));
   }, []);
 
-  // Load departments from backend (department table, name field)
-  useEffect(() => {
-    api.get<{ departments?: string[] }>('/api/departments')
-      .then(({ data }) => {
-        if (Array.isArray(data.departments)) {
-          // Deduplicate by case-insensitive name
-          const map = new Map<string, string>();
-          data.departments
-            .filter(Boolean)
-            .forEach((name) => {
-              const trimmed = String(name).trim();
-              if (!trimmed) return;
-              const key = trimmed.toLowerCase();
-              if (!map.has(key)) {
-                map.set(key, trimmed);
-              }
-            });
-          const fromBackend = Array.from(map.values());
-          if (fromBackend.length) {
-            setDepartmentOptions(fromBackend);
-          }
-        }
-      })
-      .catch(() => {
-        // On error, keep existing fallback Departments_options
-        setDepartmentOptions(Departments_options);
-      });
-  }, []);
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -558,7 +518,6 @@ export default function EmployeesPM() {
           ? `${editForm.country_code}${editForm.phone_number}`.replace(/\s+/g, '')
           : undefined,
       user_role: editForm.user_role,
-      department: editForm.department || undefined,
       address: editForm.address || undefined,
       dob: editForm.dob || undefined,
       doj: editForm.doj || undefined,
@@ -629,8 +588,8 @@ export default function EmployeesPM() {
       phone_number: parsed.phone_digits,
       country_code: parsed.country_code,
       user_role: emp.user_role || 'Consultant',
-      department: emp.department || '',
       address: emp.address || '',
+      department: (emp as any).department || '',
       dob: emp.dob || '',
       password: '',
       user_type: emp.user_type || '',
@@ -685,7 +644,6 @@ export default function EmployeesPM() {
     if (form.dob) formData.append('dob', form.dob);
     if (form.type) formData.append('user_type', form.type);
     if (form.joining_date) formData.append('doj', form.joining_date);
-    if (form.department) formData.append('department', form.department);
     if (form.salary.trim()) formData.append('salary', form.salary.trim());
     if (form.accountnumber.trim()) formData.append('accountnumber', form.accountnumber.trim());
     if (form.roles.length) formData.append('roles', form.roles.join(','));
@@ -709,9 +667,8 @@ export default function EmployeesPM() {
             password: '',
             phone_number: '',
             country_code: '+91',
-            type: '',
-            user_role: 'Consultant',
-            department: '',
+            type: 'Employee',
+            user_role: '',
             address: '',
             dob: '',
             joining_date: '',
@@ -1095,16 +1052,17 @@ export default function EmployeesPM() {
               </div>
             ) : (
               <>
-                <div className="border border-[#AEACAC52] rounded-md overflow-hidden bg-white">
-                <div className="overflow-x-auto custom-scrollbar">
-                  <table className="min-w-full border-separate border-spacing-0">
+                <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mb-3">
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    <div className="overflow-auto h-[calc(100%+17px)] pb-[17px] [&::-webkit-scrollbar:horizontal]:!hidden">
+                      <table className="min-w-full border-collapse">
                     <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                       <tr className="bg-white">
                         <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535]">
                           Sl.No
                         </th>
                         <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
+                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white whitespace-nowrap">Consultant Name</th>
                         <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
                         <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Contact Info</th>
                         <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Status</th>
@@ -1134,8 +1092,8 @@ export default function EmployeesPM() {
                                 {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
                               </td>
 
-                              <td className="px-6 py-5">
-                                <div className="flex items-center justify-center gap-4 min-w-0">
+                              <td className="px-6 py-5 whitespace-nowrap">
+                                <div className="flex items-center justify-start gap-4">
                                   <div className="relative shrink-0">
                                     <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
                                       {emp.profile_picture && emp.profile_picture.trim() ? (
@@ -1144,26 +1102,22 @@ export default function EmployeesPM() {
                                           alt={emp.full_name}
                                           className="w-full h-full object-cover"
                                           onError={(e) => {
-                                            // Hide broken image; the status dot + name still show
-                                            (e.target as HTMLImageElement).style.display = 'none';
+                                            const target = e.target as HTMLImageElement;
+                                            const parent = target.parentElement;
+                                            if (parent && !parent.querySelector('.error-placeholder')) {
+                                              parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-[10px]">No Photo</span></div>';
+                                            }
                                           }}
                                         />
                                       ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                          <span className="text-[14px] font-Gantari text-[#1A1A1A]">
-                                            {toCamelCase(emp.full_name).charAt(0) || 'U'}
-                                          </span>
+                                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                          <span className="text-gray-400 text-[10px]">No Photo</span>
                                         </div>
                                       )}
                                     </div>
                                     <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active !== 'active' ? 'bg-[#ef4444]' : (emp.status === 'Online' ? 'bg-[#22c55e]' : 'bg-[#ef4444]')}`}></span>
                                   </div>
-                                  <span
-                                    className={`text-[14px] font-semibold font-Gantari text-[#353535] min-w-0 ${nameExceedsThreeWords(toCamelCase(emp.full_name))
-                                      ? 'line-clamp-2 break-words'
-                                      : 'whitespace-nowrap'
-                                      }`}
-                                  >
+                                  <span className="text-[14px] font-semibold font-Gantari text-[#353535] whitespace-nowrap">
                                     {toCamelCase(emp.full_name)}
                                   </span>
                                 </div>
@@ -1253,12 +1207,13 @@ export default function EmployeesPM() {
                         })
                       )}
                     </tbody>
-                  </table>
+                      </table>
+                    </div>
+                  </div>
                 </div>
-              </div>
                 {listInRange.length > 0 && (
-                <div className="w-full flex items-center justify-end py-2 pr-4">
-                  <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+                <div className="w-full flex items-center justify-end mt-2">
+                  <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
                     <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
                     <button
                       type="button"
@@ -1390,23 +1345,14 @@ export default function EmployeesPM() {
                   </div>
                   <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role</label>
-                    <CustomDropdown
-                      options={ROLE_OPTIONS}
-                      value={form.user_role}
-                      onChange={(val) => setForm((f: any) => ({ ...f, user_role: val }))}
-                      placeholder="Select Role"
-                    />
-                  </div>
-                  <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department</label>
-                    <CustomDropdown
-                      options={departmentOptions}
-                      value={form.department}
-                      onChange={(val) => setForm((f: any) => ({ ...f, department: val }))}
-                      placeholder="Select Department"
-                    />
-                  </div>
-                </div>
+                <CustomDropdown
+                  options={ROLE_OPTIONS}
+                  value={form.user_role}
+                  onChange={(val) => setForm((f: any) => ({ ...f, user_role: val }))}
+                  placeholder="Select Role"
+                />
+              </div>
+            </div>
 
                 {/* Column 2 */}
                 <div className="space-y-5">
@@ -1470,6 +1416,34 @@ export default function EmployeesPM() {
                   onChange={(e) => setForm((f: any) => ({ ...f, address: e.target.value }))}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                 />
+              </div>
+
+              {/* Panel Access Control */}
+              <div className="mt-8">
+                <label className="block text-[18px] font-semibold text-[#000000] mb-4 font-Gantari">Select Panel Access Control</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-y-4 gap-x-6 p-6 bg-[#F2F3F4] rounded-[10px]">
+                  {PANEL_ACCESS_OPTIONS.map((role) => (
+                    <div key={role} className="flex items-center gap-3">
+                      <div
+                        onClick={() => {
+                          const newRoles = form.roles.includes(role)
+                            ? form.roles.filter((r: string) => r !== role)
+                            : [...form.roles, role];
+                          setForm((f: any) => ({ ...f, roles: newRoles }));
+                        }}
+                        className={`w-6 h-6 rounded-[4px] border-2 flex items-center justify-center cursor-pointer transition-all ${form.roles.includes(role) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#E0E0E0]'
+                          }`}
+                      >
+                        {form.roles.includes(role) && (
+                          <svg width="14" height="11" viewBox="0 0 14 11" fill="none">
+                            <path d="M1 5L5 9L13 1" stroke="#1A1A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-[14px] font-medium text-[#353535] font-Gantari">{role}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
                 <button
@@ -1579,16 +1553,6 @@ export default function EmployeesPM() {
                       value={editForm.user_role}
                       onChange={(val) => setEditForm((f: any) => ({ ...f, user_role: val }))}
                       placeholder="Select Role"
-                    />
-                  </div>
-                  <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department</label>
-                    <CustomDropdown
-                      options={departmentOptions}
-                      className="cursor-pointer"
-                      value={editForm.department}
-                      onChange={(val) => setEditForm((f: any) => ({ ...f, department: val }))}
-                      placeholder="Select Department"
                     />
                   </div>
                   <div>

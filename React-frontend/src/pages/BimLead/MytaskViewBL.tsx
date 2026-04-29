@@ -780,14 +780,7 @@ export default function MytaskViewBL() {
                 {task.description || "No description provided."}
               </div>
             </div>
-            <div className="mt-6 border border-slate-200 rounded-xl p-6 flex flex-col h-full bg-white">
-              <h4 className="text-[#020202] text-[18px] mb-2 font-semibold">
-                Checklist
-              </h4>
-              <div className="flex-1 rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-                {task.checklist || "No checklist provided."}
-              </div>
-            </div>
+
 
             {!fromTeamTask &&
               task.uploaderid != null &&

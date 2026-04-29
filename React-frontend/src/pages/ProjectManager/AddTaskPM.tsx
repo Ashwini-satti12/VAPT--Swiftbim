@@ -90,7 +90,6 @@ interface Task {
   assign_to?: string;
   assigned_to?: number;
   description?: string;
-  checklist?: string;
   assigned_full_name?: string;
   created_at?: string;
   perferstart_time?: string;
@@ -153,7 +152,7 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
   dueTime: string;
   assignTo: string;
   description: string;
-  checklist: string;
+  reviewRemark: string;
 } {
   const t = task as Record<string, unknown>;
   const str = (v: unknown) => (v != null ? String(v) : "");
@@ -239,7 +238,6 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
       return "";
     })(),
     description: str(t.description ?? ""),
-    checklist: str(t.checklist ?? ""),
     reviewRemark: str(t.review_remark ?? ""),
   };
 }
@@ -255,7 +253,6 @@ const initialForm = {
   dueTime: "",
   assignTo: "",
   description: "",
-  checklist: "",
   reviewRemark: "",
 };
 
@@ -707,7 +704,6 @@ export default function AddTaskPM() {
         assigned_to: assignedId,
         assign_to: addTaskForm.assignTo,
         description: addTaskForm.description,
-        checklist: addTaskForm.checklist,
         status: isEditing ? editingTask?.status : "Todo",
         progress: isEditing ? editingTask?.status === "Completed" ? 100 : editingTask?.progress : 0,
       };
@@ -724,7 +720,6 @@ export default function AddTaskPM() {
             due_date: addTaskForm.endDate,
             category: addTaskForm.type,
             description: addTaskForm.description,
-            checklist: addTaskForm.checklist,
             modules: addTaskForm.module,
             start_date: addTaskForm.startDate,
             start_time: addTaskForm.startTime,
@@ -1214,20 +1209,7 @@ export default function AddTaskPM() {
                   className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                 />
               </div>
-              <div className="md:col-span-2">
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                  Checklist
-                </label>
-                <input
-                  type="text"
-                  value={addTaskForm.checklist}
-                  onChange={(e) =>
-                    setAddTaskForm((f) => ({ ...f, checklist: e.target.value }))
-                  }
-                  placeholder="Enter Reference Link"
-                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                />
-              </div>
+
               {showReviewRemarkField && (
                 <div className="md:col-span-2">
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">

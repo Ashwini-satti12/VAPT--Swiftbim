@@ -136,7 +136,7 @@ function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-3 py-2 text-[14px] font-semibold font-Gantari cursor-pointer w-full transition-colors ${narrow ? (label === "Period" ? "lg:min-w-[100px]" : "lg:min-w-[150px]") : "lg:min-w-[160px]"}`}
+        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-3 py-2 text-[14px] font-semibold font-Gantari cursor-pointer transition-colors ${narrow ? "lg:w-[130px]" : "lg:min-w-[160px]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
@@ -1058,11 +1058,10 @@ export default function MytaskBL() {
               onClick={() => navigate("/bl/mytasks/add")}
               className="lg:hidden inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] h-[36px] min-h-[36px] px-3 sm:px-4 text-[14px] font-medium text-[#F2F2F2] cursor-pointer"
             >
-              <img src={AddBtn} alt="Add" className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden sm:inline whitespace-nowrap">
                 Add Task
               </span>
-              <span className="sm:hidden whitespace-nowrap">Add</span>
+              <span className="sm:hidden whitespace-nowrap">Add Task</span>
             </button>
           </div>
 
@@ -1138,7 +1137,6 @@ export default function MytaskBL() {
               onClick={() => navigate("/bl/mytasks/add")}
               className="hidden lg:inline-flex ml-2 items-center justify-center gap-2 rounded-md bg-[#DD4342] h-[36px] min-h-[36px] px-4 text-[14px] font-medium text-[#F2F2F2] cursor-pointer"
             >
-              <img src={AddBtn} alt="Add" className="h-5 w-5" />
               <span className="whitespace-nowrap">Add Task</span>
             </button>
           </div>

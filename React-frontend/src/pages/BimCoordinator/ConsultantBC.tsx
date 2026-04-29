@@ -1015,9 +1015,10 @@ export default function ConsultantBC() {
           </div>
         ) : (
           <div className="px-2 sm:px-0">
-            <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-8">
-              <div className="overflow-x-auto overflow-y-visible custom-scrollbar smooth-scroll flex-1 min-h-[280px]">
-                <table className="min-w-full border-collapse">
+            <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-4">
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <div className="overflow-auto h-[calc(100%+17px)] pb-[17px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:!hidden">
+                  <table className="min-w-full border-collapse">
                   <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                     <tr className="bg-white">
                       <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
@@ -1075,9 +1076,9 @@ export default function ConsultantBC() {
                                 `EMP-${(emp.id + 150).toString().padStart(4, "0")}`}
                             </td>
                             <td className="px-6 py-5 border-b border-[#F0F0F0] whitespace-nowrap">
-                              <div className="flex items-center justify-center gap-4">
+                              <div className="flex items-center justify-start gap-4">
                                 <div className="relative shrink-0">
-                                  <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200 flex items-center justify-center">
+                                  <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
                                     {emp.profile_picture &&
                                       emp.profile_picture.trim() ? (
                                       <img
@@ -1085,22 +1086,33 @@ export default function ConsultantBC() {
                                         alt={emp.full_name}
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
-                                          (
-                                            e.target as HTMLImageElement
-                                          ).style.display = "none";
+                                          const target =
+                                            e.target as HTMLImageElement;
+                                          const parent = target.parentElement;
+                                          if (
+                                            parent &&
+                                            !parent.querySelector(
+                                              ".error-placeholder",
+                                            )
+                                          ) {
+                                            parent.innerHTML =
+                                              '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-[10px]">No Photo</span></div>';
+                                          }
                                         }}
                                       />
                                     ) : (
-                                      <span className="text-gray-400 text-[10px]">
-                                        No Photo
-                                      </span>
+                                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                        <span className="text-gray-400 text-[10px]">
+                                          No Photo
+                                        </span>
+                                      </div>
                                     )}
                                   </div>
                                   <span
                                     className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active !== "active" ? "bg-[#ef4444]" : (emp.status === "Online" ? "bg-[#22c55e]" : "bg-[#ef4444]")}`}
                                   />
                                 </div>
-                                <span className="text-[14px] font-normal font-Gantari text-[#353535]">
+                                <span className="text-[14px] font-semibold font-Gantari text-[#353535] whitespace-nowrap">
                                   {toCamelCase(emp.full_name || "-")}
                                 </span>
                               </div>
@@ -1217,12 +1229,13 @@ export default function ConsultantBC() {
                       })
                     )}
                   </tbody>
-                </table>
+                  </table>
+                </div>
               </div>
             </div>
             {displayedList.length > 0 && (
               <div className="w-full flex items-center justify-end py-2 pr-4">
-                <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+                <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
                   <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
                   <button
                     type="button"

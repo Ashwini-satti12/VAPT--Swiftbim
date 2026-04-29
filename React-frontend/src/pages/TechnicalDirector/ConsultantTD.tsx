@@ -1311,7 +1311,7 @@ export default function ConsultantTD() {
                                   {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
                                 </td>
                                 <td className="px-6 py-5 border-b border-[#F0F0F0] whitespace-nowrap">
-                                  <div className="flex items-center justify-center gap-4">
+                                  <div className="flex items-center justify-start gap-4">
                                     <div className="relative shrink-0">
                                       <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
                                         {emp.profile_picture && emp.profile_picture.trim() ? (
@@ -1828,14 +1828,14 @@ export default function ConsultantTD() {
 
             <div className="shrink-0 mb-6 px-2 sm:px-4 mt-[-20px]">
               <p className="text-[14px] text-[#353535] mb-2 leading-relaxed font-medium font-Gantari">
-                Select Consultants to mark as IN-Active. In-Active Consultants will not appear in Project Assignment dropdowns.
+                Select Consultants to mark as Inactive. Inactive Consultants will not appear in Project Assignment dropdowns.
               </p>
               <p className="text-[14px] font-semibold text-[#3d3399] font-Gantari">
-                {deactiveIds.length} Consultant(s) will be marked as In-Active
+                {deactiveIds.length} Consultant(s) will be marked as Inactive
               </p>
             </div>
 
-            <div className="flex-1 overflow-y-auto border border-[#E0E0E0] rounded-[15px] custom-scrollbar mb-10 bg-white">
+            <div className="flex-1 overflow-y-auto border border-[#E0E0E0] rounded-md custom-scrollbar mb-6 bg-white">
               {(() => {
                 const grouped = list.reduce((acc: Record<string, Employee[]>, emp) => {
                   const role = emp.user_role || 'General';
@@ -1846,7 +1846,7 @@ export default function ConsultantTD() {
 
                 return Object.entries(grouped).map(([role, emps]) => (
                   <div key={role} className="border-b border-[#E0E0E0] last:border-none">
-                    <div className="px-6 py-4 bg-[#F9FAFB] font-semibold text-[14px] text-[#353535] border-b border-[#E0E0E0] font-Gantari">
+                    <div className="px-6 py-4 bg-[#F9FAFB] font-semibold text-[16px] text-[#353535] border-b border-[#E0E0E0] font-Gantari">
                       {role}
                     </div>
                     <div className="divide-y divide-[#F0F0F0]">
@@ -1866,7 +1866,7 @@ export default function ConsultantTD() {
                                 </svg>
                               )}
                             </div>
-                            <span className="text-[14px] font-semibold text-[#6B6B6B] font-Gantari">
+                            <span className="text-[14px] font-normal text-[#6B6B6B] font-Gantari">
                               {emp.full_name} {emp.empid ? `(${emp.empid})` : `(EMP-${(emp.id + 150).toString().padStart(4, '0')})`}
                             </span>
                           </div>

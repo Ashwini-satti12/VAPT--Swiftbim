@@ -332,7 +332,7 @@ export function TaskDropdown({
     : options;
 
   const positionClass = narrow
-    ? "right-0 min-w-[110px]"
+    ? "right-0 w-full"
     : menuAlign === "right"
       ? "right-0 min-w-[200px] max-w-[min(calc(100vw-1rem),320px)]"
       : "left-0 min-w-[160px] max-w-[min(calc(100vw-1rem),320px)]";
@@ -397,7 +397,7 @@ export function TaskDropdown({
   const triggerButtonClass =
     triggerVariant === "compositeEnd"
       ? "inline-flex h-full min-h-[40px] w-auto shrink-0 items-center justify-between gap-2 border-0 border-l border-[#E0E0E0] bg-[#E2E2E2] px-4 py-2 text-[14px] font-Gantari text-[#8B8B8B] cursor-pointer outline-none transition-colors hover:bg-[#dadada] focus-visible:bg-[#dadada]"
-      : `inline-flex items-center justify-between rounded-md border border-transparent ${bgClass} px-4 py-1.5 sm:py-2 text-[14px] ${fontClass} font-Gantari cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`;
+      : `inline-flex items-center justify-between rounded-md border border-transparent ${bgClass} px-4 py-1.5 sm:py-2 text-[14px] ${fontClass} font-Gantari cursor-pointer ${narrow ? "w-full" : "min-w-[140px]"}`;
 
   const triggerTextClass = `truncate font-Gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`;
 
@@ -1581,9 +1581,8 @@ export default function MytaskTD() {
           <button
             type="button"
             onClick={() => navigate("/td/mytasks/add")}
-            className="sm:hidden inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-2 py-1.5 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all"
+            className="sm:hidden inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-4 py-1.5 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all"
           >
-            <img src={AddBtn} alt="Add" className="h-4 w-4" />
             Add task
           </button>
         </div>
@@ -1736,7 +1735,7 @@ export default function MytaskTD() {
                 </div>
               )}
             </div>
-            <div className="w-full lg:w-auto">
+            <div className="w-full lg:w-[130px]">
               <TaskDropdown
                 label="Period"
                 options={PERIOD_OPTIONS}
@@ -1759,7 +1758,6 @@ export default function MytaskTD() {
               onClick={() => navigate("/td/mytasks/add")}
               className="hidden sm:inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-6 py-1.5 lg:py-2 bg-[#DD4342] text-white rounded-md font-Gantari font-semibold transition-all shadow-sm cursor-pointer"
             >
-              <img src={AddBtn} alt="Add" className="h-5 w-5" />
               Add task
             </button>
           </div>

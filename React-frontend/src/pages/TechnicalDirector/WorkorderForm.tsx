@@ -6,6 +6,13 @@ import api from "../../lib/api";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 
+type PaymentTermRow = {
+  basis: string;
+  terms: string;
+  amount: string;
+  timeline: string;
+};
+
 const CURRENCY_OPTIONS = [
   { code: "INR", label: "Indian Rupee (INR)" },
   { code: "USD", label: "US Dollar (USD)" },
@@ -32,10 +39,30 @@ export default function WorkorderForm() {
   const editWO = state?.editWO;
   const editId = editWO?.id ? Number(editWO.id) : null;
 
-  const stripHtml = (html: string): string => {
+  const stripHtmlText = (html: string): string => {
     if (!html) return "";
     const doc = new DOMParser().parseFromString(html, "text/html");
-    return (doc.body.textContent || "").trim();
+    return (doc.body.textContent || "").replace(/\s+/g, " ").trim();
+  };
+
+  const parsePaymentTermsRows = (value: unknown): PaymentTermRow[] => {
+    if (!value) return [];
+    let parsed: unknown = value;
+    if (typeof value === "string") {
+      try {
+        parsed = JSON.parse(value);
+      } catch {
+        return [];
+      }
+    }
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((t: any) => ({
+      basis: String(t?.basis ?? t?.label ?? ""),
+      // UI requirement: user must fill these manually (start blank)
+      terms: "",
+      amount: "",
+      timeline: "",
+    }));
   };
 
   const formatPaymentTermsToHtml = (terms: any): string => {
@@ -105,7 +132,8 @@ export default function WorkorderForm() {
       state?.proposal?.deliverables_intro ||
       state?.proposal?.deliverables_list ||
       "",
-    exclusions: state?.proposal?.exclusions || state?.proposal?.exclusions_list || "",
+    exclusions:
+      state?.proposal?.exclusions || state?.proposal?.exclusions_list || "",
     currency: (
       state?.proposal?.selected_currency ||
       state?.proposal?.bid_currency ||
@@ -114,12 +142,21 @@ export default function WorkorderForm() {
     amountAED: state?.proposal?.bid_amount?.toString() || "",
     duration: state?.proposal?.timeline || "",
     termsAndConditions: "",
-    paymentTerms: formatPaymentTermsToHtml(state?.proposal?.payment_terms || ""),
+    paymentTerms: formatPaymentTermsToHtml(
+      state?.proposal?.payment_terms || "",
+    ),
     additionalTerms: "",
   });
 
+  const [paymentRows, setPaymentRows] = useState<PaymentTermRow[]>(
+    parsePaymentTermsRows(state?.proposal?.payment_terms || ""),
+  );
+
   useEffect(() => {
-    if (state?.proposal?.opportunity_id && (!form.projectLocation || form.projectLocation === "Loading...")) {
+    if (
+      state?.proposal?.opportunity_id &&
+      (!form.projectLocation || form.projectLocation === "Loading...")
+    ) {
       api
         .get(`/api/vendors/bidding`)
         .then((res) => {
@@ -165,7 +202,8 @@ export default function WorkorderForm() {
     amountAED:
       wo?.amount_aed != null ? String(wo.amount_aed) : wo?.amountAED || "",
     duration: wo?.duration || "",
-    termsAndConditions: wo?.terms_and_conditions || wo?.termsAndConditions || "",
+    termsAndConditions:
+      wo?.terms_and_conditions || wo?.termsAndConditions || "",
     paymentTerms: wo?.payment_terms || wo?.paymentTerms || "",
     additionalTerms: wo?.additional_terms || wo?.additionalTerms || "",
     exclusions: wo?.exclusions || "",
@@ -179,6 +217,9 @@ export default function WorkorderForm() {
         const wo = res.data?.work_order;
         if (wo) {
           setForm(mapWorkOrderToForm(wo));
+          setPaymentRows(
+            parsePaymentTermsRows(wo?.payment_terms || wo?.paymentTerms || ""),
+          );
         }
       })
       .catch((err) => {
@@ -188,9 +229,9 @@ export default function WorkorderForm() {
   }, [editId]);
 
   const fieldClass =
-    "w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-white border border-[#E0E0E0] rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52]";
+    "w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F3F3F3] border border-[#E6E6E6] rounded-[4px] font-Gantari transition-all outline-none focus:bg-white focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52]";
   const labelClass =
-    "block text-[16px] font-Gantari font-semibold text-[#000000] mb-2";
+    "block text-[14px] font-Gantari font-semibold text-[#000000] mb-2";
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const currencyWrapRef = useRef<HTMLDivElement>(null);
   const selectedCurrencyLabel =
@@ -212,17 +253,79 @@ export default function WorkorderForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!(form.currency || "").trim()) {
-      alert("Please select currency.");
+    const requiredText = [
+      { key: "Vendor Name", value: form.vendorName },
+      { key: "PO Number", value: form.poNumber },
+      { key: "PO Date", value: form.poDate },
+      { key: "Project Name", value: form.projectName },
+      { key: "Project Location", value: form.projectLocation },
+      { key: "Vendor Address", value: form.vendorAddress },
+      { key: "Currency", value: form.currency },
+      { key: "Bid Amount", value: form.amountAED },
+      { key: "Duration", value: form.duration },
+    ];
+
+    const requiredHtml = [
+      { key: "Description", value: form.workDescription },
+      { key: "Scope of Work", value: form.scopeOfWork },
+      { key: "Project Involves", value: form.projectInvolves },
+      { key: "Deliverables", value: form.deliverables },
+      { key: "General Terms and Conditions", value: form.termsAndConditions },
+      { key: "Additional Terms & Conditions (Annexure 1)", value: form.additionalTerms },
+      { key: "Exclusions", value: form.exclusions },
+    ];
+
+    for (const f of requiredText) {
+      if (!String(f.value || "").trim()) {
+        toast.error(`${f.key} is required.`);
+        return;
+      }
+    }
+
+    for (const f of requiredHtml) {
+      if (!stripHtmlText(String(f.value || ""))) {
+        toast.error(`${f.key} is required.`);
+        return;
+      }
+    }
+
+    if (!paymentRows.length) {
+      toast.error("Payment Terms is required. Please add at least one row.");
       return;
     }
+
+    for (let i = 0; i < paymentRows.length; i++) {
+      const row = paymentRows[i];
+      const prefix = `Payment Terms row ${i + 1}`;
+      if (!String(row.basis || "").trim()) {
+        toast.error(`${prefix}: Payment Basis is required.`);
+        return;
+      }
+      if (!String(row.terms || "").trim()) {
+        toast.error(`${prefix}: Terms (%) is required.`);
+        return;
+      }
+      if (!String(row.amount || "").trim()) {
+        toast.error(`${prefix}: Amount is required.`);
+        return;
+      }
+      if (!String(row.timeline || "").trim()) {
+        toast.error(`${prefix}: Timeline is required.`);
+        return;
+      }
+    }
+
     try {
       setIsSubmitting(true);
+      const payload = {
+        ...form,
+        paymentTerms: formatPaymentTermsToHtml(paymentRows),
+      };
       if (editId) {
-        await api.put(`/api/workorders/${editId}`, form);
+        await api.put(`/api/workorders/${editId}`, payload);
         toast.success("Work order updated successfully.");
       } else {
-        await api.post("/api/workorders", form);
+        await api.post("/api/workorders", payload);
         toast.success("Work order created successfully.");
       }
       navigate("/td/workorder");
@@ -236,7 +339,7 @@ export default function WorkorderForm() {
 
   return (
     <div className="flex-1 overflow-y-auto p-4 bg-white font-Gantari">
-      <div className="max-w-5xl mx-auto">
+      <div className="mx-auto">
         <div className="flex items-center justify-between mb-8">
           <button
             type="button"
@@ -252,11 +355,11 @@ export default function WorkorderForm() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="bg-[#F9F9F9] rounded-lg shadow-sm border border-[#AEACAC52] overflow-hidden">
+          <div className="bg-white overflow-hidden">
             {/* Basic Information */}
-            <div className="p-6">
-              <h4 className="text-[18px] font-bold mb-4 text-[#1A1A1A] border-b border-[#AEACAC52] pb-2">
-                Basic Information
+            <div className="p-0 mb-8">
+              <h4 className="text-[16px] font-bold mb-3 text-[#1A1A1A]">
+                1. Basic Information <span className="text-[#DD4342]">*</span>
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -329,68 +432,119 @@ export default function WorkorderForm() {
             </div>
 
             {/* Work Scope & Description */}
-            <div className="p-6 border-[#AEACAC52]">
-              <h4 className="text-[18px] font-bold mb-4 text-[#1A1A1A] border-b border-[#AEACAC52] pb-2">
-                Work Scope & Description
+            <div className="p-0 mb-8">
+              <h4 className="text-[16px] font-bold mb-3 text-[#1A1A1A]">
+                2. Work Scope & Description{" "}
+                <span className="text-[#DD4342]">*</span>
               </h4>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className={labelClass}>Work Description</label>
-                  <ReactQuill
-                    theme="snow"
-                    value={form.workDescription}
-                    onChange={(val) => setForm({ ...form, workDescription: val })}
-                    modules={quillModules}
-                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[120px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className={labelClass}>Scope of Work</label>
-                  <ReactQuill
-                    theme="snow"
-                    value={form.scopeOfWork}
-                    onChange={(val) => setForm({ ...form, scopeOfWork: val })}
-                    modules={quillModules}
-                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[120px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className={labelClass}>Project Involves</label>
-                  <ReactQuill
-                    theme="snow"
-                    value={form.projectInvolves}
-                    onChange={(val) => setForm({ ...form, projectInvolves: val })}
-                    modules={quillModules}
-                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[150px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className={labelClass}>Deliverables</label>
-                  <ReactQuill
-                    theme="snow"
-                    value={form.deliverables}
-                    onChange={(val) => setForm({ ...form, deliverables: val })}
-                    modules={quillModules}
-                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[150px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className={labelClass}>Exclusions</label>
-                  <ReactQuill
-                    theme="snow"
-                    value={form.exclusions}
-                    onChange={(val) => setForm({ ...form, exclusions: val })}
-                    modules={quillModules}
-                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[150px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
-                  />
-                </div>
+              <div className="overflow-x-auto rounded-[6px] border border-[#AEACAC] bg-white">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="border border-[#AEACAC] px-3 py-2 text-left text-[16px] font-bold">
+                        Description
+                      </th>
+                      <th className="border border-[#AEACAC] px-3 py-2 text-left text-[16px] font-bold w-[260px]">
+                        Amount ({form.currency || "AED"})
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-[#AEACAC] p-3 align-top">
+                        <div className="space-y-3">
+                          <ReactQuill
+                            theme="snow"
+                            placeholder="Enter description..."
+                            value={form.workDescription}
+                            onChange={(val) =>
+                              setForm({ ...form, workDescription: val })
+                            }
+                            modules={quillModules}
+                            className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
+                          />
+                          <div>
+                            <label className={labelClass}>Project Involves</label>
+                            <ReactQuill
+                              theme="snow"
+                              placeholder="Enter project involves..."
+                              value={form.projectInvolves}
+                              onChange={(val) =>
+                                setForm({ ...form, projectInvolves: val })
+                              }
+                              modules={quillModules}
+                              className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
+                            />
+                          </div>
+                          <div>
+                            <label className={labelClass}>Deliverables</label>
+                            <ReactQuill
+                              theme="snow"
+                              placeholder="Enter deliverables..."
+                              value={form.deliverables}
+                              onChange={(val) =>
+                                setForm({ ...form, deliverables: val })
+                              }
+                              modules={quillModules}
+                              className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="border border-[#AEACAC] p-3 align-top">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="Enter amount"
+                          value={form.amountAED}
+                          onChange={(e) =>
+                            setForm({ ...form, amountAED: e.target.value })
+                          }
+                          className={fieldClass}
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-[#AEACAC] p-3 align-top">
+                        <label className={labelClass}>Duration</label>
+                        <ReactQuill
+                          theme="snow"
+                          placeholder="Enter duration..."
+                          value={form.duration}
+                          onChange={(val) => setForm({ ...form, duration: val })}
+                          modules={quillModules}
+                          className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
+                        />
+                      </td>
+                      <td className="border border-[#AEACAC] p-3" />
+                    </tr>
+                    <tr>
+                      <td className="border border-[#AEACAC] px-3 py-2 text-right text-[16px] font-bold">
+                        Total Amount ({form.currency || "AED"})
+                      </td>
+                      <td className="border border-[#AEACAC] p-3">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="Enter amount"
+                          value={form.amountAED}
+                          onChange={(e) =>
+                            setForm({ ...form, amountAED: e.target.value })
+                          }
+                          className={fieldClass}
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
             {/* Financials & Timeline */}
-            <div className="p-6 border-[#AEACAC52]">
-              <h4 className="text-[18px] font-bold mb-4 text-[#1A1A1A] border-b border-[#AEACAC52] pb-2">
-                Financials & Timeline
+            {/* <div className="p-0 mb-8">
+              <h4 className="text-[16px] font-bold mb-3 text-[#1A1A1A]">
+                3. Financials & Timeline{" "}
+                <span className="text-[#DD4342]">*</span>
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -489,12 +643,12 @@ export default function WorkorderForm() {
                   />
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Terms & Conditions */}
-            <div className="p-6 border-[#AEACAC52]">
-              <h4 className="text-[18px] font-bold mb-4 text-[#1A1A1A] border-b border-[#AEACAC52] pb-2">
-                Terms & Conditions
+            <div className="p-0 mb-8">
+              <h4 className="text-[16px] font-bold mb-3 text-[#1A1A1A]">
+                3. Terms & Conditions <span className="text-[#DD4342]">*</span>
               </h4>
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -503,21 +657,170 @@ export default function WorkorderForm() {
                   </label>
                   <ReactQuill
                     theme="snow"
+                    placeholder="Enter general terms and conditions..."
                     value={form.termsAndConditions}
-                    onChange={(val) => setForm({ ...form, termsAndConditions: val })}
+                    onChange={(val) =>
+                      setForm({ ...form, termsAndConditions: val })
+                    }
                     modules={quillModules}
-                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[120px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
+                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className={labelClass}>Payment Terms</label>
-                  <ReactQuill
-                    theme="snow"
-                    value={form.paymentTerms}
-                    onChange={(val) => setForm({ ...form, paymentTerms: val })}
-                    modules={quillModules}
-                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[150px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
-                  />
+                  <div className="flex items-center justify-between">
+                    <label className={labelClass}>Payment Terms</label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPaymentRows((prev) => [
+                          ...prev,
+                          {
+                            basis: "",
+                            terms: "",
+                            amount: "",
+                            timeline: "",
+                          },
+                        ])
+                      }
+                      className="h-9 px-4 rounded-[4px] bg-[#DD4342] text-white text-[13px] font-semibold hover:opacity-90 transition-all"
+                    >
+                      + Add Row
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto rounded-[6px] border border-[#E6E6E6] bg-white">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-[#F2F2F2] text-[13px] text-[#1A1A1A]">
+                          <th className="px-4 py-3 text-left font-semibold w-[90px]">
+                            Sl.No
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold">
+                            Payment Basis
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold w-[180px]">
+                            Terms (%)
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold w-[180px]">
+                            Amount
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold w-[220px]">
+                            Timeline
+                          </th>
+                          <th className="px-3 py-3 w-[50px]" />
+                        </tr>
+                      </thead>
+                      <tbody className="text-[13px]">
+                        {(paymentRows.length
+                          ? paymentRows
+                          : [
+                              {
+                                basis: "",
+                                terms: "",
+                                amount: "",
+                                timeline: "",
+                              },
+                            ]
+                        ).map((row, idx) => {
+                          const isProtected =
+                            (row.basis || "").trim().toLowerCase() ===
+                              "advance (on signing)" ||
+                            (row.basis || "").trim().toLowerCase() ===
+                              "final payment";
+                          const canDelete =
+                            paymentRows.length > 0 && !isProtected;
+                          return (
+                            <tr key={idx} className="border-t border-[#EFEFEF]">
+                              <td className="px-4 py-3 text-[#1A1A1A]">
+                                {idx + 1}.
+                              </td>
+                              <td className="px-4 py-3">
+                                <input
+                                  value={row.basis}
+                                  onChange={(e) =>
+                                    setPaymentRows((prev) =>
+                                      prev.map((r, i) =>
+                                        i === idx
+                                          ? { ...r, basis: e.target.value }
+                                          : r,
+                                      ),
+                                    )
+                                  }
+                                  placeholder="Advance (on signing)"
+                                  className="w-full bg-transparent outline-none placeholder-[#9B9B9B]"
+                                />
+                              </td>
+                              <td className="px-4 py-3">
+                                <input
+                                  value={row.terms}
+                                  onChange={(e) =>
+                                    setPaymentRows((prev) =>
+                                      prev.map((r, i) =>
+                                        i === idx
+                                          ? { ...r, terms: e.target.value }
+                                          : r,
+                                      ),
+                                    )
+                                  }
+                                  placeholder="eg. 10%"
+                                  className="w-full bg-transparent outline-none placeholder-[#9B9B9B]"
+                                />
+                              </td>
+                              <td className="px-4 py-3">
+                                <input
+                                  value={row.amount}
+                                  onChange={(e) =>
+                                    setPaymentRows((prev) =>
+                                      prev.map((r, i) =>
+                                        i === idx
+                                          ? { ...r, amount: e.target.value }
+                                          : r,
+                                      ),
+                                    )
+                                  }
+                                  placeholder="Enter amount"
+                                  className="w-full bg-transparent outline-none placeholder-[#9B9B9B]"
+                                />
+                              </td>
+                              <td className="px-4 py-3">
+                                <input
+                                  value={row.timeline}
+                                  onChange={(e) =>
+                                    setPaymentRows((prev) =>
+                                      prev.map((r, i) =>
+                                        i === idx
+                                          ? { ...r, timeline: e.target.value }
+                                          : r,
+                                      ),
+                                    )
+                                  }
+                                  placeholder="eg. 2 weeks"
+                                  className="w-full bg-transparent outline-none placeholder-[#9B9B9B]"
+                                />
+                              </td>
+                              <td className="px-3 py-3 text-right">
+                                {canDelete ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setPaymentRows((prev) =>
+                                        prev.filter((_, i) => i !== idx),
+                                      )
+                                    }
+                                    className="text-[#DD4342] font-semibold"
+                                    aria-label="Remove row"
+                                    title="Remove"
+                                  >
+                                    ×
+                                  </button>
+                                ) : null}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <label className={labelClass}>
@@ -525,16 +828,30 @@ export default function WorkorderForm() {
                   </label>
                   <ReactQuill
                     theme="snow"
+                    placeholder="Enter additional terms & conditions..."
                     value={form.additionalTerms}
-                    onChange={(val) => setForm({ ...form, additionalTerms: val })}
+                    onChange={(val) =>
+                      setForm({ ...form, additionalTerms: val })
+                    }
                     modules={quillModules}
-                    className="bg-white rounded-[5px] [&_.ql-container]:min-h-[150px] [&_.ql-toolbar]:rounded-t-[5px] [&_.ql-container]:rounded-b-[5px]"
+                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className={labelClass}>Exclusions</label>
+                  <ReactQuill
+                    theme="snow"
+                    placeholder="Enter exclusions..."
+                    value={form.exclusions}
+                    onChange={(val) => setForm({ ...form, exclusions: val })}
+                    modules={quillModules}
+                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-center gap-4 px-6 py-6 border-[#AEACAC52] pb-10">
+            <div className="flex justify-center gap-4 py-6 pb-10">
               <button
                 type="button"
                 onClick={() => navigate("/td/workorder")}
@@ -564,8 +881,8 @@ const QUILL_STYLES = `
   .ql-editor.ql-blank::before { color: #8B8B8B !important; font-style: normal !important; }
 `;
 
-if (typeof document !== 'undefined') {
-  const styleTag = document.createElement('style');
+if (typeof document !== "undefined") {
+  const styleTag = document.createElement("style");
   styleTag.innerHTML = QUILL_STYLES;
   document.head.appendChild(styleTag);
 }

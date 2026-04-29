@@ -1,6 +1,8 @@
 export interface User {
   id: number;
   full_name: string;
+  /** Some endpoints still return `name` instead of `full_name`. */
+  name?: string;
   email: string;
   company_id: number | string;
   user_role?: string;
