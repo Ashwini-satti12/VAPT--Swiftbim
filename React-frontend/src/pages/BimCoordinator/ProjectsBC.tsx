@@ -865,18 +865,16 @@ export default function ProjectsBC() {
                       navigate(
                         "/bc/teamtasks?status=todo" +
                           (selectedProjectForView?.project_name
-                            ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
                             : ""),
                       )
                     }
-                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                    className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
-                    <div className="flex items-center justify-left mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                        To Do Tasks
-                      </p>
-                    </div>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                      To Do Tasks
+                    </p>
+                    <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
                       {pmTaskStatsLoading ? "..." : pmTaskStats.todo}
                     </p>
                   </button>
@@ -888,18 +886,16 @@ export default function ProjectsBC() {
                       navigate(
                         "/bc/teamtasks?status=in_progress" +
                           (selectedProjectForView?.project_name
-                            ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
                             : ""),
                       )
                     }
-                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                    className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
-                    <div className="flex items-center justify-left mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                        In Progress Tasks
-                      </p>
-                    </div>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                      In Progress Tasks
+                    </p>
+                    <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
                       {pmTaskStatsLoading ? "..." : pmTaskStats.inProgress}
                     </p>
                   </button>
@@ -911,18 +907,16 @@ export default function ProjectsBC() {
                       navigate(
                         "/bc/teamtasks?status=paused" +
                           (selectedProjectForView?.project_name
-                            ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
                             : ""),
                       )
                     }
-                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                    className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
-                    <div className="flex items-center justify-left mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                        Paused Tasks
-                      </p>
-                    </div>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                      Paused Tasks
+                    </p>
+                    <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
                       {pmTaskStatsLoading ? "..." : pmTaskStats.paused}
                     </p>
                   </button>
@@ -934,18 +928,16 @@ export default function ProjectsBC() {
                       navigate(
                         "/bc/teamtasks?status=completed" +
                           (selectedProjectForView?.project_name
-                            ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
                             : ""),
                       )
                     }
-                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
+                    className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
-                    <div className="flex items-center justify-left mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                        Completed Tasks
-                      </p>
-                    </div>
-                    <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                      Completed Tasks
+                    </p>
+                    <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
                       {pmTaskStatsLoading ? "..." : pmTaskStats.completed}
                     </p>
                   </button>
@@ -989,7 +981,7 @@ export default function ProjectsBC() {
                                 className="bg-white border border-[#AEACAC52] rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[120px]"
                               >
                                 <div className="flex justify-between items-start">
-                                  <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
+                                  <h5 className="text-[18px] font-Gantari font-semibold text-[#1A1A1A] truncate pr-2">
                                     {mod.trim()}
                                   </h5>
                                   <div
@@ -1124,19 +1116,9 @@ export default function ProjectsBC() {
                       if (pmIds.length === 0 && pmNames.length === 0) {
                         return (
                           <div className="min-w-0">
-                            <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                            <p className="text-md font-Gantari font-semibold text-[#000000]">
                               Project Manager
                             </p>
-                            <div className="flex items-center -space-x-3">
-                              <div
-                                className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
-                                title="Not assigned"
-                              >
-                                <span className="text-slate-600 text-xs font-bold">
-                                  PM
-                                </span>
-                              </div>
-                            </div>
                           </div>
                         );
                       }
@@ -1264,19 +1246,9 @@ export default function ProjectsBC() {
                       if (blIds.length === 0 && blNames.length === 0) {
                         return (
                           <div className="min-w-0">
-                            <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                            <p className="text-md font-Gantari font-semibold text-[#000000]">
                               BIM Lead
                             </p>
-                            <div className="flex items-center -space-x-3">
-                              <div
-                                className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
-                                title="Not assigned"
-                              >
-                                <span className="text-slate-600 text-xs font-bold">
-                                  BL
-                                </span>
-                              </div>
-                            </div>
                           </div>
                         );
                       }
@@ -1402,19 +1374,9 @@ export default function ProjectsBC() {
                         if (bcIds.length === 0 && bcNames.length === 0) {
                           return (
                             <div className="min-w-0">
-                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                              <p className="text-md font-Gantari font-semibold text-[#000000]">
                                 BIM Coordinator
                               </p>
-                              <div className="flex items-center -space-x-3">
-                                <div
-                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
-                                  title="Not assigned"
-                                >
-                                  <span className="text-slate-600 text-xs font-bold">
-                                    BC
-                                  </span>
-                                </div>
-                              </div>
                             </div>
                           );
                         }
@@ -3902,7 +3864,6 @@ export default function ProjectsBC() {
                   }}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
                 >
-                  <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
                   Create Project
                 </button>
               )}
@@ -3926,10 +3887,10 @@ export default function ProjectsBC() {
                     return (
                       <div
                         key={p.id}
-                        className="bg-white rounded-md border border-slate-200 p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300"
+                        className="bg-white rounded-md border border-slate-200 p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300"
                       >
                         <div>
-                          <div className="flex items-start justify-between mb-4 mt-2 pr-0">
+                          <div className="flex items-start justify-between mb-4 pr-0">
                             <div className="relative flex items-center justify-center">
                               <svg className="w-[52px] h-[52px] transform -rotate-90">
                                 <circle
@@ -3975,12 +3936,12 @@ export default function ProjectsBC() {
                                     prev === p.id ? null : p.id,
                                   );
                                 }}
-                                className="p-2 rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
+                                className="rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
                               >
                                 <img
                                   src={threedot}
                                   alt="threeDots"
-                                  className="w-5 h-5 text-[#8B8B8B]"
+                                  className="w-4 h-4 text-[#8B8B8B]"
                                 />
                               </button>
                               <div

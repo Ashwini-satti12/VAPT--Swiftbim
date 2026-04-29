@@ -1464,7 +1464,7 @@ export default function VendorBimLeadProjects() {
                               className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[150px]"
                             >
                               <div className="flex justify-between items-start mb-2">
-                                <h5 className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
+                                <h5 className="text-[16px] font-Gantari font-medium text-[#1A1A1A] truncate pr-2">
                                   {tower.name}
                                 </h5>
                                 <div
