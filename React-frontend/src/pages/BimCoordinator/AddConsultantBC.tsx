@@ -88,6 +88,7 @@ export default function AddConsultantBC() {
     password: '',
     phone_number: '',
     user_role: '',
+    address: '',
     dob: '',
     type: 'Employee',
     joining_date: '',
@@ -179,6 +180,14 @@ export default function AddConsultantBC() {
                     password: '',
                     phone_number: '',
                     user_role: '',
+                    address: '',
+                    dob: '',
+                    type: 'Employee',
+                    joining_date: '',
+                    salary: '',
+                    accountnumber: '',
+                    roles: ['Employee'],
+                    profile_picture: null,
                     active: 'Active',
                 });
                 setTimeout(() => {

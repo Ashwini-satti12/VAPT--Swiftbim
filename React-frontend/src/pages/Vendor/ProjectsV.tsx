@@ -1627,26 +1627,24 @@ export default function ProjectsV() {
                         status: "completed",
                       },
                     ].map((stat, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() =>
-                          stat.status &&
-                          navigate(
-                            `/v/teamtasks?project=${encodeURIComponent(selectedProject?.project_name || "")}&status=${stat.status}`,
-                          )
-                        }
-                        className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
-                      >
-                        <div className="flex items-center justify-left mb-2">
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() =>
+                            stat.status &&
+                            navigate(
+                              `/v/teamtasks?project=${encodeURIComponent(selectedProject?.project_name || "")}&status=${stat.status}`,
+                            )
+                          }
+                          className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                        >
                           <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
                             {stat.label}
                           </p>
-                        </div>
-                        <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                          {stat.value}
-                        </p>
-                      </button>
+                          <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
+                            {stat.value}
+                          </p>
+                        </button>
                     ))}
                   </div>
                 </div>
@@ -1686,7 +1684,7 @@ export default function ProjectsV() {
                               className="bg-white border border-slate-200 rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[120px]"
                             >
                               <div className="flex justify-between items-start mb-2">
-                                <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
+                                <h5 className="text-[18px] font-Gantari font-medium text-[#1A1A1A] truncate pr-2" title={tower.name}>
                                   {tower.name}
                                 </h5>
                                 <div
@@ -1793,103 +1791,99 @@ export default function ProjectsV() {
                     Team Overview
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                    {/* Project Manager */}
-                    <div className="space-y-4">
-                      <p className="text-[16px] font-medium text-[#000000]">
-                        Project Manager
-                      </p>
-                      <div className="flex items-center gap-4">
-                        {(() => {
-                          const id = selectedProject.project_manager_id;
-                          const name = getEmployeeName(id);
-                          const emp =
-                            projectManagers.find((e) => e.id === Number(id)) ||
-                            allEmployees.find((e) => e.id === Number(id));
-                          const profileUrl = emp?.profile_picture
-                            ? getGlobalProfileUrl(
-                                emp.id,
-                                emp.profile_picture,
-                                "vendor",
-                              )
-                            : null;
-                          return (
-                            <>
-                              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
-                                {profileUrl ? (
-                                  <img
-                                    src={profileUrl}
-                                    className="w-full h-full object-cover"
-                                    alt=""
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).src =
-                                        swifterzLogo;
-                                    }}
-                                  />
-                                ) : (
-                                  <img
-                                    src={swifterzLogo}
-                                    className="w-7 h-7 object-contain"
-                                    alt=""
-                                  />
-                                )}
-                              </div>
-                              <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
-                                {name || "Not assigned"}
-                              </p>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    </div>
+                    {(() => {
+                      const id = selectedProject.project_manager_id;
+                      const name = getEmployeeName(id);
+                      if (!name || name.toLowerCase() === "not assigned") return null;
+                      const emp =
+                        projectManagers.find((e) => e.id === Number(id)) ||
+                        allEmployees.find((e) => e.id === Number(id));
+                      const profileUrl = emp?.profile_picture
+                        ? getGlobalProfileUrl(
+                            emp.id,
+                            emp.profile_picture,
+                            "vendor",
+                          )
+                        : null;
+                      return (
+                        <div className="space-y-4">
+                          <p className="text-[16px] font-medium text-[#000000]">
+                            Project Manager
+                          </p>
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                              {profileUrl ? (
+                                <img
+                                  src={profileUrl}
+                                  className="w-full h-full object-cover"
+                                  alt=""
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src =
+                                      swifterzLogo;
+                                  }}
+                                />
+                              ) : (
+                                <img
+                                  src={swifterzLogo}
+                                  className="w-7 h-7 object-contain"
+                                  alt=""
+                                />
+                              )}
+                            </div>
+                            <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                              {name}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
-                    {/* BIM Lead */}
-                    <div className="space-y-4">
-                      <p className="text-[16px] font-medium text-[#000000]">
-                        BIM Lead
-                      </p>
-                      <div className="flex items-center gap-4">
-                        {(() => {
-                          const id = selectedProject.lead_id;
-                          const name = getEmployeeName(id);
-                          const emp =
-                            bimLeads.find((e) => e.id === Number(id)) ||
-                            allEmployees.find((e) => e.id === Number(id));
-                          const profileUrl = emp?.profile_picture
-                            ? getGlobalProfileUrl(
-                                emp.id,
-                                emp.profile_picture,
-                                "vendor",
-                              )
-                            : null;
-                          return (
-                            <>
-                              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
-                                {profileUrl ? (
-                                  <img
-                                    src={profileUrl}
-                                    className="w-full h-full object-cover"
-                                    alt=""
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).src =
-                                        swifterzLogo;
-                                    }}
-                                  />
-                                ) : (
-                                  <img
-                                    src={swifterzLogo}
-                                    className="w-7 h-7 object-contain"
-                                    alt=""
-                                  />
-                                )}
-                              </div>
-                              <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
-                                {name || "Not assigned"}
-                              </p>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    </div>
+                    {(() => {
+                      const id = selectedProject.lead_id;
+                      const name = getEmployeeName(id);
+                      if (!name || name.toLowerCase() === "not assigned") return null;
+                      const emp =
+                        bimLeads.find((e) => e.id === Number(id)) ||
+                        allEmployees.find((e) => e.id === Number(id));
+                      const profileUrl = emp?.profile_picture
+                        ? getGlobalProfileUrl(
+                            emp.id,
+                            emp.profile_picture,
+                            "vendor",
+                          )
+                        : null;
+                      return (
+                        <div className="space-y-4">
+                          <p className="text-[16px] font-medium text-[#000000]">
+                            BIM Lead
+                          </p>
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                              {profileUrl ? (
+                                <img
+                                  src={profileUrl}
+                                  className="w-full h-full object-cover"
+                                  alt=""
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src =
+                                      swifterzLogo;
+                                  }}
+                                />
+                              ) : (
+                                <img
+                                  src={swifterzLogo}
+                                  className="w-7 h-7 object-contain"
+                                  alt=""
+                                />
+                              )}
+                            </div>
+                            <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                              {name}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Department Involved */}
                     {/* <div className="space-y-4">
@@ -2319,7 +2313,7 @@ export default function ProjectsV() {
                               <img
                                 src={threedot}
                                 alt="threeDots"
-                                className="w-5 h-5 text-[#8B8B8B]"
+                                className="w-4 h-4 text-[#8B8B8B]"
                               />
                             </button>
                             <div

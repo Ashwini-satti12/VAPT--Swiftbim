@@ -1330,7 +1330,7 @@ export default function ManageLeavePM() {
                       return <span className="text-[#8B8B8B]">-</span>;
                     };
                     const r = (selectedLeave.role || '').toLowerCase();
-                    const sc = selectedLeave.statusCode;
+                    const sc = selectedLeave.statusCode ?? 0;
                     const st = selectedLeave.currentStatus;
                     let statuses = [];
                     if (sc === 2) {

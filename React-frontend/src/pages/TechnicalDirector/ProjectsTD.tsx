@@ -259,6 +259,7 @@ function FormSelect({
   showTick?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -269,6 +270,10 @@ function FormSelect({
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) setSearchTerm("");
   }, [open]);
 
   const handleSelect = (opt: string) => {
@@ -300,7 +305,9 @@ function FormSelect({
     return value === opt;
   };
 
-  const dropdownOptions = options;
+  const filteredOptions = options.filter((opt) =>
+    opt.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
   return (
     <div className="relative w-full" ref={ref}>
@@ -318,46 +325,58 @@ function FormSelect({
         >
           {getDisplayValue()}
         </span>
-        <svg
-          className={`w-4 h-4 text-[#8B8B8B] transition-transform ${open ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        <img
+          src={ArrowDown}
+          alt="arrow"
+          className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
       </button>
       {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#FFFFFF] border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
-          {dropdownOptions.map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              onClick={() => handleSelect(opt)}
-              className={`w-full text-left px-4 py-2 text-[14px] transition-colors flex items-center justify-between cursor-pointer
-                ${isSelected(opt) ? "text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
-            >
-              <span className="truncate">{opt}</span>
-              {isSelected(opt) && showTick && (
-                <svg
-                  className="w-4 h-4 text-[#00A300]"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
+        <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md overflow-hidden flex flex-col">
+          <div className="p-2 border-b border-gray-100 bg-white sticky top-0 z-10">
+            <input
+              type="text"
+              autoFocus
+              className="w-full px-3 py-2 text-[14px] border border-gray-200 rounded focus:outline-none focus:border-[#DD4342]/30"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto custom-scrollbar">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => handleSelect(opt)}
+                  className={`w-full text-left px-4 py-2 text-[14px] transition-colors hover:bg-[#F2F2F2] flex items-center justify-between cursor-pointer ${isSelected(opt) ? "text-[#353535] bg-[#F8F8F8] font-bold" : "text-[#8B8B8B] font-medium"}`}
                 >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              )}
-            </button>
-          ))}
+                  <span className="truncate">{opt}</span>
+                  {isSelected(opt) && showTick && (
+                    <svg
+                      className="w-4 h-4 text-[#DD4342] shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  )}
+                </button>
+              ))
+            ) : (
+              <div className="px-4 py-3 text-[14px] text-gray-400 text-center">
+                No results found
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -563,8 +582,8 @@ export default function ProjectsTD() {
   >([]);
 
   const [typeFilter, setTypeFilter] = useState<
-    "Type" | "All" | "In House" | "Outsource"
-  >("All");
+    "Execution Type" | "In House" | "Outsource"
+  >("Execution Type");
 
   // Profile modal state
   const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
@@ -1199,14 +1218,12 @@ export default function ProjectsTD() {
                               : ""),
                           )
                         }
-                        className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                        className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                       >
-                        <div className="flex items-center justify-left mb-2">
-                          <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
-                            To Do Tasks
-                          </p>
-                        </div>
-                        <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
+                        <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                          To Do Tasks
+                        </p>
+                        <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
                           {loadingTaskStats ? "..." : taskStats.todo}
                         </p>
                       </button>
@@ -1222,14 +1239,12 @@ export default function ProjectsTD() {
                               : ""),
                           )
                         }
-                        className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                        className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
-                            In Progress Tasks
-                          </p>
-                        </div>
-                        <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
+                        <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                          In Progress Tasks
+                        </p>
+                        <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
                           {loadingTaskStats ? "..." : taskStats.inProgress}
                         </p>
                       </button>
@@ -1245,14 +1260,12 @@ export default function ProjectsTD() {
                               : ""),
                           )
                         }
-                        className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                        className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
-                            Paused Tasks
-                          </p>
-                        </div>
-                        <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
+                        <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                          Paused Tasks
+                        </p>
+                        <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
                           {loadingTaskStats ? "..." : taskStats.paused}
                         </p>
                       </button>
@@ -1268,14 +1281,12 @@ export default function ProjectsTD() {
                               : ""),
                           )
                         }
-                        className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                        className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
-                            Completed Tasks
-                          </p>
-                        </div>
-                        <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
+                        <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                          Completed Tasks
+                        </p>
+                        <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
                           {loadingTaskStats ? "..." : taskStats.completed}
                         </p>
                       </button>
@@ -1301,7 +1312,7 @@ export default function ProjectsTD() {
                                 className="bg-white border border-slate-200 rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[126px]"
                               >
                                 <div className="flex justify-between items-start min-h-0 pb-2">
-                                  <h5 className="text-[16px] font-Gantari font-medium text-[#000000] truncate pr-2 w-full">
+                                  <h5 className="text-[16px] font-Gantari font-medium text-[#000000] truncate pr-2 w-full" title={tower.name}>
                                     {tower.name}
                                   </h5>
                                 </div>
@@ -1409,27 +1420,11 @@ export default function ProjectsTD() {
                               )
                                 .split(",")
                                 .map((n) => n.trim())
-                                .filter(Boolean)
+                                .filter((n) => Boolean(n) && !["unknown", "nothing selected", "not assigned"].includes(n.toLowerCase()))
                               : [];
 
                           if (pmIds.length === 0 && pmNames.length === 0) {
-                            return (
-                              <div className="min-w-0">
-                                <p className="text-[14px] font-Gantari font-semibold text-[#000000] mb-2">
-                                  Project Manager
-                                </p>
-                                <div className="flex items-center -space-x-3">
-                                  <div
-                                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
-                                    title="Not assigned"
-                                  >
-                                    <span className="text-slate-600 text-[14px] font-bold">
-                                      PM
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            );
+                            return null;
                           }
 
                           const maxCount = Math.max(pmIds.length, pmNames.length);
@@ -1529,25 +1524,15 @@ export default function ProjectsTD() {
                             ? String(selectedProjectForView.lead_name)
                               .split(",")
                               .map((n) => n.trim())
-                              .filter(Boolean)
+                              .filter((n) => Boolean(n) && !["unknown", "nothing selected", "not assigned"].includes(n.toLowerCase()))
                             : [];
 
                           if (blIds.length === 0 && blNames.length === 0) {
                             return (
                               <div className="min-w-0">
-                                <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                                <p className="text-md font-Gantari font-semibold text-[#000000]">
                                   BIM Lead
                                 </p>
-                                <div className="flex items-center -space-x-3">
-                                  <div
-                                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
-                                    title="Not assigned"
-                                  >
-                                    <span className="text-slate-600 text-xs font-bold">
-                                      BL
-                                    </span>
-                                  </div>
-                                </div>
                               </div>
                             );
                           }
@@ -1647,7 +1632,7 @@ export default function ProjectsTD() {
                             ? String(selectedProjectForView.bim_co_ordinator)
                               .split(",")
                               .map((n) => n.trim())
-                              .filter(Boolean)
+                              .filter((n) => Boolean(n) && !["unknown", "nothing selected", "not assigned"].includes(n.toLowerCase()))
                             : [];
 
                           if (bcIds.length === 0 && bcNames.length === 0) {
@@ -1656,16 +1641,6 @@ export default function ProjectsTD() {
                                 <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
                                   BIM Coordinator
                                 </p>
-                                <div className="flex items-center -space-x-3">
-                                  <div
-                                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
-                                    title="Not assigned"
-                                  >
-                                    <span className="text-slate-600 text-xs font-bold">
-                                      BC
-                                    </span>
-                                  </div>
-                                </div>
                               </div>
                             );
                           }
@@ -2533,27 +2508,22 @@ export default function ProjectsTD() {
                       <button
                         type="button"
                         onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-1 sm:gap-2 shrink-0 px-2.5 py-2 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
+                        className="flex items-center gap-1 sm:gap-2 shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-1.5 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
                       >
-                        <img
-                          src={plusIcon}
-                          alt="Add"
-                          className="w-3.5 h-3.5 sm:w-4 sm:h-4"
-                        />
                         Create Project
                       </button>
                     )}
                     <div className="shrink-0">
                       <CustomDropdown
-                        options={["Type", "All", "In House", "Outsource"]}
+                        options={["Execution Type","In House", "Outsource"]}
                         value={typeFilter}
                         onChange={(val) =>
                           setTypeFilter(
                             val as any,
                           )
                         }
-                        placeholder="Type"
-                        className="w-[100px] sm:w-[130px]"
+                        placeholder="Execution Type"
+                        className="w-[130px] sm:w-[160px]"
                         styleType="header"
                         direction="down"
                       />
@@ -2569,7 +2539,7 @@ export default function ProjectsTD() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(() => {
                   const displayList =
-                    typeFilter === "All" || typeFilter === "Type"
+                    typeFilter === "Execution Type"
                       ? filteredList
                       : filteredList.filter((p) => p.source === typeFilter);
 
