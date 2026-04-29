@@ -29,6 +29,51 @@ interface VendorBid {
   is_top4: boolean;
 }
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+  .hide-scrollbar-x::-webkit-scrollbar:horizontal {
+    display: none;
+  }
+  .hide-scrollbar-x {
+    -ms-overflow-style: none;
+  }
+  .hide-scrollbar-y::-webkit-scrollbar:vertical {
+    display: none;
+  }
+  .hide-scrollbar-y {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scope-content p {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .scope-content strong, .scope-content b {
+    display: inline-flex;
+    justify-content: space-between;
+    width: 220px;
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+`;
+
 interface ViewBidsTDProps {
   project: BiddingEntry;
   onBack: () => void;
@@ -91,8 +136,20 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
   const [selectedShowEntries, setSelectedShowEntries] = useState(
     showEntriesOptions[0].value,
   );
+  const [tableCurrentPage, setTableCurrentPage] = useState(1);
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setTableCurrentPage(1);
+  }, [selectedShowEntries]);
+
+  useEffect(() => {
+    const styleTag = document.createElement('style');
+    styleTag.textContent = SCROLLBAR_STYLE;
+    document.head.appendChild(styleTag);
+    return () => { document.head.removeChild(styleTag); };
+  }, []);
 
   useEffect(() => {
     api
@@ -309,6 +366,31 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
       .trim()
       .toUpperCase()) || "AED";
 
+  // ── Pagination Logic ──
+  const selectedRange =
+    showEntriesOptions.find((o) => o.value === selectedShowEntries) ??
+    showEntriesOptions[0];
+  const listInRange = bids.slice(
+    selectedRange.start,
+    selectedRange.end === null ? bids.length : selectedRange.end,
+  );
+  const tableRowsPerPage = 5;
+  const tableTotalPages = Math.max(
+    1,
+    Math.ceil(listInRange.length / tableRowsPerPage),
+  );
+  const safeTableCurrentPage = Math.min(tableCurrentPage, tableTotalPages);
+  const tablePageStartIndex = (safeTableCurrentPage - 1) * tableRowsPerPage;
+  const displayList = listInRange.slice(
+    tablePageStartIndex,
+    tablePageStartIndex + tableRowsPerPage,
+  );
+
+  const tablePageRangeLabel = `${tablePageStartIndex + 1}-${Math.min(
+    tablePageStartIndex + tableRowsPerPage,
+    listInRange.length,
+  )} of ${listInRange.length}`;
+
   return (
     <div className="h-full flex flex-col px-5 py-2 pt-1 pb-0 font-gantari bg-white">
       {/* Toast */}
@@ -430,23 +512,23 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar pb-8 space-y-6 flex flex-col min-h-0">
+      <div className="flex-1 overflow-y-auto custom-scrollbar hide-scrollbar-y pb-0 space-y-6 flex flex-col min-h-0">
         {/* ── Project Summary ── */}
         <div className="space-y-4 flex-shrink-0">
           <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-4 sm:py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-4">
-            <div className="px-4 sm:px-8 sm:border-r border-[#AEACAC52] lg:last:border-r-0">
-              <p className="text-base sm:text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">
+            <div className="px-4 sm:px-6 sm:border-r border-[#AEACAC52]">
+              <p className="text-[16px] font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">
                 Project Name
               </p>
-              <p className="font-semibold text-[#616161] text-sm sm:text-base font-gantari truncate text-center">
+              <p className="font-semibold text-[#616161] text-[14px] font-gantari truncate text-center">
                 {opportunity.project_name || "—"}
               </p>
             </div>
-            <div className="px-4 sm:px-8 lg:border-r border-[#AEACAC52] last:border-r-0">
-              <p className="text-base sm:text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">
+            <div className="px-4 sm:px-6 sm:border-r border-[#AEACAC52]">
+              <p className="text-[16px] font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">
                 Outsourcing Budget
               </p>
-              <p className="font-semibold text-[#616161] text-sm sm:text-base font-gantari text-center">
+              <p className="font-semibold text-[#616161] text-[14px] font-gantari text-center">
                 {formatCurrency(
                   opportunity.budget_ceiling ||
                   opportunity.outsource_budget ||
@@ -455,21 +537,21 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                 )}
               </p>
             </div>
-            <div className="px-4 sm:px-8 sm:border-r border-[#AEACAC52] last:border-r-0">
-              <p className="text-base sm:text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">
+            <div className="px-4 sm:px-6 sm:border-r border-[#AEACAC52]">
+              <p className="text-[16px] font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">
                 Bidding End Date
               </p>
-              <p className="font-semibold text-[#616161] text-sm sm:text-base font-gantari text-center">
+              <p className="font-semibold text-[#616161] text-[14px] font-gantari text-center">
                 {opportunity.bid_deadline
                   ? formatDate(opportunity.bid_deadline)
                   : "—"}
               </p>
             </div>
-            <div className="px-4 sm:px-8 last:border-r-0">
-              <p className="text-base sm:text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">
+            <div className="px-4 sm:px-6 last:border-r-0">
+              <p className="text-[16px] font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">
                 Total Bids
               </p>
-              <p className="font-semibold text-[#353535] text-2xl sm:text-3xl font-gantari text-center leading-none">
+              <p className="font-semibold text-[#353535] text-[14px] font-gantari text-center leading-none">
                 {bids.length}
               </p>
             </div>
@@ -498,21 +580,23 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                       {(projectSector || bimServices) && (
                         <div className="bg-[#F9F9F9] border border-[#AEACAC52] rounded-md p-6 space-y-4">
                           {projectSector && (
-                        <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4">
-                              <span className="font-bold text-[#353535] min-w-0 sm:min-w-[220px]">
-                                Project Sector:
-                              </span>
-                              <span className="text-[#616161] font-medium">
+                            <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                              <div className="font-bold text-[#353535] w-[220px] flex justify-between flex-shrink-0 font-gantari">
+                                <span>Project Sector</span>
+                                <span>:</span>
+                              </div>
+                              <span className="text-[#616161] font-normal font-gantari">
                                 {projectSector}
                               </span>
                             </div>
                           )}
                           {bimServices && (
-                        <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4">
-                              <span className="font-bold text-[#353535] min-w-0 sm:min-w-[220px]">
-                                BIM Services Required:
-                              </span>
-                              <span className="text-[#616161] font-medium">
+                            <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                              <div className="font-bold text-[#353535] w-[220px] flex justify-between flex-shrink-0 font-gantari">
+                                <span>BIM Services Required</span>
+                                <span>:</span>
+                              </div>
+                              <span className="text-[#616161] font-normal font-gantari">
                                 {bimServices}
                               </span>
                             </div>
@@ -522,7 +606,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
 
                       {scopeOfWorkHtml && (
                         <div
-                          className="bg-[#F9FAFB] rounded-md px-5 py-4 text-[15px] text-[#353535] font-gantari leading-relaxed [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-sm [&_h3]:font-bold [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                          className="bg-[#F9FAFB] rounded-md px-5 py-4 text-[15px] text-[#353535] font-gantari leading-relaxed scope-content [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-sm [&_h3]:font-bold [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                           dangerouslySetInnerHTML={{ __html: scopeOfWorkHtml }}
                         />
                       )}
@@ -552,7 +636,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                     </div> */}
 
           {loading ? (
-            <div className="flex justify-center items-center py-20">
+            <div className="flex justify-center items-center py-20 ">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DD4342]" />
             </div>
           ) : bids.length === 0 ? (
@@ -578,7 +662,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto custom-scrollbar smooth-scroll flex-1">
+            <div className="overflow-x-auto custom-scrollbar smooth-scroll flex-1 hide-scrollbar-x">
               <table className="min-w-full border-collapse">
                 <thead className="sticky top-0 z-10 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                   <tr className=" bg-white">
@@ -615,23 +699,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {bids
-                    .slice(
-                      showEntriesOptions.find(
-                        (o) => o.value === selectedShowEntries,
-                      )?.start ?? 0,
-                      showEntriesOptions.find(
-                        (o) => o.value === selectedShowEntries,
-                      )?.end === null
-                        ? bids.length
-                        : Math.min(
-                          showEntriesOptions.find(
-                            (o) => o.value === selectedShowEntries,
-                          )?.end ?? bids.length,
-                          bids.length,
-                        ),
-                    )
-                    .map((bid, index, array) => {
+                  {displayList.map((bid, index, array) => {
                       const isRejected = bid.status === "lost";
                       const busy = !!actionLoading[bid.id];
                       const viewBusy = !!viewLoading[bid.id];
@@ -712,7 +780,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                             <button
                               onClick={() => handleViewVendor(bid)}
                               disabled={viewBusy}
-                              className="flex items-center justify-center gap-1.5 mx-auto px-4 py-2 rounded-md text-[14px] font-bold bg-[#DD4342] text-white shadow-sm shadow-red-100 transition-all font-gantari disabled:opacity-60 cursor-pointer"
+                              className="flex items-center justify-center gap-1.5 mx-auto px-4 py-2 rounded-md text-[14px] font-normal bg-[#DD4342] text-white shadow-sm shadow-red-100 transition-all font-gantari disabled:opacity-60 cursor-pointer"
                               title="View vendor profile"
                             >
                               {viewBusy ? (
@@ -731,11 +799,11 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                           {/* Action */}
                           <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
                             {bid.status === "shortlisted" ? (
-                              <span className="inline-flex px-4 py-2 rounded-md text-[14px] font-bold font-gantari bg-[#E6F4EA] text-[#1E7E34]">
+                              <span className="inline-flex px-4 py-2 rounded-md text-[14px] font-normal font-gantari bg-[#E6F4EA] text-[#1E7E34]">
                                 Accepted
                               </span>
                             ) : bid.status === "lost" ? (
-                              <span className="inline-flex px-4 py-2 rounded-md text-[14px] font-bold font-gantari bg-[#FCE8E8] text-[#D93025]">
+                              <span className="inline-flex px-4 py-2 rounded-md text-[14px] font-normal font-gantari bg-[#FCE8E8] text-[#D93025]">
                                 Rejected
                               </span>
                             ) : (
@@ -846,6 +914,56 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
             </div>
           )}
         </div>
+        {!loading && bids.length > 0 && listInRange.length > 0 && (
+          <div className="w-full flex items-center justify-end !mt-2 mb-0 ">
+            <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
+              <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">
+                Showing:
+              </span>
+              <button
+                type="button"
+                onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={safeTableCurrentPage === 1}
+                className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
+                  safeTableCurrentPage === 1
+                    ? "text-[#9CA3AF] opacity-50 cursor-not-allowed"
+                    : "text-[#353535]"
+                }`}
+                aria-label="Previous page"
+              >
+                <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">
+                  &#8249;
+                </span>
+                <span className="inline-flex items-center">Prev</span>
+              </button>
+              <button
+                type="button"
+                className="px-4 py-1 rounded-md bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+                aria-current="page"
+              >
+                {tablePageRangeLabel}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))
+                }
+                disabled={safeTableCurrentPage >= tableTotalPages}
+                className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
+                  safeTableCurrentPage >= tableTotalPages
+                    ? "text-[#9CA3AF] opacity-40 cursor-not-allowed"
+                    : "text-[#353535]"
+                }`}
+                aria-label="Next page"
+              >
+                <span className="inline-flex items-center">Next</span>
+                <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">
+                  &#8250;
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

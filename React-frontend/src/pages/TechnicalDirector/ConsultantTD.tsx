@@ -1311,7 +1311,7 @@ export default function ConsultantTD() {
                                   {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
                                 </td>
                                 <td className="px-6 py-5 border-b border-[#F0F0F0] whitespace-nowrap">
-                                  <div className="flex items-center justify-center gap-4">
+                                  <div className="flex items-center justify-start gap-4">
                                     <div className="relative shrink-0">
                                       <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
                                         {emp.profile_picture && emp.profile_picture.trim() ? (

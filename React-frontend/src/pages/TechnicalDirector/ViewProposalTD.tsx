@@ -557,55 +557,47 @@ export default function ViewProposalTD() {
           <div className="w-full space-y-10 relative">
             {/* Summary Banner — All key info inside the card */}
             <div className="mt-4">
-              <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-4 sm:py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-y-4">
+              <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-4 sm:py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-y-4">
                 <div className="px-4 sm:px-6 sm:border-r border-[#AEACAC52]">
-                  <p className="text-base sm:text-[18px] font-bold text-[#020202] mb-1 tracking-wider text-center">
+                  <p className="text-[16px] font-bold text-[#020202] mb-1 tracking-wider text-center">
                     Project
                   </p>
-                  <p className="text-[#616161] text-sm sm:text-[16px] truncate text-center uppercase tracking-wide">
+                  <p className="text-[#616161] text-[14px] truncate text-center uppercase tracking-wide">
                     {proposal.project_name || bid?.project_name || "Proposal"}
                   </p>
                 </div>
                 <div className="px-4 sm:px-6 sm:border-r border-[#AEACAC52]">
-                  <p className="text-base sm:text-[18px] font-bold text-[#020202] mb-1 tracking-wider text-center">
+                  <p className="text-[16px] font-bold text-[#020202] mb-1 tracking-wider text-center">
                     Vendor
                   </p>
-                  <p className="text-[#616161] text-sm sm:text-[16px] truncate text-center uppercase tracking-wide">
+                  <p className="text-[#616161] text-[14px] truncate text-center uppercase tracking-wide">
                     {proposal.vendor_name || bid?.vendor_name || "—"}
                   </p>
                 </div>
-                <div className="px-4 sm:px-6 lg:border-r border-[#AEACAC52]">
-                  <p className="text-base sm:text-[18px] font-bold text-[#020202] mb-1 tracking-wider text-center">
+                <div className="px-4 sm:px-6 sm:border-r border-[#AEACAC52]">
+                  <p className="text-[16px] font-bold text-[#020202] mb-1 tracking-wider text-center">
                     Email
                   </p>
-                  <p className="text-[#616161] text-sm sm:text-[16px] truncate text-center">
+                  <p className="text-[#616161] text-[14px] truncate text-center">
                     {proposal.email_address ||
                       proposal.vendor_email ||
                       bid?.vendor_email ||
                       "—"}
                   </p>
                 </div>
-                <div className="flex-1 min-w-[100px] border-r border-[#AEACAC52] flex flex-col items-center justify-center">
-                  <p className="text-base sm:text-[18px] font-bold text-[#020202] mb-1 tracking-wider text-center uppercase">
-                    Currency
-                  </p>
-                  <p className="text-[#DD4342] text-sm sm:text-[16px] text-center font-bold">
-                    {getCurrency()}
-                  </p>
-                </div>
-                <div className="flex-1 min-w-[100px] border-r border-[#AEACAC52] flex flex-col items-center justify-center">
-                  <p className="text-base sm:text-[18px] font-bold text-[#020202] mb-1 tracking-wider text-center uppercase">
+                <div className="px-4 sm:px-6 sm:border-r border-[#AEACAC52] flex flex-col items-center justify-center">
+                  <p className="text-[16px] font-bold text-[#020202] mb-1 tracking-wider text-center">
                     Bid Amount
                   </p>
-                  <p className="text-[#DD4342] text-sm sm:text-[16px] text-center font-bold">
-                    {getBidAmount()?.toLocaleString() || "—"}
+                  <p className="text-[#616161] text-[14px] text-center font-semibold">
+                    {getCurrency()} {getBidAmount()?.toLocaleString() || "—"}
                   </p>
                 </div>
                 <div className="px-4 sm:px-6 last:border-r-0">
-                  <p className="text-base sm:text-[18px] font-bold text-[#020202] mb-1 tracking-wider text-center">
+                  <p className="text-[16px] font-bold text-[#020202] mb-1 tracking-wider text-center">
                     Created On
                   </p>
-                  <p className="text-[#616161] text-sm sm:text-[16px] text-center">
+                  <p className="text-[#616161] text-[14px] text-center">
                     {formatDate(proposal.created_at)}
                   </p>
                 </div>
