@@ -59,13 +59,13 @@ function mapLeaveStatusFromApi(
   const s = Number(status);
   if (s === 1) return "Approved";
   if (s === 2) return "Rejected";
-  if (s === 3) return "Pending (BIM Lead)";
-  if (s === 4) return "Pending (Project Manager)";
-  if (s === 5) return "Pending (Technical Director)";
-  if (s === 0 && isBimLeadRole(applicantRole)) return "Pending (Project Manager)";
-  if (s === 0 && isProjectManagerRole(applicantRole)) return "Pending (Technical Director)";
-  if (isBimModelerRole(applicantRole)) return "Pending (BIM Coordinator)";
-  if (isBimCoordinatorRole(applicantRole)) return "Pending (BIM Lead)";
+  if (s === 3) return "Pending"; // BIM Modeler: waiting for BIM Lead
+  if (s === 4) return "Pending"; // BIM Coordinator: waiting for PM (after BL approved)
+  if (s === 5) return "Pending"; // BIM Lead: waiting for TD (after PM approved)
+  if (s === 0 && isBimLeadRole(applicantRole)) return "Pending";
+  if (s === 0 && isProjectManagerRole(applicantRole)) return "Pending";
+  if (isBimModelerRole(applicantRole)) return "Pending";
+  if (isBimCoordinatorRole(applicantRole)) return "Pending";
   return "Pending";
 }
 
@@ -210,7 +210,11 @@ export default function ManageLeavePM() {
     }
   };
 
-  // Load only current user's leave applications from backend (tblleaves)
+  // Load leave applications: PM sees
+  //  - Own applications (any status)
+  //  - BIM Coordinator leaves at status 4 (BL approved → PM is final approver)
+  //  - BIM Lead own leaves at status 0 (PM is first approver for BL)
+  //  - BIM Lead leaves at any other status (for visibility / history)
   useEffect(() => {
     const fetchLeaves = async () => {
       if (!user?.id) {
@@ -223,9 +227,14 @@ export default function ManageLeavePM() {
         );
         const apps = (data.applications || []).filter((app) => {
           const isOwn = app.employee_id === user.id;
-          const isCoordinator = isBimCoordinatorRole(app.role);
-          const isBimLead = isBimLeadRole(app.role);
-          return isOwn || isCoordinator || isBimLead;
+          const statusNum = Number(app.status);
+          // BIM Coordinator: PM approves at status 4 (after BIM Lead forwarded)
+          const isBcPendingPM = isBimCoordinatorRole(app.role) && statusNum === 4;
+          // BIM Coordinator history (approved/rejected) - for visibility
+          const isBcHistorical = isBimCoordinatorRole(app.role) && (statusNum === 1 || statusNum === 2);
+          // BIM Lead: PM is first approver (status 0), or already processed
+          const isBimLeadApp = isBimLeadRole(app.role);
+          return isOwn || isBcPendingPM || isBcHistorical || isBimLeadApp;
         });
         const mapped: LeaveEntry[] = apps.map((app, index) => ({
           id: app.lid,
@@ -589,12 +598,26 @@ export default function ManageLeavePM() {
     }
   };
 
+  // PM approve/reject logic:
+  //  - BIM Coordinator: PM is 2nd approver → show buttons when statusCode === 4
+  //  - BIM Lead: PM is 1st approver → show buttons when statusCode === 0
+  //  - Never act on own leave
   const canPmActOnLeave = (row: LeaveEntry): boolean => {
-    const currentName = (user?.full_name || "").trim();
-    if (!currentName) return false;
-    if (row.employeeName.trim() === currentName) return false;
-    const targetRole = isBimCoordinatorRole(row.role) || isBimLeadRole(row.role);
-    return targetRole && row.currentStatus === "Pending (Project Manager)";
+    // Exclude own applications
+    if (row.employeeId !== undefined && row.employeeId === user?.id) return false;
+    if (row.employeeId === undefined) {
+      const currentName = (user?.full_name || "").trim();
+      if (currentName && row.employeeName.trim() === currentName) return false;
+    }
+    // BIM Coordinator: PM is final approver after BIM Lead forwards (status 4)
+    if (isBimCoordinatorRole(row.role)) {
+      return row.statusCode === 4;
+    }
+    // BIM Lead: PM is first approver (status 0)
+    if (isBimLeadRole(row.role)) {
+      return row.statusCode === 0;
+    }
+    return false;
   };
 
   const canEditOwnLeave = (row: LeaveEntry): boolean => {
@@ -1299,17 +1322,43 @@ export default function ManageLeavePM() {
                       {selectedLeave.description ?? "–"}
                     </span>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
-                      Current Status
-                    </span>
-                    <span className="shrink-0 text-[#616161]">:</span>
-                    <span
-                      className={`inline-flex px-3 py-1 rounded-md text-xs font-semibold ${selectedLeave.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : selectedLeave.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFF8E1] text-[#F57C00]"}`}
-                    >
-                      {selectedLeave.currentStatus}
-                    </span>
-                  </div>
+                  {(() => {
+                    const getBadge = (statusText: string) => {
+                      if (statusText === 'Approved') return <span className="inline-flex px-3 py-1 rounded-md text-xs font-semibold bg-[#E1F6EB] text-[#008F22]">Approved</span>;
+                      if (statusText === 'Rejected') return <span className="inline-flex px-3 py-1 rounded-md text-xs font-semibold bg-[#FFE5E5] text-[#C62828]">Rejected</span>;
+                      if (statusText === 'Pending') return <span className="inline-flex px-3 py-1 rounded-md text-xs font-semibold bg-[#FFF8E1] text-[#F57C00]">Pending</span>;
+                      return <span className="text-[#8B8B8B]">-</span>;
+                    };
+                    const r = (selectedLeave.role || '').toLowerCase();
+                    const sc = selectedLeave.statusCode;
+                    const st = selectedLeave.currentStatus;
+                    let statuses = [];
+                    if (sc === 2) {
+                      statuses.push({ label: 'Current Status', text: 'Rejected' });
+                    } else {
+                      if (r.includes('bim modeler')) {
+                        statuses.push({ label: 'BIM Coordinator', text: sc === 1 || sc >= 3 ? 'Approved' : 'Pending' });
+                        statuses.push({ label: 'BIM Lead', text: sc === 1 ? 'Approved' : 'Pending' });
+                      } else if (r.includes('bim coordinator')) {
+                        statuses.push({ label: 'BIM Lead', text: sc === 1 || sc >= 4 ? 'Approved' : 'Pending' });
+                        statuses.push({ label: 'Project Manager', text: sc === 1 ? 'Approved' : 'Pending' });
+                      } else if (r.includes('bim lead')) {
+                        statuses.push({ label: 'Project Manager', text: sc === 1 || sc >= 5 ? 'Approved' : 'Pending' });
+                        statuses.push({ label: 'Technical Director', text: sc === 1 ? 'Approved' : 'Pending' });
+                      } else if (r.includes('project manager')) {
+                        statuses.push({ label: 'Technical Director', text: sc === 1 ? 'Approved' : 'Pending' });
+                      } else {
+                        statuses.push({ label: 'Current Status', text: st });
+                      }
+                    }
+                    return statuses.map((item, idx) => (
+                      <div key={idx} className="flex items-start gap-2">
+                        <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">{item.label}</span>
+                        <span className="shrink-0 text-[#616161]">:</span>
+                        {getBadge(item.text)}
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
             </div>

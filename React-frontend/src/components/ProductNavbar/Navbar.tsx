@@ -352,8 +352,8 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
   };
 
   const handleProfileSave = async () => {
-    if (editData.phone && !/^\d{10}$/.test(editData.phone.replace(/\D/g, ""))) {
-      setPhoneError("Please enter a valid phone number.");
+    if (editData.phone && !/^\d{10,15}$/.test(editData.phone.replace(/\D/g, ""))) {
+      setPhoneError("Please enter a valid phone number (10-15 digits).");
       return;
     }
 
@@ -362,9 +362,9 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     const curPass = currentPassword || "";
     const newPass = newPassword || "";
 
-    if (curPass || newPass) {
-      if (!curPass || !newPass) {
-        setPasswordError("Please enter both current and new password to change it.");
+    if (newPass) {
+      if (!curPass) {
+        setPasswordError("Please enter current password to change to a new one.");
         return;
       }
       if (newPass.length < 6) {
@@ -799,6 +799,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
                         placeholder="Current password"
+                        autoComplete="current-password"
                         className="w-full bg-[#F2F2F2] border border-[#AEACAC52] rounded-[5px] px-3 py-1.5 text-[#353535] font-medium focus:ring-0 outline-none placeholder:text-[#AEACAC]"
                       />
                       <input
@@ -806,6 +807,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="New password"
+                        autoComplete="new-password"
                         className="w-full bg-[#F2F2F2] border border-[#AEACAC52] rounded-[5px] px-3 py-1.5 text-[#353535] font-medium focus:ring-0 outline-none placeholder:text-[#AEACAC]"
                       />
                       {passwordError && (

@@ -6,6 +6,8 @@ import api, { appApiBase } from "../../../lib/api";
 import Upload from "../../../assets/ProjectManager/MyTask/Upload.svg";
 import ImageIcon from "../../../assets/ProjectManager/MyTask/image.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
+import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
+import downloadIcon from "../../../assets/TechnicalDirector/download icon.svg";
 
 interface Task {
   id: number;
@@ -33,7 +35,6 @@ interface Task {
   assign_to?: string;
   assigned_to?: number;
   description?: string;
-  checklist?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
   Approval?: string;
@@ -442,6 +443,22 @@ export default function MyTaskViewEV({
     );
   }
 
+  const isUnderReview =
+    statusDisplay === "completed" &&
+    task.assigned_to != null &&
+    String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id) &&
+    task.Approval?.toLowerCase() !== "approved";
+
+  const progress = isUnderReview
+    ? 95
+    : statusDisplay === "approved"
+      ? 100
+      : statusDisplay === "completed"
+        ? 100
+        : statusDisplay === "in_progress"
+          ? 50
+          : 0;
+
   const style = STATUS_STYLE[statusDisplay];
   const taskRecord = task as unknown as Record<string, unknown>;
 
@@ -555,260 +572,223 @@ export default function MyTaskViewEV({
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="max-w-7xl mx-auto p-6 space-y-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-2">
-              <span className="text-md text-black">Status:</span>
+              <span className="text-md text-black font-Gantari">Status:</span>
               <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${style.bg}`}
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium font-Gantari ${style.bg}`}
               >
                 <span
                   className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`}
                 />
-                {style.label}
+                {isUnderReview ? "Reviewed" : style.label}
               </span>
             </div>
-            <div className="relative" ref={statusDropdownRef}>
-              <button
-                type="button"
-                disabled={updatingStatus}
-                onClick={() => setStatusDropdownOpen((prev) => !prev)}
-                className="rounded-[5px] bg-[#E8E8E8] px-3 py-2 text-[14px] text-[#8B8B8B] flex items-center gap-2 hover:bg-[#DDDDDD] disabled:opacity-50"
-                aria-expanded={statusDropdownOpen}
-                aria-haspopup="listbox"
-              >
-                {updatingStatus ? "Updating..." : "Change Status"}
-                <FiChevronDown className="w-4 h-4" />
-              </button>
-              {statusDropdownOpen && !updatingStatus && (
-                <div
-                  className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200"
-                  role="listbox"
+
+            {!shouldHideInProgressInDropdown(statusDisplay) && (
+              <div className="relative" ref={statusDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                  disabled={updatingStatus}
+                  className="flex items-center justify-between gap-2 rounded-[5px] bg-[#F2F2F2] px-4 py-2 text-[14px] text-slate-700 min-w-[140px] hover:bg-[#E5E5E5] transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {STATUS_OPTIONS.filter(
-                    (opt) =>
-                      !(
-                        shouldHideInProgressInDropdown(statusDisplay) &&
-                        opt.value === "in_progress"
-                      ),
-                  ).map((opt) => {
-                    const disabled = isStatusOptionDisabled(
-                      statusDisplay,
-                      opt.value,
-                    );
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        role="option"
-                        aria-disabled={disabled}
-                        disabled={disabled}
-                        aria-selected={statusDisplay === opt.value}
-                        onClick={() => handleStatusUpdate(opt.value)}
-                        className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 ${
-                          disabled
-                            ? "text-slate-300 cursor-not-allowed opacity-60"
-                            : "hover:bg-slate-50"
-                        } ${
-                          statusDisplay === opt.value && !disabled
-                            ? "bg-slate-50 font-medium"
-                            : ""
-                        }`}
-                      >
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`}
-                        />
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                  <span className="font-Gantari text-[#8B8B8B]">Select Status</span>
+                  <FiChevronDown
+                    className={`transition-transform text-[#8B8B8B] duration-200 ${statusDropdownOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+                {statusDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1 z-50 w-[140px] rounded-[5px] border border-slate-200 bg-white py-1 shadow-lg">
+                    {STATUS_OPTIONS.map((opt) => {
+                      const disabled = isStatusOptionDisabled(statusDisplay, opt.value);
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => handleStatusUpdate(opt.value)}
+                          disabled={disabled}
+                          className={`flex w-full items-center gap-2 px-4 py-2 text-[14px] font-Gantari transition-colors ${
+                            disabled
+                              ? "cursor-not-allowed opacity-50 text-[#8B8B8B]"
+                              : "hover:bg-[#F2F2F2] cursor-pointer text-[#8B8B8B]"
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                              opt.value === "todo"
+                                ? "bg-[#F35C08]"
+                                : opt.value === "in_progress"
+                                  ? "bg-[#09B8FF]"
+                                  : "bg-[#03D955]"
+                            }`}
+                          />
+                          <span>{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+          <div className="w-full border border-slate-200 rounded-xl p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 text-[14px]">
               <div className="flex items-start gap-2">
-                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
                   Task Name
                 </span>
-                <span className="text-[14px] text-[#616161] break-all">
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161] break-words">
                   {task.task_name || "—"}
                 </span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
                   Project Name
                 </span>
-                <span className="text-[14px] text-[#616161] break-all">
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161] break-words">
                   {resolvedProjectName || "—"}
                 </span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
                   Select Module
                 </span>
-                <span className="text-[14px] text-[#616161]">
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">
                   {displayModule()}
                 </span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
-                  Type
-                </span>
-                <span className="text-[14px] text-[#616161]">
-                  {displayType()}
-                </span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
                   Assigned By
                 </span>
-                <span className="text-[14px] text-[#616161]">
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">
                   {task.uploader_full_name ?? "—"}
                 </span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
                   Assigned To
                 </span>
-                <span className="text-[14px] text-[#616161]">
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161]">
                   {resolveAssignedName()}
                 </span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
                   Actual Start Date
                 </span>
-                <span className="text-[14px] text-[#616161] font-gantari">
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161] font-gantari">
                   {displayStartDate()}
                 </span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
                   Start Time
                 </span>
-                <span className="text-[14px] text-[#616161] font-gantari">
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161] font-gantari">
                   {displayStartTime()}
                 </span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
                   Actual End Date
                 </span>
-                <span className="text-[14px] text-[#616161] font-gantari">
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161] font-gantari">
                   {task.due_date ? formatDateDDMMYYYY(task.due_date) : "—"}
                 </span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="w-40 text-[14px] font-medium text-[#353535] shrink-0">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
                   End Time
                 </span>
-                <span className="text-[14px] text-[#616161] font-gantari">
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161] font-gantari">
                   {displayEndTime()}
                 </span>
               </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
+                  Progress
+                </span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <span className="text-[#616161] flex items-center gap-2">
+                  {progress}%
+                  {isUnderReview && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-800">
+                      Under Review
+                    </span>
+                  )}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#020202] font-medium shrink-0 w-32">
+                  Attachments
+                </span>
+                <span className="text-[#020202] shrink-0">:</span>
+                <div className="flex flex-col gap-2 flex-1 min-w-0">
+                  {submittedOutputFiles.length > 0 ? (
+                    submittedOutputFiles.map((f, idx) => {
+                      const url = taskOutputFileUrl(f);
+                      const base = f.split("/").pop() || f;
+                      const underscoreIdx = base.indexOf("_");
+                      const displayName =
+                        underscoreIdx > 8 ? base.slice(underscoreIdx + 1) : base;
+
+                      return (
+                        <div key={idx} className="flex items-center gap-3">
+                          <span className="text-[14px] font-medium text-[#616161] truncate font-Gantari">
+                            {displayName}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1 hover:bg-slate-100 rounded transition-colors"
+                            >
+                              <img src={viewIcon} alt="View" className="w-4 h-4" />
+                            </a>
+                            <a
+                              href={url}
+                              download
+                              className="p-1 hover:bg-slate-100 rounded transition-colors"
+                            >
+                              <img
+                                src={downloadIcon}
+                                alt="Download"
+                                className="w-4 h-4"
+                              />
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <span className="text-[#616161]">-NIL-</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-slate-400 transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 p-6 bg-[#F2F7FF] shadow-sm">
-            <h4 className="text-black text-[18px] font-semibold mb-1">Submit Work</h4>
-            <p className="text-[14px] text-[#8B8B8B] mb-4 font-medium">
-              Choose your finished work or error screenshots to update the team
-              on your progress.
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              onChange={handleSelectImage}
-            />
-            <div className="rounded-sm bg-[#FFFFFF] flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] mb-4">
-              {selectedImagePreview ? (
-                <div className="relative group">
-                  <img
-                    src={selectedImagePreview}
-                    alt="Selected"
-                    className="max-h-48 max-w-full object-contain rounded-md"
-                  />
-                  <button
-                    onClick={() => {
-                      setSelectedImage(null);
-                      setSelectedImagePreview(null);
-                    }}
-                    className="absolute -top-2 -right-2 p-1 bg-white rounded-full shadow-md hover:bg-slate-50 transition-colors"
-                  >
-                    <FiX className="w-4 h-4 text-slate-600" />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <img src={ImageIcon} alt="Image" className="w-8 h-8 opacity-40" />
-                  <span className="text-[14px] mt-2 font-medium text-slate-400">No Image Selected</span>
-                </>
-              )}
-            </div>
-            <div className="flex gap-4 justify-center mt-4">
-              <button
-                type="button"
-                disabled={submittingWork}
-                onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-2 rounded-md bg-[#DBE9FE] px-4 py-2 text-[14px] font-medium text-blue-700 hover:bg-[#D5E6FF] disabled:opacity-50 cursor-pointer transition-colors"
-              >
-                <img src={Upload} alt="Upload" className="w-4 h-4" />
-                Select Image
-              </button>
-              <button
-                type="button"
-                disabled={!selectedImage || submittingWork}
-                onClick={handleImageSubmit}
-                className="inline-flex items-center gap-2 rounded-md bg-[#E1F6EB] px-4 py-2 text-[14px] font-semibold text-[#008F22] hover:bg-[#D6F5E8] disabled:opacity-50 cursor-pointer transition-colors"
-              >
-                <FiCheck className="w-4 h-4" />
-                {submittingWork ? "Submitting..." : "Submit Image"}
-              </button>
-            </div>
-            {submittedOutputFiles.length > 0 && (
-              <div className="mt-6 border-t border-slate-200 pt-4">
-                <p className="text-[14px] font-semibold text-black mb-3">
-                  Submitted files (saved)
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  {submittedOutputFiles.map((fname) => {
-                    const src = taskOutputFileUrl(fname);
-                    const label = displayStoredFileName(fname);
-                    return (
-                      <a
-                        key={fname}
-                        href={src}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block rounded-lg border border-slate-200 overflow-hidden bg-white max-w-[180px] hover:border-blue-400 transition-colors shadow-sm"
-                        title={label}
-                      >
-                        {isImageFile(fname) ? (
-                          <img
-                            src={src}
-                            alt={label}
-                            className="max-h-28 w-full object-contain"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="px-3 py-3 text-xs text-[#353535] break-all flex items-center gap-2">
-                             <div className="w-8 h-8 bg-slate-50 flex items-center justify-center rounded">
-                                <span className="text-[10px] uppercase font-bold text-slate-400">{fname.split('.').pop()}</span>
-                             </div>
-                            {label}
-                          </div>
-                        )}
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
+
         </div>
 
         <div className="mt-8 space-y-6 mb-10">
@@ -837,24 +817,6 @@ export default function MyTaskViewEV({
               </div>
             </div>
           )}
-
-          <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
-            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">
-              Checklist / Reference
-            </h4>
-            <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 overflow-y-auto font-Gantari min-h-[80px]">
-              {task.checklist &&
-                task.checklist.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, "").trim()
-                  .length > 0 ? (
-                <div
-                  className="prose prose-sm max-w-none prose-p:my-0"
-                  dangerouslySetInnerHTML={{ __html: task.checklist }}
-                />
-              ) : (
-                <span className="text-slate-400">—</span>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </div>

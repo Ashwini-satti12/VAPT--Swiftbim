@@ -26,7 +26,6 @@ interface Task {
   due_time?: string;
   assign_to?: string;
   description?: string;
-  checklist?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
   assigned_to?: number;

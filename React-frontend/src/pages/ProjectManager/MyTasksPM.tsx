@@ -21,7 +21,6 @@ import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
-import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 
 const getApiBaseUrl = () => import.meta.env.VITE_API_URL || "";
 const getProfileUrl = (path: string | undefined): string => {
@@ -130,7 +129,7 @@ function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? (label === "Period" ? "min-w-[100px]" : "min-w-[150px]") : "min-w-[160px]"}`}
+        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari cursor-pointer ${narrow ? (label === "Period" ? "w-[130px]" : "min-w-[150px]") : "min-w-[160px]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
@@ -212,7 +211,6 @@ interface Task {
   due_time?: string;
   assign_to?: string;
   description?: string;
-  checklist?: string;
   review_remark?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
@@ -452,11 +450,13 @@ function TaskCard({
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-[12px] text-[#8B8B8B]">Progress</span>
         <span className="text-[12px] text-[#8B8B8B]">
-          {isUnderReview
+          {isReviewTask && !isReviewed
             ? `${progress}% (Under Review)`
             : isReviewed
-              ? `${progress}% (Reviewed)`
-              : `${progress}%`}
+              ? `100% (Reviewed)`
+              : isUnderReview
+                ? `95% (Under Review)`
+                : `${progress}%`}
         </span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
@@ -982,7 +982,6 @@ export default function MyTasksPM() {
               onClick={() => navigate("/tasks/add")}
               className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer"
             >
-              <img src={AddBtn} alt="Add" className="h-5 w-5" />
               Add task
             </button>
           </div>

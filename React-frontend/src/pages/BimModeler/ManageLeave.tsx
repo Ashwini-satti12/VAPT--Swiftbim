@@ -12,7 +12,7 @@ import deleteIcon from '../../assets/ProjectManager/project/deleteIcon.svg';
 
 const SHOW_ENTRIES_PLACEHOLDER = 'Show Entries';
 const SHOW_ENTRIES_SELECTED_PREFIX = 'Show:';
-const EMPLOYEE_FILTER_PLACEHOLDER = 'Employee';
+
 
 interface LeaveEntry {
   id: number;
@@ -48,10 +48,10 @@ function mapLeaveStatusFromApi(
   const s = Number(status);
   if (s === 1) return "Approved";
   if (s === 2) return "Rejected";
-  if (s === 3) return "Pending (BIM Lead)";
-  if (s === 4) return "Pending (Project Manager)";
-  if (isBimModelerRole(applicantRole)) return "Pending (BIM Coordinator)";
-  if (isBimCoordinatorRole(applicantRole)) return "Pending (BIM Lead)";
+  if (s === 3) return "Pending";
+  if (s === 4) return "Pending";
+  if (isBimModelerRole(applicantRole)) return "Pending";
+  if (isBimCoordinatorRole(applicantRole)) return "Pending";
   return "Pending";
 }
 
@@ -176,16 +176,7 @@ export default function ManageLeave() {
     const [leaveTypeOpen, setLeaveTypeOpen] = useState(false);
     const leaveTypeDropdownRef = useRef<HTMLDivElement>(null);
 
-    const [selectedEmployee, setSelectedEmployee] = useState('');
-    const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
-    const employeeDropdownRef = useRef<HTMLDivElement>(null);
-    const employeeDropdownContentRef = useRef<HTMLDivElement>(null);
     const [tableCurrentPage, setTableCurrentPage] = useState(1);
-
-    const employeeOptions = [
-        'All',
-        ...Array.from(new Set(leaves.map((l) => l.employeeName))),
-    ];
 
     // Load available leave types from backend (holiday table)
     useEffect(() => {
@@ -254,13 +245,6 @@ export default function ManageLeave() {
         const handleClickOutside = (event: MouseEvent) => {
             const t = event.target as Node;
             if (
-                employeeDropdownOpen &&
-                employeeDropdownRef.current &&
-                !employeeDropdownRef.current.contains(t)
-            ) {
-                setEmployeeDropdownOpen(false);
-            }
-            if (
                 showEntriesOpen &&
                 showEntriesDropdownRef.current &&
                 !showEntriesDropdownRef.current.contains(t)
@@ -268,23 +252,17 @@ export default function ManageLeave() {
                 setShowEntriesOpen(false);
             }
         };
-        if (employeeDropdownOpen || showEntriesOpen) {
+        if (showEntriesOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [employeeDropdownOpen, showEntriesOpen]);
+    }, [showEntriesOpen]);
 
     useEffect(() => {
         if (showEntriesOpen && showEntriesDropdownContentRef.current) {
             showEntriesDropdownContentRef.current.scrollTop = 0;
         }
     }, [showEntriesOpen]);
-
-    useEffect(() => {
-        if (employeeDropdownOpen && employeeDropdownContentRef.current) {
-            employeeDropdownContentRef.current.scrollTop = 0;
-        }
-    }, [employeeDropdownOpen]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -299,18 +277,12 @@ export default function ManageLeave() {
     }, [leaveTypeOpen]);
 
 
-    const employeeFilterShowsAll =
-        selectedEmployee === '' || selectedEmployee === 'All';
     const searchQueryKey = searchParams.get('q') ?? '';
 
     const filteredList = useMemo(() => {
         const q = searchQueryKey.toLowerCase();
-        let base = leaves;
-        if (!employeeFilterShowsAll) {
-            base = base.filter((l) => l.employeeName === selectedEmployee);
-        }
-        if (!q) return base;
-        return base.filter((l) => {
+        if (!q) return leaves;
+        return leaves.filter((l) => {
             return [
                 l.employeeName,
                 l.leaveType,
@@ -321,7 +293,7 @@ export default function ManageLeave() {
                 l.role,
             ].some((f) => (f || '').toLowerCase().includes(q));
         });
-    }, [leaves, selectedEmployee, employeeFilterShowsAll, searchQueryKey]);
+    }, [leaves, searchQueryKey]);
     const effectiveShowEntryValue =
       selectedShowEntries || showEntriesOptions[0].value;
     const selectedRange =
@@ -343,7 +315,7 @@ export default function ManageLeave() {
 
     useEffect(() => {
         setTableCurrentPage(1);
-    }, [selectedShowEntries, selectedEmployee, searchQueryKey]);
+    }, [selectedShowEntries, searchQueryKey]);
 
 
   const handleView = (row: LeaveEntry) => {
@@ -628,94 +600,7 @@ export default function ManageLeave() {
                             >
                                 Apply Leave
                             </button>
-                            <div
-                                className="relative min-w-[180px] max-w-[240px] w-[180px]"
-                                ref={employeeDropdownRef}
-                            >
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEmployeeDropdownOpen((o) => !o);
-                                    }}
-                                    className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
-                                >
-                                    <span
-                                        className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-                                            selectedEmployee === ''
-                                                ? 'text-[#8B8B8B]'
-                                                : 'text-[#353535]'
-                                        }`}
-                                    >
-                                        {selectedEmployee === '' ? (
-                                            EMPLOYEE_FILTER_PLACEHOLDER
-                                        ) : selectedEmployee === 'All' ? (
-                                            <>
-                                                <span className="text-[14px]">
-                                                    {EMPLOYEE_FILTER_PLACEHOLDER}:
-                                                </span>{' '}
-                                                <span className="font-semibold">All</span>
-                                            </>
-                                        ) : (
-                                            <span className="font-semibold truncate">
-                                                {selectedEmployee}
-                                            </span>
-                                        )}
-                                    </span>
-                                    <img
-                                        src={ArrowDown}
-                                        alt=""
-                                        className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
-                                            employeeDropdownOpen ? 'rotate-180' : ''
-                                        } ${
-                                            selectedEmployee === ''
-                                                ? 'opacity-60 grayscale'
-                                                : 'opacity-90'
-                                        }`}
-                                        aria-hidden
-                                    />
-                                </button>
-                                {employeeDropdownOpen && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
-                                        <div
-                                            ref={employeeDropdownContentRef}
-                                            className="max-h-[168px] overflow-y-auto custom-scrollbar"
-                                        >
-                                            <button
-                                                type="button"
-                                                onMouseDown={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    setSelectedEmployee('');
-                                                    setEmployeeDropdownOpen(false);
-                                                }}
-                                                className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
-                                            >
-                                                {EMPLOYEE_FILTER_PLACEHOLDER}
-                                            </button>
-                                            {employeeOptions.map((name) => (
-                                                <button
-                                                    key={name}
-                                                    type="button"
-                                                    onMouseDown={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        setSelectedEmployee(name);
-                                                        setEmployeeDropdownOpen(false);
-                                                    }}
-                                                    className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer truncate hover:text-[#353535] hover:bg-[#F2F2F2] ${
-                                                        selectedEmployee === name
-                                                            ? 'text-[#353535] bg-[#F2F2F2]'
-                                                            : 'text-[#8B8B8B] bg-transparent'
-                                                    }`}
-                                                >
-                                                    {name}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                         
                             <div
                                 className="relative min-w-[140px] max-w-[200px] w-[160px]"
                                 ref={showEntriesDropdownRef}
@@ -1586,13 +1471,43 @@ export default function ManageLeave() {
                                         {selectedLeave.description ?? '-'}
                                     </span>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                    <span className="w-[140px] shrink-0 font-semibold text-black">Current Status</span>
-                                    <span className="shrink-0 text-black">:</span>
-                                    <span className={`inline-flex px-3 py-1 rounded-md text-[12px] font-semibold font-gantari ${selectedLeave.currentStatus === 'Approved' ? 'bg-[#E1F6EB] text-[#008F22]' : selectedLeave.currentStatus === 'Rejected' ? 'bg-[#FFE5E5] text-[#C62828]' : 'bg-[#FFEAD6] text-[#EB7200]'}`}>
-                                        {selectedLeave.currentStatus}
-                                    </span>
-                                </div>
+                                {(() => {
+                                    const getBadge = (statusText: string) => {
+                                        if (statusText === 'Approved') return <span className="inline-flex px-3 py-1 rounded-md text-[12px] font-semibold font-gantari bg-[#E1F6EB] text-[#008F22]">Approved</span>;
+                                        if (statusText === 'Rejected') return <span className="inline-flex px-3 py-1 rounded-md text-[12px] font-semibold font-gantari bg-[#FFE5E5] text-[#C62828]">Rejected</span>;
+                                        if (statusText === 'Pending') return <span className="inline-flex px-3 py-1 rounded-md text-[12px] font-semibold font-gantari bg-[#FFEAD6] text-[#EB7200]">Pending</span>;
+                                        return <span className="text-[#8B8B8B]">-</span>;
+                                    };
+                                    const r = (selectedLeave.role || '').toLowerCase();
+                                    const sc = selectedLeave.statusCode;
+                                    const st = selectedLeave.currentStatus;
+                                    let statuses = [];
+                                    if (sc === 2) {
+                                        statuses.push({ label: 'Current Status', text: 'Rejected' });
+                                    } else {
+                                        if (r.includes('bim modeler')) {
+                                            statuses.push({ label: 'BIM Coordinator', text: sc === 1 || sc >= 3 ? 'Approved' : 'Pending' });
+                                            statuses.push({ label: 'BIM Lead', text: sc === 1 ? 'Approved' : 'Pending' });
+                                        } else if (r.includes('bim coordinator')) {
+                                            statuses.push({ label: 'BIM Lead', text: sc === 1 || sc >= 4 ? 'Approved' : 'Pending' });
+                                            statuses.push({ label: 'Project Manager', text: sc === 1 ? 'Approved' : 'Pending' });
+                                        } else if (r.includes('bim lead')) {
+                                            statuses.push({ label: 'Project Manager', text: sc === 1 || sc >= 5 ? 'Approved' : 'Pending' });
+                                            statuses.push({ label: 'Technical Director', text: sc === 1 ? 'Approved' : 'Pending' });
+                                        } else if (r.includes('project manager')) {
+                                            statuses.push({ label: 'Technical Director', text: sc === 1 ? 'Approved' : 'Pending' });
+                                        } else {
+                                            statuses.push({ label: 'Current Status', text: st });
+                                        }
+                                    }
+                                    return statuses.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-1">
+                                            <span className="w-[140px] shrink-0 font-semibold text-black">{item.label}</span>
+                                            <span className="shrink-0 text-black">:</span>
+                                            {getBadge(item.text)}
+                                        </div>
+                                    ));
+                                })()}
                             </div>
                         </div>
                     </div>

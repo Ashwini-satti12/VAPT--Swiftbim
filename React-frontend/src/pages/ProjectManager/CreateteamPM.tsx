@@ -520,7 +520,6 @@ export default function CreateTeamPM() {
           }}
           className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md transition-all font-semibold shadow-red-200 active:scale-95 cursor-pointer"
         >
-          <PlusIcon className="w-5 h-5 stroke-[3]" />
           New Team
         </button>
       </div>
@@ -599,7 +598,7 @@ export default function CreateTeamPM() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-[16px] font-medium text-[#000000] mb-3">
-                  Team Name
+                  Team Name <span className="text-[#DD4342]">*</span>
                 </label>
                 <input
                   type="text"
@@ -615,7 +614,7 @@ export default function CreateTeamPM() {
 
               <div>
                 <label className="block text-[16px] font-medium text-[#000000] mb-3">
-                  Select Project
+                  Select Project <span className="text-[#DD4342]">*</span>
                 </label>
                 <div className="relative" ref={projectDropdownRef}>
                   <div className="relative">
@@ -718,7 +717,7 @@ export default function CreateTeamPM() {
 
               <div>
                 <label className="block text-[16px] font-medium text-[#000000] mb-3">
-                  Select Team Leader
+                  Select Team Leader <span className="text-[#DD4342]">*</span>
                 </label>
                 <div className="relative" ref={leaderDropdownRef}>
                   <div className="relative">
@@ -826,7 +825,7 @@ export default function CreateTeamPM() {
 
               <div>
                 <label className="block text-[16px] font-medium text-[#000000] mb-3">
-                  Select Member
+                  Select Member <span className="text-[#DD4342]">*</span>
                 </label>
                 <div className="relative" ref={memberDropdownRef}>
                   <div className="relative">
@@ -976,7 +975,7 @@ export default function CreateTeamPM() {
             <form onSubmit={handleUpdate} className="space-y-4">
               <div>
                 <label className="block text-[16px] font-medium text-[#000000] mb-2">
-                  Team Name
+                  Team Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -991,7 +990,7 @@ export default function CreateTeamPM() {
 
               <div>
                 <label className="block text-[16px] font-medium text-[#000000] mb-2">
-                  Select Project
+                  Select Project <span className="text-red-500">*</span>
                 </label>
                 <div className="relative" ref={projectDropdownRef}>
                   <div className="relative">
@@ -1098,7 +1097,7 @@ export default function CreateTeamPM() {
 
               <div>
                 <label className="block text-[16px] font-medium text-[#000000] mb-2">
-                  Select Team Leader
+                  Select Team Leader <span className="text-red-500">*</span>
                 </label>
                 <div className="relative" ref={leaderDropdownRef}>
                   <div className="relative">
@@ -1209,7 +1208,7 @@ export default function CreateTeamPM() {
 
               <div>
                 <label className="block text-[16px] font-medium text-[#000000] mb-3">
-                  Select Member
+                  Select Member <span className="text-red-500">*</span>
                 </label>
                 <div className="relative" ref={memberDropdownRef}>
                   <div className="relative">
@@ -1616,172 +1615,104 @@ export default function CreateTeamPM() {
 
       {/* Member Profile Modal */}
       {showMemberProfileModal && selectedMember && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen overflow-y-auto p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col my-auto animate-in zoom-in-95 duration-200 shrink-0">
-            <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100 shrink-0">
-              <div className="absolute left-10 z-10">
-                <div className="relative group inline-flex shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowMemberProfileModal(false);
-                      setSelectedMember(null);
-                    }}
-                    className="p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors cursor-pointer"
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/10 backdrop-blur-[3px] p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-md max-w-[520px] w-full overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-center relative shrink-0">
+              <div className="absolute left-1 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMemberProfileModal(false);
+                    setSelectedMember(null);
+                  }}
+                  className="p-2 rounded-md bg-[#F2F2F2] transition-all cursor-pointer border-0"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.1)] px-4 py-1 relative z-10">
-                      <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                        Close
-                      </span>
-                    </div>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-3 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
                   </div>
                 </div>
               </div>
-              <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
+              <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">
                 Member Profile
               </h3>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-10 py-8 custom-scrollbar">
-              <div className="flex flex-col items-center">
+
+            {/* Profile Section */}
+            <div className="flex items-center gap-4 px-2">
+              <div className="w-[38px] h-[38px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0 border border-slate-200 shadow-sm">
                 {selectedMember.profile_picture ? (
                   <img
-                    src={getGlobalProfileUrl(
-                      selectedMember.id,
-                      selectedMember.profile_picture,
-                    )}
-                    alt={selectedMember.full_name || "Member"}
-                    className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover mb-6"
+                    src={getGlobalProfileUrl(selectedMember.id, selectedMember.profile_picture)}
+                    alt={selectedMember.full_name}
+                    className="w-full h-full object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = ProfileIcon;
                     }}
                   />
                 ) : (
-                  <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-slate-200 flex items-center justify-center mb-6">
-                    <span className="text-slate-600 font-bold text-3xl">
-                      {(selectedMember.full_name || `E${selectedMember.id}`)
-                        .charAt(0)
-                        .toUpperCase()}
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-400 text-[10px]">
+                      {(selectedMember.full_name || "U")[0].toUpperCase()}
                     </span>
                   </div>
                 )}
-                <div className="w-full space-y-4">
-                  <div>
-                    <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                      Full Name
-                    </p>
-                    <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
-                      {selectedMember.full_name || "Not Available"}
-                      {!isEmployeeActiveForProjectAssignment(selectedMember) && (
-                        <span className="text-sm font-normal text-red-500 ml-2">
-                          (Inactive)
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  {selectedMember.empid && (
-                    <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                        Employee ID
-                      </p>
-                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {selectedMember.empid}
-                      </p>
-                    </div>
-                  )}
-                  {selectedMember.dob && (
-                    <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                        Date of Birth
-                      </p>
-                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {new Date(selectedMember.dob).toLocaleDateString(
-                          "en-GB",
-                          { day: "2-digit", month: "2-digit", year: "numeric" },
-                        )}
-                      </p>
-                    </div>
-                  )}
-                  {selectedMember.phone_number && (
-                    <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                        Phone Number
-                      </p>
-                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {selectedMember.phone_number}
-                      </p>
-                    </div>
-                  )}
-                  {selectedMember.email && (
-                    <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                        Email
-                      </p>
-                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {selectedMember.email}
-                      </p>
-                    </div>
-                  )}
-                  {selectedMember.user_role && (
-                    <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                        Role
-                      </p>
-                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {selectedMember.user_role}
-                      </p>
-                    </div>
-                  )}
-                  {selectedMember.address && (
-                    <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                        Address
-                      </p>
-                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {selectedMember.address}
-                      </p>
-                    </div>
-                  )}
-                  {selectedMember.department && (
-                    <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                        Department
-                      </p>
-                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {selectedMember.department}
-                      </p>
-                    </div>
-                  )}
-                  {selectedMember.doj && (
-                    <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
-                        Date of Joining
-                      </p>
-                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {new Date(selectedMember.doj).toLocaleDateString(
-                          "en-GB",
-                          { day: "2-digit", month: "2-digit", year: "numeric" },
-                        )}
-                      </p>
-                    </div>
-                  )}
-                </div>
               </div>
+              <div className="flex flex-col gap-0.5">
+                <h4 className="text-[18px] font-bold text-[#000000] font-Gantari leading-tight">
+                  {selectedMember.full_name || "Not Available"}
+                  {!isEmployeeActiveForProjectAssignment(selectedMember) && (
+                    <span className="text-sm font-normal text-red-500 ml-2">
+                      (Inactive)
+                    </span>
+                  )}
+                </h4>
+                <p className="text-[14px] font-semibold text-[#353535] font-Gantari">
+                  {selectedMember.empid || "N/A"}
+                </p>
+              </div>
+            </div>
+
+            {/* Details Grid */}
+            <div className="px-2 sm:px-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
+              {[
+                { label: 'Date of Birth', value: selectedMember.dob ? new Date(selectedMember.dob).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }) : 'N/A' },
+                { label: 'Phone Number', value: selectedMember.phone_number },
+                { label: 'Email', value: selectedMember.email },
+                { label: 'Role', value: selectedMember.user_role },
+                { label: 'Address', value: selectedMember.address },
+                { label: 'Department', value: selectedMember.department },
+                { label: 'Date of Joining', value: selectedMember.doj ? new Date(selectedMember.doj).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }) : 'N/A' },
+              ].map((item, idx) => (
+                <div
+                  key={idx}
+                  className="grid grid-cols-[130px_15px_1fr] text-[14px] items-start pb-2"
+                >
+                  <span className="text-[#020202] font-Gantari">{item.label}</span>
+                  <span className="text-[#020202] font-Gantari text-center">:</span>
+                  <span className="text-[#616161] font-Gantari break-words leading-relaxed">
+                    {item.value || 'N/A'}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

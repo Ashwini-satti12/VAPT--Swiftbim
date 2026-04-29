@@ -53,14 +53,13 @@ export default function TrackerBL() {
             { value: '301-400', label: '301-400', start: 300, end: 400 },
             { value: 'all', label: 'All', start: 0, end: null },
         ];
-    const [selectedTimeRange, setSelectedTimeRange] = useState('All Time');
-    const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
+
     const [tableCurrentPage, setTableCurrentPage] = useState(1);
     const [selectedShowEntries, setSelectedShowEntries] = useState('');
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const statusDropdownRef = useRef<HTMLDivElement>(null);
     const employeeDropdownRef = useRef<HTMLDivElement>(null);
-    const timeDropdownRef = useRef<HTMLDivElement>(null);
+
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
     const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
     const [searchParams] = useSearchParams();
@@ -73,7 +72,7 @@ export default function TrackerBL() {
         () => employeeOptions.filter((name) => name.toLowerCase().includes(employeeSearch.toLowerCase())),
         [employeeOptions, employeeSearch],
     );
-    const timeRangeOptions = ['All Time', '09:00 AM - 12:00 PM', '12:00 PM - 04:00 PM', '04:00 PM - 08:00 PM'];
+
 
     useEffect(() => {
         if (showEntriesOpen && showEntriesDropdownContentRef.current) {
@@ -214,7 +213,7 @@ export default function TrackerBL() {
         const handleClickOutside = (event: MouseEvent) => {
             if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) setStatusOpen(false);
             if (employeeDropdownRef.current && !employeeDropdownRef.current.contains(event.target as Node)) setEmployeeOpen(false);
-            if (timeDropdownRef.current && !timeDropdownRef.current.contains(event.target as Node)) setTimeDropdownOpen(false);
+
             if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) setShowEntriesOpen(false);
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -223,7 +222,7 @@ export default function TrackerBL() {
 
     useEffect(() => {
         setTableCurrentPage(1);
-    }, [selectedShowEntries, selectedStatus, selectedTimeRange, selectedEmployee, searchParams]);
+    }, [selectedShowEntries, selectedStatus, selectedEmployee, searchParams]);
 
     const filteredList = useMemo(() => {
         const q = searchParams.get("q")?.toLowerCase() || "";
@@ -236,26 +235,7 @@ export default function TrackerBL() {
                 return false;
             }
 
-            // Optional time-of-day filter based on time_in
-            if (selectedTimeRange !== "All Time" && item.time_in) {
-                const [hRaw, mRaw] = item.time_in.split(":");
-                const h = Number(hRaw);
-                const m = Number(mRaw);
-                const minutesFromMidnight = h * 60 + m;
 
-                const rangeMap: Record<string, [number, number]> = {
-                    "09:00 AM - 12:00 PM": [9 * 60, 12 * 60],
-                    "12:00 PM - 04:00 PM": [12 * 60, 16 * 60],
-                    "04:00 PM - 08:00 PM": [16 * 60, 20 * 60],
-                };
-
-                const range = rangeMap[selectedTimeRange];
-                if (range) {
-                    const [start, end] = range;
-                    if (minutesFromMidnight < start || minutesFromMidnight >= end)
-                        return false;
-                }
-            }
 
             // Search filter
             if (q) {
@@ -273,7 +253,7 @@ export default function TrackerBL() {
 
             return true;
         });
-    }, [list, searchParams, selectedStatus, selectedTimeRange, selectedEmployee, busyMap]);
+    }, [list, searchParams, selectedStatus, selectedEmployee, busyMap]);
 
     const effectiveShowEntryValue = selectedShowEntries || showEntriesOptions[0].value;
     const selectedRange =

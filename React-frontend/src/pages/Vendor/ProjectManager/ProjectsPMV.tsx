@@ -109,6 +109,28 @@ function getCurrencySymbol(code?: string): string {
     return (code || "INR").toUpperCase();
 }
 
+/** Normalize API / input value to YYYY-MM-DD for date inputs and day math. */
+function toCalendarYmd(raw: string): string | null {
+    if (!raw?.trim()) return null;
+    const s = raw.trim().split("T")[0];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    return s;
+}
+
+function countInclusiveProjectDays(startYmd: string, endYmd: string): number | null {
+    const a = toCalendarYmd(startYmd);
+    const b = toCalendarYmd(endYmd);
+    if (!a || !b) return null;
+    const [ys, ms, ds] = a.split("-").map(Number);
+    const [ye, me, de] = b.split("-").map(Number);
+    const start = new Date(ys, ms - 1, ds);
+    const end = new Date(ye, me - 1, de);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+    const diffDays = Math.round((end.getTime() - start.getTime()) / 86400000);
+    if (diffDays < 0) return null;
+    return diffDays + 1;
+}
+
 export default function ProjectsPMV() {
     const projectCurrencyCode = (p?: Project | null) =>
         ((p?.selected_currency || p?.currency || "INR") as string).toUpperCase();
@@ -143,7 +165,6 @@ export default function ProjectsPMV() {
     const [createProjectManager, setCreateProjectManager] = useState("");
     const [createStartDate, setCreateStartDate] = useState("");
     const [createEndDate, setCreateEndDate] = useState("");
-    const [createTotalHours, setCreateTotalHours] = useState("");
     const [createPerDay, setCreatePerDay] = useState("");
     const [createBIMLead, setCreateBIMLead] = useState("");
     const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState("");
@@ -180,6 +201,15 @@ export default function ProjectsPMV() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
+
+    const computedTotalHours = useMemo(() => {
+        const days = countInclusiveProjectDays(createStartDate, createEndDate);
+        const per = parseFloat(String(createPerDay).trim().replace(/,/g, ""));
+        if (days === null || days < 1 || !Number.isFinite(per) || per <= 0) {
+            return "";
+        }
+        return (days * per).toFixed(2);
+    }, [createStartDate, createEndDate, createPerDay]);
 
     const [searchParams] = useSearchParams();
     const statusFilter = searchParams.get("status");
@@ -413,7 +443,7 @@ export default function ProjectsPMV() {
             !createStartDate.trim() ||
             !createEndDate.trim() ||
             !createPerDay.trim() ||
-            !createTotalHours.trim() ||
+            !computedTotalHours ||
             !createBIMLead.trim() ||
             !createBIMCoOrdinator.trim() ||
             selectedMemberIds.length === 0 ||
@@ -437,7 +467,7 @@ export default function ProjectsPMV() {
             project_manager_id: nameToId(createProjectManager, projectManagers),
             start_date: createStartDate,
             due_date: createEndDate,
-            totalhours: createTotalHours,
+            totalhours: computedTotalHours,
             perday: createPerDay,
             lead_id: nameToId(createBIMLead, bimLeads),
             bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
@@ -466,7 +496,7 @@ export default function ProjectsPMV() {
 
                     setShowCreateModal(false);
                     setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
-                    setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate(""); setCreateTotalHours("");
+                    setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate(""); 
                     setCreatePerDay(""); setCreateBIMLead(""); setCreateBIMCoOrdinator(""); setSelectedMemberIds([]);
                     setCreateResources(""); setCreateRequiredResources(""); setCreatePriority(""); setCreateLocation("");
                     setCreateDescription(""); setCreateDeliverables(""); setCreateFile(null);
@@ -493,7 +523,6 @@ export default function ProjectsPMV() {
         );
         setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
         setCreateEndDate(p.due_date || p.due_date || "");
-        setCreateTotalHours(p.totalhours || "");
         setCreatePerDay(p.per_day || p.perday || "");
         setCreateBIMLead(
             idToName(p.lead_id, bimLeads) || idToName(p.lead_id, allEmployees),
@@ -524,7 +553,7 @@ export default function ProjectsPMV() {
             !createStartDate.trim() ||
             !createEndDate.trim() ||
             !createPerDay.trim() ||
-            !createTotalHours.trim() ||
+            !computedTotalHours ||
             !createBIMLead.trim() ||
             selectedMemberIds.length === 0 ||
             !createResources.trim() ||
@@ -546,8 +575,7 @@ export default function ProjectsPMV() {
             project_manager_id: nameToId(createProjectManager, projectManagers),
             start_date: createStartDate,
             due_date: createEndDate,
-            // due_date: createEndDate,
-            totalhours: createTotalHours,
+            totalhours: computedTotalHours,
             perday: createPerDay,
             lead_id: nameToId(createBIMLead, bimLeads),
             bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
@@ -578,7 +606,7 @@ export default function ProjectsPMV() {
                     // Reset fields
                     setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
                     setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate("");
-                    setCreateTotalHours(""); setCreatePerDay(""); setCreateBIMLead("");
+                    setCreatePerDay(""); setCreateBIMLead("");
                     setCreateBIMCoOrdinator(""); setSelectedMemberIds([]); setCreateResources("");
                     setCreateRequiredResources(""); setCreatePriority(""); setCreateLocation("");
                     setCreateDescription(""); setCreateDeliverables(""); setCreateFile(null);
@@ -851,7 +879,14 @@ export default function ProjectsPMV() {
                 </div>
                 <div className="space-y-2">
                     <label className="block text-[14px] font-medium text-[#353535]">Total Hours <span className="text-[#DD4342]">*</span></label>
-                    <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Total Estimated Hours" value={createTotalHours} onChange={e => setCreateTotalHours(e.target.value)} />
+                    <input
+                        type="text"
+                        readOnly
+                        className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 cursor-not-allowed"
+                        placeholder="Total Estimated Hours"
+                        value={computedTotalHours}
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">Auto-calculated from project dates and per day.</p>
                 </div>
                 <div className="space-y-2">
                     <label className="block text-[14px] font-medium text-[#353535]">Resources <span className="text-[#DD4342]">*</span></label>
@@ -1055,8 +1090,8 @@ export default function ProjectsPMV() {
                                         setEditDropdownOpen(null);
                                         // Reset all form fields
                                         setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
-                                        setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate("");
-                                        setCreateTotalHours(""); setCreatePerDay(""); setCreateBIMLead("");
+                                        setCreateStartDate(""); setCreateEndDate("");
+                                        setCreatePerDay(""); setCreateBIMLead("");
                                         setCreateBIMCoOrdinator(""); setCreateResources(""); setCreateRequiredResources("");
                                         setCreatePriority(""); setCreateLocation(""); setCreateDescription("");
                                         setCreateDeliverables(""); setSelectedMemberIds([]); setCreateFile(null);
