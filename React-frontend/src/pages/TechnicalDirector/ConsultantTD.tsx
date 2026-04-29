@@ -852,7 +852,7 @@ export default function ConsultantTD() {
     <div className="flex flex-col h-full overflow-hidden bg-white">
       {activeView === 'list' && (
         <>
-          <div className="sticky top-0 z-30 bg-white mb-2 sm:mb-4 sm:mt-2 overflow-visible px-2 sm:px-4">
+          <div className="sticky top-0 z-30 bg-white mb-2 sm:mb-4 sm:mt-2 overflow-visible px-2">
             <div className="flex flex-col xl:flex-row w-full xl:items-center justify-between gap-3 overflow-visible py-2">
               {/* Left/Top side: Title and mobile view toggles */}
               <div className="flex items-center justify-between w-full xl:w-auto">
@@ -1277,10 +1277,11 @@ export default function ConsultantTD() {
                 )}
               </div>
             ) : (
-              <div className="px-4">
-                <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-3">
-                  <div className="overflow-x-auto overflow-y-visible custom-scrollbar smooth-scroll flex-1 min-h-[280px]">
-                    <table className="min-w-full border-collapse">
+              <div className="px-2">
+                <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-4">
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    <div className="overflow-auto h-[calc(100%+17px)] pb-[17px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:!hidden">
+                      <table className="min-w-full border-collapse">
                       <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                         <tr className="bg-white">
                           <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Sl.No</th>
@@ -1337,7 +1338,7 @@ export default function ConsultantTD() {
                                       <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active !== 'active' ? 'bg-[#ef4444]' : (emp.status === 'Online' ? 'bg-[#22c55e]' : 'bg-[#ef4444]')}`}></span>
                                     </div>
                                     <span
-                                      className="text-[14px] font-normal font-Gantari text-[#353535] cursor-pointer hover:text-[#DD4342]"
+                                      className="text-[14px] font-semibold font-Gantari text-[#353535] whitespace-nowrap cursor-pointer hover:text-[#DD4342]"
                                       onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
                                     >
                                       {toCamelCase(emp.full_name || '-')}
@@ -1383,26 +1384,43 @@ export default function ConsultantTD() {
                                 </td>
                                 <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
                                   <div className="flex items-center justify-center gap-3">
-                                    <button
-                                      type="button"
-                                      onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
-                                      aria-label="View consultant"
-                                      className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#DD4342] text-white rounded-md transition-all cursor-pointer"
-                                    >
-                                      <img src={eyeIcon} className="w-4 h-4 brightness-0 invert" alt="" aria-hidden />
-                                    </button>
+                                    <div className="relative group">
+                                      <button
+                                        type="button"
+                                        onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
+                                        aria-label="View consultant"
+                                        className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#DD4342] text-white rounded-md transition-all cursor-pointer"
+                                      >
+                                        <img src={eyeIcon} className="w-4 h-4 sm:w-4 sm:h-4 shrink-0 brightness-0 invert" alt="" aria-hidden />
+                                      </button>
+                                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                          <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                            View
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
                                     {canAdd && (
-                                      <>
+                                      <div className="relative group">
                                         <button
                                           type="button"
                                           onClick={() => openEditModel(emp)}
                                           aria-label="Edit consultant"
                                           className={`flex py-2 px-2 shrink-0 items-center justify-center rounded-md transition-all cursor-pointer ${idx % 2 === 1 ? 'bg-[#FFFFFF]' : 'bg-[#F2F2F2]'}`}
                                         >
-                                          <img src={projectEditIcon} className="w-4 h-4" alt="" aria-hidden />
+                                          <img src={projectEditIcon} className="w-4 h-4 sm:w-4 sm:h-4 shrink-0" alt="" aria-hidden />
                                         </button>
-
-                                      </>
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                          <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                          <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                            <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                              Edit
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
                                     )}
                                   </div>
                                 </td>
@@ -1412,11 +1430,12 @@ export default function ConsultantTD() {
                         )}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 </div>
                 {displayedList.length > 0 && (
-                  <div className="w-full flex items-center justify-end py-2 pr-4">
-                    <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+                  <div className="w-full flex items-center justify-end ">
+                    <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
                       <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
                       <button
                         type="button"
@@ -1428,7 +1447,7 @@ export default function ConsultantTD() {
                           }`}
                         aria-label="Previous page"
                       >
-                        <span className="relative -top-[3px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
+                        <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
                         <span className="inline-flex items-center">Prev</span>
                       </button>
                       <button
@@ -1449,7 +1468,7 @@ export default function ConsultantTD() {
                         aria-label="Next page"
                       >
                         <span className="inline-flex items-center">Next</span>
-                        <span className="relative -top-[3px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
+                        <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
                       </button>
                     </div>
                   </div>

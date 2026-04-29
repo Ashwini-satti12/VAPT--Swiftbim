@@ -552,7 +552,7 @@ export default function ManageLeaveBC() {
   };
 
   return (
-    <div className="flex flex-col h-full font-gantari overflow-hidden">
+    <div className="px-2 flex flex-col h-full font-gantari overflow-hidden">
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
         <div className="flex flex-col flex-1 min-h-0">
           <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">
@@ -947,8 +947,8 @@ export default function ManageLeaveBC() {
             </div>
           </div>
           {listInRange.length > 0 && (
-            <div className="w-full flex items-center justify-end py-2 pr-4">
-              <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+            <div className="w-full flex items-center justify-end mt-4">
+              <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
                 <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
                 <button
                   type="button"
