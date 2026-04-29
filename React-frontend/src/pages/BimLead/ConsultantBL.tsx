@@ -20,6 +20,7 @@ import editIcon from "../../assets/ProjectManager/consultant/editIcon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import projectViewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import projectEditIcon from "../../assets/ProjectManager/project/editIcon.svg";
+import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 
 const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
 const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
@@ -619,6 +620,153 @@ export default function ConsultantBL() {
     );
   }
 
+  if (showInactiveModal) {
+    return (
+      <div className="flex flex-col h-full overflow-hidden bg-white font-Gantari">
+        {/* Header Section */}
+        <div className="sticky top-0 z-50 bg-white pt-2 px-4 shrink-0">
+          <div className="flex items-center justify-center mb-4 relative w-full">
+            <div className="group absolute left-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowInactiveModal(false);
+                  setInactiveIds([]);
+                }}
+                className="p-2.5 rounded-md bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer shadow-sm "
+              >
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-1 relative z-10 shadow-sm">
+                  <span className="font-gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                    Go Back
+                  </span>
+                </div>
+              </div>
+            </div>
+            <h3 className="text-[24px] font-semibold text-[#020202] text-center">
+              Manage Inactive Consultants
+            </h3>
+          </div>
+
+          <div className="px-4">
+            <p className="text-[15px] text-[#353535] mb-2 leading-relaxed font-medium">
+              Select Consultants to mark as Inactive. Inactive Consultants
+              will not appear in Project Assignment dropdowns.
+            </p>
+            <p className="text-[16px] font-semibold text-[#3d3399]">
+              {inactiveIds.length} Consultant(s) will be marked as Inactive
+            </p>
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div className="flex-1 overflow-y-auto px-4 py-8 custom-scrollbar bg-[#FDFDFD]">
+          <div className="border border-[#E0E0E0] rounded-md bg-white overflow-hidden shadow-sm">
+            {(() => {
+              const grouped = list.reduce(
+                (acc: Record<string, Employee[]>, emp) => {
+                  const role = emp.user_role || "General";
+                  if (!acc[role]) acc[role] = [];
+                  acc[role].push(emp);
+                  return acc;
+                },
+                {},
+              );
+
+              const sortedRoles = Object.keys(grouped).sort();
+
+              return sortedRoles.map((role) => (
+                <div
+                  key={role}
+                  className="border-b border-[#E0E0E0] last:border-none"
+                >
+                  <div className="px-6 py-4 bg-[#F9F9F9] font-semibold text-[16px] text-[#1A1A1A] border-b border-[#E0E0E0]">
+                    {role}
+                  </div>
+                  <div className="divide-y divide-[#F0F0F0]">
+                    {grouped[role].map((emp) => (
+                      <div
+                        key={emp.id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-4 transition-colors gap-4 hover:bg-[#FDFDFD]"
+                      >
+                        <div className="flex items-center gap-6 min-w-0">
+                          <div
+                            onClick={() =>
+                              setInactiveIds((prev) =>
+                                prev.includes(emp.id)
+                                  ? prev.filter((id) => id !== emp.id)
+                                  : [...prev, emp.id],
+                              )
+                            }
+                            className={`w-7 h-7 rounded-[5px] border-2 cursor-pointer flex items-center justify-center transition-all shrink-0 ${inactiveIds.includes(emp.id) ? "bg-[#D1E6FF] border-[#D1E6FF]" : "bg-white border-[#E0E0E0]"}`}
+                          >
+                            {inactiveIds.includes(emp.id) && (
+                              <svg
+                                width="16"
+                                height="12"
+                                viewBox="0 0 14 11"
+                                fill="none"
+                              >
+                                <path
+                                  d="M1 5L5 9L13 1"
+                                  stroke="#1A1A1A"
+                                  strokeWidth="3"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="text-[14px] sm:text-[16px] font-semibold text-[#353535] truncate">
+                            {toCamelCase(emp.full_name)}{" "}
+                            {emp.empid
+                              ? `(${emp.empid})`
+                              : `(EMP-${(emp.id + 150).toString().padStart(4, "0")})`}
+                          </span>
+                        </div>
+                        {(emp.active === "inactive" ||
+                          emp.active === "deactive") && (
+                            <span className="px-4 py-1.5 bg-[#FFE6E6] text-[#E00100] text-[11px] sm:text-[12px] font-semibold rounded-[5px] shrink-0 w-fit border border-[#FFD2D2]">
+                              Currently Inactive
+                            </span>
+                          )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+        </div>
+
+        {/* Footer Section */}
+        <div className="sticky bottom-0 bg-white px-10 flex flex-col sm:flex-row gap-4 sm:gap-14 justify-center items-center shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+          <button
+            type="button"
+            onClick={() => {
+              setShowInactiveModal(false);
+              setInactiveIds([]);
+            }}
+            className="px-8 py-2 sm:py-2 rounded-md bg-[#F4F4F4] text-[#353535] font-medium text-[14px] sm:text-[16px] transition-all cursor-pointer"
+          >
+            Discard
+          </button>
+          <button
+            type="button"
+            onClick={handleInactive}
+            disabled={!inactiveIds.length || inactiveSubmitting}
+            className="px-5 py-2 sm:py-2 rounded-md bg-[#D1E6FF] text-[#1A1A1A] font-medium text-[14px] sm:text-[16px] disabled:opacity-50 transition-all cursor-pointer disabled:cursor-not-allowed shadow-sm"
+          >
+            {inactiveSubmitting ? "Updating..." : "Update Status"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full overflow-hidden bg-white">
       {/* Header Section */}
@@ -767,7 +915,7 @@ export default function ConsultantBL() {
                       <img
                         src={ArrowDown}
                         alt=""
-                        className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                        className={`w-3.5 h-3.5 sm:w-3 sm:h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
                           } ${selectedShowEntries === ""
                             ? "opacity-60 grayscale"
                             : "opacity-90"
@@ -1017,213 +1165,188 @@ export default function ConsultantBL() {
           </div>
         ) : (
           <div className="px-2 sm:px-0">
-            <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-8">
-              <div className="overflow-x-auto overflow-y-visible custom-scrollbar smooth-scroll flex-1 min-h-[280px]">
-                <table className="min-w-full border-collapse">
-                  <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                    <tr className="bg-white">
-                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                        Sl.No
-                      </th>
-                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                        Emp ID
-                      </th>
-                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                        Consultant Name
-                      </th>
-                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                        Email ID
-                      </th>
-                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                        Contact Info
-                      </th>
-                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                        Status
-                      </th>
-                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                        Action
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {tablePageRows.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={7}
-                          className="px-3 py-20 text-center text-[14px] text-[#616161] font-normal font-Gantari bg-white"
-                        >
-                          No records found
-                        </td>
+            <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-4">
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <div className="overflow-auto h-[calc(100%+17px)] pb-[17px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:!hidden">
+                  <table className="min-w-full border-collapse">
+                    <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                      <tr className="bg-white">
+                        <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                          Sl.No
+                        </th>
+                        <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                          Emp ID
+                        </th>
+                        <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                          Consultant Name
+                        </th>
+                        <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                          Email ID
+                        </th>
+                        <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                          Contact Info
+                        </th>
+                        <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                          Status
+                        </th>
+                        <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                          Action
+                        </th>
                       </tr>
-                    ) : (
-                      tablePageRows.map((emp, idx) => {
-                        const slNo = (rangeStart + tablePageStartIndex + idx + 1)
-                          .toString()
-                          .padStart(2, "0");
-                        return (
-                          <tr
-                            key={emp.id}
-                            className={
-                              idx % 2 === 1
-                                ? "bg-[#F2F2F2]"
-                                : "bg-white hover:bg-slate-50 transition-colors"
-                            }
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {tablePageRows.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={7}
+                            className="px-3 py-20 text-center text-[14px] text-[#616161] font-normal font-Gantari bg-white"
                           >
-                            <td className="px-3 py-5 text-center text-[14px] font-normal font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
-                              {slNo}
-                            </td>
-                            <td className="px-3 py-5 text-center text-[14px] font-normal font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
-                              {emp.empid ||
-                                `EMP-${(emp.id + 150).toString().padStart(4, "0")}`}
-                            </td>
-                            <td className="px-6 py-5 border-b border-[#F0F0F0] whitespace-nowrap">
-                              <div className="flex items-center justify-center gap-4">
-                                <div className="relative shrink-0">
-                                  <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
-                                    {emp.profile_picture &&
-                                      emp.profile_picture.trim() ? (
-                                      <img
-                                        src={getProfileUrl(emp.profile_picture)}
-                                        alt={emp.full_name}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                          const target =
-                                            e.target as HTMLImageElement;
-                                          const parent = target.parentElement;
-                                          if (
-                                            parent &&
-                                            !parent.querySelector(
-                                              ".error-placeholder",
-                                            )
-                                          ) {
-                                            parent.innerHTML =
-                                              '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-[10px]">No Photo</span></div>';
-                                          }
-                                        }}
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                                        <span className="text-gray-400 text-[10px]">
-                                          No Photo
-                                        </span>
-                                      </div>
-                                    )}
+                            No records found
+                          </td>
+                        </tr>
+                      ) : (
+                        tablePageRows.map((emp, idx) => {
+                          const slNo = (rangeStart + tablePageStartIndex + idx + 1)
+                            .toString()
+                            .padStart(2, "0");
+                          return (
+                            <tr
+                              key={emp.id}
+                              className={
+                                idx % 2 === 1
+                                  ? "bg-[#F2F2F2]"
+                                  : "bg-white hover:bg-slate-50 transition-colors"
+                              }
+                            >
+                              <td className="px-3 py-5 text-center text-[14px] font-normal font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
+                                {slNo}
+                              </td>
+                              <td className="px-3 py-5 text-center text-[14px] font-normal font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
+                                {emp.empid ||
+                                  `EMP-${(emp.id + 150).toString().padStart(4, "0")}`}
+                              </td>
+                              <td className="px-6 py-5 border-b border-[#F0F0F0] whitespace-nowrap">
+                                <div className="flex items-center justify-start gap-4">
+                                  <div className="relative shrink-0">
+                                    <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
+                                      {emp.profile_picture &&
+                                        emp.profile_picture.trim() ? (
+                                        <img
+                                          src={getProfileUrl(emp.profile_picture)}
+                                          alt={emp.full_name}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            const target =
+                                              e.target as HTMLImageElement;
+                                            const parent = target.parentElement;
+                                            if (
+                                              parent &&
+                                              !parent.querySelector(
+                                                ".error-placeholder",
+                                              )
+                                            ) {
+                                              parent.innerHTML =
+                                                '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-[10px]">No Photo</span></div>';
+                                            }
+                                          }}
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                          <span className="text-gray-400 text-[10px]">
+                                            No Photo
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <span
+                                      className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active !== "active" ? "bg-[#ef4444]" : (emp.status === "Online" ? "bg-[#22c55e]" : "bg-[#ef4444]")}`}
+                                    />
                                   </div>
-                                  <span
-                                    className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active !== "active" ? "bg-[#ef4444]" : (emp.status === "Online" ? "bg-[#22c55e]" : "bg-[#ef4444]")}`}
-                                  />
+                                  <span className="text-[14px] font-semibold font-Gantari text-[#353535] whitespace-nowrap">
+                                    {toCamelCase(emp.full_name || "-")}
+                                  </span>
                                 </div>
-                                <span className="text-[14px] font-normal font-Gantari text-[#353535]">
-                                  {toCamelCase(emp.full_name || "-")}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-5 text-center text-[14px] font-normal font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
-                              {emp.email || "-"}
-                            </td>
-                            <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
-                              <div className="flex items-center justify-center gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    window.open(
-                                      `https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`,
-                                      "_blank",
-                                    )
-                                  }
-                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
-                                >
-                                  <img
-                                    src={mailIcon}
-                                    className="w-5 h-5"
-                                    alt="Mail"
-                                  />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => navigate("/chat")}
-                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
-                                >
-                                  <img
-                                    src={messageIcon}
-                                    className="w-5 h-5"
-                                    alt="Message"
-                                  />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    (window.location.href = `tel:${emp.phone_number || ""}`)
-                                  }
-                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colorsr"
-                                >
-                                  <img
-                                    src={callIcon}
-                                    className="w-5 h-5"
-                                    alt="Call"
-                                  />
-                                </button>
-                              </div>
-                            </td>
-                            <td className="px-4 py-2 text-center border-b border-[#AEACAC52] whitespace-nowrap">
-                              <div className="flex items-center justify-center">
-                                <CustomDropdown
-                                  options={["Active", "Inactive"]}
-                                  value={
-                                    emp.active === "active"
-                                      ? "Active"
-                                      : "Inactive"
-                                  }
-                                  onChange={(val) =>
-                                    handleStatusToggle(emp.id, val)
-                                  }
-                                  placeholder="Status"
-                                  className="w-[140px]"
-                                  styleType="table"
-                                />
-                              </div>
-                            </td>
-                            <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
-                              <div className="flex items-center justify-center gap-3">
-                                <div className="relative group">
+                              </td>
+                              <td className="px-6 py-5 text-center text-[14px] font-normal font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
+                                {emp.email || "-"}
+                              </td>
+                              <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
+                                <div className="flex items-center justify-center gap-3">
                                   <button
                                     type="button"
-                                    onClick={() => {
-                                      setSelectedEmployee(emp);
-                                      setShowDetailsModal(true);
-                                    }}
-                                    aria-label="View consultant"
-                                    className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#DD4342] text-white rounded-md transition-all cursor-pointer"
+                                    onClick={() =>
+                                      window.open(
+                                        `https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`,
+                                        "_blank",
+                                      )
+                                    }
+                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
                                   >
                                     <img
-                                      src={eyeIcon}
-                                      className="w-4 h-4 sm:w-5 sm:h-5 shrink-0"
-                                      alt=""
-                                      aria-hidden
+                                      src={mailIcon}
+                                      className="w-5 h-5"
+                                      alt="Mail"
                                     />
                                   </button>
-                                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
-                                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                        View
-                                      </span>
-                                    </div>
-                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => navigate("/chat")}
+                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
+                                  >
+                                    <img
+                                      src={messageIcon}
+                                      className="w-5 h-5"
+                                      alt="Message"
+                                    />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      (window.location.href = `tel:${emp.phone_number || ""}`)
+                                    }
+                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colorsr"
+                                  >
+                                    <img
+                                      src={callIcon}
+                                      className="w-5 h-5"
+                                      alt="Call"
+                                    />
+                                  </button>
                                 </div>
-                                {canAdd && (
+                              </td>
+                              <td className="px-4 py-2 text-center border-b border-[#AEACAC52] whitespace-nowrap">
+                                <div className="flex items-center justify-center">
+                                  <CustomDropdown
+                                    options={["Active", "Inactive"]}
+                                    value={
+                                      emp.active === "active"
+                                        ? "Active"
+                                        : "Inactive"
+                                    }
+                                    onChange={(val) =>
+                                      handleStatusToggle(emp.id, val)
+                                    }
+                                    placeholder="Status"
+                                    className="w-[140px]"
+                                    styleType="table"
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
+                                <div className="flex items-center justify-center gap-3">
                                   <div className="relative group">
                                     <button
                                       type="button"
-                                      onClick={() =>
-                                        navigate(`/bl/consultants/${emp.id}/edit`)
-                                      }
-                                      aria-label="Edit consultant"
-                                      className={`flex py-2 px-2 shrink-0 items-center justify-center rounded-md transition-all cursor-pointer ${idx % 2 === 1 ? "bg-[#FFFFFF]" : "bg-[#F2F2F2]"}`}
+                                      onClick={() => {
+                                        setSelectedEmployee(emp);
+                                        setShowDetailsModal(true);
+                                      }}
+                                      aria-label="View consultant"
+                                      className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#DD4342] text-white rounded-md transition-all cursor-pointer"
                                     >
                                       <img
-                                        src={projectEditIcon}
-                                        className="w-4 h-4 sm:w-5 sm:h-5 shrink-0"
+                                        src={eyeIcon}
+                                        className="w-4 h-4 sm:w-4 sm:h-4 shrink-0"
                                         alt=""
                                         aria-hidden
                                       />
@@ -1232,25 +1355,52 @@ export default function ConsultantBL() {
                                       <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
                                       <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
                                         <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                          Edit
+                                          View
                                         </span>
                                       </div>
                                     </div>
                                   </div>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+                                  {canAdd && (
+                                    <div className="relative group">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          navigate(`/bl/consultants/${emp.id}/edit`)
+                                        }
+                                        aria-label="Edit consultant"
+                                        className={`flex py-2 px-2 shrink-0 items-center justify-center rounded-md transition-all cursor-pointer ${idx % 2 === 1 ? "bg-[#FFFFFF]" : "bg-[#F2F2F2]"}`}
+                                      >
+                                        <img
+                                          src={projectEditIcon}
+                                          className="w-4 h-4 sm:w-4 sm:h-4 shrink-0"
+                                          alt=""
+                                          aria-hidden
+                                        />
+                                      </button>
+                                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                          <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                            Edit
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
             {displayedList.length > 0 && (
-              <div className="w-full flex items-center justify-end py-2 pr-4">
-                <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+              <div className="w-full flex items-center justify-end ">
+                <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
                   <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
                   <button
                     type="button"
@@ -1382,145 +1532,7 @@ export default function ConsultantBL() {
           document.body,
         )}
 
-      {showInactiveModal &&
-        createPortal(
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]">
-            <div className="bg-white rounded-[20px] max-w-[950px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
-              <div className="flex items-center justify-center mb-8 relative shrink-0 w-full">
-                <div className="group absolute left-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowInactiveModal(false);
-                      setInactiveIds([]);
-                    }}
-                    className="p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
-                  >
-                    <FiX className="w-5 h-5 font-bold" />
-                  </button>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
-                      <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                        Close
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <h3 className="text-[24px] font-semibold text-[#020202] text-center">
-                  Manage Inactive Consultants
-                </h3>
-              </div>
 
-              <div className="shrink-0 mb-8 px-4">
-                <p className="text-[15px] text-[#353535] mb-2 leading-relaxed font-medium">
-                  Select Consultants to mark as IN-Active. In-Active Consultants
-                  will not appear in Project Assignment dropdowns.
-                </p>
-                <p className="text-[16px] font-semibold text-[#3d3399]">
-                  {inactiveIds.length} Consultant(s) will be marked as In-Active
-                </p>
-              </div>
-
-              <div className="flex-1 overflow-y-auto border border-[#E0E0E0] rounded-[15px] custom-scrollbar mb-10">
-                {(() => {
-                  const grouped = list.reduce(
-                    (acc: Record<string, Employee[]>, emp) => {
-                      const role = emp.user_role || "General";
-                      if (!acc[role]) acc[role] = [];
-                      acc[role].push(emp);
-                      return acc;
-                    },
-                    {},
-                  );
-
-                  return Object.entries(grouped).map(([role, emps]) => (
-                    <div
-                      key={role}
-                      className="border-b border-[#E0E0E0] last:border-none"
-                    >
-                      <div className="px-6 py-4 bg-white font-semibold text-[16px] text-[#000000] border-b border-[#F0F0F0]">
-                        {role}
-                      </div>
-                      <div className="divide-y divide-[#F0F0F0]">
-                        {emps.map((emp) => (
-                            <div
-                              key={emp.id}
-                              className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-4 transition-colors gap-4"
-                            >
-                              <div className="flex items-center gap-6 min-w-0">
-                                <div
-                                  onClick={() =>
-                                    setInactiveIds((prev) =>
-                                      prev.includes(emp.id)
-                                        ? prev.filter((id) => id !== emp.id)
-                                        : [...prev, emp.id],
-                                    )
-                                  }
-                                  className={`w-7 h-7 rounded-[5px] border-2 cursor-pointer flex items-center justify-center transition-all shrink-0 ${inactiveIds.includes(emp.id) ? "bg-[#D1E6FF] border-[#D1E6FF]" : "bg-white border-[#E0E0E0]"}`}
-                                >
-                                  {inactiveIds.includes(emp.id) && (
-                                    <svg
-                                      width="16"
-                                      height="12"
-                                      viewBox="0 0 14 11"
-                                      fill="none"
-                                    >
-                                      <path
-                                        d="M1 5L5 9L13 1"
-                                        stroke="#1A1A1A"
-                                        strokeWidth="3"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                    </svg>
-                                  )}
-                                </div>
-                                <span className="text-[14px] sm:text-[16px] font-semibold text-[#6B6B6B] truncate">
-                                  {toCamelCase(emp.full_name)}{" "}
-                                  {emp.empid
-                                    ? `(${emp.empid})`
-                                    : `(EMP-${(emp.id + 150).toString().padStart(4, "0")})`}
-                                </span>
-                              </div>
-                              {(emp.active === "inactive" ||
-                                emp.active === "deactive") && (
-                                  <span className="px-4 py-1.5 bg-[#FFE6E6] text-[#E00100] text-[11px] sm:text-[12px] font-semibold rounded-[5px] shrink-0 w-fit">
-                                    Currently In-Active
-                                  </span>
-                                )}
-                            </div>
-                        ))}
-                      </div>
-                    </div>
-                  ));
-                })()}
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-14 justify-center items-center mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-[#F0F0F0] shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowInactiveModal(false);
-                    setInactiveIds([]);
-                  }}
-                  className="w-full sm:w-auto px-5 py-2 sm:py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-medium text-[14px] sm:text-[16px] transition-all cursor-pointer"
-                >
-                  Discard
-                </button>
-                <button
-                  type="button"
-                  onClick={handleInactive}
-                  disabled={!inactiveIds.length || inactiveSubmitting}
-                  className="w-full sm:w-auto px-5 py-2 sm:py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-medium text-[14px] sm:text-[16px] disabled:opacity-50 transition-all cursor-pointer disabled:cursor-not-allowed"
-                >
-                  {inactiveSubmitting ? "Updating..." : "Update Status"}
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
 
       {showDetailsModal && selectedEmployee && (
         (() => {

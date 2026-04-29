@@ -53,11 +53,10 @@ export default function TimesheetPM() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [employee, setEmployee] = useState("All");
-  const [team, setTeam] = useState("All");
   const [list, setList] = useState<TimesheetEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [employeeOpen, setEmployeeOpen] = useState(false);
-  const [teamOpen, setTeamOpen] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState("");
 
   const showEntriesOptions: {
     value: string;
@@ -80,21 +79,15 @@ export default function TimesheetPM() {
   const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
 
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
 
   // Refs for click outside detection
   const employeeDropdownRef = useRef<HTMLDivElement>(null);
-  const teamDropdownRef = useRef<HTMLDivElement>(null);
   const startDateInputRef = useRef<HTMLInputElement>(null);
   const endDateInputRef = useRef<HTMLInputElement>(null);
 
   const employeeOptions = useMemo(
     () => ["All", ...employees.map((e) => e.full_name)],
     [employees],
-  );
-  const teamOptions = useMemo(
-    () => ["All", ...teams.map((t) => t.teamname || `Team ${t.team_id}`)],
-    [teams],
   );
 
   const toYmd = (v: string | undefined): string => {
@@ -213,17 +206,6 @@ export default function TimesheetPM() {
       .catch((error) => {
         console.error("Error fetching employees:", error);
       });
-
-    // Fetch teams
-    api
-      .get<{ teams?: Team[] }>("/api/teams")
-      .then(({ data }) => {
-        const teamList = data.teams || [];
-        setTeams(teamList);
-      })
-      .catch((error) => {
-        console.error("Error fetching teams:", error);
-      });
   }, []);
 
   // Fetch timesheet data when filters change
@@ -253,15 +235,6 @@ export default function TimesheetPM() {
       }
     }
 
-    if (team !== "All") {
-      const selectedTeam = teams.find(
-        (t) => (t.teamname || `Team ${t.team_id}`) === team,
-      );
-      if (selectedTeam) {
-        payload.selectteam = String(selectedTeam.team_id);
-      }
-    }
-
     api
       .post<{ completed_tasks?: TimesheetEntry[] }>(
         "/api/timesheet/completed-tasks",
@@ -276,7 +249,7 @@ export default function TimesheetPM() {
         setList([]);
       })
       .finally(() => setLoading(false));
-  }, [startDate, endDate, employee, team, employees, teams]);
+  }, [startDate, endDate, employee, employees]);
 
   // Single outside-click handler (avoids mousedown vs click race with menu items)
   useEffect(() => {
@@ -287,9 +260,7 @@ export default function TimesheetPM() {
         !employeeDropdownRef.current.contains(t)
       ) {
         setEmployeeOpen(false);
-      }
-      if (teamDropdownRef.current && !teamDropdownRef.current.contains(t)) {
-        setTeamOpen(false);
+        setEmployeeSearch("");
       }
       if (
         showEntriesOpen &&
@@ -321,8 +292,7 @@ export default function TimesheetPM() {
         (row.project_name || "").toLowerCase().includes(searchQuery) ||
         (row.task_name || "").toLowerCase().includes(searchQuery) ||
         (row.assigned_name || "").toLowerCase().includes(searchQuery) ||
-        (row.assigned_by_name || "").toLowerCase().includes(searchQuery) ||
-        (row.teamname || "").toLowerCase().includes(searchQuery)
+        (row.assigned_by_name || "").toLowerCase().includes(searchQuery)
       );
     }
     if (startDate || endDate) {
@@ -362,7 +332,7 @@ export default function TimesheetPM() {
 
   useEffect(() => {
     setTableCurrentPage(1);
-  }, [selectedShowEntries, employee, team, startDate, endDate, searchQuery]);
+  }, [selectedShowEntries, employee, startDate, endDate, searchQuery]);
 
   const handleDownload = () => {
     if (filteredList.length === 0) return;
@@ -413,44 +383,20 @@ export default function TimesheetPM() {
   };
 
   return (
-    <div className="p-1 space-y-8 flex flex-col h-full bg-white">
+    <div className="px-2 space-y-4 flex flex-col h-full bg-white">
       {/* Header & Filter Section */}
-      <div className="flex flex-col gap-4 flex-shrink-0">
-        {/* Line 1: Heading and Download */}
-        <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 ">
+        <div className="flex items-center justify-between w-full md:w-auto">
           <h3 className="text-[24px] font-semibold text-[#000000] font-gantari whitespace-nowrap">Monthly Report</h3>
-          <button
-            onClick={handleDownload}
-            disabled={filteredList.length === 0}
-            className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span className="text-[14px]">Download</span>
-          </button>
         </div>
 
-        {/* Line 2: Filters */}
-        <div className="flex flex-wrap items-center gap-3 justify-end">
+        <div className="flex flex-wrap items-center justify-end gap-3 w-full md:w-auto">
           {/* Start Date — calendar icon only opens native picker */}
           <div
             className="relative flex min-w-[140px] items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-2 transition-all"
           >
             <span
-              className={`select-none text-[14px] font-gantari font-medium ${startDate ? "text-[#353535]" : "text-[#616161]"}`}
+              className={`select-none text-[14px] font-gantari font-semibold ${startDate ? "text-[#353535]" : "text-[#8B8B8B]"}`}
             >
               {startDate
                 ? startDate.split("-").reverse().join("/")
@@ -460,7 +406,8 @@ export default function TimesheetPM() {
               type="button"
               aria-label="Open start date calendar"
               onClick={() => openNativeDatePicker(startDateInputRef.current)}
-              className="shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40"
+              className={`shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40 ${startDate ? "opacity-90" : "opacity-60 grayscale"
+                }`}
             >
               <svg
                 width="18"
@@ -496,7 +443,7 @@ export default function TimesheetPM() {
             className="relative flex min-w-[140px] items-center justify-between gap-3 rounded-md bg-[#E8E8E8] px-4 py-2 transition-all"
           >
             <span
-              className={`select-none text-[14px] font-gantari font-medium ${endDate ? "text-[#353535]" : "text-[#616161]"}`}
+              className={`select-none text-[14px] font-gantari font-semibold ${endDate ? "text-[#353535]" : "text-[#8B8B8B]"}`}
             >
               {endDate ? endDate.split("-").reverse().join("/") : "End Date"}
             </span>
@@ -504,7 +451,8 @@ export default function TimesheetPM() {
               type="button"
               aria-label="Open end date calendar"
               onClick={() => openNativeDatePicker(endDateInputRef.current)}
-              className="shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40"
+              className={`shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40 ${endDate ? "opacity-90" : "opacity-60 grayscale"
+                }`}
             >
               <svg
                 width="18"
@@ -542,19 +490,18 @@ export default function TimesheetPM() {
               onClick={(e) => {
                 e.stopPropagation();
                 setEmployeeOpen((o) => !o);
-                setTeamOpen(false);
               }}
-              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold font-gantari transition-all cursor-pointer border-0"
+              className="flex items-center justify-between gap-2 w-full px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
             >
               <span
-                className={`text-[14px] font-semibold ${employee !== "All" ? "text-[#353535]" : "text-[#8B8B8B]"}`}
+                className={`min-w-0 flex-1 truncate text-left ${employee !== "All" ? "text-[#353535]" : "text-[#8B8B8B]"}`}
               >
                 {employee === "All" ? "Employee" : employee}
               </span>
               <img
                 src={ArrowDown}
                 alt=""
-                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${employeeOpen ? "rotate-180" : ""
+                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${employeeOpen ? "rotate-180" : ""
                   } ${employee === "All"
                     ? "opacity-60 grayscale"
                     : "opacity-90"
@@ -563,74 +510,40 @@ export default function TimesheetPM() {
               />
             </button>
             {employeeOpen && (
-              <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[160px] py-1 max-h-[300px] overflow-y-auto">
-                {employeeOptions.map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEmployee(opt);
-                      setEmployeeOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer ${employee === opt
-                      ? "text-[#353535] bg-[#F2F2F2]"
-                      : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"
-                      }`}
-                  >
-                    {opt === "All" ? "Employee" : opt}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Team Custom Dropdown */}
-          <div className="relative min-w-[120px]" ref={teamDropdownRef}>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setTeamOpen((o) => !o);
-                setEmployeeOpen(false);
-              }}
-              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold font-gantari transition-all cursor-pointer border-0"
-            >
-              <span
-                className={`text-[14px] font-semibold ${team !== "All" ? "text-[#353535]" : "text-[#8B8B8B]"}`}
-              >
-                {team === "All" ? "Team" : team}
-              </span>
-              <img
-                src={ArrowDown}
-                alt=""
-                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${teamOpen ? "rotate-180" : ""
-                  } ${team === "All"
-                    ? "opacity-60 grayscale"
-                    : "opacity-90"
-                  }`}
-                aria-hidden
-              />
-            </button>
-            {teamOpen && (
-              <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1 max-h-[300px] overflow-y-auto">
-                {teamOptions.map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setTeam(opt);
-                      setTeamOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer ${team === opt
-                      ? "text-[#353535] bg-[#F2F2F2]"
-                      : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"
-                      }`}
-                  >
-                    {opt === "All" ? "Team" : opt}
-                  </button>
-                ))}
+              <div className="absolute top-full left-0 mt-1 z-[200] bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] min-w-[200px] overflow-hidden">
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Search..."
+                  value={employeeSearch}
+                  onChange={(e) => setEmployeeSearch(e.target.value)}
+                  className="w-full px-4 py-2 text-[14px] border-b border-[#E0E0E0] focus:outline-none font-gantari sticky top-0 bg-white"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <div className="max-h-[250px] overflow-y-auto custom-scrollbar">
+                  {employeeOptions
+                    .filter((opt) =>
+                      opt.toLowerCase().includes(employeeSearch.toLowerCase()),
+                    )
+                    .map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEmployee(opt);
+                          setEmployeeOpen(false);
+                          setEmployeeSearch("");
+                        }}
+                        className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${employee === opt
+                          ? "text-[#353535] bg-[#F2F2F2]"
+                          : "text-[#8B8B8B] bg-transparent"
+                          }`}
+                      >
+                        {opt === "All" ? "Employee" : opt}
+                      </button>
+                    ))}
+                </div>
               </div>
             )}
           </div>
@@ -663,7 +576,7 @@ export default function TimesheetPM() {
               <img
                 src={ArrowDown}
                 alt=""
-                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
                   } ${selectedShowEntries === ""
                     ? "opacity-60 grayscale"
                     : "opacity-90"
@@ -711,6 +624,38 @@ export default function TimesheetPM() {
               </div>
             )}
           </div>
+
+          <div className="relative group">
+            <button
+              onClick={handleDownload}
+              disabled={filteredList.length === 0}
+              className="flex items-center justify-center px-2 py-2 bg-[#DD4342] text-white rounded-md transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <svg
+                width="19"
+                height="19"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19"
+                  stroke="white"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                  Download
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       {/* Table Section */}
@@ -721,146 +666,145 @@ export default function TimesheetPM() {
           </div>
         ) : (
           <>
-          <div
-            className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1"
+          {/* Outer wrapper clips the horizontal scrollbar out of view */}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {/* Inner scroll div is 17px taller than wrapper → h-scroll sits in clipped zone */}
+            <div className="overflow-auto custom-scrollbar smooth-scroll h-[calc(100%+17px)] pr-1 pb-[17px]">
+              <table className="min-w-full border-collapse table-fixed">
 
-          >
-            <table className="min-w-full border-collapse table-fixed">
-
-              <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                <tr className="bg-white">
-                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
-                    Sl.No
-                  </th>
-                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
-                    Project Name
-                  </th>
-                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white font-gantari">
-                    Task
-                  </th>
-                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
-                    Assigned to
-                  </th>
-                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
-                    Assigned by
-                  </th>
-                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
-                    Start Date
-                  </th>
-                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
-                    End Date
-                  </th>
-                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
-                    Task Duration
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {displayedList.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      className="px-6 py-12 text-center text-gray-400 font-medium"
-                    >
-                      No records found
-                    </td>
+                <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                  <tr className="bg-white">
+                    <th className="px-2 lg:px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white whitespace-nowrap">
+                      Sl.No
+                    </th>
+                    <th className="px-2 lg:px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white whitespace-nowrap">
+                      Project Name
+                    </th>
+                    <th className="px-2 lg:px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
+                      Task Name
+                    </th>
+                    <th className="px-2 lg:px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white whitespace-nowrap">
+                      Assigned to
+                    </th>
+                    <th className="px-2 lg:px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white whitespace-nowrap">
+                      Assigned by
+                    </th>
+                    <th className="px-2 lg:px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white whitespace-nowrap">
+                      Start Date
+                    </th>
+                    <th className="px-2 lg:px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white whitespace-nowrap">
+                      End Date
+                    </th>
+                    <th className="px-2 lg:px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white whitespace-nowrap">
+                      Task Duration
+                    </th>
                   </tr>
-                ) : (
-                  displayedList.map((row, index) => {
-                    const slNo = (rangeStart + tablePageStartIndex + index + 1).toString().padStart(2, "0");
-                    const startDate = formatDate(pickReportStart(row));
-                    const endDate = formatDate(pickReportEnd(row));
-                    const duration = calculateDuration(row);
-
-                    return (
-                      <tr
-                        key={row.id}
-                        className={`${index % 2 === 1 ? "bg-[#F2F2F2] hover:bg-gray-100" : "bg-white"} transition-colors`}
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {displayedList.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={8}
+                        className="px-6 py-12 text-center text-gray-400 font-medium"
                       >
-                        <td className="px-4 py-3 text-center text-[14px] text-gray-500 font-gantari align-middle">
-                          {slNo}
-                        </td>
-                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
-                          {row.project_name && row.project_name.trim() !== ""
-                            ? row.project_name
-                            : "-"}
-                        </td>
-                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
-                          <div className="mx-auto max-w-[250px] line-clamp-2 break-words text-center">
+                        No records found
+                      </td>
+                    </tr>
+                  ) : (
+                    displayedList.map((row, index) => {
+                      const slNo = (rangeStart + tablePageStartIndex + index + 1).toString().padStart(2, "0");
+                      const startDate = formatDate(pickReportStart(row));
+                      const endDate = formatDate(pickReportEnd(row));
+                      const duration = calculateDuration(row);
+
+                      return (
+                        <tr
+                          key={row.id}
+                          className={`${index % 2 === 1 ? "bg-[#F2F2F2] hover:bg-gray-100" : "bg-white"} transition-colors`}
+                        >
+                          <td className="px-2 lg:px-4 py-4 lg:py-6 text-center text-[12px] lg:text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
+                            {slNo}
+                          </td>
+                          <td className="px-2 lg:px-4 py-4 lg:py-6 text-center text-[12px] lg:text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
+                            {row.project_name && row.project_name.trim() !== ""
+                              ? row.project_name
+                              : "–"}
+                          </td>
+                          <td className="px-2 lg:px-4 py-4 lg:py-6 text-center text-[12px] lg:text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {row.task_name && row.task_name.trim() !== ""
                               ? row.task_name
-                              : "-"}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
-                          {row.assigned_name && row.assigned_name.trim() !== ""
-                            ? row.assigned_name
-                            : "-"}
-                        </td>
-                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
-                          {row.assigned_by_name && row.assigned_by_name.trim() !== ""
-                            ? row.assigned_by_name
-                            : "-"}
-                        </td>
-                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
-                          {startDate}
-                        </td>
-                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
-                          {endDate}
-                        </td>
-                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
-                          {duration}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-          {listInRange.length > 0 && (
-            <div className="w-full flex items-center justify-end py-2 pr-4">
-              <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
-                <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
-                <button
-                  type="button"
-                  onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={safeTableCurrentPage === 1}
-                  className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
-                    ? 'text-[#9CA3AF] opacity-50 cursor-not-allowed'
-                    : 'text-[#353535]'
-                    }`}
-                  aria-label="Previous page"
-                >
-                  <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
-                  <span className="inline-flex items-center">Prev</span>
-                </button>
-                <button
-                  type="button"
-                  className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
-                  aria-current="page"
-                >
-                  {tablePageRangeLabel}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))}
-                  disabled={safeTableCurrentPage >= tableTotalPages}
-                  className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
-                    ? 'text-[#9CA3AF] opacity-40 cursor-not-allowed'
-                    : 'text-[#353535]'
-                    }`}
-                  aria-label="Next page"
-                >
-                  <span className="inline-flex items-center">Next</span>
-                  <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
-                </button>
-              </div>
+                              : "–"}
+                          </td>
+                          <td className="px-2 lg:px-4 py-4 lg:py-6 text-center text-[12px] lg:text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                            {row.assigned_name && row.assigned_name.trim() !== ""
+                              ? row.assigned_name
+                              : "–"}
+                          </td>
+                          <td className="px-2 lg:px-4 py-4 lg:py-6 text-center text-[12px] lg:text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                            {row.assigned_by_name && row.assigned_by_name.trim() !== ""
+                              ? row.assigned_by_name
+                              : "–"}
+                          </td>
+                          <td className="px-2 lg:px-4 py-4 lg:py-6 text-center text-[12px] lg:text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                            {startDate}
+                          </td>
+                          <td className="px-2 lg:px-4 py-4 lg:py-6 text-center text-[12px] lg:text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                            {endDate}
+                          </td>
+                          <td className="px-2 lg:px-4 py-4 lg:py-6 text-center text-[12px] lg:text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
+                            {duration}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
+          </div>
           </>
         )}
       </div>
+      {listInRange.length > 0 && (
+        <div className="w-full flex items-center justify-end">
+          <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2 mb-[-6px]">
+            <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
+            <button
+              type="button"
+              onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safeTableCurrentPage === 1}
+              className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
+                ? 'text-[#9CA3AF] opacity-50 cursor-not-allowed'
+                : 'text-[#353535]'
+                }`}
+              aria-label="Previous page"
+            >
+              <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
+              <span className="inline-flex items-center">Prev</span>
+            </button>
+            <button
+              type="button"
+              className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+              aria-current="page"
+            >
+              {tablePageRangeLabel}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))}
+              disabled={safeTableCurrentPage >= tableTotalPages}
+              className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
+                ? 'text-[#9CA3AF] opacity-40 cursor-not-allowed'
+                : 'text-[#353535]'
+                }`}
+              aria-label="Next page"
+            >
+              <span className="inline-flex items-center">Next</span>
+              <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

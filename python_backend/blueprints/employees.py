@@ -184,7 +184,7 @@ def create_employee():
     user_type = data.get("user_type") or data.get("userType") or "Employee"
     user_role = data.get("user_role") or data.get("userRole") or "Consultant"
     address = data.get("address") or ""
-    department = data.get("department") or data.get("userdpt") or ""
+    department = data.get("department") or data.get("userdpt") or None
     empid = data.get("empid") or ""
     # Optional numeric/financial fields
     salary = data.get("salary")
@@ -428,6 +428,8 @@ def update_employee(emp_id):
                         value = row["id"]
                 except Exception:
                     pass
+            if key == "department" and not value:
+                value = None
             sets.append(f"`{key}` = %s")
             params.append(value)
 

@@ -273,7 +273,7 @@ export default function TrackerBC() {
     const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
     const listInRange = filteredList.slice(rangeStart, rangeEnd);
 
-    const tableRowsPerPage = 3;
+    const tableRowsPerPage = 5;
     const tableTotalPages = Math.max(1, Math.ceil(listInRange.length / tableRowsPerPage));
     const safeTableCurrentPage = Math.min(tableCurrentPage, tableTotalPages);
     const tablePageStartIndex = (safeTableCurrentPage - 1) * tableRowsPerPage;
@@ -328,15 +328,15 @@ export default function TrackerBC() {
     }
 
     return (
-        <div className="px-0 pt-2 pb-6 space-y-8 flex flex-col h-full bg-white">
+        <div className="px-2 pt-1 pb-0 space-y-3 flex flex-col h-full bg-white">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 flex-shrink-0 px-2">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0">
                 <div className="flex items-center justify-between w-full md:w-auto">
-                    <h2 className="text-[24px] font-medium text-[#000000]">Employee Tracking</h2>
+                    <h2 className="text-2xl font-semibold text-[#000000]">Employee Tracking</h2>
                 </div>
 
-                <div className="flex flex-col items-stretch md:items-end gap-3 w-full md:w-auto">
-                    <div className="order-2 flex flex-wrap items-center justify-end gap-3">
+                <div className="flex flex-wrap items-center justify-end gap-3 w-full md:w-auto">
+                    <div className="flex flex-wrap items-center justify-end gap-3">
                     {/* Employee Filter */}
                     <div className="relative min-w-[190px]" ref={employeeDropdownRef}>
                         <button
@@ -345,15 +345,16 @@ export default function TrackerBC() {
                                 e.stopPropagation();
                                 setEmployeeOpen((o) => !o);
                             }}
-                            className="w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md text-sm font-medium text-[#353535] border-0 cursor-pointer"
+                            className="w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md text-sm font-semibold font-gantari text-[#353535] border-0 cursor-pointer"
                         >
                             <span className={`${selectedEmployee ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
                                 {selectedEmployee || 'Select Employee'}
                             </span>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                                style={{ transform: employeeOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                                <path d="M6 9l6 6 6-6" />
-                            </svg>
+                            <img
+                                src={ArrowDown}
+                                alt=""
+                                className={`w-3 h-3 shrink-0 transition-transform duration-200 opacity-60 ${employeeOpen ? 'rotate-180' : ''}`}
+                            />
                         </button>
                         {employeeOpen && (
                             <div className="absolute top-full left-0 mt-2 z-[220] bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15)] w-full overflow-hidden">
@@ -395,27 +396,32 @@ export default function TrackerBC() {
                         )}
                     </div>
 
-
                     {/* Status Custom Dropdown */}
                     <div className="relative min-w-[120px]" ref={statusDropdownRef}>
-                        <button type="button" onClick={() => setStatusOpen(o => !o)}
-                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer">
-                            <span className={`text-sm font-medium ${selectedStatus ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setStatusOpen(o => !o); }}
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0">
+                            <span className={`text-[14px] font-semibold ${selectedStatus ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
                                 {selectedStatus || 'Status'}
                             </span>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                                style={{ transform: statusOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                                <path d="M6 9l6 6 6-6" />
-                            </svg>
+                            <img
+                                src={ArrowDown}
+                                alt="arrow"
+                                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${statusOpen ? 'rotate-180' : ''} ${selectedStatus === '' ? 'opacity-60 grayscale' : 'opacity-90'}`}
+                            />
                         </button>
                         {statusOpen && (
-                            <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1">
-                                {statusOptions.map(opt => (
-                                    <button key={opt} type="button" onClick={() => { setSelectedStatus(opt); setStatusOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${selectedStatus === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]'}`}>
-                                        {opt === '' ? 'Status' : opt}
-                                    </button>
-                                ))}
+                            <div
+                                className="absolute top-full left-0 mt-1 z-[200] bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] min-w-[130px] overflow-hidden"
+                                onMouseDown={(e) => e.preventDefault()}
+                            >
+                                <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                    {statusOptions.map(opt => (
+                                        <button key={opt} type="button" onClick={() => { setSelectedStatus(opt); setStatusOpen(false); }}
+                                            className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${selectedStatus === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] bg-transparent'}`}>
+                                            {opt === '' ? 'Status' : opt}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -491,78 +497,77 @@ export default function TrackerBC() {
                             </div>
                         )}
                     </div>
-
                     </div>
                     {/* Download Button */}
                     <button
                         onClick={handleDownload}
                         disabled={filteredList.length === 0}
-                        className="order-1 self-end flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-medium transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                        <span className="text-[16px]">Download</span>
+                        <span className="text-[14px]">Download</span>
                     </button>
                 </div>
             </div>
 
             {/* Table Section - scrollable when many rows */}
-            <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-                <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 min-h-[420px] max-h-[calc(100vh-280px)] pr-1 pb-0">
-                    <table className="min-w-full border-collapse">
-                        <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                            <tr className="bg-white">
-                                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Date</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Employee Name</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Time In</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Time Out</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Total Hours</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                             {displayedList.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white">
-                                        No records found
-                                    </td>
+            <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mt-2">
+                <div className="flex-1 min-h-0 overflow-hidden">
+                    <div className="overflow-auto custom-scrollbar smooth-scroll h-[calc(100%+17px)] pb-[17px]">
+                        <table className="min-w-full border-collapse">
+                            <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                                <tr className="bg-white">
+                                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Date</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Employee Name</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Time In</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Time Out</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Total Hours</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
                                 </tr>
-                            ) : (
-                                displayedList.map((entry, index) => {
-                                    const slNo = (tablePageStartIndex + index + 1).toString().padStart(2, '0');
-                                    const formattedDate = entry.date && entry.date.trim() !== '' ? entry.date.replace(/-/g, '/') : '-';
-                                    const timeIn = formatTime(entry.time_in);
-                                    const timeOut = formatTime(entry.time_out);
-                                    const totalHours = formatTotalHours(entry.total_hours, entry.time_in, entry.time_out);
-                                    const status = getStatus(entry);
-                                    return (
-                                        <tr key={entry.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
-                                            <td className="px-3 py-3 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
-                                            <td className="px-3 py-3 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{formattedDate}</td>
-                                            <td className="px-3 py-3 text-center text-[14px] text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{entry.full_name ?? '-'}</td>
-                                            <td className="px-3 py-3 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{timeIn}</td>
-                                            <td className="px-3 py-3 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{timeOut}</td>
-                                            <td className="px-3 py-3 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{totalHours}</td>
-                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
-                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${
-                                                    status === 'Busy' ? 'bg-[#FCE8E8] text-[#D93025]' : 'bg-[#E6F4EA] text-[#1E7E34]'
-                                                }`}>
-                                                    {status}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {displayedList.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="px-3 py-20 text-center text-[#616161] font-medium font-gantari bg-white">
+                                            No records found
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    displayedList.map((entry, index) => {
+                                        const slNo = (tablePageStartIndex + index + 1).toString().padStart(2, '0');
+                                        const formattedDate = entry.date && entry.date.trim() !== '' ? entry.date.replace(/-/g, '/') : '-';
+                                        const timeIn = formatTime(entry.time_in);
+                                        const timeOut = formatTime(entry.time_out);
+                                        const totalHours = formatTotalHours(entry.total_hours, entry.time_in, entry.time_out);
+                                        const status = getStatus(entry);
+                                        return (
+                                            <tr key={entry.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{formattedDate}</td>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{entry.full_name ?? '-'}</td>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{timeIn}</td>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{timeOut}</td>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{totalHours}</td>
+                                                <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                                                    <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${status === 'Busy' ? 'bg-[#FCE8E8] text-[#D93025]' : 'bg-[#E6F4EA] text-[#1E7E34]'}`}>
+                                                        {status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
             {listInRange.length > 0 && (
-                <div className="w-full flex items-center justify-end py-2 pr-4">
-                    <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+                <div className="w-full flex items-center justify-end">
+                    <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2 mb-[-18px]">
                         <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
                         <button
                             type="button"

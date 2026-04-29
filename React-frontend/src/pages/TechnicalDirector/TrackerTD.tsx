@@ -47,7 +47,7 @@ export default function TrackerTD() {
         { value: '251-300', label: '251-300', start: 250, end: 300 },
         { value: 'all', label: 'All', start: 0, end: null },
     ];
-    const [selectedShowEntries, setSelectedShowEntries] = useState('1-50');
+    const [selectedShowEntries, setSelectedShowEntries] = useState('');
     const [tableCurrentPage, setTableCurrentPage] = useState(1);
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
@@ -356,262 +356,263 @@ export default function TrackerTD() {
     }
 
     return (
-        <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
+        <div className="px-2 pt-1 pb-0 space-y-3 flex flex-col h-full bg-white">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 flex-shrink-0 px-2">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0">
                 <div className="flex items-center justify-between w-full md:w-auto">
                     <h2 className="text-2xl font-semibold text-[#000000]">Employee Tracking</h2>
                 </div>
 
-                <div className="flex flex-col items-stretch md:items-end gap-3 w-full md:w-auto">
-                    <div className="order-2 flex flex-wrap items-center justify-end gap-3">
-                    {/* Employee Filter */}
-                    <div className="relative min-w-[190px]" ref={employeeDropdownRef}>
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setEmployeeOpen((o) => !o);
-                            }}
-                            className="w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md text-sm font-semibold font-gantari text-[#353535] border-0 cursor-pointer"
-                        >
-                            <span className={`${selectedEmployee ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
-                                {selectedEmployee || 'Select Employee'}
-                            </span>
-                            <img
-                                src={ArrowDown}
-                                alt=""
-                                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${employeeOpen ? 'rotate-180' : ''}`}
-                            />
-                        </button>
-                        {employeeOpen && (
-                            <div className="absolute top-full left-0 mt-2 z-[220] bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15)] w-full overflow-hidden">
-                                <div className="p-2">
-                                    <input
-                                        type="text"
-                                        value={employeeSearch}
-                                        onChange={(e) => setEmployeeSearch(e.target.value)}
-                                        placeholder="Search employee..."
-                                        className="w-full px-3 py-2 bg-[#F2F2F2] rounded-md text-[14px] text-[#353535] outline-none"
-                                    />
-                                </div>
-                                <div className="max-h-[220px] overflow-y-auto custom-scrollbar pb-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setSelectedEmployee('');
-                                            setEmployeeOpen(false);
-                                        }}
-                                        className="w-full text-left px-4 py-2 text-[14px] text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
-                                    >
-                                        Show All
-                                    </button>
-                                    {employeeOptionsFiltered.map((name) => (
+                <div className="flex flex-wrap items-center justify-end gap-3 w-full md:w-auto">
+                    <div className="flex flex-wrap items-center justify-end gap-3">
+                        {/* Employee Filter */}
+                        <div className="relative min-w-[190px]" ref={employeeDropdownRef}>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEmployeeOpen((o) => !o);
+                                }}
+                                className="w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md text-sm font-semibold font-gantari text-[#353535] border-0 cursor-pointer"
+                            >
+                                <span className={`${selectedEmployee ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
+                                    {selectedEmployee || 'Select Employee'}
+                                </span>
+                                <img
+                                    src={ArrowDown}
+                                    alt=""
+                                    className={`w-3 h-3 shrink-0 transition-transform duration-200 opacity-60 ${employeeOpen ? 'rotate-180' : ''}`}
+                                />
+                            </button>
+                            {employeeOpen && (
+                                <div className="absolute top-full left-0 mt-2 z-[220] bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.15)] w-full overflow-hidden">
+                                    <div className="p-2">
+                                        <input
+                                            type="text"
+                                            value={employeeSearch}
+                                            onChange={(e) => setEmployeeSearch(e.target.value)}
+                                            placeholder="Search employee..."
+                                            className="w-full px-3 py-2 bg-[#F2F2F2] rounded-md text-[14px] text-[#353535] outline-none"
+                                        />
+                                    </div>
+                                    <div className="max-h-[220px] overflow-y-auto custom-scrollbar pb-1">
                                         <button
-                                            key={name}
                                             type="button"
                                             onClick={() => {
-                                                setSelectedEmployee(name);
+                                                setSelectedEmployee('');
                                                 setEmployeeOpen(false);
                                             }}
-                                            className={`w-full text-left px-4 py-2 text-[14px] hover:bg-[#F2F2F2] cursor-pointer ${selectedEmployee === name ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B]'}`}
+                                            className="w-full text-left px-4 py-2 text-[14px] text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
                                         >
-                                            {name}
+                                            Show All
                                         </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-
-
-                    {/* Status Custom Dropdown */}
-                    <div className="relative min-w-[120px]" ref={statusDropdownRef}>
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setStatusOpen(o => !o);
-                            }}
-                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0"
-                        >
-                            <span className={`text-[14px] font-semibold ${selectedStatus ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
-                                {selectedStatus || 'Status'}
-                            </span>
-                            <img
-                                src={ArrowDown}
-                                alt="arrow"
-                                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${statusOpen ? 'rotate-180' : ''} ${selectedStatus === '' ? 'opacity-60 grayscale' : 'opacity-90'}`}
-                            />
-                        </button>
-                        {statusOpen && (
-                            <div
-                                className="absolute top-full left-0 mt-1 z-[200] bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] min-w-[130px] overflow-hidden"
-                                onMouseDown={(e) => e.preventDefault()}
-                            >
-                                <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-                                    {statusOptions.map(opt => (
-                                        <button
-                                            key={opt}
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedStatus(opt);
-                                                setStatusOpen(false);
-                                            }}
-                                            className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${selectedStatus === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] bg-transparent'}`}
-                                        >
-                                            {opt === '' ? 'Status' : opt}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="relative w-[140px]" ref={showEntriesDropdownRef}>
-                        <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
-                            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
-                        >
-                            <span className={`min-w-0 flex-1 truncate overflow-hidden text-left text-sm ${selectedShowEntries === '' ? 'text-[#8B8B8B]' : 'text-[#353535]'}`}>
-                                {selectedShowEntries === '' ? (
-                                    SHOW_ENTRIES_PLACEHOLDER
-                                ) : (
-                                    <>
-                                        <span className="text-[14px]">{SHOW_ENTRIES_SELECTED_PREFIX}</span>{' '}
-                                        <span className="font-semibold">{selectedRange.label}</span>
-                                    </>
-                                )}
-                            </span>
-                            <img
-                                src={ArrowDown}
-                                alt=""
-                                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''} ${selectedShowEntries === '' ? 'opacity-60 grayscale' : 'opacity-90'}`}
-                                aria-hidden
-                            />
-                        </button>
-                        {showEntriesOpen && (
-                            <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
-                                <div ref={showEntriesDropdownContentRef} className="max-h-[168px] overflow-y-auto custom-scrollbar">
-                                    <button
-                                        type="button"
-                                        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedShowEntries(''); setShowEntriesOpen(false); }}
-                                        className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
-                                    >
-                                        {SHOW_ENTRIES_PLACEHOLDER}
-                                    </button>
-                                    {showEntriesOptions.map((opt) => {
-                                        const isChosen = selectedShowEntries === opt.value;
-                                        return (
+                                        {employeeOptionsFiltered.map((name) => (
                                             <button
-                                                key={`${opt.value}-${opt.start}-${String(opt.end)}`}
+                                                key={name}
                                                 type="button"
-                                                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
-                                                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]'}`}
+                                                onClick={() => {
+                                                    setSelectedEmployee(name);
+                                                    setEmployeeOpen(false);
+                                                }}
+                                                className={`w-full text-left px-4 py-2 text-[14px] hover:bg-[#F2F2F2] cursor-pointer ${selectedEmployee === name ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B]'}`}
                                             >
-                                                <span className="truncate min-w-0">{opt.label}</span>
-                                                {isChosen && (
-                                                    <svg className="w-4 h-4 shrink-0 text-[#353535]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                )}
+                                                {name}
                                             </button>
-                                        );
-                                    })}
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
+
+
+
+                        {/* Status Custom Dropdown */}
+                        <div className="relative min-w-[120px]" ref={statusDropdownRef}>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setStatusOpen(o => !o);
+                                }}
+                                className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0"
+                            >
+                                <span className={`text-[14px] font-semibold ${selectedStatus ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
+                                    {selectedStatus || 'Status'}
+                                </span>
+                                <img
+                                    src={ArrowDown}
+                                    alt="arrow"
+                                    className={`w-3 h-3 shrink-0 transition-transform duration-200 ${statusOpen ? 'rotate-180' : ''} ${selectedStatus === '' ? 'opacity-60 grayscale' : 'opacity-90'}`}
+                                />
+                            </button>
+                            {statusOpen && (
+                                <div
+                                    className="absolute top-full left-0 mt-1 z-[200] bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] min-w-[130px] overflow-hidden"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                >
+                                    <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                        {statusOptions.map(opt => (
+                                            <button
+                                                key={opt}
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedStatus(opt);
+                                                    setStatusOpen(false);
+                                                }}
+                                                className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${selectedStatus === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] bg-transparent'}`}
+                                            >
+                                                {opt === '' ? 'Status' : opt}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="relative w-[140px]" ref={showEntriesDropdownRef}>
+                            <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
+                                className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                            >
+                                <span className={`min-w-0 flex-1 truncate overflow-hidden text-left text-sm ${selectedShowEntries === '' ? 'text-[#8B8B8B]' : 'text-[#353535]'}`}>
+                                    {selectedShowEntries === '' ? (
+                                        SHOW_ENTRIES_PLACEHOLDER
+                                    ) : (
+                                        <>
+                                            <span className="text-[14px]">{SHOW_ENTRIES_SELECTED_PREFIX}</span>{' '}
+                                            <span className="font-semibold">{selectedRange.label}</span>
+                                        </>
+                                    )}
+                                </span>
+                                <img
+                                    src={ArrowDown}
+                                    alt=""
+                                    className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''} ${selectedShowEntries === '' ? 'opacity-60 grayscale' : 'opacity-90'}`}
+                                    aria-hidden
+                                />
+                            </button>
+                            {showEntriesOpen && (
+                                <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                                    <div ref={showEntriesDropdownContentRef} className="max-h-[168px] overflow-y-auto custom-scrollbar">
+                                        <button
+                                            type="button"
+                                            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedShowEntries(''); setShowEntriesOpen(false); }}
+                                            className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                        >
+                                            {SHOW_ENTRIES_PLACEHOLDER}
+                                        </button>
+                                        {showEntriesOptions.map((opt) => {
+                                            const isChosen = selectedShowEntries === opt.value;
+                                            return (
+                                                <button
+                                                    key={`${opt.value}-${opt.start}-${String(opt.end)}`}
+                                                    type="button"
+                                                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
+                                                    className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]'}`}
+                                                >
+                                                    <span className="truncate min-w-0">{opt.label}</span>
+                                                    {isChosen && (
+                                                        <svg className="w-4 h-4 shrink-0 text-[#353535]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                     </div>
                     {/* Download Button */}
                     <button
                         onClick={handleDownload}
                         disabled={filteredList.length === 0}
-                        className="order-1 self-end flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-medium transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
-                        <span className="text-[16px]">Download</span>
+                        <span className="text-[14px]">Download</span>
                     </button>
                 </div>
             </div>
 
             {/* Table Section - scrollable when many rows */}
-            <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-                <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-220px)]">
-                    <table className="min-w-full border-collapse">
-                        <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                            <tr className=" bg-white">
-                                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Date</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Employee Name</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Time In</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Time Out</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Total Hours</th>
-                                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {displayedList.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="px-3 py-20 text-center text-[#616161] font-medium font-gantari bg-white">
-                                        No records found
-                                    </td>
+            <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mt-2 ">
+                <div className="flex-1 min-h-0 overflow-hidden">
+                    <div className="overflow-auto custom-scrollbar smooth-scroll h-[calc(100%+17px)] pb-[17px]">
+                        <table className="min-w-full border-collapse">
+                            <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                                <tr className="bg-white">
+                                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Date</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Employee Name</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Time In</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Time Out</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Total Hours</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
                                 </tr>
-                            ) : (
-                                displayedList.map((loc, index) => {
-                                    const baseIndex = rangeStart + tablePageStartIndex + index;
-                                    const slNo = (baseIndex + 1).toString().padStart(2, '0');
-                                    const dateKey = toLocalDateKey(loc.date_iso, loc.date ?? null);
-                                    const [y, m, d] = dateKey ? dateKey.split('-') : ['', '', ''];
-                                    const formattedDate = dateKey ? `${d}/${m}/${y}` : '-';
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {displayedList.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="px-3 py-20 text-center text-[#616161] font-medium font-gantari bg-white">
+                                            No records found
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    displayedList.map((loc, index) => {
+                                        const baseIndex = rangeStart + tablePageStartIndex + index;
+                                        const slNo = (baseIndex + 1).toString().padStart(2, '0');
+                                        const dateKey = toLocalDateKey(loc.date_iso, loc.date ?? null);
+                                        const [y, m, d] = dateKey ? dateKey.split('-') : ['', '', ''];
+                                        const formattedDate = dateKey ? `${d}/${m}/${y}` : '-';
 
-                                    const timeIn = pickTime(loc.time_in) || '-';
-                                    const timeOut = pickTime(loc.time_out) || '-';
-                                    const totalHours = formatTotalHours(loc.total_hours, timeIn, timeOut);
+                                        const timeIn = pickTime(loc.time_in) || '-';
+                                        const timeOut = pickTime(loc.time_out) || '-';
+                                        const totalHours = formatTotalHours(loc.total_hours, timeIn, timeOut);
 
-                                    return (
-                                        <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
-                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
-                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{formattedDate}</td>
-                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{loc.full_name ?? '-'}</td>
-                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{timeIn}</td>
-                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{timeOut}</td>
-                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{totalHours}</td>
-                                            <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-
-                                                {(() => {
-                                                    const name = (loc.full_name || '').trim();
-                                                    const entryKey = loc.employee_db_id != null ? String(loc.employee_db_id) : name;
-                                                    const statusLabel =
-                                                        (entryKey && busyMap[entryKey]) || (name && busyMap[name]) ? 'Busy' : 'Available';
-                                                    const colorClass =
-                                                        statusLabel === 'Busy'
-                                                            ? 'bg-[#FCE8E8] text-[#D93025]'
-                                                            : 'bg-[#E6F4EA] text-[#1E7E34]';
-                                                    return (
-                                                        <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${colorClass}`}>
-                                                            {statusLabel}
-                                                        </span>
-                                                    );
-                                                })()}
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
+                                        return (
+                                            <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{formattedDate}</td>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{loc.full_name ?? '-'}</td>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{timeIn}</td>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{timeOut}</td>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{totalHours}</td>
+                                                <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                                                    {(() => {
+                                                        const name = (loc.full_name || '').trim();
+                                                        const entryKey = loc.employee_db_id != null ? String(loc.employee_db_id) : name;
+                                                        const statusLabel =
+                                                            (entryKey && busyMap[entryKey]) || (name && busyMap[name]) ? 'Busy' : 'Available';
+                                                        const colorClass =
+                                                            statusLabel === 'Busy'
+                                                                ? 'bg-[#FCE8E8] text-[#D93025]'
+                                                                : 'bg-[#E6F4EA] text-[#1E7E34]';
+                                                        return (
+                                                            <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${colorClass}`}>
+                                                                {statusLabel}
+                                                            </span>
+                                                        );
+                                                    })()}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
             {listInRange.length > 0 && (
-                <div className="w-full flex items-center justify-end py-2 pr-4">
-                    <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+                <div className="w-full flex items-center justify-end">
+                    <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
                         <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
                         <button
                             type="button"
@@ -649,10 +650,6 @@ export default function TrackerTD() {
                     </div>
                 </div>
             )}
-
-
-
-
         </div>
     );
 }
