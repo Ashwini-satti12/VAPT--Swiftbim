@@ -278,6 +278,19 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     }
   };
 
+  const clearAllNotifications = async () => {
+    try {
+      await Promise.allSettled([
+        api.post("/api/notifications/read-all"),
+        api.post("/api/notifications/tasks/read-all"),
+      ]);
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Failed to clear notifications", err);
+    }
+  };
+
   // Close notification dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -520,9 +533,22 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
             {showNotifications && (
               <div className="absolute right-0 top-10 w-64 sm:w-72 max-h-[min(70vh,22rem)] flex flex-col bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden">
                 <div className="shrink-0 px-4 py-3 border-b border-slate-100 bg-white">
-                  <p className="font-semibold text-slate-800 text-sm">
-                    Notifications
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-slate-800 text-sm">
+                      Notifications
+                    </p>
+                    {notifications.length > 0 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearAllNotifications();
+                        }}
+                        className="text-[12px] font-semibold text-[#DD4342] hover:text-[#c43a39] cursor-pointer"
+                      >
+                        Clear All
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {notifications.length === 0 ? (
                   <div className="px-4 py-6 text-center text-slate-400 text-sm shrink-0">
