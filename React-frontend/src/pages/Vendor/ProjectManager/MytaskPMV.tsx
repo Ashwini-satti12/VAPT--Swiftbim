@@ -447,7 +447,8 @@ function TaskCard({
 }) {
   const { user } = useAuth();
   const isUnderReview =
-    (status === "completed" || (status === "todo" && (task.progress === 95 || task.progress === "95"))) &&
+    (status === "completed" ||
+      (status === "todo" && Number(task.progress) === 95)) &&
     task.assigned_to != null &&
     String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id) &&
     task.Approval?.toLowerCase() !== "approved";
@@ -874,7 +875,7 @@ export default function MytaskPMV() {
     const isAssignedToMe = String(t.assigned_to) === String(user?.id) || (userName && taskAssigneeName === userName);
     const isAssignedToOthers = t.assigned_to != null && !isAssignedToMe;
 
-    if ((isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && status === "completed") || (t as any).review_required === true) {
+    if ((isOwner && isAssignedToOthers && Number(progress) === 95 && status === "completed") || (t as any).review_required === true) {
       return "todo";
     }
     return status;

@@ -505,6 +505,7 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
     ),
     assignTo: str(t.assigned_full_name ?? t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
     description: str(t.description ?? ""),
+    checklist: str(t.checklist ?? ""),
   };
 }
 

@@ -1153,7 +1153,9 @@ export default function VendorBimLeadTasks() {
                         : 100;
 
                 const isReviewState =
-                  (bucket === "completed" || (task as any).review_required || task.progress === 95 || task.progress === "95") &&
+                  (bucket === "completed" ||
+                    (task as any).review_required ||
+                    Number((task as any).progress) === 95) &&
                   task.assigned_to != null &&
                   ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
                   String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id) &&
