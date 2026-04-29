@@ -236,6 +236,10 @@ export default function WorkorderForm() {
   const currencyWrapRef = useRef<HTMLDivElement>(null);
   const selectedCurrencyLabel =
     CURRENCY_OPTIONS.find((c) => c.code === form.currency)?.label || "";
+  const currencyCodeForDisplay =
+    (selectedCurrencyLabel.match(/\(([^)]+)\)/)?.[1] ||
+      form.currency ||
+      "")?.toUpperCase() || "";
 
   useEffect(() => {
     if (!isCurrencyOpen) return;
@@ -445,7 +449,23 @@ export default function WorkorderForm() {
                         Description
                       </th>
                       <th className="border border-[#AEACAC] px-3 py-2 text-left text-[16px] font-bold w-[260px]">
-                        Amount ({form.currency || "AED"})
+                        <div className="flex items-center justify-between gap-2">
+                          <span>Amount</span>
+                          <select
+                            value={form.currency || ""}
+                            onChange={(e) =>
+                              setForm({ ...form, currency: e.target.value.toUpperCase() })
+                            }
+                            className="bg-[#F3F3F3] border border-[#E6E6E6] rounded-[4px] px-2 py-1 text-[13px] font-Gantari outline-none"
+                          >
+                            <option value="">Select currency</option>
+                            {CURRENCY_OPTIONS.map((c) => (
+                              <option key={c.code} value={c.code}>
+                                {c.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </th>
                     </tr>
                   </thead>
@@ -491,7 +511,7 @@ export default function WorkorderForm() {
                           </div>
                         </div>
                       </td>
-                      <td className="border border-[#AEACAC] p-3 align-top">
+                      <td className="border border-[#AEACAC] p-3 ">
                         <input
                           type="text"
                           inputMode="decimal"
@@ -520,7 +540,7 @@ export default function WorkorderForm() {
                     </tr>
                     <tr>
                       <td className="border border-[#AEACAC] px-3 py-2 text-right text-[16px] font-bold">
-                        Total Amount ({form.currency || "AED"})
+                        Total Amount{currencyCodeForDisplay ? ` (${currencyCodeForDisplay})` : ""}
                       </td>
                       <td className="border border-[#AEACAC] p-3">
                         <input
