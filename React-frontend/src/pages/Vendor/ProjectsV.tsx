@@ -311,6 +311,7 @@ export default function ProjectsV() {
 
   const [searchParams] = useSearchParams();
   const statusFilter = searchParams.get("status");
+  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
 
   const fetchProjects = (status?: string | null) => {
     const params: any = {};
@@ -2247,7 +2248,15 @@ export default function ProjectsV() {
                     proposal.
                   </div>
                 ) : (
-                  list.map((p) => {
+                  list.filter((p) => {
+                    if (!searchQuery) return true;
+                    return (
+                      (p.project_name || "").toLowerCase().includes(searchQuery) ||
+                      (p.client_name || "").toLowerCase().includes(searchQuery) ||
+                      (p.location || "").toLowerCase().includes(searchQuery) ||
+                      (p.priority || "").toLowerCase().includes(searchQuery)
+                    );
+                  }).map((p) => {
                     const progress = Math.round(Number(p.progress) || 0);
                     const memberIds = p.members
                       ? p.members.split(",").filter(Boolean).map(Number)

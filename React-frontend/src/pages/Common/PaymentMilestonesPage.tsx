@@ -319,11 +319,14 @@ export default function PaymentMilestonesPage() {
         {loading ? (
           <p className="text-[#666]">Loading milestones...</p>
         ) : showProjectCards ? (
-          scopes.length === 0 ? (
+          (() => {
+            const searchQueryParam = searchParams.get('q')?.toLowerCase() || "";
+            const filteredScopes = scopes.filter(s => !searchQueryParam || (s.project_name || "").toLowerCase().includes(searchQueryParam));
+            return filteredScopes.length === 0 ? (
             <p className="text-[#666]">No projects available.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {scopes.map((s) => {
+              {filteredScopes.map((s) => {
                 const isActive = scope?.project_id === s.project_id;
                 return (
                   <button
@@ -354,7 +357,8 @@ export default function PaymentMilestonesPage() {
                 );
               })}
             </div>
-          )
+          );
+          })()
         ) : isCommercial && scope?.is_outsource ? (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {renderRows("Client Side (Receivables)", clientRows)}

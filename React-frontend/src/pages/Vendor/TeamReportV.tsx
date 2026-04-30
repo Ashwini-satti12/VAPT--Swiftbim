@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 interface TimesheetEntry {
     id: number;
@@ -31,6 +32,8 @@ export default function TeamReportV() {
     const [teamOpen, setTeamOpen] = useState(false);
     const employeeOptions = ['All', 'John Doe', 'Jane Smith', 'Alice Brown', 'Bob Wilson'];
     const teamOptions = ['All', 'Team A', 'Team B', 'Team C'];
+    const [searchParams] = useSearchParams();
+    const searchQuery = searchParams.get('q')?.toLowerCase() || "";
 
     const toYmd = (v: string | undefined): string => {
         if (!v) return '';
@@ -77,6 +80,17 @@ export default function TeamReportV() {
 
     const filteredList = useMemo(() => {
         return list.filter(item => {
+            if (searchQuery) {
+                if (!(
+                    (item.project_name || "").toLowerCase().includes(searchQuery) ||
+                    (item.task_name || "").toLowerCase().includes(searchQuery) ||
+                    (item.assignee_name || "").toLowerCase().includes(searchQuery) ||
+                    (item.assigned_by_name || "").toLowerCase().includes(searchQuery)
+                )) {
+                    return false;
+                }
+            }
+
             // Date Range Filter Logic
             if (startDate || endDate) {
                 const [d, m, y] = (item.start_date || '').split('/');

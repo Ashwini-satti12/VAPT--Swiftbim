@@ -555,8 +555,17 @@ export default function TeamtaskEV() {
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
     const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
 
+    const searchQueryParam = searchParams.get('q')?.toLowerCase() || "";
+
     const allTasks = list.filter((t) => t && t.id != null).filter((t) => {
         // Trust the backend filtering
+        if (searchQueryParam) {
+            const matchesSearch = 
+                (t.task_name || "").toLowerCase().includes(searchQueryParam) ||
+                (t.project_name || "").toLowerCase().includes(searchQueryParam) ||
+                (t.status || "").toLowerCase().includes(searchQueryParam);
+            if (!matchesSearch) return false;
+        }
 
         // Employee filter
         if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {

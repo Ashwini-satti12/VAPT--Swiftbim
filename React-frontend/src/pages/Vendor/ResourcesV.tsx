@@ -448,7 +448,21 @@ export default function ResourcesV() {
     }
   }, [editParam, list]);
 
+  const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+
   const filteredList = list.filter((emp: Employee) => {
+    if (searchQuery) {
+        if (!(
+            (emp.full_name || "").toLowerCase().includes(searchQuery) ||
+            (emp.email || "").toLowerCase().includes(searchQuery) ||
+            (emp.empid || "").toLowerCase().includes(searchQuery) ||
+            (emp.user_role || "").toLowerCase().includes(searchQuery) ||
+            (emp.department || "").toLowerCase().includes(searchQuery) ||
+            (emp.designation || "").toLowerCase().includes(searchQuery)
+        )) {
+            return false;
+        }
+    }
     if (statusFilter === "All" || !statusFilter) return true;
     const currentActive = (emp.active || "").toLowerCase();
     const currentStatus = emp.status || "Offline";
