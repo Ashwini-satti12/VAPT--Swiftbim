@@ -129,6 +129,12 @@ export default function Workorder() {
         const asStr = (v: unknown) => (v == null ? "" : String(v));
         const asNum = (v: unknown) =>
           typeof v === "number" ? v : Number(v || 0);
+        const stripHtml = (v: unknown) => {
+          const raw = asStr(v);
+          if (!raw) return "";
+          const text = raw.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+          return text || raw;
+        };
         const mapped: WorkOrder[] = rows.map((r) => ({
           id: asNum(r.id),
           proposal_id:
@@ -136,7 +142,7 @@ export default function Workorder() {
           project_name: asStr(r.project_name),
           vendor_name: asStr(r.vendor_name),
           bid_amount: `${asStr(r.currency) || "AED"} ${asStr(r.amount_aed) || "0"}`,
-          timeline: asStr(r.duration) || "TBD",
+          timeline: stripHtml(r.duration) || "TBD",
           status: asStr(r.status) || "Created",
           vendor_address: asStr(r.vendor_address) || undefined,
           po_date: asStr(r.po_date) || undefined,

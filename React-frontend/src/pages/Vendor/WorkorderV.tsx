@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import api from "../../lib/api";
@@ -117,8 +117,6 @@ function HeaderDropdown({
 
 export default function WorkorderV() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const searchQuery = searchParams.get('q')?.toLowerCase() || "";
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [projectFilter, setProjectFilter] = useState("");
   const [vendorFilter, setVendorFilter] = useState("");
@@ -135,6 +133,12 @@ export default function WorkorderV() {
         const asStr = (v: unknown) => (v == null ? "" : String(v));
         const asNum = (v: unknown) =>
           typeof v === "number" ? v : Number(v || 0);
+        const stripHtml = (v: unknown) => {
+          const raw = asStr(v);
+          if (!raw) return "";
+          const text = raw.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+          return text || raw;
+        };
         const mapped: WorkOrder[] = rows.map((r) => ({
           id: asNum(r.id),
           proposal_id:
@@ -144,7 +148,7 @@ export default function WorkorderV() {
           bid_amount: `${asStr(r.currency) || "AED"} ${asStr(r.amount_aed) || "0"}`,
           currency: asStr(r.currency) || "AED",
           amount_aed: asNum(r.amount_aed),
-          timeline: asStr(r.duration) || "TBD",
+          timeline: stripHtml(r.duration) || "TBD",
           status: asStr(r.status) || "Created",
           vendor_address: asStr(r.vendor_address) || undefined,
           po_date: asStr(r.po_date) || undefined,
