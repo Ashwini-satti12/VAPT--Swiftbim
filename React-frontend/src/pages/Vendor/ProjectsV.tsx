@@ -2259,10 +2259,7 @@ export default function ProjectsV() {
                     return (
                       <div
                         key={p.id}
-                        onClick={() => {
-                          setSelectedProject(p);
-                          setShowProjectView(true);
-                        }}
+                         onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(openMenuProjectId === p.id ? null : p.id); }}
                         className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
                         <div className="flex items-start justify-between mb-4 mt-2 pr-0">

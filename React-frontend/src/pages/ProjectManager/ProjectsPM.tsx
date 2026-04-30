@@ -3350,7 +3350,7 @@ export default function ProjectsPM() {
                           circumference - (progress / 100) * circumference;
 
                         return (
-                          <div key={p.id} className="bg-white rounded-md border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300">
+                         <div key={p.id} onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === p.id ? null : p.id); }} className="bg-white rounded-md border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer">
                             <div>
                               <div className="flex items-start justify-between mb-4 mt-2 pr-0">
                                 <div className="relative flex items-center justify-center">
@@ -3505,12 +3505,7 @@ export default function ProjectsPM() {
                               </div>
                             </div>
                             <div
-                              role="button"
-                              tabIndex={0}
-                              className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto cursor-pointer"
-                              onClick={() => setSearchParams({ projectId: String(p.id), source: String(p.source || "In House") })}
-                              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSearchParams({ projectId: String(p.id), source: String(p.source || "In House") }); } }}
-                              title="View project details"
+                              className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto"
                             >
                               <div className="hover:cursor-pointer flex items-center -space-x-4" onClick={(e) => e.stopPropagation()}>
                                 {(() => {
