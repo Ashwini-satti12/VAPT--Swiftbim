@@ -746,7 +746,7 @@ export default function ManageLeavePM() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] font-gantari overflow-hidden">
+    <div className="px-2 flex flex-col h-[calc(100vh-100px)] font-gantari overflow-hidden">
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col bg-white">
         <div className="flex flex-col flex-1 min-h-0 p-1">
           {/* Page header: heading left; Employee + Show entries right */}
@@ -1164,8 +1164,8 @@ export default function ManageLeavePM() {
             </div>
           </div>
           {listInRange.length > 0 && (
-            <div className="w-full flex items-center justify-end py-2 pr-4">
-              <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+            <div className="w-full flex items-center justify-end mt-4">
+              <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
                 <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
                 <button
                   type="button"

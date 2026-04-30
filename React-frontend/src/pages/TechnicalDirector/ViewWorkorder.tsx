@@ -89,7 +89,7 @@ export default function ViewWorkorder() {
         <div className="shrink-0 min-w-[50px]"></div>
       </div>
 
-      <div className="flex-1 px-2 min-w-0 space-y-8 max-w-4xl mx-auto w-full pt-4">
+      <div className="flex-1 px-2 min-w-0 space-y-8 mx-auto w-full pt-4">
         {/* Header Info Banner */}
         <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-4 sm:py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-y-4">
           <div className="px-4 sm:px-6 sm:border-r border-[#AEACAC52]">

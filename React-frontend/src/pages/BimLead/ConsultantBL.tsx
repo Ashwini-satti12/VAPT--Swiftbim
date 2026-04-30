@@ -770,7 +770,7 @@ export default function ConsultantBL() {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-white">
       {/* Header Section */}
-      <div className="sticky top-0 z-50 bg-white pt-2 pb-4 overflow-visible px-2 sm:px-4">
+      <div className="sticky top-0 z-50 bg-white pt-2 pb-4 overflow-visible px-2">
         <div className="flex items-center justify-between flex-wrap gap-4 overflow-visible">
           {/* Left side: Title */}
           <h1 className="text-[20px] sm:text-[24px] font-medium text-[#000000] font-Gantari shrink-0">
@@ -1164,7 +1164,7 @@ export default function ConsultantBL() {
             )}
           </div>
         ) : (
-          <div className="px-2 sm:px-0">
+          <div className="px-2">
             <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-4">
               <div className="flex-1 min-h-0 overflow-hidden">
                 <div className="overflow-auto h-[calc(100%+17px)] pb-[17px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:!hidden">

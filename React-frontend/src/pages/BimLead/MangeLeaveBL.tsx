@@ -980,7 +980,7 @@ export default function ManageLeave() {
   };
 
   return (
-    <div className="flex flex-col h-full font-gantari overflow-hidden">
+    <div className="px-2 flex flex-col h-full font-gantari overflow-hidden">
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
         <div className="flex flex-col flex-1 min-h-0">
           <div className="flex-shrink-0 mb-6 px-2 sm:px-0 pt-0 sm:pt-0 -mt-1 sm:mt-0 flex flex-row items-center justify-between gap-3">
@@ -1206,7 +1206,7 @@ export default function ManageLeave() {
           </div>
 
           <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-            <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1 pb-0">
+            <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pb-0">
               <table className="min-w-full border-collapse">
                 <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                   <tr className=" bg-white">
@@ -1460,8 +1460,8 @@ export default function ManageLeave() {
             </div>
           </div>
           {listInRange.length > 0 && (
-            <div className="w-full flex items-center justify-end py-2 pr-4">
-              <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+            <div className="w-full flex items-center justify-end mt-4">
+              <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
                 <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
                 <button
                   type="button"

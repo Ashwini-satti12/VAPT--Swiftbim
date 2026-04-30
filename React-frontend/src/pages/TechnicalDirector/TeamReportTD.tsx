@@ -6,6 +6,24 @@ import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
 const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 /** Open native date picker — required on some browsers when the input is fully transparent / overlaid. */
 function openNativeDatePicker(input: HTMLInputElement | null) {
   if (!input) return;
@@ -428,6 +446,7 @@ export default function TimesheetPM() {
 
   return (
     <div className="px-2 space-y-4 flex flex-col h-full bg-white">
+      <style>{SCROLLBAR_STYLE}</style>
       {/* Header & Filter Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 ">
         <div className="flex items-center justify-between w-full md:w-auto">

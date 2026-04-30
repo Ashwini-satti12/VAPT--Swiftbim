@@ -236,6 +236,10 @@ export default function WorkorderForm() {
   const currencyWrapRef = useRef<HTMLDivElement>(null);
   const selectedCurrencyLabel =
     CURRENCY_OPTIONS.find((c) => c.code === form.currency)?.label || "";
+  const currencyCodeForDisplay =
+    (selectedCurrencyLabel.match(/\(([^)]+)\)/)?.[1] ||
+      form.currency ||
+      "")?.toUpperCase() || "";
 
   useEffect(() => {
     if (!isCurrencyOpen) return;
@@ -445,7 +449,26 @@ export default function WorkorderForm() {
                         Description
                       </th>
                       <th className="border border-[#AEACAC] px-3 py-2 text-left text-[16px] font-bold w-[260px]">
-                        Amount ({form.currency || "AED"})
+                        <div className="flex items-center justify-between gap-2">
+                          <span>Amount</span>
+                          <select
+                            value={form.currency || ""}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                currency: e.target.value.toUpperCase(),
+                              })
+                            }
+                            className="bg-[#F3F3F3] border border-[#E6E6E6] rounded-[4px] px-2 py-1 text-[13px] font-Gantari outline-none"
+                          >
+                            <option value="">Select currency</option>
+                            {CURRENCY_OPTIONS.map((c) => (
+                              <option key={c.code} value={c.code}>
+                                {c.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </th>
                     </tr>
                   </thead>
@@ -464,7 +487,9 @@ export default function WorkorderForm() {
                             className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
                           />
                           <div>
-                            <label className={labelClass}>Project Involves</label>
+                            <label className={labelClass}>
+                              Project Involves
+                            </label>
                             <ReactQuill
                               theme="snow"
                               placeholder="Enter project involves..."
@@ -491,7 +516,7 @@ export default function WorkorderForm() {
                           </div>
                         </div>
                       </td>
-                      <td className="border border-[#AEACAC] p-3 align-top">
+                      <td className="border border-[#AEACAC] p-3 ">
                         <input
                           type="text"
                           inputMode="decimal"
@@ -511,7 +536,9 @@ export default function WorkorderForm() {
                           theme="snow"
                           placeholder="Enter duration..."
                           value={form.duration}
-                          onChange={(val) => setForm({ ...form, duration: val })}
+                          onChange={(val) =>
+                            setForm({ ...form, duration: val })
+                          }
                           modules={quillModules}
                           className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
                         />
@@ -520,7 +547,10 @@ export default function WorkorderForm() {
                     </tr>
                     <tr>
                       <td className="border border-[#AEACAC] px-3 py-2 text-right text-[16px] font-bold">
-                        Total Amount ({form.currency || "AED"})
+                        Total Amount
+                        {currencyCodeForDisplay
+                          ? ` (${currencyCodeForDisplay})`
+                          : ""}
                       </td>
                       <td className="border border-[#AEACAC] p-3">
                         <input
@@ -821,11 +851,30 @@ export default function WorkorderForm() {
                       </tbody>
                     </table>
                   </div>
+                  <div className="grid grid-cols-2 gap-4 mt-10">
+                    <div>
+                      <p className="text-[14px] text-[#000000]">For,</p>
+                      <p className="mt-8 text-[14px] text-[#000000]">
+                        Swifterz Creative Engineering Services LLC,
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[14px] text-[#000000]">For,</p>
+                      <p className="mt-8 text-[14px] text-[#000000]">LetzBIM</p>
+                    </div>
+                  </div>
+                  {/* logo */}
+                  <div>
+
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className={labelClass}>
-                    Additional Terms & Conditions (Annexure 1)
-                  </label>
+                <div className="space-y-2 mt-10">
+                  <div className="text-center">
+                    <label className={labelClass}>
+                      Additional Terms & Conditions (Annexure 1)
+                    </label>
+                  </div>
+
                   <ReactQuill
                     theme="snow"
                     placeholder="Enter additional terms & conditions..."
@@ -837,7 +886,7 @@ export default function WorkorderForm() {
                     className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
                   />
                 </div>
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className={labelClass}>Exclusions</label>
                   <ReactQuill
                     theme="snow"
@@ -847,7 +896,7 @@ export default function WorkorderForm() {
                     modules={quillModules}
                     className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
                   />
-                </div>
+                </div> */}
               </div>
             </div>
 
