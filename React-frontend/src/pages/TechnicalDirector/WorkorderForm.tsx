@@ -5,6 +5,7 @@ import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import api from "../../lib/api";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
+import logo from "../../assets/TechnicalDirector/Seal.png";
 
 type PaymentTermRow = {
   basis: string;
@@ -865,7 +866,12 @@ export default function WorkorderForm() {
                   </div>
                   {/* logo */}
                   <div>
-
+                    <img
+                      src={logo}
+                      alt="logo"
+                      className="w-[300px] h-[200px]"
+                    />
+                    <p className="text-[14px] text-[#000000] mt-5">Anand Thayalaguru, <br />CEO & Founder</p>
                   </div>
                 </div>
                 <div className="space-y-2 mt-10">
