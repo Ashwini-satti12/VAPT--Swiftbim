@@ -7317,7 +7317,7 @@ def list_vendor_teams():
         return jsonify({"teams": []})
 
     cur.execute(
-        """
+        f"""
         SELECT
             vt.id AS team_id,
             vt.team_name,

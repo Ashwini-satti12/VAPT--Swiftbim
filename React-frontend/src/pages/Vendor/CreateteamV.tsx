@@ -52,6 +52,10 @@ interface Team {
 interface Project {
     id: number;
     project_name?: string;
+    project_manager_id?: string | number;
+    lead_id?: string | number;
+    bim_coordinator_id?: string | number;
+    members?: string;
 }
 
 
@@ -324,6 +328,29 @@ export default function CreateteamV() {
             })
             .finally(() => setLoading(false));
     }, []);
+
+    const getProjectEmployees = (projectId: string | number) => {
+        if (!projectId) return employees.map(e => ({ ...e, isProjectMember: false }));
+        const proj = projects.find((p) => String(p.id) === String(projectId));
+        if (!proj) return employees.map(e => ({ ...e, isProjectMember: false }));
+
+        const involvedIds = new Set<string>();
+        if (proj.project_manager_id) involvedIds.add(String(proj.project_manager_id));
+        if (proj.lead_id) involvedIds.add(String(proj.lead_id));
+        if (proj.bim_coordinator_id) involvedIds.add(String(proj.bim_coordinator_id));
+
+        if (proj.members) {
+            proj.members.split(',').forEach(id => {
+                const trimmed = id.trim();
+                if (trimmed) involvedIds.add(trimmed);
+            });
+        }
+
+        const projectMembers = employees.filter(e => involvedIds.has(String(e.id))).map(e => ({ ...e, isProjectMember: true }));
+        const otherMembers = employees.filter(e => !involvedIds.has(String(e.id))).map(e => ({ ...e, isProjectMember: false }));
+        
+        return [...projectMembers, ...otherMembers];
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -746,7 +773,7 @@ export default function CreateteamV() {
                                                             key={project.id}
                                                             type="button"
                                                             onClick={() => {
-                                                                setForm({ ...form, project_id: String(project.id) });
+                                                                setForm({ ...form, project_id: String(project.id), leader: '', employee: [] });
                                                                 setShowProjectDropdown(false);
                                                                 setProjectSearchQuery("");
                                                             }}
@@ -885,7 +912,7 @@ export default function CreateteamV() {
                                                 />
                                             </div>
                                             <div className="max-h-48 overflow-y-auto custom-scrollbar">
-                                                {employees
+                                                {getProjectEmployees(form.project_id)
                                                     .filter((e) => String(e.id) !== String(form.leader))
                                                     .filter((e) => (e.full_name || "").toLowerCase().includes(memberSearchQuery.toLowerCase()))
                                                     .map((emp) => {
@@ -1023,7 +1050,7 @@ export default function CreateteamV() {
                                                             key={project.id}
                                                             type="button"
                                                             onClick={() => {
-                                                                setEditForm({ ...editForm, project_id: String(project.id) });
+                                                                setEditForm({ ...editForm, project_id: String(project.id), leader: '', employee: [] });
                                                                 setShowProjectDropdown(false);
                                                                 setProjectSearchQuery("");
                                                             }}
@@ -1080,7 +1107,7 @@ export default function CreateteamV() {
                                                 />
                                             </div>
                                             <div className="max-h-48 overflow-y-auto custom-scrollbar">
-                                                {employees
+                                                {getProjectEmployees(editForm.project_id)
                                                     .filter((e) => (e.full_name || "").toLowerCase().includes(leaderSearchQuery.toLowerCase()))
                                                     .map((emp) => (
                                                         <button
@@ -1091,9 +1118,12 @@ export default function CreateteamV() {
                                                                 setShowLeaderDropdown(false);
                                                                 setLeaderSearchQuery("");
                                                             }}
-                                                            className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${String(editForm.leader) === String(emp.id) ? "text-[#DD4342] font-semibold bg-[#DD4342]/5" : "text-[#353535]"}`}
+                                                            className={`w-full px-4 py-2 text-left text-sm flex items-center justify-between transition-colors hover:bg-slate-50 ${String(editForm.leader) === String(emp.id) ? "text-[#DD4342] font-semibold bg-[#DD4342]/5" : "text-[#353535]"}`}
                                                         >
-                                                            {emp.full_name}
+                                                            <span>{emp.full_name}</span>
+                                                            {(emp as any).isProjectMember && (
+                                                                <span className="text-[10px] bg-[#DD4342]/10 text-[#DD4342] px-1.5 py-0.5 rounded font-bold uppercase">Project</span>
+                                                            )}
                                                         </button>
                                                     ))}
                                             </div>
@@ -1162,7 +1192,7 @@ export default function CreateteamV() {
                                                 />
                                             </div>
                                             <div className="max-h-48 overflow-y-auto custom-scrollbar">
-                                                {employees
+                                                {getProjectEmployees(editForm.project_id)
                                                     .filter((e) => String(e.id) !== String(editForm.leader))
                                                     .filter((e) => (e.full_name || "").toLowerCase().includes(memberSearchQuery.toLowerCase()))
                                                     .map((emp) => {
@@ -1174,7 +1204,12 @@ export default function CreateteamV() {
                                                                 onClick={() => handleMemberToggle(String(emp.id), true)}
                                                                 className={`w-full px-4 py-2.5 text-left text-sm flex items-center justify-between transition-all hover:bg-slate-50 ${isSelected ? "bg-[#DD4342]/5 text-[#DD4342] font-semibold" : "text-[#353535]"}`}
                                                             >
-                                                                <span>{emp.full_name}</span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span>{emp.full_name}</span>
+                                                                    {(emp as any).isProjectMember && (
+                                                                        <span className="text-[10px] bg-[#DD4342]/10 text-[#DD4342] px-1.5 py-0.5 rounded font-bold uppercase">Project</span>
+                                                                    )}
+                                                                </div>
                                                                 <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${isSelected ? "bg-[#DD4342] border-[#DD4342]" : "border-[#AEACAC52]"}`}>
                                                                     {isSelected && <PlusIcon className="w-3 h-3 text-white stroke-[3] rotate-45" />}
                                                                 </div>

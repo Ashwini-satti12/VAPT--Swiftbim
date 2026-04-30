@@ -513,8 +513,17 @@ export default function AddEditTaskEV({
       const name = (emp.full_name || emp.name || "").trim();
       const idStr = String(emp.id);
       
+      // Include PM, Lead, and BIM Coordinator if they match this employee
+      const isProjectOfficial = 
+        (meta?.project_manager_name && name.toLowerCase() === meta.project_manager_name.toLowerCase()) ||
+        (meta?.lead_name && name.toLowerCase() === meta.lead_name.toLowerCase()) ||
+        (meta?.bim_coordinator_name && name.toLowerCase() === meta.bim_coordinator_name.toLowerCase()) ||
+        ((meta as any)?.project_manager_id && String((meta as any).project_manager_id) === idStr) ||
+        ((meta as any)?.lead_id && String((meta as any).lead_id) === idStr) ||
+        ((meta as any)?.bim_coordinator_id && String((meta as any).bim_coordinator_id) === idStr);
+
       // Allow if active for project OR if it's the current user
-      const isAllowedByProject = tokens.some((t) => {
+      const isAllowedByProject = isProjectOfficial || tokens.some((t) => {
         const tl = t.toLowerCase();
         return t === idStr || tl === name.toLowerCase() || name === t;
       });
