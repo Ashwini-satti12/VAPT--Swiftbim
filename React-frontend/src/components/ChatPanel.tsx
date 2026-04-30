@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
 import sendIcon from "../assets/Chat/sendicon.svg";
 import videoIcon from "../assets/Chat/video.svg";
@@ -191,6 +191,7 @@ function AttachmentPreview({ file }: { file: File }) {
 export default function ChatPanel({ userType }: ChatPanelProps) {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
+    const location = useLocation();
     const [search, setSearch] = useState("");
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [contactsLoading, setContactsLoading] = useState(true);
@@ -242,7 +243,15 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                     lastMsgTime: c.last_msg_time,
                 }));
                 setContacts(mapped);
-                if (mapped.length > 0 && !selectedContact) {
+                const passedUserId = location.state?.selectedUserId;
+                if (passedUserId && !selectedContact) {
+                    const found = mapped.find((c) => c.id === passedUserId);
+                    if (found) {
+                        setSelectedContact(found);
+                    } else if (mapped.length > 0) {
+                        setSelectedContact(mapped[0]);
+                    }
+                } else if (mapped.length > 0 && !selectedContact) {
                     setSelectedContact(mapped[0]);
                 }
             })

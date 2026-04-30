@@ -152,9 +152,12 @@ def task_notifications():
         message = ""
         if status in ("Todo", "InProgress") and due_str == today_str and due_str != created_str:
             message = "Due today"
-        elif status == "Todo" and due:
-            # Check if actual start time passed
-            pass  # Can add "Need to initiate" logic
+        
+        # Only include if there is a specific alert (like Due today); 
+        # generic assignments are handled by the 'notifications' table.
+        if not message:
+            continue
+
         notifications.append({
             "taskId": r["taskId"],
             "taskName": r.get("taskName"),

@@ -3887,7 +3887,8 @@ export default function ProjectsBC() {
                     return (
                       <div
                         key={p.id}
-                        className="bg-white rounded-md border border-slate-200 p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300"
+                         onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(openMenuProjectId === p.id ? null : p.id); }}
+                        className="bg-white rounded-md border border-slate-200 p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
                         <div>
                           <div className="flex items-start justify-between mb-4 pr-0">
@@ -4139,25 +4140,7 @@ export default function ProjectsBC() {
                         </div>
 
                         <div
-                          role="button"
-                          tabIndex={0}
-                          className="flex items-center justify-between border-t border-[#E8E8E8] pt-2 mt-auto cursor-pointer"
-                          onClick={() =>
-                            setSearchParams({
-                              projectId: String(p.id),
-                              source: String(p.source || "In House"),
-                            })
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              setSearchParams({
-                                projectId: String(p.id),
-                                source: String(p.source || "In House"),
-                              });
-                            }
-                          }}
-                          title="View project details"
+                          className="flex items-center justify-between border-t border-[#E8E8E8] pt-2 mt-auto"
                         >
                           <div
                             className="flex items-center -space-x-4"
