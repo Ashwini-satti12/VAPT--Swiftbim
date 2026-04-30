@@ -71,6 +71,7 @@ export default function ClientV() {
     });
     const [editSubmitting, setEditSubmitting] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
+    const searchQuery = searchParams.get('q')?.toLowerCase() || "";
 
     const canAdd = user?.panel_type === 1;
 
@@ -200,6 +201,17 @@ export default function ClientV() {
         );
     }
 
+    const filteredList = list.filter((c) => {
+        if (!searchQuery) return true;
+        return (
+            (c.fullName || "").toLowerCase().includes(searchQuery) ||
+            (c.client_name || "").toLowerCase().includes(searchQuery) ||
+            (c.email || "").toLowerCase().includes(searchQuery) ||
+            (c.company_name || "").toLowerCase().includes(searchQuery) ||
+            (c.projectName || "").toLowerCase().includes(searchQuery)
+        );
+    });
+
     return (
         <div className="h-full flex flex-col">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
@@ -218,12 +230,12 @@ export default function ClientV() {
 
             <div className="flex-1 mt-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {list.length === 0 ? (
+                    {filteredList.length === 0 ? (
                         <div className="col-span-full bg-white/50 backdrop-blur-sm rounded-[20px] p-12 text-center text-slate-500 border border-white/40">
                             No clients found.
                         </div>
                     ) : (
-                        list.map((c,) => (
+                        filteredList.map((c,) => (
                             <div key={c.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100 overflow-hidden flex flex-col group">
                                 {/* Header Background */}
                                 <div className="relative h-44 w-full">

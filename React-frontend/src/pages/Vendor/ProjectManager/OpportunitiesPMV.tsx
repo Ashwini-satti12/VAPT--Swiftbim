@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../../lib/api";
 
 type Opportunity = {
@@ -68,7 +69,8 @@ export default function OpportunitiesPMV() {
     const [bidSuccess, setBidSuccess] = useState<number | null>(null);
     const [bidError, setBidError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<ActiveTab>('all');
-    const [search, setSearch] = useState('');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const search = searchParams.get('q') || '';
 
     useEffect(() => {
         api.get<{ opportunities: Opportunity[] }>('/api/vendors/opportunities')
@@ -198,7 +200,12 @@ export default function OpportunitiesPMV() {
                     </svg>
                     <input
                         value={search}
-                        onChange={e => setSearch(e.target.value)}
+                        onChange={e => {
+                            const newParams = new URLSearchParams(searchParams);
+                            if (e.target.value) newParams.set("q", e.target.value);
+                            else newParams.delete("q");
+                            setSearchParams(newParams, { replace: true });
+                        }}
                         placeholder="Search by project name"
                         className="pl-9 pr-4 py-2 text-[13px] border border-[#E5E5E5] rounded-lg font-gantari text-[#353535] focus:outline-none focus:ring-2 focus:ring-[#DE3D3A]/20 w-52"
                     />

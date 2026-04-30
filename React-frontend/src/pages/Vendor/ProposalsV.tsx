@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../lib/api';
 import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
@@ -80,6 +80,8 @@ export default function ProposalsV() {
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
     const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
+    const [searchParams] = useSearchParams();
+    const searchQuery = searchParams.get("q")?.toLowerCase() || "";
 
     useEffect(() => {
         const state: any = (location && (location as any).state) || {};
@@ -143,8 +145,18 @@ export default function ProposalsV() {
 
     const effectiveShowEntryValue = selectedShowEntries || showEntriesOptions[0].value;
     const selectedRange = showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ?? showEntriesOptions[0];
-    const rangeEnd = selectedRange.end === null ? bids.length : Math.min(selectedRange.end, bids.length);
-    const displayList = bids.slice(selectedRange.start, rangeEnd);
+    const filteredBids = bids.filter((bid) => {
+        if (!searchQuery) return true;
+        return (
+            (bid.project_name || "").toLowerCase().includes(searchQuery) ||
+            (bid.vendor_name || "").toLowerCase().includes(searchQuery) ||
+            (bid.status || "").toLowerCase().includes(searchQuery) ||
+            (bid.proposal_status || "").toLowerCase().includes(searchQuery)
+        );
+    });
+
+    const rangeEnd = selectedRange.end === null ? filteredBids.length : Math.min(selectedRange.end, filteredBids.length);
+    const displayList = filteredBids.slice(selectedRange.start, rangeEnd);
 
     // --- TABLE LIST VIEW ---
     return (

@@ -253,6 +253,7 @@ const daysUntil = (dateStr: string) => {
 
 export default function BiddingV() {
   const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get('q')?.toLowerCase() || "";
   const [mainTab, setMainTab] = useState<ModuleTab>("opportunities");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [submitBidReturnView, setSubmitBidReturnView] =
@@ -493,6 +494,16 @@ export default function BiddingV() {
   // Filtering logic — newest opportunities first (higher id), same API data
   const filteredOpps = opportunities
     .filter((opp) => {
+      if (searchQuery) {
+        if (!(
+          (opp.project_name || "").toLowerCase().includes(searchQuery) ||
+          (opp.host_name || "").toLowerCase().includes(searchQuery) ||
+          (opp.project_location || "").toLowerCase().includes(searchQuery) ||
+          (opp.status || "").toLowerCase().includes(searchQuery)
+        )) {
+          return false;
+        }
+      }
       if (oppTab === "active" && opp.status !== "active") return false;
       if (oppTab === "bid" && !opp.already_bid) return false;
       if (oppTab === "closed" && opp.status === "active") return false;
@@ -502,6 +513,12 @@ export default function BiddingV() {
 
   const filteredBids = (() => {
     let out = bids;
+    if (searchQuery) {
+        out = out.filter(b => 
+            (b.project_name || "").toLowerCase().includes(searchQuery) ||
+            (b.status || "").toLowerCase().includes(searchQuery)
+        );
+    }
     if (bidStatusFilter !== "all") {
       out = out.filter(
         (b) => (b.status || "").toLowerCase() === bidStatusFilter,
