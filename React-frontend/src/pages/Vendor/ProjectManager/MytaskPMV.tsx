@@ -834,8 +834,17 @@ export default function MytaskPMV() {
   };
   (window as any).handleApproveTask = handleApproveTask;
 
+  const searchQueryParam = searchParams.get('q')?.toLowerCase() || "";
+
   const allTasks = list.filter((t) => t && t.id != null).filter((t) => {
     // Trust the backend's filtering for MyTasks/TeamTasks. 
+    if (searchQueryParam) {
+        const matchesSearch = 
+            (t.task_name || "").toLowerCase().includes(searchQueryParam) ||
+            (t.project_name || "").toLowerCase().includes(searchQueryParam) ||
+            (t.status || "").toLowerCase().includes(searchQueryParam);
+        if (!matchesSearch) return false;
+    }
     // We only apply UI-level filters here (Search, Employee, Project, Period).
 
     if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {

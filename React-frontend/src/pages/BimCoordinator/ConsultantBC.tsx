@@ -701,21 +701,21 @@ export default function ConsultantBC() {
                   <button
                     type="button"
                     onClick={() => navigate("/bc/consultants/add")}
-                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
                     Add Consultant
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowInviteModal(true)}
-                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
                     Invite
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowInactiveModal(true)}
-                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
                     Manage Inactive
                   </button>

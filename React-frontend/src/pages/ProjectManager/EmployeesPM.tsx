@@ -128,6 +128,8 @@ const PANEL_ACCESS_OPTIONS = [
   'Management', 'Accounts', 'Technical Director', 'Admin', 'Project Manager', 'Client', 'Sales', 'BIM Lead', 'Employee', 'All'
 ];
 
+const TYPE_OPTIONS = ['Employee', 'Trainee'];
+
 const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar {
     display: none;
@@ -177,11 +179,11 @@ function CustomDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between gap-2 transition-all outline-none font-gantari min-w-0 ${styleType === "header"
-          ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
+        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-2 transition-all outline-none font-gantari min-w-0 ${styleType === "header"
+          ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[12px] sm:text-[14px] font-semibold"
           : styleType === "table"
-            ? `px-4 py-2 min-w-[140px] rounded-md border font-gantari font-medium text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
-            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+            ? `px-4 py-2 min-w-[140px] rounded-md border font-gantari font-medium text-[12px] sm:text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
+            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[12px] sm:text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
           }`}
       >
         <span className={`min-w-0 flex-1 truncate overflow-hidden text-left ${styleType === "header" || styleType === "form"
@@ -197,7 +199,7 @@ function CustomDropdown({
         <img
           src={ArrowDown}
           alt=""
-          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""} ${styleType === "table" ? "opacity-70" : (isPlaceholder ? "opacity-60 grayscale" : "opacity-90")}`}
+          className={`w-3 h-3 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""} ${styleType === "table" ? "opacity-70" : (isPlaceholder ? "opacity-60 grayscale" : "opacity-90")}`}
           aria-hidden
         />
       </button>
@@ -420,12 +422,18 @@ export default function EmployeesPM() {
       if (currentType !== 'trainee') return false;
     }
 
-    if (statusFilter === 'Active') {
-      const currentStatus = (emp.active || '').toLowerCase();
-      if (currentStatus !== 'active') return false;
+    const isActive = (emp.active || '').toLowerCase() === 'active';
+    if (statusFilter === 'Online') {
+      if (!isActive || (emp.status || '').toLowerCase() !== 'online') return false;
+    } else if (statusFilter === 'Offline') {
+      if (!isActive || (emp.status || '').toLowerCase() === 'online') return false;
     } else if (statusFilter === 'Inactive') {
-      const currentStatus = (emp.active || '').toLowerCase();
-      if (currentStatus === 'active') return false;
+      if (isActive) return false;
+    } else if (statusFilter === 'Active') {
+      if (!isActive) return false;
+    } else {
+      // Default: hide inactive users
+      if (!isActive) return false;
     }
 
     const searchQuery = searchQueryKey.toLowerCase();
@@ -723,7 +731,7 @@ export default function EmployeesPM() {
       <style>{SCROLLBAR_STYLE}</style>
       {activeView === 'list' && (
         <>
-          <div className="sticky z-50 bg-white mb-4 mt-2 overflow-visible">
+          <div className="sticky z-50 bg-white mb-4 mt-2 overflow-visible px-2">
             <div className="flex w-full min-h-[44px] flex-nowrap items-center gap-2 sm:gap-3 overflow-visible">
               <h1 className="text-[24px] font-medium text-[#000000] font-Gantari shrink-0 pr-1">
                 Consultants
@@ -773,21 +781,21 @@ export default function EmployeesPM() {
                       <button
                         type="button"
                         onClick={() => setActiveView('add')}
-                        className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                        className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                       >
                         Add Consultant
                       </button>
                       <button
                         type="button"
                         onClick={() => setActiveView('invite')}
-                        className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                        className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                       >
                         Invite
                       </button>
                       <button
                         type="button"
                         onClick={() => setActiveView('inactive')}
-                        className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                        className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                       >
                         Manage Inactive
                       </button>
@@ -818,7 +826,7 @@ export default function EmployeesPM() {
                             SHOW_ENTRIES_PLACEHOLDER
                           ) : (
                             <>
-                              <span className="text-[14px]">
+                              <span className="text-[12px] sm:text-[14px]">
                                 {SHOW_ENTRIES_SELECTED_PREFIX}
                               </span>{' '}
                               <span className="font-semibold">
@@ -830,7 +838,7 @@ export default function EmployeesPM() {
                         <img
                           src={ArrowDown}
                           alt=""
-                          className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''
+                          className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''
                             } ${selectedShowEntries === ''
                               ? 'opacity-60 grayscale'
                               : 'opacity-90'
@@ -900,21 +908,21 @@ export default function EmployeesPM() {
                   )}
                   {viewMode === 'card' ? (
                     <CustomDropdown
-                      options={['All', 'Employee', 'Trainee']}
-                      value={typeFilter}
-                      onChange={(val) => setTypeFilter(val)}
-                      placeholder="Type"
-                      className="w-[100px]"
+                      options={['Online', 'Offline', 'Inactive']}
+                      value={statusFilter}
+                      onChange={(val) => setStatusFilter(val)}
+                      placeholder="Status"
+                      className="w-[105px] sm:w-[120px]"
                       styleType="header"
                       alignMenu="right"
                     />
                   ) : (
                     <CustomDropdown
-                      options={['All', 'Active', 'Inactive']}
+                      options={['Active', 'Inactive']}
                       value={statusFilter}
                       onChange={(val) => setStatusFilter(val)}
                       placeholder="Status"
-                      className="w-[100px]"
+                      className="w-[105px] sm:w-[120px]"
                       styleType="header"
                       alignMenu="right"
                     />
@@ -925,7 +933,7 @@ export default function EmployeesPM() {
           </div>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
             {viewMode === 'card' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-2">
                 {displayedListCard.length === 0 ? (
@@ -1261,7 +1269,7 @@ export default function EmployeesPM() {
       )}
 
       {activeView === 'add' && (
-        <div className="flex-1 overflow-y-auto p-2 bg-white">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 bg-white">
           <div className="max-w-[1174px] mx-auto">
             <div className="flex left-6 items-center justify-between mb-8 sm:mb-10 relative">
               <div className="relative group">
@@ -1288,11 +1296,11 @@ export default function EmployeesPM() {
             <form onSubmit={handleAddSubmit} className="space-y-6">
               {addError && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">{addError}</p>}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6 px-5">
                 {/* Column 1 */}
                 <div className="space-y-5">
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Employee Name</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Full Name <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="text"
                       placeholder="Enter Employee Name"
@@ -1303,7 +1311,7 @@ export default function EmployeesPM() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number <span className="text-[#DD4342]">*</span></label>
                     <div className="flex items-end gap-3">
                       <div className="flex-1">
                         <CustomDropdown
@@ -1333,7 +1341,7 @@ export default function EmployeesPM() {
                     )}
                   </div>
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="password"
                       placeholder="Enter Password"
@@ -1343,71 +1351,80 @@ export default function EmployeesPM() {
                       required
                     />
                   </div>
-                  <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role</label>
-                <CustomDropdown
-                  options={ROLE_OPTIONS}
-                  value={form.user_role}
-                  onChange={(val) => setForm((f: any) => ({ ...f, user_role: val }))}
-                  placeholder="Select Role"
-                />
-              </div>
-            </div>
-
-                {/* Column 2 */}
-                <div className="space-y-5">
-                  <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth</label>
-                    <input
-                      type="date"
-                      value={form.dob}
-                      onChange={(e) => setForm((f: any) => ({ ...f, dob: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                      max={dobMaxDate}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID</label>
-                    <input
-                      type="email"
-                      placeholder="Enter Email"
-                      value={form.email}
-                      onChange={(e) => setForm((f: any) => ({ ...f, email: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining</label>
-                    <input
-                      type="date"
-                      value={form.joining_date}
-                      onChange={(e) => setForm((f: any) => ({ ...f, joining_date: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Upload Profile Picture</label>
-                    <div className="flex items-center bg-[#F4F4F4] rounded-md overflow-hidden">
-                      <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
-                        {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
+                    <div className="relative">
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role <span className="text-[#DD4342]">*</span></label>
+                      <CustomDropdown
+                        options={ROLE_OPTIONS}
+                        value={form.user_role}
+                        onChange={(val) => setForm((f: any) => ({ ...f, user_role: val }))}
+                        placeholder="Select Role"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Upload Profile Picture</label>
+                      <div className="flex items-center bg-[#F4F4F4] rounded-md overflow-hidden">
+                        <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
+                          {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
+                        </div>
+                        <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-medium cursor-pointer transition-colors shrink-0 font-Gantari">
+                          Browse File
+                          <input
+                            type="file"
+                            className="hidden cursor-pointer"
+                            accept=".jpg,.jpeg"
+                            onChange={(e) => setForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                          />
+                        </label>
                       </div>
-                      <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-medium cursor-pointer transition-colors shrink-0 font-Gantari">
-                        Browse File
-                        <input
-                          type="file"
-                          className="hidden cursor-pointer"
-                          accept=".jpg,.jpeg"
-                          onChange={(e) => setForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
-                        />
-                      </label>
+                    </div>
+                  </div>
+
+                  {/* Column 2 */}
+                  <div className="space-y-5">
+                    <div>
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth <span className="text-[#DD4342]">*</span></label>
+                      <input
+                        type="date"
+                        value={form.dob}
+                        onChange={(e) => setForm((f: any) => ({ ...f, dob: e.target.value }))}
+                        className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                        max={dobMaxDate}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID <span className="text-[#DD4342]">*</span></label>
+                      <input
+                        type="email"
+                        placeholder="Enter Email"
+                        value={form.email}
+                        onChange={(e) => setForm((f: any) => ({ ...f, email: e.target.value }))}
+                        className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                        required
+                      />
+                    </div>
+                    <div className="relative">
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
+                      <CustomDropdown
+                        options={TYPE_OPTIONS}
+                        value={form.type}
+                        onChange={(val) => setForm((f: any) => ({ ...f, type: val }))}
+                        placeholder="Select Type"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining <span className="text-[#DD4342]">*</span></label>
+                      <input
+                        type="date"
+                        value={form.joining_date}
+                        onChange={(e) => setForm((f: any) => ({ ...f, joining_date: e.target.value }))}
+                        className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      />
                     </div>
                   </div>
                 </div>
-              </div>
 
               {/* Address Field */}
-              <div className="mt-2">
+              <div className="mt-2 px-5">
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Address</label>
                 <textarea
                   rows={4}
@@ -1419,7 +1436,7 @@ export default function EmployeesPM() {
               </div>
 
               {/* Panel Access Control */}
-              <div className="mt-8">
+              <div className="mt-8 px-5">
                 <label className="block text-[18px] font-semibold text-[#000000] mb-4 font-Gantari">Select Panel Access Control</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-y-4 gap-x-6 p-6 bg-[#F2F3F4] rounded-[10px]">
                   {PANEL_ACCESS_OPTIONS.map((role) => (
@@ -1467,7 +1484,7 @@ export default function EmployeesPM() {
       )}
 
       {activeView === 'edit' && (
-        <div className="flex-1 overflow-y-auto p-2 bg-white">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 bg-white">
           <div className="max-w-[1174px] mx-auto">
             <div className="flex left-5 items-center justify-between mb-8 sm:mb-10 relative">
               <div className="relative group">
@@ -1492,11 +1509,11 @@ export default function EmployeesPM() {
             </div>
 
             <form onSubmit={handleEditSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6 px-5">
                 {/* Column 1 */}
                 <div className="space-y-5">
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Employee Name</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Full Name <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="text"
                       placeholder="Enter Employee Name"
@@ -1508,7 +1525,7 @@ export default function EmployeesPM() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number <span className="text-[#DD4342]">*</span></label>
                     <div className="flex items-end gap-3">
                       <div className="flex-1">
                         <CustomDropdown
@@ -1535,7 +1552,7 @@ export default function EmployeesPM() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="password"
                       placeholder="******** (password hidden)"
@@ -1546,7 +1563,7 @@ export default function EmployeesPM() {
                     />
                   </div>
                   <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role <span className="text-[#DD4342]">*</span></label>
                     <CustomDropdown
                       options={ROLE_OPTIONS}
                       className="cursor-pointer"
@@ -1565,12 +1582,29 @@ export default function EmployeesPM() {
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
+                    <div className="flex items-center bg-[#F4F4F4] rounded-md overflow-hidden">
+                      <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
+                        {editForm.profile_picture ? editForm.profile_picture.name : 'Choose file (JPEG or JPG only)'}
+                      </div>
+                      <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-medium cursor-pointer transition-colors shrink-0 font-Gantari">
+                        Browse File
+                        <input
+                          type="file"
+                          className="hidden cursor-pointer"
+                          accept=".jpg,.jpeg"
+                          onChange={(e) => setEditForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                        />
+                      </label>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Column 2 */}
                 <div className="space-y-5">
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="date"
                       value={editForm.dob}
@@ -1580,7 +1614,7 @@ export default function EmployeesPM() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="email"
                       placeholder="Enter Email"
@@ -1591,8 +1625,17 @@ export default function EmployeesPM() {
                       disabled
                     />
                   </div>
+                  <div className="relative">
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
+                    <CustomDropdown
+                      options={TYPE_OPTIONS}
+                      value={editForm.user_type}
+                      onChange={(val) => setEditForm((f: any) => ({ ...f, user_type: val }))}
+                      placeholder="Select Type"
+                    />
+                  </div>
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="date"
                       value={editForm.doj}
@@ -1610,28 +1653,11 @@ export default function EmployeesPM() {
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
-                    <div className="flex items-center bg-[#F4F4F4] rounded-md overflow-hidden">
-                      <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
-                        {editForm.profile_picture ? editForm.profile_picture.name : 'Choose file (JPEG or JPG only)'}
-                      </div>
-                      <label className="px-5 py-3 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
-                        Browse File
-                        <input
-                          type="file"
-                          className="hidden cursor-pointer"
-                          accept=".jpg,.jpeg"
-                          onChange={(e) => setEditForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
-                        />
-                      </label>
-                    </div>
                   </div>
                 </div>
-              </div>
 
               {/* Full Width Field */}
-              <div className="mt-2">
+              <div className="mt-2 px-5">
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Address</label>
                 <textarea
                   rows={4}
@@ -1643,7 +1669,7 @@ export default function EmployeesPM() {
               </div>
 
               {/* Access Control Section */}
-              <div className="mt-8">
+              <div className="mt-8 px-5">
                 <label className="block text-[18px] font-semibold text-[#000000] mb-4 font-Gantari">Select Panel Access Control</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-y-4 gap-x-6 p-6 bg-[#F9F9F9] rounded-[10px]">
                   {PANEL_ACCESS_OPTIONS.map((role) => (

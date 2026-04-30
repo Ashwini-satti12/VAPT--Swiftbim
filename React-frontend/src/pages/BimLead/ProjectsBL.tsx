@@ -4287,7 +4287,8 @@ export default function ProjectsBL() {
                   return (
                     <div
                       key={p.id}
-                      className="bg-white rounded-md border border-slate-200 p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300"
+                      onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === p.id ? null : p.id); }}
+                      className="bg-white rounded-md border border-slate-200 p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                     >
                       <div>
                         <div className="flex items-start justify-between mb-4 mt-2 pr-0">
@@ -4549,8 +4550,10 @@ export default function ProjectsBL() {
                                   return (
                                     <div
                                       key={emp.id}
-                                      className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                      title={emp.full_name}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openMemberProfile(emp);
+                                      }}
                                     >
                                       {profileUrl ? (
                                         <img
@@ -4573,7 +4576,14 @@ export default function ProjectsBL() {
                                   );
                                 })}
                                 {remainingCount > 0 && (
-                                  <div className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors">
+                                  <div
+                                    className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setAllMembersList(projectEmployees);
+                                      setShowAllMembersModal(true);
+                                    }}
+                                  >
                                     +{remainingCount}
                                   </div>
                                 )}

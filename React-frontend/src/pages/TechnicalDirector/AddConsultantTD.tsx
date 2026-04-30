@@ -41,6 +41,24 @@ const PANEL_ACCESS_OPTIONS = [
   'Management', 'Accounts', 'Technical Director', 'Admin', 'Project Manager', 'Client', 'Sales', 'BIM Lead', 'Employee', 'All'
 ];
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 function CustomDropdown({
   options,
   value,
@@ -73,7 +91,7 @@ function CustomDropdown({
         className={`w-full flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] font-Gantari transition-all outline-none cursor-pointer ${isOpen ? '!border-[#AEACAC52]' : ''}`}
       >
         <span className={value ? 'text-[#353535]' : 'text-[#8B8B8B]'}>{value || placeholder}</span>
-        <FiChevronDown className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} text-slate-500`} />
+        <FiChevronDown className={`w-3 h-3 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} text-slate-500`} />
       </button>
       {isOpen && (
         <div className="absolute top-full left-0 w-full mt-1 bg-[#FFFFFF] border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden">
@@ -123,7 +141,10 @@ export default function AddConsultantTD() {
   const todayISO = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
-    // Roles and Departments are now localized/removed per requirements
+    const styleTag = document.createElement('style');
+    styleTag.textContent = SCROLLBAR_STYLE;
+    document.head.appendChild(styleTag);
+    return () => { document.head.removeChild(styleTag); };
   }, []);
 
   function handleAddSubmit(e: React.FormEvent) {
@@ -194,7 +215,7 @@ export default function AddConsultantTD() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-5 py-2 bg-white relative">
+    <div className="flex-1 overflow-y-auto px-5 py-2 bg-white relative custom-scrollbar">
       {successMsg && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-3 px-5 py-3 rounded-lg bg-white shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-gray-100 min-w-[300px] animate-in fade-in slide-in-from-top-2 duration-300 font-Gantari">
           <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#58D662]">
@@ -321,48 +342,6 @@ export default function AddConsultantTD() {
                   placeholder="Select Role"
                 />
               </div>
-            </div>
-
-            <div className="space-y-5">
-              <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth <span className="text-[#DD4342]">*</span></label>
-                <input
-                  type="date"
-                  value={form.dob}
-                  onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
-                  max={todayISO}
-                  className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52] ${form.dob ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
-                />
-              </div>
-              <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID <span className="text-[#DD4342]">*</span></label>
-                <input
-                  type="email"
-                  placeholder="Enter Email"
-                  value={form.email}
-                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                  required
-                />
-              </div>
-              <div className="relative">
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
-                <CustomDropdown
-                  options={['Employee', 'Trainee']}
-                  value={form.type}
-                  onChange={(val) => setForm((f) => ({ ...f, type: val }))}
-                  placeholder="Select Type"
-                />
-              </div>
-              <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining <span className="text-[#DD4342]">*</span></label>
-                <input
-                  type="date"
-                  value={form.joining_date}
-                  onChange={(e) => setForm((f) => ({ ...f, joining_date: e.target.value }))}
-                  className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] ${form.joining_date ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
-                />
-              </div>
               <div className="space-y-2">
                 <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Upload Profile Picture</label>
                 <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
@@ -436,6 +415,48 @@ export default function AddConsultantTD() {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth <span className="text-[#DD4342]">*</span></label>
+                <input
+                  type="date"
+                  value={form.dob}
+                  onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
+                  max={todayISO}
+                  className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52] ${form.dob ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
+                />
+              </div>
+              <div>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID <span className="text-[#DD4342]">*</span></label>
+                <input
+                  type="email"
+                  placeholder="Enter Email"
+                  value={form.email}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                  required
+                />
+              </div>
+              <div className="relative">
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
+                <CustomDropdown
+                  options={['Employee', 'Trainee']}
+                  value={form.type}
+                  onChange={(val) => setForm((f) => ({ ...f, type: val }))}
+                  placeholder="Select Type"
+                />
+              </div>
+              <div>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining <span className="text-[#DD4342]">*</span></label>
+                <input
+                  type="date"
+                  value={form.joining_date}
+                  onChange={(e) => setForm((f) => ({ ...f, joining_date: e.target.value }))}
+                  className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] ${form.joining_date ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
+                />
               </div>
             </div>
           </div>

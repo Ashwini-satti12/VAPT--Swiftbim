@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import api from "../../lib/api";
 
@@ -28,6 +28,8 @@ interface WorkOrder {
 
 export default function WorkorderV() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get('q')?.toLowerCase() || "";
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
 
   useEffect(() => {
@@ -102,9 +104,18 @@ export default function WorkorderV() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {workOrders.length > 0 ? (
-                workOrders.map((wo, index) => (
-                  <tr
+              {(() => {
+                const filteredWorkOrders = searchQuery 
+                  ? workOrders.filter(wo => 
+                      (wo.project_name || "").toLowerCase().includes(searchQuery) ||
+                      (wo.vendor_name || "").toLowerCase().includes(searchQuery) ||
+                      (wo.status || "").toLowerCase().includes(searchQuery)
+                    )
+                  : workOrders;
+                  
+                return filteredWorkOrders.length > 0 ? (
+                  filteredWorkOrders.map((wo, index) => (
+                    <tr
                     key={wo.id}
                     className={index % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}
                   >
@@ -147,13 +158,14 @@ export default function WorkorderV() {
                     </td>
                   </tr>
                 ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="px-3 py-10 text-center text-[#616161]">
-                    No Work Orders available.
-                  </td>
-                </tr>
-              )}
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="px-3 py-10 text-center text-[#616161]">
+                      No Work Orders available.
+                    </td>
+                  </tr>
+                );
+              })()}
             </tbody>
           </table>
         </div>

@@ -2577,7 +2577,8 @@ export default function ProjectsTD() {
                     return (
                       <div
                         key={p.id}
-                        className="relative overflow-hidden bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm transition-all duration-300 hover:shadow-md"
+                        onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(openMenuProjectId === p.id ? null : p.id); }}
+                        className="relative overflow-hidden bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer"
                       >
                         <div>
                           <div className="flex items-start justify-between mb-4 mt-2 pr-0">
@@ -2844,7 +2845,8 @@ export default function ProjectsTD() {
                                         key={emp.id}
                                         className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
                                         title={emp.full_name}
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                          e.stopPropagation();
                                           openMemberProfile(emp);
                                         }}
                                       >
@@ -2872,7 +2874,8 @@ export default function ProjectsTD() {
                                   {remainingCount > 0 && (
                                     <div
                                       className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         setAllMembersList(projectEmployees);
                                         setShowAllMembersModal(true);
                                       }}

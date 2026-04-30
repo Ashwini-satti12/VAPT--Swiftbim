@@ -180,6 +180,7 @@ function FormDropdown({
 export default function VendorBimLeadTeamTasks() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get('q')?.toLowerCase() || "";
   const navigate = useNavigate();
   const projectFilter = searchParams.get("project");
   const statusFilter =
@@ -578,6 +579,17 @@ export default function VendorBimLeadTeamTasks() {
     useState("All Employees");
 
   const baseTeamFilteredTasks = tasks.filter((t) => {
+    if (searchQuery) {
+        if (!(
+            (t.task_name || "").toLowerCase().includes(searchQuery) ||
+            (t.project_name || "").toLowerCase().includes(searchQuery) ||
+            (t.assigned_to_name || "").toLowerCase().includes(searchQuery) ||
+            (t.priority || "").toLowerCase().includes(searchQuery) ||
+            (t.status || "").toLowerCase().includes(searchQuery)
+        )) {
+            return false;
+        }
+    }
     const isAssignedToMe = Boolean(t.is_assigned_to_me);
     const isOwner = Boolean(t.is_owned_by_me);
     const isUnderReview = (t as any).review_required === true || ((t as any).progress === 95 && (t.status === "Completed" || t.status === "completed"));

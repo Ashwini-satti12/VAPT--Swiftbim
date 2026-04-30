@@ -2223,13 +2223,16 @@ export default function ProjectsPMV() {
                         </div> */}
             <div className="flex-1 overflow-y-auto pt-4 pb-4 px-4 space-y-8 custom-scrollbar">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {list.length === 0 ? (
+                {(() => {
+                  const searchQueryParam = searchParams.get('q')?.toLowerCase() || "";
+                  const filteredList = list.filter(p => !searchQueryParam || (p.project_name || "").toLowerCase().includes(searchQueryParam) || (p.client_name || "").toLowerCase().includes(searchQueryParam));
+                  return filteredList.length === 0 ? (
                   <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
                     No projects found. Create your first project or accept a
                     proposal.
                   </div>
                 ) : (
-                  list.map((p) => {
+                  filteredList.map((p) => {
                     const progress = Math.round(Number(p.progress) || 0);
                     const memberIds = p.members
                       ? p.members.split(",").filter(Boolean).map(Number)
@@ -2245,10 +2248,7 @@ export default function ProjectsPMV() {
                     return (
                       <div
                         key={p.id}
-                        onClick={() => {
-                          setSelectedProject(p);
-                          // setShowProjectView(true);
-                        }}
+                         onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(openMenuProjectId === p.id ? null : p.id); }}
                         className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
                         <div className="flex items-start justify-between mb-2">
@@ -2548,7 +2548,8 @@ export default function ProjectsPMV() {
                       </div>
                     );
                   })
-                )}
+                );
+                })()}
               </div>
             </div>
           </>
