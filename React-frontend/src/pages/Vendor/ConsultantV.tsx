@@ -146,8 +146,20 @@ export default function ConsultantV() {
         }
     }, [editParam, list]);
 
-    const paginatedList = list.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-    const totalPages = Math.ceil(list.length / itemsPerPage);
+    const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+    const filteredList = list.filter((emp) => {
+        if (!searchQuery) return true;
+        return (
+            (emp.full_name || "").toLowerCase().includes(searchQuery) ||
+            (emp.email || "").toLowerCase().includes(searchQuery) ||
+            (emp.empid || "").toLowerCase().includes(searchQuery) ||
+            (emp.user_role || "").toLowerCase().includes(searchQuery) ||
+            (emp.department || "").toLowerCase().includes(searchQuery)
+        );
+    });
+
+    const paginatedList = filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    const totalPages = Math.ceil(filteredList.length / itemsPerPage);
 
     function exportCsv() {
         const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department'];
@@ -408,12 +420,12 @@ export default function ConsultantV() {
             <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar relative">
                 {viewMode === 'card' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {list.length === 0 ? (
+                        {filteredList.length === 0 ? (
                             <div className="col-span-full bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-500 shadow-sm">
                                 No consultants found.
                             </div>
                         ) : (
-                            list.map((emp) => (
+                            filteredList.map((emp) => (
                                 <div key={emp.id} className="bg-white rounded-2xl overflow-hidden border-2 border-slate-200 transition-all ">
                                     {/* Image Section */}
                                     <div className="relative h-40 overflow-hidden group">
@@ -626,7 +638,7 @@ export default function ConsultantV() {
                                         onClick={() => setCurrentPage(page)}
                                         className={`px-5 py-2.5 text-[14px] font-bold border-r border-slate-200 transition-colors ${currentPage === page ? 'text-white bg-[#DD4342]' : 'text-[#6B6B6B] hover:bg-slate-100'}`}
                                     >
-                                        {(page - 1) * 10 + 1}-{Math.min(page * 10, list.length)}
+                                        {(page - 1) * 10 + 1}-{Math.min(page * 10, filteredList.length)}
                                     </button>
                                 ));
                             })()}

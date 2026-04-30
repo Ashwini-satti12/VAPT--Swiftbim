@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 
 interface LocationEntry {
@@ -32,6 +33,8 @@ export default function TrackerV() {
     const statusOptions = ['', 'Online', 'Offline'];
     const statusDropdownRef = useRef<HTMLDivElement>(null);
     const employeeDropdownRef = useRef<HTMLDivElement>(null);
+    const [searchParams] = useSearchParams();
+    const searchQuery = searchParams.get('q')?.toLowerCase() || "";
 
     const formatDate = (dateStr: string) => {
         if (!dateStr) return 'Select Date';
@@ -58,6 +61,15 @@ export default function TrackerV() {
     }, []);
 
     const filteredList = list.filter((item) => {
+        if (searchQuery) {
+            if (!(
+                (item.full_name || "").toLowerCase().includes(searchQuery) ||
+                (item.status || "").toLowerCase().includes(searchQuery)
+            )) {
+                return false;
+            }
+        }
+
         let matchesDate = true;
         let matchesStatus = true;
         let matchesEmployee = true;

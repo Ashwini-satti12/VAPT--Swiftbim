@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import api from "../../../lib/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { RiDeleteBin5Fill } from "react-icons/ri";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 import threedot from "../../../assets/ProjectManager/project/threedot.svg";
@@ -131,6 +131,8 @@ export default function VendorBimLeadProjects() {
   const projectCurrencyCode = (p?: Project | null) =>
     ((p?.selected_currency || p?.currency || "INR") as string).toUpperCase();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get('q')?.toLowerCase() || "";
   const [list, setList] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(
@@ -1834,14 +1836,27 @@ export default function VendorBimLeadProjects() {
             </div>
             <div className="flex-1 overflow-y-auto pt-4 pb-10 px-5 space-y-6 custom-scrollbar">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {list.length === 0 ? (
-                  <div className="col-span-full bg-[#F8FAFC] rounded-2xl border-2 border-dashed border-slate-200 p-20 text-center">
-                    <p className="text-slate-500 font-medium">
-                      No projects assigned yet.
-                    </p>
-                  </div>
-                ) : (
-                  list.map((p) => {
+                {(() => {
+                  const filteredList = searchQuery 
+                    ? list.filter((p) => 
+                        (p.project_name || "").toLowerCase().includes(searchQuery) ||
+                        (getClientNameById(p.client_id) || "").toLowerCase().includes(searchQuery) ||
+                        (p.location || "").toLowerCase().includes(searchQuery) ||
+                        (p.priority || "").toLowerCase().includes(searchQuery)
+                      )
+                    : list;
+                  
+                  if (filteredList.length === 0) {
+                    return (
+                      <div className="col-span-full bg-[#F8FAFC] rounded-2xl border-2 border-dashed border-slate-200 p-20 text-center">
+                        <p className="text-slate-500 font-medium">
+                          No projects found.
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return filteredList.map((p) => {
                     const progress = Math.round(Number(p.progress) || 0);
                     const memberIds = p.members
                       ? p.members.split(",").filter(Boolean).map(Number)
@@ -2095,8 +2110,8 @@ export default function VendorBimLeadProjects() {
                         </div>
                       </div>
                     );
-                  })
-                )}
+                  });
+                })()}
               </div>
             </div>
           </>

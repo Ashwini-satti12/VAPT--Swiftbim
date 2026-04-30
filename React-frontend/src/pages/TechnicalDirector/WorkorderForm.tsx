@@ -5,6 +5,7 @@ import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import api from "../../lib/api";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
+import { FiUpload } from "react-icons/fi";
 
 type PaymentTermRow = {
   basis: string;
@@ -185,6 +186,45 @@ export default function WorkorderForm() {
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const API_BASE = String(import.meta.env.VITE_API_BASE_URL || "");
+  const [companySignature, setCompanySignature] = useState<string | null>(null);
+  const [vendorSignature, setVendorSignature] = useState<string | null>(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const companyFileInputRef = useRef<HTMLInputElement>(null);
+  const [vendorDisplayName, setVendorDisplayName] = useState("");
+  const [signatureForm, setSignatureForm] = useState({
+    companySignName: "",
+    companySignDesignation: "",
+    companySignDate: "",
+    vendorSignName: "",
+    vendorSignDesignation: "",
+    vendorSignDate: "",
+  });
+
+  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadLoading(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setVendorSignature(String(reader.result || ""));
+      setUploadLoading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCompanySignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadLoading(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCompanySignature(String(reader.result || ""));
+      setUploadLoading(false);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const mapWorkOrderToForm = (wo: any) => ({
     proposalId: wo?.proposal_id ?? wo?.proposalId ?? null,
@@ -236,6 +276,10 @@ export default function WorkorderForm() {
   const currencyWrapRef = useRef<HTMLDivElement>(null);
   const selectedCurrencyLabel =
     CURRENCY_OPTIONS.find((c) => c.code === form.currency)?.label || "";
+  const currencyCodeForDisplay =
+    (selectedCurrencyLabel.match(/\(([^)]+)\)/)?.[1] ||
+      form.currency ||
+      "")?.toUpperCase() || "";
 
   useEffect(() => {
     if (!isCurrencyOpen) return;
@@ -445,7 +489,26 @@ export default function WorkorderForm() {
                         Description
                       </th>
                       <th className="border border-[#AEACAC] px-3 py-2 text-left text-[16px] font-bold w-[260px]">
-                        Amount ({form.currency || "AED"})
+                        <div className="flex items-center justify-between gap-2">
+                          <span>Amount</span>
+                          <select
+                            value={form.currency || ""}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                currency: e.target.value.toUpperCase(),
+                              })
+                            }
+                            className="bg-[#F3F3F3] border border-[#E6E6E6] rounded-[4px] px-2 py-1 text-[13px] font-Gantari outline-none"
+                          >
+                            <option value="">Select currency</option>
+                            {CURRENCY_OPTIONS.map((c) => (
+                              <option key={c.code} value={c.code}>
+                                {c.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </th>
                     </tr>
                   </thead>
@@ -464,7 +527,9 @@ export default function WorkorderForm() {
                             className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
                           />
                           <div>
-                            <label className={labelClass}>Project Involves</label>
+                            <label className={labelClass}>
+                              Project Involves
+                            </label>
                             <ReactQuill
                               theme="snow"
                               placeholder="Enter project involves..."
@@ -491,7 +556,7 @@ export default function WorkorderForm() {
                           </div>
                         </div>
                       </td>
-                      <td className="border border-[#AEACAC] p-3 align-top">
+                      <td className="border border-[#AEACAC] p-3 ">
                         <input
                           type="text"
                           inputMode="decimal"
@@ -511,7 +576,9 @@ export default function WorkorderForm() {
                           theme="snow"
                           placeholder="Enter duration..."
                           value={form.duration}
-                          onChange={(val) => setForm({ ...form, duration: val })}
+                          onChange={(val) =>
+                            setForm({ ...form, duration: val })
+                          }
                           modules={quillModules}
                           className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
                         />
@@ -520,7 +587,10 @@ export default function WorkorderForm() {
                     </tr>
                     <tr>
                       <td className="border border-[#AEACAC] px-3 py-2 text-right text-[16px] font-bold">
-                        Total Amount ({form.currency || "AED"})
+                        Total Amount
+                        {currencyCodeForDisplay
+                          ? ` (${currencyCodeForDisplay})`
+                          : ""}
                       </td>
                       <td className="border border-[#AEACAC] p-3">
                         <input
@@ -652,9 +722,9 @@ export default function WorkorderForm() {
               </h4>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className={labelClass}>
+                  {/* <label className={labelClass}>
                     General Terms and Conditions
-                  </label>
+                  </label> */}
                   <ReactQuill
                     theme="snow"
                     placeholder="Enter general terms and conditions..."
@@ -821,11 +891,269 @@ export default function WorkorderForm() {
                       </tbody>
                     </table>
                   </div>
+                  <div className="grid grid-cols-2 gap-4 mt-10">
+                    <div>
+                      <p className="text-[14px] text-[#000000]">For,</p>
+                      <p className="mt-8 text-[14px] text-[#000000]">
+                        Swifterz Creative Engineering Services LLC,
+                      </p>
+                    </div>
+                    <div className="ml-8">
+                      <p className="text-[14px] text-[#000000]">For,</p>
+                      <input
+                        type="text"
+                        placeholder="Enter vendor name"
+                        value={vendorDisplayName}
+                        onChange={(e) => setVendorDisplayName(e.target.value)}
+                        className="mt-8 text-[14px] text-[#000000] border-b border-gray-300 bg-transparent outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-12 mb-8 border-gray-300 break-inside-avoid">
+                    <h3 className="font-gantari font-bold text-[18px] mb-4 text-[#000000]">
+                      Signatures
+                    </h3>
+                    <div className="grid grid-cols-2 gap-16">
+                      <div className="space-y-4">
+                        <p className="font-bold text-[14px] uppercase tracking-wide text-[#000000]">
+                          Company
+                        </p>
+
+                        <div
+                          className="h-28 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center relative overflow-hidden group bg-gray-50 transition-all cursor-pointer hover:border-[#DD4342]"
+                          onClick={() => companyFileInputRef.current?.click()}
+                        >
+                          {companySignature ? (
+                            <div className="relative h-full w-full flex items-center justify-center group/img">
+                              <img
+                                src={
+                                  companySignature.startsWith("http") ||
+                                  companySignature.startsWith("data:")
+                                    ? companySignature
+                                    : `${API_BASE}${companySignature}`
+                                }
+                                alt="Company Signature"
+                                className="h-full object-contain"
+                              />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCompanySignature(null);
+                                }}
+                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover/img:opacity-100 transition-opacity"
+                                title="Remove Signature"
+                                type="button"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M6 18L18 6M6 6l12 12"
+                                  ></path>
+                                </svg>
+                              </button>
+                            </div>
+                          ) : uploadLoading ? (
+                            <div className="flex items-center justify-center h-full">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#DD4342]"></div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-center p-2">
+                              <FiUpload className="w-6 h-6 text-gray-300 group-hover:text-[#DD4342] mb-1" />
+                              <span className="text-[10px] text-gray-400 group-hover:text-[#DD4342]">
+                                Click to upload company signature
+                              </span>
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            ref={companyFileInputRef}
+                            onChange={handleCompanySignatureUpload}
+                            accept="image/*"
+                            className="hidden"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-[14px]">
+                          <div className="flex items-center gap-2">
+                            <span className="w-24 font-medium">Name:</span>
+                            <input
+                              type="text"
+                              value={signatureForm.companySignName}
+                              onChange={(e) =>
+                                setSignatureForm((prev) => ({
+                                  ...prev,
+                                  companySignName: e.target.value,
+                                }))
+                              }
+                              className="border-b border-gray-300 flex-1 text-gray-800 font-bold bg-transparent outline-none px-2"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="w-24 font-medium">
+                              Designation:
+                            </span>
+                            <input
+                              type="text"
+                              value={signatureForm.companySignDesignation}
+                              onChange={(e) =>
+                                setSignatureForm((prev) => ({
+                                  ...prev,
+                                  companySignDesignation: e.target.value,
+                                }))
+                              }
+                              className="border-b border-gray-300 flex-1 text-gray-800 font-bold bg-transparent outline-none px-2"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="w-24 font-medium">Date:</span>
+                            <input
+                              type="date"
+                              value={signatureForm.companySignDate}
+                              onChange={(e) =>
+                                setSignatureForm((prev) => ({
+                                  ...prev,
+                                  companySignDate: e.target.value,
+                                }))
+                              }
+                              className="border-b border-gray-300 flex-1 text-gray-800 font-bold bg-transparent outline-none px-2"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* vendor signature */}
+                      {/* <div className="space-y-4">
+                        <p className="font-bold text-[14px] font-gantari uppercase tracking-wide text-[#000000]">
+                          Vendor
+                        </p>
+
+                        <div
+                          className="h-28 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center relative overflow-hidden bg-gray-50 transition-all cursor-pointer hover:border-[#DD4342] group"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          {vendorSignature ? (
+                            <div className="relative h-full w-full flex items-center justify-center group/img">
+                              <img
+                                src={
+                                  vendorSignature.startsWith("http") ||
+                                  vendorSignature.startsWith("data:")
+                                    ? vendorSignature
+                                    : `${API_BASE}${vendorSignature}`
+                                }
+                                alt="Vendor Signature"
+                                className="h-full object-contain"
+                              />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setVendorSignature(null);
+                                }}
+                                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover/img:opacity-100 transition-opacity"
+                                title="Remove Signature"
+                                type="button"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M6 18L18 6M6 6l12 12"
+                                  ></path>
+                                </svg>
+                              </button>
+                            </div>
+                          ) : uploadLoading ? (
+                            <div className="flex items-center justify-center h-full">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#DD4342]"></div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-center p-2">
+                              <FiUpload className="w-6 h-6 text-gray-300 group-hover:text-[#DD4342] mb-1" />
+                              <span className="text-[10px] text-gray-400 group-hover:text-[#DD4342]">
+                                Click to upload vendor signature
+                              </span>
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleSignatureUpload}
+                            accept="image/*"
+                            className="hidden"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-[14px] font-gantari">
+                          <div className="flex items-center gap-2">
+                            <span className="w-24 font-medium">Name:</span>
+                            <input
+                              type="text"
+                              value={signatureForm.vendorSignName || ""}
+                              onChange={(e) =>
+                                setSignatureForm((prev) => ({
+                                  ...prev,
+                                  vendorSignName: e.target.value,
+                                }))
+                              }
+                              placeholder="Vendor name"
+                              className="border-b border-gray-300 flex-1 text-gray-800 text-[14px] font-gantari font-bold bg-transparent outline-none hover:border-black focus:border-[#DD4342] px-1"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className="w-24 font-medium">Designation:</span>
+                            <input
+                              type="text"
+                              value={signatureForm.vendorSignDesignation || ""}
+                              onChange={(e) =>
+                                setSignatureForm((prev) => ({
+                                  ...prev,
+                                  vendorSignDesignation: e.target.value,
+                                }))
+                              }
+                              placeholder="Authorized Signatory"
+                              className="border-b border-gray-300 flex-1 text-gray-800 text-[14px] font-gantari font-bold bg-transparent outline-none px-1"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className="w-24 font-medium">Date:</span>
+                            <input
+                              type="date"
+                              value={signatureForm.vendorSignDate || ""}
+                              onChange={(e) =>
+                                setSignatureForm((prev) => ({
+                                  ...prev,
+                                  vendorSignDate: e.target.value,
+                                }))
+                              }
+                              className="border-b border-gray-300 flex-1 text-gray-800 text-[14px] font-gantari font-bold bg-transparent outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div> */}
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className={labelClass}>
-                    Additional Terms & Conditions (Annexure 1)
-                  </label>
+                <div className="space-y-2 mt-20">
+                  <div className="text-center">
+                    <label className={labelClass}>
+                      Annexure 1 – Additional Terms & Conditions
+                    </label>
+                  </div>
+
                   <ReactQuill
                     theme="snow"
                     placeholder="Enter additional terms & conditions..."
@@ -834,18 +1162,7 @@ export default function WorkorderForm() {
                       setForm({ ...form, additionalTerms: val })
                     }
                     modules={quillModules}
-                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className={labelClass}>Exclusions</label>
-                  <ReactQuill
-                    theme="snow"
-                    placeholder="Enter exclusions..."
-                    value={form.exclusions}
-                    onChange={(val) => setForm({ ...form, exclusions: val })}
-                    modules={quillModules}
-                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
+                    className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px] mt-10"
                   />
                 </div>
               </div>
