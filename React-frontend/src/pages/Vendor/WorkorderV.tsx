@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import api from "../../lib/api";
@@ -345,8 +345,7 @@ export default function WorkorderV() {
                       No Work Orders available.
                     </td>
                   </tr>
-                );
-              })()}
+                )}
             </tbody>
           </table>
         </div>
