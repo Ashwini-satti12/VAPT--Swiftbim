@@ -40,7 +40,8 @@ interface Employee {
   salary?: string;
   accountnumber?: string;
   Allpannel?: string;
-
+  password?: string;
+  has_password?: boolean;
   // vendor_resource_profiles fields (new_swiftbim)
   designation?: string;
   discipline?: string;
@@ -121,22 +122,20 @@ function CustomDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between gap-2 transition-all outline-none font-Gantari min-w-0 ${
-          styleType === "header"
-            ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
-            : styleType === "table"
-              ? `px-4 py-2 min-w-[140px] rounded-md border font-Gantari font-medium text-[14px] ${value === "Active" ? "bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]" : "bg-[#FFE5E5] border-[#FECACA] text-[#E00100]"}`
-              : `px-5 py-3 bg-[#F2F3F4] rounded-md text-[14px] border border-[#F2F2F2] focus:outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
-        }`}
+        className={`w-full flex items-center justify-between gap-2 transition-all outline-none font-Gantari min-w-0 ${styleType === "header"
+          ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
+          : styleType === "table"
+            ? `px-4 py-2 min-w-[140px] rounded-md border font-Gantari font-medium text-[14px] ${value === "Active" ? "bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]" : "bg-[#FFE5E5] border-[#FECACA] text-[#E00100]"}`
+            : `px-5 py-3 bg-[#F2F3F4] rounded-md text-[14px] border border-[#F2F2F2] focus:outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+          }`}
       >
         <span
-          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-            styleType === "header" || styleType === "form"
-              ? isPlaceholder
-                ? "text-[#8B8B8B]"
-                : "text-[#353535]"
-              : ""
-          }`}
+          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${styleType === "header" || styleType === "form"
+            ? isPlaceholder
+              ? "text-[#8B8B8B]"
+              : "text-[#353535]"
+            : ""
+            }`}
         >
           {styleType === "header" && value && !isPlaceholder ? (
             <>
@@ -352,6 +351,7 @@ export default function ResourcesV() {
           projects_worked_on?: string;
           address?: string;
           active?: string;
+          password?: string;
         }>;
       }>("/api/vendors/profile/resource-profiles")
       .then(({ data }) => {
@@ -393,6 +393,8 @@ export default function ResourcesV() {
               software: r.software,
               certifications: r.certifications,
               projects_worked_on: r.projects_worked_on,
+              password: "", // Keep password empty in state
+              has_password: !!(r.password || "").trim(),
             } as Employee;
           }),
         );
@@ -434,6 +436,7 @@ export default function ResourcesV() {
           address: emp.address || "",
           dob: emp.dob || "",
           password: "",
+          has_password: emp.has_password,
           user_type: emp.user_type || "",
           doj: emp.doj || "",
           salary: emp.salary || "",
@@ -452,16 +455,16 @@ export default function ResourcesV() {
 
   const filteredList = list.filter((emp: Employee) => {
     if (searchQuery) {
-        if (!(
-            (emp.full_name || "").toLowerCase().includes(searchQuery) ||
-            (emp.email || "").toLowerCase().includes(searchQuery) ||
-            (emp.empid || "").toLowerCase().includes(searchQuery) ||
-            (emp.user_role || "").toLowerCase().includes(searchQuery) ||
-            (emp.department || "").toLowerCase().includes(searchQuery) ||
-            (emp.designation || "").toLowerCase().includes(searchQuery)
-        )) {
-            return false;
-        }
+      if (!(
+        (emp.full_name || "").toLowerCase().includes(searchQuery) ||
+        (emp.email || "").toLowerCase().includes(searchQuery) ||
+        (emp.empid || "").toLowerCase().includes(searchQuery) ||
+        (emp.user_role || "").toLowerCase().includes(searchQuery) ||
+        (emp.department || "").toLowerCase().includes(searchQuery) ||
+        (emp.designation || "").toLowerCase().includes(searchQuery)
+      )) {
+        return false;
+      }
     }
     if (statusFilter === "All" || !statusFilter) return true;
     const currentActive = (emp.active || "").toLowerCase();
@@ -543,7 +546,7 @@ export default function ResourcesV() {
         setInviteShowSuccess(true);
         setActiveView("list");
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setInviteSubmitting(false));
   }
 
@@ -593,6 +596,7 @@ export default function ResourcesV() {
           role: editForm.user_role,
           full_name: editForm.full_name.trim(),
           phone_number: `${editCountryCode}${cleanPhone}`,
+          address: editForm.address.trim(),
           // When editing, treat the password field as the login password
           // for this resource. If left blank, backend will keep the
           // existing password instead of changing it.
@@ -606,12 +610,13 @@ export default function ResourcesV() {
           prev.map((e) =>
             e.id === editId
               ? {
-                  ...e,
-                  full_name: editForm.full_name.trim(),
-                  email: editForm.email.trim(),
-                  user_role: editForm.user_role,
-                  phone_number: editForm.phone_number.trim() || e.phone_number,
-                }
+                ...e,
+                full_name: editForm.full_name.trim(),
+                email: editForm.email.trim(),
+                user_role: editForm.user_role,
+                phone_number: editForm.phone_number.trim() || e.phone_number,
+                address: editForm.address.trim(),
+              }
               : e,
           ),
         );
@@ -623,8 +628,8 @@ export default function ResourcesV() {
       .catch((err) => {
         setAddError(
           err.response?.data?.message ||
-            err.message ||
-            "Failed to assign login",
+          err.message ||
+          "Failed to assign login",
         );
       })
       .finally(() => setEditSubmitting(false));
@@ -765,31 +770,28 @@ export default function ResourcesV() {
 
                     <div className="absolute top-3 right-3 z-10">
                       <div
-                        className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${
-                          emp.active !== "active"
-                            ? "bg-[#FFEEEE] border-red-100"
-                            : emp.status === "Online"
-                              ? "bg-[#E0FFE8] border-emerald-100"
-                              : "bg-[#FFEEEE] border-red-100"
-                        }`}
+                        className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active !== "active"
+                          ? "bg-[#FFEEEE] border-red-100"
+                          : emp.status === "Online"
+                            ? "bg-[#E0FFE8] border-emerald-100"
+                            : "bg-[#FFEEEE] border-red-100"
+                          }`}
                       >
                         <span
-                          className={`w-2 h-2 rounded-full ${
-                            emp.active !== "active"
-                              ? "bg-[#E00100]"
-                              : emp.status === "Online"
-                                ? "bg-[#166534]"
-                                : "bg-[#E00100]"
-                          }`}
+                          className={`w-2 h-2 rounded-full ${emp.active !== "active"
+                            ? "bg-[#E00100]"
+                            : emp.status === "Online"
+                              ? "bg-[#166534]"
+                              : "bg-[#E00100]"
+                            }`}
                         />
                         <span
-                          className={`text-[14px] font-semibold font-gantari ${
-                            emp.active !== "active"
-                              ? "text-[#E00100]"
-                              : emp.status === "Online"
-                                ? "text-[#008F22]"
-                                : "text-[#E00100]"
-                          }`}
+                          className={`text-[14px] font-semibold font-gantari ${emp.active !== "active"
+                            ? "text-[#E00100]"
+                            : emp.status === "Online"
+                              ? "text-[#008F22]"
+                              : "text-[#E00100]"
+                            }`}
                         >
                           {emp.active !== "active"
                             ? "Inactive"
@@ -923,8 +925,8 @@ export default function ResourcesV() {
                                 accountnumber: emp.accountnumber || "",
                                 roles: emp.Allpannel
                                   ? emp.Allpannel.split(",").map((r) =>
-                                      r.trim(),
-                                    )
+                                    r.trim(),
+                                  )
                                   : [],
                                 active:
                                   emp.active === "active"
@@ -998,13 +1000,12 @@ export default function ResourcesV() {
                               )}
                             </div>
                             <span
-                              className={`absolute top-0 left-0 w-2.5 h-2.5 border-2 border-white rounded-full ${
-                                emp.active !== "active"
-                                  ? "bg-[#ef4444]"
-                                  : emp.status === "Online"
-                                    ? "bg-[#22c55e]"
-                                    : "bg-[#ef4444]"
-                              }`}
+                              className={`absolute top-0 left-0 w-2.5 h-2.5 border-2 border-white rounded-full ${emp.active !== "active"
+                                ? "bg-[#ef4444]"
+                                : emp.status === "Online"
+                                  ? "bg-[#22c55e]"
+                                  : "bg-[#ef4444]"
+                                }`}
                             ></span>
                           </div>
                           <span className="text-[14px] font-medium text-[#353535]">
@@ -1094,13 +1095,12 @@ export default function ResourcesV() {
                   </div>
                 </div>
                 <span
-                  className={`px-4 py-1 rounded-full text-[12px] font-medium shrink-0 sm:hidden ${
-                    selectedEmployee.active !== "active"
-                      ? "bg-[#FFEEEE] text-[#E00100]"
-                      : selectedEmployee.status === "Online"
-                        ? "bg-[#E0FFE8] text-[#008F22]"
-                        : "bg-[#FFEEEE] text-[#E00100]"
-                  }`}
+                  className={`px-4 py-1 rounded-full text-[12px] font-medium shrink-0 sm:hidden ${selectedEmployee.active !== "active"
+                    ? "bg-[#FFEEEE] text-[#E00100]"
+                    : selectedEmployee.status === "Online"
+                      ? "bg-[#E0FFE8] text-[#008F22]"
+                      : "bg-[#FFEEEE] text-[#E00100]"
+                    }`}
                 >
                   ●{" "}
                   {selectedEmployee.active !== "active"
@@ -1121,13 +1121,12 @@ export default function ResourcesV() {
               </div>
 
               <span
-                className={`hidden sm:inline px-4 py-1 rounded-full text-[12px] font-medium shrink-0 mt-2 ${
-                  selectedEmployee.active !== "active"
-                    ? "bg-[#FFEEEE] text-[#E00100]"
-                    : selectedEmployee.status === "Online"
-                      ? "bg-[#E0FFE8] text-[#008F22]"
-                      : "bg-[#FFEEEE] text-[#E00100]"
-                }`}
+                className={`hidden sm:inline px-4 py-1 rounded-full text-[12px] font-medium shrink-0 mt-2 ${selectedEmployee.active !== "active"
+                  ? "bg-[#FFEEEE] text-[#E00100]"
+                  : selectedEmployee.status === "Online"
+                    ? "bg-[#E0FFE8] text-[#008F22]"
+                    : "bg-[#FFEEEE] text-[#E00100]"
+                  }`}
               >
                 ●{" "}
                 {selectedEmployee.active !== "active"
@@ -1320,9 +1319,9 @@ export default function ResourcesV() {
                           activeView === "add"
                             ? setForm({ ...form, full_name: e.target.value })
                             : setEditForm({
-                                ...editForm,
-                                full_name: e.target.value,
-                              })
+                              ...editForm,
+                              full_name: e.target.value,
+                            })
                         }
                         className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
                         required
@@ -1344,9 +1343,9 @@ export default function ResourcesV() {
                           activeView === "add"
                             ? setForm({ ...form, email: e.target.value })
                             : setEditForm({
-                                ...editForm,
-                                email: e.target.value,
-                              })
+                              ...editForm,
+                              email: e.target.value,
+                            })
                         }
                         className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
                         required
@@ -1369,20 +1368,23 @@ export default function ResourcesV() {
                           placeholder="••••••••"
                           placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
                           value={
-                            activeView === "edit" && isVpmRoute
-                              ? "********"
-                              : activeView === "add"
-                                ? form.password
+                            activeView === "edit"
+                              ? editForm.has_password && !editForm.password
+                                ? "********"
                                 : editForm.password
+                              : form.password
                           }
                           onChange={(e) => {
                             if (activeView === "edit" && isVpmRoute) return;
+                            const val = e.target.value;
+                            // If user types over the asterisks, start fresh
+                            const newSafeVal = val === "********" ? "" : val;
                             activeView === "add"
-                              ? setForm({ ...form, password: e.target.value })
+                              ? setForm({ ...form, password: val })
                               : setEditForm({
-                                  ...editForm,
-                                  password: e.target.value,
-                                });
+                                ...editForm,
+                                password: newSafeVal,
+                              });
                           }}
                           className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
                           required={activeView === "add"}
@@ -1446,11 +1448,11 @@ export default function ResourcesV() {
                           departmentOptions.length
                             ? departmentOptions
                             : [
-                                "Production",
-                                "Technical",
-                                "Quality",
-                                "Management",
-                              ]
+                              "Production",
+                              "Technical",
+                              "Quality",
+                              "Management",
+                            ]
                         }
                         value={
                           activeView === "add"
@@ -1501,13 +1503,13 @@ export default function ResourcesV() {
                           onChange={(e) =>
                             activeView === "add"
                               ? setForm({
-                                  ...form,
-                                  phone_number: e.target.value,
-                                })
+                                ...form,
+                                phone_number: e.target.value,
+                              })
                               : setEditForm({
-                                  ...editForm,
-                                  phone_number: e.target.value,
-                                })
+                                ...editForm,
+                                phone_number: e.target.value,
+                              })
                           }
                           className="flex-1 px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
                         />
@@ -1527,9 +1529,9 @@ export default function ResourcesV() {
                         activeView === "add"
                           ? setForm({ ...form, address: e.target.value })
                           : setEditForm({
-                              ...editForm,
-                              address: e.target.value,
-                            })
+                            ...editForm,
+                            address: e.target.value,
+                          })
                       }
                       className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all resize-none"
                       placeholder="Residential or Office Address"
@@ -1556,13 +1558,13 @@ export default function ResourcesV() {
                           onChange={(e) =>
                             activeView === "add"
                               ? setForm({
-                                  ...form,
-                                  profile_picture: e.target.files?.[0] || null,
-                                })
+                                ...form,
+                                profile_picture: e.target.files?.[0] || null,
+                              })
                               : setEditForm({
-                                  ...editForm,
-                                  profile_picture: e.target.files?.[0] || null,
-                                })
+                                ...editForm,
+                                profile_picture: e.target.files?.[0] || null,
+                              })
                           }
                         />
                       </label>
@@ -1655,11 +1657,10 @@ export default function ResourcesV() {
                           if (inviteEmailError) setInviteEmailError("");
                         }}
                         rows={5}
-                        className={`w-full px-5 py-4 bg-[#F2F3F4] rounded-md outline-none text-sm leading-relaxed transition-all ${
-                          inviteEmailError
-                            ? "border border-red-400 focus:border-red-400"
-                            : "border-none"
-                        }`}
+                        className={`w-full px-5 py-4 bg-[#F2F3F4] rounded-md outline-none text-sm leading-relaxed transition-all ${inviteEmailError
+                          ? "border border-red-400 focus:border-red-400"
+                          : "border-none"
+                          }`}
                         placeholder="email1@example.com, email2@example.com"
                         placeholder-class="text-[#353535] text-[14px] font-medium"
                       ></textarea>

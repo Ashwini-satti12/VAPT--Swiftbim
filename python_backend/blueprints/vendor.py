@@ -4266,23 +4266,28 @@ def list_vendor_resource_profiles():
         except (TypeError, ValueError):
             continue
 
-    address_by_ve_id = {}
+    extra_data_by_ve_id = {}
     if ve_ids:
         try:
             conn = get_db()
             mcur = conn.cursor(dictionary=True)
             placeholders = ",".join(["%s"] * len(ve_ids))
             mcur.execute(
-                f"SELECT id, address FROM vendor_employee WHERE vendor_id = %s AND id IN ({placeholders})",
+                f"SELECT id, address, phone_number, password FROM vendor_employee WHERE vendor_id = %s AND id IN ({placeholders})",
                 [vendor_id] + ve_ids,
             )
             for row in mcur.fetchall() or []:
                 try:
-                    address_by_ve_id[int(row["id"])] = row.get("address")
+                    vid = int(row["id"])
+                    extra_data_by_ve_id[vid] = {
+                        "address": row.get("address"),
+                        "phone_number": row.get("phone_number"),
+                        "password": row.get("password")
+                    }
                 except Exception:
                     continue
         except Exception:
-            address_by_ve_id = {}
+            extra_data_by_ve_id = {}
 
     enriched = []
     for r in rows or []:
@@ -4292,11 +4297,12 @@ def list_vendor_resource_profiles():
         except (TypeError, ValueError):
             ve_id_int = None
 
-        # Only set address if it's not already present on the profile row.
-        if ("address" not in r or not (r.get("address") or "").strip()) and ve_id_int:
-            addr = address_by_ve_id.get(ve_id_int)
-            if addr is not None:
-                r["address"] = addr
+        if ve_id_int and ve_id_int in extra_data_by_ve_id:
+            extra = extra_data_by_ve_id[ve_id_int]
+            for fld in ["address", "phone_number", "password"]:
+                # Only set if not already present or is empty on the profile row
+                if fld not in r or not str(r.get(fld) or "").strip():
+                    r[fld] = extra[fld]
 
         enriched.append({k: _serialize(v) for k, v in r.items()})
 
@@ -4405,6 +4411,7 @@ def assign_resource_login(resource_id):
     raw_password = (data.get("password") or "").strip()
     full_name = (data.get("full_name") or "").strip()
     phone_number = (data.get("phone_number") or "").strip()
+    address = (data.get("address") or "").strip()
 
     if not email or not role:
         return jsonify({"success": False, "message": "email and role are required"}), 400
@@ -4437,15 +4444,15 @@ def assign_resource_login(resource_id):
             temp_password = raw_password
             hashed = _md5_hash(temp_password)
             c2.execute(
-                "UPDATE vendor_employee SET password=%s, role=%s, status='active', full_name=%s, phone_number=%s WHERE id=%s AND vendor_id=%s",
-                (hashed, role, full_name or None, phone_number or None, vemp_id, vendor_id),
+                "UPDATE vendor_employee SET password=%s, role=%s, status='active', full_name=%s, phone_number=%s, address=%s WHERE id=%s AND vendor_id=%s",
+                (hashed, role, full_name or None, phone_number or None, address or None, vemp_id, vendor_id),
             )
         else:
             # No password provided: keep existing password and only update role/status.
             temp_password = None
             c2.execute(
-                "UPDATE vendor_employee SET role=%s, status='active', full_name=%s, phone_number=%s WHERE id=%s AND vendor_id=%s",
-                (role, full_name or None, phone_number or None, vemp_id, vendor_id),
+                "UPDATE vendor_employee SET role=%s, status='active', full_name=%s, phone_number=%s, address=%s WHERE id=%s AND vendor_id=%s",
+                (role, full_name or None, phone_number or None, address or None, vemp_id, vendor_id),
             )
 
         conn.commit()
@@ -4464,8 +4471,8 @@ def assign_resource_login(resource_id):
         if not full_name:
             full_name = (res.get("name") or email.split("@")[0])
         c2.execute(
-            "INSERT INTO vendor_employee (vendor_id, empid, full_name, email, password, phone_number, role, status) VALUES (%s,%s,%s,%s,%s,%s,%s,'active')",
-            (vendor_id, None, full_name, email, hashed, phone_number or None, role),
+            "INSERT INTO vendor_employee (vendor_id, empid, full_name, email, password, phone_number, role, status, address) VALUES (%s,%s,%s,%s,%s,%s,%s,'active',%s)",
+            (vendor_id, None, full_name, email, hashed, phone_number or None, role, address or None),
         )
         conn.commit()
         vendor_employee_id = c2.lastrowid
@@ -4473,13 +4480,13 @@ def assign_resource_login(resource_id):
     # Persist mapping + synced display fields on resource profile (new_swiftbim)
     if full_name:
         vcur.execute(
-            "UPDATE vendor_resource_profiles SET name=%s, email=%s, login_role=%s, vendor_employee_id=%s WHERE id=%s AND vendor_id=%s",
-            (full_name, email, role, vendor_employee_id, resource_id, vendor_id),
+            "UPDATE vendor_resource_profiles SET name=%s, email=%s, login_role=%s, vendor_employee_id=%s, address=%s WHERE id=%s AND vendor_id=%s",
+            (full_name, email, role, vendor_employee_id, address, resource_id, vendor_id),
         )
     else:
         vcur.execute(
-            "UPDATE vendor_resource_profiles SET email=%s, login_role=%s, vendor_employee_id=%s WHERE id=%s AND vendor_id=%s",
-            (email, role, vendor_employee_id, resource_id, vendor_id),
+            "UPDATE vendor_resource_profiles SET email=%s, login_role=%s, vendor_employee_id=%s, address=%s WHERE id=%s AND vendor_id=%s",
+            (email, role, vendor_employee_id, address, resource_id, vendor_id),
         )
     get_vendor_db().commit()
 
