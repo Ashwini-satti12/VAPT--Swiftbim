@@ -11,7 +11,6 @@ interface WorkOrder {
   bid_amount: string;
   currency?: string;
   amount_aed?: number;
-  timeline: string;
   status: string;
   vendor_address?: string;
   po_date?: string;
@@ -63,7 +62,6 @@ export default function ViewWorkorderV() {
       bid_amount: `${asStr(r.currency) || "AED"} ${asStr(r.amount_aed) || "0"}`,
       currency: asStr(r.currency) || "AED",
       amount_aed: asNum(r.amount_aed),
-      timeline: asStr(r.duration) || "TBD",
       status: asStr(r.status) || "Created",
       vendor_address: asStr(r.vendor_address) || undefined,
       po_date: asStr(r.po_date) || undefined,
@@ -123,7 +121,7 @@ export default function ViewWorkorderV() {
       deliverables: selectedWO.deliverables || "",
       currency: selectedWO.currency || "AED",
       amountAED: amountRaw,
-      duration: selectedWO.timeline === "TBD" ? "" : selectedWO.timeline || "",
+
       termsAndConditions: selectedWO.terms_and_conditions || "",
       paymentTerms: selectedWO.payment_terms || "",
       additionalTerms: selectedWO.additional_terms || "",
@@ -279,14 +277,6 @@ export default function ViewWorkorderV() {
           <div>
             <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Project Location</p>
             <p className="text-[15px] font-medium text-[#353535]">{selectedWO.project_location || "—"}</p>
-          </div>
-          <div>
-            <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Timeline</p>
-            <div className="text-[15px] font-medium text-[#353535]">
-              {selectedWO.timeline?.includes("<")
-                ? renderRichText(selectedWO.timeline)
-                : (selectedWO.timeline || "—")}
-            </div>
           </div>
           <div className="md:col-span-2">
             <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Vendor Address</p>
