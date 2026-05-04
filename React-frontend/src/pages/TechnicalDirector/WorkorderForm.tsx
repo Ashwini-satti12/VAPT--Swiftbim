@@ -187,19 +187,20 @@ export default function WorkorderForm() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const API_BASE = String(import.meta.env.VITE_API_BASE_URL || "");
-  const [companySignature, setCompanySignature] = useState<string | null>(null);
-  const [vendorSignature, setVendorSignature] = useState<string | null>(null);
+  const wo = state?.selectedWO;
+  const [companySignature, setCompanySignature] = useState<string | null>(wo?.company_signature || null);
+  const [vendorSignature, setVendorSignature] = useState<string | null>(wo?.vendor_signature || null);
   const [uploadLoading, setUploadLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const companyFileInputRef = useRef<HTMLInputElement>(null);
   const [vendorDisplayName, setVendorDisplayName] = useState("");
   const [signatureForm, setSignatureForm] = useState({
-    companySignName: "",
-    companySignDesignation: "",
-    companySignDate: "",
-    vendorSignName: "",
-    vendorSignDesignation: "",
-    vendorSignDate: "",
+    companySignName: wo?.company_sign_name || "",
+    companySignDesignation: wo?.company_sign_designation || "",
+    companySignDate: wo?.company_sign_date || "",
+    vendorSignName: wo?.vendor_sign_name || "",
+    vendorSignDesignation: wo?.vendor_sign_designation || "",
+    vendorSignDate: wo?.vendor_sign_date || "",
   });
 
   const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -247,6 +248,14 @@ export default function WorkorderForm() {
     paymentTerms: wo?.payment_terms || wo?.paymentTerms || "",
     additionalTerms: wo?.additional_terms || wo?.additionalTerms || "",
     exclusions: wo?.exclusions || "",
+    companySignName: wo?.company_sign_name || wo?.companySignName || "",
+    companySignDesignation: wo?.company_sign_designation || wo?.companySignDesignation || "",
+    companySignDate: wo?.company_sign_date || wo?.companySignDate || "",
+    companySignature: wo?.company_signature || wo?.companySignature || null,
+    vendorSignName: wo?.vendor_sign_name || wo?.vendorSignName || "",
+    vendorSignDesignation: wo?.vendor_sign_designation || wo?.vendorSignDesignation || "",
+    vendorSignDate: wo?.vendor_sign_date || wo?.vendorSignDate || "",
+    vendorSignature: wo?.vendor_signature || wo?.vendorSignature || null,
   });
 
   useEffect(() => {
@@ -260,6 +269,16 @@ export default function WorkorderForm() {
           setPaymentRows(
             parsePaymentTermsRows(wo?.payment_terms || wo?.paymentTerms || ""),
           );
+          setSignatureForm({
+            companySignName: wo.company_sign_name || "",
+            companySignDesignation: wo.company_sign_designation || "",
+            companySignDate: wo.company_sign_date || "",
+            vendorSignName: wo.vendor_sign_name || "",
+            vendorSignDesignation: wo.vendor_sign_designation || "",
+            vendorSignDate: wo.vendor_sign_date || "",
+          });
+          setCompanySignature(wo.company_signature || null);
+          setVendorSignature(wo.vendor_signature || null);
         }
       })
       .catch((err) => {
@@ -364,6 +383,9 @@ export default function WorkorderForm() {
       const payload = {
         ...form,
         paymentTerms: formatPaymentTermsToHtml(paymentRows),
+        ...signatureForm,
+        companySignature,
+        vendorSignature,
       };
       if (editId) {
         await api.put(`/api/workorders/${editId}`, payload);
@@ -526,6 +548,21 @@ export default function WorkorderForm() {
                             modules={quillModules}
                             className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
                           />
+                          <div>
+                            <label className={labelClass}>
+                              Scope of Work
+                            </label>
+                            <ReactQuill
+                              theme="snow"
+                              placeholder="Enter scope of work..."
+                              value={form.scopeOfWork}
+                              onChange={(val) =>
+                                setForm({ ...form, scopeOfWork: val })
+                              }
+                              modules={quillModules}
+                              className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
+                            />
+                          </div>
                           <div>
                             <label className={labelClass}>
                               Project Involves
@@ -925,7 +962,7 @@ export default function WorkorderForm() {
                       </div>
 
                       {/* vendor signature */}
-                      {/* <div className="space-y-4">
+                      <div className="space-y-4">
                         <p className="font-bold text-[14px] font-gantari uppercase tracking-wide text-[#000000]">
                           Vendor
                         </p>
@@ -954,6 +991,7 @@ export default function WorkorderForm() {
                                 className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover/img:opacity-100 transition-opacity"
                                 title="Remove Signature"
                                 type="button"
+                                tabIndex={-1}
                               >
                                 <svg
                                   className="w-4 h-4"
@@ -1039,7 +1077,7 @@ export default function WorkorderForm() {
                             />
                           </div>
                         </div>
-                      </div> */}
+                      </div>
                     </div>
                   </div>
                 </div>

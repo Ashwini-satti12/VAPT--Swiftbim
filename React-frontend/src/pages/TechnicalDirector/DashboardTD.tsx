@@ -353,13 +353,13 @@ export default function DashboardTD() {
                     </div>
                     {/* Simplified project/task loop for loading state */}
                     <div className="space-y-4 animate-pulse">
-                      {[1,2].map(i => (
+                      {[1, 2].map(i => (
                         <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 p-4 sm:p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative">
-                           <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-200 rounded-full shrink-0"></div>
-                           <div className="flex-1 space-y-2">
-                             <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-                             <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                           </div>
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-200 rounded-full shrink-0"></div>
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                          </div>
                         </div>
                       ))}
                     </div>

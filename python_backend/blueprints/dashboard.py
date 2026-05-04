@@ -172,8 +172,7 @@ def stats():
             cur.execute(
                 f"""SELECT COUNT(*) AS total_tasks FROM tasks t
                     INNER JOIN projects p ON t.projectid = p.id AND {_involved_where}
-                    WHERE {status_clause}{modeler_filter}
-                    AND {_TD_TASKS_EXCLUDE_OUTSOURCE_SQL}""",
+                    WHERE {status_clause}{modeler_filter}""",
                 t_params,
             )
             row = cur.fetchone()
@@ -339,8 +338,7 @@ def td_stats():
     cur.execute(
         f"""SELECT COUNT(*) AS total FROM tasks t
            WHERE t.Company_id = %s AND t.status IN ('InProgress', 'Started')
-           AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))
-           AND {_TD_TASKS_EXCLUDE_OUTSOURCE_SQL}""",
+           AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))""",
         (company_id,),
     )
     in_progress_tasks = (cur.fetchone() or {}).get("total") or 0
@@ -350,8 +348,7 @@ def td_stats():
     cur.execute(
         f"""SELECT COUNT(*) AS total FROM tasks t
            WHERE t.Company_id = %s
-           AND (t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))
-           AND {_TD_TASKS_EXCLUDE_OUTSOURCE_SQL}""",
+           AND (t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))""",
         (company_id,),
     )
     completed_tasks = (cur.fetchone() or {}).get("total") or 0
