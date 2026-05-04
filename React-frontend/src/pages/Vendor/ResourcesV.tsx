@@ -306,6 +306,11 @@ export default function ResourcesV() {
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedShowEntries, setSelectedShowEntries] = useState('');
+  const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+  const [tableCurrentPage, setTableCurrentPage] = useState(1);
+  const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
   const isVpmRoute = location.pathname.startsWith("/vpm/");
   const isAddOrEditView = activeView === "add" || activeView === "edit";
 
@@ -350,6 +355,27 @@ export default function ResourcesV() {
     setRoleOptions(VENDOR_ROLE_OPTIONS);
     setDepartmentOptions([]);
   }, []);
+
+  // Close show entries dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        showEntriesDropdownRef.current &&
+        !showEntriesDropdownRef.current.contains(e.target as Node) &&
+        showEntriesDropdownContentRef.current &&
+        !showEntriesDropdownContentRef.current.contains(e.target as Node)
+      ) {
+        setShowEntriesOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Reset table page when filters/search change
+  useEffect(() => {
+    setTableCurrentPage(1);
+  }, [statusFilter, selectedShowEntries]);
 
   useEffect(() => {
     // Load vendor resource profiles from new_swiftbim by vendor_id
@@ -510,6 +536,29 @@ export default function ResourcesV() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
+
+  // --- Show-entries / table pagination (ConsultantTD style) ---
+  const SHOW_ENTRIES_PLACEHOLDER = 'Show Entries';
+  const showEntriesOptions = [
+    { value: '1-10',  label: '1 – 10',  start: 0,   end: 10  },
+    { value: '1-20',  label: '1 – 20',  start: 0,   end: 20  },
+    { value: '1-30',  label: '1 – 30',  start: 0,   end: 30  },
+    { value: '1-50',  label: '1 – 50',  start: 0,   end: 50  },
+    { value: '1-all', label: 'All',      start: 0,   end: null },
+  ];
+  const effectiveShowEntry = selectedShowEntries || showEntriesOptions[0].value;
+  const selectedRange = showEntriesOptions.find((o) => o.value === effectiveShowEntry) ?? showEntriesOptions[0];
+  const rangeStart = selectedRange.start;
+  const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
+  const displayedList = filteredList.slice(rangeStart, rangeEnd);
+  const TABLE_ROWS_PER_PAGE = 5;
+  const tableTotalPages = Math.max(1, Math.ceil(displayedList.length / TABLE_ROWS_PER_PAGE));
+  const safeTableCurrentPage = Math.min(tableCurrentPage, tableTotalPages);
+  const tablePageStartIndex = (safeTableCurrentPage - 1) * TABLE_ROWS_PER_PAGE;
+  const tablePageRows = displayedList.slice(tablePageStartIndex, tablePageStartIndex + TABLE_ROWS_PER_PAGE);
+  const tablePageRangeStart = displayedList.length === 0 ? 0 : rangeStart + tablePageStartIndex + 1;
+  const tablePageRangeEnd   = displayedList.length === 0 ? 0 : Math.min(rangeStart + tablePageStartIndex + TABLE_ROWS_PER_PAGE, rangeEnd);
+  const tablePageRangeLabel = displayedList.length === 0 ? '0 – 0' : `${tablePageRangeStart} – ${tablePageRangeEnd}`;
 
   function renderProfileCertificationsCard() {
     const certList = selectedEmployee?.certifications?.trim();
@@ -688,7 +737,7 @@ export default function ResourcesV() {
 
   const renderList = () => (
     <>
-      <div className="sticky z-50 bg-white overflow-visible px-2 mb-4">
+      <div className="sticky z-50 bg-white overflow-visible px-4 mb-4">
         <div className="flex flex-col sm:flex-row w-full min-h-[44px] items-start sm:items-center gap-3 sm:gap-3 overflow-visible">
           <h2 className="sm:text-[20px] md:text-[24px] font-medium text-[#000000] font-Gantari">
             {isVpmRoute ? "Vendor Project Manager Resources" : "Resources"}
@@ -758,6 +807,63 @@ export default function ResourcesV() {
               )}
             </div>
             <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
+              {viewMode === 'table' && (
+                <div
+                  className="relative min-w-[130px] sm:min-w-[140px] max-w-[200px] w-[130px] sm:w-[150px]"
+                  ref={showEntriesDropdownRef}
+                >
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setShowEntriesOpen((o) => !o); }}
+                    className="w-full h-[36px] min-h-[36px] flex items-center justify-between gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 bg-[#E8E8E8] rounded-md text-[11px] sm:text-[14px] font-semibold outline-none font-Gantari transition-all cursor-pointer border-0 min-w-0"
+                  >
+                    <span className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === '' ? 'text-[#8B8B8B]' : 'text-[#353535]'}`}>
+                      {selectedShowEntries === '' ? SHOW_ENTRIES_PLACEHOLDER : (
+                        <span className="flex items-center gap-1">
+                          <span className="text-[11px] sm:text-[14px]">Show:</span>{' '}
+                          <span className="font-semibold text-[11px] sm:text-[14px]">{selectedRange.label}</span>
+                        </span>
+                      )}
+                    </span>
+                    <img
+                      src={ArrowDown} alt=""
+                      className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''} ${selectedShowEntries === '' ? 'opacity-60 grayscale' : 'opacity-90'}`}
+                      aria-hidden
+                    />
+                  </button>
+                  {showEntriesOpen && (
+                    <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                      <div ref={showEntriesDropdownContentRef} className="max-h-[168px] overflow-y-auto custom-scrollbar">
+                        <button
+                          type="button"
+                          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedShowEntries(''); setShowEntriesOpen(false); }}
+                          className="w-full text-left px-4 py-2 text-[14px] transition-colors font-Gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                        >
+                          {SHOW_ENTRIES_PLACEHOLDER}
+                        </button>
+                        {showEntriesOptions.map((opt) => {
+                          const isChosen = selectedShowEntries === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
+                              className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${isChosen ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]'}`}
+                            >
+                              <span className="truncate min-w-0">{opt.label}</span>
+                              {isChosen && (
+                                <svg className="w-4 h-4 shrink-0 text-[#353535]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <CustomDropdown
                 options={["Online", "Offline", "Inactive"]}
                 value={statusFilter === "All" ? "" : statusFilter}
@@ -775,9 +881,9 @@ export default function ResourcesV() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 overflow-hidden flex flex-col min-h-0">
         {viewMode === "card" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 p-3">
+          <div className="flex-1 overflow-y-auto custom-scrollbar grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 p-3">
             {filteredList.length === 0 ? (
               <div className="col-span-full bg-white rounded-md border border-slate-200 p-8 sm:p-12 text-center text-slate-500 shadow-sm font-gantari">
                 No resources found.
@@ -976,122 +1082,178 @@ export default function ResourcesV() {
             )}
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mx-4">
-            <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-220px)]">
-              <table className="min-w-full border-collapse">
-                <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                  <tr className="border-b border-gray-100 bg-white">
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                      Sl.No
-                    </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                      Name
-                    </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                      Email
-                    </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                      Contact
-                    </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {paginatedList.map((emp, idx) => (
-                    <tr
-                      key={emp.id}
-                      className={idx % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}
-                    >
-                      <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle">
-                        {(idx + 1).toString().padStart(2, "0")}
-                      </td>
-                      <td className="px-3 py-5 text-center whitespace-nowrap align-middle lg:min-w-[200px]">
-                        <div className="flex items-center justify-center gap-3">
-                          <div className="relative shrink-0">
-                            <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200">
-                              {emp.profile_picture ? (
-                                <img
-                                  src={getGlobalProfileUrl(
-                                    emp.id,
-                                    emp.profile_picture,
-                                    "vendor",
-                                  )}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[14px] font-medium">
-                                  ?
-                                </div>
-                              )}
+          <>
+            <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mx-4">
+              <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-250px)]">
+                <table className="min-w-full border-collapse">
+                  <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                    <tr className="border-b border-gray-100 bg-white">
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Sl.No
+                      </th>
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Name
+                      </th>
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Email
+                      </th>
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Contact
+                      </th>
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {tablePageRows.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-3 py-20 text-center text-[14px] text-[#616161] font-normal font-Gantari bg-white">
+                          No records found
+                        </td>
+                      </tr>
+                    ) : tablePageRows.map((emp, idx) => (
+                      <tr
+                        key={emp.id}
+                        className={idx % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white hover:bg-slate-50 transition-colors"}
+                      >
+                        <td className="px-3 py-5 text-center text-[14px] font-normal font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
+                          {(tablePageStartIndex + idx + 1).toString().padStart(2, "0")}
+                        </td>
+                        <td className="px-6 py-5 border-b border-[#F0F0F0] whitespace-nowrap">
+                          <div className="flex items-center justify-start gap-4">
+                            <div className="relative shrink-0">
+                              <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
+                                {emp.profile_picture ? (
+                                  <img
+                                    src={getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor")}
+                                    alt={emp.full_name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      const parent = target.parentElement;
+                                      if (parent && !parent.querySelector('.error-placeholder')) {
+                                        parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-[10px]">No Photo</span></div>';
+                                      }
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                    <span className="text-gray-400 text-[10px]">No Photo</span>
+                                  </div>
+                                )}
+                              </div>
+                              <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active !== "active" ? 'bg-[#ef4444]' : emp.status === "Online" ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
                             </div>
                             <span
-                              className={`absolute top-0 left-0 w-2.5 h-2.5 border-2 border-white rounded-full ${emp.active !== "active"
-                                ? "bg-[#ef4444]"
-                                : emp.status === "Online"
-                                  ? "bg-[#22c55e]"
-                                  : "bg-[#ef4444]"
-                                }`}
-                            ></span>
+                              className="text-[14px] font-semibold font-Gantari text-[#353535] whitespace-nowrap cursor-pointer hover:text-[#DD4342]"
+                              onClick={() => {
+                                setSelectedEmployee(emp);
+                                setShowDetailsModal(true);
+                                setEditForm({
+                                  full_name: emp.full_name,
+                                  email: emp.email,
+                                  phone_number: emp.phone_number || '',
+                                  user_role: emp.user_role || '',
+                                  department: emp.department || '',
+                                  address: emp.address || '',
+                                  dob: emp.dob || '',
+                                  password: '',
+                                  user_type: emp.user_type || '',
+                                  doj: emp.doj || '',
+                                  salary: emp.salary || '',
+                                  accountnumber: emp.accountnumber || '',
+                                  roles: emp.Allpannel ? emp.Allpannel.split(',').map((r) => r.trim()) : [],
+                                  active: emp.active === 'active' ? 'Active' : 'Inactive',
+                                  profile_picture: null,
+                                });
+                              }}
+                            >
+                              {toCamelCase(emp.full_name || '-')}
+                            </span>
                           </div>
-                          <span className="text-[14px] font-medium text-[#353535]">
-                            {toCamelCase(emp.full_name)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle">
-                        {emp.email}
-                      </td>
-                      <td className="px-3 py-5 text-center whitespace-nowrap align-middle">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => openEmailClient(emp.email)}
-                            className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
-                          >
-                            <img src={mailIcon} className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              const waLink = getWhatsAppLink(emp.phone_number);
-                              if (waLink)
-                                window.open(
-                                  waLink,
-                                  "_blank",
-                                  "noopener,noreferrer",
-                                );
-                            }}
-                            className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
-                          >
-                            <img src={messageIcon} className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => openDialer(emp.phone_number)}
-                            className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
-                          >
-                            <img src={callIcon} className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="inline-block min-w-[130px]">
-                          <CustomDropdown
-                            options={["Active", "Inactive"]}
-                            value={
-                              emp.active === "active" ? "Active" : "Inactive"
-                            }
-                            onChange={(v) => handleStatusToggle(emp.id, v)}
-                            placeholder="Status"
-                            styleType="table"
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        </td>
+                        <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle">
+                          {emp.email}
+                        </td>
+                        <td className="px-3 py-5 text-center whitespace-nowrap align-middle">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => openEmailClient(emp.email)}
+                              className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
+                            >
+                              <img src={mailIcon} className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                const waLink = getWhatsAppLink(emp.phone_number);
+                                if (waLink)
+                                  window.open(waLink, "_blank", "noopener,noreferrer");
+                              }}
+                              className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
+                            >
+                              <img src={messageIcon} className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => openDialer(emp.phone_number)}
+                              className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
+                            >
+                              <img src={callIcon} className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="inline-block min-w-[130px]">
+                            <CustomDropdown
+                              options={["Active", "Inactive"]}
+                              value={emp.active === "active" ? "Active" : "Inactive"}
+                              onChange={(v) => handleStatusToggle(emp.id, v)}
+                              placeholder="Status"
+                              styleType="table"
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+            {displayedList.length > 0 && (
+              <div className="w-full flex items-center justify-end px-4 py-3 mb-[-12px]">
+                <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
+                  <span className="text-[#353535] text-[16px] font-medium font-Gantari leading-none">Showing:</span>
+                  <button
+                    type="button"
+                    onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={safeTableCurrentPage === 1}
+                    className={`inline-flex items-center gap-1 text-[15px] font-medium font-Gantari leading-none cursor-pointer ${safeTableCurrentPage === 1 ? 'text-[#9CA3AF] opacity-50 cursor-not-allowed' : 'text-[#353535]'}`}
+                    aria-label="Previous page"
+                  >
+                    <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
+                    <span className="inline-flex items-center">Prev</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-Gantari leading-none cursor-default"
+                    aria-current="page"
+                  >
+                    {tablePageRangeLabel}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))}
+                    disabled={safeTableCurrentPage >= tableTotalPages}
+                    className={`inline-flex items-center gap-1 text-[15px] font-medium font-Gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages ? 'text-[#9CA3AF] opacity-40 cursor-not-allowed' : 'text-[#353535]'}`}
+                    aria-label="Next page"
+                  >
+                    <span className="inline-flex items-center">Next</span>
+                    <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </>
