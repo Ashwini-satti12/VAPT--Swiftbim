@@ -12,6 +12,7 @@ import deleteIcon from '../../assets/ProjectManager/project/deleteIcon.svg';
 
 const SHOW_ENTRIES_PLACEHOLDER = 'Show Entries';
 const SHOW_ENTRIES_SELECTED_PREFIX = 'Show:';
+const EMPLOYEE_FILTER_PLACEHOLDER = 'Select Employee';
 
 
 interface LeaveEntry {
@@ -177,6 +178,12 @@ export default function ManageLeave() {
     const leaveTypeDropdownRef = useRef<HTMLDivElement>(null);
 
     const [tableCurrentPage, setTableCurrentPage] = useState(1);
+    const [selectedEmployee, setSelectedEmployee] = useState('');
+    const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
+    const employeeDropdownRef = useRef<HTMLDivElement>(null);
+    const employeeDropdownContentRef = useRef<HTMLDivElement>(null);
+    const employeeOptions = Array.from(new Set(leaves.map((l) => l.employeeName)));
+
 
     // Load available leave types from backend (holiday table)
     useEffect(() => {
@@ -251,18 +258,31 @@ export default function ManageLeave() {
             ) {
                 setShowEntriesOpen(false);
             }
+            if (
+                employeeDropdownOpen &&
+                employeeDropdownRef.current &&
+                !employeeDropdownRef.current.contains(t)
+            ) {
+                setEmployeeDropdownOpen(false);
+            }
         };
-        if (showEntriesOpen) {
+        if (showEntriesOpen || employeeDropdownOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [showEntriesOpen]);
+    }, [showEntriesOpen, employeeDropdownOpen]);
 
     useEffect(() => {
         if (showEntriesOpen && showEntriesDropdownContentRef.current) {
             showEntriesDropdownContentRef.current.scrollTop = 0;
         }
     }, [showEntriesOpen]);
+
+    useEffect(() => {
+        if (employeeDropdownOpen && employeeDropdownContentRef.current) {
+            employeeDropdownContentRef.current.scrollTop = 0;
+        }
+    }, [employeeDropdownOpen]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -281,8 +301,12 @@ export default function ManageLeave() {
 
     const filteredList = useMemo(() => {
         const q = searchQueryKey.toLowerCase();
-        if (!q) return leaves;
-        return leaves.filter((l) => {
+        let base = leaves;
+        if (selectedEmployee !== "") {
+            base = base.filter((l) => l.employeeName === selectedEmployee);
+        }
+        if (!q) return base;
+        return base.filter((l) => {
             return [
                 l.employeeName,
                 l.leaveType,
@@ -293,7 +317,7 @@ export default function ManageLeave() {
                 l.role,
             ].some((f) => (f || '').toLowerCase().includes(q));
         });
-    }, [leaves, searchQueryKey]);
+    }, [leaves, searchQueryKey, selectedEmployee]);
     const effectiveShowEntryValue =
       selectedShowEntries || showEntriesOptions[0].value;
     const selectedRange =
@@ -315,7 +339,7 @@ export default function ManageLeave() {
 
     useEffect(() => {
         setTableCurrentPage(1);
-    }, [selectedShowEntries, searchQueryKey]);
+    }, [selectedShowEntries, searchQueryKey, selectedEmployee]);
 
 
   const handleView = (row: LeaveEntry) => {
@@ -600,7 +624,87 @@ export default function ManageLeave() {
                             >
                                 Apply Leave
                             </button>
-                         
+                            <div
+                                className="relative min-w-[180px] max-w-[240px] w-[180px]"
+                                ref={employeeDropdownRef}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEmployeeDropdownOpen((o) => !o);
+                                    }}
+                                    className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                                >
+                                    <span
+                                        className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                                            selectedEmployee === ""
+                                                ? "text-[#8B8B8B]"
+                                                : "text-[#353535]"
+                                        }`}
+                                    >
+                                        {selectedEmployee === "" ? (
+                                            EMPLOYEE_FILTER_PLACEHOLDER
+                                        ) : (
+                                            <span className="font-semibold truncate">
+                                                {selectedEmployee}
+                                            </span>
+                                        )}
+                                    </span>
+                                    <img
+                                        src={ArrowDown}
+                                        alt=""
+                                        className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
+                                            employeeDropdownOpen ? "rotate-180" : ""
+                                        } ${
+                                            selectedEmployee === ""
+                                                ? "opacity-60 grayscale"
+                                                : "opacity-90"
+                                        }`}
+                                        aria-hidden
+                                    />
+                                </button>
+                                {employeeDropdownOpen && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                                        <div
+                                            ref={employeeDropdownContentRef}
+                                            className="max-h-[168px] overflow-y-auto custom-scrollbar [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')] pr-1"
+                                        >
+                                            <button
+                                                type="button"
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setSelectedEmployee("");
+                                                    setEmployeeDropdownOpen(false);
+                                                }}
+                                                className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                            >
+                                                {EMPLOYEE_FILTER_PLACEHOLDER}
+                                            </button>
+                                            {employeeOptions.map((name) => (
+                                                <button
+                                                    key={name}
+                                                    type="button"
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        setSelectedEmployee(name);
+                                                        setEmployeeDropdownOpen(false);
+                                                    }}
+                                                    className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer truncate hover:text-[#353535] hover:bg-[#F2F2F2] ${
+                                                        selectedEmployee === name
+                                                            ? "text-[#353535] bg-[#F2F2F2]"
+                                                            : "text-[#8B8B8B] bg-transparent"
+                                                    }`}
+                                                >
+                                                    {name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             <div
                                 className="relative min-w-[140px] max-w-[200px] w-[160px]"
                                 ref={showEntriesDropdownRef}
@@ -650,7 +754,7 @@ export default function ManageLeave() {
                                     <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
                                         <div
                                             ref={showEntriesDropdownContentRef}
-                                            className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                                            className="max-h-[168px] overflow-y-auto custom-scrollbar [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')] pr-1"
                                         >
                                             <button
                                                 type="button"
@@ -714,7 +818,7 @@ export default function ManageLeave() {
 
                     <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative w-full mb-3">
                         <div className="flex-1 min-h-0 overflow-hidden">
-                        <div className="overflow-auto custom-scrollbar smooth-scroll h-[calc(100%+17px)] pr-1 pb-[17px]">
+                            <div className="overflow-y-auto overflow-x-hidden custom-scrollbar smooth-scroll h-full pr-1 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')]">
                             <table className="min-w-full border-collapse">
                                 <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                                     <tr className=" bg-white">
