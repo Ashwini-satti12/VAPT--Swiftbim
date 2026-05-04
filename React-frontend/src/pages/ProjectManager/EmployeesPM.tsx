@@ -1070,7 +1070,7 @@ export default function EmployeesPM() {
               <>
                 <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mb-3">
                   <div className="flex-1 min-h-0 overflow-hidden">
-                    <div className="overflow-auto h-[calc(100%+17px)] pb-[17px] [&::-webkit-scrollbar:horizontal]:!hidden">
+                    <div className="overflow-auto h-[calc(100%+17px)] pb-[17px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:!hidden">
                       <table className="min-w-full border-collapse">
                         <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                           <tr className="bg-white">
