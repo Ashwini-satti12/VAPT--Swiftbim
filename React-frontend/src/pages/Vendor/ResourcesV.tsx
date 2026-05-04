@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import { FiGrid, FiMenu, FiX, FiEye, FiEyeOff } from "react-icons/fi";
@@ -88,6 +89,7 @@ function CustomDropdown({
   styleType = "form",
   alignMenu = "left",
   menuMaxHeightClass = "max-h-[220px]",
+  includeClearOption = true,
 }: {
   options: string[];
   value: string;
@@ -97,24 +99,95 @@ function CustomDropdown({
   styleType?: "form" | "header" | "table";
   alignMenu?: "left" | "right";
   menuMaxHeightClass?: string;
+  includeClearOption?: boolean;
+  menuEstimatedHeightPx?: number;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, bottom: 0 });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
+      const target = event.target as Node;
+      const inTrigger = dropdownRef.current?.contains(target);
+      const inMenu = menuRef.current?.contains(target);
+      if (!inTrigger && !inMenu) setIsOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!isOpen || !dropdownRef.current) return;
+    const updatePosition = () => {
+      if (!dropdownRef.current) return;
+      const rect = dropdownRef.current.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom,
+        left: rect.left,
+        width: rect.width,
+        bottom: window.innerHeight - rect.top,
+      });
+    };
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [isOpen]);
+
   const isPlaceholder = !value || value === placeholder;
+
+  const menuContent = (
+    <div
+      ref={menuRef}
+      className="fixed z-[9999] bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden"
+      style={{
+        width: coords.width,
+        left: alignMenu === "right" ? coords.left + coords.width - coords.width : coords.left,
+        top: coords.top + 4,
+      }}
+    >
+      <div className={`${menuMaxHeightClass} overflow-y-auto custom-scrollbar`}>
+        {(styleType === "header" || styleType === "form") && includeClearOption && (
+          <button
+            type="button"
+            onClick={() => { onChange(""); setIsOpen(false); }}
+            className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-Gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${
+              isPlaceholder ? "text-[#353535] bg-[#F2F2F2]" : "text-[#8B8B8B] bg-[#FFFFFF]"
+            }`}
+          >
+            {`All ${placeholder}`}
+          </button>
+        )}
+        {options.map((option) => {
+          const isChosen = value === option;
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => { onChange(option); setIsOpen(false); }}
+              className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${
+                isChosen
+                  ? "text-[#353535] bg-[#F2F2F2]"
+                  : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+              }`}
+            >
+              <span className="truncate min-w-0">{option}</span>
+              {isChosen && (
+                <svg className="w-4 h-4 shrink-0 text-[#353535]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
@@ -123,77 +196,32 @@ function CustomDropdown({
         onClick={() => setIsOpen(!isOpen)}
         className={`w-full flex items-center justify-between gap-2 transition-all outline-none font-Gantari min-w-0 ${
           styleType === "header"
-            ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
+            ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold h-[36px] min-h-[36px]"
             : styleType === "table"
               ? `px-4 py-2 min-w-[140px] rounded-md border font-Gantari font-medium text-[14px] ${value === "Active" ? "bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]" : "bg-[#FFE5E5] border-[#FECACA] text-[#E00100]"}`
-              : `px-5 py-3 bg-[#F2F3F4] rounded-md text-[14px] border border-[#F2F2F2] focus:outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+              : `px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] transition-all ${isOpen ? "!border-[#AEACAC52]" : ""}`
         }`}
       >
         <span
           className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
             styleType === "header" || styleType === "form"
-              ? isPlaceholder
-                ? "text-[#8B8B8B]"
-                : "text-[#353535]"
+              ? isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535]"
               : ""
           }`}
         >
           {styleType === "header" && value && !isPlaceholder ? (
-            <>
-              <span className="text-[14px]">
-                {placeholder === "Show"
-                  ? SHOW_ENTRIES_PLACEHOLDER
-                  : placeholder}
-                :
-              </span>{" "}
-              <span className="font-semibold">{value}</span>
-            </>
+            <span className="font-semibold">{toCamelCase(value)}</span>
           ) : (
-            value ||
-            (placeholder === "Show" ? SHOW_ENTRIES_PLACEHOLDER : placeholder)
+            value || placeholder
           )}
         </span>
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""} ${styleType === "table" ? "opacity-70" : isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
+          className={`w-3 h-3 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""} ${styleType === "table" ? "opacity-70" : isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
         />
       </button>
-      {isOpen && (
-        <div
-          className={`absolute top-full mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden ${alignMenu === "right" ? "right-0 left-auto" : "left-0"}`}
-        >
-          <div
-            className={`${menuMaxHeightClass} overflow-y-auto custom-scrollbar`}
-          >
-            {(styleType === "header" || styleType === "form") && (
-              <button
-                type="button"
-                onClick={() => {
-                  onChange("");
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-Gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${isPlaceholder ? "text-[#353535] bg-[#F2F2F2]" : "text-[#8B8B8B] bg-[#FFFFFF]"}`}
-              >
-                {placeholder}
-              </button>
-            )}
-            {options.map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => {
-                  onChange(option);
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2 text-[14px] font-Gantari font-normal transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${value === option ? "text-[#353535] bg-[#F2F2F2]" : "text-[#8B8B8B] bg-transparent"}`}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {isOpen && createPortal(menuContent, document.body)}
     </div>
   );
 }
@@ -282,6 +310,7 @@ export default function ResourcesV() {
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const isVpmRoute = location.pathname.startsWith("/vpm/");
+  const isAddOrEditView = activeView === "add" || activeView === "edit";
 
   const openEmailClient = (email?: string) => {
     const mail = (email || "").trim();
@@ -727,10 +756,10 @@ export default function ResourcesV() {
             </div>
             <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
               <CustomDropdown
-                options={["All", "Active", "Inactive", "Online", "Offline"]}
-                value={statusFilter}
+                options={["Online", "Offline", "Inactive"]}
+                value={statusFilter === "All" ? "" : statusFilter}
                 onChange={(val) => {
-                  setStatusFilter(val);
+                  setStatusFilter(val || "All");
                   setCurrentPage(1);
                 }}
                 placeholder="Status"
@@ -1072,174 +1101,86 @@ export default function ResourcesV() {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-white animate-in fade-in duration-300">
       {/* Detail Modal */}
-      {showDetailsModal && selectedEmployee && (
-        <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-md w-full max-w-3xl relative flex flex-col max-h-[80vh] overflow-hidden">
-            <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between p-5 sm:p-8 shrink-0 gap-4">
-              <div className="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-4">
-                <div className="group relative order-1">
-                  <button
-                    onClick={() => setShowDetailsModal(false)}
-                    className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer border-0 shadow-none"
-                  >
-                    <FiX className="w-5 h-5" />
-                  </button>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
-                      <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
-                        Close
-                      </span>
-                    </div>
+      {showDetailsModal && selectedEmployee && createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/10 backdrop-blur-[3px]">
+          <div className="bg-white rounded-md max-w-[520px] w-full overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-center relative shrink-0">
+              <div className="absolute left-1 group inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
+                  className="p-2 rounded-md bg-[#F2F2F2] transition-all cursor-pointer"
+                >
+                  <FiX className="w-5 h-5 font-bold" />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-3 py-0.5 relative z-10">
+                    <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">Close</span>
                   </div>
                 </div>
-                <span
-                  className={`px-4 py-1 rounded-full text-[12px] font-medium shrink-0 sm:hidden ${
-                    selectedEmployee.active !== "active"
-                      ? "bg-[#FFEEEE] text-[#E00100]"
-                      : selectedEmployee.status === "Online"
-                        ? "bg-[#E0FFE8] text-[#008F22]"
-                        : "bg-[#FFEEEE] text-[#E00100]"
-                  }`}
-                >
-                  ●{" "}
-                  {selectedEmployee.active !== "active"
-                    ? "Inactive"
-                    : selectedEmployee.status === "Online"
-                      ? "Online"
-                      : "Offline"}
-                </span>
               </div>
-
-              <div className="flex-1 text-center sm:mx-6 min-w-0">
-                <h3 className="text-[20px] sm:text-[24px] font-medium text-[#000000] font-gantari break-words">
-                  {toCamelCase(selectedEmployee.full_name)}
-                </h3>
-                <p className="text-[#353535] text-[14px] sm:text-[16px] font-medium font-gantari opacity-80">
-                  {selectedEmployee.user_role || "Worker"}
-                </p>
-              </div>
-
-              <span
-                className={`hidden sm:inline px-4 py-1 rounded-full text-[12px] font-medium shrink-0 mt-2 ${
-                  selectedEmployee.active !== "active"
-                    ? "bg-[#FFEEEE] text-[#E00100]"
-                    : selectedEmployee.status === "Online"
-                      ? "bg-[#E0FFE8] text-[#008F22]"
-                      : "bg-[#FFEEEE] text-[#E00100]"
-                }`}
-              >
-                ●{" "}
-                {selectedEmployee.active !== "active"
-                  ? "Inactive"
-                  : selectedEmployee.status === "Online"
-                    ? "Online"
-                    : "Offline"}
-              </span>
+              <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">Resource View Details</h3>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-5 sm:px-8 pb-8">
-              <div className="flex flex-col text-left max-w-2xl mx-auto">
-                {[
-                  { label: "Login Email", value: selectedEmployee.email },
-                  {
-                    label: "Phone Number",
-                    value: selectedEmployee.phone_number,
-                  },
-                  { label: "Role", value: selectedEmployee.user_role },
-                  { label: "Designation", value: selectedEmployee.designation },
-                  { label: "Discipline", value: selectedEmployee.discipline },
-                  {
-                    label: "Years of Experience",
-                    value: selectedEmployee.years_of_experience,
-                  },
-                  {
-                    label: "Resource Role",
-                    value: selectedEmployee.resource_role,
-                  },
-                  { label: "Expertise", value: selectedEmployee.expertise },
-                  { label: "Software", value: selectedEmployee.software },
-                  {
-                    label: "Projects Worked On",
-                    value: selectedEmployee.projects_worked_on,
-                  },
-                  { label: "Address", value: selectedEmployee.address },
-                ].map(({ label, value }) =>
-                  value ? (
-                    <div
-                      key={label}
-                      className="grid grid-cols-1 sm:flex sm:items-center py-2 gap-1 sm:gap-6"
-                    >
-                      <span className="text-[#353535] font-gantari text-[14px] font-medium sm:w-52 shrink-0">
-                        {label}
-                      </span>
-                      <span className="hidden sm:inline text-[#353535] font-gantari text-[14px] font-medium shrink-0">
-                        :
-                      </span>
-                      <span className="text-[#000000] font-gantari text-[14px] font-semibold break-words">
-                        {value}
-                      </span>
-                    </div>
-                  ) : null,
+            {/* Profile Section */}
+            <div className="flex items-center gap-4 px-2">
+              <div className="w-[38px] h-[38px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0 border border-slate-200 shadow-sm">
+                {selectedEmployee.profile_picture && selectedEmployee.profile_picture.trim() ? (
+                  <img
+                    src={getGlobalProfileUrl(selectedEmployee.id, selectedEmployee.profile_picture, "vendor")}
+                    alt={selectedEmployee.full_name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      const parent = target.parentElement;
+                      if (parent && !parent.querySelector('.error-placeholder')) {
+                        parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-[10px]">No Photo</span></div>';
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-400 text-[10px]">No Photo</span>
+                  </div>
                 )}
-                {renderProfileCertificationsCard()}
               </div>
+              <div className="flex flex-col gap-0.5">
+                <h4 className="text-[18px] font-bold text-[#000000] font-Gantari leading-tight">
+                  {toCamelCase(selectedEmployee.full_name)}
+                </h4>
+              </div>
+            </div>
 
-              {canAdd && (
-                <div
-                  id="assign-login-section"
-                  className="mt-8 border-t border-[#F0F0F0] pt-6"
-                >
-                  {/* <h4 className="text-sm font-bold text-[#353535] mb-4">
-                                    {selectedEmployee.email ? 'Edit Login' : 'Assign Login'}
-                                </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                                    <div>
-                                        <label className="block text-xs font-semibold text-[#717171] mb-1">Login Email</label>
-                                        <input
-                                            type="email"
-                                            value={editForm.email}
-                                            onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                                            className="w-full px-3 py-2 bg-[#F4F4F4] rounded-lg border-none text-sm outline-none focus:ring-1 focus:ring-[#DD4342]/30"
-                                            placeholder="email@example.com"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-[#717171] mb-1">Role</label>
-                                        <CustomDropdown
-                                            options={VENDOR_ROLE_OPTIONS}
-                                            value={editForm.user_role}
-                                            onChange={(v) => setEditForm({ ...editForm, user_role: v })}
-                                            placeholder="Select Role"
-                                        />
-                                    </div>
-                                    <div className="md:col-span-2 flex justify-end gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowDetailsModal(false)}
-                                            className="px-4 py-2 text-sm font-semibold bg-[#F4F4F4] text-[#353535] rounded-lg hover:bg-slate-200 transition-colors"
-                                        >
-                                            Close
-                                        </button>
-                                        <button
-                                            type="button"
-                                            disabled={editSubmitting}
-                                            onClick={() => {
-                                                if (!selectedEmployee) return;
-                                                setEditId(selectedEmployee.id);
-                                                handleEditSubmit(new Event('submit') as any);
-                                            }}
-                                            className="px-4 py-2 text-sm font-semibold bg-[#DD4342] text-white rounded-lg hover:bg-[#c93d3d] transition-colors disabled:opacity-60"
-                                        >
-                                            {editSubmitting ? 'Saving…' : 'Save Login'}
-                                        </button>
-                                    </div>
-                                </div> */}
+            {/* Details Grid */}
+            <div className="px-2 sm:px-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
+              {[
+                { label: "Login Email", value: selectedEmployee.email },
+                { label: "Phone Number", value: selectedEmployee.phone_number },
+                { label: "Role", value: selectedEmployee.user_role },
+                { label: "Designation", value: selectedEmployee.designation },
+                { label: "Discipline", value: selectedEmployee.discipline },
+                { label: "Years of Experience", value: selectedEmployee.years_of_experience },
+                { label: "Resource Role", value: selectedEmployee.resource_role },
+                { label: "Expertise", value: selectedEmployee.expertise },
+                { label: "Software", value: selectedEmployee.software },
+                { label: "Projects Worked On", value: selectedEmployee.projects_worked_on },
+                { label: "Address", value: selectedEmployee.address },
+              ].map((item, idx) => (
+                <div key={idx} className="grid grid-cols-[150px_15px_1fr] text-[14px] items-start pb-2">
+                  <span className="text-[#020202] font-Gantari">{item.label}</span>
+                  <span className="text-[#020202] font-Gantari text-center">:</span>
+                  <span className="text-[#616161] font-Gantari break-words leading-relaxed">
+                    {item.value || "N/A"}
+                  </span>
                 </div>
-              )}
+              ))}
+              {renderProfileCertificationsCard()}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {certificationPreviewRaw && (
@@ -1252,9 +1193,15 @@ export default function ResourcesV() {
       {activeView === "list" ? (
         renderList()
       ) : (
-        <div className="flex-1 overflow-y-auto p-2 sm:p-4 bg-white custom-scrollbar">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-between mb-8">
+        <div
+          className={`flex-1 overflow-y-auto bg-white custom-scrollbar ${isAddOrEditView ? "px-5 py-2" : "p-2 sm:p-4"}`}
+        >
+          <div
+            className={`mx-auto ${isAddOrEditView ? "max-w-[1174px]" : "max-w-4xl"}`}
+          >
+            <div
+              className={`flex items-center justify-between ${isAddOrEditView ? "mb-8 sm:mb-10" : "mb-8"}`}
+            >
               <div className="group relative">
                 <button
                   type="button"
@@ -1262,20 +1209,22 @@ export default function ResourcesV() {
                     setInviteShowSuccess(false);
                     setActiveView("list");
                   }}
-                  className="p-2 rounded-md bg-[#F2F2F2] text-[#616161] transition-all cursor-pointer"
+                  className={`p-2 rounded-md bg-[#F2F2F2] transition-all cursor-pointer ${isAddOrEditView ? "text-[#1A1A1A]" : "text-[#616161]"}`}
                 >
                   <img src={backIcon} alt="Back" className="w-5 h-5" />
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-2 py-0.5 relative z-10">
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-2 relative z-10">
                     <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
                       Go Back
                     </span>
                   </div>
                 </div>
               </div>
-              <h3 className="sm:text-[24px] font-gantari font-semibold text-[#020202] text-center flex-1">
+              <h3
+                className={`text-center flex-1 font-semibold text-[#020202] ${isAddOrEditView ? "text-[20px] sm:text-[24px] font-Gantari" : "sm:text-[24px] font-gantari"}`}
+              >
                 {activeView === "add"
                   ? "Add New Worker"
                   : activeView === "edit"
@@ -1292,25 +1241,23 @@ export default function ResourcesV() {
                 onSubmit={
                   activeView === "add" ? handleAddSubmit : handleEditSubmit
                 }
-                className="space-y-8"
+                className="space-y-6"
               >
                 {addError && (
                   <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm font-semibold">
                     {addError}
                   </div>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+                  <div className="space-y-5">
                     <div>
-                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
-                        Full Name
-                        <span className="text-red-500">*</span>
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                        Full Name <span className="text-[#DD4342]">*</span>
                       </label>
 
                       <input
                         type="text"
-                        placeholder="Worker Full Name"
-                        placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
+                        placeholder="Enter Employee Name"
                         value={
                           activeView === "add"
                             ? form.full_name
@@ -1324,19 +1271,17 @@ export default function ResourcesV() {
                                 full_name: e.target.value,
                               })
                         }
-                        className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
+                        className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
-                        Email Address
-                        <span className="text-red-500">*</span>
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                        Email Address <span className="text-[#DD4342]">*</span>
                       </label>
                       <input
                         type="email"
-                        placeholder="email@example.com"
-                        placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
+                        placeholder="Enter Email"
                         value={
                           activeView === "add" ? form.email : editForm.email
                         }
@@ -1348,26 +1293,22 @@ export default function ResourcesV() {
                                 email: e.target.value,
                               })
                         }
-                        className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
+                        className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                         Password{" "}
                         {activeView === "edit" && !isVpmRoute
-                          ? "(Leave blank to keep current)"
+                          ? "(Leave blank to keep current) "
                           : ""}
-                        <span className="text-red-500">*</span>
-                        {activeView === "edit" && isVpmRoute ? (
-                          <span className="text-red-500"> *</span>
-                        ) : null}
+                        <span className="text-[#DD4342]">*</span>
                       </label>
                       <div className="relative">
                         <input
                           type={showPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
+                          placeholder="Enter Password"
                           value={
                             activeView === "edit" && isVpmRoute
                               ? "********"
@@ -1384,7 +1325,7 @@ export default function ResourcesV() {
                                   password: e.target.value,
                                 });
                           }}
-                          className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
+                          className="w-full px-4 py-2 pr-10 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70"
                           required={activeView === "add"}
                           disabled={activeView === "edit" && isVpmRoute}
                         />
@@ -1392,12 +1333,12 @@ export default function ResourcesV() {
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#353535] cursor-pointer"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#8B8B8B] hover:text-[#595959] focus:outline-none transition-colors border-0 bg-transparent cursor-pointer"
                           >
                             {showPassword ? (
-                              <FiEye className="w-4 h-4" />
+                              <FiEyeOff className="w-5 h-5" />
                             ) : (
-                              <FiEyeOff className="w-4 h-4" />
+                              <FiEye className="w-4 h-4" />
                             )}
                           </button>
                         )}
@@ -1410,11 +1351,10 @@ export default function ResourcesV() {
                       ) : null}
                     </div>
                   </div>
-                  <div className="space-y-6 ">
+                  <div className="space-y-5">
                     <div>
-                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
-                        Role
-                        <span className="text-red-500">*</span>
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                        Role <span className="text-[#DD4342]">*</span>
                       </label>
                       <CustomDropdown
                         options={
@@ -1433,13 +1373,11 @@ export default function ResourcesV() {
                             : setEditForm({ ...editForm, user_role: v })
                         }
                         placeholder="Select Role"
-                        placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
                       />
                     </div>
                     <div>
-                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
-                        Department
-                        <span className="text-red-500">*</span>
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                        Department <span className="text-[#DD4342]">*</span>
                       </label>
                       <CustomDropdown
                         options={
@@ -1463,36 +1401,34 @@ export default function ResourcesV() {
                             : setEditForm({ ...editForm, department: v })
                         }
                         placeholder="Select Department"
-                        placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
                       />
                     </div>
                     <div>
-                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
-                        Phone Number
-                        <span className="text-red-500">*</span>
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                        Phone Number <span className="text-[#DD4342]">*</span>
                       </label>
                       <div className="flex flex-col sm:flex-row gap-2">
-                        <select
+                        <CustomDropdown
+                          className="w-full sm:w-[92px] shrink-0"
+                          options={COUNTRY_CODES}
                           value={
-                            activeView === "add" ? countryCode : editCountryCode
-                          }
-                          onChange={(e) =>
                             activeView === "add"
-                              ? setCountryCode(e.target.value)
-                              : setEditCountryCode(e.target.value)
+                              ? countryCode
+                              : editCountryCode
                           }
-                          className="w-full sm:w-[75px] px-3 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium appearance-none bg-[url('https://api.iconify.design/heroicons:chevron-down-20-solid.svg')] bg-[length:1.25rem_1.25rem] bg-[right_0.5rem_center] bg-no-repeat pr-8"
-                        >
-                          {COUNTRY_CODES.map((c) => (
-                            <option key={c} value={c}>
-                              {c}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(v) =>
+                            activeView === "add"
+                              ? setCountryCode(v)
+                              : setEditCountryCode(v)
+                          }
+                          placeholder="Code"
+                          includeClearOption={false}
+                          menuMaxHeightClass="max-h-[calc(4*2.25rem)]"
+                          menuEstimatedHeightPx={150}
+                        />
                         <input
                           type="text"
-                          placeholder="1234567890"
-                          placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
+                          placeholder="Enter Phone Number"
                           value={
                             activeView === "add"
                               ? form.phone_number
@@ -1509,13 +1445,13 @@ export default function ResourcesV() {
                                   phone_number: e.target.value,
                                 })
                           }
-                          className="flex-1 px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
+                          className="flex-1 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                         />
                       </div>
                     </div>
                   </div>
                   <div className="col-span-full">
-                    <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                       Address
                     </label>
                     <textarea
@@ -1531,24 +1467,23 @@ export default function ResourcesV() {
                               address: e.target.value,
                             })
                       }
-                      className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all resize-none"
-                      placeholder="Residential or Office Address"
-                      placeholder-class="text-[#353535] text-[14px] font-medium"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
+                      placeholder="Type your Address..."
                     ></textarea>
                   </div>
                   <div className="col-span-full">
-                    <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                       Profile Picture
                     </label>
-                    <div className="flex bg-[#F4F4F4] rounded-lg overflow-hidden border border-transparent focus-within:border-[#DD4342]/30 transition-all flex-col sm:flex-row">
-                      <div className="flex-1 px-4 py-3 text-sm text-[#717171] truncate">
+                    <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden flex-col sm:flex-row">
+                      <div className="flex-1 px-4 text-[14px] text-[#979797] truncate min-w-0 py-2">
                         {(activeView === "add"
                           ? form.profile_picture
                           : editForm.profile_picture
-                        )?.name || "Choose JPG/JPEG Image"}
+                        )?.name || "Choose file (JPEG or JPG only)"}
                       </div>
-                      <label className="px-6 py-3 bg-[#EAEAEA] text-[#353535] text-[14px] font-medium transition-all cursor-pointer text-center">
-                        Browse
+                      <label className="px-5 py-2 bg-[#E2E2E2] text-[#8B8B8B] text-[14px] font-Gantari transition-all cursor-pointer text-center shrink-0">
+                        Browse File
                         <input
                           type="file"
                           className="hidden"
@@ -1569,18 +1504,18 @@ export default function ResourcesV() {
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-4 justify-center pt-10 border-t border-[#F0F0F0]">
+                <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
                   <button
                     type="button"
                     onClick={() => setActiveView("list")}
-                    className="px-5 py-2 bg-[#F2F2F2] text-[#353535] text-[14px] font-medium rounded-md cursor-pointer"
+                    className="w-full sm:w-auto px-6 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-medium text-[14px] transition-all font-Gantari cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={addSubmitting || editSubmitting}
-                    className="px-5 py-2 bg-[#DBE9FE] text-[#353535] text-[14px] font-medium rounded-md cursor-pointer"
+                    className="w-full sm:w-auto px-6 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-medium text-[14px] disabled:opacity-50 transition-all font-Gantari cursor-pointer"
                   >
                     {activeView === "add"
                       ? addSubmitting
@@ -1588,7 +1523,7 @@ export default function ResourcesV() {
                         : "Save Worker"
                       : editSubmitting
                         ? "Saving..."
-                        : "Update Details"}
+                        : "Update "}
                   </button>
                 </div>
               </form>
