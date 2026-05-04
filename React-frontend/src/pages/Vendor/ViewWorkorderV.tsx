@@ -23,7 +23,6 @@ interface WorkOrder {
   terms_and_conditions?: string;
   payment_terms?: string;
   additional_terms?: string;
-  exclusions?: string;
   company_sign_name?: string;
   company_sign_designation?: string;
   company_sign_date?: string;
@@ -185,7 +184,6 @@ export default function ViewWorkorderV() {
       terms_and_conditions: asStr(r.terms_and_conditions) || undefined,
       payment_terms: asStr(r.payment_terms) || undefined,
       additional_terms: asStr(r.additional_terms) || undefined,
-      exclusions: asStr(r.exclusions) || undefined,
       company_sign_name: asStr(r.company_sign_name) || undefined,
       company_sign_designation: asStr(r.company_sign_designation) || undefined,
       company_sign_date: asStr(r.company_sign_date) || undefined,
@@ -474,23 +472,14 @@ export default function ViewWorkorderV() {
             </div>
           )}
 
-          {selectedWO.exclusions && (
-            <div className="space-y-4">
-              <h2 className="font-gantari font-bold text-[16px] text-[#020202]">
-                Exclusions
-              </h2>
-              <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                {renderRichText(selectedWO.exclusions)}
-              </div>
-            </div>
-          )}
+          
 
           {/* Signatures Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-10 border-t border-[#AEACAC52]">
             {/* Company Signature */}
             <div className="space-y-4">
               <h3 className="font-bold text-[14px] uppercase tracking-wide text-[#000000]">
-                Company
+                Company Signature
               </h3>
               <div className="h-32 border border-[#AEACAC52] rounded-md bg-[#F2F2F2] flex items-center justify-center overflow-hidden p-2">
                 {selectedWO.company_signature ? (
