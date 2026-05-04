@@ -106,6 +106,41 @@ def _ensure_work_order_table():
     except Exception:
         pass
     try:
+        cur.execute("SHOW COLUMNS FROM work_orders LIKE 'project_involves'")
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE work_orders ADD COLUMN project_involves TEXT NULL AFTER scope_of_work")
+    except Exception:
+        pass
+
+    try:
+        cur.execute("SHOW COLUMNS FROM work_orders LIKE 'deliverables'")
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE work_orders ADD COLUMN deliverables TEXT NULL AFTER project_involves")
+    except Exception:
+        pass
+
+    try:
+        cur.execute("SHOW COLUMNS FROM work_orders LIKE 'terms_and_conditions'")
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE work_orders ADD COLUMN terms_and_conditions TEXT NULL AFTER duration")
+    except Exception:
+        pass
+
+    try:
+        cur.execute("SHOW COLUMNS FROM work_orders LIKE 'payment_terms'")
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE work_orders ADD COLUMN payment_terms TEXT NULL AFTER terms_and_conditions")
+    except Exception:
+        pass
+
+    try:
+        cur.execute("SHOW COLUMNS FROM work_orders LIKE 'additional_terms'")
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE work_orders ADD COLUMN additional_terms TEXT NULL AFTER payment_terms")
+    except Exception:
+        pass
+
+    try:
         cur.execute("SHOW COLUMNS FROM work_orders LIKE 'exclusions'")
         if cur.fetchone() is None:
             cur.execute("ALTER TABLE work_orders ADD COLUMN exclusions TEXT NULL AFTER additional_terms")

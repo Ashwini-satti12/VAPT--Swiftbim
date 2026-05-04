@@ -31,6 +31,8 @@ export type ModalOpportunity = {
   vendor_name?: string | null;
   vendor_email?: string | null;
   received_on?: string | null;
+  project_sector?: string | null;
+  bim_services_required?: string | null;
 };
 
 export type BidFormState = {
@@ -280,8 +282,34 @@ export function BiddingSubmitModal({
     <div className="flex flex-col gap-10 mb-8">
      <div className="space-y-4">
         <h2 className="font-bold text-[16px] text-[#020202] font-gantari">
-          2. Scope of Work
+          Scope of Work
         </h2>
+        {(selectedOpp.project_sector || selectedOpp.bim_services_required) && (
+          <div className="bg-[#F9F9F9] border border-[#AEACAC52] rounded-md p-6 space-y-4">
+            {selectedOpp.project_sector && (
+              <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                <div className="font-bold text-[#353535] w-[220px] flex justify-between flex-shrink-0 font-gantari text-[14px]">
+                  <span>Project Sector</span>
+                  <span>:</span>
+                </div>
+                <span className="text-[#616161] font-normal font-gantari text-[14px]">
+                  {selectedOpp.project_sector}
+                </span>
+              </div>
+            )}
+            {selectedOpp.bim_services_required && (
+              <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                <div className="font-bold text-[#353535] w-[220px] flex justify-between flex-shrink-0 font-gantari text-[14px]">
+                  <span>BIM Services Required</span>
+                  <span>:</span>
+                </div>
+                <span className="text-[#616161] font-normal font-gantari text-[14px]">
+                  {selectedOpp.bim_services_required}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
         <textarea
           value={proposalDraft.scope_of_work}
           onChange={(e) =>
@@ -383,25 +411,7 @@ export function BiddingSubmitModal({
         {opportunitySummaryBanner}
       </div>
       <div className="text-sm font-medium text-[#353535] bg-[#F8F8F8] p-4 rounded-xl border border-gray-100 space-y-2 max-h-[min(40vh,320px)] overflow-y-auto custom-scrollbar">
-        {selectedOpp.description ? (
-          <div className="space-y-2">
-            <h4 className="text-[14px] font-semibold text-[#353535] font-gantari">
-              Description
-            </h4>
-            <div
-              className={`${descriptionReadOnlyBoxClass} max-h-36`}
-              role="region"
-              aria-label="Opportunity description"
-            >
-              {stripHtml(selectedOpp.description)}
-            </div>
-          </div>
-        ) : null}
-        {!selectedOpp.description ? (
-          <p className="text-[13px] text-[#8B8B8B] font-gantari">
-            No additional description for this opportunity.
-          </p>
-        ) : null}
+        {/* Description section removed */}
       </div>
     </div>
   );
@@ -412,20 +422,7 @@ export function BiddingSubmitModal({
       <div className="space-y-4">
         {opportunitySummaryBanner}
       </div>
-      {selectedOpp.description ? (
-        <div>
-          <h4 className="text-[16px] font-medium text-[#353535] mb-2 font-gantari">
-            Description
-          </h4>
-          <div
-            className={descriptionReadOnlyBoxClass}
-            role="region"
-            aria-label="Opportunity description"
-          >
-            {stripHtml(selectedOpp.description)}
-          </div>
-        </div>
-      ) : null}
+      {/* Description section removed */}
     </div>
   );
 

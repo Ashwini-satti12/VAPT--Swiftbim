@@ -313,17 +313,25 @@ def _count_vendor_tasks_td(cur, company_id: int, status: str) -> int:
 @bp.route("/td-stats", methods=["GET"])
 @project_app_required
 def td_stats():
-    """KPI stats for Technical Director: company projects plus task counts that match Team Task TD
-    (internal `tasks` + outsource `vendor_task` linked via vendor_projects → projects by name)."""
+    """KPI stats for Technical Director: company projects plus task counts split by My/Team
+    matching the exact filtering logic of My Task and Team Task pages."""
     company_id = g.company_id
+    user_id = g.user_id
+    user_name = ""
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+
+    # Get current user's full name for string-based assignment matching
+    cur.execute("SELECT full_name FROM employee WHERE id = %s AND Company_id = %s", (user_id, company_id))
+    emp_row = cur.fetchone()
+    if emp_row:
+        user_name = (emp_row["full_name"] or "").strip()
 
     # 1. Total Projects
     cur.execute("SELECT COUNT(*) AS total FROM projects WHERE Company_id = %s", (company_id,))
     total_projects = cur.fetchone()["total"] or 0
 
-    # 2. Completed Projects (same completion rule as GET /api/projects?status=Completed)
+    # 2. Completed Projects
     cur.execute(
         """SELECT COUNT(*) AS total FROM projects
            WHERE Company_id = %s AND (
@@ -334,31 +342,107 @@ def td_stats():
     )
     completed_projects = cur.fetchone()["total"] or 0
 
-    # 3. In Progress Tasks: internal tasks + vendor_task (same filters as TeamtaskTD merged list)
+    # 3. My In Progress: Assigned to current user
     cur.execute(
-        f"""SELECT COUNT(*) AS total FROM tasks t
-           WHERE t.Company_id = %s AND t.status IN ('InProgress', 'Started')
-           AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))""",
-        (company_id,),
+        """SELECT COUNT(*) AS total FROM tasks t
+           WHERE t.Company_id = %s 
+           AND t.status IN ('InProgress', 'Started')
+           AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))
+           AND (t.assigned_to = %s OR TRIM(t.assigned_to) = %s)
+           AND (
+             NOT EXISTS (
+                 SELECT 1 FROM vendor_projects vp
+                 INNER JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
+                 WHERE mp.id = t.projectid AND mp.Company_id = t.Company_id
+             )
+             OR t.uploaderid = %s
+             OR TRIM(CAST(t.assigned_to AS CHAR)) = TRIM(CAST(%s AS CHAR))
+             OR (t.assigned_to IS NOT NULL AND LOWER(TRIM(CAST(t.assigned_to AS CHAR))) = LOWER(TRIM(%s)))
+           )""",
+        (company_id, user_id, user_name, user_id, user_id, user_name),
     )
-    in_progress_tasks = (cur.fetchone() or {}).get("total") or 0
-    in_progress_tasks += _count_vendor_tasks_td(cur, company_id, "InProgress")
+    my_in_progress = (cur.fetchone() or {}).get("total") or 0
 
-    # 4. Completed Tasks: internal + vendor_task
+    # 4. Team In Progress: Aligned with tasks.py:list_tasks (condition=1)
+    # Excludes self-assigned tasks and tasks assigned to the viewer.
     cur.execute(
-        f"""SELECT COUNT(*) AS total FROM tasks t
-           WHERE t.Company_id = %s
-           AND (t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))""",
-        (company_id,),
+        """SELECT COUNT(*) AS total FROM tasks t
+           WHERE t.Company_id = %s 
+           AND t.status IN ('InProgress', 'Started')
+           AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))
+           AND (t.uploaderid IS NULL OR t.assigned_to IS NULL OR TRIM(CAST(t.assigned_to AS CHAR)) <> TRIM(CAST(t.uploaderid AS CHAR)))
+           AND (t.assigned_to IS NOT NULL AND t.assigned_to <> %s AND TRIM(t.assigned_to) <> %s)
+           AND (
+             NOT EXISTS (
+                 SELECT 1 FROM vendor_projects vp
+                 INNER JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
+                 WHERE mp.id = t.projectid AND mp.Company_id = t.Company_id
+             )
+             OR t.uploaderid = %s
+             OR TRIM(CAST(t.assigned_to AS CHAR)) = TRIM(CAST(%s AS CHAR))
+             OR (t.assigned_to IS NOT NULL AND LOWER(TRIM(CAST(t.assigned_to AS CHAR))) = LOWER(TRIM(%s)))
+           )""",
+        (company_id, user_id, user_name, user_id, user_id, user_name),
     )
-    completed_tasks = (cur.fetchone() or {}).get("total") or 0
-    completed_tasks += _count_vendor_tasks_td(cur, company_id, "Completed")
+    team_in_progress = (cur.fetchone() or {}).get("total") or 0
+    # Add vendor tasks to team count
+    team_in_progress += _count_vendor_tasks_td(cur, company_id, "InProgress")
+
+    # 5. My Completed
+    cur.execute(
+        """SELECT COUNT(*) AS total FROM tasks t
+           WHERE t.Company_id = %s 
+           AND (t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))
+           AND (t.assigned_to = %s OR TRIM(t.assigned_to) = %s)
+           AND (
+             NOT EXISTS (
+                 SELECT 1 FROM vendor_projects vp
+                 INNER JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
+                 WHERE mp.id = t.projectid AND mp.Company_id = t.Company_id
+             )
+             OR t.uploaderid = %s
+             OR TRIM(CAST(t.assigned_to AS CHAR)) = TRIM(CAST(%s AS CHAR))
+             OR (t.assigned_to IS NOT NULL AND LOWER(TRIM(CAST(t.assigned_to AS CHAR))) = LOWER(TRIM(%s)))
+           )""",
+        (company_id, user_id, user_name, user_id, user_id, user_name),
+    )
+    my_completed = (cur.fetchone() or {}).get("total") or 0
+
+    # 6. Team Completed
+    cur.execute(
+        """SELECT COUNT(*) AS total FROM tasks t
+           WHERE t.Company_id = %s 
+           AND (t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))
+           AND (t.uploaderid IS NULL OR t.assigned_to IS NULL OR TRIM(CAST(t.assigned_to AS CHAR)) <> TRIM(CAST(t.uploaderid AS CHAR)))
+           AND (t.assigned_to IS NOT NULL AND t.assigned_to <> %s AND TRIM(t.assigned_to) <> %s)
+           AND (
+             NOT EXISTS (
+                 SELECT 1 FROM vendor_projects vp
+                 INNER JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
+                 WHERE mp.id = t.projectid AND mp.Company_id = t.Company_id
+             )
+             OR t.uploaderid = %s
+             OR TRIM(CAST(t.assigned_to AS CHAR)) = TRIM(CAST(%s AS CHAR))
+             OR (t.assigned_to IS NOT NULL AND LOWER(TRIM(CAST(t.assigned_to AS CHAR))) = LOWER(TRIM(%s)))
+           )""",
+        (company_id, user_id, user_name, user_id, user_id, user_name),
+    )
+    team_completed = (cur.fetchone() or {}).get("total") or 0
+    # Add vendor tasks to team count
+    team_completed += _count_vendor_tasks_td(cur, company_id, "Completed")
+
+    total_in_progress = my_in_progress + team_in_progress
+    total_completed = my_completed + team_completed
 
     return jsonify({
         "totalProjects": total_projects,
         "completedProjects": completed_projects,
-        "inProgressTasks": in_progress_tasks,
-        "completedTasks": completed_tasks
+        "inProgressTasks": total_in_progress,
+        "completedTasks": total_completed,
+        "myInProgressTasks": my_in_progress,
+        "teamInProgressTasks": team_in_progress,
+        "myCompletedTasks": my_completed,
+        "teamCompletedTasks": team_completed
     })
 
 

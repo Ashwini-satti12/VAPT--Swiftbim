@@ -2213,7 +2213,6 @@ export default function ProjectsBC() {
                     !createName.trim() ||
                     !createBudget.trim() ||
                     moduleNameTags.length === 0 ||
-                    !createClientName.trim() ||
                     createProjectManager.length === 0 ||
                     !createStartDate.trim() ||
                     !createEndDate.trim() ||
@@ -2589,7 +2588,7 @@ export default function ProjectsBC() {
                   {/* ── Client Name ── */}
                   <div className="space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Client Name <span className="text-[#DD4342]">*</span>
+                      Client Name
                     </label>
                     <FormSelect
                       label="Client Name"
@@ -3053,7 +3052,6 @@ export default function ProjectsBC() {
                     !createName.trim() ||
                     !createBudget.trim() ||
                     editModuleTags.length === 0 ||
-                    !createClientName.trim() ||
                     createProjectManager.length === 0 ||
                     !createStartDate.trim() ||
                     !createEndDate.trim() ||
@@ -3337,7 +3335,7 @@ export default function ProjectsBC() {
                   {/* Client Name */}
                   <div className="space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Client Name <span className="text-[#DD4342]">*</span>
+                      Client Name
                     </label>
                     <input
                       type="text"
