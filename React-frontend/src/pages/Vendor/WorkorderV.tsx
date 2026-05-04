@@ -130,6 +130,7 @@ export default function WorkorderV() {
   const [projectFilter, setProjectFilter] = useState("");
   const [vendorFilter, setVendorFilter] = useState("");
   const [selectedShowEntries, setSelectedShowEntries] = useState("");
+  const [tableCurrentPage, setTableCurrentPage] = useState(1);
   const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
 
   useEffect(() => {
@@ -222,17 +223,11 @@ export default function WorkorderV() {
     [workOrders, projectFilter, vendorFilter],
   );
 
+  const effectiveShowEntries =
+    selectedShowEntries || SHOW_ENTRIES_OPTIONS[0].value;
   const selectedRange =
-    SHOW_ENTRIES_OPTIONS.find((o) => o.value === selectedShowEntries) ||
+    SHOW_ENTRIES_OPTIONS.find((o) => o.value === effectiveShowEntries) ||
     SHOW_ENTRIES_OPTIONS[0];
-
-  const displayedWorkOrders =
-    selectedShowEntries === "all" || !selectedShowEntries
-      ? filteredWorkOrders
-      : filteredWorkOrders.slice(
-          selectedRange.start,
-          selectedRange.end ?? undefined,
-        );
 
   const projectFilterOptions = useMemo(
     () => [
@@ -256,6 +251,49 @@ export default function WorkorderV() {
     [],
   );
 
+  const rangeEnd =
+    selectedRange.end === null
+      ? filteredWorkOrders.length
+      : Math.min(selectedRange.end, filteredWorkOrders.length);
+  const listInRange = filteredWorkOrders.slice(selectedRange.start, rangeEnd);
+  const tableRowsPerPage = 5;
+  const tableTotalPages = Math.max(
+    1,
+    Math.ceil(listInRange.length / tableRowsPerPage),
+  );
+  const safeTableCurrentPage = Math.min(tableCurrentPage, tableTotalPages);
+  const tablePageStartIndex = (safeTableCurrentPage - 1) * tableRowsPerPage;
+  const displayList = listInRange.slice(
+    tablePageStartIndex,
+    tablePageStartIndex + tableRowsPerPage,
+  );
+  const tablePageRangeStart =
+    listInRange.length === 0
+      ? 0
+      : selectedRange.start + tablePageStartIndex + 1;
+  const tablePageRangeEnd =
+    listInRange.length === 0
+      ? 0
+      : Math.min(
+          selectedRange.start + tablePageStartIndex + tableRowsPerPage,
+          rangeEnd,
+        );
+  const tablePageRangeLabel =
+    listInRange.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
+
+  const handleProjectFilter = (v: string) => {
+    setProjectFilter(v);
+    setTableCurrentPage(1);
+  };
+  const handleVendorFilter = (v: string) => {
+    setVendorFilter(v);
+    setTableCurrentPage(1);
+  };
+  const handleShowEntriesChange = (v: string) => {
+    setSelectedShowEntries(v);
+    setTableCurrentPage(1);
+  };
+
   return (
     <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white font-Gantari relative">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 px-4 py-2">
@@ -265,21 +303,21 @@ export default function WorkorderV() {
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <HeaderDropdown
             value={projectFilter}
-            onChange={setProjectFilter}
+            onChange={handleProjectFilter}
             placeholder="Project Name"
             options={projectFilterOptions}
             className="w-full sm:w-[180px]"
           />
           <HeaderDropdown
             value={vendorFilter}
-            onChange={setVendorFilter}
+            onChange={handleVendorFilter}
             placeholder="Vendor Name"
             options={vendorFilterOptions}
             className="w-full sm:w-[180px]"
           />
           <HeaderDropdown
             value={selectedShowEntries}
-            onChange={setSelectedShowEntries}
+            onChange={handleShowEntriesChange}
             placeholder="Show Entries"
             options={showEntryFilterOptions}
             className="w-full sm:w-[150px]"
@@ -313,6 +351,7 @@ export default function WorkorderV() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
+<<<<<<< HEAD
               {displayedWorkOrders.length > 0 ? (
                 displayedWorkOrders.map((wo, index) => (
                   <tr
@@ -362,10 +401,136 @@ export default function WorkorderV() {
                     </td>
                   </tr>
                 )}
+=======
+              {filteredWorkOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-3 py-10 text-center text-[#616161]">
+                    No Work Orders available.
+                  </td>
+                </tr>
+              ) : (
+                displayList.map((wo, index) => {
+                  const globalIndex = tablePageStartIndex + index;
+                  return (
+                    <tr
+                      key={wo.id}
+                      className={
+                        globalIndex % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"
+                      }
+                    >
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
+                        {String(globalIndex + 1).padStart(2, "0")}
+                      </td>
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
+                        {wo.project_name}
+                      </td>
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
+                        {wo.vendor_name}
+                      </td>
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
+                        {wo.bid_amount}
+                      </td>
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
+                        {wo.timeline}
+                      </td>
+                      <td className="px-3 py-6 text-center">
+                        <span
+                          className={`inline-flex px-4 py-1.5 rounded-lg text-[14px] font-semibold ${
+                            wo.status === "Accepted"
+                              ? "bg-[#E6F4EA] text-[#1E8E3E]"
+                              : wo.status === "Rejected"
+                                ? "bg-[#FCE8E6] text-[#D93025]"
+                                : "bg-[#EAF0FB] text-[#1967D2]"
+                          }`}
+                        >
+                          {wo.status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-6 text-center">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate("/v/view-workorder", {
+                              state: { selectedWO: wo },
+                            })
+                          }
+                          className="flex items-center justify-center gap-2 px-4 py-2 mx-auto rounded-md text-[14px] bg-[#DD4342] text-white cursor-pointer hover:opacity-90"
+                        >
+                          <img
+                            src={viewIcon}
+                            alt=""
+                            className="w-4 h-4 brightness-0 invert"
+                          />
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+>>>>>>> b0568b3e6f0b4bf914ff5767bd1fcfd50ce8ddec
             </tbody>
           </table>
         </div>
       </div>
+      {filteredWorkOrders.length > 0 && listInRange.length > 0 && (
+        <div className="w-full flex items-center justify-end mt-2 mb-[-6px] py-2 px-4 mx-2 sm:mx-0 ">
+          <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
+            <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">
+              Showing:
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                setTableCurrentPage((p) => {
+                  const cur = Math.min(Math.max(1, p), tableTotalPages);
+                  return Math.max(1, cur - 1);
+                })
+              }
+              disabled={safeTableCurrentPage === 1}
+              className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
+                safeTableCurrentPage === 1
+                  ? "text-[#9CA3AF] opacity-50 cursor-not-allowed"
+                  : "text-[#353535]"
+              }`}
+              aria-label="Previous page"
+            >
+              <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">
+                &#8249;
+              </span>
+              <span className="inline-flex items-center">Prev</span>
+            </button>
+            <button
+              type="button"
+              className="px-4 py-1 rounded-md bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+              aria-current="page"
+            >
+              {tablePageRangeLabel}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setTableCurrentPage((p) => {
+                  const cur = Math.min(Math.max(1, p), tableTotalPages);
+                  return Math.min(tableTotalPages, cur + 1);
+                })
+              }
+              disabled={safeTableCurrentPage >= tableTotalPages}
+              className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
+                safeTableCurrentPage >= tableTotalPages
+                  ? "text-[#9CA3AF] opacity-40 cursor-not-allowed"
+                  : "text-[#353535]"
+              }`}
+              aria-label="Next page"
+            >
+              <span className="inline-flex items-center">Next</span>
+              <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">
+                &#8250;
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
