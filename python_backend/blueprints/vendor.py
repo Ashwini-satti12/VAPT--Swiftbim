@@ -5623,15 +5623,14 @@ def _insert_task_assignment_notification(cur, assignee_user_id, project_id, task
     except Exception:
         pass
 
-    msg = ""
     if project_name and task_name:
-        msg = f"{project_name} project - {task_name} task assigned by {actor_name}"
+        msg = f"{actor_name} has assigned you the task {task_name} in the project {project_name}"
     elif task_name:
-        msg = f"{task_name} task assigned by {actor_name}"
+        msg = f"{actor_name} has assigned you the task {task_name}"
     elif project_name:
-        msg = f"{project_name} project task assigned by {actor_name}"
+        msg = f"{actor_name} has assigned you a task in the project {project_name}"
     else:
-        msg = f"Task assigned by {actor_name}"
+        msg = f"{actor_name} has assigned you a task"
     if actor_role:
         msg += f" ({actor_role})"
 
@@ -5644,7 +5643,7 @@ def _insert_task_assignment_notification(cur, assignee_user_id, project_id, task
             (
                 assignee_user_id,
                 project_id or None,
-                "Task assigned",
+                task_name or "Task assigned",
                 msg,
                 "vendor_task_assigned",
                 "task",
@@ -5662,7 +5661,7 @@ def _insert_task_assignment_notification(cur, assignee_user_id, project_id, task
                 (
                     assignee_user_id,
                     project_id or None,
-                    "Task assigned",
+                    task_name or "Task assigned",
                     msg,
                     "vendor_task_assigned",
                     notif_company_id,
@@ -7317,7 +7316,7 @@ def list_vendor_teams():
         return jsonify({"teams": []})
 
     cur.execute(
-        """
+        f"""
         SELECT
             vt.id AS team_id,
             vt.team_name,

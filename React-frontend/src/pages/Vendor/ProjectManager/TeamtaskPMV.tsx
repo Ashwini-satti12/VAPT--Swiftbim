@@ -452,9 +452,18 @@ export default function TeamtaskPMV() {
         return () => document.removeEventListener("mousedown", handleClick);
     }, [openDropdown]);
 
+    const searchQueryParam = searchParams.get('q')?.toLowerCase() || "";
+
     const filteredTasks = useMemo(() => {
         return list.filter(t => {
             // Trust the backend's filtering
+            if (searchQueryParam) {
+                const matchesSearch = 
+                    (t.task_name || "").toLowerCase().includes(searchQueryParam) ||
+                    (t.project_name || "").toLowerCase().includes(searchQueryParam) ||
+                    (t.status || "").toLowerCase().includes(searchQueryParam);
+                if (!matchesSearch) return false;
+            }
 
             if (selectedEmployee && !["Select Employee", "Employee"].includes(selectedEmployee) && t.assigned_full_name !== selectedEmployee) return false;
             if (selectedProject && !["Select Project", "Projects"].includes(selectedProject) && t.project_name !== selectedProject) return false;

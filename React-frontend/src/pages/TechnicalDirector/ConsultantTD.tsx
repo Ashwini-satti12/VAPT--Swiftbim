@@ -155,8 +155,8 @@ const PANEL_ACCESS_OPTIONS = [
 
 const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
@@ -371,7 +371,7 @@ function CustomDropdown({
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : (isPlaceholder ? "opacity-60 grayscale" : "opacity-90")}`}
+          className={`w-3 h-3 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : (isPlaceholder ? "opacity-60 grayscale" : "opacity-90")}`}
         />
       </button>
       {isOpen && createPortal(menuContent, document.body)}
@@ -405,7 +405,6 @@ export default function ConsultantTD() {
     email: '',
     phone_number: '',
     user_role: '',
-    department: '',
     address: '',
     dob: '',
     password: '',
@@ -422,15 +421,13 @@ export default function ConsultantTD() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [typeFilter, setTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [availabilityFilter, setAvailabilityFilter] = useState('');
   const [selectedShowEntries, setSelectedShowEntries] = useState('');
   const [tableCurrentPage, setTableCurrentPage] = useState(1);
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
   const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
-  const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
 
   const canAdd = user?.panel_type === 1;
 
@@ -460,31 +457,6 @@ export default function ConsultantTD() {
         console.error('Failed to load roles:', err);
         // Fallback to empty array
         setRoleOptions([]);
-      });
-
-    // Fetch departments
-    api.get<{ departments?: string[] }>('/api/departments')
-      .then(({ data }) => {
-        if (data.departments && Array.isArray(data.departments)) {
-          // Ensure each department name appears only once (case-insensitive)
-          const map = new Map<string, string>();
-          data.departments
-            .filter(Boolean)
-            .forEach((name) => {
-              const trimmed = name.trim();
-              if (!trimmed) return;
-              const key = trimmed.toLowerCase();
-              if (!map.has(key)) {
-                map.set(key, trimmed);
-              }
-            });
-          setDepartmentOptions(Array.from(map.values()));
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to load departments:', err);
-        // Fallback to empty array
-        setDepartmentOptions([]);
       });
   }, []);
 
@@ -519,7 +491,6 @@ export default function ConsultantTD() {
           email: emp.email,
           phone_number: emp.phone_number || '',
           user_role: emp.user_role || '',
-          department: emp.department || '',
           address: emp.address || '',
           dob: emp.dob || '',
           password: '',
@@ -568,16 +539,14 @@ export default function ConsultantTD() {
       (emp.phone_number || "").toLowerCase().includes(searchQuery);
     if (!matchesSearch) return false;
 
-    if (typeFilter === 'Employee') {
-      if ((emp.user_type || '').toLowerCase() !== 'employee') return false;
-    } else if (typeFilter === 'Trainee') {
-      if ((emp.user_type || '').toLowerCase() !== 'trainee') return false;
-    }
-
-    if (statusFilter === 'Active') {
+    if (availabilityFilter === 'Online') {
+      if (emp.active !== 'active' || emp.status !== 'Online') return false;
+    } else if (availabilityFilter === 'Offline') {
+      if (emp.active !== 'active' || emp.status === 'Online') return false;
+    } else if (availabilityFilter === 'Inactive') {
+      if (emp.active === 'active') return false;
+    } else {
       if (emp.active !== 'active') return false;
-    } else if (statusFilter === 'Inactive') {
-      if (emp.active !== 'deactive' && emp.active !== 'inactive') return false;
     }
 
     return true;
@@ -608,7 +577,7 @@ export default function ConsultantTD() {
   useEffect(() => {
     // Reset to first page whenever filters/range/search/view changes.
     setTableCurrentPage(1);
-  }, [selectedShowEntries, typeFilter, statusFilter, searchQuery, viewMode]);
+  }, [selectedShowEntries, availabilityFilter, searchQuery, viewMode]);
 
   function handleInvite(e: React.FormEvent) {
     e.preventDefault();
@@ -661,7 +630,6 @@ export default function ConsultantTD() {
       formData.append('email', editForm.email);
       if (editForm.phone_number) formData.append('phone_number', editForm.phone_number);
       if (editForm.user_role) formData.append('user_role', editForm.user_role);
-      if (editForm.department) formData.append('department', editForm.department);
       if (editForm.address) formData.append('address', editForm.address);
       if (editForm.dob) formData.append('dob', editForm.dob);
       if (editForm.doj) formData.append('doj', editForm.doj);
@@ -691,7 +659,6 @@ export default function ConsultantTD() {
                   email: editForm.email,
                   phone_number: editForm.phone_number,
                   user_role: editForm.user_role,
-                  department: editForm.department,
                   address: editForm.address,
                   dob: editForm.dob,
                   doj: editForm.doj,
@@ -724,7 +691,6 @@ export default function ConsultantTD() {
         email: editForm.email,
         phone_number: editForm.phone_number || undefined,
         user_role: editForm.user_role,
-        department: editForm.department || undefined,
         address: editForm.address || undefined,
         dob: editForm.dob || undefined,
         doj: editForm.doj || undefined,
@@ -749,7 +715,6 @@ export default function ConsultantTD() {
                   email: editForm.email,
                   phone_number: editForm.phone_number,
                   user_role: editForm.user_role,
-                  department: editForm.department,
                   address: editForm.address,
                   dob: editForm.dob,
                   doj: editForm.doj,
@@ -789,7 +754,6 @@ export default function ConsultantTD() {
       email: emp.email,
       phone_number: emp.phone_number || "",
       user_role: emp.user_role || "Consultant",
-      department: emp.department || "",
       address: emp.address || "",
       dob: emp.dob || "",
       password: "",
@@ -852,11 +816,11 @@ export default function ConsultantTD() {
     <div className="flex flex-col h-full overflow-hidden bg-white">
       {activeView === 'list' && (
         <>
-          <div className="sticky top-0 z-30 bg-white mb-2 sm:mb-4 sm:mt-2 overflow-visible px-2">
+          <div className="sticky top-0 z-30 bg-white mb-2 -mt-1 sm:-mt-2 overflow-visible px-2">
             <div className="flex flex-col xl:flex-row w-full xl:items-center justify-between gap-3 overflow-visible py-2">
               {/* Left/Top side: Title and mobile view toggles */}
               <div className="flex items-center justify-between w-full xl:w-auto">
-                <h1 className="text-[20px] sm:text-[26px] font-medium text-[#000000] font-Gantari shrink-0">
+                <h1 className="text-[20px] sm:text-[24px] font-medium text-[#000000] font-Gantari shrink-0">
                   Consultants
                 </h1>
                 {/* Mobile/Tablet actions - visible on right for anything < 1280px */}
@@ -975,21 +939,21 @@ export default function ConsultantTD() {
                       <button
                         type="button"
                         onClick={() => navigate('/td/consultants/add')}
-                        className="hidden sm:block shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
+                        className="hidden sm:block shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
                       >
                         Add Consultant
                       </button>
                       <button
                         type="button"
                         onClick={() => setActiveView('invite')}
-                        className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
+                        className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
                       >
                         Invite
                       </button>
                       <button
                         type="button"
                         onClick={() => setActiveView('deactive')}
-                        className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm "
+                        className="shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm "
                       >
                         Manage Inactive
                       </button>
@@ -1000,11 +964,11 @@ export default function ConsultantTD() {
                   {viewMode === 'card' && (
                     <div className="block sm:hidden shrink-0 ml-0.5">
                       <CustomDropdown
-                        options={['All', 'Employee', 'Trainee']}
-                        value={typeFilter}
-                        onChange={(val) => setTypeFilter(val)}
-                        placeholder="Type"
-                        className="w-[85px]"
+                        options={['Online', 'Offline', 'Inactive']}
+                        value={availabilityFilter}
+                        onChange={(val) => setAvailabilityFilter(val)}
+                        placeholder="Status"
+                        className="w-[105px]"
                         styleType="header"
                         direction="down"
                       />
@@ -1049,7 +1013,7 @@ export default function ConsultantTD() {
                         <img
                           src={ArrowDown}
                           alt=""
-                          className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''
+                          className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''
                             } ${selectedShowEntries === ''
                               ? 'opacity-60 grayscale'
                               : 'opacity-90'
@@ -1120,22 +1084,22 @@ export default function ConsultantTD() {
                   {viewMode === 'card' ? (
                     <div className="hidden sm:block">
                       <CustomDropdown
-                        options={['All', 'Employee', 'Trainee']}
-                        value={typeFilter}
-                        onChange={(val) => setTypeFilter(val)}
-                        placeholder="Type"
-                        className="w-[90px] sm:w-[100px]"
+                        options={['Online', 'Offline', 'Inactive']}
+                        value={availabilityFilter}
+                        onChange={(val) => setAvailabilityFilter(val)}
+                        placeholder="Status"
+                        className="w-[105px] sm:w-[120px]"
                         styleType="header"
                         direction="down"
                       />
                     </div>
                   ) : (
                     <CustomDropdown
-                      options={['All', 'Active', 'Inactive']}
-                      value={statusFilter}
-                      onChange={(val) => setStatusFilter(val)}
+                      options={['Active', 'Inactive']}
+                      value={availabilityFilter}
+                      onChange={(val) => setAvailabilityFilter(val)}
                       placeholder="Status"
-                      className="w-[95px] sm:w-[120px]"
+                      className="w-[105px] sm:w-[120px]"
                       styleType="header"
                       direction="down"
                     />
@@ -1233,13 +1197,13 @@ export default function ConsultantTD() {
                             <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
                           </button>
                           <button
-                            onClick={() => navigate('/td/chat')}
+                            onClick={() => navigate('/td/chat', { state: { selectedUserId: emp.id } })}
                             className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                           >
                             <img src={messageIcon} alt="Message" className="w-4 h-4" /> Message
                           </button>
                           <button
-                            onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
+                            onClick={() => navigate('/td/chat', { state: { selectedUserId: emp.id } })}
                             className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                           >
                             <img src={callIcon} alt="Call" className="w-4 h-4" /> Call
@@ -1277,7 +1241,7 @@ export default function ConsultantTD() {
                 )}
               </div>
             ) : (
-              <div className="px-2">
+              <div className="px-2 mt-2">
                 <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-4">
                   <div className="flex-1 min-h-0 overflow-hidden">
                     <div className="overflow-auto h-[calc(100%+17px)] pb-[17px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:!hidden">
@@ -1357,13 +1321,13 @@ export default function ConsultantTD() {
                                       <img src={mailIcon} className="w-5 h-5" alt="Mail" />
                                     </button>
                                     <button
-                                      onClick={() => navigate('/td/chat')}
+                                      onClick={() => navigate('/td/chat', { state: { selectedUserId: emp.id } })}
                                       className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF] cursor-pointer"
                                     >
                                       <img src={messageIcon} className="w-5 h-5" alt="Message" />
                                     </button>
                                     <button
-                                      onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
+                                      onClick={() => navigate('/td/chat', { state: { selectedUserId: emp.id } })}
                                       className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF] cursor-pointer"
                                     >
                                       <img src={callIcon} className="w-5 h-5" alt="Call" />
@@ -1540,7 +1504,7 @@ export default function ConsultantTD() {
                 <button
                   type="submit"
                   disabled={!inviteEmails || inviteSubmitting}
-                  className="px-10 py-2 sm:py-2 rounded-md bg-[#DBE9FE] text-[#353535] font-medium text-[14px] sm:text-[14px] transition-all cursor-pointer"
+                  className="px-10 py-2 sm:py-2 rounded-md bg-[#DBE9FE]   font-medium text-[14px] sm:text-[14px] transition-all cursor-pointer"
                 >
                   {inviteSubmitting ? 'Sending...' : 'Invite'}
                 </button>
@@ -1552,7 +1516,7 @@ export default function ConsultantTD() {
       )}
 
       {activeView === 'edit' && (
-        <div className="flex-1 overflow-y-auto px-5 py-2 bg-white flex flex-col min-h-0">
+        <div className="flex-1 overflow-y-auto px-5 py-2 bg-white flex flex-col min-h-0 custom-scrollbar">
           <div className="max-w-[1174px] mx-auto w-full flex-1 flex flex-col min-h-0">
             <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
               <div className="relative group inline-flex shrink-0">
@@ -1625,15 +1589,7 @@ export default function ConsultantTD() {
                       placeholder="Select Role"
                     />
                   </div>
-                  <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department <span className="text-[#DD4342]">*</span></label>
-                    <CustomDropdown
-                      options={departmentOptions}
-                      value={editForm.department}
-                      onChange={(val) => setEditForm((f) => ({ ...f, department: val }))}
-                      placeholder="Select Department"
-                    />
-                  </div>
+
                   <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number <span className="text-[#DD4342]">*</span></label>
                     <input
@@ -1644,6 +1600,57 @@ export default function ConsultantTD() {
                       required
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
+                    {/* Display current profile picture if available */}
+                    {currentProfilePicture && !editForm.profile_picture && (
+                      <div className="mb-3 flex items-center gap-4">
+                        <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 border-2 border-gray-300">
+                          <img
+                            src={currentProfilePicture}
+                            alt="Current profile"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              const parent = target.parentElement;
+                              if (parent && !parent.querySelector('.error-placeholder')) {
+                                parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-xs">No Photo</span></div>';
+                              }
+                            }}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-[14px] font-medium text-[#353535] font-Gantari">Current Profile Picture</p>
+                          <p className="text-[12px] text-[#666666] font-Gantari">Upload a new file to replace it</p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
+                      <div className="flex-1 px-4 text-[14px] text-[#8B8B8B] truncate">
+                        {editForm.profile_picture
+                          ? editForm.profile_picture.name
+                          : currentProfilePicture
+                            ? 'Current picture shown above - Choose new file to replace'
+                            : 'Choose file (JPEG or JPG only)'}
+                      </div>
+                      <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari hover:bg-[#D0D0D0]">
+                        Browse File
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".jpg,.jpeg"
+                          onChange={(e) => {
+                            const file = e.target.files ? e.target.files[0] : null;
+                            setEditForm((f) => ({ ...f, profile_picture: file }));
+                            // Clear current picture preview when new file is selected
+                            if (file) {
+                              setCurrentProfilePicture(null);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
 
@@ -1699,57 +1706,6 @@ export default function ConsultantTD() {
                       onChange={(e) => setEditForm((f) => ({ ...f, salary: e.target.value }))}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
-                    {/* Display current profile picture if available */}
-                    {currentProfilePicture && !editForm.profile_picture && (
-                      <div className="mb-3 flex items-center gap-4">
-                        <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 border-2 border-gray-300">
-                          <img
-                            src={currentProfilePicture}
-                            alt="Current profile"
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              const parent = target.parentElement;
-                              if (parent && !parent.querySelector('.error-placeholder')) {
-                                parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-xs">No Photo</span></div>';
-                              }
-                            }}
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-[14px] font-medium text-[#353535] font-Gantari">Current Profile Picture</p>
-                          <p className="text-[12px] text-[#666666] font-Gantari">Upload a new file to replace it</p>
-                        </div>
-                      </div>
-                    )}
-                    <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
-                      <div className="flex-1 px-4 text-[14px] text-[#8B8B8B] truncate">
-                        {editForm.profile_picture
-                          ? editForm.profile_picture.name
-                          : currentProfilePicture
-                            ? 'Current picture shown above - Choose new file to replace'
-                            : 'Choose file (JPEG or JPG only)'}
-                      </div>
-                      <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari hover:bg-[#D0D0D0]">
-                        Browse File
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept=".jpg,.jpeg"
-                          onChange={(e) => {
-                            const file = e.target.files ? e.target.files[0] : null;
-                            setEditForm((f) => ({ ...f, profile_picture: file }));
-                            // Clear current picture preview when new file is selected
-                            if (file) {
-                              setCurrentProfilePicture(null);
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -1819,7 +1775,7 @@ export default function ConsultantTD() {
 
 
       {activeView === 'deactive' && (
-        <div className="flex-1 overflow-y-auto px-5 bg-white flex flex-col min-h-0">
+        <div className="flex-1 overflow-y-auto px-5 bg-white flex flex-col min-h-0 custom-scrollbar">
           <div className="max-w-[1174px] mx-auto w-full flex-1 flex flex-col min-h-0">
             <div className="flex items-center justify-between mb-8 sm:mb-10 relative shrink-0 pt-">
               <div className="relative group inline-flex shrink-0">

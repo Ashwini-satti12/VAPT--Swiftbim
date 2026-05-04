@@ -311,6 +311,7 @@ export default function ProjectsV() {
 
   const [searchParams] = useSearchParams();
   const statusFilter = searchParams.get("status");
+  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
 
   const fetchProjects = (status?: string | null) => {
     const params: any = {};
@@ -2247,7 +2248,15 @@ export default function ProjectsV() {
                     proposal.
                   </div>
                 ) : (
-                  list.map((p) => {
+                  list.filter((p) => {
+                    if (!searchQuery) return true;
+                    return (
+                      (p.project_name || "").toLowerCase().includes(searchQuery) ||
+                      (p.client_name || "").toLowerCase().includes(searchQuery) ||
+                      (p.location || "").toLowerCase().includes(searchQuery) ||
+                      (p.priority || "").toLowerCase().includes(searchQuery)
+                    );
+                  }).map((p) => {
                     const progress = Math.round(Number(p.progress) || 0);
                     const memberIds = p.members
                       ? p.members.split(",").filter(Boolean).map(Number)
@@ -2259,10 +2268,7 @@ export default function ProjectsV() {
                     return (
                       <div
                         key={p.id}
-                        onClick={() => {
-                          setSelectedProject(p);
-                          setShowProjectView(true);
-                        }}
+                         onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(openMenuProjectId === p.id ? null : p.id); }}
                         className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
                         <div className="flex items-start justify-between mb-4 mt-2 pr-0">

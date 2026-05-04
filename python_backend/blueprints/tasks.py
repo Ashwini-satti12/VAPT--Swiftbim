@@ -525,8 +525,8 @@ def create_task():
 
     cur.execute(
         """INSERT INTO tasks (projectid, uploaderid, task_name, assigned_to, due_date, category, description, checklist,
-           document_attachment, status, ticket, Actual_start_time, modules_name, perferstart_time, perferend_time, Company_id)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+           document_attachment, status, ticket, Actual_start_time, modules_name, perferstart_time, perferend_time, Company_id, ring)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1)""",
         (
             project_id,
             g.user_id,
@@ -583,12 +583,12 @@ def create_task():
             urow = cur.fetchone() or {}
             uploader_name = urow.get("full_name") or "Someone"
 
-            title = "Task assigned"
-            msg = f"{uploader_name} assigned a task to you"
+            title = task_name or "Task assigned"
+            msg = f"{uploader_name} has assigned you the task {task_name}"
             if pname:
-                msg += f" in '{pname}'"
-            if task_name:
-                msg += f": {task_name}"
+                msg += f" in the project {pname}"
+            if due_date:
+                msg += f" (Due: {due_date})"
 
             cur.execute(
                 """

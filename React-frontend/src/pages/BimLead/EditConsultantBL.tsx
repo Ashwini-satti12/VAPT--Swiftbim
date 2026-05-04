@@ -12,6 +12,24 @@ const PANEL_ROLES = [
     'Client', 'Sales', 'Admin', 'BIM Lead', 'Employee', 'All'
 ];
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 interface EmployeeEdit {
     full_name?: string;
     email?: string;
@@ -89,14 +107,21 @@ export default function EditConsultantBL() {
     const [editError, setEditError] = useState('');
     const [editSubmitting, setEditSubmitting] = useState(false);
     const [roles, setRoles] = useState<string[]>([]);
-    const [departments, setDepartments] = useState<string[]>([]);
+
+    useEffect(() => {
+        const styleTag = document.createElement("style");
+        styleTag.textContent = SCROLLBAR_STYLE;
+        document.head.appendChild(styleTag);
+        return () => {
+            document.head.removeChild(styleTag);
+        };
+    }, []);
     const [form, setForm] = useState({
         full_name: '',
         email: '',
         phone_number: '',
         country_code: '+91',
         user_role: 'Consultant',
-        department: '',
         address: '',
         dob: '',
         password: '',
@@ -149,7 +174,6 @@ export default function EditConsultantBL() {
                         };
                     })(),
                     user_role: data.user_role ?? 'Consultant',
-                    department: data.department ?? '',
                     address: data.address ?? '',
                     dob: data.dob ?? '',
                     password: '',
@@ -179,18 +203,6 @@ export default function EditConsultantBL() {
                 setRoles(Array.from(map.values()));
             }
         }).catch(() => setRoles([]));
-        api.get<{ departments?: string[] }>('/api/departments').then(({ data }) => {
-            if (data.departments && Array.isArray(data.departments)) {
-                const map = new Map<string, string>();
-                data.departments.filter(Boolean).forEach((name) => {
-                    const trimmed = name.trim();
-                    if (!trimmed) return;
-                    const key = trimmed.toLowerCase();
-                    if (!map.has(key)) map.set(key, trimmed);
-                });
-                setDepartments(Array.from(map.values()));
-            }
-        }).catch(() => setDepartments([]));
     }, []);
 
     function handleSubmit(e: React.FormEvent) {
@@ -225,7 +237,6 @@ export default function EditConsultantBL() {
             formData.append('email', form.email);
             formData.append('phone_number', `${form.country_code}${phoneDigits}`.replace(/\s+/g, ''));
             if (form.user_role) formData.append('user_role', form.user_role);
-            if (form.department) formData.append('department', form.department);
             if (form.address) formData.append('address', form.address);
             if (form.dob) formData.append('dob', form.dob);
             formData.append('active', form.active === 'Active' ? 'active' : 'inactive');
@@ -254,7 +265,6 @@ export default function EditConsultantBL() {
                 email: form.email,
                 phone_number: phoneDigits ? `${form.country_code}${phoneDigits}`.replace(/\s+/g, '') : undefined,
                 user_role: form.user_role,
-                department: form.department || undefined,
                 address: form.address || undefined,
                 dob: form.dob || undefined,
                 doj: form.doj || undefined,
@@ -288,10 +298,9 @@ export default function EditConsultantBL() {
     }
 
     return (
-        <div className="flex flex-col h-full bg-white overflow-hidden">
-            {/* Fixed Header Section */}
-            <div className="sticky top-0 z-50 bg-white px-4 sm:px-8 py-4 sm:py-6">
-                <div className="max-w-[1174px] mx-auto flex items-center justify-between relative">
+        <div className="flex-1 overflow-y-auto px-5 py-2 bg-white relative custom-scrollbar">
+            <div className="max-w-[1174px] mx-auto">
+                <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
                     <div className="relative group">
                         <button
                             type="button"
@@ -302,7 +311,7 @@ export default function EditConsultantBL() {
                         </button>
                         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                             <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
                                 <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                                     Go back
                                 </span>
@@ -314,12 +323,7 @@ export default function EditConsultantBL() {
                     </h3>
                     <div className="w-10" />
                 </div>
-            </div>
-
-            {/* Scrollable Content Area */}
-            <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 custom-scrollbar">
-                <div className="max-w-[1174px] mx-auto">
-                    <form onSubmit={handleSubmit} className="space-y-6 pb-10">
+                    <form onSubmit={handleSubmit} className="space-y-6 pb-4">
                     {editError && (
                         <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
                             <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
@@ -388,15 +392,7 @@ export default function EditConsultantBL() {
                                     placeholder="Select Role"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department</label>
-                                <CustomDropdown
-                                    options={departments}
-                                    value={form.department}
-                                    onChange={(val) => setForm((f) => ({ ...f, department: val }))}
-                                    placeholder="Select Department"
-                                />
-                            </div>
+
                             <div>
                                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number</label>
                                 <input
@@ -406,6 +402,23 @@ export default function EditConsultantBL() {
                                     onChange={(e) => setForm((f) => ({ ...f, accountnumber: e.target.value }))}
                                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                                 />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
+                                <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
+                                    <div className="flex-1 px-4 text-[14px] text-[#979797] truncate py-2">
+                                        {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
+                                    </div>
+                                    <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer shrink-0 font-Gantari">
+                                        Browse File
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept=".jpg,.jpeg"
+                                            onChange={(e) => setForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                                        />
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
@@ -429,6 +442,15 @@ export default function EditConsultantBL() {
                                     className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari outline-none disabled:opacity-70 disabled:cursor-not-allowed"
                                 />
                             </div>
+                            <div className="relative">
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
+                                <CustomDropdown
+                                    options={['Employee', 'Trainee']}
+                                    value={form.user_type}
+                                    onChange={(val) => setForm((f) => ({ ...f, user_type: val }))}
+                                    placeholder="Select Type"
+                                />
+                            </div>
                             <div>
                                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining</label>
                                 <input
@@ -447,23 +469,6 @@ export default function EditConsultantBL() {
                                     onChange={(e) => setForm((f) => ({ ...f, salary: e.target.value }))}
                                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                                 />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
-                                <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
-                                    <div className="flex-1 px-4 text-[14px] text-[#979797] truncate py-2">
-                                        {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
-                                    </div>
-                                    <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer shrink-0 font-Gantari">
-                                        Browse File
-                                        <input
-                                            type="file"
-                                            className="hidden"
-                                            accept=".jpg,.jpeg"
-                                            onChange={(e) => setForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
-                                        />
-                                    </label>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -508,18 +513,18 @@ export default function EditConsultantBL() {
                         </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
+                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-4">
                         <button
                             type="button"
                             onClick={() => navigate('/bl/consultants')}
-                            className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#353535] font-semibold text-[16px] font-Gantari cursor-pointer"
+                            className="px-6 py-2 sm:py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-medium text-[14px] sm:text-[14px] transition-all cursor-pointer"
                         >
                             Discard
                         </button>
                         <button
                             type="submit"
                             disabled={editSubmitting}
-                            className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari cursor-pointer disabled:cursor-not-allowed"
+                            className="px-6 py-2 sm:py-2 rounded-md bg-[#DBE9FE]   font-medium text-[14px] sm:text-[14px] transition-all cursor-pointer"
                         >
                             {editSubmitting ? 'Submitting...' : 'Submit'}
                         </button>
@@ -527,6 +532,5 @@ export default function EditConsultantBL() {
                 </form>
             </div>
         </div>
-    </div>
     );
 }

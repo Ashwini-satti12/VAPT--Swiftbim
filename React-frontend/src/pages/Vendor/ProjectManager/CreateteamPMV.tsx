@@ -28,6 +28,10 @@ interface Team {
 interface Project {
     id: number;
     project_name?: string;
+    project_manager_id?: string | number;
+    lead_id?: string | number;
+    bim_coordinator_id?: string | number;
+    members?: string;
 }
 
 
@@ -237,6 +241,27 @@ export default function CreateteamPMV() {
             })
             .finally(() => setLoading(false));
     }, []);
+
+    const getProjectEmployees = (projectId: string | number) => {
+        if (!projectId) return employees;
+        const proj = projects.find((p) => String(p.id) === String(projectId));
+        if (!proj) return employees;
+
+        const involvedIds = new Set<string>();
+        if (proj.project_manager_id) involvedIds.add(String(proj.project_manager_id));
+        if (proj.lead_id) involvedIds.add(String(proj.lead_id));
+        if (proj.bim_coordinator_id) involvedIds.add(String(proj.bim_coordinator_id));
+
+        if (proj.members) {
+            proj.members.split(',').forEach(id => {
+                const trimmed = id.trim();
+                if (trimmed) involvedIds.add(trimmed);
+            });
+        }
+
+        const filtered = employees.filter(e => involvedIds.has(String(e.id)));
+        return filtered.length > 0 ? filtered : employees;
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -544,7 +569,7 @@ export default function CreateteamPMV() {
                                     {showLeaderDropdown && (
                                         <div className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${leaderDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}>
                                             <div className="overflow-y-auto no-scrollbar max-h-44">
-                                                {employees
+                                                {getProjectEmployees(form.project_id)
                                                     .filter(e => !leaderSearchQuery.trim() || e.full_name?.toLowerCase().includes(leaderSearchQuery.toLowerCase()))
                                                     .map((e) => (
                                                         <button
@@ -612,7 +637,7 @@ export default function CreateteamPMV() {
                                     {showMemberDropdown && (
                                         <div className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${memberDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}>
                                             <div className="overflow-y-auto no-scrollbar max-h-44">
-                                                {employees
+                                                {getProjectEmployees(form.project_id)
                                                     .filter(e => String(e.id) !== form.leader)
                                                     .filter(e => !memberSearchQuery.trim() || e.full_name?.toLowerCase().includes(memberSearchQuery.toLowerCase()))
                                                     .map((e) => (
@@ -700,7 +725,7 @@ export default function CreateteamPMV() {
                                     <label className="block text-[14px] font-medium text-[#353535] mb-3">Select Project</label>
                                     <select
                                         value={editForm.project_id}
-                                        onChange={(e) => setEditForm({ ...editForm, project_id: e.target.value })}
+                                        onChange={(e) => setEditForm({ ...editForm, project_id: e.target.value, leader: "", employee: [] })}
                                         className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] outline-none transition-all appearance-none cursor-pointer font-Gantari"
                                         required
                                     >
@@ -721,7 +746,7 @@ export default function CreateteamPMV() {
                                         className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] outline-none transition-all appearance-none cursor-pointer font-Gantari"
                                         required
                                     >
-                                        {employees.map(emp => (
+                                        {getProjectEmployees(editForm.project_id).map(emp => (
                                             <option key={emp.id} value={emp.id}>{emp.full_name}</option>
                                         ))}
                                     </select>
@@ -749,7 +774,7 @@ export default function CreateteamPMV() {
 
                                     {showMemberDropdown && (
                                         <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-50 max-h-[220px] overflow-y-auto custom-scrollbar">
-                                            {employees.filter(emp => String(emp.id) !== editForm.leader).map(emp => (
+                                            {getProjectEmployees(editForm.project_id).filter(emp => String(emp.id) !== editForm.leader).map(emp => (
                                                 <div
                                                     key={emp.id}
                                                     onClick={() => handleMemberToggle(String(emp.id), true)}

@@ -112,8 +112,8 @@ const getProfileUrl = (path: string | undefined): string => {
 
 const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
@@ -223,7 +223,7 @@ function CustomDropdown({
         <img
           src={ArrowDown}
           alt=""
-          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""} ${styleType === "table" ? "opacity-70" : isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
+          className={`w-3 h-3 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""} ${styleType === "table" ? "opacity-70" : isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
           aria-hidden
         />
       </button>
@@ -436,10 +436,18 @@ export default function ConsultantBC() {
       if (currentType !== "trainee") return false;
     }
 
-    if (statusFilter === "Active") {
-      if (emp.active !== "active") return false;
+    const isActive = (emp.active || "").toLowerCase() === "active";
+    if (statusFilter === "Online") {
+      if (!isActive || (emp.status || "").toLowerCase() !== "online") return false;
+    } else if (statusFilter === "Offline") {
+      if (!isActive || (emp.status || "").toLowerCase() === "online") return false;
     } else if (statusFilter === "Inactive") {
-      if (emp.active !== "deactive" && emp.active !== "inactive") return false;
+      if (isActive) return false;
+    } else if (statusFilter === "Active") {
+      if (!isActive) return false;
+    } else {
+      // Default: hide inactive users
+      if (!isActive) return false;
     }
     return true;
   });
@@ -651,7 +659,7 @@ export default function ConsultantBC() {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-white">
       <div className="sticky z-50 bg-white mb-4 mt-2 overflow-visible">
-        <div className="flex w-full min-h-[44px] flex-nowrap items-center gap-2 sm:gap-3 overflow-visible">
+        <div className="flex w-full min-h-[44px] flex-nowrap items-center gap-2 sm:gap-3 overflow-visible px-2">
           <h1 className="text-[24px] font-medium text-[#000000] font-Gantari shrink-0 pr-1">
             Consultants
           </h1>
@@ -701,21 +709,21 @@ export default function ConsultantBC() {
                   <button
                     type="button"
                     onClick={() => navigate("/bc/consultants/add")}
-                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
                     Add Consultant
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowInviteModal(true)}
-                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
                     Invite
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowInactiveModal(true)}
-                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[14px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
                     Manage Inactive
                   </button>
@@ -758,7 +766,7 @@ export default function ConsultantBC() {
                     <img
                       src={ArrowDown}
                       alt=""
-                      className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                      className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
                         } ${selectedShowEntries === ""
                           ? "opacity-60 grayscale"
                           : "opacity-90"
@@ -826,23 +834,23 @@ export default function ConsultantBC() {
                   )}
                 </div>
               )}
-              {viewMode === "card" ? (
+              {viewMode === "table" ? (
                 <CustomDropdown
-                  options={["All", "Employee", "Trainee"]}
-                  value={typeFilter}
-                  onChange={(val) => setTypeFilter(val)}
-                  placeholder="Type"
-                  className="w-[100px]"
+                  options={["Active", "Inactive"]}
+                  value={statusFilter}
+                  onChange={(val) => setStatusFilter(val)}
+                  placeholder="Status"
+                  className="w-[100px] sm:w-[110px]"
                   styleType="header"
                   alignMenu="right"
                 />
               ) : (
                 <CustomDropdown
-                  options={["All", "Active", "Inactive"]}
+                  options={["All", "Online", "Offline", "Inactive"]}
                   value={statusFilter}
                   onChange={(val) => setStatusFilter(val)}
                   placeholder="Status"
-                  className="w-[100px]"
+                  className="w-[105px]"
                   styleType="header"
                   alignMenu="right"
                 />

@@ -853,10 +853,7 @@ export default function ProjectEV() {
                   return (
                     <div
                       key={p.id}
-                      onClick={() => {
-                        setSelectedProject(p);
-                        setShowProjectView(true);
-                      }}
+                      onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(openMenuProjectId === p.id ? null : p.id); }}
                       className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                     >
                       <div>
@@ -936,6 +933,10 @@ export default function ProjectEV() {
                                       key={emp.id}
                                       className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 overflow-hidden cursor-pointer"
                                       title={emp.full_name}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openMemberProfile(emp);
+                                      }}
                                     >
                                       {profileUrl ? (
                                         <img src={profileUrl} alt={emp.full_name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
@@ -948,7 +949,14 @@ export default function ProjectEV() {
                                   );
                                 })}
                                 {remainingCount > 0 && (
-                                  <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm">
+                                  <div
+                                    className="w-8 h-8 rounded-full border-2 border-white bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setAllMembersList(projectEmployees);
+                                      setShowAllMembersModal(true);
+                                    }}
+                                  >
                                     +{remainingCount}
                                   </div>
                                 )}

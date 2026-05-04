@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import api from "../../../lib/api";
@@ -22,7 +23,8 @@ type Bid = {
 export default function MyBidsPMV() {
     const [loading, setLoading] = useState(true);
     const [bids, setBids] = useState<Bid[]>([]);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const searchTerm = searchParams.get('q') || '';
     const [detailBid, setDetailBid] = useState<Bid | null>(null);
 
     useEffect(() => {
@@ -76,12 +78,21 @@ export default function MyBidsPMV() {
                         <input
                             type="text"
                             value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
+                            onChange={e => {
+                                const newParams = new URLSearchParams(searchParams);
+                                if (e.target.value) newParams.set("q", e.target.value);
+                                else newParams.delete("q");
+                                setSearchParams(newParams, { replace: true });
+                            }}
                             placeholder="Search project..."
                             className="bg-transparent text-sm font-medium text-[#353535] placeholder:text-[#616161] focus:outline-none w-full font-gantari"
                         />
                         {searchTerm && (
-                            <button onClick={() => setSearchTerm('')} className="text-[#616161] hover:text-[#353535] transition-colors ml-1 cursor-pointer">
+                            <button onClick={() => {
+                                const newParams = new URLSearchParams(searchParams);
+                                newParams.delete("q");
+                                setSearchParams(newParams, { replace: true });
+                            }} className="text-[#616161] hover:text-[#353535] transition-colors ml-1 cursor-pointer">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                                 </svg>
