@@ -50,7 +50,7 @@ function CustomDropdown({
         className={`w-full flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] font-Gantari transition-all outline-none cursor-pointer ${isOpen ? '!border-[#AEACAC52]' : ''}`}
       >
         <span className={value ? 'text-[#353535]' : 'text-[#8B8B8B]'}>{value || placeholder}</span>
-        <FiChevronDown className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} text-slate-500`} />
+        <FiChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} text-slate-500`} />
       </button>
       {isOpen && (
         <div className="absolute top-full left-0 w-full mt-1 bg-white border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden">
@@ -114,8 +114,8 @@ export default function AddConsultantBC() {
     e.preventDefault();
     setAddError('');
     setAddSuccess('');
-    if (!form.full_name.trim() || !form.email.trim() || !form.password) {
-        setAddError('Name, email and password are required.');
+    if (!form.full_name.trim() || !form.email.trim() || !form.password || !form.phone_number) {
+        setAddError('Name, email, password and phone number are required.');
         return;
     }
 
@@ -204,7 +204,7 @@ export default function AddConsultantBC() {
 
 
   return (
-    <div className="flex-1 overflow-y-auto p-2 bg-white">
+    <div className="flex-1 overflow-y-auto px-5 py-2 bg-white custom-scrollbar">
       <div className="max-w-[1174px] mx-auto">
         <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
           <button
@@ -215,7 +215,7 @@ export default function AddConsultantBC() {
             <img src={backIcon} alt="Back" className="w-5 h-5" />
             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
               <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-2 py-0.5 relative z-10">
                 <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                   Go Back
                 </span>
@@ -316,6 +316,23 @@ export default function AddConsultantBC() {
                   required
                 />
               </div>
+              <div className="space-y-2">
+                <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Upload Profile Picture</label>
+                <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
+                  <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
+                    {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
+                  </div>
+                  <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
+                    Browse File
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".jpg,.jpeg"
+                      onChange={(e) => setForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-5">
@@ -325,7 +342,7 @@ export default function AddConsultantBC() {
                   type="date"
                   value={form.dob}
                   onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
-                  className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                  className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] ${form.dob ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
                 />
               </div>
               <div>
@@ -354,7 +371,7 @@ export default function AddConsultantBC() {
                   type="date"
                   value={form.joining_date}
                   onChange={(e) => setForm((f) => ({ ...f, joining_date: e.target.value }))}
-                  className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                  className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] ${form.joining_date ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
                 />
               </div>
               <div>
@@ -367,23 +384,6 @@ export default function AddConsultantBC() {
                   className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   required
                 />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Upload Profile Picture</label>
-                <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
-                  <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
-                    {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
-                  </div>
-                  <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
-                    Browse File
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept=".jpg,.jpeg"
-                      onChange={(e) => setForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
-                    />
-                  </label>
-                </div>
               </div>
             </div>
           </div>
@@ -430,14 +430,14 @@ export default function AddConsultantBC() {
             <button
               type="button"
               onClick={() => navigate('/bc/consultants')}
-              className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
+              className="px-6 py-2 sm:py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-medium text-[14px] sm:text-[14px] transition-all cursor-pointer"
             >
               Discard
             </button>
             <button
               type="submit"
               disabled={addSubmitting}
-              className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 disabled:cursor-not-allowed transition-all font-Gantari min-w-[160px] cursor-pointer"
+              className="w-full sm:w-auto px-6 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-medium text-[14px] disabled:opacity-50 transition-all font-Gantari cursor-pointer"
             >
               {addSubmitting ? 'Submitting...' : 'Submit'}
             </button>

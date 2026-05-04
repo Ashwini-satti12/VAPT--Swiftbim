@@ -33,8 +33,18 @@ interface WorkOrder {
 export default function ViewWorkorder() {
   const location = useLocation();
   const navigate = useNavigate();
-  const state: any = location.state || {};
+  const state = (location.state || {}) as { selectedWO?: WorkOrder | null };
   const selectedWO: WorkOrder | null = state.selectedWO || null;
+
+  const renderRichText = (html?: string) => {
+    if (!html) return null;
+    return (
+      <div
+        className="prose prose-sm max-w-none text-[#353535] [&_table]:w-full [&_table]:border-collapse [&_table]:text-[14px] [&_th]:border [&_td]:border [&_th]:border-[#AEACAC52] [&_td]:border-[#AEACAC52] [&_th]:bg-white [&_th]:font-semibold [&_th]:text-left [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-1"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  };
 
   if (!selectedWO) {
     return (
@@ -149,7 +159,11 @@ export default function ViewWorkorder() {
           </div>
           <div>
             <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Timeline</p>
-            <p className="text-[15px] font-medium text-[#353535]">{selectedWO.timeline || "—"}</p>
+            <div className="text-[15px] font-medium text-[#353535]">
+              {selectedWO.timeline?.includes("<")
+                ? renderRichText(selectedWO.timeline)
+                : (selectedWO.timeline || "—")}
+            </div>
           </div>
           <div className="md:col-span-2">
             <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Vendor Address</p>
@@ -168,6 +182,9 @@ export default function ViewWorkorder() {
                 className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52] text-[14px] text-[#353535] font-gantari leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                 dangerouslySetInnerHTML={{ __html: selectedWO.work_description || "" }}
               />
+              <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
+                {renderRichText(selectedWO.work_description)}
+              </div>
             </div>
           )}
 
@@ -180,6 +197,9 @@ export default function ViewWorkorder() {
                 className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52] text-[14px] text-[#353535] font-gantari leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                 dangerouslySetInnerHTML={{ __html: selectedWO.scope_of_work || "" }}
               />
+              <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
+                {renderRichText(selectedWO.scope_of_work)}
+              </div>
             </div>
           )}
 
@@ -192,6 +212,9 @@ export default function ViewWorkorder() {
                 className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52] text-[14px] text-[#353535] font-gantari leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                 dangerouslySetInnerHTML={{ __html: selectedWO.project_involves || "" }}
               />
+              <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
+                {renderRichText(selectedWO.project_involves)}
+              </div>
             </div>
           )}
 
@@ -204,6 +227,9 @@ export default function ViewWorkorder() {
                 className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52] text-[14px] text-[#353535] font-gantari leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                 dangerouslySetInnerHTML={{ __html: selectedWO.deliverables || "" }}
               />
+              <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
+                {renderRichText(selectedWO.deliverables)}
+              </div>
             </div>
           )}
 
@@ -216,6 +242,9 @@ export default function ViewWorkorder() {
                 className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52] text-[14px] text-[#353535] font-gantari leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                 dangerouslySetInnerHTML={{ __html: selectedWO.terms_and_conditions || "" }}
               />
+              <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
+                {renderRichText(selectedWO.terms_and_conditions)}
+              </div>
             </div>
           )}
 
@@ -228,6 +257,9 @@ export default function ViewWorkorder() {
                 className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52] text-[14px] text-[#353535] font-gantari leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                 dangerouslySetInnerHTML={{ __html: selectedWO.payment_terms || "" }}
               />
+              <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
+                {renderRichText(selectedWO.payment_terms)}
+              </div>
             </div>
           )}
 
@@ -240,6 +272,9 @@ export default function ViewWorkorder() {
                 className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52] text-[14px] text-[#353535] font-gantari leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                 dangerouslySetInnerHTML={{ __html: selectedWO.additional_terms || "" }}
               />
+              <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
+                {renderRichText(selectedWO.additional_terms)}
+              </div>
             </div>
           )}
 

@@ -326,7 +326,7 @@ export default function VendorBimLeadTeamTasks() {
   // Employees filtered by selected project members
   const employeesForAssignDropdown = useMemo(() => {
     let all = Array.isArray(employees) ? [...employees] : [];
-    
+
     // Ensure current user is in the list
     if (user && !all.some(e => String(e.id) === String(user.id))) {
       all.push({
@@ -341,14 +341,14 @@ export default function VendorBimLeadTeamTasks() {
     );
     const raw = (meta?.members || "").trim();
     if (!raw) return all;
-    
+
     const tokens = raw
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-    
+
     if (tokens.length === 0) return all;
-    
+
     return all.filter((emp) => {
       const name = (emp.full_name || "").trim();
       const idStr = String(emp.id);
@@ -357,7 +357,7 @@ export default function VendorBimLeadTeamTasks() {
         return t === idStr || tl === name.toLowerCase() || name === t;
       });
       const isCurrentUser = String(emp.id) === String(user?.id);
-      
+
       return isAllowedByProject || isCurrentUser;
     });
   }, [employees, projects, createForm.projectName, user]);
@@ -580,15 +580,15 @@ export default function VendorBimLeadTeamTasks() {
 
   const baseTeamFilteredTasks = tasks.filter((t) => {
     if (searchQuery) {
-        if (!(
-            (t.task_name || "").toLowerCase().includes(searchQuery) ||
-            (t.project_name || "").toLowerCase().includes(searchQuery) ||
-            (t.assigned_to_name || "").toLowerCase().includes(searchQuery) ||
-            (t.priority || "").toLowerCase().includes(searchQuery) ||
-            (t.status || "").toLowerCase().includes(searchQuery)
-        )) {
-            return false;
-        }
+      if (!(
+        (t.task_name || "").toLowerCase().includes(searchQuery) ||
+        (t.project_name || "").toLowerCase().includes(searchQuery) ||
+        (t.assigned_to_name || "").toLowerCase().includes(searchQuery) ||
+        (t.priority || "").toLowerCase().includes(searchQuery) ||
+        (t.status || "").toLowerCase().includes(searchQuery)
+      )) {
+        return false;
+      }
     }
     const isAssignedToMe = Boolean(t.is_assigned_to_me);
     const isOwner = Boolean(t.is_owned_by_me);
@@ -845,8 +845,8 @@ export default function VendorBimLeadTeamTasks() {
             <span className="text-[14px] font-medium text-[#8B8B8B]">
               {(task as any).start_date
                 ? new Date((task as any).start_date)
-                    .toLocaleDateString("en-GB")
-                    .replace(/\//g, "-")
+                  .toLocaleDateString("en-GB")
+                  .replace(/\//g, "-")
                 : "—"}
             </span>
           </div>
@@ -857,8 +857,8 @@ export default function VendorBimLeadTeamTasks() {
             <span className="text-[14px] font-medium text-[#8B8B8B]">
               {task.due_date
                 ? new Date(task.due_date)
-                    .toLocaleDateString("en-GB")
-                    .replace(/\//g, "-")
+                  .toLocaleDateString("en-GB")
+                  .replace(/\//g, "-")
                 : "—"}
             </span>
           </div>
@@ -889,12 +889,12 @@ export default function VendorBimLeadTeamTasks() {
             {(() => {
               const src =
                 task.assigned_to != null &&
-                (task as any).assigned_profile_picture
+                  (task as any).assigned_profile_picture
                   ? getGlobalProfileUrl(
-                      task.assigned_to,
-                      (task as any).assigned_profile_picture,
-                      "vendor"
-                    )
+                    task.assigned_to,
+                    (task as any).assigned_profile_picture,
+                    "vendor"
+                  )
                   : (task as any).assigned_profile_picture
                     ? getProfileUrl((task as any).assigned_profile_picture)
                     : "";
@@ -953,149 +953,149 @@ export default function VendorBimLeadTeamTasks() {
     <div className="h-full min-h-0 flex flex-col font-gantari">
       {!showCreateModal && !showEditModal && (
         <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="flex-shrink-0 px-4 md:px-5 py-2">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-          <h2 className="text-[20px] md:text-[24px] font-semibold text-slate-800">
-            Team Tasks
-          </h2>
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <select
-                value={selectedEmployeeFilter}
-                onChange={(e) => setSelectedEmployeeFilter(e.target.value)}
-                className="appearance-none rounded-md bg-[#F2F2F2]  focus:border-[#AEAEAE] min-w-[140px] px-4 py-2 pr-8 text-[14px] text-[#353535] cursor-pointer"
-              >
-                {outlineEmployeeFilters.map((e) => (
-                  <option key={e} value={e}>
-                    {e}
-                  </option>
-                ))}
-              </select>
-              <img
-                src={ArrowDown}
-                alt="arrow"
-                className="pointer-events-none absolute right-3 top-1/2 h-2.5 w-2.5 -translate-y-1/2"
-              />
-            </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-white cursor-pointer"
-            >
-              <img src={AddBtn} alt="Add" className="h-5 w-5" />
-              Add Task
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 pt-2">
-          <div className="flex px-4 py-3 md:py-4 gap-3 md:gap-4 rounded-xl border shadow-sm relative bg-white border-slate-200">
-            <span className="text-[16px] md:text-[18px] font-bold text-[#0D1829]">
-              To Do
-            </span>
-            <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829]">
-              ({counts.todo})
-            </span>
-            <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-              <img
-                src={Group1}
-                alt="Group1"
-                className="w-6 h-6 md:w-8 md:h-8"
-              />
-            </div>
-          </div>
-          <div className="flex px-4 py-3 md:py-4 gap-3 md:gap-4 rounded-xl border shadow-sm relative bg-white border-slate-200">
-            <span className="text-[16px] md:text-[18px] font-bold text-[#0D1829]">
-              In Progress
-            </span>
-            <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829]">
-              ({counts.in_progress})
-            </span>
-            <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-              <img
-                src={Group2}
-                alt="Group2"
-                className="w-6 h-6 md:w-8 md:h-8"
-              />
-            </div>
-          </div>
-          <div className="flex px-4 py-3 md:py-4 gap-3 md:gap-4 rounded-xl border shadow-sm relative bg-white border-slate-200">
-            <span className="text-[16px] md:text-[18px] font-bold text-[#0D1829]">
-              Completed
-            </span>
-            <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829]">
-              ({counts.completed})
-            </span>
-            <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-              <img
-                src={Group3}
-                alt="Group3"
-                className="w-6 h-6 md:w-8 md:h-8"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pl-4 md:pr-2 pb-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-3">
-          {(["todo", "in_progress", "completed"] as const).map((bucket) => (
-            <div
-              key={bucket}
-              className="flex flex-col gap-4 min-h-[120px] rounded-lg border-2 border-dashed border-transparent p-1 transition-colors"
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                const taskId = Number(e.dataTransfer.getData("taskId"));
-                if (!Number.isNaN(taskId)) handleMoveTask(taskId, bucket);
-              }}
-            >
-              {displayedTasksByStatus[bucket].map((task) => (
-                <TaskCard key={task.id} task={task} status={bucket} />
-              ))}
-              {displayedTasksByStatus[bucket].length === 0 && (
-                <div className="rounded-[15px] border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center text-[14px] text-slate-400 font-medium font-Gantari">
-                  No tasks in this stage
+          <div className="flex-shrink-0 px-4 md:px-5 py-2">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+              <h2 className="text-[20px] md:text-[24px] font-semibold text-slate-800">
+                Team Tasks
+              </h2>
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <select
+                    value={selectedEmployeeFilter}
+                    onChange={(e) => setSelectedEmployeeFilter(e.target.value)}
+                    className="appearance-none rounded-md bg-[#F2F2F2]  focus:border-[#AEAEAE] min-w-[140px] px-4 py-2 pr-8 text-[14px] text-[#353535] cursor-pointer"
+                  >
+                    {outlineEmployeeFilters.map((e) => (
+                      <option key={e} value={e}>
+                        {e}
+                      </option>
+                    ))}
+                  </select>
+                  <img
+                    src={ArrowDown}
+                    alt="arrow"
+                    className="pointer-events-none absolute right-3 top-1/2 h-2.5 w-2.5 -translate-y-1/2"
+                  />
                 </div>
-              )}
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-white cursor-pointer"
+                >
+                  <img src={AddBtn} alt="Add" className="h-5 w-5" />
+                  Add Task
+                </button>
+              </div>
             </div>
-          ))}
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 pt-2">
+              <div className="flex px-4 py-3 md:py-4 gap-3 md:gap-4 rounded-xl border shadow-sm relative bg-white border-slate-200">
+                <span className="text-[16px] md:text-[18px] font-bold text-[#0D1829]">
+                  To Do
+                </span>
+                <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829]">
+                  ({counts.todo})
+                </span>
+                <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                  <img
+                    src={Group1}
+                    alt="Group1"
+                    className="w-6 h-6 md:w-8 md:h-8"
+                  />
+                </div>
+              </div>
+              <div className="flex px-4 py-3 md:py-4 gap-3 md:gap-4 rounded-xl border shadow-sm relative bg-white border-slate-200">
+                <span className="text-[16px] md:text-[18px] font-bold text-[#0D1829]">
+                  In Progress
+                </span>
+                <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829]">
+                  ({counts.in_progress})
+                </span>
+                <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                  <img
+                    src={Group2}
+                    alt="Group2"
+                    className="w-6 h-6 md:w-8 md:h-8"
+                  />
+                </div>
+              </div>
+              <div className="flex px-4 py-3 md:py-4 gap-3 md:gap-4 rounded-xl border shadow-sm relative bg-white border-slate-200">
+                <span className="text-[16px] md:text-[18px] font-bold text-[#0D1829]">
+                  Completed
+                </span>
+                <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829]">
+                  ({counts.completed})
+                </span>
+                <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                  <img
+                    src={Group3}
+                    alt="Group3"
+                    className="w-6 h-6 md:w-8 md:h-8"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pl-4 md:pr-2 pb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-3">
+              {(["todo", "in_progress", "completed"] as const).map((bucket) => (
+                <div
+                  key={bucket}
+                  className="flex flex-col gap-4 min-h-[120px] rounded-lg border-2 border-dashed border-transparent p-1 transition-colors"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const taskId = Number(e.dataTransfer.getData("taskId"));
+                    if (!Number.isNaN(taskId)) handleMoveTask(taskId, bucket);
+                  }}
+                >
+                  {displayedTasksByStatus[bucket].map((task) => (
+                    <TaskCard key={task.id} task={task} status={bucket} />
+                  ))}
+                  {displayedTasksByStatus[bucket].length === 0 && (
+                    <div className="rounded-[15px] border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center text-[14px] text-slate-400 font-medium font-Gantari">
+                      No tasks in this stage
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
-      </div>
       )}
 
       {/* ── Edit Task Page ────────────────────────────────────────── */}
       {showEditModal && (
-      <div className="flex-1 min-h-0 px-5 py-2 bg-white overflow-y-auto custom-scrollbar font-Gantari">
-        <div className="max-w-[1174px] mx-auto flex flex-col">
-          {/* Header with back button + tooltip */}
-          <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
-            <div className="group relative inline-flex shrink-0">
-              <button
-                type="button"
-                onClick={() => setShowEditModal(false)}
-                className="p-2 rounded-md bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
-              >
-                <img src={backIcon} alt="Back" className="w-5 h-5" />
-              </button>
-              {/* Tooltip */}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
-                  <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                    Go Back
-                  </span>
+        <div className="flex-1 min-h-0 px-5 py-2 bg-white overflow-y-auto custom-scrollbar font-Gantari">
+          <div className="max-w-[1174px] mx-auto flex flex-col">
+            {/* Header with back button + tooltip */}
+            <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
+              <div className="group relative inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
+                >
+                  <img src={backIcon} alt="Back" className="w-5 h-5" />
+                </button>
+                {/* Tooltip */}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
+                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Go Back
+                    </span>
+                  </div>
                 </div>
               </div>
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
+                Edit Task
+              </h3>
+              <div className="w-10" />
             </div>
-            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
-              Edit Task
-            </h3>
-            <div className="w-10" />
-          </div>
 
             {/* Form */}
             <form
@@ -1220,7 +1220,7 @@ export default function VendorBimLeadTeamTasks() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-medium text-[#3535335] mb-1">
-                       Start Date
+                      Start Date
                     </label>
                     <input
                       type="date"
@@ -1236,7 +1236,7 @@ export default function VendorBimLeadTeamTasks() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-medium text-[#3535335] mb-1">
-                       End Date
+                      End Date
                     </label>
                     <input
                       type="date"
@@ -1414,33 +1414,33 @@ export default function VendorBimLeadTeamTasks() {
 
       {/* ── Add Task Page ─────────────────────────────── */}
       {showCreateModal && (
-      <div className="flex-1 min-h-0 px-5 py-4 bg-white overflow-y-auto custom-scrollbar font-Gantari">
-        <div className="max-w-[1174px] mx-auto flex flex-col">
-          {/* Header with back button + tooltip */}
-          <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
-            <div className="group relative inline-flex shrink-0">
-              <button
-                type="button"
-                onClick={resetAndClose}
-                className="p-2 rounded-md bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
-              >
-                <img src={backIcon} alt="Back" className="w-5 h-5" />
-              </button>
-              {/* Tooltip */}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
-                  <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                    Go Back
-                  </span>
+        <div className="flex-1 min-h-0 px-5 py-4 bg-white overflow-y-auto custom-scrollbar font-Gantari">
+          <div className="max-w-[1174px] mx-auto flex flex-col">
+            {/* Header with back button + tooltip */}
+            <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
+              <div className="group relative inline-flex shrink-0">
+                <button
+                  type="button"
+                  onClick={resetAndClose}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
+                >
+                  <img src={backIcon} alt="Back" className="w-5 h-5" />
+                </button>
+                {/* Tooltip */}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
+                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Go Back
+                    </span>
+                  </div>
                 </div>
               </div>
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
+                Add New Task
+              </h3>
+              <div className="w-10" />
             </div>
-            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
-              Add New Task
-            </h3>
-            <div className="w-10" />
-          </div>
 
             {/* Form */}
             <form
@@ -1568,7 +1568,7 @@ export default function VendorBimLeadTeamTasks() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-medium text-[#353535] mb-1">
-                       Start Date
+                      Start Date
                     </label>
                     <input
                       type="date"
@@ -1593,7 +1593,7 @@ export default function VendorBimLeadTeamTasks() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-medium text-[#353535] mb-1">
-                       End Date
+                      End Date
                     </label>
                     <input
                       type="date"
@@ -1859,4 +1859,4 @@ export default function VendorBimLeadTeamTasks() {
     </div>
   );
 }
-  
+

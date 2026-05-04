@@ -425,7 +425,17 @@ export default function AddTaskV() {
     return all.filter((e) => {
       const name = (e.full_name || "").trim();
       const idStr = String(e.id);
-      const isAllowedByProject = members.some(m => m === idStr || m.toLowerCase() === name.toLowerCase() || name === m);
+      
+      // Include PM, Lead, and BIM Coordinator if they match this employee
+      const isProjectOfficial = 
+        (meta?.project_manager_name && name.toLowerCase() === meta.project_manager_name.toLowerCase()) ||
+        (meta?.lead_name && name.toLowerCase() === meta.lead_name.toLowerCase()) ||
+        (meta?.bim_coordinator_name && name.toLowerCase() === meta.bim_coordinator_name.toLowerCase()) ||
+        ((meta as any)?.project_manager_id && String((meta as any).project_manager_id) === idStr) ||
+        ((meta as any)?.lead_id && String((meta as any).lead_id) === idStr) ||
+        ((meta as any)?.bim_coordinator_id && String((meta as any).bim_coordinator_id) === idStr);
+
+      const isAllowedByProject = isProjectOfficial || members.some(m => m === idStr || m.toLowerCase() === name.toLowerCase() || name === m);
       const isCurrentUser = String(e.id) === String(user?.id);
       
       return isAllowedByProject || isCurrentUser;

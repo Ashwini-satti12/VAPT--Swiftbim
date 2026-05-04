@@ -14,6 +14,24 @@ const ROLE_OPTIONS: string[] = [
   "Bim Coordinator"
 ];
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 const PANEL_ACCESS_OPTIONS = [
   'Management', 'Accounts', 'Technical Director', 'Admin', 'Project Manager', 'Client', 'Sales', 'BIM Lead', 'Employee', 'All'
 ];
@@ -79,6 +97,15 @@ export default function AddConsultantBL() {
   const navigate = useNavigate();
   const [addError, setAddError] = useState('');
   const [addSubmitting, setAddSubmitting] = useState(false);
+
+  useEffect(() => {
+    const styleTag = document.createElement("style");
+    styleTag.textContent = SCROLLBAR_STYLE;
+    document.head.appendChild(styleTag);
+    return () => {
+      document.head.removeChild(styleTag);
+    };
+  }, []);
 
   const [form, setForm] = useState({
     full_name: '',
@@ -180,10 +207,9 @@ export default function AddConsultantBL() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-white overflow-hidden">
-      {/* Fixed Header Section */}
-      <div className="sticky top-0 z-50 bg-white px-4 sm:px-8 py-4 sm:py-6">
-        <div className="max-w-[1174px] mx-auto flex items-center justify-between relative">
+    <div className="flex-1 overflow-y-auto px-5 py-2 bg-white relative custom-scrollbar">
+      <div className="max-w-[1174px] mx-auto">
+        <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
           <div className="relative group">
             <button
               type="button"
@@ -194,7 +220,7 @@ export default function AddConsultantBL() {
             </button>
             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
               <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
                 <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                   Go back
                 </span>
@@ -206,11 +232,6 @@ export default function AddConsultantBL() {
           </h3>
           <div className="w-10" />
         </div>
-      </div>
-
-      {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 custom-scrollbar">
-        <div className="max-w-[1174px] mx-auto">
 
         <form onSubmit={handleAddSubmit} className="space-y-6">
           {addError && (
@@ -287,6 +308,23 @@ export default function AddConsultantBL() {
                   placeholder="Select Role"
                 />
               </div>
+              <div className="space-y-2">
+                <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Upload Profile Picture</label>
+                <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
+                  <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
+                    {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
+                  </div>
+                   <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
+                    Browse File
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".jpg,.jpeg"
+                      onChange={(e) => setForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-5">
@@ -311,6 +349,15 @@ export default function AddConsultantBL() {
                   required
                 />
               </div>
+              <div className="relative">
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
+                <CustomDropdown
+                  options={['Employee', 'Trainee']}
+                  value={form.type}
+                  onChange={(val) => setForm((f) => ({ ...f, type: val }))}
+                  placeholder="Select Type"
+                />
+              </div>
               <div>
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining <span className="text-[#DD4342]">*</span></label>
                 <input
@@ -319,23 +366,6 @@ export default function AddConsultantBL() {
                   onChange={(e) => setForm((f) => ({ ...f, joining_date: e.target.value }))}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                 />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Upload Profile Picture</label>
-                <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
-                  <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
-                    {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
-                  </div>
-                   <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
-                    Browse File
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept=".jpg,.jpeg"
-                      onChange={(e) => setForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
-                    />
-                  </label>
-                </div>
               </div>
             </div>
           </div>
@@ -378,18 +408,18 @@ export default function AddConsultantBL() {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-4">
             <button
               type="button"
               onClick={() => navigate('/bl/consultants')}
-              className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-medium text-[16px] transition-all font-Gantari cursor-pointer"
+              className="px-6 py-2 sm:py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-medium text-[14px] sm:text-[14px] transition-all cursor-pointer"
             >
               Discard
             </button>
             <button
               type="submit"
               disabled={addSubmitting}
-              className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-medium text-[16px] disabled:opacity-50 transition-all font-Gantari cursor-pointer disabled:cursor-not-allowed"
+              className="px-6 py-2 sm:py-2 rounded-md bg-[#DBE9FE]   font-medium text-[14px] sm:text-[14px] transition-all cursor-pointer"
             >
               {addSubmitting ? 'Submitting...' : 'Submit'}
             </button>
@@ -397,6 +427,5 @@ export default function AddConsultantBL() {
         </form>
         </div>
       </div>
-    </div>
-  );
+    );
 }

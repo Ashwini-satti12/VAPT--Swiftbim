@@ -126,8 +126,8 @@ const toCamelCase = (str: string): string => {
 
 const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
@@ -352,7 +352,7 @@ function CustomDropdown({
         <img
           src={ArrowDown}
           alt=""
-          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""} ${styleType === "table" ? "opacity-70" : isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
+          className={`w-3 h-3 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""} ${styleType === "table" ? "opacity-70" : isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
           aria-hidden
         />
       </button>
@@ -510,10 +510,18 @@ export default function ConsultantBL() {
       if ((emp.user_type || "").toLowerCase() !== "trainee") return false;
     }
 
-    if (statusFilter === "Active") {
-      if (emp.active !== "active") return false;
+    const isActive = (emp.active || "").toLowerCase() === "active";
+    if (statusFilter === "Online") {
+      if (!isActive || (emp.status || "").toLowerCase() !== "online") return false;
+    } else if (statusFilter === "Offline") {
+      if (!isActive || (emp.status || "").toLowerCase() === "online") return false;
     } else if (statusFilter === "Inactive") {
-      if (emp.active !== "deactive" && emp.active !== "inactive") return false;
+      if (isActive) return false;
+    } else if (statusFilter === "Active") {
+      if (!isActive) return false;
+    } else {
+      // Default: hide inactive users
+      if (!isActive) return false;
     }
 
     return true;
@@ -860,20 +868,22 @@ export default function ConsultantBL() {
             {/* Dropdowns */}
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-2 overflow-visible">
               {viewMode === "card" && (
-                <CustomDropdown
-                  options={["All", "Employee", "Trainee"]}
-                  value={typeFilter}
-                  onChange={(val) => setTypeFilter(val)}
-                  placeholder="Type"
-                  className="w-[90px] sm:w-[100px]"
-                  styleType="header"
-                  alignMenu="right"
-                />
+                <>
+                  <CustomDropdown
+                    options={["Online", "Offline", "Inactive"]}
+                    value={statusFilter}
+                    onChange={(val) => setStatusFilter(val)}
+                    placeholder="Status"
+                    className="w-[105px] sm:w-[120px]"
+                    styleType="header"
+                    alignMenu="right"
+                  />
+                </>
               )}
               {viewMode === "table" && (
                 <>
                   <CustomDropdown
-                    options={["All", "Active", "Inactive"]}
+                    options={["Active", "Inactive"]}
                     value={statusFilter}
                     onChange={(val) => setStatusFilter(val)}
                     placeholder="Status"
