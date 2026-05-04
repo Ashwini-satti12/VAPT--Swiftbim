@@ -34,6 +34,11 @@ interface WorkOrder {
   vendor_signature?: string;
 }
 
+type PaymentTermsTable = {
+  headers: string[];
+  rows: string[][];
+};
+
 export default function ViewWorkorderV() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -48,6 +53,112 @@ export default function ViewWorkorderV() {
         className="prose prose-sm max-w-none text-[#353535] [&_table]:w-full [&_table]:border-collapse [&_table]:text-[14px] [&_th]:border [&_td]:border [&_th]:border-[#AEACAC52] [&_td]:border-[#AEACAC52] [&_th]:bg-white [&_th]:font-semibold [&_th]:text-left [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-1"
         dangerouslySetInnerHTML={{ __html: html }}
       />
+    );
+  };
+
+  const parsePaymentTermsTable = (value?: string): PaymentTermsTable | null => {
+    if (!value || !value.trim()) return null;
+
+    const defaultHeaders = [
+      "Sl.No",
+      "Payment Basis",
+      "Terms (%)",
+      "Amount",
+      "Timeline",
+    ];
+
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (Array.isArray(parsed)) {
+        const rows = parsed
+          .map((r) => {
+            const row = r as Record<string, unknown>;
+            return [
+              String(row.sl_no ?? row.slNo ?? ""),
+              String(row.basis ?? row.label ?? ""),
+              String(row.terms ?? row.value ?? ""),
+              String(row.amount ?? ""),
+              String(row.timeline ?? ""),
+            ];
+          })
+          .filter((r) => r.some((cell) => cell.trim() !== ""));
+        if (rows.length > 0) return { headers: defaultHeaders, rows };
+      }
+    } catch {
+      // Not JSON; continue HTML parse.
+    }
+
+    const doc = new DOMParser().parseFromString(value, "text/html");
+    const table = doc.querySelector("table");
+    if (!table) return null;
+
+    let headers = Array.from(table.querySelectorAll("thead th")).map((th) =>
+      (th.textContent || "").trim(),
+    );
+
+    if (headers.length === 0) {
+      const firstRowCells = Array.from(table.querySelectorAll("tr:first-child th, tr:first-child td"));
+      headers = firstRowCells.map((cell) => (cell.textContent || "").trim());
+    }
+
+    if (
+      headers.length === 1 &&
+      /sl\.?\s*no.*payment.*terms.*amount.*timeline/i.test(headers[0] || "")
+    ) {
+      headers = defaultHeaders;
+    }
+
+    const bodyRows = Array.from(table.querySelectorAll("tbody tr"));
+    const sourceRows = bodyRows.length ? bodyRows : Array.from(table.querySelectorAll("tr")).slice(1);
+    const rows = sourceRows
+      .map((tr) =>
+        Array.from(tr.querySelectorAll("td, th")).map((cell) =>
+          (cell.textContent || "").trim(),
+        ),
+      )
+      .filter((row) => row.some((cell) => cell !== ""));
+
+    if (rows.length === 0) return null;
+    if (headers.length === 0) headers = defaultHeaders.slice(0, rows[0].length);
+
+    return { headers, rows };
+  };
+
+  const renderPaymentTerms = (value?: string) => {
+    const parsed = parsePaymentTermsTable(value);
+    if (!parsed) return renderRichText(value);
+
+    return (
+      <div className="overflow-x-auto rounded-[6px] border border-[#AEACAC52] bg-white">
+        <table className="w-full border-collapse text-[14px] text-[#353535]">
+          <thead>
+            <tr className="bg-[#F2F2F2]">
+              {parsed.headers.map((header, idx) => (
+                <th
+                  key={`${header}-${idx}`}
+                  className="border border-[#AEACAC52] px-3 py-2 text-left font-semibold whitespace-nowrap"
+                >
+                  {header || `Column ${idx + 1}`}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {parsed.rows.map((row, rowIdx) => (
+              <tr key={`row-${rowIdx}`} className={rowIdx % 2 ? "bg-[#FAFAFA]" : "bg-white"}>
+                {row.map((cell, colIdx) => (
+                  <td
+                    key={`cell-${rowIdx}-${colIdx}`}
+                    className="border border-[#AEACAC52] px-3 py-2 align-top"
+                  >
+                    {cell || "—"}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     );
   };
 
@@ -347,7 +458,7 @@ export default function ViewWorkorderV() {
                 Payment Terms
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                {renderRichText(selectedWO.payment_terms)}
+                {renderPaymentTerms(selectedWO.payment_terms)}
               </div>
             </div>
           )}
@@ -409,7 +520,7 @@ export default function ViewWorkorderV() {
             </div>
 
             {/* Vendor Signature */}
-            <div className="space-y-4">
+            {/* <div className="space-y-4">
               <h3 className="font-bold text-[14px] uppercase tracking-wide text-[#000000]">
                 Vendor
               </h3>
@@ -438,7 +549,7 @@ export default function ViewWorkorderV() {
                   <span className="font-semibold">{selectedWO.vendor_sign_date || "—"}</span>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

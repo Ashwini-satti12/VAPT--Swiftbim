@@ -71,12 +71,90 @@ type Proposal = {
     source?: string;
 };
 
+function HeaderDropdown({
+    value,
+    onChange,
+    placeholder,
+    options,
+    className,
+}: {
+    value: string;
+    onChange: (val: string) => void;
+    placeholder: string;
+    options: { label: string; value: string }[];
+    className?: string;
+}) {
+    const [open, setOpen] = useState(false);
+    const wrapRef = useRef<HTMLDivElement>(null);
+    const selectedLabel =
+        options.find((opt) => opt.value === value)?.label || placeholder;
+
+    useEffect(() => {
+        const onOutside = (e: MouseEvent) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", onOutside);
+        return () => document.removeEventListener("mousedown", onOutside);
+    }, []);
+
+    return (
+        <div ref={wrapRef} className={`relative ${className || "w-full"}`}>
+            <button
+                type="button"
+                onClick={() => setOpen((p) => !p)}
+                className="w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+            >
+                <span className={`${value ? "text-[#353535]" : "text-[#8B8B8B]"} truncate`}>
+                    {selectedLabel}
+                </span>
+                <img
+                    src={ArrowDown}
+                    alt=""
+                    className={`w-3 h-3 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+                    aria-hidden
+                />
+            </button>
+            {open && (
+                <div className="absolute top-full left-0 mt-2 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-[10px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-50 overflow-hidden">
+                    <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                        {options.map((opt) => {
+                            const selected = opt.value === value;
+                            return (
+                                <button
+                                    key={`${placeholder}-${opt.value}-${opt.label}`}
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        onChange(opt.value);
+                                        setOpen(false);
+                                    }}
+                                    className={`w-full text-left px-4 py-3 text-[14px] font-gantari transition-colors cursor-pointer ${selected
+                                            ? "text-[#353535] bg-[#F2F2F2]"
+                                            : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                        }`}
+                                >
+                                    {opt.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function ProposalsV() {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
     const location = useLocation();
     const [bids, setBids] = useState<AcceptedBid[]>([]);
     const [selectedShowEntries, setSelectedShowEntries] = useState("");
+    const [projectFilter, setProjectFilter] = useState("");
+    const [vendorFilter, setVendorFilter] = useState("");
+    const [tableCurrentPage, setTableCurrentPage] = useState(1);
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
     const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
@@ -145,18 +223,62 @@ export default function ProposalsV() {
 
     const effectiveShowEntryValue = selectedShowEntries || showEntriesOptions[0].value;
     const selectedRange = showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ?? showEntriesOptions[0];
+    const projectNames = Array.from(new Set(bids.map((b) => (b.project_name || "").trim()).filter(Boolean))).sort();
+    const vendorNames = Array.from(new Set(bids.map((b) => (b.vendor_name || "").trim()).filter(Boolean))).sort();
+    const projectFilterOptions = [
+        { label: "Project Name", value: "" },
+        ...projectNames.map((name) => ({ label: name, value: name })),
+    ];
+    const vendorFilterOptions = [
+        { label: "Vendor Name", value: "" },
+        ...vendorNames.map((name) => ({ label: name, value: name })),
+    ];
+
     const filteredBids = bids.filter((bid) => {
-        if (!searchQuery) return true;
-        return (
+        const matchesSearch = !searchQuery || (
             (bid.project_name || "").toLowerCase().includes(searchQuery) ||
             (bid.vendor_name || "").toLowerCase().includes(searchQuery) ||
             (bid.status || "").toLowerCase().includes(searchQuery) ||
             (bid.proposal_status || "").toLowerCase().includes(searchQuery)
         );
+        if (!matchesSearch) return false;
+        if (projectFilter && bid.project_name !== projectFilter) return false;
+        if (vendorFilter && bid.vendor_name !== vendorFilter) return false;
+        return true;
     });
 
     const rangeEnd = selectedRange.end === null ? filteredBids.length : Math.min(selectedRange.end, filteredBids.length);
-    const displayList = filteredBids.slice(selectedRange.start, rangeEnd);
+    const listInRange = filteredBids.slice(selectedRange.start, rangeEnd);
+    const tableRowsPerPage = 5;
+    const tableTotalPages = Math.max(1, Math.ceil(listInRange.length / tableRowsPerPage));
+    const safeTableCurrentPage = Math.min(tableCurrentPage, tableTotalPages);
+    const tablePageStartIndex = (safeTableCurrentPage - 1) * tableRowsPerPage;
+    const displayList = listInRange.slice(
+        tablePageStartIndex,
+        tablePageStartIndex + tableRowsPerPage,
+    );
+    const tablePageRangeStart =
+        listInRange.length === 0
+            ? 0
+            : selectedRange.start + tablePageStartIndex + 1;
+    const tablePageRangeEnd =
+        listInRange.length === 0
+            ? 0
+            : Math.min(
+                selectedRange.start + tablePageStartIndex + tableRowsPerPage,
+                rangeEnd,
+            );
+    const tablePageRangeLabel =
+        listInRange.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
+
+    const handleProjectFilter = (v: string) => {
+        setProjectFilter(v);
+        setTableCurrentPage(1);
+    };
+    const handleVendorFilter = (v: string) => {
+        setVendorFilter(v);
+        setTableCurrentPage(1);
+    };
 
     // --- TABLE LIST VIEW ---
     return (
@@ -168,6 +290,20 @@ export default function ProposalsV() {
                     <h2 className="text-2xl font-semibold text-[#000000]">Proposals</h2>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
+                    <HeaderDropdown
+                        value={projectFilter}
+                        onChange={handleProjectFilter}
+                        placeholder="Project Name"
+                        options={projectFilterOptions}
+                        className="w-full sm:w-[180px]"
+                    />
+                    <HeaderDropdown
+                        value={vendorFilter}
+                        onChange={handleVendorFilter}
+                        placeholder="Vendor Name"
+                        options={vendorFilterOptions}
+                        className="w-full sm:w-[180px]"
+                    />
                     <div className="relative w-full sm:w-[150px]" ref={showEntriesDropdownRef}>
                         <button
                             type="button"
@@ -217,6 +353,7 @@ export default function ProposalsV() {
                                             e.preventDefault();
                                             e.stopPropagation();
                                             setSelectedShowEntries("");
+                                            setTableCurrentPage(1);
                                             setShowEntriesOpen(false);
                                         }}
                                         className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
@@ -233,6 +370,7 @@ export default function ProposalsV() {
                                                     e.preventDefault();
                                                     e.stopPropagation();
                                                     setSelectedShowEntries(opt.value);
+                                                    setTableCurrentPage(1);
                                                     setShowEntriesOpen(false);
                                                 }}
                                                 className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
@@ -297,7 +435,7 @@ export default function ProposalsV() {
                             </thead>
                             <tbody className="divide-y divide-gray-50">
                                 {displayList.map((bid, index) => {
-                                    const slNo = (selectedRange.start + index + 1).toString().padStart(2, '0');
+                                    const slNo = (selectedRange.start + tablePageStartIndex + index + 1).toString().padStart(2, '0');
                                     const displayStatus =
                                         bid.proposal_exists && bid.proposal_status
                                             ? bid.proposal_status
@@ -308,7 +446,7 @@ export default function ProposalsV() {
                                         !bid.proposal_exists ||
                                         (clarificationEdit && bid.proposal_id != null && bid.proposal_id !== undefined);
                                     return (
-                                        <tr key={bid.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'} transition-colors`}>
+                                        <tr key={bid.id} className={`${(tablePageStartIndex + index) % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'} transition-colors`}>
                                             <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{slNo}</td>
                                             <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                                                 {bid.project_name}
@@ -377,6 +515,62 @@ export default function ProposalsV() {
                     )}
                 </div>
             </div>
+            {!loading && filteredBids.length > 0 && listInRange.length > 0 && (
+                <div className="w-full flex items-center justify-end mt-2 mb-[-6px] py-2">
+                    <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
+                        <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">
+                            Showing:
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setTableCurrentPage((p) => {
+                                    const cur = Math.min(Math.max(1, p), tableTotalPages);
+                                    return Math.max(1, cur - 1);
+                                })
+                            }
+                            disabled={safeTableCurrentPage === 1}
+                            className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
+                                ? "text-[#9CA3AF] opacity-50 cursor-not-allowed"
+                                : "text-[#353535]"
+                                }`}
+                            aria-label="Previous page"
+                        >
+                            <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">
+                                &#8249;
+                            </span>
+                            <span className="inline-flex items-center">Prev</span>
+                        </button>
+                        <button
+                            type="button"
+                            className="px-4 py-1 rounded-md bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+                            aria-current="page"
+                        >
+                            {tablePageRangeLabel}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setTableCurrentPage((p) => {
+                                    const cur = Math.min(Math.max(1, p), tableTotalPages);
+                                    return Math.min(tableTotalPages, cur + 1);
+                                })
+                            }
+                            disabled={safeTableCurrentPage >= tableTotalPages}
+                            className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
+                                ? "text-[#9CA3AF] opacity-40 cursor-not-allowed"
+                                : "text-[#353535]"
+                                }`}
+                            aria-label="Next page"
+                        >
+                            <span className="inline-flex items-center">Next</span>
+                            <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">
+                                &#8250;
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
