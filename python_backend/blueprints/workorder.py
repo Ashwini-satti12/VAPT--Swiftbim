@@ -289,6 +289,29 @@ def get_work_order(work_order_id: int):
     return jsonify({"success": True, "work_order": _serialize_row(row)})
 
 
+@bp.route("/latest-template", methods=["GET"])
+@project_app_required
+def get_latest_work_order_template():
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        """
+        SELECT 
+            work_description, scope_of_work, project_involves, deliverables, 
+            duration, terms_and_conditions, payment_terms, additional_terms, exclusions
+        FROM work_orders
+        WHERE Company_id = %s
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (g.company_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        return jsonify({"success": True, "template": None})
+    return jsonify({"success": True, "template": row})
+
+
 @bp.route("/vendor-address", methods=["GET"])
 @project_app_required
 def get_vendor_address_by_name():

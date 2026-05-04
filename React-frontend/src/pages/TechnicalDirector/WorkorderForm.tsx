@@ -48,22 +48,53 @@ export default function WorkorderForm() {
 
   const parsePaymentTermsRows = (value: unknown): PaymentTermRow[] => {
     if (!value) return [];
-    let parsed: unknown = value;
+    let parsed: any = value;
     if (typeof value === "string") {
-      try {
-        parsed = JSON.parse(value);
-      } catch {
-        return [];
+      const trimmed = value.trim();
+      if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+        try {
+          parsed = JSON.parse(trimmed);
+        } catch {
+          parsed = null;
+        }
+      } else if (trimmed.includes("<table")) {
+        // Scrape from HTML table
+        const rows: PaymentTermRow[] = [];
+        const tbodyMatch = trimmed.match(/<tbody>([\s\S]*?)<\/tbody>/i);
+        if (tbodyMatch) {
+          const rowMatches = tbodyMatch[1].match(/<tr>([\s\S]*?)<\/tr>/gi);
+          if (rowMatches) {
+            rowMatches.forEach((rowHtml) => {
+              const cells = rowHtml.match(/<td[^>]*>([\s\S]*?)<\/td>/gi);
+              if (cells && cells.length >= 5) {
+                const strip = (html: string) =>
+                  html
+                    .replace(/<[^>]*>/g, "")
+                    .replace(/&nbsp;/g, " ")
+                    .trim();
+                rows.push({
+                  basis: strip(cells[1]),
+                  terms: strip(cells[2]),
+                  amount: strip(cells[3]),
+                  timeline: strip(cells[4]),
+                });
+              }
+            });
+          }
+        }
+        if (rows.length > 0) return rows;
       }
     }
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((t: any) => ({
-      basis: String(t?.basis ?? t?.label ?? ""),
-      // UI requirement: user must fill these manually (start blank)
-      terms: "",
-      amount: "",
-      timeline: "",
-    }));
+
+    if (Array.isArray(parsed)) {
+      return parsed.map((t: any) => ({
+        basis: String(t?.basis ?? t?.label ?? ""),
+        terms: String(t?.terms ?? t?.value ?? ""),
+        amount: String(t?.amount ?? ""),
+        timeline: String(t?.timeline ?? ""),
+      }));
+    }
+    return [];
   };
 
   const formatPaymentTermsToHtml = (terms: any): string => {
@@ -286,6 +317,37 @@ export default function WorkorderForm() {
         toast.error("Failed to load work order details.");
       });
   }, [editId]);
+  
+  useEffect(() => {
+    if (editId) return; // Only for new work orders
+    
+    api.get<{ success: boolean; template: any }>("/api/workorders/latest-template")
+      .then(res => {
+        if (res.data?.success && res.data.template) {
+          const t = res.data.template;
+          setForm(prev => ({
+            ...prev,
+            workDescription: prev.workDescription || t.work_description || "",
+            scopeOfWork: prev.scopeOfWork || t.scope_of_work || "",
+            projectInvolves: prev.projectInvolves || t.project_involves || "",
+            deliverables: prev.deliverables || t.deliverables || "",
+            duration: prev.duration || t.duration || "",
+            termsAndConditions: prev.termsAndConditions || t.terms_and_conditions || "",
+            additionalTerms: prev.additionalTerms || t.additional_terms || "",
+            exclusions: prev.exclusions || t.exclusions || "",
+            paymentTerms: prev.paymentTerms || t.payment_terms || "",
+          }));
+          
+          if (t.payment_terms) {
+            const rows = parsePaymentTermsRows(t.payment_terms);
+            if (rows.length > 0) {
+              setPaymentRows(rows);
+            }
+          }
+        }
+      })
+      .catch(err => console.error("Failed to fetch template", err));
+  }, [editId]);
 
   const fieldClass =
     "w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F3F3F3] border border-[#E6E6E6] rounded-[4px] font-Gantari transition-all outline-none focus:bg-white focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52]";
@@ -388,7 +450,7 @@ export default function WorkorderForm() {
         vendorSignature,
       };
       if (editId) {
-        await api.put(`/api/workorders/${editId}`, payload);
+        await api.put(`/api/workorders/${editId}`, { ...payload, status: "Created" });
         toast.success("Work order updated successfully.");
       } else {
         await api.post("/api/workorders", payload);

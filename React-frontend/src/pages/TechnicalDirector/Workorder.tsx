@@ -25,6 +25,15 @@ interface WorkOrder {
   terms_and_conditions?: string;
   payment_terms?: string;
   additional_terms?: string;
+  exclusions?: string;
+  company_sign_name?: string;
+  company_sign_designation?: string;
+  company_sign_date?: string;
+  company_signature?: string;
+  vendor_sign_name?: string;
+  vendor_sign_designation?: string;
+  vendor_sign_date?: string;
+  vendor_signature?: string;
 }
 
 const SHOW_ENTRIES_OPTIONS = [
@@ -155,6 +164,15 @@ export default function Workorder() {
           terms_and_conditions: asStr(r.terms_and_conditions) || undefined,
           payment_terms: asStr(r.payment_terms) || undefined,
           additional_terms: asStr(r.additional_terms) || undefined,
+          exclusions: asStr(r.exclusions) || undefined,
+          company_sign_name: asStr(r.company_sign_name) || undefined,
+          company_sign_designation: asStr(r.company_sign_designation) || undefined,
+          company_sign_date: asStr(r.company_sign_date) || undefined,
+          company_signature: asStr(r.company_signature) || undefined,
+          vendor_sign_name: asStr(r.vendor_sign_name) || undefined,
+          vendor_sign_designation: asStr(r.vendor_sign_designation) || undefined,
+          vendor_sign_date: asStr(r.vendor_sign_date) || undefined,
+          vendor_signature: asStr(r.vendor_signature) || undefined,
         }));
         setWorkOrders(mapped);
       })
@@ -276,9 +294,6 @@ export default function Workorder() {
                   Amount
                 </th>
                 <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535]">
-                  Timeline
-                </th>
-                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535]">
                   Status
                 </th>
                 <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535]">
@@ -289,7 +304,8 @@ export default function Workorder() {
             <tbody className="divide-y divide-gray-50">
               {displayedWorkOrders.map((wo, index) =>
                 (() => {
-                  const canEdit = (wo.status || "").toLowerCase() === "created";
+                  const status = (wo.status || "").toLowerCase();
+                  const canEdit = status === "created" || status === "rejected";
                   return (
                     <tr
                       key={wo.id}
@@ -306,9 +322,6 @@ export default function Workorder() {
                       </td>
                       <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
                         {wo.bid_amount}
-                      </td>
-                      <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
-                        {wo.timeline}
                       </td>
                       <td className="px-3 py-6 text-center">
                         <span
