@@ -20,6 +20,14 @@ interface WorkOrder {
   terms_and_conditions?: string;
   payment_terms?: string;
   additional_terms?: string;
+  company_sign_name?: string;
+  company_sign_designation?: string;
+  company_sign_date?: string;
+  company_signature?: string;
+  vendor_sign_name?: string;
+  vendor_sign_designation?: string;
+  vendor_sign_date?: string;
+  vendor_signature?: string;
 }
 
 export default function ViewWorkorder() {
@@ -156,9 +164,10 @@ export default function ViewWorkorder() {
               <h2 className="font-gantari font-bold text-[16px] text-[#020202]">
                 Work Description
               </h2>
-              <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.work_description}</p>
-              </div>
+              <div 
+                className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52] text-[14px] text-[#353535] font-gantari leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                dangerouslySetInnerHTML={{ __html: selectedWO.work_description || "" }}
+              />
             </div>
           )}
 
@@ -167,9 +176,10 @@ export default function ViewWorkorder() {
               <h2 className="font-gantari font-bold text-[16px] text-[#020202]">
                 Scope of Work
               </h2>
-              <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.scope_of_work}</p>
-              </div>
+              <div 
+                className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52] text-[14px] text-[#353535] font-gantari leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                dangerouslySetInnerHTML={{ __html: selectedWO.scope_of_work || "" }}
+              />
             </div>
           )}
 
@@ -178,9 +188,10 @@ export default function ViewWorkorder() {
               <h2 className="font-gantari font-bold text-[16px] text-[#020202]">
                 Project Involves
               </h2>
-              <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.project_involves}</p>
-              </div>
+              <div 
+                className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52] text-[14px] text-[#353535] font-gantari leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                dangerouslySetInnerHTML={{ __html: selectedWO.project_involves || "" }}
+              />
             </div>
           )}
 
@@ -189,9 +200,10 @@ export default function ViewWorkorder() {
               <h2 className="font-gantari font-bold text-[16px] text-[#020202]">
                 Deliverables
               </h2>
-              <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.deliverables}</p>
-              </div>
+              <div 
+                className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52] text-[14px] text-[#353535] font-gantari leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                dangerouslySetInnerHTML={{ __html: selectedWO.deliverables || "" }}
+              />
             </div>
           )}
 
@@ -200,9 +212,10 @@ export default function ViewWorkorder() {
               <h2 className="font-gantari font-bold text-[16px] text-[#020202]">
                 Terms & Conditions
               </h2>
-              <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.terms_and_conditions}</p>
-              </div>
+              <div 
+                className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52] text-[14px] text-[#353535] font-gantari leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                dangerouslySetInnerHTML={{ __html: selectedWO.terms_and_conditions || "" }}
+              />
             </div>
           )}
 
@@ -211,9 +224,10 @@ export default function ViewWorkorder() {
               <h2 className="font-gantari font-bold text-[16px] text-[#020202]">
                 Payment Terms
               </h2>
-              <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.payment_terms}</p>
-              </div>
+              <div 
+                className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52] text-[14px] text-[#353535] font-gantari leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                dangerouslySetInnerHTML={{ __html: selectedWO.payment_terms || "" }}
+              />
             </div>
           )}
 
@@ -222,11 +236,79 @@ export default function ViewWorkorder() {
               <h2 className="font-gantari font-bold text-[16px] text-[#020202]">
                 Additional Terms
               </h2>
-              <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.additional_terms}</p>
-              </div>
+              <div 
+                className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52] text-[14px] text-[#353535] font-gantari leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                dangerouslySetInnerHTML={{ __html: selectedWO.additional_terms || "" }}
+              />
             </div>
           )}
+
+          {/* Signatures Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-10 border-t border-[#AEACAC52]">
+            {/* Company Signature */}
+            <div className="space-y-4">
+              <h3 className="font-bold text-[14px] uppercase tracking-wide text-[#000000]">
+                Company
+              </h3>
+              <div className="h-32 border border-[#AEACAC52] rounded-md bg-[#F2F2F2] flex items-center justify-center overflow-hidden p-2">
+                {selectedWO.company_signature ? (
+                  <img
+                    src={selectedWO.company_signature}
+                    alt="Company Signature"
+                    className="h-full object-contain"
+                  />
+                ) : (
+                  <span className="text-gray-400 italic text-sm">No signature</span>
+                )}
+              </div>
+              <div className="space-y-1 text-sm font-gantari">
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Name:</span>
+                  <span className="font-semibold">{selectedWO.company_sign_name || "—"}</span>
+                </div>
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Designation:</span>
+                  <span className="font-semibold">{selectedWO.company_sign_designation || "—"}</span>
+                </div>
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Date:</span>
+                  <span className="font-semibold">{selectedWO.company_sign_date || "—"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Vendor Signature */}
+            <div className="space-y-4">
+              <h3 className="font-bold text-[14px] uppercase tracking-wide text-[#000000]">
+                Vendor
+              </h3>
+              <div className="h-32 border border-[#AEACAC52] rounded-md bg-[#F2F2F2] flex items-center justify-center overflow-hidden p-2">
+                {selectedWO.vendor_signature ? (
+                  <img
+                    src={selectedWO.vendor_signature}
+                    alt="Vendor Signature"
+                    className="h-full object-contain"
+                  />
+                ) : (
+                  <span className="text-gray-400 italic text-sm">No signature</span>
+                )}
+              </div>
+              <div className="space-y-1 text-sm font-gantari">
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Name:</span>
+                  <span className="font-semibold">{selectedWO.vendor_sign_name || "—"}</span>
+                </div>
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Designation:</span>
+                  <span className="font-semibold">{selectedWO.vendor_sign_designation || "—"}</span>
+                </div>
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Date:</span>
+                  <span className="font-semibold">{selectedWO.vendor_sign_date || "—"}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
