@@ -169,20 +169,30 @@ export default function ViewWorkorder() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white rounded-md border border-[#AEACAC52] p-6">
           <div>
-            <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Project Location</p>
-            <p className="text-[15px] font-medium text-[#353535]">{selectedWO.project_location || "—"}</p>
+            <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">
+              Project Location
+            </p>
+            <p className="text-[15px] font-medium text-[#353535]">
+              {selectedWO.project_location || "—"}
+            </p>
           </div>
           <div>
-            <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Timeline</p>
+            <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">
+              Timeline
+            </p>
             <div className="text-[15px] font-medium text-[#353535]">
               {selectedWO.timeline?.includes("<")
                 ? renderRichText(selectedWO.timeline)
-                : (selectedWO.timeline || "—")}
+                : selectedWO.timeline || "—"}
             </div>
           </div>
           <div className="md:col-span-2">
-            <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Vendor Address</p>
-            <p className="text-[14px] whitespace-pre-wrap text-[#353535] leading-relaxed bg-[#F2F2F2] p-3 rounded-md">{selectedWO.vendor_address || "—"}</p>
+            <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">
+              Vendor Address
+            </p>
+            <p className="text-[14px] whitespace-pre-wrap text-[#353535] leading-relaxed bg-[#F2F2F2] p-3 rounded-md">
+              {selectedWO.vendor_address || "—"}
+            </p>
           </div>
         </div>
 
@@ -291,27 +301,35 @@ export default function ViewWorkorder() {
                     className="h-full object-contain"
                   />
                 ) : (
-                  <span className="text-gray-400 italic text-sm">No signature</span>
+                  <span className="text-gray-400 italic text-sm">
+                    No signature
+                  </span>
                 )}
               </div>
               <div className="space-y-1 text-sm font-gantari">
                 <div className="flex border-b border-gray-200 py-1">
                   <span className="w-24 text-gray-500">Name:</span>
-                  <span className="font-semibold">{selectedWO.company_sign_name || "—"}</span>
+                  <span className="font-semibold">
+                    {selectedWO.company_sign_name || "—"}
+                  </span>
                 </div>
                 <div className="flex border-b border-gray-200 py-1">
                   <span className="w-24 text-gray-500">Designation:</span>
-                  <span className="font-semibold">{selectedWO.company_sign_designation || "—"}</span>
+                  <span className="font-semibold">
+                    {selectedWO.company_sign_designation || "—"}
+                  </span>
                 </div>
                 <div className="flex border-b border-gray-200 py-1">
                   <span className="w-24 text-gray-500">Date:</span>
-                  <span className="font-semibold">{selectedWO.company_sign_date || "—"}</span>
+                  <span className="font-semibold">
+                    {selectedWO.company_sign_date || "—"}
+                  </span>
                 </div>
               </div>
             </div>
 
             {/* Vendor Signature */}
-            <div className="space-y-4">
+            {/* <div className="space-y-4">
               <h3 className="font-bold text-[14px] uppercase tracking-wide text-[#000000]">
                 Vendor
               </h3>
@@ -340,7 +358,7 @@ export default function ViewWorkorder() {
                   <span className="font-semibold">{selectedWO.vendor_sign_date || "—"}</span>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

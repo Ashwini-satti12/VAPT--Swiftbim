@@ -1047,7 +1047,7 @@ export default function WorkorderForm() {
                       </div>
 
                       {/* vendor signature */}
-                      <div className="space-y-4">
+                      {/* <div className="space-y-4">
                         <p className="font-bold text-[14px] font-gantari uppercase tracking-wide text-[#000000]">
                           Vendor
                         </p>
@@ -1162,7 +1162,7 @@ export default function WorkorderForm() {
                             />
                           </div>
                         </div>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 </div>

@@ -564,7 +564,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
             scopeOfWorkHtml) && (
               <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md px-8 py-4">
                 <p className="text-lg font-bold text-[#353535] mb-1 font-gantari">
-                  Project Description
+                  Scope of Work
                 </p>
                 {!scopeOfWorkHtml && (
                   <p className="font-semibold text-[#616161] text-base font-gantari">

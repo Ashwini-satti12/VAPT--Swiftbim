@@ -801,41 +801,59 @@ export default function BiddingV() {
                 </div>
               </div>
 
-              {/* Description Section */}
-              <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
-                <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
-                  Description
-                </h3>
-                <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
-                  {detailOpp.description ||
-                    "No detailed description available for this project."}
-                </div>
-              </div>
-
+              {/* Description Section removed as per request */}
 
               {/* Scope of Work Section */}
-              <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
-                <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
-                  Scope of Work
-                </h3>
-                <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
-                  {detailOpp.scope_of_work ||
-                    detailOpp.technical_requirements ||
-                    "The scope of work encompasses the full delivery as per project requirements."}
+              {(detailOpp.scope_of_work || detailOpp.technical_requirements || detailOpp.project_sector || detailOpp.bim_services_required) && (
+                <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
+                    Scope of Work
+                  </h3>
+                  {(detailOpp.scope_of_work || detailOpp.technical_requirements) && (
+                    <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari mb-4">
+                      {detailOpp.scope_of_work || detailOpp.technical_requirements}
+                    </div>
+                  )}
+                  {(detailOpp.project_sector || detailOpp.bim_services_required) && (
+                    <div className="bg-[#F9F9F9] border border-[#AEACAC52] rounded-md p-6 space-y-4">
+                      {detailOpp.project_sector && (
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                          <div className="font-bold text-[#353535] w-[220px] flex justify-between flex-shrink-0 font-gantari text-[14px]">
+                            <span>Project Sector</span>
+                            <span>:</span>
+                          </div>
+                          <span className="text-[#616161] font-normal font-gantari text-[14px]">
+                            {detailOpp.project_sector}
+                          </span>
+                        </div>
+                      )}
+                      {detailOpp.bim_services_required && (
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                          <div className="font-bold text-[#353535] w-[220px] flex justify-between flex-shrink-0 font-gantari text-[14px]">
+                            <span>BIM Services Required</span>
+                            <span>:</span>
+                          </div>
+                          <span className="text-[#616161] font-normal font-gantari text-[14px]">
+                            {detailOpp.bim_services_required}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
               {/* Technical Requirements Section */}
-              <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
-                <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
-                  Technical Requirements
-                </h3>
-                <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
-                  {detailOpp.technologies_used ||
-                    detailOpp.software_to_be_used ||
-                    "Software, modules, and resource requirements have not been specified for this project yet."}
+              {(detailOpp.technologies_used || detailOpp.software_to_be_used) && (
+                <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
+                    Technical Requirements
+                  </h3>
+                  <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
+                    {detailOpp.technologies_used || detailOpp.software_to_be_used}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Sidebar Column */}
@@ -1091,24 +1109,6 @@ export default function BiddingV() {
 
                 {/* Additional Sections from Modal */}
                 <div className="space-y-6 pt-6 border-t border-[#F2F2F2]">
-                  <div>
-                    <h4 className="text-[16px] font-bold text-[#353535] mb-2 font-gantari">Executive Summary</h4>
-                    <div className="text-[14px] text-[#616161] leading-relaxed bg-[#F9F9F9] p-4 rounded-md border border-[#F0F0F0] font-gantari">
-                      {"Data would be derived from vendor proposal submission."}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-[16px] font-bold text-[#353535] mb-2 font-gantari">Scope of Work</h4>
-                    <div className="text-[14px] text-[#616161] leading-relaxed bg-[#F9F9F9] p-4 rounded-md border border-[#F0F0F0] font-gantari">
-                      {"Standard scope as per project technical documentation."}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-[16px] font-bold text-[#353535] mb-2 font-gantari">Deliverables</h4>
-                    <div className="text-[14px] text-[#616161] leading-relaxed bg-[#F9F9F9] p-4 rounded-md border border-[#F0F0F0] font-gantari">
-                      {"Technical reports, BIM models, and project specific outputs."}
-                    </div>
-                  </div>
                   <div>
                     <h4 className="text-[16px] font-bold text-[#353535] mb-2 font-gantari">Additional Notes / Approach</h4>
                     <div className="text-[#353535] leading-relaxed whitespace-pre-wrap bg-[#F9F9F9] p-4 rounded-md border border-[#F0F0F0] text-[14px] font-gantari">

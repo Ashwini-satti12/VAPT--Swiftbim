@@ -296,8 +296,8 @@ export default function AddTaskV() {
     setAddSubmitting(true);
     const targetRedirect =
       fromState === "teamtasks" || fromState === "teamtask"
-        ? "/v/teamtasks"
-        : "/v/mytasks";
+        ? (location.pathname.includes("vendor-bim-lead") ? "/vendor-bim-lead/teamtasks" : "/v/teamtasks")
+        : (location.pathname.includes("vendor-bim-lead") ? "/vendor-bim-lead/tasks" : "/v/mytasks");
     const projectId = projects.find(
       (p) => p.project_name === addTaskForm.projectName,
     )?.id;

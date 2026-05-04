@@ -3175,7 +3175,7 @@ export default function ProjectsTD() {
                   {/* Client Name & Project Manager */}
                   <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">
-                      Client Name <span className="text-[#DD4342]">*</span>
+                      Client Name
                     </label>
                     <FormSelect
                       label="Client Name"

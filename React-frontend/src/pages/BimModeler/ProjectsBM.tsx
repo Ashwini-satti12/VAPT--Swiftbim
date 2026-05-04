@@ -1750,7 +1750,6 @@ export default function ProjectsBL() {
                   !createBudget.trim() ||
                   moduleNameTags.length === 0 ||
                   createTaskTags.length === 0 ||
-                  !createClientName.trim() ||
                   !createProjectManager.trim() ||
                   !createStartDate.trim() ||
                   !createEndDate.trim() ||
@@ -2032,7 +2031,7 @@ export default function ProjectsBL() {
                 {/* ── Client Name ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                    Client Name <span className="text-[#DD4342]">*</span>
+                    Client Name
                   </label>
                   <FormSelect
                     label="Client Name"
@@ -2455,7 +2454,6 @@ export default function ProjectsBL() {
                   !createBudget.trim() ||
                   editModuleTags.length === 0 ||
                   editTaskTags.length === 0 ||
-                  !createClientName.trim() ||
                   !createProjectManager.trim() ||
                   !createStartDate.trim() ||
                   !createEndDate.trim() ||
@@ -2718,7 +2716,7 @@ export default function ProjectsBL() {
                 {/* Client Name */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                    Client Name <span className="text-[#DD4342]">*</span>
+                    Client Name
                   </label>
                   <input
                     type="text"
