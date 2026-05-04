@@ -903,7 +903,7 @@ export default function WorkorderForm() {
                       <p className="text-[14px] text-[#000000]">For,</p>
                       <input
                         type="text"
-                        placeholder="Enter vendor name"
+                        placeholder="Enter Company name"
                         value={vendorDisplayName}
                         onChange={(e) => setVendorDisplayName(e.target.value)}
                         className="mt-8 text-[14px] text-[#000000] border-b border-gray-300 bg-transparent outline-none"
