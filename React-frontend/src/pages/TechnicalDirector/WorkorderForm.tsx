@@ -148,17 +148,34 @@ export default function WorkorderForm() {
     return String(terms);
   };
 
+  const cleanupAddress = (addr: string): string => {
+    if (!addr) return "";
+    const parts = addr.split(",").map((s) => s.trim()).filter(Boolean);
+    const unique = [];
+    const seen = new Set();
+    for (const p of parts) {
+      if (!seen.has(p.toLowerCase())) {
+        seen.add(p.toLowerCase());
+        unique.push(p);
+      }
+    }
+    return unique.join(", ");
+  };
+
   const [form, setForm] = useState({
     proposalId: state?.proposal?.id || null,
     vendorName: state?.proposal?.vendor_name || "",
-    vendorAddress: state?.proposal?.address || "",
+    vendorAddress: cleanupAddress(state?.proposal?.address || ""),
     poDate: new Date().toISOString().split("T")[0],
     poNumber: "",
     projectName: state?.proposal?.project_name || "",
     projectLocation: state?.proposal?.project_location || "",
     workDescription: "",
     scopeOfWork: state?.proposal?.scope_of_work || "",
-    projectInvolves: "",
+    projectInvolves:
+      state?.proposal?.project_involves ||
+      state?.proposal?.projectInvolves ||
+      "",
     deliverables:
       state?.proposal?.deliverables ||
       state?.proposal?.deliverables_intro ||
@@ -173,11 +190,17 @@ export default function WorkorderForm() {
     ).toUpperCase(),
     amountAED: state?.proposal?.bid_amount?.toString() || "",
     duration: state?.proposal?.timeline || "",
-    termsAndConditions: "",
+    termsAndConditions:
+      state?.proposal?.terms_and_conditions ||
+      state?.proposal?.termsAndConditions ||
+      "",
     paymentTerms: formatPaymentTermsToHtml(
       state?.proposal?.payment_terms || "",
     ),
-    additionalTerms: "",
+    additionalTerms:
+      state?.proposal?.additional_terms ||
+      state?.proposal?.additionalTerms ||
+      "",
   });
 
   const [paymentRows, setPaymentRows] = useState<PaymentTermRow[]>(

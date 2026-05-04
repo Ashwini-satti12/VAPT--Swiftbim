@@ -47,6 +47,20 @@ export default function ViewWorkorder() {
     );
   };
 
+  const cleanupAddress = (addr: string): string => {
+    if (!addr) return "";
+    const parts = addr.split(",").map((s) => s.trim()).filter(Boolean);
+    const unique = [];
+    const seen = new Set();
+    for (const p of parts) {
+      if (!seen.has(p.toLowerCase())) {
+        seen.add(p.toLowerCase());
+        unique.push(p);
+      }
+    }
+    return unique.join(", ");
+  };
+
   if (!selectedWO) {
     return (
       <div className="flex-1 space-y-10 px-2 min-w-0">

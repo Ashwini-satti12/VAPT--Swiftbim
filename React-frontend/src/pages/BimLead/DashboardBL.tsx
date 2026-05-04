@@ -156,104 +156,11 @@ export default function DashboardBL() {
     // KPI cards: project counts from dashboard API; in-progress / completed match TeamtaskBL
     // (internal + vendor tasks, same localStorage overlay as the team board).
     useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                let totalProjects = 0;
-                let completedProjects = 0;
-                try {
-                    const uid = user?.id != null ? String(user.id) : "";
-                    const [p1, p2] = await Promise.all([
-                        api
-                            .get<{ projects?: any[] }>('/api/projects')
-                            .catch(() => ({ data: { projects: [] as any[] } })),
-                        api
-                            .get<{ projects?: any[] }>('/api/vendors/vendor-projects')
-                            .catch(() => ({ data: { projects: [] as any[] } })),
-                    ]);
-
-                    const internal = Array.isArray(p1.data.projects) ? p1.data.projects : [];
-                    const vendor = Array.isArray(p2.data.projects) ? p2.data.projects : [];
-
-                    const involvedInternal = uid
-                        ? internal.filter((p: any) => {
-                            const leadId = String(p?.lead_id ?? "").trim();
-                            if (!leadId) return false;
-                            return leadId
-                                .split(',')
-                                .map((s: string) => s.trim())
-                                .filter(Boolean)
-                                .includes(uid);
-                        })
-                        : internal;
-
-                    // BIM Lead view in ProjectsBL shows outsource projects as involved (no lead_id filter).
-                    const involvedAll = [...involvedInternal, ...vendor];
-                    totalProjects = involvedAll.length;
-
-                    const progressNum = (v: any): number => {
-                        const n = typeof v === "number" ? v : Number(String(v ?? "").trim());
-                        return Number.isFinite(n) ? n : 0;
-                    };
-                    completedProjects = involvedAll.filter((p: any) => progressNum(p?.progress) >= 100).length;
-                } catch {
-                    /* keep zeros */
-                }
-
-                const [tasksRes, vendorRes] = await Promise.all([
-                    api
-                        .get<{ tasks?: TeamTaskRow[] }>('/api/tasks', {
-                            params: { condition: '1', employeeid: 'all' },
-                        })
-                        .catch(() => ({ data: { tasks: [] as TeamTaskRow[] } })),
-                    api
-                        .get<{ tasks?: TeamTaskRow[] }>('/api/vendors/vendor-tasks', {
-                            params: { condition: '1' },
-                        })
-                        .catch(() => ({ data: { tasks: [] as TeamTaskRow[] } })),
-                ]);
-                if (cancelled) return;
-
-                const internal = (tasksRes.data.tasks ?? []).map((t) => ({ ...t }));
-                const vendor = (vendorRes.data.tasks ?? []).map((t) => ({ ...t }));
-                const serverList: TeamTaskRow[] = [...internal, ...vendor];
-
-                let localTasks: TeamTaskRow[] = [];
-                try {
-                    const raw = localStorage.getItem(BL_TEAMTASK_STORAGE_KEY);
-                    if (raw) {
-                        const parsed = JSON.parse(raw) as unknown;
-                        localTasks = Array.isArray(parsed) ? (parsed as TeamTaskRow[]) : [];
-                    }
-                } catch {
-                    localTasks = [];
-                }
-                const merged = blMergeTeamTasksForKpi(serverList, localTasks, blLoadDeletedIds());
-                const inProgressTasks = merged.filter(
-                    (t) => blNormalizeStatus(t.status, t.Approval) === 'in_progress'
-                ).length;
-                const completedTasks = merged.filter(
-                    (t) => blNormalizeStatus(t.status, t.Approval) === 'completed'
-                ).length;
-
-                if (!cancelled) {
-                    setStats({
-                        totalProjects,
-                        completedProjects,
-                        inProgressTasks,
-                        completedTasks,
-                    });
-                }
-            } catch {
-                if (!cancelled) setStats(defaultStats);
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, [user?.id]);
+        api.get<DashboardStats>('/api/dashboard/stats')
+            .then(({ data }) => setStats(data))
+            .catch(() => setStats(defaultStats))
+            .finally(() => setLoading(false));
+    }, []);
 
     useEffect(() => { const id = setInterval(() => setNowMs(Date.now()), 1000); return () => clearInterval(id); }, []);
     useEffect(() => {
@@ -352,7 +259,8 @@ export default function DashboardBL() {
             <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
                 <h1 className="text-[24px] font-medium font-gantari text-slate-800 mb-6">Dashboard</h1>
                 {/* KPI Grid — same style as DashboardTD */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-1">
+                    {/* Row 1: Projects and My Tasks */}
                     <Link to="/bl/projects" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
                         <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">Total Projects</h3>
                         <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
@@ -361,12 +269,30 @@ export default function DashboardBL() {
                         <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">Completed Projects</h3>
                         <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
                     </Link>
+                    <Link to="/bl/mytasks?status=InProgress" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                        <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">My Task In-Progress</h3>
+                        <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.myInProgressTasks}</p>
+                    </Link>
+                    <Link to="/bl/mytasks?status=Completed" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                        <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">My Task Completed</h3>
+                        <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.myCompletedTasks}</p>
+                    </Link>
+
+                    {/* Row 2: Team and Totals */}
                     <Link to="/bl/teamtasks?status=in_progress" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
-                        <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">In Progress Tasks</h3>
+                        <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">Team Tasks In-Progress</h3>
+                        <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.teamInProgressTasks}</p>
+                    </Link>
+                    <Link to="/bl/teamtasks?status=completed" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                        <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">Team Tasks Completed</h3>
+                        <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.teamCompletedTasks}</p>
+                    </Link>
+                    <Link to="/bl/teamtasks?status=in_progress" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                        <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">Dashboard In-Progress</h3>
                         <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
                     </Link>
                     <Link to="/bl/teamtasks?status=completed" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
-                        <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">Completed Tasks</h3>
+                        <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari">Dashboard Completed</h3>
                         <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
                     </Link>
                 </div>
