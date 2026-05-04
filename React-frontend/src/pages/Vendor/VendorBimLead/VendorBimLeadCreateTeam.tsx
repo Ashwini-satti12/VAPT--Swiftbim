@@ -38,6 +38,10 @@ interface Team {
 interface Project {
   id: number;
   project_name: string;
+  project_manager_id?: string | number;
+  lead_id?: string | number;
+  bim_coordinator_id?: string | number;
+  members?: string;
 }
 
 interface Employee {
@@ -134,6 +138,29 @@ export default function VendorBimLeadCreateTeam() {
         setEmployees(employeesRes.data.resources ?? []);
       })
       .finally(() => setLoading(false));
+  };
+
+  const getProjectEmployees = (projectId: string | number) => {
+    if (!projectId) return employees.map(e => ({ ...e, isProjectMember: false }));
+    const proj = projects.find((p) => String(p.id) === String(projectId));
+    if (!proj) return employees.map(e => ({ ...e, isProjectMember: false }));
+
+    const involvedIds = new Set<string>();
+    if (proj.project_manager_id) involvedIds.add(String(proj.project_manager_id));
+    if (proj.lead_id) involvedIds.add(String(proj.lead_id));
+    if (proj.bim_coordinator_id) involvedIds.add(String(proj.bim_coordinator_id));
+
+    if (proj.members) {
+      proj.members.split(',').forEach(id => {
+        const trimmed = id.trim();
+        if (trimmed) involvedIds.add(trimmed);
+      });
+    }
+
+    const projectMembers = employees.filter(e => involvedIds.has(String(e.id))).map(e => ({ ...e, isProjectMember: true }));
+    const otherMembers = employees.filter(e => !involvedIds.has(String(e.id))).map(e => ({ ...e, isProjectMember: false }));
+    
+    return [...projectMembers, ...otherMembers];
   };
 
   useEffect(() => {
@@ -607,6 +634,8 @@ export default function VendorBimLeadCreateTeam() {
                           setCreateForm({
                             ...createForm,
                             project_id: String(p.id),
+                            leader_id: "",
+                            employee: [],
                           });
                           setShowCreateProjectDropdown(false);
                         }}
@@ -650,7 +679,7 @@ export default function VendorBimLeadCreateTeam() {
                 </div>
                 {showCreateLeaderDropdown && (
                   <div className="absolute top-full left-0 right-0 z-[110] mt-1 bg-white border border-[#AEACAC52] rounded-[10px] shadow-lg py-2 max-h-36 overflow-y-scroll custom-scrollbar">
-                    {employees
+                    {getProjectEmployees(createForm.project_id)
                       .filter(
                         (e) =>
                           !createLeaderSearchQuery ||
@@ -711,7 +740,7 @@ export default function VendorBimLeadCreateTeam() {
                 </div>
                 {showCreateMemberDropdown && (
                   <div className="absolute top-full left-0 right-0 z-[110] bg-white border border-[#AEACAC52] rounded-[10px] overflow-y-scroll custom-scrollbar">
-                    {employees
+                    {getProjectEmployees(createForm.project_id)
                       .filter(
                         (e) =>
                           !createMemberSearchQuery ||
@@ -842,6 +871,8 @@ export default function VendorBimLeadCreateTeam() {
                           setEditForm({
                             ...editForm,
                             project_id: String(p.id),
+                            leader_id: "",
+                            employee: [],
                           });
                           setShowEditProjectDropdown(false);
                         }}
@@ -886,7 +917,7 @@ export default function VendorBimLeadCreateTeam() {
                 </div>
                 {showEditLeaderDropdown && (
                   <div className="absolute top-full left-0 right-0 z-[110] mt-1 bg-white border border-[#AEACAC52] rounded-[10px] py-2 max-h-36 overflow-y-scroll custom-scrollbar">
-                    {employees
+                    {getProjectEmployees(editForm.project_id)
                       .filter(
                         (e) =>
                           !leaderSearchQuery ||
@@ -948,7 +979,7 @@ export default function VendorBimLeadCreateTeam() {
                 </div>
                 {showEditMemberDropdown && (
                   <div className="absolute bottom-full left-0 right-0 z-[110] -mb-8 bg-white border border-slate-200 rounded-[10px] py-2 max-h-36 overflow-y-scroll custom-scrollbar">
-                    {employees
+                    {getProjectEmployees(editForm.project_id)
                       .filter(
                         (e) =>
                           !memberSearchQuery ||
@@ -971,8 +1002,11 @@ export default function VendorBimLeadCreateTeam() {
                               </span>
                             )}
                           </div>
-                          <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535] font-Gantari font-medium">
+                          <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535] font-Gantari font-medium flex items-center gap-2">
                             {e.full_name}
+                            {(e as any).isProjectMember && (
+                              <span className="text-[10px] bg-[#DD4342]/10 text-[#DD4342] px-1.5 py-0.5 rounded font-bold uppercase">Project</span>
+                            )}
                           </span>
                         </div>
                       ))}

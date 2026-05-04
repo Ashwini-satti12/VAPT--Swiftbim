@@ -25,8 +25,18 @@ interface WorkOrder {
 export default function ViewWorkorder() {
   const location = useLocation();
   const navigate = useNavigate();
-  const state: any = location.state || {};
+  const state = (location.state || {}) as { selectedWO?: WorkOrder | null };
   const selectedWO: WorkOrder | null = state.selectedWO || null;
+
+  const renderRichText = (html?: string) => {
+    if (!html) return null;
+    return (
+      <div
+        className="prose prose-sm max-w-none text-[#353535] [&_table]:w-full [&_table]:border-collapse [&_table]:text-[14px] [&_th]:border [&_td]:border [&_th]:border-[#AEACAC52] [&_td]:border-[#AEACAC52] [&_th]:bg-white [&_th]:font-semibold [&_th]:text-left [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-1"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  };
 
   if (!selectedWO) {
     return (
@@ -141,7 +151,11 @@ export default function ViewWorkorder() {
           </div>
           <div>
             <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Timeline</p>
-            <p className="text-[15px] font-medium text-[#353535]">{selectedWO.timeline || "—"}</p>
+            <div className="text-[15px] font-medium text-[#353535]">
+              {selectedWO.timeline?.includes("<")
+                ? renderRichText(selectedWO.timeline)
+                : (selectedWO.timeline || "—")}
+            </div>
           </div>
           <div className="md:col-span-2">
             <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Vendor Address</p>
@@ -157,7 +171,7 @@ export default function ViewWorkorder() {
                 Work Description
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.work_description}</p>
+                {renderRichText(selectedWO.work_description)}
               </div>
             </div>
           )}
@@ -168,7 +182,7 @@ export default function ViewWorkorder() {
                 Scope of Work
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.scope_of_work}</p>
+                {renderRichText(selectedWO.scope_of_work)}
               </div>
             </div>
           )}
@@ -179,7 +193,7 @@ export default function ViewWorkorder() {
                 Project Involves
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.project_involves}</p>
+                {renderRichText(selectedWO.project_involves)}
               </div>
             </div>
           )}
@@ -190,7 +204,7 @@ export default function ViewWorkorder() {
                 Deliverables
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.deliverables}</p>
+                {renderRichText(selectedWO.deliverables)}
               </div>
             </div>
           )}
@@ -201,7 +215,7 @@ export default function ViewWorkorder() {
                 Terms & Conditions
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.terms_and_conditions}</p>
+                {renderRichText(selectedWO.terms_and_conditions)}
               </div>
             </div>
           )}
@@ -212,7 +226,7 @@ export default function ViewWorkorder() {
                 Payment Terms
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.payment_terms}</p>
+                {renderRichText(selectedWO.payment_terms)}
               </div>
             </div>
           )}
@@ -223,7 +237,7 @@ export default function ViewWorkorder() {
                 Additional Terms
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.additional_terms}</p>
+                {renderRichText(selectedWO.additional_terms)}
               </div>
             </div>
           )}

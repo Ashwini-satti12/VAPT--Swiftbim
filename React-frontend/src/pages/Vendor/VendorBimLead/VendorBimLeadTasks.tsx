@@ -219,7 +219,7 @@ export default function VendorBimLeadTasks() {
         if (!res.data?.success) {
           toast.error(
             (res.data as { message?: string })?.message ||
-              "Failed to create task",
+            "Failed to create task",
           );
           return;
         }
@@ -448,7 +448,7 @@ export default function VendorBimLeadTasks() {
 
   const employeesForAssignDropdown = useMemo(() => {
     let all = Array.isArray(employees) ? [...employees] : [];
-    
+
     // Ensure current user is in the list
     if (user) {
       const userIdStr = String(user.id);
@@ -469,9 +469,9 @@ export default function VendorBimLeadTasks() {
       .split(",")
       .map((s: string) => s.trim())
       .filter(Boolean);
-    
+
     if (members.length === 0) return all;
-    
+
     return all.filter((e) => {
       const name = (e.full_name || "").trim();
       const idStr = String(e.id);
@@ -482,22 +482,22 @@ export default function VendorBimLeadTasks() {
           name === m,
       );
       const isCurrentUser = String(e.id) === String(user?.id);
-      
+
       return isAllowedByProject || isCurrentUser;
     });
   }, [employees, projects, activeForm.project_id, user]);
 
   const myFilteredTasks = tasks.filter((t) => {
     if (searchQuery) {
-        if (!(
-            (t.task_name || "").toLowerCase().includes(searchQuery) ||
-            (t.project_name || "").toLowerCase().includes(searchQuery) ||
-            (t.assigned_to_name || "").toLowerCase().includes(searchQuery) ||
-            (t.category || "").toLowerCase().includes(searchQuery) ||
-            (t.status || "").toLowerCase().includes(searchQuery)
-        )) {
-            return false;
-        }
+      if (!(
+        (t.task_name || "").toLowerCase().includes(searchQuery) ||
+        (t.project_name || "").toLowerCase().includes(searchQuery) ||
+        (t.assigned_to_name || "").toLowerCase().includes(searchQuery) ||
+        (t.category || "").toLowerCase().includes(searchQuery) ||
+        (t.status || "").toLowerCase().includes(searchQuery)
+      )) {
+        return false;
+      }
     }
     const isAssignedToMe = Boolean(t.is_assigned_to_me);
     const isOwner = Boolean(t.is_owned_by_me);
