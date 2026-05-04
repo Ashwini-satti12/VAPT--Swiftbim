@@ -4273,7 +4273,7 @@ def list_vendor_resource_profiles():
             mcur = conn.cursor(dictionary=True)
             placeholders = ",".join(["%s"] * len(ve_ids))
             mcur.execute(
-                f"SELECT id, address, phone_number, password FROM vendor_employee WHERE vendor_id = %s AND id IN ({placeholders})",
+                f"SELECT id, address, phone_number, password, status FROM vendor_employee WHERE vendor_id = %s AND id IN ({placeholders})",
                 [vendor_id] + ve_ids,
             )
             for row in mcur.fetchall() or []:
@@ -4282,7 +4282,8 @@ def list_vendor_resource_profiles():
                     extra_data_by_ve_id[vid] = {
                         "address": row.get("address"),
                         "phone_number": row.get("phone_number"),
-                        "password": row.get("password")
+                        "password": row.get("password"),
+                        "status": row.get("status")
                     }
                 except Exception:
                     continue
@@ -4299,7 +4300,7 @@ def list_vendor_resource_profiles():
 
         if ve_id_int and ve_id_int in extra_data_by_ve_id:
             extra = extra_data_by_ve_id[ve_id_int]
-            for fld in ["address", "phone_number", "password"]:
+            for fld in ["address", "phone_number", "password", "status"]:
                 # Only set if not already present or is empty on the profile row
                 if fld not in r or not str(r.get(fld) or "").strip():
                     r[fld] = extra[fld]

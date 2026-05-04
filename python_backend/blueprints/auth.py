@@ -106,8 +106,9 @@ def login():
             pass
 
     # Update status to Online
+    table_to_update = "vendor_employee" if user_type == "vendor" else "employee"
     with conn.cursor() as cur:
-        cur.execute("UPDATE employee SET status = 'Online' WHERE email = %s", (email,))
+        cur.execute(f"UPDATE {table_to_update} SET status = 'Online' WHERE email = %s", (email,))
 
     # Record attendance if not exists (date format d-m-Y as in PHP)
     today = datetime.now().strftime("%d-%m-%Y")
@@ -218,7 +219,7 @@ def logout():
         # Actually, vendor_employee status tracks 'active' vs 'inactive', so changing it to 'Offline' 
         # might break their login completely since it's used for active check!
         # employee uses 'active' for active/inactive, and 'status' for Online/Offline.
-        if user_type == "employee":
+        if user_type in ["employee", "vendor"]:
             cur.execute(f"UPDATE {table} SET status = 'Offline' WHERE id = %s", (g.user_id,))
             try:
                 conn.commit()
