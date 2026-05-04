@@ -348,7 +348,6 @@ export default function Workorder() {
                 (() => {
                   const status = (wo.status || "").toLowerCase();
                   const canEdit = status === "created" || status === "rejected";
-                  const canEdit = (wo.status || "").toLowerCase() === "created";
                   const globalIndex = tablePageStartIndex + index;
                   return (
                     <tr

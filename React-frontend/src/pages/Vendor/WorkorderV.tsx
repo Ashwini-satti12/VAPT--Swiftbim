@@ -351,60 +351,9 @@ export default function WorkorderV() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-<<<<<<< HEAD
-              {displayedWorkOrders.length > 0 ? (
-                displayedWorkOrders.map((wo, index) => (
-                  <tr
-                    key={wo.id}
-                    className={index % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}
-                  >
-                    <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
-                      {String(index + 1).padStart(2, "0")}
-                    </td>
-                    <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
-                      {wo.project_name}
-                    </td>
-                    <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
-                      {wo.vendor_name}
-                    </td>
-                    <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
-                      {wo.bid_amount}
-                    </td>
-                    <td className="px-3 py-6 text-center">
-                      <span className={`inline-flex px-4 py-1.5 rounded-lg text-[14px] font-semibold ${
-                        wo.status === "Accepted" ? "bg-[#E6F4EA] text-[#1E8E3E]" :
-                        wo.status === "Rejected" ? "bg-[#FCE8E6] text-[#D93025]" :
-                        "bg-[#EAF0FB] text-[#1967D2]"
-                      }`}>
-                        {wo.status}
-                      </span>
-                    </td>
-                    <td className="px-3 py-6 text-center">
-                      <button 
-                        onClick={() => navigate("/v/view-workorder", { state: { selectedWO: wo } })}
-                        className="flex items-center justify-center gap-2 px-4 py-2 mx-auto rounded-md text-[14px] bg-[#DD4342] text-white cursor-pointer hover:opacity-90"
-                      >
-                        <img
-                          src={viewIcon}
-                          alt=""
-                          className="w-4 h-4 brightness-0 invert"
-                        />
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="px-3 py-10 text-center text-[#616161]">
-                      No Work Orders available.
-                    </td>
-                  </tr>
-                )}
-=======
               {filteredWorkOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-10 text-center text-[#616161]">
+                  <td colSpan={6} className="px-3 py-10 text-center text-[#616161]">
                     No Work Orders available.
                   </td>
                 </tr>
@@ -429,9 +378,6 @@ export default function WorkorderV() {
                       </td>
                       <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
                         {wo.bid_amount}
-                      </td>
-                      <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
-                        {wo.timeline}
                       </td>
                       <td className="px-3 py-6 text-center">
                         <span
@@ -468,7 +414,6 @@ export default function WorkorderV() {
                   );
                 })
               )}
->>>>>>> b0568b3e6f0b4bf914ff5767bd1fcfd50ce8ddec
             </tbody>
           </table>
         </div>
