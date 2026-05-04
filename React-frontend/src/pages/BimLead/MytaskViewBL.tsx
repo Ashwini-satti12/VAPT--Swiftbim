@@ -85,28 +85,28 @@ const STATUS_STYLE: Record<
 > = {
   todo: {
     label: "To Do",
-    dot: "bg-orange-500",
-    bg: "bg-orange-100 text-orange-800 rounded-full",
+    dot: "bg-slate-400",
+    bg: "bg-[#F2F2F2] text-[#353535]",
   },
   in_progress: {
     label: "Inprogress",
-    dot: "bg-sky-500",
-    bg: "bg-sky-100 text-sky-800",
+    dot: "bg-slate-400",
+    bg: "bg-[#F2F2F2] text-[#353535]",
   },
   completed: {
     label: "Completed",
-    dot: "bg-emerald-500",
-    bg: "bg-emerald-100 text-emerald-800",
+    dot: "bg-slate-400",
+    bg: "bg-[#F2F2F2] text-[#353535]",
   },
   approved: {
     label: "Approved",
-    dot: "bg-emerald-500",
-    bg: "bg-emerald-100 text-emerald-800 rounded-full",
+    dot: "bg-slate-400",
+    bg: "bg-[#F2F2F2] text-[#353535]",
   },
   rejected: {
     label: "Rejected",
-    dot: "bg-red-500",
-    bg: "bg-red-100 text-red-800 rounded-full",
+    dot: "bg-slate-400",
+    bg: "bg-[#F2F2F2] text-[#353535]",
   },
 };
 
@@ -166,6 +166,8 @@ export default function MytaskViewBL() {
   const [sendingBack, setSendingBack] = useState(false);
   const [approving, setApproving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Track when we're manually updating status so the task-sync useEffect doesn't override it
+  const manualStatusUpdateRef = useRef(false);
 
   // Fetch task if missing (on refresh)
   useEffect(() => {
@@ -228,6 +230,7 @@ export default function MytaskViewBL() {
         status: backendStatus,
         projectId: task.projectid,
       });
+      manualStatusUpdateRef.current = true;
       setStatusDisplay(newStatus);
       setTask((prev) =>
         prev
@@ -300,6 +303,12 @@ export default function MytaskViewBL() {
 
   useEffect(() => {
     if (!task) return;
+    // Don't override status if we just manually updated it
+    if (manualStatusUpdateRef.current) {
+      manualStatusUpdateRef.current = false;
+      setReviewRemarkInput(task.review_remark || "");
+      return;
+    }
     const next = normalizeStatus(task.status, task.Approval);
     setStatusDisplay(next);
     setReviewRemarkInput(task.review_remark || "");
@@ -457,11 +466,8 @@ export default function MytaskViewBL() {
             <div className="flex items-center gap-2">
               <span className="text-md text-black">Status:</span>
               <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${style.bg}`}
+                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-[14px] font-semibold font-Gantari ${style.bg}`}
               >
-                <span
-                  className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`}
-                />
                 {style.label}
               </span>
             </div>
@@ -470,16 +476,16 @@ export default function MytaskViewBL() {
                 type="button"
                 disabled={updatingStatus}
                 onClick={() => setStatusDropdownOpen((prev) => !prev)}
-                className="rounded-[5px] bg-[#E8E8E8] px-3 py-2 text-[14px] text-[#8B8B8B] flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer border-0"
+                className="rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] font-semibold font-Gantari text-[#8B8B8B] flex items-center gap-2 transition-all disabled:opacity-50 cursor-pointer border-0"
                 aria-expanded={statusDropdownOpen}
                 aria-haspopup="listbox"
               >
                 {updatingStatus ? "Updating..." : "Select Status"}
-                <FiChevronDown className="w-5 h-5 text-[#8B8B8B]" />
+                <FiChevronDown className={`w-5 h-5 text-[#8B8B8B] transition-transform duration-200 ${statusDropdownOpen ? "rotate-180" : ""}`} />
               </button>
               {statusDropdownOpen && !updatingStatus && (
                 <div
-                  className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200 cursor-pointer"
+                  className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-md bg-white py-1 shadow-lg border border-[#E0E0E0] cursor-pointer"
                   role="listbox"
                 >
                   {STATUS_OPTIONS.filter(
@@ -502,7 +508,7 @@ export default function MytaskViewBL() {
                         disabled={disabled}
                         aria-selected={statusDisplay === opt.value}
                         onClick={() => handleStatusUpdate(opt.value)}
-                        className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors ${disabled
+                        className={`w-full text-left px-4 py-2 text-[14px] font-Gantari flex items-center gap-2 transition-colors ${disabled
                           ? "text-slate-300 cursor-not-allowed opacity-60"
                           : "cursor-pointer text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
                           } ${statusDisplay === opt.value && !disabled
@@ -510,9 +516,6 @@ export default function MytaskViewBL() {
                             : ""
                           }`}
                       >
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`}
-                        />
                         {opt.label}
                       </button>
                     );

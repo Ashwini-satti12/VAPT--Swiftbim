@@ -38,6 +38,15 @@ class MySQL:
             port=current_app.config.get('MYSQL_PORT', 3306),
             autocommit=current_app.config.get('MYSQL_AUTOCOMMIT', False),
         )
+        
+        # Attempt to increase packet size for this session (128MB)
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SET SESSION max_allowed_packet=134217728")
+            cursor.close()
+        except Exception:
+            pass
+
         use_dict = current_app.config.get('MYSQL_CURSORCLASS') == 'DictCursor'
         return DictConnectionWrapper(conn) if use_dict else conn
 

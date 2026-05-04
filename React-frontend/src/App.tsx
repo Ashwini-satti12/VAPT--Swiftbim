@@ -468,8 +468,10 @@ function App() {
               path="vendor-bim-lead/tasks/view/:id"
               element={<MytaskViewV />}
             />
-            {/* <Route path="ve/mytasks" element={<MytaskEV />} />
-            <Route path="ve/teamtasks" element={<TeamtaskV />} /> */}
+            <Route path="vendor-bim-lead/tasks/add" element={<AddTaskV />} />
+            <Route path="vendor-bim-lead/tasks/edit" element={<AddTaskV />} />
+            <Route path="vendor-bim-lead/teamtasks/add" element={<AddTaskV />} />
+            <Route path="vendor-bim-lead/teamtasks/edit" element={<AddTaskV />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

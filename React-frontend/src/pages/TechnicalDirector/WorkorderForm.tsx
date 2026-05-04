@@ -48,22 +48,53 @@ export default function WorkorderForm() {
 
   const parsePaymentTermsRows = (value: unknown): PaymentTermRow[] => {
     if (!value) return [];
-    let parsed: unknown = value;
+    let parsed: any = value;
     if (typeof value === "string") {
-      try {
-        parsed = JSON.parse(value);
-      } catch {
-        return [];
+      const trimmed = value.trim();
+      if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+        try {
+          parsed = JSON.parse(trimmed);
+        } catch {
+          parsed = null;
+        }
+      } else if (trimmed.includes("<table")) {
+        // Scrape from HTML table
+        const rows: PaymentTermRow[] = [];
+        const tbodyMatch = trimmed.match(/<tbody>([\s\S]*?)<\/tbody>/i);
+        if (tbodyMatch) {
+          const rowMatches = tbodyMatch[1].match(/<tr>([\s\S]*?)<\/tr>/gi);
+          if (rowMatches) {
+            rowMatches.forEach((rowHtml) => {
+              const cells = rowHtml.match(/<td[^>]*>([\s\S]*?)<\/td>/gi);
+              if (cells && cells.length >= 5) {
+                const strip = (html: string) =>
+                  html
+                    .replace(/<[^>]*>/g, "")
+                    .replace(/&nbsp;/g, " ")
+                    .trim();
+                rows.push({
+                  basis: strip(cells[1]),
+                  terms: strip(cells[2]),
+                  amount: strip(cells[3]),
+                  timeline: strip(cells[4]),
+                });
+              }
+            });
+          }
+        }
+        if (rows.length > 0) return rows;
       }
     }
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((t: any) => ({
-      basis: String(t?.basis ?? t?.label ?? ""),
-      // UI requirement: user must fill these manually (start blank)
-      terms: "",
-      amount: "",
-      timeline: "",
-    }));
+
+    if (Array.isArray(parsed)) {
+      return parsed.map((t: any) => ({
+        basis: String(t?.basis ?? t?.label ?? ""),
+        terms: String(t?.terms ?? t?.value ?? ""),
+        amount: String(t?.amount ?? ""),
+        timeline: String(t?.timeline ?? ""),
+      }));
+    }
+    return [];
   };
 
   const formatPaymentTermsToHtml = (terms: any): string => {
@@ -187,19 +218,20 @@ export default function WorkorderForm() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const API_BASE = String(import.meta.env.VITE_API_BASE_URL || "");
-  const [companySignature, setCompanySignature] = useState<string | null>(null);
-  const [vendorSignature, setVendorSignature] = useState<string | null>(null);
+  const wo = state?.selectedWO;
+  const [companySignature, setCompanySignature] = useState<string | null>(wo?.company_signature || null);
+  const [vendorSignature, setVendorSignature] = useState<string | null>(wo?.vendor_signature || null);
   const [uploadLoading, setUploadLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const companyFileInputRef = useRef<HTMLInputElement>(null);
   const [vendorDisplayName, setVendorDisplayName] = useState("");
   const [signatureForm, setSignatureForm] = useState({
-    companySignName: "",
-    companySignDesignation: "",
-    companySignDate: "",
-    vendorSignName: "",
-    vendorSignDesignation: "",
-    vendorSignDate: "",
+    companySignName: wo?.company_sign_name || "",
+    companySignDesignation: wo?.company_sign_designation || "",
+    companySignDate: wo?.company_sign_date || "",
+    vendorSignName: wo?.vendor_sign_name || "",
+    vendorSignDesignation: wo?.vendor_sign_designation || "",
+    vendorSignDate: wo?.vendor_sign_date || "",
   });
 
   const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -247,6 +279,14 @@ export default function WorkorderForm() {
     paymentTerms: wo?.payment_terms || wo?.paymentTerms || "",
     additionalTerms: wo?.additional_terms || wo?.additionalTerms || "",
     exclusions: wo?.exclusions || "",
+    companySignName: wo?.company_sign_name || wo?.companySignName || "",
+    companySignDesignation: wo?.company_sign_designation || wo?.companySignDesignation || "",
+    companySignDate: wo?.company_sign_date || wo?.companySignDate || "",
+    companySignature: wo?.company_signature || wo?.companySignature || null,
+    vendorSignName: wo?.vendor_sign_name || wo?.vendorSignName || "",
+    vendorSignDesignation: wo?.vendor_sign_designation || wo?.vendorSignDesignation || "",
+    vendorSignDate: wo?.vendor_sign_date || wo?.vendorSignDate || "",
+    vendorSignature: wo?.vendor_signature || wo?.vendorSignature || null,
   });
 
   useEffect(() => {
@@ -260,12 +300,53 @@ export default function WorkorderForm() {
           setPaymentRows(
             parsePaymentTermsRows(wo?.payment_terms || wo?.paymentTerms || ""),
           );
+          setSignatureForm({
+            companySignName: wo.company_sign_name || "",
+            companySignDesignation: wo.company_sign_designation || "",
+            companySignDate: wo.company_sign_date || "",
+            vendorSignName: wo.vendor_sign_name || "",
+            vendorSignDesignation: wo.vendor_sign_designation || "",
+            vendorSignDate: wo.vendor_sign_date || "",
+          });
+          setCompanySignature(wo.company_signature || null);
+          setVendorSignature(wo.vendor_signature || null);
         }
       })
       .catch((err) => {
         console.error("Failed to fetch work order", err);
         toast.error("Failed to load work order details.");
       });
+  }, [editId]);
+  
+  useEffect(() => {
+    if (editId) return; // Only for new work orders
+    
+    api.get<{ success: boolean; template: any }>("/api/workorders/latest-template")
+      .then(res => {
+        if (res.data?.success && res.data.template) {
+          const t = res.data.template;
+          setForm(prev => ({
+            ...prev,
+            workDescription: prev.workDescription || t.work_description || "",
+            scopeOfWork: prev.scopeOfWork || t.scope_of_work || "",
+            projectInvolves: prev.projectInvolves || t.project_involves || "",
+            deliverables: prev.deliverables || t.deliverables || "",
+            duration: prev.duration || t.duration || "",
+            termsAndConditions: prev.termsAndConditions || t.terms_and_conditions || "",
+            additionalTerms: prev.additionalTerms || t.additional_terms || "",
+            exclusions: prev.exclusions || t.exclusions || "",
+            paymentTerms: prev.paymentTerms || t.payment_terms || "",
+          }));
+          
+          if (t.payment_terms) {
+            const rows = parsePaymentTermsRows(t.payment_terms);
+            if (rows.length > 0) {
+              setPaymentRows(rows);
+            }
+          }
+        }
+      })
+      .catch(err => console.error("Failed to fetch template", err));
   }, [editId]);
 
   const fieldClass =
@@ -364,9 +445,12 @@ export default function WorkorderForm() {
       const payload = {
         ...form,
         paymentTerms: formatPaymentTermsToHtml(paymentRows),
+        ...signatureForm,
+        companySignature,
+        vendorSignature,
       };
       if (editId) {
-        await api.put(`/api/workorders/${editId}`, payload);
+        await api.put(`/api/workorders/${editId}`, { ...payload, status: "Created" });
         toast.success("Work order updated successfully.");
       } else {
         await api.post("/api/workorders", payload);
@@ -526,6 +610,21 @@ export default function WorkorderForm() {
                             modules={quillModules}
                             className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
                           />
+                          <div>
+                            <label className={labelClass}>
+                              Scope of Work
+                            </label>
+                            <ReactQuill
+                              theme="snow"
+                              placeholder="Enter scope of work..."
+                              value={form.scopeOfWork}
+                              onChange={(val) =>
+                                setForm({ ...form, scopeOfWork: val })
+                              }
+                              modules={quillModules}
+                              className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
+                            />
+                          </div>
                           <div>
                             <label className={labelClass}>
                               Project Involves
@@ -954,6 +1053,7 @@ export default function WorkorderForm() {
                                 className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover/img:opacity-100 transition-opacity"
                                 title="Remove Signature"
                                 type="button"
+                                tabIndex={-1}
                               >
                                 <svg
                                   className="w-4 h-4"

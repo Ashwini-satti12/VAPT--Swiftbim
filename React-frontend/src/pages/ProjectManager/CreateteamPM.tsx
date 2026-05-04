@@ -12,6 +12,24 @@ import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import CloseIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+
+const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
+const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
+const showEntriesOptions: {
+  value: string;
+  label: string;
+  start: number;
+  end: number | null;
+}[] = [
+    { value: "1-50", label: "1-50", start: 0, end: 50 },
+    { value: "51-100", label: "51-100", start: 50, end: 100 },
+    { value: "101-150", label: "101-150", start: 100, end: 150 },
+    { value: "151-200", label: "151-200", start: 150, end: 200 },
+    { value: "201-250", label: "201-250", start: 200, end: 250 },
+    { value: "251-300", label: "251-300", start: 250, end: 300 },
+    { value: "all", label: "All", start: 0, end: null },
+  ];
 
 interface Employee {
   id: number;
@@ -286,6 +304,15 @@ export default function CreateTeamPM() {
   const leaderDropdownRef = useRef<HTMLDivElement>(null);
   const projectDropdownRef = useRef<HTMLDivElement>(null);
 
+  const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+  const [selectedShowEntries, setSelectedShowEntries] = useState("");
+  const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
+
+  const [selectedProjectFilter, setSelectedProjectFilter] = useState("all");
+  const [showProjectFilterOpen, setShowProjectFilterOpen] = useState(false);
+  const projectFilterDropdownRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -305,6 +332,18 @@ export default function CreateTeamPM() {
         !projectDropdownRef.current.contains(event.target as Node)
       ) {
         setShowProjectDropdown(false);
+      }
+      if (
+        showEntriesDropdownRef.current &&
+        !showEntriesDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowEntriesOpen(false);
+      }
+      if (
+        projectFilterDropdownRef.current &&
+        !projectFilterDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowProjectFilterOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -346,8 +385,21 @@ export default function CreateTeamPM() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (showEntriesOpen && showEntriesDropdownContentRef.current) {
+      showEntriesDropdownContentRef.current.scrollTop = 0;
+    }
+  }, [showEntriesOpen]);
+
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const filteredTeams = teams.filter((t) => {
+    const matchesProject =
+      selectedProjectFilter === "all" ||
+      (t.project_id != null && String(t.project_id) === selectedProjectFilter) ||
+      (t.project_name != null && projects.find(p => String(p.id) === selectedProjectFilter)?.project_name === t.project_name);
+
+    if (!matchesProject) return false;
+
     if (!searchQuery) return true;
     return (
       (t.team_name || t.teamname || "").toLowerCase().includes(searchQuery) ||
@@ -355,6 +407,17 @@ export default function CreateTeamPM() {
       (t.project_name || "").toLowerCase().includes(searchQuery)
     );
   });
+
+  const effectiveShowEntryValue =
+    selectedShowEntries || showEntriesOptions[0].value;
+  const selectedRange =
+    showEntriesOptions.find((opt) => opt.value === effectiveShowEntryValue) ??
+    showEntriesOptions[0];
+  const rangeEnd =
+    selectedRange.end === null
+      ? filteredTeams.length
+      : Math.min(selectedRange.end, filteredTeams.length);
+  const displayTeams = filteredTeams.slice(selectedRange.start, rangeEnd);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -508,25 +571,222 @@ export default function CreateTeamPM() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <h2 className="text-[24px] font-semibold text-[#000000] font-Gantari">
           Team Workspace
         </h2>
-        <button
-          onClick={() => {
-            setShowLeaderDropdown(false);
-            setShowMemberDropdown(false);
-            setShowAddModal(true);
-          }}
-          className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md transition-all font-semibold shadow-red-200 active:scale-95 cursor-pointer"
-        >
-          New Team
-        </button>
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          {/* Project filter dropdown */}
+          <div
+            className="relative w-1/2 sm:w-[200px]"
+            ref={projectFilterDropdownRef}
+          >
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowProjectFilterOpen((o) => !o);
+              }}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-Gantari transition-all cursor-pointer border-0 min-w-0"
+            >
+              <span
+                className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedProjectFilter === "all"
+                  ? "text-[#8B8B8B]"
+                  : "text-[#353535]"
+                  }`}
+              >
+                {selectedProjectFilter === "all" ? (
+                  "Select Project"
+                ) : (
+                  <>
+                    <span className="text-[14px] font-normal">Project:</span>{" "}
+                    <span className="font-semibold">
+                      {projects.find((p) => String(p.id) === selectedProjectFilter)?.project_name || selectedProjectFilter}
+                    </span>
+                  </>
+                )}
+              </span>
+              <img
+                src={ArrowDown}
+                alt=""
+                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showProjectFilterOpen ? "rotate-180" : ""
+                  } ${selectedProjectFilter === "all"
+                    ? "opacity-60 grayscale"
+                    : "opacity-90"
+                  }`}
+                aria-hidden
+              />
+            </button>
+            {showProjectFilterOpen && (
+              <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedProjectFilter("all");
+                      setShowProjectFilterOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-[14px] transition-colors font-Gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                  >
+                    All Projects
+                  </button>
+                  {projects.map((proj) => {
+                    const isChosen = selectedProjectFilter === String(proj.id);
+                    return (
+                      <button
+                        key={proj.id}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedProjectFilter(String(proj.id));
+                          setShowProjectFilterOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${isChosen
+                          ? "text-[#353535] bg-[#F2F2F2]"
+                          : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                          }`}
+                      >
+                        <span className="truncate min-w-0">{proj.project_name}</span>
+                        {isChosen && (
+                          <svg
+                            className="w-4 h-4 shrink-0 text-[#353535]"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2.5}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+          {/* Show entries dropdown */}
+          <div
+            className="relative w-1/2 sm:w-[150px]"
+            ref={showEntriesDropdownRef}
+          >
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowEntriesOpen((o) => !o);
+              }}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-Gantari transition-all cursor-pointer border-0 min-w-0"
+            >
+              <span
+                className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
+                  ? "text-[#8B8B8B]"
+                  : "text-[#353535]"
+                  }`}
+              >
+                {selectedShowEntries === "" ? (
+                  SHOW_ENTRIES_PLACEHOLDER
+                ) : (
+                  <>
+                    <span className="text-[14px]">
+                      {SHOW_ENTRIES_SELECTED_PREFIX}
+                    </span>{" "}
+                    <span className="font-semibold">{selectedRange.label}</span>
+                  </>
+                )}
+              </span>
+              <img
+                src={ArrowDown}
+                alt=""
+                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                  } ${selectedShowEntries === "" ? "opacity-60 grayscale" : "opacity-90"
+                  }`}
+                aria-hidden
+              />
+            </button>
+            {showEntriesOpen && (
+              <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                <div
+                  ref={showEntriesDropdownContentRef}
+                  className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                >
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedShowEntries("");
+                      setShowEntriesOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-[14px] transition-colors font-Gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                  >
+                    {SHOW_ENTRIES_PLACEHOLDER}
+                  </button>
+                  {showEntriesOptions.map((opt) => {
+                    const isChosen = selectedShowEntries === opt.value;
+                    return (
+                      <button
+                        key={`${opt.value}-${opt.start}-${String(opt.end)}`}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedShowEntries(opt.value);
+                          setShowEntriesOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${isChosen
+                          ? "text-[#353535] bg-[#F2F2F2]"
+                          : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                          }`}
+                      >
+                        <span className="truncate min-w-0">{opt.label}</span>
+                        {isChosen && (
+                          <svg
+                            className="w-4 h-4 shrink-0 text-[#353535]"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2.5}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => {
+              setShowLeaderDropdown(false);
+              setShowMemberDropdown(false);
+              setShowAddModal(true);
+            }}
+            className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md transition-all font-semibold shadow-red-200 active:scale-95 cursor-pointer whitespace-nowrap"
+          >
+            New Team
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredTeams.length === 0 ? (
+          {displayTeams.length === 0 ? (
             <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-[#AEACAC52] flex flex-col items-center justify-center gap-4">
               <div className="w-16 h-16 bg-[#F8FAFC] rounded-full flex items-center justify-center">
                 <PlusIcon className="w-8 h-8 text-[#94A3B8]" />
@@ -536,12 +796,12 @@ export default function CreateTeamPM() {
                   No teams found
                 </h3>
                 <p className="text-[#64748B]">
-                  {searchQuery ? "No teams match your search." : "Click \"New Team\" to get started."}
+                  {searchQuery || selectedProjectFilter !== 'all' ? "No teams match your filters." : "Click \"New Team\" to get started."}
                 </p>
               </div>
             </div>
           ) : (
-            filteredTeams.map((team) => (
+            displayTeams.map((team) => (
               <TeamCard
                 key={team.team_id}
                 team={team}
