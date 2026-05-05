@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS work_orders (
     proposal_id INT NULL,
     project_name VARCHAR(255) NOT NULL,
     vendor_name VARCHAR(255) NOT NULL,
+    vendor_display_name VARCHAR(255) NULL,
     vendor_address TEXT NULL,
     po_date DATE NULL,
     po_number VARCHAR(255) NULL,
@@ -105,6 +106,13 @@ def _ensure_work_order_table():
         cur.execute("ALTER TABLE work_orders CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci")
     except Exception:
         pass
+    try:
+        cur.execute("SHOW COLUMNS FROM work_orders LIKE 'deliverables'")
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE work_orders ADD COLUMN deliverables TEXT NULL AFTER project_involves")
+    except Exception:
+        pass
+
     try:
         cur.execute("SHOW COLUMNS FROM work_orders LIKE 'exclusions'")
         if cur.fetchone() is None:
@@ -389,6 +397,7 @@ def create_work_order():
         "proposal_id": data.get("proposalId") or data.get("proposal_id"),
         "project_name": project_name,
         "vendor_name": vendor_name,
+        "vendor_display_name": (data.get("vendorDisplayName") or data.get("vendor_display_name") or "").strip(),
         "vendor_address": (data.get("vendorAddress") or data.get("vendor_address") or "").strip(),
         "po_date": data.get("poDate") or data.get("po_date") or None,
         "po_number": (data.get("poNumber") or data.get("po_number") or "").strip(),
@@ -422,7 +431,7 @@ def create_work_order():
     cur.execute(
         """
         INSERT INTO work_orders (
-            proposal_id, project_name, vendor_name, vendor_address, po_date, po_number,
+            proposal_id, project_name, vendor_name, vendor_display_name, vendor_address, po_date, po_number,
             project_location, work_description, scope_of_work, project_involves,
             deliverables, currency, amount_aed, duration, terms_and_conditions, payment_terms,
             additional_terms, exclusions, status, 
@@ -430,7 +439,7 @@ def create_work_order():
             vendor_sign_name, vendor_sign_designation, vendor_sign_date, vendor_signature,
             created_by, Company_id
         ) VALUES (
-            %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s,
@@ -441,6 +450,7 @@ def create_work_order():
             payload["proposal_id"],
             payload["project_name"],
             payload["vendor_name"],
+            payload["vendor_display_name"],
             payload["vendor_address"],
             payload["po_date"],
             payload["po_number"],
@@ -496,6 +506,7 @@ def update_work_order(work_order_id: int):
         "proposal_id": data.get("proposalId") or data.get("proposal_id"),
         "project_name": project_name,
         "vendor_name": vendor_name,
+        "vendor_display_name": (data.get("vendorDisplayName") or data.get("vendor_display_name") or "").strip(),
         "vendor_address": (data.get("vendorAddress") or data.get("vendor_address") or "").strip(),
         "po_date": data.get("poDate") or data.get("po_date") or None,
         "po_number": (data.get("poNumber") or data.get("po_number") or "").strip(),
@@ -551,6 +562,7 @@ def update_work_order(work_order_id: int):
                 proposal_id = %s,
                 project_name = %s,
                 vendor_name = %s,
+                vendor_display_name = %s,
                 vendor_address = %s,
                 po_date = %s,
                 po_number = %s,
@@ -581,6 +593,7 @@ def update_work_order(work_order_id: int):
                 payload["proposal_id"],
                 payload["project_name"],
                 payload["vendor_name"],
+                payload["vendor_display_name"],
                 payload["vendor_address"],
                 payload["po_date"],
                 payload["po_number"],

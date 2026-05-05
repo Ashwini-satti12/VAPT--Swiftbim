@@ -1850,9 +1850,9 @@ export default function ProjectsBC() {
                                 return (
                                   <div
                                     key={idx}
-                                    className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-slate-200 w-full md:max-w-md mt-1"
+                                    className="flex items-center gap-3 px-4 py-2.5 w-full md:max-w-md mt-1"
                                   >
-                                    <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1 font-gantari">
+                                    <span className="text-[16px] font-medium text-[#616161] line-clamp-1 flex-1 font-gantari">
                                       {fileName.split("_").pop() || "Document"}
                                     </span>
                                     <div className="flex gap-2.5">
@@ -2213,7 +2213,6 @@ export default function ProjectsBC() {
                     !createName.trim() ||
                     !createBudget.trim() ||
                     moduleNameTags.length === 0 ||
-                    !createClientName.trim() ||
                     createProjectManager.length === 0 ||
                     !createStartDate.trim() ||
                     !createEndDate.trim() ||
@@ -2589,7 +2588,7 @@ export default function ProjectsBC() {
                   {/* ── Client Name ── */}
                   <div className="space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Client Name <span className="text-[#DD4342]">*</span>
+                      Client Name
                     </label>
                     <FormSelect
                       label="Client Name"
@@ -3053,7 +3052,6 @@ export default function ProjectsBC() {
                     !createName.trim() ||
                     !createBudget.trim() ||
                     editModuleTags.length === 0 ||
-                    !createClientName.trim() ||
                     createProjectManager.length === 0 ||
                     !createStartDate.trim() ||
                     !createEndDate.trim() ||
@@ -3337,7 +3335,7 @@ export default function ProjectsBC() {
                   {/* Client Name */}
                   <div className="space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Client Name <span className="text-[#DD4342]">*</span>
+                      Client Name
                     </label>
                     <input
                       type="text"
@@ -3824,7 +3822,7 @@ export default function ProjectsBC() {
         ) : (
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {/* Dashboard Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-0">
               <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
                 {title}
               </h2>
@@ -3870,7 +3868,7 @@ export default function ProjectsBC() {
             </div>
 
             {/* Dashboard Content with Scrollbar */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-4 pl-4 pr-1 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden pt-0 pb-8 pl-4 pr-1 custom-scrollbar [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')]">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredList.length === 0 ? (
                   <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
@@ -3888,7 +3886,7 @@ export default function ProjectsBC() {
                       <div
                         key={p.id}
                          onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(openMenuProjectId === p.id ? null : p.id); }}
-                        className="bg-white rounded-md border border-slate-200 p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                        className="bg-white rounded-md border border-slate-200 p-4 gap-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
                         <div>
                           <div className="flex items-start justify-between mb-4 pr-0">

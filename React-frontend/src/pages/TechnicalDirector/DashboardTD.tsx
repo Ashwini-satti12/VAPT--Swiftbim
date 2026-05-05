@@ -816,11 +816,11 @@ export default function DashboardTD() {
                         </div>
                       </div>
                     ));
-                  })()}
-                </div>
-              )}
-            </div>
+                })()}
+              </div>
+            )}
           </div>
+        </div>
 
         {/* Calendar & Celebrations */}
         <div className="lg:col-span-1 flex flex-col h-[500px] sm:h-[560px] lg:h-full overflow-hidden">

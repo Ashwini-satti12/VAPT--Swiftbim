@@ -2020,7 +2020,7 @@ export default function ProjectsTD() {
 
                                     return (
                                       <div key={idx} className="flex items-center gap-3 w-full md:max-w-md mt-1">
-                                        <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1 font-gantari">
+                                        <span className="text-[16px] font-medium text-[#616161] line-clamp-1 flex-1 font-gantari">
                                           {fileName.split("_").pop() || "Document"}
                                         </span>
                                         <div className="flex gap-2.5">
@@ -2029,7 +2029,7 @@ export default function ProjectsTD() {
                                               href={url}
                                               target="_blank"
                                               rel="noopener noreferrer"
-                                              className="p-1 rounded transition-colors"
+                                              className="p-1 rounded transition-colors text-[16px]"
                                             >
                                               <img
                                                 src={viewIcon}
@@ -2495,8 +2495,8 @@ export default function ProjectsTD() {
         ) : (
           <>
             {/* Dashboard Header */}
-            <div className="sticky top-0 z-30 bg-white mb-2 sm:mb-4 sm:mt-0 overflow-visible px-2 sm:px-1">
-              <div className="flex flex-col xl:flex-row w-full xl:items-center justify-between gap-3 overflow-visible py-2">
+            <div className="sticky top-0 z-30 bg-white mb-2 sm:mt-0 overflow-visible px-2 sm:px-3">
+              <div className="flex flex-col xl:flex-row w-full xl:items-center justify-between gap-3 overflow-visible pt-0 pb-2">
                 <div className="flex items-center justify-between w-full xl:w-auto">
                   <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
                     {title}
@@ -2535,7 +2535,7 @@ export default function ProjectsTD() {
 
 
             {/* Dashboard Content with Scrollbar */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-4 pl-4 pr-1 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden pt-0 pb-8 pl-4 pr-1 custom-scrollbar [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')]">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(() => {
                   const displayList =
@@ -3175,7 +3175,7 @@ export default function ProjectsTD() {
                   {/* Client Name & Project Manager */}
                   <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">
-                      Client Name <span className="text-[#DD4342]">*</span>
+                      Client Name
                     </label>
                     <FormSelect
                       label="Client Name"
