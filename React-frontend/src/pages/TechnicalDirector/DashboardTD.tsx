@@ -563,7 +563,7 @@ export default function DashboardTD() {
         </h1>
         {/* KPI Grid: compact cards — label left, number right (match reference image) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-1">
-          {/* Total Projects — first card red, white text */}
+          {/* Row 1: Projects and My Tasks */}
           <div
             onClick={() => navigate("/td/projects")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
@@ -575,7 +575,6 @@ export default function DashboardTD() {
               {stats.totalProjects}
             </p>
           </div>
-          {/* Completed Projects */}
           <div
             onClick={() => navigate("/td/projects?status=Completed")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
@@ -587,19 +586,20 @@ export default function DashboardTD() {
               {stats.completedProjects}
             </p>
           </div>
-          {/* In Progress Task */}
           <div
-            onClick={() => navigate("/td/teamtasks?status=in_progress")}
+            onClick={() => navigate("/td/mytasks?status=in_progress")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >
             <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
-              In Progress Tasks
+              In-Progress Tasks
             </h3>
             <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
               {stats.inProgressTasks}
             </p>
           </div>
-          {/* Completed Tasks */}
+          
+
+          {/* Row 2: Team and Totals */}
           <div
             onClick={() => navigate("/td/teamtasks?status=completed")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"

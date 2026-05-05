@@ -131,129 +131,224 @@ def stats():
                 OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
             )"""
 
-    def get_tasks_in_my_projects(uid, task_status):
-        """Count tasks with status (InProgress/Completed/Todo) in projects the user is involved in."""
-        # Aligned with frontend normalizeStatus logic
-        task_status_lower = task_status.lower()
-        if task_status_lower == "completed":
-            status_clause = "(t.status LIKE '%%Complete%%' OR t.status = 'Done' OR t.Approval IN ('Approved', 'Rejected'))"
-            status_params = []
-        elif task_status_lower == "inprogress":
-            status_clause = "(t.status LIKE '%%Progress%%' OR t.status = 'Started') AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))"
-            status_params = []
-        elif task_status_lower == "todo":
-            status_clause = "t.status IN ('Todo', 'To Do', 'To_Do', 'New', 'Pending')"
-            status_params = []
-        else:
-            status_clause = "t.status = %s"
-            status_params = [task_status]
-
-        # Use different parameters based on the _involved_where placeholders
+    def get_total_projects(uid, project_status=None):
+        """Count projects the user is involved in."""
+        params = [company_id]
         if user_role in MANAGEMENT_ROLES:
-            t_params = (company_id,)
-        elif user_role in ("BIM Coordinator", "BIM Lead", "BIM Modeler"):
-            t_params = (company_id, uid)
-        elif user_role == "Project Manager":
-            # PM specific: only tasks in projects they manage (to match projects.py PM list)
-            t_params = (company_id, uid)
+            pass
+        elif user_role in ("BIM Coordinator", "BIM Lead", "BIM Modeler", "Project Manager"):
+            params.append(uid)
         else:
-            t_params = (company_id, uid, uid, uid, uid, uid, uid)
+            params.extend([uid] * 6)
 
-        # Append status params
-        t_params += tuple(status_params)
+        status_clause = ""
+        if project_status == "Completed":
+            status_clause = " AND ( (p.progress REGEXP '^[0-9]+(\\.[0-9]+)?$' AND CAST(p.progress AS DECIMAL(10,2)) >= 100) OR CAST(p.progress AS UNSIGNED) = 100 )"
+
+        try:
+            cur.execute(f"SELECT COUNT(*) AS total FROM projects p WHERE {_involved_where}{status_clause}", tuple(params))
+            row = cur.fetchone()
+            return (row or {}).get("total") or 0
+        except Exception:
+            return 0
+
+    # Get current user's full name for matching (consistent with tasks.py)
+    user_name = ""
+    cur.execute("SELECT full_name FROM employee WHERE id = %s AND Company_id = %s", (user_id, company_id))
+    u_row = cur.fetchone()
+    if u_row:
+        user_name = (u_row.get("full_name") or "").strip()
+
+    def get_tasks_count(uid, task_status, assigned_to_me=None):
+        """Count tasks with status and optional assignment filter (aligned with board logic)."""
+        task_status_lower = task_status.lower()
         
-        # Append modeler filter param if needed
-        if user_role == "BIM Modeler":
-            t_params += (uid,)
+        # Match board logic: delegated tasks pending review (status=Completed/progress=95)
+        # appear in the assigner's TODO column on "My Task", but in COMPLETED on "Team Task".
+        review_workflow_sql = """(
+            t.uploaderid = %s
+            AND TRIM(CAST(t.assigned_to AS CHAR)) <> TRIM(CAST(t.uploaderid AS CHAR))
+            AND (t.status = 'Completed' OR t.progress = '95' OR t.status = 'Done')
+            AND (t.Approval IS NULL OR t.Approval != 'Approved')
+        )"""
 
-        modeler_filter = " AND t.assigned_to = %s" if user_role == "BIM Modeler" else ""
+        # Status clauses
+        if task_status_lower == "completed":
+            status_clause = "( (t.status LIKE '%%Complete%%' OR t.status = 'Done' OR t.Approval = 'Approved') AND (t.Approval IS NULL OR t.Approval <> 'Rejected') )"
+            if assigned_to_me is True:
+                # Exclude from My Completed (they are in My Todo)
+                status_clause = f"( {status_clause} AND NOT {review_workflow_sql} )"
+        elif task_status_lower == "inprogress":
+            status_clause = "( (t.status LIKE '%%Progress%%' OR t.status = 'Started') AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected')) )"
+        else:
+            # Todo
+            status_clause = "( t.status IN ('Todo', 'To Do') OR t.status IS NULL OR t.status = '' OR t.Approval = 'Rejected' )"
+            if assigned_to_me is True:
+                # Include in My Todo
+                status_clause = f"( {status_clause} OR {review_workflow_sql} )"
+        
+        # Determine the base scope (Matches tasks.py:list_tasks role-based filtering)
+        params = [company_id]
+        if user_role in MANAGEMENT_ROLES:
+            scope_clause = "1=1"
+        else:
+            scope_clause = f"(t.uploaderid = %s OR t.assigned_to = %s OR t.assigned_to = %s OR {_involved_where.replace('p.Company_id = %s AND ', '')})"
+            params.extend([uid, uid, user_name])
+            if user_role in ("BIM Coordinator", "BIM Lead", "BIM Modeler", "Project Manager"):
+                params.append(uid)
+            else:
+                params.extend([uid] * 6)
+
+        # Apply review_workflow_sql params if used in status_clause
+        if task_status_lower in ("completed", "todo") and assigned_to_me is True:
+            params.append(uid)
+
+        # Assignment filter
+        assignment_filter = ""
+        if assigned_to_me is True:
+            # Matches "My Task" scope in tasks.py
+            assignment_filter = """ AND (
+                TRIM(CAST(t.assigned_to AS CHAR)) = TRIM(CAST(%s AS CHAR))
+                OR (t.assigned_to IS NOT NULL AND LOWER(TRIM(CAST(t.assigned_to AS CHAR))) = LOWER(TRIM(%s)))
+                OR """ + review_workflow_sql + """
+            )"""
+            params.extend([uid, user_name, uid])
+        elif assigned_to_me is False:
+            # Team view (condition=1): exclude tasks assigned to the viewer
+            assignment_filter = " AND (t.assigned_to IS NULL OR (TRIM(CAST(t.assigned_to AS CHAR)) <> TRIM(CAST(%s AS CHAR)) AND LOWER(TRIM(CAST(t.assigned_to AS CHAR))) <> LOWER(TRIM(%s))))"
+            params.extend([uid, user_name])
+            # Exclude self-assigned work (creator == assignee) from Team counts
+            assignment_filter += """ AND (
+                t.uploaderid IS NULL
+                OR t.assigned_to IS NULL
+                OR TRIM(CAST(t.assigned_to AS CHAR)) <> TRIM(CAST(t.uploaderid AS CHAR))
+            )"""
+
+        # Outsource delivery exclusion
+        outsource_exclusion = f""" AND (
+            NOT EXISTS (
+                SELECT 1 FROM snh6_swiftproject.vendor_projects vp
+                INNER JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
+                WHERE mp.id = t.projectid AND mp.Company_id = t.Company_id
+            )
+            OR t.uploaderid = %s
+            OR TRIM(CAST(t.assigned_to AS CHAR)) = TRIM(CAST(%s AS CHAR))
+            OR (t.assigned_to IS NOT NULL AND LOWER(TRIM(CAST(t.assigned_to AS CHAR))) = LOWER(TRIM(%s)))
+        )"""
+        params.extend([uid, uid, user_name])
 
         try:
             cur.execute(
                 f"""SELECT COUNT(*) AS total_tasks FROM tasks t
-                    INNER JOIN projects p ON t.projectid = p.id AND {_involved_where}
-                    WHERE {status_clause}{modeler_filter}""",
-                t_params,
+                    LEFT JOIN projects p ON t.projectid = p.id
+                    WHERE t.Company_id = %s AND {scope_clause} AND {status_clause}{assignment_filter}{outsource_exclusion}""",
+                tuple(params),
             )
             row = cur.fetchone()
             return (row or {}).get("total_tasks") or 0
         except Exception:
             return 0
 
-    def get_total_projects(uid, status=None):
-        if user_role in MANAGEMENT_ROLES:
-            sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s"
-            params = [company_id]
-        elif user_role == "BIM Coordinator":
-            sql = """SELECT COUNT(*) AS total_projects FROM projects
-                     WHERE Company_id = %s
-                       AND FIND_IN_SET(%s, REPLACE(IFNULL(bim_coordinator_id, ''), ' ', '')) > 0"""
-            params = [company_id, uid]
-        elif user_role == "BIM Lead":
-            sql = """SELECT COUNT(*) AS total_projects FROM projects
-                     WHERE Company_id = %s
-                       AND FIND_IN_SET(%s, REPLACE(IFNULL(lead_id, ''), ' ', '')) > 0"""
-            params = [company_id, uid]
-        elif user_role == "BIM Modeler":
-            sql = """SELECT COUNT(*) AS total_projects FROM projects
-                     WHERE Company_id = %s
-                       AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0"""
-            params = [company_id, uid]
-        elif user_role == "Project Manager":
-            # PM: ONLY projects where they are the Project Manager (matching projects.py)
-            sql = """SELECT COUNT(*) AS total_projects FROM projects
-                     WHERE Company_id = %s
-                       AND FIND_IN_SET(%s, REPLACE(IFNULL(project_manager_id, ''), ' ', '')) > 0"""
-            params = [company_id, uid]
+
+
+
+    def get_vendor_tasks_count(uid, task_status, assigned_to_me=None):
+        """Count vendor_tasks with status and optional assignment filter (matches vendor.py)."""
+        task_status_lower = task_status.lower()
+        if task_status_lower == "completed":
+            status_clause = "( (vt.status = 'Completed' OR vt.Approval = 'Approved') AND (vt.Approval IS NULL OR vt.Approval <> 'Rejected') )"
+        elif task_status_lower == "inprogress":
+            status_clause = "( vt.status = 'InProgress' AND (vt.Approval IS NULL OR vt.Approval NOT IN ('Approved', 'Rejected')) )"
         else:
-            sql = """SELECT COUNT(*) AS total_projects FROM projects
-                     WHERE Company_id = %s
-                       AND (
-                         client_id = %s
-                         OR project_manager_id = %s
-                         OR lead_id = %s
-                         OR bim_coordinator_id = %s
-                         OR uploaderid = %s
-                         OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0
-                       )"""
-            params = [company_id, uid, uid, uid, uid, uid, uid]
-        if status == "Completed":
-            sql += " AND progress = 100"
+            status_clause = "( vt.status = 'Todo' OR vt.status IS NULL OR vt.Approval = 'Rejected' )"
+
+        params = []
+        if assigned_to_me is True:
+            # My Task (Outsource): Assigned to me OR (I created it and it's under review)
+            where_clause = """(
+                (vt.assigned_to = %s OR (vt.assigned_to IS NOT NULL AND TRIM(CAST(vt.assigned_to AS CHAR)) = %s))
+                OR (vt.vendor_id = %s AND TRIM(CAST(vt.assigned_to AS CHAR)) <> TRIM(CAST(vt.vendor_id AS CHAR)) AND vt.progress IN ('95', '100', 'completed'))
+            )"""
+            params.extend([uid, user_name, uid, uid])
+        elif assigned_to_me is False:
+            # Team Task (Outsource): Not assigned to me, but in my projects
+            where_clause = "NOT (vt.assigned_to = %s OR (vt.assigned_to IS NOT NULL AND TRIM(CAST(vt.assigned_to AS CHAR)) = %s))"
+            params.extend([uid, user_name])
+        else:
+            where_clause = "1=1"
+
+        # Security/Scope check: must be in a project linked to the user's company
+        if user_role not in MANAGEMENT_ROLES:
+            where_clause += """ AND (
+                EXISTS (
+                    SELECT 1 FROM vendor_projects vp2 
+                    LEFT JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci 
+                    WHERE vp2.id = vt.project_id AND mp.Company_id = %s
+                ) OR EXISTS (
+                    SELECT 1 FROM projects mp2 
+                    WHERE mp2.id = vt.project_id AND mp2.Company_id = %s
+                )
+            )"""
+            params.extend([company_id, company_id])
+
         try:
-            cur.execute(sql, tuple(params))
+            cur.execute(f"SELECT COUNT(*) AS total FROM vendor_task vt WHERE {status_clause} AND {where_clause}", tuple(params))
             row = cur.fetchone()
-            return (row or {}).get("total_projects") or 0
+            return (row or {}).get("total") or 0
         except Exception:
-            if user_role in MANAGEMENT_ROLES:
-                fallback_sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s"
-                if status == "Completed":
-                    fallback_sql += " AND progress = 100"
-                cur.execute(fallback_sql, (company_id,))
-            elif user_role == "BIM Coordinator":
-                fallback_sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s AND FIND_IN_SET(%s, REPLACE(IFNULL(bim_coordinator_id, ''), ' ', '')) > 0"
-                if status == "Completed":
-                    fallback_sql += " AND progress = 100"
-                cur.execute(fallback_sql, (company_id, uid))
-            elif user_role == "BIM Lead":
-                fallback_sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s AND FIND_IN_SET(%s, REPLACE(IFNULL(lead_id, ''), ' ', '')) > 0"
-                if status == "Completed":
-                    fallback_sql += " AND progress = 100"
-                cur.execute(fallback_sql, (company_id, uid))
-            elif user_role == "BIM Modeler":
-                fallback_sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0"
-                if status == "Completed":
-                    fallback_sql += " AND progress = 100"
-                cur.execute(fallback_sql, (company_id, uid))
-            else:
-                fallback_sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0"
-                if status == "Completed":
-                    fallback_sql += " AND progress = 100"
-                cur.execute(fallback_sql, (company_id, uid))
-            row = cur.fetchone()
-            return (row or {}).get("total_projects") or 0
+            return 0
+
+
+
+    total_projects = get_total_projects(user_id)
+    completed_projects = get_total_projects(user_id, "Completed")
+    
+    # Task breakdowns (In-house)
+    my_todo = get_tasks_count(user_id, "Todo", assigned_to_me=True)
+    team_todo = get_tasks_count(user_id, "Todo", assigned_to_me=False)
+    my_in_progress = get_tasks_count(user_id, "InProgress", assigned_to_me=True)
+    team_in_progress = get_tasks_count(user_id, "InProgress", assigned_to_me=False)
+    my_completed = get_tasks_count(user_id, "Completed", assigned_to_me=True)
+    team_completed = get_tasks_count(user_id, "Completed", assigned_to_me=False)
+    
+    # Add vendor_task counts for BIM Lead, Coordinator, Modeler, PM
+    if user_role in ("BIM Lead", "BIM Coordinator", "BIM Modeler", "Project Manager", "Technical Director"):
+        v_my_ip = get_vendor_tasks_count(user_id, "InProgress", assigned_to_me=True)
+        v_team_ip = get_vendor_tasks_count(user_id, "InProgress", assigned_to_me=False)
+        v_my_comp = get_vendor_tasks_count(user_id, "Completed", assigned_to_me=True)
+        v_team_comp = get_vendor_tasks_count(user_id, "Completed", assigned_to_me=False)
+        v_my_todo = get_vendor_tasks_count(user_id, "Todo", assigned_to_me=True)
+        v_team_todo = get_vendor_tasks_count(user_id, "Todo", assigned_to_me=False)
+
+        my_in_progress += v_my_ip
+        team_in_progress += v_team_ip
+        my_completed += v_my_comp
+        team_completed += v_team_comp
+        my_todo += v_my_todo
+        team_todo += v_team_todo
+
+    # In Progress and Completed (Totals)
+    in_progress_tasks = my_in_progress + team_in_progress
+    completed_tasks = my_completed + team_completed
+    
+    # Include outsource (vendor_*) counts for Team Task counts if needed
+    outsource_total_projects = _count_vendor_projects_for_company(cur, company_id, only_completed=False)
+    outsource_completed_projects = _count_vendor_projects_for_company(cur, company_id, only_completed=True)
+    total_projects += outsource_total_projects
+    completed_projects += outsource_completed_projects
+ 
+    if user_role == "Project Manager":
+        vendor_ip = _count_vendor_tasks_td(cur, company_id, "InProgress")
+        vendor_comp = _count_vendor_tasks_td(cur, company_id, "Completed")
+        # Note: Project Manager team tasks already summed above for BIM roles, 
+        # but PM might have specific vendor task counting needs from previous versions.
+        # However, to avoid double counting if PM uses the new get_vendor_tasks_count,
+        # we only add if not already included.
+        # For now, let's keep PM logic consistent with the new unified approach above.
+        pass
+
 
     today = date.today().isoformat()
-    # keeping totaltoday as is
     cur.execute(
         "SELECT COUNT(*) AS total_tasks FROM tasks WHERE (status IN ('Todo','InProgress','Pause')) AND assigned_to = %s AND DATE(due_date) = %s AND Company_id = %s",
         (user_id, today, company_id),
@@ -261,31 +356,17 @@ def stats():
     row = cur.fetchone()
     total_today = (row or {}).get("total_tasks") or 0
 
-    total_projects = get_total_projects(user_id)
-    completed_projects = get_total_projects(user_id, "Completed")
-    # In-progress and completed task counts: all tasks in projects user is involved in (by projectid + status)
-    in_progress_tasks = get_tasks_in_my_projects(user_id, "InProgress")
-    completed_tasks = get_tasks_in_my_projects(user_id, "Completed")
-    new_tasks = get_tasks_in_my_projects(user_id, "Todo")
-
-    # Include outsource (vendor_*) counts so dashboard matches the Projects/Team Task UI.
-    # Projects pages include outsource cards for staff views, so totals must include vendor_projects too.
-    outsource_total_projects = _count_vendor_projects_for_company(cur, company_id, only_completed=False)
-    outsource_completed_projects = _count_vendor_projects_for_company(cur, company_id, only_completed=True)
-    total_projects += outsource_total_projects
-    completed_projects += outsource_completed_projects
-
-    # Team Task PM merges /api/vendors/vendor-tasks (company outsource); include those task counts here.
-    if user_role == "Project Manager":
-        in_progress_tasks += _count_vendor_tasks_td(cur, company_id, "InProgress")
-        completed_tasks += _count_vendor_tasks_td(cur, company_id, "Completed")
-
     return jsonify({
         "totalProjects": total_projects,
         "completedProjects": completed_projects,
         "inProgressTasks": in_progress_tasks,
         "completedTasks": completed_tasks,
-        "newTasks": new_tasks, # keeping for backward comp if needed
+        "myInProgressTasks": my_in_progress,
+        "teamInProgressTasks": team_in_progress,
+        "myCompletedTasks": my_completed,
+        "teamCompletedTasks": team_completed,
+        "myTodoTasks": my_todo,
+        "teamTodoTasks": team_todo,
         "totaltoday": total_today,
     })
 
@@ -296,13 +377,19 @@ def _count_vendor_tasks_td(cur, company_id: int, status: str) -> int:
         cur.execute(
             """SELECT COUNT(*) AS total FROM snh6_swiftproject.vendor_task vt
                WHERE vt.status = %s
-                 AND EXISTS (
-                   SELECT 1 FROM snh6_swiftproject.vendor_projects vp2
-                   LEFT JOIN snh6_swiftproject.projects mp
-                     ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci
-                   WHERE vp2.id = vt.project_id AND mp.Company_id = %s
+                 AND (
+                   EXISTS (
+                     SELECT 1 FROM snh6_swiftproject.vendor_projects vp2
+                     LEFT JOIN snh6_swiftproject.projects mp
+                       ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci
+                     WHERE vp2.id = vt.project_id AND mp.Company_id = %s
+                   )
+                   OR EXISTS (
+                     SELECT 1 FROM snh6_swiftproject.projects mp2
+                     WHERE mp2.id = vt.project_id AND mp2.Company_id = %s
+                   )
                  )""",
-            (status, company_id),
+            (status, company_id, company_id),
         )
         row = cur.fetchone()
         return int((row or {}).get("total") or 0)
