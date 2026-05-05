@@ -532,9 +532,7 @@ def _fetch_vendor_full(vendor_id):
         (vendor_id,),
     )
     resource_rows = cur.fetchall()
-    vendor["resource_profiles"] = [
-        {k: _serialize(v) for k, v in r.items()} for r in resource_rows
-    ]
+    vendor["resource_profiles"] = _enrich_resource_profiles(resource_rows, vendor_id)
 
     return vendor
 
@@ -602,16 +600,18 @@ def vendor_employees_by_role():
     try:
         cur.execute(
             """
-            SELECT
+            SELECT 
                 id,
                 full_name,
-                role AS user_role,
                 email,
                 phone_number,
                 vendor_id,
-                profile_picture
+                profile_picture,
+                role AS user_role,
+                status,
+                active
             FROM vendor_employee
-            WHERE status = 'active'
+            WHERE active = 'active'
               AND role = %s
             ORDER BY full_name
             """,
@@ -3979,8 +3979,19 @@ def _ensure_vendor_employee_table():
         password VARCHAR(255),
         phone_number VARCHAR(50),
         role VARCHAR(100),
-        status VARCHAR(30) DEFAULT 'active'
+        status VARCHAR(30) DEFAULT 'Offline',
+        active VARCHAR(30) DEFAULT 'active',
+        address TEXT
     )""")
+    
+    # Ensure 'active' column exists if table was already there
+    try:
+        cur.execute("SHOW COLUMNS FROM vendor_employee LIKE 'active'")
+        if not cur.fetchone():
+            cur.execute("ALTER TABLE vendor_employee ADD COLUMN active VARCHAR(30) DEFAULT 'active'")
+            cur.execute("UPDATE vendor_employee SET active = 'active' WHERE active IS NULL OR active = ''")
+    except Exception:
+        pass
     conn.commit()
 
 
@@ -3999,7 +4010,7 @@ def vendor_company_resources():
     conn = get_db()
     cur = conn.cursor(dictionary=True)
     cur.execute(
-        """SELECT id, full_name, email, phone_number, role, status
+        """SELECT id, full_name, email, phone_number, role, role AS user_role, status, active
            FROM vendor_employee
            WHERE vendor_id = %s
            ORDER BY full_name""",
@@ -4135,9 +4146,7 @@ def get_vendor_profile():
         "SELECT * FROM vendor_resource_profiles WHERE vendor_id = %s ORDER BY id",
         (vendor_id,),
     )
-    profile["resource_profiles"] = [
-        {k: _serialize(v) for k, v in r.items()} for r in cur.fetchall()
-    ]
+    profile["resource_profiles"] = _enrich_resource_profiles(cur.fetchall(), vendor_id)
 
     # Documents (vendor_documents for profile uploads)
     cur.execute("SELECT * FROM vendor_documents WHERE vendor_id=%s ORDER BY uploaded_at DESC", (vendor_id,))
@@ -4355,6 +4364,69 @@ def delete_vendor_resource_profile(resource_id):
     return jsonify({"success": True})
 
 
+def _enrich_resource_profiles(rows, vendor_id):
+    """
+    Enrich resource profile rows from new_swiftbim with master data from
+    snh6_swiftproject.vendor_employee (status, active, address, etc).
+    """
+    if not rows:
+        return []
+    
+    ve_ids = []
+    for r in rows:
+        ve_id = r.get("vendor_employee_id")
+        try:
+            if ve_id is not None:
+                ve_ids.append(int(ve_id))
+        except (TypeError, ValueError):
+            continue
+
+    extra_data_by_ve_id = {}
+    if ve_ids:
+        try:
+            conn = get_db()
+            mcur = conn.cursor(dictionary=True)
+            placeholders = ",".join(["%s"] * len(ve_ids))
+            mcur.execute(
+                f"SELECT id, address, phone_number, password, status, active FROM vendor_employee WHERE vendor_id = %s AND id IN ({placeholders})",
+                [vendor_id] + ve_ids,
+            )
+            for row in mcur.fetchall() or []:
+                try:
+                    vid = int(row["id"])
+                    extra_data_by_ve_id[vid] = {
+                        "address": row.get("address"),
+                        "phone_number": row.get("phone_number"),
+                        "password": row.get("password"),
+                        "status": row.get("status"),
+                        "active": row.get("active")
+                    }
+                except Exception:
+                    continue
+        except Exception:
+            extra_data_by_ve_id = {}
+
+    enriched = []
+    for r in rows:
+        # Create a copy to avoid modifying original row objects if they are cached
+        r_copy = dict(r)
+        ve_id = r_copy.get("vendor_employee_id")
+        try:
+            ve_id_int = int(ve_id) if ve_id is not None else None
+        except (TypeError, ValueError):
+            ve_id_int = None
+
+        if ve_id_int and ve_id_int in extra_data_by_ve_id:
+            extra = extra_data_by_ve_id[ve_id_int]
+            for fld in ["address", "phone_number", "password", "status", "active"]:
+                master_val = extra.get(fld)
+                if master_val is not None:
+                    r_copy[fld] = master_val
+
+        enriched.append({k: _serialize(v) for k, v in r_copy.items()})
+    return enriched
+
+
 @bp.route("/profile/resource-profiles", methods=["GET"])
 @login_required
 def list_vendor_resource_profiles():
@@ -4367,61 +4439,8 @@ def list_vendor_resource_profiles():
     cur = vendor_cursor()
     cur.execute("SELECT * FROM vendor_resource_profiles WHERE vendor_id = %s ORDER BY id", (vendor_id,))
     rows = cur.fetchall()
-
-    # Enrich resource profiles with address from the main DB vendor_employee table.
-    # Address is stored on vendor_employee (snh6_swiftproject), while the resource
-    # profile lives in new_swiftbim and links via vendor_employee_id.
-    ve_ids = []
-    for r in rows or []:
-        ve_id = r.get("vendor_employee_id")
-        if ve_id is None:
-            continue
-        try:
-            ve_ids.append(int(ve_id))
-        except (TypeError, ValueError):
-            continue
-
-    extra_data_by_ve_id = {}
-    if ve_ids:
-        try:
-            conn = get_db()
-            mcur = conn.cursor(dictionary=True)
-            placeholders = ",".join(["%s"] * len(ve_ids))
-            mcur.execute(
-                f"SELECT id, address, phone_number, password, status FROM vendor_employee WHERE vendor_id = %s AND id IN ({placeholders})",
-                [vendor_id] + ve_ids,
-            )
-            for row in mcur.fetchall() or []:
-                try:
-                    vid = int(row["id"])
-                    extra_data_by_ve_id[vid] = {
-                        "address": row.get("address"),
-                        "phone_number": row.get("phone_number"),
-                        "password": row.get("password"),
-                        "status": row.get("status")
-                    }
-                except Exception:
-                    continue
-        except Exception:
-            extra_data_by_ve_id = {}
-
-    enriched = []
-    for r in rows or []:
-        ve_id = r.get("vendor_employee_id")
-        try:
-            ve_id_int = int(ve_id) if ve_id is not None else None
-        except (TypeError, ValueError):
-            ve_id_int = None
-
-        if ve_id_int and ve_id_int in extra_data_by_ve_id:
-            extra = extra_data_by_ve_id[ve_id_int]
-            for fld in ["address", "phone_number", "password", "status"]:
-                # Only set if not already present or is empty on the profile row
-                if fld not in r or not str(r.get(fld) or "").strip():
-                    r[fld] = extra[fld]
-
-        enriched.append({k: _serialize(v) for k, v in r.items()})
-
+    
+    enriched = _enrich_resource_profiles(rows, vendor_id)
     return jsonify({"resources": enriched})
 
 
@@ -4485,7 +4504,7 @@ def bulk_status_vendor_resource_profiles():
             cur = conn.cursor()
             ph2 = ",".join(["%s"] * len(ve_ids))
             cur.execute(
-                f"UPDATE vendor_employee SET status = %s WHERE vendor_id = %s AND id IN ({ph2})",
+                f"UPDATE vendor_employee SET active = %s WHERE vendor_id = %s AND id IN ({ph2})",
                 [action, vendor_id] + ve_ids,
             )
             ve_updated = cur.rowcount
@@ -4587,7 +4606,7 @@ def assign_resource_login(resource_id):
         if not full_name:
             full_name = (res.get("name") or email.split("@")[0])
         c2.execute(
-            "INSERT INTO vendor_employee (vendor_id, empid, full_name, email, password, phone_number, role, status, address) VALUES (%s,%s,%s,%s,%s,%s,%s,'active',%s)",
+            "INSERT INTO vendor_employee (vendor_id, empid, full_name, email, password, phone_number, role, status, active, address) VALUES (%s,%s,%s,%s,%s,%s,%s,'Offline','active',%s)",
             (vendor_id, None, full_name, email, hashed, phone_number or None, role, address or None),
         )
         conn.commit()
