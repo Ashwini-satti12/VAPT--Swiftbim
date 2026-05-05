@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import api from "../../lib/api";
@@ -41,6 +41,7 @@ type PaymentTermsTable = {
 export default function ViewWorkorderV() {
   const location = useLocation();
   const navigate = useNavigate();
+  const printableRef = useRef<HTMLDivElement>(null);
   const state = (location.state || {}) as { selectedWO?: WorkOrder | null };
   const initialWO: WorkOrder | null = state.selectedWO || null;
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(initialWO);
@@ -161,6 +162,46 @@ export default function ViewWorkorderV() {
     );
   };
 
+  const handleDownload = () => {
+    const content = printableRef.current;
+    if (!content || !selectedWO) return;
+
+    const printWindow = window.open("", "_blank", "width=1200,height=900");
+    if (!printWindow) return;
+
+    const styles = Array.from(
+      document.querySelectorAll<HTMLLinkElement | HTMLStyleElement>(
+        'link[rel="stylesheet"], style',
+      ),
+    )
+      .map((el) => el.outerHTML)
+      .join("\n");
+
+    const title = `Work Order ${selectedWO.po_number || selectedWO.id}`.trim();
+
+    printWindow.document.open();
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${title}</title>
+          ${styles}
+          <style>
+            body { margin: 0; padding: 24px; background: #fff; font-family: Gantari, sans-serif; }
+          </style>
+        </head>
+        <body>
+          ${content.outerHTML}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.onload = () => {
+      printWindow.print();
+      printWindow.close();
+    };
+  };
+
   const mapApiToWorkOrder = (r: Record<string, unknown>): WorkOrder => {
     const asStr = (v: unknown) => (v == null ? "" : String(v));
     const asNum = (v: unknown) => (typeof v === "number" ? v : Number(v || 0));
@@ -242,7 +283,6 @@ export default function ViewWorkorderV() {
         .then(() => {
           setSelectedWO((prev) => (prev ? { ...prev, status: newStatus } : prev));
           alert(`Work Order has been ${newStatus}!`);
-          navigate("/v/workorder");
         })
         .catch((error) => {
           console.error("Failed to update status", error);
@@ -328,16 +368,41 @@ export default function ViewWorkorderV() {
               </button>
             </>
           ) : (
-            <span className={`px-4 py-1.5 rounded-lg text-[14px] font-semibold ${
-              selectedWO.status === "Accepted" ? "bg-[#E6F4EA] text-[#1E8E3E]" : "bg-[#FCE8E6] text-[#D93025]"
-            }`}>
-              {selectedWO.status}
-            </span>
+            <>
+              <span className={`px-4 py-1.5 rounded-lg text-[14px] font-semibold ${
+                selectedWO.status === "Accepted" ? "bg-[#E6F4EA] text-[#1E8E3E]" : "bg-[#FCE8E6] text-[#D93025]"
+              }`}>
+                {selectedWO.status}
+              </span>
+              {selectedWO.status === "Accepted" && (
+                <button
+                  type="button"
+                  onClick={handleDownload}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#DD4342] text-white text-[14px] font-semibold font-gantari shadow-sm hover:opacity-90 transition-all cursor-pointer"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 3v10m0 0l4-4m-4 4L8 9m-3 8h14"
+                    />
+                  </svg>
+                  Download
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
 
-      <div className="flex-1 px-2 min-w-0 space-y-8 mx-auto w-full pt-4">
+      <div ref={printableRef} className="flex-1 px-2 min-w-0 space-y-8 mx-auto w-full pt-4">
         {/* Header Info Banner */}
         <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-4 sm:py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-y-4">
           <div className="px-4 sm:px-6 sm:border-r border-[#AEACAC52]">
