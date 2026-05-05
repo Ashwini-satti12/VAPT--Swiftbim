@@ -11,7 +11,6 @@ interface WorkOrder {
   bid_amount: string;
   currency?: string;
   amount_aed?: number;
-  timeline: string;
   status: string;
   vendor_address?: string;
   po_date?: string;
@@ -24,7 +23,6 @@ interface WorkOrder {
   terms_and_conditions?: string;
   payment_terms?: string;
   additional_terms?: string;
-  exclusions?: string;
   company_sign_name?: string;
   company_sign_designation?: string;
   company_sign_date?: string;
@@ -34,6 +32,11 @@ interface WorkOrder {
   vendor_sign_date?: string;
   vendor_signature?: string;
 }
+
+type PaymentTermsTable = {
+  headers: string[];
+  rows: string[][];
+};
 
 export default function ViewWorkorderV() {
   const location = useLocation();
@@ -52,6 +55,112 @@ export default function ViewWorkorderV() {
     );
   };
 
+  const parsePaymentTermsTable = (value?: string): PaymentTermsTable | null => {
+    if (!value || !value.trim()) return null;
+
+    const defaultHeaders = [
+      "Sl.No",
+      "Payment Basis",
+      "Terms (%)",
+      "Amount",
+      "Timeline",
+    ];
+
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (Array.isArray(parsed)) {
+        const rows = parsed
+          .map((r) => {
+            const row = r as Record<string, unknown>;
+            return [
+              String(row.sl_no ?? row.slNo ?? ""),
+              String(row.basis ?? row.label ?? ""),
+              String(row.terms ?? row.value ?? ""),
+              String(row.amount ?? ""),
+              String(row.timeline ?? ""),
+            ];
+          })
+          .filter((r) => r.some((cell) => cell.trim() !== ""));
+        if (rows.length > 0) return { headers: defaultHeaders, rows };
+      }
+    } catch {
+      // Not JSON; continue HTML parse.
+    }
+
+    const doc = new DOMParser().parseFromString(value, "text/html");
+    const table = doc.querySelector("table");
+    if (!table) return null;
+
+    let headers = Array.from(table.querySelectorAll("thead th")).map((th) =>
+      (th.textContent || "").trim(),
+    );
+
+    if (headers.length === 0) {
+      const firstRowCells = Array.from(table.querySelectorAll("tr:first-child th, tr:first-child td"));
+      headers = firstRowCells.map((cell) => (cell.textContent || "").trim());
+    }
+
+    if (
+      headers.length === 1 &&
+      /sl\.?\s*no.*payment.*terms.*amount.*timeline/i.test(headers[0] || "")
+    ) {
+      headers = defaultHeaders;
+    }
+
+    const bodyRows = Array.from(table.querySelectorAll("tbody tr"));
+    const sourceRows = bodyRows.length ? bodyRows : Array.from(table.querySelectorAll("tr")).slice(1);
+    const rows = sourceRows
+      .map((tr) =>
+        Array.from(tr.querySelectorAll("td, th")).map((cell) =>
+          (cell.textContent || "").trim(),
+        ),
+      )
+      .filter((row) => row.some((cell) => cell !== ""));
+
+    if (rows.length === 0) return null;
+    if (headers.length === 0) headers = defaultHeaders.slice(0, rows[0].length);
+
+    return { headers, rows };
+  };
+
+  const renderPaymentTerms = (value?: string) => {
+    const parsed = parsePaymentTermsTable(value);
+    if (!parsed) return renderRichText(value);
+
+    return (
+      <div className="overflow-x-auto rounded-[6px] border border-[#AEACAC52] bg-white">
+        <table className="w-full border-collapse text-[14px] text-[#353535]">
+          <thead>
+            <tr className="bg-[#F2F2F2]">
+              {parsed.headers.map((header, idx) => (
+                <th
+                  key={`${header}-${idx}`}
+                  className="border border-[#AEACAC52] px-3 py-2 text-left font-semibold whitespace-nowrap"
+                >
+                  {header || `Column ${idx + 1}`}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {parsed.rows.map((row, rowIdx) => (
+              <tr key={`row-${rowIdx}`} className={rowIdx % 2 ? "bg-[#FAFAFA]" : "bg-white"}>
+                {row.map((cell, colIdx) => (
+                  <td
+                    key={`cell-${rowIdx}-${colIdx}`}
+                    className="border border-[#AEACAC52] px-3 py-2 align-top"
+                  >
+                    {cell || "—"}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   const mapApiToWorkOrder = (r: Record<string, unknown>): WorkOrder => {
     const asStr = (v: unknown) => (v == null ? "" : String(v));
     const asNum = (v: unknown) => (typeof v === "number" ? v : Number(v || 0));
@@ -63,7 +172,6 @@ export default function ViewWorkorderV() {
       bid_amount: `${asStr(r.currency) || "AED"} ${asStr(r.amount_aed) || "0"}`,
       currency: asStr(r.currency) || "AED",
       amount_aed: asNum(r.amount_aed),
-      timeline: asStr(r.duration) || "TBD",
       status: asStr(r.status) || "Created",
       vendor_address: asStr(r.vendor_address) || undefined,
       po_date: asStr(r.po_date) || undefined,
@@ -76,7 +184,6 @@ export default function ViewWorkorderV() {
       terms_and_conditions: asStr(r.terms_and_conditions) || undefined,
       payment_terms: asStr(r.payment_terms) || undefined,
       additional_terms: asStr(r.additional_terms) || undefined,
-      exclusions: asStr(r.exclusions) || undefined,
       company_sign_name: asStr(r.company_sign_name) || undefined,
       company_sign_designation: asStr(r.company_sign_designation) || undefined,
       company_sign_date: asStr(r.company_sign_date) || undefined,
@@ -123,7 +230,7 @@ export default function ViewWorkorderV() {
       deliverables: selectedWO.deliverables || "",
       currency: selectedWO.currency || "AED",
       amountAED: amountRaw,
-      duration: selectedWO.timeline === "TBD" ? "" : selectedWO.timeline || "",
+
       termsAndConditions: selectedWO.terms_and_conditions || "",
       paymentTerms: selectedWO.payment_terms || "",
       additionalTerms: selectedWO.additional_terms || "",
@@ -280,14 +387,6 @@ export default function ViewWorkorderV() {
             <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Project Location</p>
             <p className="text-[15px] font-medium text-[#353535]">{selectedWO.project_location || "—"}</p>
           </div>
-          <div>
-            <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Timeline</p>
-            <div className="text-[15px] font-medium text-[#353535]">
-              {selectedWO.timeline?.includes("<")
-                ? renderRichText(selectedWO.timeline)
-                : (selectedWO.timeline || "—")}
-            </div>
-          </div>
           <div className="md:col-span-2">
             <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Vendor Address</p>
             <p className="text-[14px] whitespace-pre-wrap text-[#353535] leading-relaxed bg-[#F2F2F2] p-3 rounded-md">{selectedWO.vendor_address || "—"}</p>
@@ -357,7 +456,7 @@ export default function ViewWorkorderV() {
                 Payment Terms
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                {renderRichText(selectedWO.payment_terms)}
+                {renderPaymentTerms(selectedWO.payment_terms)}
               </div>
             </div>
           )}
@@ -373,23 +472,14 @@ export default function ViewWorkorderV() {
             </div>
           )}
 
-          {selectedWO.exclusions && (
-            <div className="space-y-4">
-              <h2 className="font-gantari font-bold text-[16px] text-[#020202]">
-                Exclusions
-              </h2>
-              <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                {renderRichText(selectedWO.exclusions)}
-              </div>
-            </div>
-          )}
+          
 
           {/* Signatures Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-10 border-t border-[#AEACAC52]">
             {/* Company Signature */}
             <div className="space-y-4">
               <h3 className="font-bold text-[14px] uppercase tracking-wide text-[#000000]">
-                Company
+                Company Signature
               </h3>
               <div className="h-32 border border-[#AEACAC52] rounded-md bg-[#F2F2F2] flex items-center justify-center overflow-hidden p-2">
                 {selectedWO.company_signature ? (
@@ -419,7 +509,7 @@ export default function ViewWorkorderV() {
             </div>
 
             {/* Vendor Signature */}
-            <div className="space-y-4">
+            {/* <div className="space-y-4">
               <h3 className="font-bold text-[14px] uppercase tracking-wide text-[#000000]">
                 Vendor
               </h3>
@@ -448,7 +538,7 @@ export default function ViewWorkorderV() {
                   <span className="font-semibold">{selectedWO.vendor_sign_date || "—"}</span>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

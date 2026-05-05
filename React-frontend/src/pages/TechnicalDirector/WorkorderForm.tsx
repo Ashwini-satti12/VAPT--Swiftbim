@@ -121,26 +121,22 @@ export default function WorkorderForm() {
           </thead>
           <tbody>
             ${parsed
-              .map(
-                (t, i) => `
+          .map(
+            (t, i) => `
               <tr>
                 <td style="border: 1px solid #AEACAC; padding: 8px;">${i + 1}</td>
-                <td style="border: 1px solid #AEACAC; padding: 8px;">${
-                  t.basis || t.label || ""
-                }</td>
-                <td style="border: 1px solid #AEACAC; padding: 8px; text-align: center;">${
-                  t.terms || t.value || ""
-                }</td>
-                <td style="border: 1px solid #AEACAC; padding: 8px; text-align: center;">${
-                  t.amount || ""
-                }</td>
-                <td style="border: 1px solid #AEACAC; padding: 8px; text-align: center;">${
-                  t.timeline || ""
-                }</td>
+                <td style="border: 1px solid #AEACAC; padding: 8px;">${t.basis || t.label || ""
+              }</td>
+                <td style="border: 1px solid #AEACAC; padding: 8px; text-align: center;">${t.terms || t.value || ""
+              }</td>
+                <td style="border: 1px solid #AEACAC; padding: 8px; text-align: center;">${t.amount || ""
+              }</td>
+                <td style="border: 1px solid #AEACAC; padding: 8px; text-align: center;">${t.timeline || ""
+              }</td>
               </tr>
             `,
-              )
-              .join("")}
+          )
+          .join("")}
           </tbody>
         </table>
       `;
@@ -226,7 +222,7 @@ export default function WorkorderForm() {
             }
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [state?.proposal?.opportunity_id, form.projectLocation]);
 
@@ -247,7 +243,7 @@ export default function WorkorderForm() {
   const [uploadLoading, setUploadLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const companyFileInputRef = useRef<HTMLInputElement>(null);
-  const [vendorDisplayName, setVendorDisplayName] = useState("");
+  const [vendorDisplayName, setVendorDisplayName] = useState(state?.proposal?.vendor_name || "");
   const [signatureForm, setSignatureForm] = useState({
     companySignName: wo?.company_sign_name || "",
     companySignDesignation: wo?.company_sign_designation || "",
@@ -320,6 +316,7 @@ export default function WorkorderForm() {
         const wo = res.data?.work_order;
         if (wo) {
           setForm(mapWorkOrderToForm(wo));
+          setVendorDisplayName(wo.vendor_display_name || wo.vendorName || wo.vendor_name || "");
           setPaymentRows(
             parsePaymentTermsRows(wo?.payment_terms || wo?.paymentTerms || ""),
           );
@@ -340,10 +337,10 @@ export default function WorkorderForm() {
         toast.error("Failed to load work order details.");
       });
   }, [editId]);
-  
+
   useEffect(() => {
     if (editId) return; // Only for new work orders
-    
+
     api.get<{ success: boolean; template: any }>("/api/workorders/latest-template")
       .then(res => {
         if (res.data?.success && res.data.template) {
@@ -360,7 +357,7 @@ export default function WorkorderForm() {
             exclusions: prev.exclusions || t.exclusions || "",
             paymentTerms: prev.paymentTerms || t.payment_terms || "",
           }));
-          
+
           if (t.payment_terms) {
             const rows = parsePaymentTermsRows(t.payment_terms);
             if (rows.length > 0) {
@@ -415,7 +412,6 @@ export default function WorkorderForm() {
 
     const requiredHtml = [
       { key: "Description", value: form.workDescription },
-      { key: "Scope of Work", value: form.scopeOfWork },
       { key: "Project Involves", value: form.projectInvolves },
       { key: "Deliverables", value: form.deliverables },
       { key: "General Terms and Conditions", value: form.termsAndConditions },
@@ -469,6 +465,7 @@ export default function WorkorderForm() {
         ...form,
         paymentTerms: formatPaymentTermsToHtml(paymentRows),
         ...signatureForm,
+        vendorDisplayName,
         companySignature,
         vendorSignature,
       };
@@ -633,21 +630,7 @@ export default function WorkorderForm() {
                             modules={quillModules}
                             className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[120px]"
                           />
-                          <div>
-                            <label className={labelClass}>
-                              Scope of Work
-                            </label>
-                            <ReactQuill
-                              theme="snow"
-                              placeholder="Enter scope of work..."
-                              value={form.scopeOfWork}
-                              onChange={(val) =>
-                                setForm({ ...form, scopeOfWork: val })
-                              }
-                              modules={quillModules}
-                              className="bg-white rounded-[4px] border border-[#E6E6E6] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-b-[#E6E6E6] [&_.ql-container]:border-0 [&_.ql-container]:min-h-[150px]"
-                            />
-                          </div>
+
                           <div>
                             <label className={labelClass}>
                               Project Involves
@@ -732,7 +715,7 @@ export default function WorkorderForm() {
               </div>
             </div>
 
-           
+
             {/* Terms & Conditions */}
             <div className="p-0 mb-8">
               <h4 className="text-[16px] font-bold mb-3 text-[#1A1A1A]">
@@ -802,19 +785,19 @@ export default function WorkorderForm() {
                         {(paymentRows.length
                           ? paymentRows
                           : [
-                              {
-                                basis: "",
-                                terms: "",
-                                amount: "",
-                                timeline: "",
-                              },
-                            ]
+                            {
+                              basis: "",
+                              terms: "",
+                              amount: "",
+                              timeline: "",
+                            },
+                          ]
                         ).map((row, idx) => {
                           const isProtected =
                             (row.basis || "").trim().toLowerCase() ===
-                              "advance (on signing)" ||
+                            "advance (on signing)" ||
                             (row.basis || "").trim().toLowerCase() ===
-                              "final payment";
+                            "final payment";
                           const canDelete =
                             paymentRows.length > 0 && !isProtected;
                           return (
@@ -920,7 +903,7 @@ export default function WorkorderForm() {
                       <p className="text-[14px] text-[#000000]">For,</p>
                       <input
                         type="text"
-                        placeholder="Enter vendor name"
+                        placeholder="Enter Company name"
                         value={vendorDisplayName}
                         onChange={(e) => setVendorDisplayName(e.target.value)}
                         className="mt-8 text-[14px] text-[#000000] border-b border-gray-300 bg-transparent outline-none"
@@ -946,7 +929,7 @@ export default function WorkorderForm() {
                               <img
                                 src={
                                   companySignature.startsWith("http") ||
-                                  companySignature.startsWith("data:")
+                                    companySignature.startsWith("data:")
                                     ? companySignature
                                     : `${API_BASE}${companySignature}`
                                 }
