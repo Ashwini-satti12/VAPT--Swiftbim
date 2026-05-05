@@ -9,8 +9,7 @@ import closeIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 
 const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
-const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
-const EMPLOYEE_FILTER_PLACEHOLDER = "Employee";
+const EMPLOYEE_FILTER_PLACEHOLDER = "Select Employee";
 
 interface LeaveEntry {
   id: number;
@@ -248,10 +247,7 @@ export default function ManageLeave() {
     }
   }, [employeeDropdownOpen]);
 
-  const employeeOptions = [
-    "All",
-    ...Array.from(new Set(leaves.map((l) => l.employeeName))),
-  ];
+  const employeeOptions = Array.from(new Set(leaves.map((l) => l.employeeName)));
 
   // Load leave applications: TD sees
   //  - BIM Lead leaves at status 5 (PM approved → TD is final approver)
@@ -325,9 +321,7 @@ export default function ManageLeave() {
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const filteredList = leaves.filter((l) => {
     const matchesEmployee =
-      selectedEmployee === "All" ||
-      selectedEmployee === "" ||
-      l.employeeName === selectedEmployee;
+      selectedEmployee === "" || l.employeeName === selectedEmployee;
     const matchesSearch =
       !searchQuery ||
       (l.employeeName || "").toLowerCase().includes(searchQuery) ||
@@ -457,13 +451,6 @@ export default function ManageLeave() {
                   >
                     {selectedEmployee === "" ? (
                       EMPLOYEE_FILTER_PLACEHOLDER
-                    ) : selectedEmployee === "All" ? (
-                      <>
-                        <span className="text-[14px]">
-                          {EMPLOYEE_FILTER_PLACEHOLDER}:
-                        </span>{" "}
-                        <span className="font-semibold">All</span>
-                      </>
                     ) : (
                       <span className="font-semibold truncate">
                         {selectedEmployee}
@@ -485,7 +472,7 @@ export default function ManageLeave() {
                   <div className="absolute top-full left-0 right-0 mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
                     <div
                       ref={employeeDropdownContentRef}
-                      className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                      className="max-h-[168px] overflow-y-auto custom-scrollbar [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')] pr-1"
                     >
                       <button
                         type="button"
@@ -567,7 +554,7 @@ export default function ManageLeave() {
                   <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
                     <div
                       ref={showEntriesDropdownContentRef}
-                      className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                      className="max-h-[168px] overflow-y-auto custom-scrollbar [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')] pr-1"
                     >
                       <button
                         type="button"
@@ -627,8 +614,9 @@ export default function ManageLeave() {
             </div>
           </div>
 
-          <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-            <div className="overflow-auto custom-scrollbar smooth-scroll flex-1  pr-1 pb-0">
+          <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative w-full mb-3">
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <div className="overflow-y-auto overflow-x-hidden custom-scrollbar smooth-scroll h-full pr-1 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')]">
               <table className="min-w-full border-collapse">
                 <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                   <tr className=" bg-white">
@@ -675,40 +663,39 @@ export default function ManageLeave() {
                       return (
                         <tr
                           key={row.id}
-                          className={`${index % 2 === 1 ? "bg-[#F2F2F2] " : "bg-[#FFFFFF]"} transition-colors`}
+                          className={`${index % 2 === 1 ? "bg-[#F2F2F2] hover:bg-gray-100" : "bg-[#FFFFFF]"} transition-colors`}
                         >
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
                             {String(slNo).padStart(2, "0")}
                           </td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {row.employeeName}
                           </td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {row.role ?? "–"}
                           </td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {row.leaveType}
                           </td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {row.fromDate ?? "–"}
                           </td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {row.toDate ?? "–"}
                           </td>
-                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                          <td className="px-3 py-5 text-center text-[14px] whitespace-nowrap align-middle">
                             <span
-                              className={`inline-flex px-3 py-1 rounded-md text-[12px] font-semibold font-gantari ${row.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : row.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFEAD6] text-[#EB7200]"}`}
+                              className={`inline-flex px-2 sm:px-3 py-1 rounded-md text-[10px] sm:text-[12px] font-semibold font-gantari ${row.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : row.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFEAD6] text-[#EB7200]"}`}
                             >
                               {row.currentStatus}
                             </span>
                           </td>
-                          <td className="px-3 py-6 text-center text-[14px] whitespace-nowrap align-middle">
+                          <td className="px-3 py-5 text-center text-[14px] whitespace-nowrap align-middle">
                             <div className="flex items-center justify-center gap-2 flex-nowrap">
                               <button
                                 type="button"
                                 onClick={() => handleView(row)}
                                 className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DD4242] text-white rounded-md font-medium text-[12px] cursor-pointer"
-                                title="View"
                               >
                                 <img
                                   src={viewIcon}
@@ -739,23 +726,19 @@ export default function ManageLeave() {
                                       </svg>
                                     </button>
                                     {isLastRow ? (
-                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                        <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
-                                          <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10 shadow-sm">
+                                          <span className="font-gantari text-[12px] font-semibold text-[#008F22] text-center block whitespace-nowrap">
                                             Approve
                                           </span>
                                         </div>
-                                        <div className="relative z-10 -mt-[1px]">
-                                          <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"></div>
-                                        </div>
+                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
                                       </div>
                                     ) : (
-                                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                        <div className="relative z-10">
-                                          <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                                        </div>
-                                        <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                          <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">
+                                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10 shadow-sm">
+                                          <span className="font-gantari text-[12px] font-semibold text-[#008F22] text-center block whitespace-nowrap">
                                             Approve
                                           </span>
                                         </div>
@@ -782,23 +765,19 @@ export default function ManageLeave() {
                                       </svg>
                                     </button>
                                     {isLastRow ? (
-                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                        <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2">
-                                          <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10 shadow-sm">
+                                          <span className="font-gantari text-[12px] font-semibold text-[#E00100] text-center block whitespace-nowrap">
                                             Reject
                                           </span>
                                         </div>
-                                        <div className="relative z-10 -mt-[1px]">
-                                          <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"></div>
-                                        </div>
+                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
                                       </div>
                                     ) : (
-                                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                        <div className="relative z-10">
-                                          <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                                        </div>
-                                        <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                          <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">
+                                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10 shadow-sm">
+                                          <span className="font-gantari text-[12px] font-semibold text-[#E00100] text-center block whitespace-nowrap">
                                             Reject
                                           </span>
                                         </div>
@@ -815,6 +794,7 @@ export default function ManageLeave() {
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
           {listInRange.length > 0 && (

@@ -456,13 +456,13 @@ export default function DashboardPM() {
                     </div>
                     {/* Simplified project/task loop for loading state */}
                     <div className="space-y-4 animate-pulse">
-                      {[1,2].map(i => (
+                      {[1, 2].map(i => (
                         <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 p-4 sm:p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative">
-                           <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-200 rounded-full shrink-0"></div>
-                           <div className="flex-1 space-y-2">
-                             <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-                             <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                           </div>
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-200 rounded-full shrink-0"></div>
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -659,7 +659,7 @@ export default function DashboardPM() {
         {/* KPI Grid: compact cards — label left, number right (match DashboardTD) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-1">
           {/* Total Projects */}
-          <div 
+          <div
             onClick={() => navigate("/projects")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >
@@ -667,7 +667,7 @@ export default function DashboardPM() {
             <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
           </div>
           {/* Completed Projects */}
-          <div 
+          <div
             onClick={() => navigate("/projects?status=Completed")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >
@@ -675,7 +675,7 @@ export default function DashboardPM() {
             <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
           </div>
           {/* In-Progress Tasks */}
-          <div 
+          <div
             onClick={() => navigate("/teamtask?status=in_progress")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >
@@ -683,7 +683,7 @@ export default function DashboardPM() {
             <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
           </div>
           {/* Completed Tasks */}
-          <div 
+          <div
             onClick={() => navigate("/teamtask?status=completed")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >

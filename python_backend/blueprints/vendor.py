@@ -65,6 +65,25 @@ def _md5_hash(text: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _clean_address(addr):
+    """Remove duplicate comma-separated components from an address string (case-insensitive)."""
+    if not addr:
+        return ""
+    parts = [p.strip() for p in str(addr).split(",") if p.strip()]
+    unique_parts = []
+    seen = set()
+    for p in parts:
+        p_low = p.lower()
+        if p_low not in seen:
+            unique_parts.append(p)
+            seen.add(p_low)
+    return ", ".join(unique_parts)
+
+
+# ---------------------------------------------------------------------------
 # Serialisation helper
 # ---------------------------------------------------------------------------
 
@@ -1136,6 +1155,7 @@ def _annotate_vendor_opportunity(item):
     """
     if not item or not isinstance(item, dict):
         return item
+
     def _strip_html_text(val):
         s = str(val or "").strip()
         if not s:
@@ -1222,7 +1242,7 @@ def _annotate_vendor_opportunity(item):
         except Exception:
             service_id = None
 
-        if service_id is None:
+        if not service_id:
             client_id_raw = item.get("project_client_id")
             client_id = None
             try:
@@ -1232,11 +1252,13 @@ def _annotate_vendor_opportunity(item):
                 client_id = None
 
             if client_id is not None:
-                vcur.execute(
-                    "SELECT email FROM users WHERE id = %s LIMIT 1",
+                # Resolve client email from the Phase 2 'employee' table (since clients are users/employees there)
+                vcur_main = get_db().cursor(dictionary=True)
+                vcur_main.execute(
+                    "SELECT email FROM employee WHERE id = %s LIMIT 1",
                     (client_id,),
                 )
-                urow = vcur.fetchone() or {}
+                urow = vcur_main.fetchone() or {}
                 email = str(urow.get("email") or "").strip()
                 if email:
                     vcur.execute(
@@ -1271,17 +1293,67 @@ def _annotate_vendor_opportunity(item):
                     if loc_from_enq and not str(item.get("project_location") or "").strip():
                         item["project_location"] = loc_from_enq
 
-        if service_id is not None:
-            item["service_id"] = service_id
-            vcur.execute(
-                "SELECT * FROM bim_enquiry WHERE id = %s LIMIT 1",
-                (service_id,),
-            )
-            enq_by_id = vcur.fetchone() or {}
-            vcur.execute(
-                "SELECT * FROM proposals WHERE service_id = %s ORDER BY id DESC LIMIT 1",
-                (service_id,),
-            )
+        # Phase-2 contract-based lookup (mirroring get_phase_one_proposal logic)
+        proposal_id = None
+        if not service_id:
+            try:
+                opp_id = item.get("id")
+                if opp_id:
+                    vcur_main = get_db().cursor(dictionary=True)
+                    vcur_main.execute("""
+                        SELECT b.project_id, p.client_id, p.budget, b.outsource_budget, b.budget_ceiling
+                        FROM vendor_bidding b
+                        JOIN projects p ON b.project_id = p.id
+                        WHERE b.id = %s
+                    """, (opp_id,))
+                    bidding_row = vcur_main.fetchone()
+                    if bidding_row:
+                        p2_client_id = bidding_row.get("client_id")
+                        p2_budget = bidding_row.get("budget")
+                        p2_outsource = bidding_row.get("outsource_budget")
+                        p2_ceiling = bidding_row.get("budget_ceiling")
+                        
+                        vcur.execute("""
+                            SELECT proposal_id FROM contracts 
+                            WHERE client_id = %s 
+                            AND (total_cost = %s OR total_cost = %s OR total_cost = %s)
+                            AND status NOT IN ('Draft', 'cancelled')
+                            ORDER BY id DESC LIMIT 1
+                        """, (p2_client_id, str(p2_budget), str(p2_outsource), str(p2_ceiling)))
+                        contract_row = vcur.fetchone()
+                        if contract_row:
+                            proposal_id = contract_row["proposal_id"]
+                            # If we found a contract, we might be able to resolve service_id from the proposal
+                            vcur.execute("SELECT service_id FROM proposals WHERE id = %s", (proposal_id,))
+                            p_row = vcur.fetchone()
+                            if p_row and p_row.get("service_id"):
+                                service_id = p_row["service_id"]
+            except Exception:
+                pass
+        if service_id is not None or proposal_id is not None:
+            if service_id:
+                item["service_id"] = service_id
+                vcur.execute(
+                    "SELECT * FROM bim_enquiry WHERE id = %s LIMIT 1",
+                    (service_id,),
+                )
+                enq_by_id = vcur.fetchone() or {}
+            else:
+                enq_by_id = {}
+
+            if proposal_id:
+                vcur.execute(
+                    "SELECT * FROM proposals WHERE id = %s LIMIT 1",
+                    (proposal_id,),
+                )
+            elif service_id:
+                vcur.execute(
+                    "SELECT * FROM proposals WHERE service_id = %s ORDER BY id DESC LIMIT 1",
+                    (service_id,),
+                )
+            else:
+                vcur.execute("SELECT 1 WHERE 1=0") # No-op
+            
             prop = vcur.fetchone() or {}
             scope_text = _first_text(prop, ["scope_of_work"])
             tech_text = _first_text(prop, ["technologies_used"])
@@ -1299,6 +1371,39 @@ def _annotate_vendor_opportunity(item):
                 item["software_to_be_used"] = clean_tech
             if desc_text and (not str(item.get("description") or "").strip()):
                 item["description"] = _strip_html_text(desc_text)
+            
+            # Fetch sector and BIM services from either proposals OR bim_enquiry
+            sector_raw = prop.get("project_type_sector") or enq_by_id.get("project_type_sector")
+            if sector_raw:
+                try:
+                    parsed = json.loads(sector_raw)
+                    if isinstance(parsed, dict):
+                        parts = []
+                        for k, v in parsed.items():
+                            if isinstance(v, list) and v:
+                                parts.append(f"{k}: {' / '.join(str(x) for x in v)}")
+                            else:
+                                parts.append(str(k))
+                        item["project_sector"] = ", ".join(parts)
+                    else:
+                        item["project_sector"] = str(sector_raw)
+                except Exception:
+                    item["project_sector"] = str(sector_raw)
+                    
+            bim_raw = prop.get("bim_services_required") or enq_by_id.get("bim_services_required")
+            if bim_raw:
+                try:
+                    parsed = json.loads(bim_raw)
+                    if isinstance(parsed, dict):
+                        services = []
+                        for val_list in parsed.values():
+                            if isinstance(val_list, list):
+                                services.extend([str(x) for x in val_list])
+                        item["bim_services_required"] = " & ".join(services) if services else ""
+                    else:
+                        item["bim_services_required"] = str(bim_raw)
+                except Exception:
+                    item["bim_services_required"] = str(bim_raw)
             # Location source-of-truth: bim_enquiry country/state/city only.
             loc_parts = []
             for k in ("city", "state", "country"):
@@ -1845,15 +1950,18 @@ def get_phase_one_proposal():
             if bidding_row:
                 p2_client_id = bidding_row.get("client_id")
                 p2_budget = bidding_row.get("budget")
+                p2_outsource = bidding_row.get("outsource_budget")
+                p2_ceiling = bidding_row.get("budget_ceiling")
                 
-                # Check for a verified contract in Phase 1 matching this client and budget
+                # Check for a verified contract in Phase 1 matching this client and any of the budget values
                 cur_temp = vendor_cursor()
                 cur_temp.execute("""
                     SELECT proposal_id FROM contracts 
-                    WHERE client_id = %s AND total_cost = %s 
+                    WHERE client_id = %s 
+                    AND (total_cost = %s OR total_cost = %s OR total_cost = %s)
                     AND status NOT IN ('Draft', 'cancelled')
                     ORDER BY id DESC LIMIT 1
-                """, (p2_client_id, p2_budget))
+                """, (p2_client_id, str(p2_budget), str(p2_outsource), str(p2_ceiling)))
                 contract_row = cur_temp.fetchone()
                 if contract_row:
                     target_proposal_id = contract_row["proposal_id"]
@@ -2520,7 +2628,7 @@ def td_update_proposal(proposal_id: int):
             (
                 data.get("executive_summary"),
                 data.get("aboutus"),
-                data.get("address"),
+                _clean_address(data.get("address")),
                 data.get("website_url"),
                 data.get("email_address"),
                 data.get("selected_currency"),
@@ -2645,7 +2753,7 @@ def td_create_proposal():
             data.get("vendor_name"),
             data.get("executive_summary"),
             data.get("aboutus"),
-            data.get("address"),
+            _clean_address(data.get("address")),
             data.get("website_url"),
             data.get("email_address"),
             data.get("selected_currency"),
@@ -3102,8 +3210,10 @@ def td_list_vendor_proposals():
         out = []
         for r in rows:
             item = {k: _serialize(v) for k, v in r.items()}
+            if item.get("status") == "Sent":
+                item["status"] = "Pending"
             if item.get("vendor_address_full"):
-                item["address"] = item["vendor_address_full"]
+                item["address"] = _clean_address(item["vendor_address_full"])
             out.append(item)
         return jsonify({"success": True, "proposals": out})
     except Exception as e:
@@ -3141,11 +3251,13 @@ def td_get_vendor_proposal(proposal_id: int):
             return jsonify({"proposal": None}), 404
 
         res_row = {k: _serialize(v) for k, v in row.items()}
+        if res_row.get("status") == "Sent":
+            res_row["status"] = "Pending"
         # Overwrite address and location with latest fetched values if present
         if res_row.get("fetched_project_location"):
             res_row["project_location"] = res_row["fetched_project_location"]
         if res_row.get("fetched_vendor_address"):
-            res_row["address"] = res_row["fetched_vendor_address"]
+            res_row["address"] = _clean_address(res_row["fetched_vendor_address"])
         # Fallback for bid_amount from commercial_offer JSON
         if not res_row.get("bid_amount") and res_row.get("commercial_offer"):
             try:
@@ -4092,8 +4204,11 @@ def update_vendor_profile():
     sets, params = [], []
     for key in allowed:
         if key in data:
+            val = data[key]
+            if key == "address":
+                val = _clean_address(val)
             sets.append(f"`{key}` = %s")
-            params.append(data[key])
+            params.append(val)
 
     if not sets:
         return jsonify({"success": False, "message": "No fields to update"}), 400
@@ -4266,23 +4381,29 @@ def list_vendor_resource_profiles():
         except (TypeError, ValueError):
             continue
 
-    address_by_ve_id = {}
+    extra_data_by_ve_id = {}
     if ve_ids:
         try:
             conn = get_db()
             mcur = conn.cursor(dictionary=True)
             placeholders = ",".join(["%s"] * len(ve_ids))
             mcur.execute(
-                f"SELECT id, address FROM vendor_employee WHERE vendor_id = %s AND id IN ({placeholders})",
+                f"SELECT id, address, phone_number, password, status FROM vendor_employee WHERE vendor_id = %s AND id IN ({placeholders})",
                 [vendor_id] + ve_ids,
             )
             for row in mcur.fetchall() or []:
                 try:
-                    address_by_ve_id[int(row["id"])] = row.get("address")
+                    vid = int(row["id"])
+                    extra_data_by_ve_id[vid] = {
+                        "address": row.get("address"),
+                        "phone_number": row.get("phone_number"),
+                        "password": row.get("password"),
+                        "status": row.get("status")
+                    }
                 except Exception:
                     continue
         except Exception:
-            address_by_ve_id = {}
+            extra_data_by_ve_id = {}
 
     enriched = []
     for r in rows or []:
@@ -4292,11 +4413,12 @@ def list_vendor_resource_profiles():
         except (TypeError, ValueError):
             ve_id_int = None
 
-        # Only set address if it's not already present on the profile row.
-        if ("address" not in r or not (r.get("address") or "").strip()) and ve_id_int:
-            addr = address_by_ve_id.get(ve_id_int)
-            if addr is not None:
-                r["address"] = addr
+        if ve_id_int and ve_id_int in extra_data_by_ve_id:
+            extra = extra_data_by_ve_id[ve_id_int]
+            for fld in ["address", "phone_number", "password", "status"]:
+                # Only set if not already present or is empty on the profile row
+                if fld not in r or not str(r.get(fld) or "").strip():
+                    r[fld] = extra[fld]
 
         enriched.append({k: _serialize(v) for k, v in r.items()})
 
@@ -4405,6 +4527,7 @@ def assign_resource_login(resource_id):
     raw_password = (data.get("password") or "").strip()
     full_name = (data.get("full_name") or "").strip()
     phone_number = (data.get("phone_number") or "").strip()
+    address = (data.get("address") or "").strip()
 
     if not email or not role:
         return jsonify({"success": False, "message": "email and role are required"}), 400
@@ -4437,15 +4560,15 @@ def assign_resource_login(resource_id):
             temp_password = raw_password
             hashed = _md5_hash(temp_password)
             c2.execute(
-                "UPDATE vendor_employee SET password=%s, role=%s, status='active', full_name=%s, phone_number=%s WHERE id=%s AND vendor_id=%s",
-                (hashed, role, full_name or None, phone_number or None, vemp_id, vendor_id),
+                "UPDATE vendor_employee SET password=%s, role=%s, status='active', full_name=%s, phone_number=%s, address=%s WHERE id=%s AND vendor_id=%s",
+                (hashed, role, full_name or None, phone_number or None, address or None, vemp_id, vendor_id),
             )
         else:
             # No password provided: keep existing password and only update role/status.
             temp_password = None
             c2.execute(
-                "UPDATE vendor_employee SET role=%s, status='active', full_name=%s, phone_number=%s WHERE id=%s AND vendor_id=%s",
-                (role, full_name or None, phone_number or None, vemp_id, vendor_id),
+                "UPDATE vendor_employee SET role=%s, status='active', full_name=%s, phone_number=%s, address=%s WHERE id=%s AND vendor_id=%s",
+                (role, full_name or None, phone_number or None, address or None, vemp_id, vendor_id),
             )
 
         conn.commit()
@@ -4464,8 +4587,8 @@ def assign_resource_login(resource_id):
         if not full_name:
             full_name = (res.get("name") or email.split("@")[0])
         c2.execute(
-            "INSERT INTO vendor_employee (vendor_id, empid, full_name, email, password, phone_number, role, status) VALUES (%s,%s,%s,%s,%s,%s,%s,'active')",
-            (vendor_id, None, full_name, email, hashed, phone_number or None, role),
+            "INSERT INTO vendor_employee (vendor_id, empid, full_name, email, password, phone_number, role, status, address) VALUES (%s,%s,%s,%s,%s,%s,%s,'active',%s)",
+            (vendor_id, None, full_name, email, hashed, phone_number or None, role, address or None),
         )
         conn.commit()
         vendor_employee_id = c2.lastrowid
@@ -4473,13 +4596,13 @@ def assign_resource_login(resource_id):
     # Persist mapping + synced display fields on resource profile (new_swiftbim)
     if full_name:
         vcur.execute(
-            "UPDATE vendor_resource_profiles SET name=%s, email=%s, login_role=%s, vendor_employee_id=%s WHERE id=%s AND vendor_id=%s",
-            (full_name, email, role, vendor_employee_id, resource_id, vendor_id),
+            "UPDATE vendor_resource_profiles SET name=%s, email=%s, login_role=%s, vendor_employee_id=%s, address=%s WHERE id=%s AND vendor_id=%s",
+            (full_name, email, role, vendor_employee_id, address, resource_id, vendor_id),
         )
     else:
         vcur.execute(
-            "UPDATE vendor_resource_profiles SET email=%s, login_role=%s, vendor_employee_id=%s WHERE id=%s AND vendor_id=%s",
-            (email, role, vendor_employee_id, resource_id, vendor_id),
+            "UPDATE vendor_resource_profiles SET email=%s, login_role=%s, vendor_employee_id=%s, address=%s WHERE id=%s AND vendor_id=%s",
+            (email, role, vendor_employee_id, address, resource_id, vendor_id),
         )
     get_vendor_db().commit()
 
@@ -5623,15 +5746,14 @@ def _insert_task_assignment_notification(cur, assignee_user_id, project_id, task
     except Exception:
         pass
 
-    msg = ""
     if project_name and task_name:
-        msg = f"{project_name} project - {task_name} task assigned by {actor_name}"
+        msg = f"{actor_name} has assigned you the task {task_name} in the project {project_name}"
     elif task_name:
-        msg = f"{task_name} task assigned by {actor_name}"
+        msg = f"{actor_name} has assigned you the task {task_name}"
     elif project_name:
-        msg = f"{project_name} project task assigned by {actor_name}"
+        msg = f"{actor_name} has assigned you a task in the project {project_name}"
     else:
-        msg = f"Task assigned by {actor_name}"
+        msg = f"{actor_name} has assigned you a task"
     if actor_role:
         msg += f" ({actor_role})"
 
@@ -5644,7 +5766,7 @@ def _insert_task_assignment_notification(cur, assignee_user_id, project_id, task
             (
                 assignee_user_id,
                 project_id or None,
-                "Task assigned",
+                task_name or "Task assigned",
                 msg,
                 "vendor_task_assigned",
                 "task",
@@ -5662,7 +5784,7 @@ def _insert_task_assignment_notification(cur, assignee_user_id, project_id, task
                 (
                     assignee_user_id,
                     project_id or None,
-                    "Task assigned",
+                    task_name or "Task assigned",
                     msg,
                     "vendor_task_assigned",
                     notif_company_id,
@@ -7317,7 +7439,7 @@ def list_vendor_teams():
         return jsonify({"teams": []})
 
     cur.execute(
-        """
+        f"""
         SELECT
             vt.id AS team_id,
             vt.team_name,

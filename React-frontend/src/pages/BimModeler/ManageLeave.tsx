@@ -12,6 +12,7 @@ import deleteIcon from '../../assets/ProjectManager/project/deleteIcon.svg';
 
 const SHOW_ENTRIES_PLACEHOLDER = 'Show Entries';
 const SHOW_ENTRIES_SELECTED_PREFIX = 'Show:';
+const EMPLOYEE_FILTER_PLACEHOLDER = 'Select Employee';
 
 
 interface LeaveEntry {
@@ -177,6 +178,12 @@ export default function ManageLeave() {
     const leaveTypeDropdownRef = useRef<HTMLDivElement>(null);
 
     const [tableCurrentPage, setTableCurrentPage] = useState(1);
+    const [selectedEmployee, setSelectedEmployee] = useState('');
+    const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
+    const employeeDropdownRef = useRef<HTMLDivElement>(null);
+    const employeeDropdownContentRef = useRef<HTMLDivElement>(null);
+    const employeeOptions = Array.from(new Set(leaves.map((l) => l.employeeName)));
+
 
     // Load available leave types from backend (holiday table)
     useEffect(() => {
@@ -251,18 +258,31 @@ export default function ManageLeave() {
             ) {
                 setShowEntriesOpen(false);
             }
+            if (
+                employeeDropdownOpen &&
+                employeeDropdownRef.current &&
+                !employeeDropdownRef.current.contains(t)
+            ) {
+                setEmployeeDropdownOpen(false);
+            }
         };
-        if (showEntriesOpen) {
+        if (showEntriesOpen || employeeDropdownOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [showEntriesOpen]);
+    }, [showEntriesOpen, employeeDropdownOpen]);
 
     useEffect(() => {
         if (showEntriesOpen && showEntriesDropdownContentRef.current) {
             showEntriesDropdownContentRef.current.scrollTop = 0;
         }
     }, [showEntriesOpen]);
+
+    useEffect(() => {
+        if (employeeDropdownOpen && employeeDropdownContentRef.current) {
+            employeeDropdownContentRef.current.scrollTop = 0;
+        }
+    }, [employeeDropdownOpen]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -281,8 +301,12 @@ export default function ManageLeave() {
 
     const filteredList = useMemo(() => {
         const q = searchQueryKey.toLowerCase();
-        if (!q) return leaves;
-        return leaves.filter((l) => {
+        let base = leaves;
+        if (selectedEmployee !== "") {
+            base = base.filter((l) => l.employeeName === selectedEmployee);
+        }
+        if (!q) return base;
+        return base.filter((l) => {
             return [
                 l.employeeName,
                 l.leaveType,
@@ -293,7 +317,7 @@ export default function ManageLeave() {
                 l.role,
             ].some((f) => (f || '').toLowerCase().includes(q));
         });
-    }, [leaves, searchQueryKey]);
+    }, [leaves, searchQueryKey, selectedEmployee]);
     const effectiveShowEntryValue =
       selectedShowEntries || showEntriesOptions[0].value;
     const selectedRange =
@@ -315,7 +339,7 @@ export default function ManageLeave() {
 
     useEffect(() => {
         setTableCurrentPage(1);
-    }, [selectedShowEntries, searchQueryKey]);
+    }, [selectedShowEntries, searchQueryKey, selectedEmployee]);
 
 
   const handleView = (row: LeaveEntry) => {
@@ -585,7 +609,7 @@ export default function ManageLeave() {
   };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-100px)] font-gantari overflow-hidden">
+        <div className="px-2 flex flex-col h-[calc(100vh-100px)] font-gantari overflow-hidden">
             <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
                 <div className="flex flex-col flex-1 min-h-0">
                     <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">
@@ -600,7 +624,87 @@ export default function ManageLeave() {
                             >
                                 Apply Leave
                             </button>
-                         
+                            <div
+                                className="relative min-w-[180px] max-w-[240px] w-[180px]"
+                                ref={employeeDropdownRef}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEmployeeDropdownOpen((o) => !o);
+                                    }}
+                                    className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                                >
+                                    <span
+                                        className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                                            selectedEmployee === ""
+                                                ? "text-[#8B8B8B]"
+                                                : "text-[#353535]"
+                                        }`}
+                                    >
+                                        {selectedEmployee === "" ? (
+                                            EMPLOYEE_FILTER_PLACEHOLDER
+                                        ) : (
+                                            <span className="font-semibold truncate">
+                                                {selectedEmployee}
+                                            </span>
+                                        )}
+                                    </span>
+                                    <img
+                                        src={ArrowDown}
+                                        alt=""
+                                        className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
+                                            employeeDropdownOpen ? "rotate-180" : ""
+                                        } ${
+                                            selectedEmployee === ""
+                                                ? "opacity-60 grayscale"
+                                                : "opacity-90"
+                                        }`}
+                                        aria-hidden
+                                    />
+                                </button>
+                                {employeeDropdownOpen && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                                        <div
+                                            ref={employeeDropdownContentRef}
+                                            className="max-h-[168px] overflow-y-auto custom-scrollbar [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')] pr-1"
+                                        >
+                                            <button
+                                                type="button"
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setSelectedEmployee("");
+                                                    setEmployeeDropdownOpen(false);
+                                                }}
+                                                className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                            >
+                                                {EMPLOYEE_FILTER_PLACEHOLDER}
+                                            </button>
+                                            {employeeOptions.map((name) => (
+                                                <button
+                                                    key={name}
+                                                    type="button"
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        setSelectedEmployee(name);
+                                                        setEmployeeDropdownOpen(false);
+                                                    }}
+                                                    className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer truncate hover:text-[#353535] hover:bg-[#F2F2F2] ${
+                                                        selectedEmployee === name
+                                                            ? "text-[#353535] bg-[#F2F2F2]"
+                                                            : "text-[#8B8B8B] bg-transparent"
+                                                    }`}
+                                                >
+                                                    {name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             <div
                                 className="relative min-w-[140px] max-w-[200px] w-[160px]"
                                 ref={showEntriesDropdownRef}
@@ -636,7 +740,7 @@ export default function ManageLeave() {
                                     <img
                                         src={ArrowDown}
                                         alt=""
-                                        className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                                        className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
                                             showEntriesOpen ? 'rotate-180' : ''
                                         } ${
                                             selectedShowEntries === ''
@@ -650,7 +754,7 @@ export default function ManageLeave() {
                                     <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
                                         <div
                                             ref={showEntriesDropdownContentRef}
-                                            className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                                            className="max-h-[168px] overflow-y-auto custom-scrollbar [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')] pr-1"
                                         >
                                             <button
                                                 type="button"
@@ -712,8 +816,9 @@ export default function ManageLeave() {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-                        <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1 pb-0">
+                    <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative w-full mb-3">
+                        <div className="flex-1 min-h-0 overflow-hidden">
+                            <div className="overflow-y-auto overflow-x-hidden custom-scrollbar smooth-scroll h-full pr-1 [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')]">
                             <table className="min-w-full border-collapse">
                                 <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                                     <tr className=" bg-white">
@@ -760,28 +865,28 @@ export default function ManageLeave() {
                                                     key={row.id}
                                                     className={`${
                                                         index % 2 === 1
-                                                            ? 'bg-[#F2F2F2] '
+                                                            ? 'bg-[#F2F2F2] hover:bg-gray-100'
                                                             : 'bg-[#FFFFFF]'
                                                     } transition-colors`}
                                                 >
-                                                    <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
+                                                    <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
                                                         {slNoDisplay}
                                                     </td>
-                                                    <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                                    <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                                                         {row.employeeName}
                                                     </td>
-                                                    <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                                    <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                                                         {row.role ?? '–'}
                                                     </td>
-                                                    <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                                    <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                                                         {row.leaveType}
                                                     </td>
-                                                    <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                                    <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                                                         {row.appliedOn}
                                                     </td>
-                                                    <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                                                    <td className="px-3 py-5 text-center text-[14px] whitespace-nowrap align-middle">
                                                         <span
-                                                            className={`inline-flex px-3 py-1 rounded-md text-[12px] font-semibold font-gantari ${
+                                                            className={`inline-flex px-2 sm:px-3 py-1 rounded-md text-[10px] sm:text-[12px] font-semibold font-gantari ${
                                                                 row.currentStatus === 'Approved'
                                                                     ? 'bg-[#E1F6EB] text-[#008F22]'
                                                                     : row.currentStatus === 'Rejected'
@@ -792,7 +897,7 @@ export default function ManageLeave() {
                                                             {row.currentStatus}
                                                         </span>
                                                     </td>
-                                                    <td className="px-3 py-6 text-center text-[14px] whitespace-nowrap align-middle">
+                                                    <td className="px-3 py-5 text-center text-[14px] whitespace-nowrap align-middle">
                                                         <div className="flex items-center justify-center gap-2 flex-nowrap">
                                                             <button
                                                                 type="button"
@@ -808,38 +913,70 @@ export default function ManageLeave() {
                                                             </button>
                                                             {isPending && (
                                                                 <>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleEdit(row)}
-                                                                        className={`inline-flex items-center justify-center p-2 rounded-md cursor-pointer ${
-                                                                            index % 2 === 0
-                                                                                ? 'bg-[#F2F2F2]'
-                                                                                : 'bg-[#FFFFFF]'
-                                                                        }`}
-                                                                        title="Edit"
-                                                                    >
-                                                                        <img
-                                                                            src={editIcon}
-                                                                            alt=""
-                                                                            className="w-4 h-4"
-                                                                        />
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleDelete(row)}
-                                                                        className={`inline-flex items-center justify-center p-2 rounded-md text-[#353535] transition-colors shrink-0 cursor-pointer ${
-                                                                            index % 2 === 0
-                                                                                ? 'bg-[#F2F2F2]'
-                                                                                : 'bg-[#FFFFFF]'
-                                                                        }`}
-                                                                        title="Delete"
-                                                                    >
-                                                                        <img
-                                                                            src={deleteIcon}
-                                                                            alt=""
-                                                                            className="w-4 h-4 "
-                                                                        />
-                                                                    </button>
+                                                                    <div className="relative group inline-flex shrink-0">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleEdit(row)}
+                                                                            className={`inline-flex items-center justify-center p-2 rounded-md cursor-pointer ${
+                                                                                index % 2 === 0
+                                                                                    ? 'bg-[#F2F2F2]'
+                                                                                    : 'bg-[#FFFFFF]'
+                                                                            }`}
+                                                                        >
+                                                                            <img
+                                                                                src={editIcon}
+                                                                                alt=""
+                                                                                className="w-4 h-4"
+                                                                            />
+                                                                        </button>
+                                                                        {index === displayedList.length - 1 ? (
+                                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10 shadow-sm">
+                                                                                    <span className="font-gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">Edit</span>
+                                                                                </div>
+                                                                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                                                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10 shadow-sm">
+                                                                                    <span className="font-gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">Edit</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="relative group inline-flex shrink-0">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleDelete(row)}
+                                                                            className={`inline-flex items-center justify-center p-2 rounded-md text-[#353535] transition-colors shrink-0 cursor-pointer ${
+                                                                                index % 2 === 0
+                                                                                    ? 'bg-[#F2F2F2]'
+                                                                                    : 'bg-[#FFFFFF]'
+                                                                            }`}
+                                                                        >
+                                                                            <img
+                                                                                src={deleteIcon}
+                                                                                alt=""
+                                                                                className="w-4 h-4 "
+                                                                            />
+                                                                        </button>
+                                                                        {index === displayedList.length - 1 ? (
+                                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10 shadow-sm">
+                                                                                    <span className="font-gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">Delete</span>
+                                                                                </div>
+                                                                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                                                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                                                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10 shadow-sm">
+                                                                                    <span className="font-gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">Delete</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 </>
                                                             )}
                                                         </div>
@@ -851,10 +988,11 @@ export default function ManageLeave() {
                                 </tbody>
                             </table>
                         </div>
+                        </div>
                     </div>
                     {listInRange.length > 0 && (
-                        <div className="w-full flex items-center justify-end py-2 pr-4">
-                            <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+                        <div className="w-full flex items-center justify-end">
+                            <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
                                 <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
                                 <button
                                     type="button"
@@ -902,10 +1040,10 @@ export default function ManageLeave() {
                     onClick={handleCloseModal}
                 >
                     <div
-                        className="bg-white rounded-md shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col border border-[#E5E5E5]"
+                        className="hover:cursor-pointer bg-white rounded-md shadow-2xl w-full max-w-md overflow-hidden border border-[#E5E5E5] px-2"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="relative flex items-center justify-center px-6 py-2 flex-shrink-0">
+                        <div className="relative flex items-center justify-center px-6 py-5">
                             <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
                                 <div className="relative group inline-flex shrink-0">
                                     <button
@@ -918,24 +1056,24 @@ export default function ManageLeave() {
                                     </button>
                                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                                         <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.1)] px-4 py-1 relative z-10">
-                                            <span className="font-Gantari text-[12px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                            <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                                                 Close
                                             </span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <h3 className="text-[24px] font-medium text-[#000000]">Apply Leave</h3>
+                            <h3 className="text-[24px] font-semibold text-[#000000]">Apply Leave</h3>
                         </div>
 
                         <form
                             onSubmit={handleSubmitApply}
-                            className="flex flex-col flex-1 overflow-y-auto px-6 py-4 space-y-2 custom-scrollbar"
+                            className="px-6 py-6 space-y-4"
                         >
                             <div>
-                                <label className="block text-base font-semibold text-[#000000] mb-2">
-                                    Employee Name
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                                    Employee Name<span className="text-[#DD4342]">*</span>
                                 </label>
                                 <input
                                     type="text"
@@ -946,27 +1084,27 @@ export default function ManageLeave() {
                                     }
                                     readOnly
                                     disabled
-                                    className="w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none bg-[#F2F3F4] border-0 disabled:opacity-70 disabled:cursor-not-allowed"
+                                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-100 disabled:text-[#353535] disabled:cursor-not-allowed"
                                 />
                             </div>
 
                             <div ref={leaveTypeDropdownRef} className="relative">
-                                <label className="block text-base font-semibold text-[#000000] mb-2">
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                                     Leave Type <span className="text-[#DD4342]">*</span>
                                 </label>
                                 <button
                                     type="button"
                                     onClick={() => setLeaveTypeOpen((o) => !o)}
-                                    className={`cursor-pointer w-full px-4 py-2.5 rounded-lg text-left text-sm flex items-center justify-between min-h-[40px] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] transition-colors border-0 bg-[#F2F3F4] ${leaveTypeOpen ? 'ring-1 ring-[#D2D2D2]' : ''}`}
+                                    className={`cursor-pointer w-full flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] text-left border border-transparent focus:outline-none font-Gantari transition-all outline-none ${leaveTypeOpen ? '!border-[#AEACAC52]' : ''}`}
                                 >
                                     <span
                                         className={
                                             leaveType
-                                                ? 'text-[#353535] font-medium'
-                                                : 'text-[#8B8B8B]'
+                                                ? 'text-[#353535] font-normal'
+                                                : 'text-[#8B8B8B] font-normal'
                                         }
                                     >
-                                        {leaveType || 'Nothing selected'}
+                                        {leaveType || 'Select leave type'}
                                     </span>
                                     <svg
                                         width="14"
@@ -984,9 +1122,10 @@ export default function ManageLeave() {
                                 </button>
                                 {leaveTypeOpen && (
                                     <div
-                                        className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg py-1.5"
+                                        className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-[5px] border border-[#E0E0E0] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] py-1.5 overflow-hidden"
                                         onMouseDown={(e) => e.preventDefault()}
                                     >
+                                        <div className="max-h-[168px] overflow-y-auto custom-scrollbar">
                                         <button
                                             type="button"
                                             onClick={(e) => {
@@ -995,9 +1134,9 @@ export default function ManageLeave() {
                                                 setLeaveTypeId(null);
                                                 setLeaveTypeOpen(false);
                                             }}
-                                            className={`cursor-pointer w-full text-left px-4 py-2.5 text-sm font-medium ${!leaveType ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}
+                                            className={`cursor-pointer w-full text-left px-4 py-2.5 text-[14px] font-Gantari ${!leaveType ? 'text-[#353535] bg-[#F4F4F4]' : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F4F4F4]'}`}
                                         >
-                                            Nothing selected
+                                            Select Leave Type
                                         </button>
                                         {LEAVE_TYPES.map((t) => (
                                             <button
@@ -1009,7 +1148,7 @@ export default function ManageLeave() {
                                                     setLeaveTypeId(null);
                                                     setLeaveTypeOpen(false);
                                                 }}
-                                                className={`cursor-pointer w-full text-left px-4 py-2.5 text-sm font-medium ${leaveType === t ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}
+                                                className={`cursor-pointer w-full text-left px-4 py-2.5 text-[14px] font-Gantari ${leaveType === t ? 'text-[#353535] bg-[#F4F4F4]' : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F4F4F4]'}`}
                                             >
                                                 {t}
                                             </button>
@@ -1026,10 +1165,10 @@ export default function ManageLeave() {
                                                         setLeaveTypeId(type.id);
                                                         setLeaveTypeOpen(false);
                                                     }}
-                                                    className={`cursor-pointer w-full text-left px-4 py-2.5 text-sm font-medium ${
+                                                    className={`cursor-pointer w-full text-left px-4 py-2.5 text-[14px] font-Gantari ${
                                                         leaveType === type.title
-                                                            ? 'text-[#353535] bg-[#F0F2F7]'
-                                                            : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'
+                                                            ? 'text-[#353535] bg-[#F4F4F4]'
+                                                            : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F4F4F4]'
                                                     }`}
                                                 >
                                                     {type.title}
@@ -1043,21 +1182,22 @@ export default function ManageLeave() {
                                                 setLeaveTypeId(0);
                                                 setLeaveTypeOpen(false);
                                             }}
-                                            className={`cursor-pointer w-full text-left px-4 py-2.5 text-sm font-medium ${
+                                            className={`cursor-pointer w-full text-left px-4 py-2.5 text-[14px] font-Gantari ${
                                                 leaveTypeId === 0
-                                                    ? 'text-[#353535] bg-[#F0F2F7]'
-                                                    : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'
+                                                    ? 'text-[#353535] bg-[#F4F4F4]'
+                                                    : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F4F4F4]'
                                             }`}
                                         >
                                             {othersValue}
                                         </button>
+                                        </div>
                                     </div>
                                 )}
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-base font-semibold text-[#000000] mb-2">
+                                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                                         Leave From <span className="text-[#DD4342]">*</span>
                                     </label>
                                     <div className="relative">
@@ -1067,7 +1207,7 @@ export default function ManageLeave() {
                                             min={todayStr}
                                             value={leaveFrom}
                                             onChange={(e) => setLeaveFrom(e.target.value)}
-                                            className="w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] border-0 bg-[#F2F3F4] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                                            className={`w-full px-4 py-2 bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] text-[14px] ${leaveFrom ? 'text-[#353535]' : 'text-[#8B8B8B]'} [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
                                             style={{ colorScheme: 'light' }}
                                         />
                                         <svg
@@ -1084,7 +1224,7 @@ export default function ManageLeave() {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-base font-semibold text-[#000000] mb-2">
+                                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                                         Leave To <span className="text-[#DD4342]">*</span>
                                     </label>
                                     <div className="relative">
@@ -1094,7 +1234,7 @@ export default function ManageLeave() {
                                             min={leaveFrom || todayStr}
                                             value={leaveTo}
                                             onChange={(e) => setLeaveTo(e.target.value)}
-                                            className="w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] border-0 bg-[#F2F3F4] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                                            className={`w-full px-4 py-2 bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] text-[14px] ${leaveTo ? 'text-[#353535]' : 'text-[#8B8B8B]'} [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
                                             style={{ colorScheme: 'light' }}
                                         />
                                         <svg
@@ -1113,7 +1253,7 @@ export default function ManageLeave() {
                             </div>
 
                             <div>
-                                <label className="block text-base font-semibold text-[#000000] mb-2">
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                                     Describe Your Reason{' '}
                                     <span className="text-[#DD4342]">*</span>
                                 </label>
@@ -1121,23 +1261,23 @@ export default function ManageLeave() {
                                     required
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}
-                                    rows={6}
+                                    rows={3}
                                     placeholder="Enter your reason for leave..."
-                                    className="w-full min-h-[140px] px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] resize-y border-0 bg-[#F2F3F4] break-words"
+                                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] placeholder:text-[14px] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                                 />
                             </div>
 
-                            <div className="flex gap-3 pt-2">
+                            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-2">
                                 <button
                                     type="button"
                                     onClick={handleCloseModal}
-                                    className="cursor-pointer flex-1 px-4 py-2.5 rounded-lg font-medium text-[#616161] bg-[#F2F2F2] hover:bg-[#E5E5E5] transition-colors"
+                                    className="px-6 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-medium text-[14px] transition-all cursor-pointer font-Gantari"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="cursor-pointer flex-1 px-4 py-2.5 bg-[#DD4342] text-white rounded-lg font-semibold hover:bg-[#c43a39] active:scale-[0.98] transition-all shadow-sm"
+                                    className="w-full sm:w-auto px-6 py-2 rounded-md bg-[#DD4342] text-white font-semibold text-[14px] active:scale-[0.98] transition-all shadow-sm font-Gantari cursor-pointer"
                                 >
                                     Submit
                                 </button>
@@ -1239,7 +1379,7 @@ export default function ManageLeave() {
                                 </button>
                                 {leaveTypeOpen && (
                                     <div
-                                        className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg py-1.5"
+                                        className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg py-1.5 max-h-[168px] overflow-y-auto custom-scrollbar"
                                         onMouseDown={(e) => e.preventDefault()}
                                     >
                                         <button
@@ -1322,7 +1462,7 @@ export default function ManageLeave() {
                                             min={todayStr}
                                             value={leaveFrom}
                                             onChange={(e) => setLeaveFrom(e.target.value)}
-                                            className="w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] border-0 bg-[#F2F3F4] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                                            className={`w-full px-4 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] border-0 bg-[#F2F3F4] ${leaveFrom ? 'text-[#353535]' : 'text-[#8B8B8B]'} [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
                                             style={{ colorScheme: 'light' }}
                                         />
                                         <svg
@@ -1349,7 +1489,7 @@ export default function ManageLeave() {
                                             min={leaveFrom || todayStr}
                                             value={leaveTo}
                                             onChange={(e) => setLeaveTo(e.target.value)}
-                                            className="w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] border-0 bg-[#F2F3F4] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                                            className={`w-full px-4 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] border-0 bg-[#F2F3F4] ${leaveTo ? 'text-[#353535]' : 'text-[#8B8B8B]'} [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
                                             style={{ colorScheme: 'light' }}
                                         />
                                         <svg

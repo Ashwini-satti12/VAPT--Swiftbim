@@ -12,8 +12,6 @@ import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
-import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
-import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 import { FiX } from "react-icons/fi";
 import { useAuth } from "../../../contexts/AuthContext";
 
@@ -76,21 +74,6 @@ interface Employee {
   active?: string;
 }
 
-const emptyTaskForm = {
-  task_name: "",
-  description: "",
-  status: "Todo",
-  priority: "",
-  due_date: "",
-  project_id: "",
-  assigned_to: "",
-  category: "",
-  actual_start_date: "",
-  actual_end_date: "",
-  start_time: "",
-  end_time: "",
-};
-
 export default function VendorBimLeadTasks() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -100,35 +83,15 @@ export default function VendorBimLeadTasks() {
   const [selectedShow, setSelectedShow] = useState("Show Entries");
   const [showDropdownOpen, setShowDropdownOpen] = useState(false);
 
-  // Page navigation: list | add | edit
-  const [currentPage, setCurrentPage] = useState<"list" | "add" | "edit">("list");
-
-  const [createForm, setCreateForm] = useState({ ...emptyTaskForm });
-  const [createSubmitting, setCreateSubmitting] = useState(false);
-
-  const [openFormDropdown, setOpenFormDropdown] = useState<string | null>(null);
-  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const showDropdownRef = useRef<HTMLDivElement>(null);
+  const cardMenuRef = useRef<HTMLDivElement>(null);
 
   const [openMenuTaskId, setOpenMenuTaskId] = useState<number | null>(null);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const searchQuery = searchParams.get('q')?.toLowerCase() || "";
-
-  const [editForm, setEditForm] = useState({ ...emptyTaskForm });
-  const [editSubmitting, setEditSubmitting] = useState(false);
-  const [editAttachmentFiles, setEditAttachmentFiles] = useState<File[]>([]);
-  const editFileInputRef = useRef<HTMLInputElement>(null);
-
-  const showDropdownRef = useRef<HTMLDivElement>(null);
-  const cardMenuRef = useRef<HTMLDivElement>(null);
-  const projectDropdownRef = useRef<HTMLDivElement>(null);
-  const moduleDropdownRef = useRef<HTMLDivElement>(null);
-  const typeDropdownRef = useRef<HTMLDivElement>(null);
-  const assignDropdownRef = useRef<HTMLDivElement>(null);
+  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
 
   const fetchTasks = () => {
     api
@@ -176,149 +139,9 @@ export default function VendorBimLeadTasks() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Close form dropdowns on outside click
-  useEffect(() => {
-    if (!openFormDropdown) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      const refs = [
-        projectDropdownRef,
-        moduleDropdownRef,
-        typeDropdownRef,
-        assignDropdownRef,
-      ];
-      const inside = refs.some(
-        (r) => r.current && r.current.contains(e.target as Node),
-      );
-      if (!inside) setOpenFormDropdown(null);
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [openFormDropdown]);
 
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    setCreateSubmitting(true);
-    const form = createForm;
-    const payload = {
-      task_name: form.task_name,
-      description: form.description,
-      status: form.status === "To Do" ? "Todo" : form.status,
-      category: form.priority || "Medium",
-      due_date: form.actual_end_date || undefined,
-      start_date: form.actual_start_date || undefined,
-      start_time: form.start_time || undefined,
-      end_time: form.end_time || undefined,
-      project_id: form.project_id ? Number(form.project_id) : undefined,
-      assigned_to: form.assigned_to ? Number(form.assigned_to) : undefined,
-      modules: form.category || undefined,
-    };
 
-    api
-      .post("/api/vendors/vendor-tasks", payload)
-      .then((res) => {
-        if (!res.data?.success) {
-          toast.error(
-            (res.data as { message?: string })?.message ||
-              "Failed to create task",
-          );
-          return;
-        }
-        const taskId = res.data?.task_id ?? res.data?.id;
-        toast.success("Task created successfully");
-        setCurrentPage("list");
-        setAttachmentFiles([]);
-        setCreateForm({ ...emptyTaskForm });
-        if (taskId && attachmentFiles.length > 0) {
-          const formData = new FormData();
-          attachmentFiles.forEach((f) => {
-            formData.append("image", f);
-            formData.append("image[]", f);
-          });
-          api
-            .post(
-              `/api/vendors/vendor-tasks/${taskId}/output-files`,
-              formData,
-              { headers: { "Content-Type": "multipart/form-data" } },
-            )
-            .catch(() => toast.error("Failed to upload attachments"));
-        }
-        fetchTasks();
-      })
-      .catch(() => {
-        toast.error("Failed to create task");
-      })
-      .finally(() => setCreateSubmitting(false));
-  };
 
-  const deleteAttachment = (index: number) => {
-    setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleEditAttachmentChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    if (e.target.files) {
-      setEditAttachmentFiles((prev) => [
-        ...prev,
-        ...Array.from(e.target.files!),
-      ]);
-    }
-  };
-
-  const deleteEditAttachment = (index: number) => {
-    setEditAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    setAttachmentFiles((prev) => [...prev, ...files]);
-  };
-
-  const handleUpdate = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedTask) return;
-    setEditSubmitting(true);
-    const payload = {
-      task_name: editForm.task_name,
-      description: editForm.description,
-      status: editForm.status,
-      category: editForm.priority || "Medium",
-      due_date: editForm.actual_end_date || undefined,
-      start_date: editForm.actual_start_date || undefined,
-      start_time: editForm.start_time || undefined,
-      end_time: editForm.end_time || undefined,
-      project_id: editForm.project_id ? Number(editForm.project_id) : undefined,
-      assigned_to: editForm.assigned_to
-        ? Number(editForm.assigned_to)
-        : undefined,
-      modules: editForm.category || undefined,
-    };
-
-    api
-      .patch(`/api/vendors/vendor-tasks/${selectedTask.id}`, payload)
-      .then(() => {
-        if (editAttachmentFiles.length > 0) {
-          const formData = new FormData();
-          editAttachmentFiles.forEach((f) => {
-            formData.append("image", f);
-            formData.append("image[]", f);
-          });
-          api
-            .post(
-              `/api/vendors/vendor-tasks/${selectedTask.id}/output-files`,
-              formData,
-              { headers: { "Content-Type": "multipart/form-data" } },
-            )
-            .catch((err) => console.error("Attachment upload failed", err));
-        }
-        setCurrentPage("list");
-        toast.success("Task updated successfully");
-        fetchTasks();
-        setEditAttachmentFiles([]);
-      })
-      .catch(() => toast.error("Failed to update task"))
-      .finally(() => setEditSubmitting(false));
-  };
 
   const handleDelete = (taskId: number) => {
     setTaskToDelete(taskId);
@@ -444,60 +267,19 @@ export default function VendorBimLeadTasks() {
   };
   (window as any).handleApproveTask = handleApproveTask;
 
-  const activeForm = currentPage === "edit" ? editForm : createForm;
 
-  const employeesForAssignDropdown = useMemo(() => {
-    let all = Array.isArray(employees) ? [...employees] : [];
-    
-    // Ensure current user is in the list
-    if (user) {
-      const userIdStr = String(user.id);
-      const alreadyInList = all.some((e) => String(e.id) === userIdStr);
-      if (!alreadyInList) {
-        all.push({
-          id: user.id,
-          full_name: user.full_name || user.name || "Me",
-          active: "1",
-        } as any);
-      }
-    }
-
-    const meta = projects.find(
-      (p) => String(p.id) === activeForm.project_id,
-    );
-    const members = (meta?.members || "")
-      .split(",")
-      .map((s: string) => s.trim())
-      .filter(Boolean);
-    
-    if (members.length === 0) return all;
-    
-    return all.filter((e) => {
-      const name = (e.full_name || "").trim();
-      const idStr = String(e.id);
-      const isAllowedByProject = members.some(
-        (m: string) =>
-          m === idStr ||
-          m.toLowerCase() === name.toLowerCase() ||
-          name === m,
-      );
-      const isCurrentUser = String(e.id) === String(user?.id);
-      
-      return isAllowedByProject || isCurrentUser;
-    });
-  }, [employees, projects, activeForm.project_id, user]);
 
   const myFilteredTasks = tasks.filter((t) => {
     if (searchQuery) {
-        if (!(
-            (t.task_name || "").toLowerCase().includes(searchQuery) ||
-            (t.project_name || "").toLowerCase().includes(searchQuery) ||
-            (t.assigned_to_name || "").toLowerCase().includes(searchQuery) ||
-            (t.category || "").toLowerCase().includes(searchQuery) ||
-            (t.status || "").toLowerCase().includes(searchQuery)
-        )) {
-            return false;
-        }
+      if (!(
+        (t.task_name || "").toLowerCase().includes(searchQuery) ||
+        (t.project_name || "").toLowerCase().includes(searchQuery) ||
+        (t.assigned_to_name || "").toLowerCase().includes(searchQuery) ||
+        (t.category || "").toLowerCase().includes(searchQuery) ||
+        (t.status || "").toLowerCase().includes(searchQuery)
+      )) {
+        return false;
+      }
     }
     const isAssignedToMe = Boolean(t.is_assigned_to_me);
     const isOwner = Boolean(t.is_owned_by_me);
@@ -532,513 +314,6 @@ export default function VendorBimLeadTasks() {
     return (
       <div className="flex justify-center py-12">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DD4342]" />
-      </div>
-    );
-  }
-
-  // ─── ADD / EDIT FORM PAGE ────────────────────────────────────────────────────
-  if (currentPage === "add" || currentPage === "edit") {
-    const isEdit = currentPage === "edit";
-    const form = isEdit ? editForm : createForm;
-    const setForm = isEdit
-      ? (vals: typeof editForm) => setEditForm(vals)
-      : (vals: typeof createForm) => setCreateForm(vals);
-    const attachments = isEdit ? editAttachmentFiles : attachmentFiles;
-    const deleteAtt = isEdit ? deleteEditAttachment : deleteAttachment;
-
-    return (
-      <div className="flex-1 min-h-0 px-5 py-4 bg-white overflow-y-auto custom-scrollbar">
-        <div className="max-w-[1174px] mx-auto flex flex-col">
-          {/* Header with back button + tooltip */}
-          <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
-            <div className="group relative inline-flex shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrentPage("list");
-                  setOpenFormDropdown(null);
-                }}
-                className="p-2 rounded-md bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
-              >
-                <img src={backIcon} alt="Back" className="w-5 h-5" />
-              </button>
-              {/* Tooltip */}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
-                  <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                    Go Back
-                  </span>
-                </div>
-              </div>
-            </div>
-            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
-              {isEdit ? "Edit Task" : "Add New Task"}
-            </h3>
-            <div className="w-10" />
-          </div>
-
-          {/* Form */}
-          <form
-            onSubmit={isEdit ? handleUpdate : handleCreate}
-            className="space-y-6 max-w-4xl mx-auto w-full pb-10"
-          >
-            {/* Project Name */}
-            <div>
-              <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                Project Name <span className="text-[#DD4342]">*</span>
-              </label>
-              <div className="relative" ref={projectDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setOpenFormDropdown(
-                      openFormDropdown === "project" ? null : "project",
-                    )
-                  }
-                  className="w-full px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] flex items-center justify-between outline-none cursor-pointer min-h-[42px] border border-transparent focus:border-[#AEACAC52] transition-colors"
-                >
-                  <span
-                    className={
-                      form.project_id ? "text-[#353535]" : "text-[#8B8B8B]"
-                    }
-                  >
-                    {projects.find((p) => p.id.toString() === form.project_id)
-                      ?.project_name || "Select Project name"}
-                  </span>
-                  <img
-                    src={ArrowDown}
-                    alt="arrow"
-                    className={`h-3 w-3 transition-transform ${openFormDropdown === "project" ? "rotate-180" : ""}`}
-                  />
-                </button>
-                {openFormDropdown === "project" && (
-                  <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-[#E0E0E0] rounded-md py-1 max-h-48 overflow-y-auto custom-scrollbar shadow-lg">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setForm({ ...form, project_id: "" });
-                        setOpenFormDropdown(null);
-                      }}
-                      className="block w-full text-left px-4 py-2 text-[14px] font-Gantari text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] cursor-pointer"
-                    >
-                      Select Project name
-                    </button>
-                    {projects.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => {
-                          setForm({ ...form, project_id: p.id.toString() });
-                          setOpenFormDropdown(null);
-                        }}
-                        className="block w-full text-left px-4 py-2 text-[14px] font-Gantari text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] cursor-pointer"
-                      >
-                        {p.project_name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Module + Task Name */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
-              <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                  Select Module <span className="text-[#DD4342]">*</span>
-                </label>
-                <div className="relative" ref={moduleDropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setOpenFormDropdown(
-                        openFormDropdown === "module" ? null : "module",
-                      )
-                    }
-                    className="w-full px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] flex items-center justify-between outline-none cursor-pointer min-h-[42px] border border-transparent focus:border-[#AEACAC52] transition-colors"
-                  >
-                    <span
-                      className={
-                        form.category ? "text-[#353535]" : "text-[#8B8B8B]"
-                      }
-                    >
-                      {form.category || "Select Module"}
-                    </span>
-                    <img
-                      src={ArrowDown}
-                      alt="arrow"
-                      className={`h-3 w-3 transition-transform ${openFormDropdown === "module" ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                  {openFormDropdown === "module" && (
-                    <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-[#E0E0E0] rounded-md py-1 max-h-48 overflow-y-auto custom-scrollbar shadow-lg">
-                      {["Module 1", "Module 2"].map((m) => (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => {
-                            setForm({ ...form, category: m });
-                            setOpenFormDropdown(null);
-                          }}
-                          className="block w-full text-left px-4 py-2 text-[14px] font-Gantari text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] cursor-pointer"
-                        >
-                          {m}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                  Task Name <span className="text-[#DD4342]">*</span>
-                </label>
-                <div className="relative flex min-h-[42px] items-stretch overflow-hidden rounded-[5px] border border-transparent bg-[#F2F3F4] transition-colors focus-within:border-[#AEACAC52]">
-                  <input
-                    type="text"
-                    value={form.task_name}
-                    onChange={(e) =>
-                      setForm({ ...form, task_name: e.target.value })
-                    }
-                    placeholder="Enter Task / Select Task"
-                    className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B]"
-                    required
-                  />
-                  {/* <button
-                    type="button"
-                    className="inline-flex h-full min-h-[40px] w-auto shrink-0 items-center justify-between gap-2 border-0 border-l border-[#E0E0E0] bg-[#E2E2E2] px-4 py-2 text-[14px] font-Gantari text-[#8B8B8B] cursor-pointer"
-                  >
-                    Tasklist
-                  </button> */}
-                </div>
-              </div>
-            </div>
-
-            {/* Type + Start Date + End Date */}
-            {/* <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
-              <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                  Type <span className="text-[#DD4342]">*</span>
-                </label>
-                <div className="relative" ref={typeDropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setOpenFormDropdown(
-                        openFormDropdown === "type" ? null : "type",
-                      )
-                    }
-                    className="w-full px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] flex items-center justify-between outline-none cursor-pointer min-h-[42px] border border-transparent focus:border-[#AEACAC52] transition-colors"
-                  >
-                    <span
-                      className={
-                        form.priority ? "text-[#353535]" : "text-[#8B8B8B]"
-                      }
-                    >
-                      {form.priority
-                        ? form.priority.charAt(0).toUpperCase() +
-                          form.priority.slice(1)
-                        : "Select Type"}
-                    </span>
-                    <img
-                      src={ArrowDown}
-                      alt="arrow"
-                      className={`h-3 w-3 transition-transform ${openFormDropdown === "type" ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                  {openFormDropdown === "type" && (
-                    <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-[#E0E0E0] rounded-md py-1 max-h-48 overflow-y-auto custom-scrollbar shadow-lg">
-                      {[
-                        { value: "", label: "Select Type" },
-                        { value: "task", label: "Task" },
-                        { value: "bug", label: "Bug" },
-                        { value: "feature", label: "Feature" },
-                      ].map((t) => (
-                        <button
-                          key={t.value}
-                          type="button"
-                          onClick={() => {
-                            setForm({ ...form, priority: t.value });
-                            setOpenFormDropdown(null);
-                          }}
-                          className="block w-full text-left px-4 py-2 text-[14px] font-Gantari text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] cursor-pointer"
-                        >
-                          {t.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                  Start Date <span className="text-[#DD4342]">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={form.actual_start_date}
-                  onChange={(e) =>
-                    setForm({ ...form, actual_start_date: e.target.value })
-                  }
-                  className="w-full px-4 py-2 bg-[#F2F3F4] text-[#353535] rounded-[5px] text-[14px] focus:outline-none min-h-[42px] border border-transparent focus:border-[#AEACAC52] transition-colors font-Gantari"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                  End Date <span className="text-[#DD4342]">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={form.actual_end_date}
-                  onChange={(e) =>
-                    setForm({ ...form, actual_end_date: e.target.value })
-                  }
-                  className="w-full px-4 py-2 bg-[#F2F3F4] text-[#353535] rounded-[5px] text-[14px] focus:outline-none min-h-[42px] border border-transparent focus:border-[#AEACAC52] transition-colors font-Gantari"
-                />
-              </div>
-            </div> */}
-
-            {/* Start Time + End Time + Assign To */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
-              <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                  Select Start Time <span className="text-[#DD4342]">*</span>
-                </label>
-                <input
-                  type="time"
-                  value={form.start_time}
-                  onChange={(e) =>
-                    setForm({ ...form, start_time: e.target.value })
-                  }
-                  className="w-full px-4 py-2 bg-[#F2F3F4] text-[#353535] rounded-[5px] text-[14px] focus:outline-none min-h-[42px] border border-transparent focus:border-[#AEACAC52] transition-colors font-Gantari"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                  Select End Time <span className="text-[#DD4342]">*</span>
-                </label>
-                <input
-                  type="time"
-                  value={form.end_time}
-                  onChange={(e) =>
-                    setForm({ ...form, end_time: e.target.value })
-                  }
-                  className="w-full px-4 py-2 bg-[#F2F3F4] text-[#353535] rounded-[5px] text-[14px] focus:outline-none min-h-[42px] border border-transparent focus:border-[#AEACAC52] transition-colors font-Gantari"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                  Assign To <span className="text-[#DD4342]">*</span>
-                </label>
-                <div className="relative" ref={assignDropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setOpenFormDropdown(
-                        openFormDropdown === "assignTo" ? null : "assignTo",
-                      )
-                    }
-                    className="w-full px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] flex items-center justify-between outline-none cursor-pointer min-h-[42px] border border-transparent focus:border-[#AEACAC52] transition-colors"
-                  >
-                    <span
-                      className={
-                        form.assigned_to ? "text-[#353535]" : "text-[#8B8B8B]"
-                      }
-                    >
-                      {(() => {
-                        const found = employeesForAssignDropdown.find(
-                          (emp) => emp.id.toString() === form.assigned_to,
-                        );
-                        if (!found) return "Select Assign To";
-                        return String(found.id) === String(user?.id)
-                          ? `${found.full_name} (Me)`
-                          : found.full_name;
-                      })()}
-                    </span>
-                    <img
-                      src={ArrowDown}
-                      alt="arrow"
-                      className={`h-3 w-3 transition-transform ${openFormDropdown === "assignTo" ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                  {openFormDropdown === "assignTo" && (
-                    <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-[#E0E0E0] rounded-md py-1 max-h-48 overflow-y-auto custom-scrollbar shadow-lg">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setForm({ ...form, assigned_to: "" });
-                          setOpenFormDropdown(null);
-                        }}
-                        className="block w-full text-left px-4 py-2 text-[14px] font-Gantari text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] cursor-pointer"
-                      >
-                        Select Assign To
-                      </button>
-                      {employeesForAssignDropdown.map((emp) => (
-                        <button
-                          key={emp.id}
-                          type="button"
-                          onClick={() => {
-                            setForm({
-                              ...form,
-                              assigned_to: emp.id.toString(),
-                            });
-                            setOpenFormDropdown(null);
-                          }}
-                          className="block w-full text-left px-4 py-2 text-[14px] font-Gantari text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] cursor-pointer"
-                        >
-                          {String(emp.id) === String(user?.id)
-                            ? `${emp.full_name} (Me)`
-                            : emp.full_name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                Description <span className="text-[#DD4342]">*</span>
-              </label>
-              <textarea
-                value={form.description}
-                onChange={(e) =>
-                  setForm({ ...form, description: e.target.value })
-                }
-                rows={4}
-                placeholder="Enter Description..."
-                className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder:font-normal placeholder:text-[14px] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
-              />
-            </div>
-
-
-            {/* Attachments */}
-            <div>
-              <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                Attach File
-              </label>
-              <input
-                ref={isEdit ? editFileInputRef : fileInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={
-                  isEdit ? handleEditAttachmentChange : handleAttachmentChange
-                }
-                id="vbl-task-attachments"
-              />
-              <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden min-h-[42px]">
-                <div className="flex-1 px-4 text-[14px] text-[#979797] truncate min-w-0 py-2 font-Gantari">
-                  {attachments.length > 0
-                    ? `${attachments.length} file(s) attached`
-                    : "Choose file"}
-                </div>
-                <label
-                  htmlFor="vbl-task-attachments"
-                  className="bg-[#E2E2E2] px-6 py-2 text-[14px] font-Gantari font-medium text-[#8B8B8B] cursor-pointer flex items-center justify-center border-l border-gray-300 whitespace-nowrap"
-                >
-                  Browse Files
-                </label>
-              </div>
-              {attachments.length > 0 && (
-                <ul className="mt-3 space-y-2">
-                  {attachments.map((file, idx) => (
-                    <li
-                      key={idx}
-                      className="flex items-center gap-3 rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827]"
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-slate-200 bg-slate-100 text-slate-500">
-                          <svg
-                            className="h-5 w-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                            />
-                          </svg>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <span
-                            className="truncate block font-medium text-[#353535]"
-                            title={file.name}
-                          >
-                            {file.name}
-                          </span>
-                          <span className="text-xs text-[#8B8B8B]">
-                            {(file.size / 1024).toFixed(1)} KB
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <button
-                          type="button"
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          title="View"
-                        >
-                          <img
-                            src={viewIcon}
-                            alt="view"
-                            className="w-5 h-5 [filter:invert(32%)_sepia(98%)_saturate(3204%)_hue-rotate(338deg)_brightness(94%)_contrast(96%)]"
-                          />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteAtt(idx)}
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                          title="Delete"
-                        >
-                          <img
-                            src={deleteIcon}
-                            alt="delete"
-                            className="w-5 h-5"
-                          />
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            {/* Form Actions */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-              <button
-                type="button"
-                onClick={() => setCurrentPage("list")}
-                className="w-full sm:w-auto px-5 md:px-5 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-Gantari font-semibold text-[14px] transition-all cursor-pointer"
-              >
-                Discard
-              </button>
-              <button
-                type="submit"
-                disabled={isEdit ? editSubmitting : createSubmitting}
-                className="w-full sm:w-auto px-5 md:px-5 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-Gantari font-semibold text-[14px] transition-all cursor-pointer disabled:opacity-50"
-              >
-                {isEdit
-                  ? editSubmitting
-                    ? "Updating..."
-                    : "Submit"
-                  : createSubmitting
-                    ? "Submitting..."
-                    : "Submit"}
-              </button>
-            </div>
-          </form>
-        </div>
       </div>
     );
   }
@@ -1086,9 +361,7 @@ export default function VendorBimLeadTasks() {
             <button
               type="button"
               onClick={() => {
-                setCreateForm({ ...emptyTaskForm });
-                setAttachmentFiles([]);
-                setCurrentPage("add");
+                navigate("/vendor-bim-lead/tasks/add", { state: { from: "tasks" } });
               }}
               className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm cursor-pointer"
             >
@@ -1237,31 +510,10 @@ export default function VendorBimLeadTasks() {
                                   type="button"
                                   draggable={false}
                                   onClick={() => {
-                                    setSelectedTask(task);
-                                    setEditForm({
-                                      task_name: task.task_name,
-                                      description: task.description || "",
-                                      status: task.status,
-                                      priority:
-                                        (task as any).priority ||
-                                        task.priority ||
-                                        "",
-                                      due_date: task.due_date || "",
-                                      project_id:
-                                        task.project_id?.toString() || "",
-                                      assigned_to:
-                                        task.assigned_to?.toString() || "",
-                                      category: task.category || "",
-                                      actual_start_date:
-                                        (task as any).start_date || "",
-                                      actual_end_date: task.due_date || "",
-                                      start_time:
-                                        (task as any).start_time || "",
-                                      end_time: (task as any).end_time || "",
-                                    });
-                                    setEditAttachmentFiles([]);
                                     setOpenMenuTaskId(null);
-                                    setCurrentPage("edit");
+                                    navigate("/vendor-bim-lead/tasks/edit", {
+                                      state: { task, from: "tasks" },
+                                    });
                                   }}
                                   className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                 >

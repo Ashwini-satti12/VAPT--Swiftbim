@@ -132,11 +132,19 @@ const TYPE_OPTIONS = ['Employee', 'Trainee'];
 
 const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar {
-    display: none;
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
   }
   .custom-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
   }
 `;
 
@@ -1062,202 +1070,202 @@ export default function EmployeesPM() {
               <>
                 <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mb-3">
                   <div className="flex-1 min-h-0 overflow-hidden">
-                    <div className="overflow-auto h-[calc(100%+17px)] pb-[17px] [&::-webkit-scrollbar:horizontal]:!hidden">
+                    <div className="overflow-auto h-[calc(100%+17px)] pb-[17px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:!hidden">
                       <table className="min-w-full border-collapse">
-                    <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                      <tr className="bg-white">
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535]">
-                          Sl.No
-                        </th>
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white whitespace-nowrap">Consultant Name</th>
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Contact Info</th>
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Status</th>
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {displayedListTable.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-Gantari">
-                            No consultants found.
-                          </td>
-                        </tr>
-                      ) : (
-                        displayedListTable.map((emp, idx) => {
-                          const baseIndex = rangeStart + tablePageStartIndex + idx;
-                          const slNo = baseIndex + 1;
-                          const slNoDisplay = String(slNo).padStart(2, '0');
-                          return (
-                            <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
-                              <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#6B6B6B]">
-                                {slNoDisplay}
+                        <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                          <tr className="bg-white">
+                            <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535]">
+                              Sl.No
+                            </th>
+                            <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
+                            <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white whitespace-nowrap">Consultant Name</th>
+                            <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
+                            <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Contact Info</th>
+                            <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Status</th>
+                            <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {displayedListTable.length === 0 ? (
+                            <tr>
+                              <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-Gantari">
+                                No consultants found.
                               </td>
+                            </tr>
+                          ) : (
+                            displayedListTable.map((emp, idx) => {
+                              const baseIndex = rangeStart + tablePageStartIndex + idx;
+                              const slNo = baseIndex + 1;
+                              const slNoDisplay = String(slNo).padStart(2, '0');
+                              return (
+                                <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
+                                  <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#6B6B6B]">
+                                    {slNoDisplay}
+                                  </td>
 
 
-                              <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#6B6B6B] whitespace-nowrap">
-                                {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
-                              </td>
+                                  <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#6B6B6B] whitespace-nowrap">
+                                    {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
+                                  </td>
 
-                              <td className="px-6 py-5 whitespace-nowrap">
-                                <div className="flex items-center justify-start gap-4">
-                                  <div className="relative shrink-0">
-                                    <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
-                                      {emp.profile_picture && emp.profile_picture.trim() ? (
-                                        <img
-                                          src={getProfileUrl(emp.profile_picture)}
-                                          alt={emp.full_name}
-                                          className="w-full h-full object-cover"
-                                          onError={(e) => {
-                                            const target = e.target as HTMLImageElement;
-                                            const parent = target.parentElement;
-                                            if (parent && !parent.querySelector('.error-placeholder')) {
-                                              parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-[10px]">No Photo</span></div>';
-                                            }
+                                  <td className="px-6 py-5 whitespace-nowrap">
+                                    <div className="flex items-center justify-start gap-4">
+                                      <div className="relative shrink-0">
+                                        <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
+                                          {emp.profile_picture && emp.profile_picture.trim() ? (
+                                            <img
+                                              src={getProfileUrl(emp.profile_picture)}
+                                              alt={emp.full_name}
+                                              className="w-full h-full object-cover"
+                                              onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                const parent = target.parentElement;
+                                                if (parent && !parent.querySelector('.error-placeholder')) {
+                                                  parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-[10px]">No Photo</span></div>';
+                                                }
+                                              }}
+                                            />
+                                          ) : (
+                                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                              <span className="text-gray-400 text-[10px]">No Photo</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                        <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active !== 'active' ? 'bg-[#ef4444]' : (emp.status === 'Online' ? 'bg-[#22c55e]' : 'bg-[#ef4444]')}`}></span>
+                                      </div>
+                                      <span className="text-[14px] font-semibold font-Gantari text-[#353535] whitespace-nowrap">
+                                        {toCamelCase(emp.full_name)}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#353535]">{emp.email}</td>
+                                  <td className="px-6 py-5 text-center">
+                                    <div className="flex items-center justify-center gap-3">
+                                      <button
+                                        onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                                        className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
+                                      >
+                                        <img src={mailIcon} className="w-5 h-5" alt="Mail" />
+                                      </button>
+                                      <button
+                                        onClick={() => navigate('/chat')}
+                                        className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
+                                      >
+                                        <img src={messageIcon} className="w-5 h-5" alt="Message" />
+                                      </button>
+                                      <button
+                                        onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
+                                        className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
+                                      >
+                                        <img src={callIcon} className="w-5 h-5" alt="Call" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-5 text-center">
+                                    <div className="inline-block min-w-[140px]">
+                                      <CustomDropdown
+                                        options={['Active', 'Inactive']}
+                                        className="cursor-pointer"
+                                        value={emp.active === 'active' ? 'Active' : 'Inactive'}
+                                        onChange={(val) => handleStatusToggle(emp.id, val)}
+                                        placeholder="Status"
+                                        styleType="table"
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
+                                    <div className="flex items-center justify-center gap-3">
+                                      <div className="relative group inline-flex shrink-0">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setSelectedEmployee(emp);
+                                            setShowDetailsModal(true);
                                           }}
-                                        />
-                                      ) : (
-                                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                                          <span className="text-gray-400 text-[10px]">No Photo</span>
+                                          aria-label="View consultant"
+                                          className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#DD4342] text-white rounded-md transition-all cursor-pointer"
+                                        >
+                                          <img src={projectViewIcon} className="w-4 h-4 brightness-0 invert" alt="" aria-hidden />
+                                        </button>
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                          <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                          <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                            <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                              View
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      {canAdd && (
+                                        <div className="relative group inline-flex shrink-0">
+                                          <button
+                                            type="button"
+                                            onClick={() => openEditModel(emp)}
+                                            aria-label="Edit consultant"
+                                            className={`flex py-2 px-2 shrink-0 items-center justify-center rounded-md transition-all cursor-pointer ${idx % 2 === 1 ? "bg-[#FFFFFF]" : "bg-[#F2F2F2]"}`}
+                                          >
+                                            <img src={projectEditIcon} className="w-4 h-4" alt="" aria-hidden />
+                                          </button>
+                                          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                            <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                            <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                                              <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                                Edit
+                                              </span>
+                                            </div>
+                                          </div>
                                         </div>
                                       )}
                                     </div>
-                                    <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active !== 'active' ? 'bg-[#ef4444]' : (emp.status === 'Online' ? 'bg-[#22c55e]' : 'bg-[#ef4444]')}`}></span>
-                                  </div>
-                                  <span className="text-[14px] font-semibold font-Gantari text-[#353535] whitespace-nowrap">
-                                    {toCamelCase(emp.full_name)}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-6 py-5 text-center text-[14px] font-Gantari text-[#353535]">{emp.email}</td>
-                              <td className="px-6 py-5 text-center">
-                                <div className="flex items-center justify-center gap-3">
-                                  <button
-                                    onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
-                                  >
-                                    <img src={mailIcon} className="w-5 h-5" alt="Mail" />
-                                  </button>
-                                  <button
-                                    onClick={() => navigate('/chat')}
-                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
-                                  >
-                                    <img src={messageIcon} className="w-5 h-5" alt="Message" />
-                                  </button>
-                                  <button
-                                    onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
-                                  >
-                                    <img src={callIcon} className="w-5 h-5" alt="Call" />
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="px-6 py-5 text-center">
-                                <div className="inline-block min-w-[140px]">
-                                  <CustomDropdown
-                                    options={['Active', 'Inactive']}
-                                    className="cursor-pointer"
-                                    value={emp.active === 'active' ? 'Active' : 'Inactive'}
-                                    onChange={(val) => handleStatusToggle(emp.id, val)}
-                                    placeholder="Status"
-                                    styleType="table"
-                                  />
-                                </div>
-                              </td>
-                              <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
-                                <div className="flex items-center justify-center gap-3">
-                                  <div className="relative group inline-flex shrink-0">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setSelectedEmployee(emp);
-                                        setShowDetailsModal(true);
-                                      }}
-                                      aria-label="View consultant"
-                                      className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#DD4342] text-white rounded-md transition-all cursor-pointer"
-                                    >
-                                      <img src={projectViewIcon} className="w-4 h-4 brightness-0 invert" alt="" aria-hidden />
-                                    </button>
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
-                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                          View
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  {canAdd && (
-                                    <div className="relative group inline-flex shrink-0">
-                                      <button
-                                        type="button"
-                                        onClick={() => openEditModel(emp)}
-                                        aria-label="Edit consultant"
-                                        className={`flex py-2 px-2 shrink-0 items-center justify-center rounded-md transition-all cursor-pointer ${idx % 2 === 1 ? "bg-[#FFFFFF]" : "bg-[#F2F2F2]"}`}
-                                      >
-                                        <img src={projectEditIcon} className="w-4 h-4" alt="" aria-hidden />
-                                      </button>
-                                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                        <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
-                                          <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                            Edit
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
                       </table>
                     </div>
                   </div>
                 </div>
                 {listInRange.length > 0 && (
-                <div className="w-full flex items-center justify-end mt-2">
-                  <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
-                    <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
-                    <button
-                      type="button"
-                      onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={safeTableCurrentPage === 1}
-                      className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
-                        ? 'text-[#9CA3AF] opacity-50 cursor-not-allowed'
-                        : 'text-[#353535]'
-                        }`}
-                      aria-label="Previous page"
-                    >
-                      <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
-                      <span className="inline-flex items-center">Prev</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
-                      aria-current="page"
-                    >
-                      {tablePageRangeLabel}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))}
-                      disabled={safeTableCurrentPage >= tableTotalPages}
-                      className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
-                        ? 'text-[#9CA3AF] opacity-40 cursor-not-allowed'
-                        : 'text-[#353535]'
-                        }`}
-                      aria-label="Next page"
-                    >
-                      <span className="inline-flex items-center">Next</span>
-                      <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
-                    </button>
+                  <div className="w-full flex items-center justify-end mt-2">
+                    <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
+                      <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">Showing:</span>
+                      <button
+                        type="button"
+                        onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={safeTableCurrentPage === 1}
+                        className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
+                          ? 'text-[#9CA3AF] opacity-50 cursor-not-allowed'
+                          : 'text-[#353535]'
+                          }`}
+                        aria-label="Previous page"
+                      >
+                        <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8249;</span>
+                        <span className="inline-flex items-center">Prev</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+                        aria-current="page"
+                      >
+                        {tablePageRangeLabel}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))}
+                        disabled={safeTableCurrentPage >= tableTotalPages}
+                        className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
+                          ? 'text-[#9CA3AF] opacity-40 cursor-not-allowed'
+                          : 'text-[#353535]'
+                          }`}
+                        aria-label="Next page"
+                      >
+                        <span className="inline-flex items-center">Next</span>
+                        <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">&#8250;</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
                 )}
               </>
 
@@ -1269,7 +1277,7 @@ export default function EmployeesPM() {
       )}
 
       {activeView === 'add' && (
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 bg-white">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 bg-white custom-scrollbar">
           <div className="max-w-[1174px] mx-auto">
             <div className="flex left-6 items-center justify-between mb-8 sm:mb-10 relative">
               <div className="relative group">
@@ -1282,7 +1290,7 @@ export default function EmployeesPM() {
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-2 py-0.5 relative z-10">
                     <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                       Go Back
                     </span>
@@ -1351,77 +1359,77 @@ export default function EmployeesPM() {
                       required
                     />
                   </div>
-                    <div className="relative">
-                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role <span className="text-[#DD4342]">*</span></label>
-                      <CustomDropdown
-                        options={ROLE_OPTIONS}
-                        value={form.user_role}
-                        onChange={(val) => setForm((f: any) => ({ ...f, user_role: val }))}
-                        placeholder="Select Role"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Upload Profile Picture</label>
-                      <div className="flex items-center bg-[#F4F4F4] rounded-md overflow-hidden">
-                        <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
-                          {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
-                        </div>
-                        <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-medium cursor-pointer transition-colors shrink-0 font-Gantari">
-                          Browse File
-                          <input
-                            type="file"
-                            className="hidden cursor-pointer"
-                            accept=".jpg,.jpeg"
-                            onChange={(e) => setForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
-                          />
-                        </label>
-                      </div>
-                    </div>
+                  <div className="relative">
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role <span className="text-[#DD4342]">*</span></label>
+                    <CustomDropdown
+                      options={ROLE_OPTIONS}
+                      value={form.user_role}
+                      onChange={(val) => setForm((f: any) => ({ ...f, user_role: val }))}
+                      placeholder="Select Role"
+                    />
                   </div>
-
-                  {/* Column 2 */}
-                  <div className="space-y-5">
-                    <div>
-                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth <span className="text-[#DD4342]">*</span></label>
-                      <input
-                        type="date"
-                        value={form.dob}
-                        onChange={(e) => setForm((f: any) => ({ ...f, dob: e.target.value }))}
-                        className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                        max={dobMaxDate}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID <span className="text-[#DD4342]">*</span></label>
-                      <input
-                        type="email"
-                        placeholder="Enter Email"
-                        value={form.email}
-                        onChange={(e) => setForm((f: any) => ({ ...f, email: e.target.value }))}
-                        className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                        required
-                      />
-                    </div>
-                    <div className="relative">
-                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
-                      <CustomDropdown
-                        options={TYPE_OPTIONS}
-                        value={form.type}
-                        onChange={(val) => setForm((f: any) => ({ ...f, type: val }))}
-                        placeholder="Select Type"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining <span className="text-[#DD4342]">*</span></label>
-                      <input
-                        type="date"
-                        value={form.joining_date}
-                        onChange={(e) => setForm((f: any) => ({ ...f, joining_date: e.target.value }))}
-                        className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                      />
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Upload Profile Picture</label>
+                    <div className="flex items-center bg-[#F4F4F4] rounded-md overflow-hidden">
+                      <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
+                        {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
+                      </div>
+                      <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-medium cursor-pointer transition-colors shrink-0 font-Gantari">
+                        Browse File
+                        <input
+                          type="file"
+                          className="hidden cursor-pointer"
+                          accept=".jpg,.jpeg"
+                          onChange={(e) => setForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                        />
+                      </label>
                     </div>
                   </div>
                 </div>
+
+                {/* Column 2 */}
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth <span className="text-[#DD4342]">*</span></label>
+                    <input
+                      type="date"
+                      value={form.dob}
+                      onChange={(e) => setForm((f: any) => ({ ...f, dob: e.target.value }))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      max={dobMaxDate}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID <span className="text-[#DD4342]">*</span></label>
+                    <input
+                      type="email"
+                      placeholder="Enter Email"
+                      value={form.email}
+                      onChange={(e) => setForm((f: any) => ({ ...f, email: e.target.value }))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      required
+                    />
+                  </div>
+                  <div className="relative">
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
+                    <CustomDropdown
+                      options={TYPE_OPTIONS}
+                      value={form.type}
+                      onChange={(val) => setForm((f: any) => ({ ...f, type: val }))}
+                      placeholder="Select Type"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining <span className="text-[#DD4342]">*</span></label>
+                    <input
+                      type="date"
+                      value={form.joining_date}
+                      onChange={(e) => setForm((f: any) => ({ ...f, joining_date: e.target.value }))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    />
+                  </div>
+                </div>
+              </div>
 
               {/* Address Field */}
               <div className="mt-2 px-5">
@@ -1466,14 +1474,14 @@ export default function EmployeesPM() {
                 <button
                   type="button"
                   onClick={() => setActiveView('list')}
-                  className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#12141D] font-medium text-[16px] font-gantari cursor-pointer"
+                  className="px-6 py-2 sm:py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-medium text-[14px] sm:text-[14px] transition-all cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={addSubmitting}
-                  className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#12141D] font-medium text-[16px] font-gantari cursor-pointer"
+                  className="px-6 py-2 sm:py-2 rounded-md bg-[#DBE9FE] text-[#353535] font-medium text-[14px] sm:text-[14px] transition-all cursor-pointer"
                 >
                   {addSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
@@ -1484,7 +1492,7 @@ export default function EmployeesPM() {
       )}
 
       {activeView === 'edit' && (
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 bg-white">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 bg-white custom-scrollbar">
           <div className="max-w-[1174px] mx-auto">
             <div className="flex left-5 items-center justify-between mb-8 sm:mb-10 relative">
               <div className="relative group">
@@ -1497,7 +1505,7 @@ export default function EmployeesPM() {
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-2 py-0.5 relative z-10">
                     <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                       Go Back
                     </span>
@@ -1653,8 +1661,8 @@ export default function EmployeesPM() {
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
-                  </div>
                 </div>
+              </div>
 
               {/* Full Width Field */}
               <div className="mt-2 px-5">
@@ -1701,14 +1709,14 @@ export default function EmployeesPM() {
                 <button
                   type="button"
                   onClick={() => { setActiveView('list'); setEditId(null); }}
-                  className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#12141D] font-medium text-[16px] font-gantari cursor-pointer"
+                  className="px-6 py-2 sm:py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-medium text-[14px] sm:text-[14px] transition-all cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={editSubmitting}
-                  className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#12141D] font-medium text-[16px] font-gantari cursor-pointer"
+                  className="px-6 py-2 sm:py-2 rounded-md bg-[#DBE9FE]   font-medium text-[14px] sm:text-[14px] transition-all cursor-pointer"
                 >
                   {editSubmitting ? 'Submitting...' : 'Submit'}
                 </button>

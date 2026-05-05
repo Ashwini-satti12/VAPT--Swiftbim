@@ -1504,7 +1504,7 @@ export default function ConsultantTD() {
                 <button
                   type="submit"
                   disabled={!inviteEmails || inviteSubmitting}
-                  className="px-10 py-2 sm:py-2 rounded-md bg-[#DBE9FE] text-[#353535] font-medium text-[14px] sm:text-[14px] transition-all cursor-pointer"
+                  className="px-10 py-2 sm:py-2 rounded-md bg-[#DBE9FE]   font-medium text-[14px] sm:text-[14px] transition-all cursor-pointer"
                 >
                   {inviteSubmitting ? 'Sending...' : 'Invite'}
                 </button>

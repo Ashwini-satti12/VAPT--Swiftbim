@@ -11,7 +11,6 @@ interface WorkOrder {
   bid_amount: string;
   currency?: string;
   amount_aed?: number;
-  timeline: string;
   status: string;
   vendor_address?: string;
   po_date?: string;
@@ -24,43 +23,185 @@ interface WorkOrder {
   terms_and_conditions?: string;
   payment_terms?: string;
   additional_terms?: string;
+  company_sign_name?: string;
+  company_sign_designation?: string;
+  company_sign_date?: string;
+  company_signature?: string;
+  vendor_sign_name?: string;
+  vendor_sign_designation?: string;
+  vendor_sign_date?: string;
+  vendor_signature?: string;
 }
+
+type PaymentTermsTable = {
+  headers: string[];
+  rows: string[][];
+};
 
 export default function ViewWorkorderV() {
   const location = useLocation();
   const navigate = useNavigate();
-  const state: any = location.state || {};
+  const state = (location.state || {}) as { selectedWO?: WorkOrder | null };
   const initialWO: WorkOrder | null = state.selectedWO || null;
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(initialWO);
 
-  const mapApiToWorkOrder = (r: any): WorkOrder => ({
-    id: Number(r.id),
-    proposal_id: r.proposal_id ?? undefined,
-    project_name: r.project_name || "",
-    vendor_name: r.vendor_name || "",
-    bid_amount: `${r.currency || "AED"} ${r.amount_aed ?? 0}`,
-    currency: r.currency || "AED",
-    amount_aed: Number(r.amount_aed ?? 0),
-    timeline: r.duration || "TBD",
-    status: r.status || "Created",
-    vendor_address: r.vendor_address,
-    po_date: r.po_date,
-    po_number: r.po_number,
-    project_location: r.project_location,
-    work_description: r.work_description,
-    scope_of_work: r.scope_of_work,
-    project_involves: r.project_involves,
-    deliverables: r.deliverables,
-    terms_and_conditions: r.terms_and_conditions,
-    payment_terms: r.payment_terms,
-    additional_terms: r.additional_terms,
-  });
+  const renderRichText = (html?: string) => {
+    if (!html) return null;
+    return (
+      <div
+        className="prose prose-sm max-w-none text-[#353535] [&_table]:w-full [&_table]:border-collapse [&_table]:text-[14px] [&_th]:border [&_td]:border [&_th]:border-[#AEACAC52] [&_td]:border-[#AEACAC52] [&_th]:bg-white [&_th]:font-semibold [&_th]:text-left [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-1"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  };
+
+  const parsePaymentTermsTable = (value?: string): PaymentTermsTable | null => {
+    if (!value || !value.trim()) return null;
+
+    const defaultHeaders = [
+      "Sl.No",
+      "Payment Basis",
+      "Terms (%)",
+      "Amount",
+      "Timeline",
+    ];
+
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (Array.isArray(parsed)) {
+        const rows = parsed
+          .map((r) => {
+            const row = r as Record<string, unknown>;
+            return [
+              String(row.sl_no ?? row.slNo ?? ""),
+              String(row.basis ?? row.label ?? ""),
+              String(row.terms ?? row.value ?? ""),
+              String(row.amount ?? ""),
+              String(row.timeline ?? ""),
+            ];
+          })
+          .filter((r) => r.some((cell) => cell.trim() !== ""));
+        if (rows.length > 0) return { headers: defaultHeaders, rows };
+      }
+    } catch {
+      // Not JSON; continue HTML parse.
+    }
+
+    const doc = new DOMParser().parseFromString(value, "text/html");
+    const table = doc.querySelector("table");
+    if (!table) return null;
+
+    let headers = Array.from(table.querySelectorAll("thead th")).map((th) =>
+      (th.textContent || "").trim(),
+    );
+
+    if (headers.length === 0) {
+      const firstRowCells = Array.from(table.querySelectorAll("tr:first-child th, tr:first-child td"));
+      headers = firstRowCells.map((cell) => (cell.textContent || "").trim());
+    }
+
+    if (
+      headers.length === 1 &&
+      /sl\.?\s*no.*payment.*terms.*amount.*timeline/i.test(headers[0] || "")
+    ) {
+      headers = defaultHeaders;
+    }
+
+    const bodyRows = Array.from(table.querySelectorAll("tbody tr"));
+    const sourceRows = bodyRows.length ? bodyRows : Array.from(table.querySelectorAll("tr")).slice(1);
+    const rows = sourceRows
+      .map((tr) =>
+        Array.from(tr.querySelectorAll("td, th")).map((cell) =>
+          (cell.textContent || "").trim(),
+        ),
+      )
+      .filter((row) => row.some((cell) => cell !== ""));
+
+    if (rows.length === 0) return null;
+    if (headers.length === 0) headers = defaultHeaders.slice(0, rows[0].length);
+
+    return { headers, rows };
+  };
+
+  const renderPaymentTerms = (value?: string) => {
+    const parsed = parsePaymentTermsTable(value);
+    if (!parsed) return renderRichText(value);
+
+    return (
+      <div className="overflow-x-auto rounded-[6px] border border-[#AEACAC52] bg-white">
+        <table className="w-full border-collapse text-[14px] text-[#353535]">
+          <thead>
+            <tr className="bg-[#F2F2F2]">
+              {parsed.headers.map((header, idx) => (
+                <th
+                  key={`${header}-${idx}`}
+                  className="border border-[#AEACAC52] px-3 py-2 text-left font-semibold whitespace-nowrap"
+                >
+                  {header || `Column ${idx + 1}`}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {parsed.rows.map((row, rowIdx) => (
+              <tr key={`row-${rowIdx}`} className={rowIdx % 2 ? "bg-[#FAFAFA]" : "bg-white"}>
+                {row.map((cell, colIdx) => (
+                  <td
+                    key={`cell-${rowIdx}-${colIdx}`}
+                    className="border border-[#AEACAC52] px-3 py-2 align-top"
+                  >
+                    {cell || "—"}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const mapApiToWorkOrder = (r: Record<string, unknown>): WorkOrder => {
+    const asStr = (v: unknown) => (v == null ? "" : String(v));
+    const asNum = (v: unknown) => (typeof v === "number" ? v : Number(v || 0));
+    return {
+      id: asNum(r.id),
+      proposal_id: r.proposal_id == null ? undefined : asNum(r.proposal_id),
+      project_name: asStr(r.project_name),
+      vendor_name: asStr(r.vendor_name),
+      bid_amount: `${asStr(r.currency) || "AED"} ${asStr(r.amount_aed) || "0"}`,
+      currency: asStr(r.currency) || "AED",
+      amount_aed: asNum(r.amount_aed),
+      status: asStr(r.status) || "Created",
+      vendor_address: asStr(r.vendor_address) || undefined,
+      po_date: asStr(r.po_date) || undefined,
+      po_number: asStr(r.po_number) || undefined,
+      project_location: asStr(r.project_location) || undefined,
+      work_description: asStr(r.work_description) || undefined,
+      scope_of_work: asStr(r.scope_of_work) || undefined,
+      project_involves: asStr(r.project_involves) || undefined,
+      deliverables: asStr(r.deliverables) || undefined,
+      terms_and_conditions: asStr(r.terms_and_conditions) || undefined,
+      payment_terms: asStr(r.payment_terms) || undefined,
+      additional_terms: asStr(r.additional_terms) || undefined,
+      company_sign_name: asStr(r.company_sign_name) || undefined,
+      company_sign_designation: asStr(r.company_sign_designation) || undefined,
+      company_sign_date: asStr(r.company_sign_date) || undefined,
+      company_signature: asStr(r.company_signature) || undefined,
+      vendor_sign_name: asStr(r.vendor_sign_name) || undefined,
+      vendor_sign_designation: asStr(r.vendor_sign_designation) || undefined,
+      vendor_sign_date: asStr(r.vendor_sign_date) || undefined,
+      vendor_signature: asStr(r.vendor_signature) || undefined,
+    };
+  };
 
   useEffect(() => {
     const id = Number(initialWO?.id || 0);
     if (!id) return;
     api
-      .get<{ success?: boolean; work_order?: any }>(`/api/workorders/${id}`)
+      .get<{ success?: boolean; work_order?: Record<string, unknown> }>(
+        `/api/workorders/${id}`,
+      )
       .then((res) => {
         if (res.data?.work_order) {
           setSelectedWO(mapApiToWorkOrder(res.data.work_order));
@@ -89,7 +230,7 @@ export default function ViewWorkorderV() {
       deliverables: selectedWO.deliverables || "",
       currency: selectedWO.currency || "AED",
       amountAED: amountRaw,
-      duration: selectedWO.timeline === "TBD" ? "" : selectedWO.timeline || "",
+
       termsAndConditions: selectedWO.terms_and_conditions || "",
       paymentTerms: selectedWO.payment_terms || "",
       additionalTerms: selectedWO.additional_terms || "",
@@ -246,10 +387,6 @@ export default function ViewWorkorderV() {
             <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Project Location</p>
             <p className="text-[15px] font-medium text-[#353535]">{selectedWO.project_location || "—"}</p>
           </div>
-          <div>
-            <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Timeline</p>
-            <p className="text-[15px] font-medium text-[#353535]">{selectedWO.timeline || "—"}</p>
-          </div>
           <div className="md:col-span-2">
             <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Vendor Address</p>
             <p className="text-[14px] whitespace-pre-wrap text-[#353535] leading-relaxed bg-[#F2F2F2] p-3 rounded-md">{selectedWO.vendor_address || "—"}</p>
@@ -264,7 +401,7 @@ export default function ViewWorkorderV() {
                 Work Description
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.work_description}</p>
+                {renderRichText(selectedWO.work_description)}
               </div>
             </div>
           )}
@@ -275,7 +412,7 @@ export default function ViewWorkorderV() {
                 Scope of Work
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.scope_of_work}</p>
+                {renderRichText(selectedWO.scope_of_work)}
               </div>
             </div>
           )}
@@ -286,7 +423,7 @@ export default function ViewWorkorderV() {
                 Project Involves
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.project_involves}</p>
+                {renderRichText(selectedWO.project_involves)}
               </div>
             </div>
           )}
@@ -297,7 +434,7 @@ export default function ViewWorkorderV() {
                 Deliverables
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.deliverables}</p>
+                {renderRichText(selectedWO.deliverables)}
               </div>
             </div>
           )}
@@ -308,7 +445,7 @@ export default function ViewWorkorderV() {
                 Terms & Conditions
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.terms_and_conditions}</p>
+                {renderRichText(selectedWO.terms_and_conditions)}
               </div>
             </div>
           )}
@@ -319,7 +456,7 @@ export default function ViewWorkorderV() {
                 Payment Terms
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.payment_terms}</p>
+                {renderPaymentTerms(selectedWO.payment_terms)}
               </div>
             </div>
           )}
@@ -330,10 +467,79 @@ export default function ViewWorkorderV() {
                 Additional Terms
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.additional_terms}</p>
+                {renderRichText(selectedWO.additional_terms)}
               </div>
             </div>
           )}
+
+          
+
+          {/* Signatures Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-10 border-t border-[#AEACAC52]">
+            {/* Company Signature */}
+            <div className="space-y-4">
+              <h3 className="font-bold text-[14px] uppercase tracking-wide text-[#000000]">
+                Company Signature
+              </h3>
+              <div className="h-32 border border-[#AEACAC52] rounded-md bg-[#F2F2F2] flex items-center justify-center overflow-hidden p-2">
+                {selectedWO.company_signature ? (
+                  <img
+                    src={selectedWO.company_signature}
+                    alt="Company Signature"
+                    className="h-full object-contain"
+                  />
+                ) : (
+                  <span className="text-gray-400 italic text-sm">No signature</span>
+                )}
+              </div>
+              <div className="space-y-1 text-sm font-gantari">
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Name:</span>
+                  <span className="font-semibold">{selectedWO.company_sign_name || "—"}</span>
+                </div>
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Designation:</span>
+                  <span className="font-semibold">{selectedWO.company_sign_designation || "—"}</span>
+                </div>
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Date:</span>
+                  <span className="font-semibold">{selectedWO.company_sign_date || "—"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Vendor Signature */}
+            {/* <div className="space-y-4">
+              <h3 className="font-bold text-[14px] uppercase tracking-wide text-[#000000]">
+                Vendor
+              </h3>
+              <div className="h-32 border border-[#AEACAC52] rounded-md bg-[#F2F2F2] flex items-center justify-center overflow-hidden p-2">
+                {selectedWO.vendor_signature ? (
+                  <img
+                    src={selectedWO.vendor_signature}
+                    alt="Vendor Signature"
+                    className="h-full object-contain"
+                  />
+                ) : (
+                  <span className="text-gray-400 italic text-sm">No signature</span>
+                )}
+              </div>
+              <div className="space-y-1 text-sm font-gantari">
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Name:</span>
+                  <span className="font-semibold">{selectedWO.vendor_sign_name || "—"}</span>
+                </div>
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Designation:</span>
+                  <span className="font-semibold">{selectedWO.vendor_sign_designation || "—"}</span>
+                </div>
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Date:</span>
+                  <span className="font-semibold">{selectedWO.vendor_sign_date || "—"}</span>
+                </div>
+              </div>
+            </div> */}
+          </div>
         </div>
       </div>
     </div>

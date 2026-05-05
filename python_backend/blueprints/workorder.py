@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS work_orders (
     proposal_id INT NULL,
     project_name VARCHAR(255) NOT NULL,
     vendor_name VARCHAR(255) NOT NULL,
+    vendor_display_name VARCHAR(255) NULL,
     vendor_address TEXT NULL,
     po_date DATE NULL,
     po_number VARCHAR(255) NULL,
@@ -81,6 +82,14 @@ CREATE TABLE IF NOT EXISTS work_orders (
     additional_terms TEXT NULL,
     exclusions TEXT NULL,
     status VARCHAR(50) DEFAULT 'Created',
+    company_sign_name VARCHAR(255) NULL,
+    company_sign_designation VARCHAR(255) NULL,
+    company_sign_date DATE NULL,
+    company_signature LONGTEXT NULL,
+    vendor_sign_name VARCHAR(255) NULL,
+    vendor_sign_designation VARCHAR(255) NULL,
+    vendor_sign_date DATE NULL,
+    vendor_signature LONGTEXT NULL,
     created_by INT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     Company_id INT NOT NULL
@@ -98,17 +107,44 @@ def _ensure_work_order_table():
     except Exception:
         pass
     try:
+        cur.execute("SHOW COLUMNS FROM work_orders LIKE 'deliverables'")
+        if cur.fetchone() is None:
+            cur.execute("ALTER TABLE work_orders ADD COLUMN deliverables TEXT NULL AFTER project_involves")
+    except Exception:
+        pass
+
+    try:
         cur.execute("SHOW COLUMNS FROM work_orders LIKE 'exclusions'")
         if cur.fetchone() is None:
             cur.execute("ALTER TABLE work_orders ADD COLUMN exclusions TEXT NULL AFTER additional_terms")
     except Exception:
         pass
+    
+    # Add signature columns if missing
+    sig_cols = [
+        ("company_sign_name", "VARCHAR(255) NULL"),
+        ("company_sign_designation", "VARCHAR(255) NULL"),
+        ("company_sign_date", "DATE NULL"),
+        ("company_signature", "LONGTEXT NULL"),
+        ("vendor_sign_name", "VARCHAR(255) NULL"),
+        ("vendor_sign_designation", "VARCHAR(255) NULL"),
+        ("vendor_sign_date", "DATE NULL"),
+        ("vendor_signature", "LONGTEXT NULL"),
+    ]
+    for col_name, col_def in sig_cols:
+        try:
+            cur.execute(f"SHOW COLUMNS FROM work_orders LIKE '{col_name}'")
+            if cur.fetchone() is None:
+                cur.execute(f"ALTER TABLE work_orders ADD COLUMN {col_name} {col_def} AFTER status")
+        except Exception:
+            pass
+
     conn.commit()
 
 
 def _serialize_row(row: dict) -> dict:
     d = dict(row or {})
-    for key in ("po_date", "created_at"):
+    for key in ("po_date", "created_at", "company_sign_date", "vendor_sign_date"):
         val = d.get(key)
         if val is not None and hasattr(val, "isoformat"):
             d[key] = val.isoformat()
@@ -140,7 +176,10 @@ def list_work_orders():
                     wo.project_involves, wo.deliverables,
                     COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(wo.currency), ''), 'AED') AS currency,
                     wo.amount_aed, wo.duration,
-                    wo.terms_and_conditions, wo.payment_terms, wo.additional_terms, wo.exclusions, wo.status, wo.created_at
+                    wo.terms_and_conditions, wo.payment_terms, wo.additional_terms, wo.exclusions, wo.status,
+                    wo.company_sign_name, wo.company_sign_designation, wo.company_sign_date, wo.company_signature,
+                    wo.vendor_sign_name, wo.vendor_sign_designation, wo.vendor_sign_date, wo.vendor_signature,
+                    wo.created_at
                 FROM work_orders wo
                 LEFT JOIN projects p ON p.project_name COLLATE utf8mb4_general_ci = wo.project_name COLLATE utf8mb4_general_ci
                 WHERE LOWER(TRIM(wo.vendor_name)) IN ({placeholders})
@@ -155,7 +194,10 @@ def list_work_orders():
                     id, proposal_id, project_name, vendor_name, vendor_address, po_date,
                     po_number, project_location, work_description, scope_of_work,
                     project_involves, deliverables, currency, amount_aed, duration,
-                    terms_and_conditions, payment_terms, additional_terms, exclusions, status, created_at
+                    terms_and_conditions, payment_terms, additional_terms, exclusions, status,
+                    company_sign_name, company_sign_designation, company_sign_date, company_signature,
+                    vendor_sign_name, vendor_sign_designation, vendor_sign_date, vendor_signature,
+                    created_at
                 FROM work_orders
                 WHERE 1 = 0
                 """
@@ -169,7 +211,10 @@ def list_work_orders():
                 wo.project_involves, wo.deliverables,
                 COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(wo.currency), ''), 'AED') AS currency,
                 wo.amount_aed, wo.duration,
-                wo.terms_and_conditions, wo.payment_terms, wo.additional_terms, wo.exclusions, wo.status, wo.created_at
+                wo.terms_and_conditions, wo.payment_terms, wo.additional_terms, wo.exclusions, wo.status,
+                wo.company_sign_name, wo.company_sign_designation, wo.company_sign_date, wo.company_signature,
+                wo.vendor_sign_name, wo.vendor_sign_designation, wo.vendor_sign_date, wo.vendor_signature,
+                wo.created_at
             FROM work_orders wo
             LEFT JOIN projects p ON p.project_name COLLATE utf8mb4_general_ci = wo.project_name COLLATE utf8mb4_general_ci
             WHERE wo.Company_id = %s
@@ -200,7 +245,10 @@ def get_work_order(work_order_id: int):
                     wo.project_involves, wo.deliverables,
                     COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(wo.currency), ''), 'AED') AS currency,
                     wo.amount_aed, wo.duration,
-                    wo.terms_and_conditions, wo.payment_terms, wo.additional_terms, wo.exclusions, wo.status, wo.created_at
+                    wo.terms_and_conditions, wo.payment_terms, wo.additional_terms, wo.exclusions, wo.status,
+                    wo.company_sign_name, wo.company_sign_designation, wo.company_sign_date, wo.company_signature,
+                    wo.vendor_sign_name, wo.vendor_sign_designation, wo.vendor_sign_date, wo.vendor_signature,
+                    wo.created_at
                 FROM work_orders wo
                 LEFT JOIN projects p ON p.project_name COLLATE utf8mb4_general_ci = wo.project_name COLLATE utf8mb4_general_ci
                 WHERE wo.id = %s AND LOWER(TRIM(wo.vendor_name)) IN ({placeholders})
@@ -215,7 +263,10 @@ def get_work_order(work_order_id: int):
                     id, proposal_id, project_name, vendor_name, vendor_address, po_date,
                     po_number, project_location, work_description, scope_of_work,
                     project_involves, deliverables, currency, amount_aed, duration,
-                    terms_and_conditions, payment_terms, additional_terms, exclusions, status, created_at
+                    terms_and_conditions, payment_terms, additional_terms, exclusions, status,
+                    company_sign_name, company_sign_designation, company_sign_date, company_signature,
+                    vendor_sign_name, vendor_sign_designation, vendor_sign_date, vendor_signature,
+                    created_at
                 FROM work_orders
                 WHERE 1 = 0
                 """
@@ -229,7 +280,10 @@ def get_work_order(work_order_id: int):
                 wo.project_involves, wo.deliverables,
                 COALESCE(NULLIF(TRIM(p.currency), ''), NULLIF(TRIM(wo.currency), ''), 'AED') AS currency,
                 wo.amount_aed, wo.duration,
-                wo.terms_and_conditions, wo.payment_terms, wo.additional_terms, wo.exclusions, wo.status, wo.created_at
+                wo.terms_and_conditions, wo.payment_terms, wo.additional_terms, wo.exclusions, wo.status,
+                wo.company_sign_name, wo.company_sign_designation, wo.company_sign_date, wo.company_signature,
+                wo.vendor_sign_name, wo.vendor_sign_designation, wo.vendor_sign_date, wo.vendor_signature,
+                wo.created_at
             FROM work_orders wo
             LEFT JOIN projects p ON p.project_name COLLATE utf8mb4_general_ci = wo.project_name COLLATE utf8mb4_general_ci
             WHERE wo.id = %s AND wo.Company_id = %s
@@ -241,6 +295,29 @@ def get_work_order(work_order_id: int):
     if not row:
         return jsonify({"success": False, "message": "Work order not found"}), 404
     return jsonify({"success": True, "work_order": _serialize_row(row)})
+
+
+@bp.route("/latest-template", methods=["GET"])
+@project_app_required
+def get_latest_work_order_template():
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        """
+        SELECT 
+            work_description, scope_of_work, project_involves, deliverables, 
+            duration, terms_and_conditions, payment_terms, additional_terms, exclusions
+        FROM work_orders
+        WHERE Company_id = %s
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (g.company_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        return jsonify({"success": True, "template": None})
+    return jsonify({"success": True, "template": row})
 
 
 @bp.route("/vendor-address", methods=["GET"])
@@ -320,6 +397,7 @@ def create_work_order():
         "proposal_id": data.get("proposalId") or data.get("proposal_id"),
         "project_name": project_name,
         "vendor_name": vendor_name,
+        "vendor_display_name": (data.get("vendorDisplayName") or data.get("vendor_display_name") or "").strip(),
         "vendor_address": (data.get("vendorAddress") or data.get("vendor_address") or "").strip(),
         "po_date": data.get("poDate") or data.get("po_date") or None,
         "po_number": (data.get("poNumber") or data.get("po_number") or "").strip(),
@@ -336,6 +414,14 @@ def create_work_order():
         "additional_terms": (data.get("additionalTerms") or data.get("additional_terms") or "").strip(),
         "exclusions": (data.get("exclusions") or "").strip(),
         "status": (data.get("status") or "Created").strip() or "Created",
+        "company_sign_name": (data.get("company_sign_name") or data.get("companySignName") or "").strip(),
+        "company_sign_designation": (data.get("company_sign_designation") or data.get("companySignDesignation") or "").strip(),
+        "company_sign_date": data.get("company_sign_date") or data.get("companySignDate") or None,
+        "company_signature": data.get("company_signature") or data.get("companySignature") or None,
+        "vendor_sign_name": (data.get("vendor_sign_name") or data.get("vendorSignName") or "").strip(),
+        "vendor_sign_designation": (data.get("vendor_sign_designation") or data.get("vendorSignDesignation") or "").strip(),
+        "vendor_sign_date": data.get("vendor_sign_date") or data.get("vendorSignDate") or None,
+        "vendor_signature": data.get("vendor_signature") or data.get("vendorSignature") or None,
         "created_by": getattr(g, "user_id", None),
         "company_id": g.company_id,
     }
@@ -345,21 +431,26 @@ def create_work_order():
     cur.execute(
         """
         INSERT INTO work_orders (
-            proposal_id, project_name, vendor_name, vendor_address, po_date, po_number,
+            proposal_id, project_name, vendor_name, vendor_display_name, vendor_address, po_date, po_number,
             project_location, work_description, scope_of_work, project_involves,
             deliverables, currency, amount_aed, duration, terms_and_conditions, payment_terms,
-            additional_terms, exclusions, status, created_by, Company_id
+            additional_terms, exclusions, status, 
+            company_sign_name, company_sign_designation, company_sign_date, company_signature,
+            vendor_sign_name, vendor_sign_designation, vendor_sign_date, vendor_signature,
+            created_by, Company_id
         ) VALUES (
-            %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s, %s,
             %s, %s, %s, %s,
             %s, %s, %s, %s, %s, %s,
-            %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, %s, %s, %s
         )
         """,
         (
             payload["proposal_id"],
             payload["project_name"],
             payload["vendor_name"],
+            payload["vendor_display_name"],
             payload["vendor_address"],
             payload["po_date"],
             payload["po_number"],
@@ -376,6 +467,14 @@ def create_work_order():
             payload["additional_terms"],
             payload["exclusions"],
             payload["status"],
+            payload["company_sign_name"],
+            payload["company_sign_designation"],
+            payload["company_sign_date"],
+            payload["company_signature"],
+            payload["vendor_sign_name"],
+            payload["vendor_sign_designation"],
+            payload["vendor_sign_date"],
+            payload["vendor_signature"],
             payload["created_by"],
             payload["company_id"],
         ),
@@ -407,6 +506,7 @@ def update_work_order(work_order_id: int):
         "proposal_id": data.get("proposalId") or data.get("proposal_id"),
         "project_name": project_name,
         "vendor_name": vendor_name,
+        "vendor_display_name": (data.get("vendorDisplayName") or data.get("vendor_display_name") or "").strip(),
         "vendor_address": (data.get("vendorAddress") or data.get("vendor_address") or "").strip(),
         "po_date": data.get("poDate") or data.get("po_date") or None,
         "po_number": (data.get("poNumber") or data.get("po_number") or "").strip(),
@@ -423,6 +523,14 @@ def update_work_order(work_order_id: int):
         "additional_terms": (data.get("additionalTerms") or data.get("additional_terms") or "").strip(),
         "exclusions": (data.get("exclusions") or "").strip(),
         "status": (data.get("status") or "").strip(),
+        "company_sign_name": (data.get("company_sign_name") or data.get("companySignName") or "").strip(),
+        "company_sign_designation": (data.get("company_sign_designation") or data.get("companySignDesignation") or "").strip(),
+        "company_sign_date": data.get("company_sign_date") or data.get("companySignDate") or None,
+        "company_signature": data.get("company_signature") or data.get("companySignature") or None,
+        "vendor_sign_name": (data.get("vendor_sign_name") or data.get("vendorSignName") or "").strip(),
+        "vendor_sign_designation": (data.get("vendor_sign_designation") or data.get("vendorSignDesignation") or "").strip(),
+        "vendor_sign_date": data.get("vendor_sign_date") or data.get("vendorSignDate") or None,
+        "vendor_signature": data.get("vendor_signature") or data.get("vendorSignature") or None,
     }
 
     conn = get_db()
@@ -454,6 +562,7 @@ def update_work_order(work_order_id: int):
                 proposal_id = %s,
                 project_name = %s,
                 vendor_name = %s,
+                vendor_display_name = %s,
                 vendor_address = %s,
                 po_date = %s,
                 po_number = %s,
@@ -469,13 +578,22 @@ def update_work_order(work_order_id: int):
                 payment_terms = %s,
                 additional_terms = %s,
                 exclusions = %s,
-                status = COALESCE(NULLIF(%s, ''), status)
+                status = COALESCE(NULLIF(%s, ''), status),
+                company_sign_name = %s,
+                company_sign_designation = %s,
+                company_sign_date = %s,
+                company_signature = %s,
+                vendor_sign_name = %s,
+                vendor_sign_designation = %s,
+                vendor_sign_date = %s,
+                vendor_signature = %s
             WHERE id = %s AND Company_id = %s
             """,
             (
                 payload["proposal_id"],
                 payload["project_name"],
                 payload["vendor_name"],
+                payload["vendor_display_name"],
                 payload["vendor_address"],
                 payload["po_date"],
                 payload["po_number"],
@@ -492,6 +610,14 @@ def update_work_order(work_order_id: int):
                 payload["additional_terms"],
                 payload["exclusions"],
                 payload["status"],
+                payload["company_sign_name"],
+                payload["company_sign_designation"],
+                payload["company_sign_date"],
+                payload["company_signature"],
+                payload["vendor_sign_name"],
+                payload["vendor_sign_designation"],
+                payload["vendor_sign_date"],
+                payload["vendor_signature"],
                 work_order_id,
                 g.company_id,
             ),

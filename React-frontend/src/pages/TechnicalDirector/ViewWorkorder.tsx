@@ -8,6 +8,7 @@ interface WorkOrder {
   vendor_name: string;
   bid_amount: string;
   timeline: string;
+  duration?: string; // Add duration as optional
   status: string;
   vendor_address?: string;
   po_date?: string;
@@ -20,13 +21,31 @@ interface WorkOrder {
   terms_and_conditions?: string;
   payment_terms?: string;
   additional_terms?: string;
+  company_sign_name?: string;
+  company_sign_designation?: string;
+  company_sign_date?: string;
+  company_signature?: string;
+  vendor_sign_name?: string;
+  vendor_sign_designation?: string;
+  vendor_sign_date?: string;
+  vendor_signature?: string;
 }
 
 export default function ViewWorkorder() {
   const location = useLocation();
   const navigate = useNavigate();
-  const state: any = location.state || {};
+  const state = (location.state || {}) as { selectedWO?: WorkOrder | null };
   const selectedWO: WorkOrder | null = state.selectedWO || null;
+
+  const renderRichText = (html?: string) => {
+    if (!html) return null;
+    return (
+      <div
+        className="prose prose-sm max-w-none text-[#353535] [&_table]:w-full [&_table]:border-collapse [&_table]:text-[14px] [&_th]:border [&_td]:border [&_th]:border-[#AEACAC52] [&_td]:border-[#AEACAC52] [&_th]:bg-white [&_th]:font-semibold [&_th]:text-left [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-1"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  };
 
   if (!selectedWO) {
     return (
@@ -141,7 +160,15 @@ export default function ViewWorkorder() {
           </div>
           <div>
             <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Timeline</p>
-            <p className="text-[15px] font-medium text-[#353535]">{selectedWO.timeline || "—"}</p>
+            <div className="text-[15px] font-medium text-[#353535]">
+              {(() => {
+                const val = selectedWO.timeline || selectedWO.duration || "—";
+                if (val.includes("<")) {
+                  return renderRichText(val);
+                }
+                return val;
+              })()}
+            </div>
           </div>
           <div className="md:col-span-2">
             <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Vendor Address</p>
@@ -157,7 +184,7 @@ export default function ViewWorkorder() {
                 Work Description
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.work_description}</p>
+                {renderRichText(selectedWO.work_description)}
               </div>
             </div>
           )}
@@ -168,7 +195,7 @@ export default function ViewWorkorder() {
                 Scope of Work
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.scope_of_work}</p>
+                {renderRichText(selectedWO.scope_of_work)}
               </div>
             </div>
           )}
@@ -179,7 +206,7 @@ export default function ViewWorkorder() {
                 Project Involves
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.project_involves}</p>
+                {renderRichText(selectedWO.project_involves)}
               </div>
             </div>
           )}
@@ -190,7 +217,7 @@ export default function ViewWorkorder() {
                 Deliverables
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.deliverables}</p>
+                {renderRichText(selectedWO.deliverables)}
               </div>
             </div>
           )}
@@ -201,7 +228,7 @@ export default function ViewWorkorder() {
                 Terms & Conditions
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.terms_and_conditions}</p>
+                {renderRichText(selectedWO.terms_and_conditions)}
               </div>
             </div>
           )}
@@ -212,7 +239,7 @@ export default function ViewWorkorder() {
                 Payment Terms
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.payment_terms}</p>
+                {renderRichText(selectedWO.payment_terms)}
               </div>
             </div>
           )}
@@ -223,10 +250,78 @@ export default function ViewWorkorder() {
                 Additional Terms
               </h2>
               <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-[#AEACAC52]">
-                <p className="text-[14px] whitespace-pre-wrap text-[#353535] font-gantari leading-relaxed">{selectedWO.additional_terms}</p>
+                {renderRichText(selectedWO.additional_terms)}
               </div>
             </div>
           )}
+
+
+          {/* Signatures Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-10 border-t border-[#AEACAC52]">
+            {/* Company Signature */}
+            <div className="space-y-4">
+              <h3 className="font-bold text-[14px] uppercase tracking-wide text-[#000000]">
+                Company
+              </h3>
+              <div className="h-32 border border-[#AEACAC52] rounded-md bg-[#F2F2F2] flex items-center justify-center overflow-hidden p-2">
+                {selectedWO.company_signature ? (
+                  <img
+                    src={selectedWO.company_signature}
+                    alt="Company Signature"
+                    className="h-full object-contain"
+                  />
+                ) : (
+                  <span className="text-gray-400 italic text-sm">No signature</span>
+                )}
+              </div>
+              <div className="space-y-1 text-sm font-gantari">
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Name:</span>
+                  <span className="font-semibold">{selectedWO.company_sign_name || "—"}</span>
+                </div>
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Designation:</span>
+                  <span className="font-semibold">{selectedWO.company_sign_designation || "—"}</span>
+                </div>
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Date:</span>
+                  <span className="font-semibold">{selectedWO.company_sign_date || "—"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Vendor Signature */}
+            <div className="space-y-4">
+              <h3 className="font-bold text-[14px] uppercase tracking-wide text-[#000000]">
+                Vendor
+              </h3>
+              <div className="h-32 border border-[#AEACAC52] rounded-md bg-[#F2F2F2] flex items-center justify-center overflow-hidden p-2">
+                {selectedWO.vendor_signature ? (
+                  <img
+                    src={selectedWO.vendor_signature}
+                    alt="Vendor Signature"
+                    className="h-full object-contain"
+                  />
+                ) : (
+                  <span className="text-gray-400 italic text-sm">No signature</span>
+                )}
+              </div>
+              <div className="space-y-1 text-sm font-gantari">
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Name:</span>
+                  <span className="font-semibold">{selectedWO.vendor_sign_name || "—"}</span>
+                </div>
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Designation:</span>
+                  <span className="font-semibold">{selectedWO.vendor_sign_designation || "—"}</span>
+                </div>
+                <div className="flex border-b border-gray-200 py-1">
+                  <span className="w-24 text-gray-500">Date:</span>
+                  <span className="font-semibold">{selectedWO.vendor_sign_date || "—"}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

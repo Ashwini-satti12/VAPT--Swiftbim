@@ -277,6 +277,7 @@ export default function BiddingV() {
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [showEntries, setShowEntries] = useState("show");
   const [showDropdownOpen, setShowDropdownOpen] = useState(false);
+  const [tableCurrentPage, setTableCurrentPage] = useState(1);
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
 
   const knownOppIdsRef = useRef<Set<number> | null>(null);
@@ -524,10 +525,46 @@ export default function BiddingV() {
         (b) => (b.status || "").toLowerCase() === bidStatusFilter,
       );
     }
-    if (showEntries === "show" || showEntries === "all") return out;
-    const [start, end] = showEntries.split("-").map(Number);
-    return out.slice(start - 1, end);
+    return out;
   })();
+
+  const effectiveShowEntries = showEntries === "show" ? "1-50" : showEntries;
+  const selectedShowRange =
+    effectiveShowEntries === "all"
+      ? { start: 0, end: filteredBids.length }
+      : (() => {
+          const [start, end] = effectiveShowEntries.split("-").map(Number);
+          return {
+            start: Math.max(0, (start || 1) - 1),
+            end: Math.max(0, end || filteredBids.length),
+          };
+        })();
+  const rangeEnd = Math.min(selectedShowRange.end, filteredBids.length);
+  const listInRange = filteredBids.slice(selectedShowRange.start, rangeEnd);
+  const tableRowsPerPage = 5;
+  const tableTotalPages = Math.max(
+    1,
+    Math.ceil(listInRange.length / tableRowsPerPage),
+  );
+  const safeTableCurrentPage = Math.min(tableCurrentPage, tableTotalPages);
+  const tablePageStartIndex = (safeTableCurrentPage - 1) * tableRowsPerPage;
+  const displayBids = listInRange.slice(
+    tablePageStartIndex,
+    tablePageStartIndex + tableRowsPerPage,
+  );
+  const tablePageRangeStart =
+    listInRange.length === 0
+      ? 0
+      : selectedShowRange.start + tablePageStartIndex + 1;
+  const tablePageRangeEnd =
+    listInRange.length === 0
+      ? 0
+      : Math.min(
+          selectedShowRange.start + tablePageStartIndex + tableRowsPerPage,
+          rangeEnd,
+        );
+  const tablePageRangeLabel =
+    listInRange.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
 
   const submitModalMaxBid =
     selectedOpp != null ? maxBidAmountForOpportunity(selectedOpp) : null;
@@ -801,41 +838,59 @@ export default function BiddingV() {
                 </div>
               </div>
 
-              {/* Description Section */}
-              <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
-                <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
-                  Description
-                </h3>
-                <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
-                  {detailOpp.description ||
-                    "No detailed description available for this project."}
-                </div>
-              </div>
-
+              {/* Description Section removed as per request */}
 
               {/* Scope of Work Section */}
-              <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
-                <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
-                  Scope of Work
-                </h3>
-                <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
-                  {detailOpp.scope_of_work ||
-                    detailOpp.technical_requirements ||
-                    "The scope of work encompasses the full delivery as per project requirements."}
+              {(detailOpp.scope_of_work || detailOpp.technical_requirements || detailOpp.project_sector || detailOpp.bim_services_required) && (
+                <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
+                    Scope of Work
+                  </h3>
+                  {(detailOpp.scope_of_work || detailOpp.technical_requirements) && (
+                    <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari mb-4">
+                      {detailOpp.scope_of_work || detailOpp.technical_requirements}
+                    </div>
+                  )}
+                  {(detailOpp.project_sector || detailOpp.bim_services_required) && (
+                    <div className="bg-[#F9F9F9] border border-[#AEACAC52] rounded-md p-6 space-y-4">
+                      {detailOpp.project_sector && (
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                          <div className="font-bold text-[#353535] w-[220px] flex justify-between flex-shrink-0 font-gantari text-[14px]">
+                            <span>Project Sector</span>
+                            <span>:</span>
+                          </div>
+                          <span className="text-[#616161] font-normal font-gantari text-[14px]">
+                            {detailOpp.project_sector}
+                          </span>
+                        </div>
+                      )}
+                      {detailOpp.bim_services_required && (
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                          <div className="font-bold text-[#353535] w-[220px] flex justify-between flex-shrink-0 font-gantari text-[14px]">
+                            <span>BIM Services Required</span>
+                            <span>:</span>
+                          </div>
+                          <span className="text-[#616161] font-normal font-gantari text-[14px]">
+                            {detailOpp.bim_services_required}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
               {/* Technical Requirements Section */}
-              <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
-                <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
-                  Technical Requirements
-                </h3>
-                <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
-                  {detailOpp.technologies_used ||
-                    detailOpp.software_to_be_used ||
-                    "Software, modules, and resource requirements have not been specified for this project yet."}
+              {(detailOpp.technologies_used || detailOpp.software_to_be_used) && (
+                <div className="bg-white border border-[#EBEBEB] rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-[20px] font-medium text-[#353535] mb-4 border-b-[1.5px] border-[#F2F2F2] pb-2 font-gantari">
+                    Technical Requirements
+                  </h3>
+                  <div className="text-[#8B8B8B] leading-relaxed whitespace-pre-wrap text-[14px] font-gantari">
+                    {detailOpp.technologies_used || detailOpp.software_to_be_used}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Sidebar Column */}
@@ -1092,24 +1147,6 @@ export default function BiddingV() {
                 {/* Additional Sections from Modal */}
                 <div className="space-y-6 pt-6 border-t border-[#F2F2F2]">
                   <div>
-                    <h4 className="text-[16px] font-bold text-[#353535] mb-2 font-gantari">Executive Summary</h4>
-                    <div className="text-[14px] text-[#616161] leading-relaxed bg-[#F9F9F9] p-4 rounded-md border border-[#F0F0F0] font-gantari">
-                      {"Data would be derived from vendor proposal submission."}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-[16px] font-bold text-[#353535] mb-2 font-gantari">Scope of Work</h4>
-                    <div className="text-[14px] text-[#616161] leading-relaxed bg-[#F9F9F9] p-4 rounded-md border border-[#F0F0F0] font-gantari">
-                      {"Standard scope as per project technical documentation."}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-[16px] font-bold text-[#353535] mb-2 font-gantari">Deliverables</h4>
-                    <div className="text-[14px] text-[#616161] leading-relaxed bg-[#F9F9F9] p-4 rounded-md border border-[#F0F0F0] font-gantari">
-                      {"Technical reports, BIM models, and project specific outputs."}
-                    </div>
-                  </div>
-                  <div>
                     <h4 className="text-[16px] font-bold text-[#353535] mb-2 font-gantari">Additional Notes / Approach</h4>
                     <div className="text-[#353535] leading-relaxed whitespace-pre-wrap bg-[#F9F9F9] p-4 rounded-md border border-[#F0F0F0] text-[14px] font-gantari">
                       {detailBid.notes || "No accompanying notes provided with this bid."}
@@ -1257,17 +1294,17 @@ export default function BiddingV() {
           )}
 
           {mainTab === "my-bids" && (
-            <div className="relative">
+            <div className="relative w-[160px]">
               <button
                 onClick={() => setShowDropdownOpen(!showDropdownOpen)}
-                className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-medium transition-all cursor-pointer border-0 font-gantari"
+                className="w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-medium transition-all cursor-pointer border-0 font-gantari"
               >
                 {showEntries === "show" ? (
-                  <span className="text-sm font-medium text-[#616161]">
-                    Show
+                  <span className="text-sm font-medium text-[#616161] truncate">
+                    Show Entries
                   </span>
                 ) : (
-                  <span className="text-sm font-medium text-[#353535]">
+                  <span className="text-sm font-medium text-[#353535] truncate">
                     Show: {showEntries === "1-500" ? "All" : showEntries}
                   </span>
                 )}
@@ -1284,9 +1321,9 @@ export default function BiddingV() {
                     className="fixed inset-0 z-10"
                     onClick={() => setShowDropdownOpen(false)}
                   />
-                  <div className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-0 max-h-[160px] overflow-y-auto custom-scrollbar">
+                  <div className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg w-full py-0 max-h-[160px] overflow-y-auto custom-scrollbar">
                     <div className="bg-[#F2F2F2] text-[#353535] font-semibold px-4 py-2 sticky top-0 z-10 font-gantari text-sm">
-                      Show
+                      Show Entries
                     </div>
                     {[
                       { label: "1-50", val: "1-50" },
@@ -1300,6 +1337,7 @@ export default function BiddingV() {
                         key={opt.val}
                         onClick={() => {
                           setShowEntries(opt.val);
+                          setTableCurrentPage(1);
                           setShowDropdownOpen(false);
                         }}
                         className="w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors cursor-pointer text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2] bg-transparent"
@@ -1326,6 +1364,7 @@ export default function BiddingV() {
                 }
                 setMainTab("opportunities");
                 setViewMode("list");
+                setTableCurrentPage(1);
               }}
               className={`px-4 py-1 rounded-md text-[14px] font-medium transition-all ${mainTab === "opportunities" ? "bg-white text-[#DE3D3A] shadow-sm" : "text-[#717171] hover:text-[#353535]"}`}
             >
@@ -1343,6 +1382,7 @@ export default function BiddingV() {
                 }
                 setMainTab("my-bids");
                 setViewMode("list");
+                setTableCurrentPage(1);
               }}
               className={`px-4 py-1 rounded-md text-[14px] font-medium transition-all ${mainTab === "my-bids" ? "bg-white text-[#DE3D3A] shadow-sm" : "text-[#717171] hover:text-[#353535]"}`}
             >
@@ -1577,13 +1617,13 @@ export default function BiddingV() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {filteredBids.map((bid, idx) => (
+                    {displayBids.map((bid, idx) => (
                       <tr
                         key={bid.id}
-                        className={`${idx % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}`}
+                        className={`${(tablePageStartIndex + idx) % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}`}
                       >
                         <td className="px-4 py-6 text-center text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
-                          {idx + 1}
+                          {tablePageStartIndex + idx + 1}
                         </td>
                         <td className="px-4 py-6 text-center">
                           <p className="text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
@@ -1636,6 +1676,64 @@ export default function BiddingV() {
               )}
             </div>
           </div>
+          {filteredBids.length > 0 && listInRange.length > 0 && (
+            <div className="w-full flex items-center justify-end mt-2 mb-[-6px] py-2">
+              <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
+                <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">
+                  Showing:
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setTableCurrentPage((p) => {
+                      const cur = Math.min(Math.max(1, p), tableTotalPages);
+                      return Math.max(1, cur - 1);
+                    })
+                  }
+                  disabled={safeTableCurrentPage === 1}
+                  className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
+                    safeTableCurrentPage === 1
+                      ? "text-[#9CA3AF] opacity-50 cursor-not-allowed"
+                      : "text-[#353535]"
+                  }`}
+                  aria-label="Previous page"
+                >
+                  <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">
+                    &#8249;
+                  </span>
+                  <span className="inline-flex items-center">Prev</span>
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-1 rounded-md bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+                  aria-current="page"
+                >
+                  {tablePageRangeLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setTableCurrentPage((p) => {
+                      const cur = Math.min(Math.max(1, p), tableTotalPages);
+                      return Math.min(tableTotalPages, cur + 1);
+                    })
+                  }
+                  disabled={safeTableCurrentPage >= tableTotalPages}
+                  className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
+                    safeTableCurrentPage >= tableTotalPages
+                      ? "text-[#9CA3AF] opacity-40 cursor-not-allowed"
+                      : "text-[#353535]"
+                  }`}
+                  aria-label="Next page"
+                >
+                  <span className="inline-flex items-center">Next</span>
+                  <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">
+                    &#8250;
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

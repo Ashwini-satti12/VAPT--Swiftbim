@@ -12,6 +12,10 @@ type DashboardStats = {
   completedProjects: number;
   inProgressTasks: number;
   completedTasks: number;
+  myInProgressTasks?: number;
+  teamInProgressTasks?: number;
+  myCompletedTasks?: number;
+  teamCompletedTasks?: number;
 };
 
 type InvolvedPerson = {
@@ -37,6 +41,10 @@ const defaultStats: DashboardStats = {
   completedProjects: 0,
   inProgressTasks: 0,
   completedTasks: 0,
+  myInProgressTasks: 0,
+  teamInProgressTasks: 0,
+  myCompletedTasks: 0,
+  teamCompletedTasks: 0,
 };
 
 /** Same as TeamtaskBC.tsx — board columns use this, not MytaskBC normalizeStatus. */
@@ -164,85 +172,11 @@ export default function DashboardBC() {
   const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
   const monthDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Project KPIs from dashboard API; task counts match TeamtaskBC (team board + outsource + local overlay).
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        let totalProjects = 0;
-        let completedProjects = 0;
-        try {
-          const statsRes = await api.get<DashboardStats>(
-            "/api/dashboard/stats",
-          );
-          totalProjects = statsRes.data.totalProjects ?? 0;
-          completedProjects = statsRes.data.completedProjects ?? 0;
-        } catch {
-          /* keep zeros */
-        }
-
-        const teamParams = { condition: "1", employeeid: "all" } as const;
-        const [tasksRes, vendorRes] = await Promise.all([
-          api
-            .get<{
-              tasks?: BcTeamTaskRow[];
-            }>("/api/tasks", { params: teamParams })
-            .catch(() => ({ data: { tasks: [] as BcTeamTaskRow[] } })),
-          api
-            .get<{ tasks?: BcTeamTaskRow[] }>("/api/vendors/vendor-tasks", {
-              params: teamParams,
-            })
-            .catch(() => ({ data: { tasks: [] as BcTeamTaskRow[] } })),
-        ]);
-        if (cancelled) return;
-
-        const serverList: BcTeamTaskRow[] = [
-          ...(tasksRes.data.tasks ?? []),
-          ...(vendorRes.data.tasks ?? []),
-        ];
-
-        let localTasks: BcTeamTaskRow[] = [];
-        try {
-          const raw = localStorage.getItem(BC_TEAMTASK_STORAGE_KEY);
-          if (raw) {
-            const parsed = JSON.parse(raw) as unknown;
-            localTasks = Array.isArray(parsed)
-              ? (parsed as BcTeamTaskRow[])
-              : [];
-          }
-        } catch {
-          localTasks = [];
-        }
-
-        const merged = bcMergeTeamTasksForKpi(
-          serverList,
-          localTasks,
-          bcLoadDeletedIds(),
-        );
-        const inProgressTasks = merged.filter(
-          (t) => bcTeamTaskEffectiveStatus(t) === "in_progress",
-        ).length;
-        const completedTasks = merged.filter(
-          (t) => bcTeamTaskEffectiveStatus(t) === "completed",
-        ).length;
-
-        if (!cancelled) {
-          setStats({
-            totalProjects,
-            completedProjects,
-            inProgressTasks,
-            completedTasks,
-          });
-        }
-      } catch {
-        if (!cancelled) setStats(defaultStats);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    api.get<DashboardStats>("/api/dashboard/stats")
+      .then(({ data }) => setStats(data))
+      .catch(() => setStats(defaultStats))
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -818,13 +752,12 @@ export default function DashboardBC() {
                           {event.full_name || event.project_name || "Employee"}
                         </h4>
                         <span
-                          className={`text-[10px] px-3 py-1.5 rounded-md font-bold uppercase tracking-widest leading-none font-gantari ${
-                            event.type === "birthday"
-                              ? "bg-[#FFF3E0] text-[#E65100]"
-                              : event.type === "work_anniversary"
-                                ? "bg-[#E7F6EA] text-[#2D8A39]"
-                                : "bg-[#E3F2FD] text-[#1565C0]"
-                          }`}
+                          className={`text-[10px] px-3 py-1.5 rounded-md font-bold uppercase tracking-widest leading-none font-gantari ${event.type === "birthday"
+                            ? "bg-[#FFF3E0] text-[#E65100]"
+                            : event.type === "work_anniversary"
+                              ? "bg-[#E7F6EA] text-[#2D8A39]"
+                              : "bg-[#E3F2FD] text-[#1565C0]"
+                            }`}
                         >
                           {event.type === "birthday"
                             ? "BIRTHDAY"

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import { FiGrid, FiMenu, FiX, FiEye, FiEyeOff } from "react-icons/fi";
@@ -18,6 +19,17 @@ import { sanitizeVendorVendorsFilename } from "../../lib/vendorUploads";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 
 const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
+const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
+const showEntriesOptions = [
+  { value: "1-50", label: "1-50", start: 0, end: 50 },
+  { value: "51-100", label: "51-100", start: 50, end: 100 },
+  { value: "101-150", label: "101-150", start: 100, end: 150 },
+  { value: "151-200", label: "151-200", start: 150, end: 200 },
+  { value: "201-250", label: "201-250", start: 200, end: 250 },
+  { value: "251-300", label: "251-300", start: 250, end: 300 },
+  { value: "all", label: "All", start: 0, end: null },
+];
+
 
 const VENDOR_RESOURCE_BULK_STATUS =
   "/api/vendors/profile/resource-profiles/bulk-status";
@@ -63,8 +75,8 @@ const toCamelCase = (str: string): string => {
 
 const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
@@ -72,6 +84,20 @@ const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #979797;
     border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-button {
+    display: block;
+    height: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-button:vertical:decrement {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M5 2L1 8h8z' fill='%23979797'/></svg>");
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+  .custom-scrollbar::-webkit-scrollbar-button:vertical:increment {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M5 8L1 2h8z' fill='%23979797'/></svg>");
+    background-repeat: no-repeat;
+    background-position: center;
   }
   .custom-scrollbar {
     scrollbar-width: thin;
@@ -86,8 +112,8 @@ function CustomDropdown({
   placeholder,
   className = "",
   styleType = "form",
-  alignMenu = "left",
   menuMaxHeightClass = "max-h-[220px]",
+  direction = "down",
 }: {
   options: string[];
   value: string;
@@ -95,18 +121,24 @@ function CustomDropdown({
   placeholder: string;
   className?: string;
   styleType?: "form" | "header" | "table";
-  alignMenu?: "left" | "right";
+  /** Max height for header/form menu list (scroll when content exceeds), e.g. ~4 rows */
   menuMaxHeightClass?: string;
+  /** Direction to open the dropdown menu */
+  direction?: "up" | "down";
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, bottom: 0 });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      const target = event.target as Node;
+      const isInsideTrigger =
+        dropdownRef.current && dropdownRef.current.contains(target);
+      const isInsideMenu = menuRef.current && menuRef.current.contains(target);
+
+      if (!isInsideTrigger && !isInsideMenu) {
         setIsOpen(false);
       }
     }
@@ -114,40 +146,173 @@ function CustomDropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (isOpen && dropdownRef.current) {
+      const updatePosition = () => {
+        if (dropdownRef.current) {
+          const rect = dropdownRef.current.getBoundingClientRect();
+          setCoords({
+            top: rect.bottom,
+            left: rect.left,
+            width: rect.width,
+            bottom: window.innerHeight - rect.top,
+          });
+        }
+      };
+
+      updatePosition();
+      window.addEventListener("scroll", updatePosition, true);
+      window.addEventListener("resize", updatePosition);
+
+      return () => {
+        window.removeEventListener("scroll", updatePosition, true);
+        window.removeEventListener("resize", updatePosition);
+      };
+    }
+  }, [isOpen]);
+
   const isPlaceholder = !value || value === placeholder;
+
+  const menuContent = (
+    <div
+      ref={menuRef}
+      className={`fixed z-[9999] bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden`}
+      style={{
+        width: coords.width,
+        left: coords.left,
+        ...(direction === "up"
+          ? { bottom: coords.bottom + 4 }
+          : { top: coords.top + 4 }),
+      }}
+    >
+      {styleType === "table" ? (
+        <div className="flex flex-col py-2">
+          {options.map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => {
+                onChange(option);
+                setIsOpen(false);
+              }}
+              className={`w-full text-left px-6 py-2 text-[14px] font-normal font-Gantari transition-colors cursor-pointer hover:bg-[#F2F2F2] hover:text-[#353535] ${value === option ? "text-[#353535]" : "text-[#8B8B8B]"
+                }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className={`${menuMaxHeightClass} overflow-y-auto custom-scrollbar`}>
+          {(styleType === "header" || styleType === "form") && (
+            <button
+              type="button"
+              onClick={() => {
+                if (
+                  (placeholder === "Show" || placeholder === "Show Entries") &&
+                  styleType === "header"
+                ) {
+                  onChange("");
+                  setIsOpen(false);
+                } else if (
+                  (placeholder === "Type" || placeholder === "Status") &&
+                  styleType === "header"
+                ) {
+                  onChange("");
+                  setIsOpen(false);
+                } else {
+                  setIsOpen(false);
+                }
+              }}
+              className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${isPlaceholder &&
+                  placeholder !== "Show" &&
+                  placeholder !== "Show Entries"
+                  ? "text-[#353535] bg-[#F2F2F2]"
+                  : "text-[#8B8B8B] bg-[#FFFFFF]"
+                }`}
+            >
+              {placeholder === "Show Entries"
+                ? "All Entries"
+                : `All ${placeholder}`}
+            </button>
+          )}
+          {(styleType === "header" || styleType === "form") && (
+            <div className="h-[1px] bg-[#F2F2F2] mx-2" />
+          )}
+          {options.map((option) => {
+            const isChosen = value === option;
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  onChange(option);
+                  setIsOpen(false);
+                }}
+                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
+                    ? "text-[#353535] bg-[#F2F2F2]"
+                    : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                  }`}
+              >
+                <span className="truncate min-w-0">{option}</span>
+                {isChosen && (
+                  <svg
+                    className="w-4 h-4 shrink-0 text-[#353535]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
+      <input
+        type="text"
+        value={value && value !== placeholder ? value : ""}
+        required
+        className="absolute opacity-0 pointer-events-none"
+        tabIndex={-1}
+        readOnly
+      />
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between gap-2 transition-all outline-none font-Gantari min-w-0 ${
-          styleType === "header"
-            ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
+        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-2 transition-all outline-none font-gantari min-w-0 ${styleType === "header"
+            ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[12px] sm:text-[14px] font-semibold"
             : styleType === "table"
-              ? `px-4 py-2 min-w-[140px] rounded-md border font-Gantari font-medium text-[14px] ${value === "Active" ? "bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]" : "bg-[#FFE5E5] border-[#FECACA] text-[#E00100]"}`
-              : `px-5 py-3 bg-[#F2F3F4] rounded-md text-[14px] border border-[#F2F2F2] focus:outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
-        }`}
+              ? `px-4 py-2 min-w-[140px] rounded-md border font-gantari font-medium text-[12px] sm:text-[14px] ${value === "Active" ? "bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]" : "bg-[#FFE5E5] border-[#FECACA] text-[#E00100]"}`
+              : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[12px] sm:text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+          }`}
       >
         <span
-          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
-            styleType === "header" || styleType === "form"
+          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${styleType === "header" || styleType === "form"
               ? isPlaceholder
                 ? "text-[#8B8B8B]"
                 : "text-[#353535]"
               : ""
-          }`}
+            }`}
         >
           {styleType === "header" && value && !isPlaceholder ? (
-            <>
-              <span className="text-[14px]">
-                {placeholder === "Show"
-                  ? SHOW_ENTRIES_PLACEHOLDER
-                  : placeholder}
-                :
-              </span>{" "}
-              <span className="font-semibold">{value}</span>
-            </>
+            <span className="font-semibold">
+              {placeholder === "Show"
+                ? `Show: ${value}`
+                : toCamelCase(value)}
+            </span>
           ) : (
             value ||
             (placeholder === "Show" ? SHOW_ENTRIES_PLACEHOLDER : placeholder)
@@ -156,44 +321,10 @@ function CustomDropdown({
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""} ${styleType === "table" ? "opacity-70" : isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
+          className={`w-3 h-3 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""} ${styleType === "table" ? "opacity-70" : isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
         />
       </button>
-      {isOpen && (
-        <div
-          className={`absolute top-full mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden ${alignMenu === "right" ? "right-0 left-auto" : "left-0"}`}
-        >
-          <div
-            className={`${menuMaxHeightClass} overflow-y-auto custom-scrollbar`}
-          >
-            {(styleType === "header" || styleType === "form") && (
-              <button
-                type="button"
-                onClick={() => {
-                  onChange("");
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-Gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${isPlaceholder ? "text-[#353535] bg-[#F2F2F2]" : "text-[#8B8B8B] bg-[#FFFFFF]"}`}
-              >
-                {placeholder}
-              </button>
-            )}
-            {options.map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => {
-                  onChange(option);
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2 text-[14px] font-Gantari font-normal transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${value === option ? "text-[#353535] bg-[#F2F2F2]" : "text-[#8B8B8B] bg-transparent"}`}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {isOpen && createPortal(menuContent, document.body)}
     </div>
   );
 }
@@ -277,6 +408,8 @@ export default function ResourcesV() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("All");
+  const [selectedShowEntries, setSelectedShowEntries] = useState("");
+  const [tableCurrentPage, setTableCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
@@ -452,16 +585,16 @@ export default function ResourcesV() {
 
   const filteredList = list.filter((emp: Employee) => {
     if (searchQuery) {
-        if (!(
-            (emp.full_name || "").toLowerCase().includes(searchQuery) ||
-            (emp.email || "").toLowerCase().includes(searchQuery) ||
-            (emp.empid || "").toLowerCase().includes(searchQuery) ||
-            (emp.user_role || "").toLowerCase().includes(searchQuery) ||
-            (emp.department || "").toLowerCase().includes(searchQuery) ||
-            (emp.designation || "").toLowerCase().includes(searchQuery)
-        )) {
-            return false;
-        }
+      if (!(
+        (emp.full_name || "").toLowerCase().includes(searchQuery) ||
+        (emp.email || "").toLowerCase().includes(searchQuery) ||
+        (emp.empid || "").toLowerCase().includes(searchQuery) ||
+        (emp.user_role || "").toLowerCase().includes(searchQuery) ||
+        (emp.department || "").toLowerCase().includes(searchQuery) ||
+        (emp.designation || "").toLowerCase().includes(searchQuery)
+      )) {
+        return false;
+      }
     }
     if (statusFilter === "All" || !statusFilter) return true;
     const currentActive = (emp.active || "").toLowerCase();
@@ -476,10 +609,42 @@ export default function ResourcesV() {
     return true;
   });
 
-  const paginatedList = filteredList.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
+  const effectiveShowEntryValue =
+    selectedShowEntries || showEntriesOptions[0].value;
+  const selectedRange =
+    showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ??
+    showEntriesOptions[0];
+  const rangeStart = selectedRange.start;
+  const rangeEnd =
+    selectedRange.end === null
+      ? filteredList.length
+      : Math.min(selectedRange.end, filteredList.length);
+  const displayedList = filteredList.slice(rangeStart, rangeEnd);
+  const tableRowsPerPage = 5;
+  const tableTotalPages = Math.max(
+    1,
+    Math.ceil(displayedList.length / tableRowsPerPage),
   );
+  const safeTableCurrentPage = Math.min(tableCurrentPage, tableTotalPages);
+  const tablePageStartIndex = (safeTableCurrentPage - 1) * tableRowsPerPage;
+  const paginatedList = displayedList.slice(
+    tablePageStartIndex,
+    tablePageStartIndex + tableRowsPerPage,
+  );
+  const tablePageRangeStart =
+    displayedList.length === 0 ? 0 : rangeStart + tablePageStartIndex + 1;
+  const tablePageRangeEnd =
+    displayedList.length === 0
+      ? 0
+      : Math.min(rangeStart + tablePageStartIndex + tableRowsPerPage, rangeEnd);
+  const tablePageRangeLabel =
+    displayedList.length === 0 ? "0-0" : `${tablePageRangeStart}-${tablePageRangeEnd}`;
+
+  useEffect(() => {
+    // Reset to first page whenever filters/range/search/view changes.
+    setCurrentPage(1);
+    setTableCurrentPage(1);
+  }, [selectedShowEntries, statusFilter, searchQuery, viewMode]);
 
   function renderProfileCertificationsCard() {
     const certList = selectedEmployee?.certifications?.trim();
@@ -543,7 +708,7 @@ export default function ResourcesV() {
         setInviteShowSuccess(true);
         setActiveView("list");
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setInviteSubmitting(false));
   }
 
@@ -606,12 +771,12 @@ export default function ResourcesV() {
           prev.map((e) =>
             e.id === editId
               ? {
-                  ...e,
-                  full_name: editForm.full_name.trim(),
-                  email: editForm.email.trim(),
-                  user_role: editForm.user_role,
-                  phone_number: editForm.phone_number.trim() || e.phone_number,
-                }
+                ...e,
+                full_name: editForm.full_name.trim(),
+                email: editForm.email.trim(),
+                user_role: editForm.user_role,
+                phone_number: editForm.phone_number.trim() || e.phone_number,
+              }
               : e,
           ),
         );
@@ -623,8 +788,8 @@ export default function ResourcesV() {
       .catch((err) => {
         setAddError(
           err.response?.data?.message ||
-            err.message ||
-            "Failed to assign login",
+          err.message ||
+          "Failed to assign login",
         );
       })
       .finally(() => setEditSubmitting(false));
@@ -722,21 +887,41 @@ export default function ResourcesV() {
                       Manage Inactive
                     </button>
                   </div>
+                  {viewMode === "table" && (
+                    <CustomDropdown
+                      options={showEntriesOptions.map((o) => o.label)}
+                      value={selectedShowEntries}
+                      onChange={(val) => {
+                        const opt = showEntriesOptions.find(
+                          (o) => o.label === val,
+                        );
+                        if (opt) setSelectedShowEntries(opt.value);
+                      }}
+                      placeholder="Show"
+                      className="w-full sm:w-[130px]"
+                      styleType="header"
+                      direction="down"
+                    />
+                  )}
                 </>
               )}
             </div>
             <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
               <CustomDropdown
-                options={["All", "Active", "Inactive", "Online", "Offline"]}
+                options={
+                  viewMode === "card"
+                    ? ["Online", "Offline", "Inactive"]
+                    : ["Active", "Inactive"]
+                }
                 value={statusFilter}
                 onChange={(val) => {
                   setStatusFilter(val);
-                  setCurrentPage(1);
+                  setTableCurrentPage(1);
                 }}
                 placeholder="Status"
                 className="w-full sm:w-[130px]"
                 styleType="header"
-                alignMenu="right"
+                direction="down"
               />
             </div>
           </div>
@@ -765,31 +950,28 @@ export default function ResourcesV() {
 
                     <div className="absolute top-3 right-3 z-10">
                       <div
-                        className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${
-                          emp.active !== "active"
-                            ? "bg-[#FFEEEE] border-red-100"
-                            : emp.status === "Online"
-                              ? "bg-[#E0FFE8] border-emerald-100"
-                              : "bg-[#FFEEEE] border-red-100"
-                        }`}
+                        className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active !== "active"
+                          ? "bg-[#FFEEEE] border-red-100"
+                          : emp.status === "Online"
+                            ? "bg-[#E0FFE8] border-emerald-100"
+                            : "bg-[#FFEEEE] border-red-100"
+                          }`}
                       >
                         <span
-                          className={`w-2 h-2 rounded-full ${
-                            emp.active !== "active"
-                              ? "bg-[#E00100]"
-                              : emp.status === "Online"
-                                ? "bg-[#166534]"
-                                : "bg-[#E00100]"
-                          }`}
+                          className={`w-2 h-2 rounded-full ${emp.active !== "active"
+                            ? "bg-[#E00100]"
+                            : emp.status === "Online"
+                              ? "bg-[#166534]"
+                              : "bg-[#E00100]"
+                            }`}
                         />
                         <span
-                          className={`text-[14px] font-semibold font-gantari ${
-                            emp.active !== "active"
-                              ? "text-[#E00100]"
-                              : emp.status === "Online"
-                                ? "text-[#008F22]"
-                                : "text-[#E00100]"
-                          }`}
+                          className={`text-[14px] font-semibold font-gantari ${emp.active !== "active"
+                            ? "text-[#E00100]"
+                            : emp.status === "Online"
+                              ? "text-[#008F22]"
+                              : "text-[#E00100]"
+                            }`}
                         >
                           {emp.active !== "active"
                             ? "Inactive"
@@ -923,8 +1105,8 @@ export default function ResourcesV() {
                                 accountnumber: emp.accountnumber || "",
                                 roles: emp.Allpannel
                                   ? emp.Allpannel.split(",").map((r) =>
-                                      r.trim(),
-                                    )
+                                    r.trim(),
+                                  )
                                   : [],
                                 active:
                                   emp.active === "active"
@@ -947,123 +1129,251 @@ export default function ResourcesV() {
             )}
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mx-4">
-            <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-220px)]">
-              <table className="min-w-full border-collapse">
-                <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                  <tr className="border-b border-gray-100 bg-white">
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                      Sl.No
-                    </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                      Name
-                    </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                      Email
-                    </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                      Contact
-                    </th>
-                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {paginatedList.map((emp, idx) => (
-                    <tr
-                      key={emp.id}
-                      className={idx % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}
-                    >
-                      <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle">
-                        {(idx + 1).toString().padStart(2, "0")}
-                      </td>
-                      <td className="px-3 py-5 text-center whitespace-nowrap align-middle lg:min-w-[200px]">
-                        <div className="flex items-center justify-center gap-3">
-                          <div className="relative shrink-0">
-                            <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200">
-                              {emp.profile_picture ? (
-                                <img
-                                  src={getGlobalProfileUrl(
-                                    emp.id,
-                                    emp.profile_picture,
-                                    "vendor",
-                                  )}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[14px] font-medium">
-                                  ?
-                                </div>
-                              )}
-                            </div>
-                            <span
-                              className={`absolute top-0 left-0 w-2.5 h-2.5 border-2 border-white rounded-full ${
-                                emp.active !== "active"
+          <>
+            <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mx-4 mb-6">
+              <div className="flex-1 min-h-0">
+                <table className="min-w-full border-separate border-spacing-0">
+                  <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                    <tr className="bg-white">
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Sl.No
+                      </th>
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Name
+                      </th>
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Email
+                      </th>
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Contact
+                      </th>
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Status
+                      </th>
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {paginatedList.map((emp, idx) => (
+                      <tr
+                        key={emp.id}
+                        className={idx % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}
+                      >
+                        <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle">
+                          {(rangeStart + tablePageStartIndex + idx + 1)
+                            .toString()
+                            .padStart(2, "0")}
+                        </td>
+                        <td className="px-6 py-5 whitespace-nowrap align-middle lg:min-w-[200px]">
+                          <div className="flex items-center justify-start gap-3">
+                            <div className="relative shrink-0">
+                              <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200">
+                                {emp.profile_picture ? (
+                                  <img
+                                    src={getGlobalProfileUrl(
+                                      emp.id,
+                                      emp.profile_picture,
+                                      "vendor",
+                                    )}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-[14px] font-medium">
+                                    ?
+                                  </div>
+                                )}
+                              </div>
+                              <span
+                                className={`absolute top-0 left-0 w-2.5 h-2.5 border-2 border-white rounded-full ${emp.active !== "active"
                                   ? "bg-[#ef4444]"
                                   : emp.status === "Online"
                                     ? "bg-[#22c55e]"
                                     : "bg-[#ef4444]"
-                              }`}
-                            ></span>
+                                  }`}
+                              ></span>
+                            </div>
+                            <span className="text-[14px] font-medium text-[#353535]">
+                              {toCamelCase(emp.full_name)}
+                            </span>
                           </div>
-                          <span className="text-[14px] font-medium text-[#353535]">
-                            {toCamelCase(emp.full_name)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle">
-                        {emp.email}
-                      </td>
-                      <td className="px-3 py-5 text-center whitespace-nowrap align-middle">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => openEmailClient(emp.email)}
-                            className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
-                          >
-                            <img src={mailIcon} className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              const waLink = getWhatsAppLink(emp.phone_number);
-                              if (waLink)
-                                window.open(
-                                  waLink,
-                                  "_blank",
-                                  "noopener,noreferrer",
-                                );
-                            }}
-                            className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
-                          >
-                            <img src={messageIcon} className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => openDialer(emp.phone_number)}
-                            className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
-                          >
-                            <img src={callIcon} className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="inline-block min-w-[130px]">
-                          <CustomDropdown
-                            options={["Active", "Inactive"]}
-                            value={
-                              emp.active === "active" ? "Active" : "Inactive"
-                            }
-                            onChange={(v) => handleStatusToggle(emp.id, v)}
-                            placeholder="Status"
-                            styleType="table"
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        </td>
+                        <td className="px-3 py-5 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle">
+                          {emp.email}
+                        </td>
+                        <td className="px-3 py-5 text-center whitespace-nowrap align-middle">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => openEmailClient(emp.email)}
+                              className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
+                            >
+                              <img src={mailIcon} className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                const waLink = getWhatsAppLink(emp.phone_number);
+                                if (waLink)
+                                  window.open(
+                                    waLink,
+                                    "_blank",
+                                    "noopener,noreferrer",
+                                  );
+                              }}
+                              className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
+                            >
+                              <img src={messageIcon} className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => openDialer(emp.phone_number)}
+                              className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
+                            >
+                              <img src={callIcon} className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="inline-block min-w-[130px]">
+                            <CustomDropdown
+                              options={["Active", "Inactive"]}
+                              value={
+                                emp.active === "active" ? "Active" : "Inactive"
+                              }
+                              onChange={(v) => handleStatusToggle(emp.id, v)}
+                              placeholder="Status"
+                              styleType="table"
+                            />
+                          </div>
+                        </td>
+                        <td className="px-6 py-5 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-3">
+                            <div className="relative group">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedEmployee(emp);
+                                  setShowDetailsModal(true);
+                                }}
+                                className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#DD4342] text-white rounded-md transition-all cursor-pointer"
+                              >
+                                <img
+                                  src={eyeIcon}
+                                  className="w-4 h-4 brightness-0 invert"
+                                />
+                              </button>
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                  <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                                    View
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            {canAdd && (
+                              <div className="relative group">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditId(emp.id);
+                                    setActiveView("edit");
+                                    setEditForm({
+                                      full_name: emp.full_name,
+                                      email: emp.email,
+                                      phone_number: emp.phone_number || "",
+                                      user_role: emp.user_role || "",
+                                      department: emp.department || "",
+                                      address: emp.address || "",
+                                      dob: emp.dob || "",
+                                      password: "",
+                                      user_type: emp.user_type || "",
+                                      doj: emp.doj || "",
+                                      salary: emp.salary || "",
+                                      accountnumber: emp.accountnumber || "",
+                                      roles: emp.Allpannel
+                                        ? emp.Allpannel.split(",").map((r) =>
+                                          r.trim(),
+                                        )
+                                        : [],
+                                      active:
+                                        emp.active === "active"
+                                          ? "Active"
+                                          : "Inactive",
+                                      profile_picture: null,
+                                    });
+                                  }}
+                                  className={`flex py-2 px-2 shrink-0 items-center justify-center rounded-md transition-all cursor-pointer ${idx % 2 === 1 ? "bg-[#FFFFFF]" : "bg-[#F2F2F2]"
+                                    }`}
+                                >
+                                  <img src={editIcon} className="w-4 h-4" />
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
+                                    <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                                      Edit
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+            {displayedList.length > 0 && (
+              <div className="w-full flex items-center justify-end px-4 bg-white">
+                <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
+                  <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">
+                    Showing:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setTableCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={safeTableCurrentPage === 1}
+                    className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage === 1
+                        ? "text-[#9CA3AF] opacity-50 cursor-not-allowed"
+                        : "text-[#353535]"
+                      }`}
+                    aria-label="Previous page"
+                  >
+                    <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">
+                      &#8249;
+                    </span>
+                    <span className="inline-flex items-center">Prev</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+                    aria-current="page"
+                  >
+                    {tablePageRangeLabel}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))
+                    }
+                    disabled={safeTableCurrentPage >= tableTotalPages}
+                    className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${safeTableCurrentPage >= tableTotalPages
+                        ? "text-[#9CA3AF] opacity-40 cursor-not-allowed"
+                        : "text-[#353535]"
+                      }`}
+                    aria-label="Next page"
+                  >
+                    <span className="inline-flex items-center">Next</span>
+                    <span className="relative -top-[2px] inline-flex items-center justify-center text-[24px] leading-none">
+                      &#8250;
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </>
@@ -1074,169 +1384,129 @@ export default function ResourcesV() {
       {/* Detail Modal */}
       {showDetailsModal && selectedEmployee && (
         <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-md w-full max-w-3xl relative flex flex-col max-h-[80vh] overflow-hidden">
-            <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between p-5 sm:p-8 shrink-0 gap-4">
-              <div className="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-4">
-                <div className="group relative order-1">
-                  <button
-                    onClick={() => setShowDetailsModal(false)}
-                    className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer border-0 shadow-none"
-                  >
-                    <FiX className="w-5 h-5" />
-                  </button>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
-                      <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
-                        Close
-                      </span>
-                    </div>
+          <div className="bg-white rounded-xl border border-slate-200 w-full max-w-3xl relative flex flex-col max-h-[90vh] overflow-hidden shadow-xl animate-in fade-in zoom-in duration-300">
+            {/* Modal Header */}
+            <div className="p-8 pb-0 shrink-0">
+              <div className="group relative w-fit">
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer border-0 shadow-none transition-all hover:bg-[#EAEAEA]"
+                >
+                  <img
+                    src={backIcon}
+                    alt="Back"
+                    className="w-5 h-5 translate-y-[1px]"
+                  />
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
+                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                      Close
+                    </span>
                   </div>
                 </div>
-                <span
-                  className={`px-4 py-1 rounded-full text-[12px] font-medium shrink-0 sm:hidden ${
-                    selectedEmployee.active !== "active"
-                      ? "bg-[#FFEEEE] text-[#E00100]"
-                      : selectedEmployee.status === "Online"
-                        ? "bg-[#E0FFE8] text-[#008F22]"
-                        : "bg-[#FFEEEE] text-[#E00100]"
-                  }`}
-                >
-                  ●{" "}
-                  {selectedEmployee.active !== "active"
-                    ? "Inactive"
-                    : selectedEmployee.status === "Online"
-                      ? "Online"
-                      : "Offline"}
-                </span>
               </div>
-
-              <div className="flex-1 text-center sm:mx-6 min-w-0">
-                <h3 className="text-[20px] sm:text-[24px] font-medium text-[#000000] font-gantari break-words">
-                  {toCamelCase(selectedEmployee.full_name)}
-                </h3>
-                <p className="text-[#353535] text-[14px] sm:text-[16px] font-medium font-gantari opacity-80">
-                  {selectedEmployee.user_role || "Worker"}
-                </p>
-              </div>
-
-              <span
-                className={`hidden sm:inline px-4 py-1 rounded-full text-[12px] font-medium shrink-0 mt-2 ${
-                  selectedEmployee.active !== "active"
-                    ? "bg-[#FFEEEE] text-[#E00100]"
-                    : selectedEmployee.status === "Online"
-                      ? "bg-[#E0FFE8] text-[#008F22]"
-                      : "bg-[#FFEEEE] text-[#E00100]"
-                }`}
-              >
-                ●{" "}
-                {selectedEmployee.active !== "active"
-                  ? "Inactive"
-                  : selectedEmployee.status === "Online"
-                    ? "Online"
-                    : "Offline"}
-              </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-5 sm:px-8 pb-8">
-              <div className="flex flex-col text-left max-w-2xl mx-auto">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+              {/* Profile Header section from ConsultantdetailsTD.tsx */}
+              <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+                <div className="flex items-center gap-6 w-full sm:w-auto">
+                  <div className="w-[85px] h-[85px] rounded-full bg-[#3d3399]/20 flex items-center justify-center text-3xl font-semibold text-[#3d3399] overflow-hidden shadow-sm shrink-0">
+                    {selectedEmployee.profile_picture ? (
+                      <img
+                        src={getGlobalProfileUrl(
+                          selectedEmployee.id,
+                          selectedEmployee.profile_picture,
+                          "vendor",
+                        )}
+                        alt={selectedEmployee.full_name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                          if (target.parentElement) {
+                            target.parentElement.innerHTML =
+                              selectedEmployee.full_name
+                                ?.charAt(0)
+                                .toUpperCase() || "?";
+                          }
+                        }}
+                      />
+                    ) : (
+                      (selectedEmployee.full_name || "?")
+                        .charAt(0)
+                        .toUpperCase()
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1 min-w-0 flex-1">
+                    <h2 className="text-[20px] font-bold text-slate-800 font-Gantari break-words uppercase">
+                      {selectedEmployee.full_name}
+                    </h2>
+                    <p className="text-[16px] text-[#8B8B8B] font-Gantari font-medium truncate">
+                      {selectedEmployee.email}
+                    </p>
+                    <span
+                      className={`inline-flex mt-1 px-3 py-1 text-[12px] font-semibold rounded-full w-fit ${
+                        selectedEmployee.active === "active"
+                          ? "bg-[#E0FFE8] text-[#008F22]"
+                          : "bg-[#FFEEEE] text-[#E00100]"
+                      }`}
+                    >
+                      ●{" "}
+                      {selectedEmployee.active === "active"
+                        ? "Active"
+                        : "Inactive"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Details Grid from ConsultantdetailsTD.tsx */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-6 mt-10">
                 {[
                   { label: "Login Email", value: selectedEmployee.email },
-                  {
-                    label: "Phone Number",
-                    value: selectedEmployee.phone_number,
-                  },
+                  { label: "Phone", value: selectedEmployee.phone_number },
                   { label: "Role", value: selectedEmployee.user_role },
-                  { label: "Designation", value: selectedEmployee.designation },
-                  { label: "Discipline", value: selectedEmployee.discipline },
+                  { label: "Department", value: selectedEmployee.department },
                   {
-                    label: "Years of Experience",
-                    value: selectedEmployee.years_of_experience,
+                    label: "Expertise",
+                    value: selectedEmployee.expertise,
                   },
-                  {
-                    label: "Resource Role",
-                    value: selectedEmployee.resource_role,
-                  },
-                  { label: "Expertise", value: selectedEmployee.expertise },
                   { label: "Software", value: selectedEmployee.software },
-                  {
-                    label: "Projects Worked On",
-                    value: selectedEmployee.projects_worked_on,
-                  },
-                  { label: "Address", value: selectedEmployee.address },
-                ].map(({ label, value }) =>
-                  value ? (
+                ].map((item, idx) =>
+                  item.value ? (
                     <div
-                      key={label}
-                      className="grid grid-cols-1 sm:flex sm:items-center py-2 gap-1 sm:gap-6"
+                      key={idx}
+                      className="grid grid-cols-[140px_15px_1fr] items-center"
                     >
-                      <span className="text-[#353535] font-gantari text-[14px] font-medium sm:w-52 shrink-0">
-                        {label}
+                      <span className="text-[14px] text-[#616161] font-Gantari font-medium">
+                        {item.label}
                       </span>
-                      <span className="hidden sm:inline text-[#353535] font-gantari text-[14px] font-medium shrink-0">
+                      <span className="text-[14px] text-[#616161] font-Gantari font-medium">
                         :
                       </span>
-                      <span className="text-[#000000] font-gantari text-[14px] font-semibold break-words">
-                        {value}
+                      <span className="text-[14px] font-bold text-[#353535] font-Gantari truncate">
+                        {item.value}
                       </span>
                     </div>
                   ) : null,
                 )}
-                {renderProfileCertificationsCard()}
+                {selectedEmployee.address && (
+                  <div className="md:col-span-2 grid grid-cols-[140px_15px_1fr] items-start">
+                    <span className="text-[14px] text-[#616161] font-Gantari font-medium">
+                      Address
+                    </span>
+                    <span className="text-[14px] text-[#616161] font-Gantari font-medium">
+                      :
+                    </span>
+                    <span className="text-[14px] font-bold text-[#353535] font-Gantari leading-relaxed">
+                      {selectedEmployee.address}
+                    </span>
+                  </div>
+                )}
               </div>
-
-              {canAdd && (
-                <div
-                  id="assign-login-section"
-                  className="mt-8 border-t border-[#F0F0F0] pt-6"
-                >
-                  {/* <h4 className="text-sm font-bold text-[#353535] mb-4">
-                                    {selectedEmployee.email ? 'Edit Login' : 'Assign Login'}
-                                </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                                    <div>
-                                        <label className="block text-xs font-semibold text-[#717171] mb-1">Login Email</label>
-                                        <input
-                                            type="email"
-                                            value={editForm.email}
-                                            onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                                            className="w-full px-3 py-2 bg-[#F4F4F4] rounded-lg border-none text-sm outline-none focus:ring-1 focus:ring-[#DD4342]/30"
-                                            placeholder="email@example.com"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-[#717171] mb-1">Role</label>
-                                        <CustomDropdown
-                                            options={VENDOR_ROLE_OPTIONS}
-                                            value={editForm.user_role}
-                                            onChange={(v) => setEditForm({ ...editForm, user_role: v })}
-                                            placeholder="Select Role"
-                                        />
-                                    </div>
-                                    <div className="md:col-span-2 flex justify-end gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowDetailsModal(false)}
-                                            className="px-4 py-2 text-sm font-semibold bg-[#F4F4F4] text-[#353535] rounded-lg hover:bg-slate-200 transition-colors"
-                                        >
-                                            Close
-                                        </button>
-                                        <button
-                                            type="button"
-                                            disabled={editSubmitting}
-                                            onClick={() => {
-                                                if (!selectedEmployee) return;
-                                                setEditId(selectedEmployee.id);
-                                                handleEditSubmit(new Event('submit') as any);
-                                            }}
-                                            className="px-4 py-2 text-sm font-semibold bg-[#DD4342] text-white rounded-lg hover:bg-[#c93d3d] transition-colors disabled:opacity-60"
-                                        >
-                                            {editSubmitting ? 'Saving…' : 'Save Login'}
-                                        </button>
-                                    </div>
-                                </div> */}
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -1252,30 +1522,37 @@ export default function ResourcesV() {
       {activeView === "list" ? (
         renderList()
       ) : (
-        <div className="flex-1 overflow-y-auto p-2 sm:p-4 bg-white custom-scrollbar">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-between mb-8">
-              <div className="group relative">
+        <div
+          className="flex-1 overflow-y-auto px-5 py-2 bg-white relative custom-scrollbar"
+          key={activeView}
+        >
+          <div className="max-w-[1174px] mx-auto pt-2">
+            <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
+              <div className="group relative inline-flex">
                 <button
                   type="button"
                   onClick={() => {
+                    setForm(formInitialState);
+                    setAddError("");
+                    setInviteEmails("");
+                    setInviteMessage("");
                     setInviteShowSuccess(false);
                     setActiveView("list");
                   }}
-                  className="p-2 rounded-md bg-[#F2F2F2] text-[#616161] transition-all cursor-pointer"
+                  className="p-2 rounded-md bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
                 >
                   <img src={backIcon} alt="Back" className="w-5 h-5" />
                 </button>
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
                   <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-2 py-0.5 relative z-10">
-                    <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
                       Go Back
                     </span>
                   </div>
                 </div>
               </div>
-              <h3 className="sm:text-[24px] font-gantari font-semibold text-[#020202] text-center flex-1">
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
                 {activeView === "add"
                   ? "Add New Worker"
                   : activeView === "edit"
@@ -1320,9 +1597,9 @@ export default function ResourcesV() {
                           activeView === "add"
                             ? setForm({ ...form, full_name: e.target.value })
                             : setEditForm({
-                                ...editForm,
-                                full_name: e.target.value,
-                              })
+                              ...editForm,
+                              full_name: e.target.value,
+                            })
                         }
                         className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
                         required
@@ -1344,9 +1621,9 @@ export default function ResourcesV() {
                           activeView === "add"
                             ? setForm({ ...form, email: e.target.value })
                             : setEditForm({
-                                ...editForm,
-                                email: e.target.value,
-                              })
+                              ...editForm,
+                              email: e.target.value,
+                            })
                         }
                         className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
                         required
@@ -1380,9 +1657,9 @@ export default function ResourcesV() {
                             activeView === "add"
                               ? setForm({ ...form, password: e.target.value })
                               : setEditForm({
-                                  ...editForm,
-                                  password: e.target.value,
-                                });
+                                ...editForm,
+                                password: e.target.value,
+                              });
                           }}
                           className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
                           required={activeView === "add"}
@@ -1446,11 +1723,11 @@ export default function ResourcesV() {
                           departmentOptions.length
                             ? departmentOptions
                             : [
-                                "Production",
-                                "Technical",
-                                "Quality",
-                                "Management",
-                              ]
+                              "Production",
+                              "Technical",
+                              "Quality",
+                              "Management",
+                            ]
                         }
                         value={
                           activeView === "add"
@@ -1501,13 +1778,13 @@ export default function ResourcesV() {
                           onChange={(e) =>
                             activeView === "add"
                               ? setForm({
-                                  ...form,
-                                  phone_number: e.target.value,
-                                })
+                                ...form,
+                                phone_number: e.target.value,
+                              })
                               : setEditForm({
-                                  ...editForm,
-                                  phone_number: e.target.value,
-                                })
+                                ...editForm,
+                                phone_number: e.target.value,
+                              })
                           }
                           className="flex-1 px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
                         />
@@ -1527,9 +1804,9 @@ export default function ResourcesV() {
                         activeView === "add"
                           ? setForm({ ...form, address: e.target.value })
                           : setEditForm({
-                              ...editForm,
-                              address: e.target.value,
-                            })
+                            ...editForm,
+                            address: e.target.value,
+                          })
                       }
                       className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all resize-none"
                       placeholder="Residential or Office Address"
@@ -1556,13 +1833,13 @@ export default function ResourcesV() {
                           onChange={(e) =>
                             activeView === "add"
                               ? setForm({
-                                  ...form,
-                                  profile_picture: e.target.files?.[0] || null,
-                                })
+                                ...form,
+                                profile_picture: e.target.files?.[0] || null,
+                              })
                               : setEditForm({
-                                  ...editForm,
-                                  profile_picture: e.target.files?.[0] || null,
-                                })
+                                ...editForm,
+                                profile_picture: e.target.files?.[0] || null,
+                              })
                           }
                         />
                       </label>
@@ -1655,11 +1932,10 @@ export default function ResourcesV() {
                           if (inviteEmailError) setInviteEmailError("");
                         }}
                         rows={5}
-                        className={`w-full px-5 py-4 bg-[#F2F3F4] rounded-md outline-none text-sm leading-relaxed transition-all ${
-                          inviteEmailError
-                            ? "border border-red-400 focus:border-red-400"
-                            : "border-none"
-                        }`}
+                        className={`w-full px-5 py-4 bg-[#F2F3F4] rounded-md outline-none text-sm leading-relaxed transition-all ${inviteEmailError
+                          ? "border border-red-400 focus:border-red-400"
+                          : "border-none"
+                          }`}
                         placeholder="email1@example.com, email2@example.com"
                         placeholder-class="text-[#353535] text-[14px] font-medium"
                       ></textarea>
