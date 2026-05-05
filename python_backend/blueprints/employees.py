@@ -233,7 +233,7 @@ def create_employee():
         hashed = hashlib.md5(password.encode()).hexdigest()
         try:
             cur.execute(
-                "INSERT INTO vendor_employee (vendor_id, empid, full_name, email, password, phone_number, role, status) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                "INSERT INTO vendor_employee (vendor_id, empid, full_name, email, password, phone_number, role, status, active) VALUES (%s, %s, %s, %s, %s, %s, %s, 'Offline', %s)",
                 (g.company_id, empid, full_name, email, hashed, phone_number, user_role, active)
             )
             emp_id = cur.lastrowid
@@ -588,7 +588,7 @@ def update_status(emp_id):
     
     if user_type == "vendor":
         cur.execute(
-            "UPDATE vendor_employee SET status = %s WHERE id = %s AND vendor_id = %s",
+            "UPDATE vendor_employee SET active = %s WHERE id = %s AND vendor_id = %s",
             (active or "inactive", emp_id, g.company_id),
         )
         if cur.rowcount:
@@ -682,7 +682,7 @@ def bulk_status():
         # Update status
         update_cur = conn.cursor()
         update_cur.execute(
-            f"UPDATE vendor_employee SET status = %s WHERE id IN ({placeholders}) AND vendor_id = %s",
+            f"UPDATE vendor_employee SET active = %s WHERE id IN ({placeholders}) AND vendor_id = %s",
             [action] + list(ids) + [g.company_id],
         )
         updated = update_cur.rowcount
@@ -744,7 +744,7 @@ def list_members():
     
     if user_type == "vendor":
         cur.execute(
-            "SELECT id, full_name, email, role AS user_role, profile_picture FROM vendor_employee WHERE vendor_id = %s AND status = 'active' ORDER BY full_name",
+            "SELECT id, full_name, email, role AS user_role, profile_picture FROM vendor_employee WHERE vendor_id = %s AND active = 'active' ORDER BY full_name",
             (g.company_id,),
         )
     else:
@@ -767,7 +767,7 @@ def availability():
     
     if user_type == "vendor":
         cur.execute(
-            "SELECT id, full_name, role AS user_role FROM vendor_employee WHERE vendor_id = %s AND status = 'active' ORDER BY full_name",
+            "SELECT id, full_name, role AS user_role FROM vendor_employee WHERE vendor_id = %s AND active = 'active' ORDER BY full_name",
             (g.company_id,),
         )
     else:
