@@ -274,6 +274,9 @@ export default function CreateteamV() {
     const [deleteSubmitting, setDeleteSubmitting] = useState(false);
     const memberDropdownRef = useRef<HTMLDivElement>(null);
     const leaderDropdownRef = useRef<HTMLDivElement>(null);
+    const [selectedProjectFilter, setSelectedProjectFilter] = useState<{ id: string | number; name: string } | null>(null);
+    const [showProjectFilterDropdown, setShowProjectFilterDropdown] = useState(false);
+    const projectFilterDropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -288,6 +291,9 @@ export default function CreateteamV() {
             }
             if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
                 setShowEntriesDropdown(false);
+            }
+            if (projectFilterDropdownRef.current && !projectFilterDropdownRef.current.contains(event.target as Node)) {
+                setShowProjectFilterDropdown(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -492,6 +498,10 @@ export default function CreateteamV() {
 
     const displayTeams = teams
         .filter((t) => {
+            if (selectedProjectFilter) {
+                const pid = t.project_id || (t.project_name ? projects.find(p => p.project_name === t.project_name)?.id : null);
+                if (String(pid) !== String(selectedProjectFilter.id)) return false;
+            }
             if (!searchQuery) return true;
             const name = (t.team_name || t.teamname || "").toLowerCase();
             const project = (t.project_name || "").toLowerCase();
@@ -511,6 +521,81 @@ export default function CreateteamV() {
                     Team Workspace
                 </h2>
                 <div className="flex items-center gap-3">
+                    {/* Project Filter */}
+                    <div className="relative min-w-[140px] max-w-[220px] sm:w-[200px]" ref={projectFilterDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={() => setShowProjectFilterDropdown(!showProjectFilterDropdown)}
+                            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-Gantari transition-all cursor-pointer border-0"
+                        >
+                            <span className={`truncate text-left flex-1 ${!selectedProjectFilter ? "text-[#8B8B8B]" : "text-[#353535]"}`}>
+                                {!selectedProjectFilter ? (
+                                    "Select Project"
+                                ) : (
+                                    <>
+                                        <span className="font-normal">Project:</span>{" "}
+                                        <span className="font-semibold">{selectedProjectFilter.name}</span>
+                                    </>
+                                )}
+                            </span>
+                            <img
+                                src={ArrowDown}
+                                alt=""
+                                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showProjectFilterDropdown ? "rotate-180" : ""} ${!selectedProjectFilter ? "opacity-60 grayscale" : "opacity-90"}`}
+                            />
+                        </button>
+
+                        {showProjectFilterDropdown && (
+                            <div className="absolute top-full right-0 mt-1 w-full bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                                <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedProjectFilter(null);
+                                            setShowProjectFilterDropdown(false);
+                                        }}
+                                        className="w-full px-4 py-2 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors font-Gantari"
+                                    >
+                                        All Projects
+                                    </button>
+                                    {projects.map((proj) => {
+                                        const isChosen = selectedProjectFilter?.id === proj.id;
+                                        return (
+                                            <button
+                                                key={proj.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedProjectFilter({ id: proj.id, name: proj.project_name || "Untitled" });
+                                                    setShowProjectFilterDropdown(false);
+                                                }}
+                                                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari transition-colors cursor-pointer ${isChosen
+                                                    ? "text-[#353535] bg-[#F2F2F2] font-semibold"
+                                                    : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                                    }`}
+                                            >
+                                                <span className="truncate flex-1">{proj.project_name || "Untitled"}</span>
+                                                {isChosen && (
+                                                    <svg
+                                                        className="w-4 h-4 shrink-0 text-[#353535]"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2.5}
+                                                            d="M5 13l4 4L19 7"
+                                                        />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                     <div className="relative min-w-[140px] max-w-[200px] w-[150px]" ref={showEntriesDropdownRef}>
                         <button
                             type="button"
