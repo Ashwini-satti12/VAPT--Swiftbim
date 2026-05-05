@@ -44,6 +44,24 @@ const SHOW_ENTRIES_OPTIONS = [
   { value: "all", label: "All", start: 0, end: null as number | null },
 ];
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 function HeaderDropdown({
   value,
   onChange,
@@ -132,6 +150,16 @@ export default function WorkorderV() {
   const [selectedShowEntries, setSelectedShowEntries] = useState("");
   const [tableCurrentPage, setTableCurrentPage] = useState(1);
   const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
+
+  useEffect(() => {
+    const styleTag = document.createElement("style");
+    styleTag.setAttribute("data-workorders-scrollbar", "1");
+    styleTag.textContent = SCROLLBAR_STYLE;
+    document.head.appendChild(styleTag);
+    return () => {
+      document.head.removeChild(styleTag);
+    };
+  }, []);
 
   useEffect(() => {
     api
@@ -325,27 +353,27 @@ export default function WorkorderV() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden mx-2 mb-2 sm:mx-0 sm:mb-0">
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse">
-            <thead className="bg-white border-b border-[#AEACAC52]">
-              <tr>
-                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535]">
+      <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mx-0 mb-2">
+        <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
+          <table className="min-w-full border-separate border-spacing-0">
+            <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+              <tr className="bg-white">
+                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
                   Sl.No
                 </th>
-                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535]">
+                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
                   Project Name
                 </th>
-                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535]">
+                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
                   Vendor Name
                 </th>
-                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535]">
+                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
                   Amount
                 </th>
-                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535]">
+                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
                   Status
                 </th>
-                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535]">
+                <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
                   Action
                 </th>
               </tr>
@@ -367,21 +395,21 @@ export default function WorkorderV() {
                         globalIndex % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"
                       }
                     >
-                      <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">
                         {String(globalIndex + 1).padStart(2, "0")}
                       </td>
-                      <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">
                         {wo.project_name}
                       </td>
-                      <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">
                         {wo.vendor_name}
                       </td>
-                      <td className="px-3 py-6 text-center text-[14px] text-[#353535]">
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">
                         {wo.bid_amount}
                       </td>
-                      <td className="px-3 py-6 text-center">
+                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
                         <span
-                          className={`inline-flex px-4 py-1.5 rounded-lg text-[14px] font-semibold ${
+                          className={`inline-flex px-4 py-1.5 rounded-md text-[14px] font-Gantari ${
                             wo.status === "Accepted"
                               ? "bg-[#E6F4EA] text-[#1E8E3E]"
                               : wo.status === "Rejected"
@@ -392,7 +420,7 @@ export default function WorkorderV() {
                           {wo.status}
                         </span>
                       </td>
-                      <td className="px-3 py-6 text-center">
+                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
                         <button
                           type="button"
                           onClick={() =>
