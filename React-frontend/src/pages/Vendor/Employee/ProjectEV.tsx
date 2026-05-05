@@ -459,9 +459,9 @@ export default function ProjectEV() {
 
   return (
     <div className="bg-white min-h-screen font-gantari">
-      <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex flex-col h-[calc(100vh-100px)] lg:h-[calc(100vh-100px)] overflow-hidden">
         {showProjectView && selectedProject ? (
-          <div className="flex flex-col h-screen bg-white overflow-hidden">
+          <div className="flex flex-col h-full bg-white overflow-hidden">
             {/* Header stays fixed */}
             <div className="flex items-center gap-4 md:gap-6 px-4 md:px-5 py-4 md:py-2 border-b border-slate-50 shrink-0">
               <div className="relative group inline-flex shrink-0">
@@ -494,12 +494,12 @@ export default function ProjectEV() {
             {/* Content area is scrollable */}
             <div className="flex-1 overflow-y-auto px-4 md:px-5 pb-24 pt-4 md:pt-6 custom-scrollbar space-y-8">
               {/* KPI Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
                 {[
-                  { label: "To Do Tasks", value: taskStats.todo, status: "todo" },
-                  { label: "In Progress", value: taskStats.inProgress, status: "in_progress" },
-                  { label: "Paused", value: taskStats.paused, status: "paused" },
-                  { label: "Completed", value: taskStats.completed, status: "completed" },
+                  { label: "To Do Tasks", value: loadingTaskStats ? "..." : taskStats.todo, status: "todo" },
+                  { label: "In Progress Tasks", value: loadingTaskStats ? "..." : taskStats.inProgress, status: "in_progress" },
+                  { label: "Paused Tasks", value: loadingTaskStats ? "..." : taskStats.paused, status: "paused" },
+                  { label: "Completed Tasks", value: loadingTaskStats ? "..." : taskStats.completed, status: "completed" },
                 ].map((stat, i) => (
                   <button
                     key={i}
@@ -513,12 +513,12 @@ export default function ProjectEV() {
                             : ""),
                       )
                     }
-                    className="text-left bg-[#F2F2F2] p-3 md:p-4 rounded-md flex flex-col h-[70px] md:h-[90px] hover:bg-[#DD4342] focus:outline-none cursor-pointer transition-all group border-1 border-slate-200"
+                    className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
-                    <p className="text-[#353535] group-hover:text-white text-[16px] md:text-[18px] font-medium">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
                       {stat.label}
                     </p>
-                    <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[22px] font-bold leading-none mt-auto self-center">
+                    <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
                       {stat.value}
                     </p>
                   </button>
@@ -547,7 +547,10 @@ export default function ProjectEV() {
                               className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[150px]"
                             >
                               <div className="flex justify-between items-start mb-2">
-                                <h5 className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
+                                <h5 
+                                  className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2"
+                                  title={tower.name}
+                                >
                                   {tower.name}
                                 </h5>
                                 <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md shrink-0 ${statusBg}`}>
@@ -735,7 +738,7 @@ export default function ProjectEV() {
                   </div>
                 </div>
 
-                {/* <div className="border border-slate-200 rounded-lg px-5 py-6">
+                <div className="border border-slate-200 rounded-lg px-5 py-6">
                   <h4 className="text-[18px] md:text-[20px] font-semibold text-[#000000] mb-4">Project Details</h4>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 lg:gap-x-16">
                     <div className="space-y-3">
@@ -801,7 +804,7 @@ export default function ProjectEV() {
                         <span className="text-[#616161] mx-4 shrink-0">:</span>
                         {selectedProject.document_attachment ? (
                           <div className="flex items-center gap-3">
-                            <span className="text-[14px] font-medium text-[#353535] line-clamp-1">{selectedProject.document_attachment.split("/").pop()}</span>
+                            <span className="text-[16px] font-medium text-[#616161] line-clamp-1">{selectedProject.document_attachment.split("/").pop()}</span>
                             <a
                               href={resolveVendorDocUrl(selectedProject.document_attachment)}
                               target="_blank"
@@ -817,7 +820,7 @@ export default function ProjectEV() {
                       </div>
                     </div>
                   </div>
-                </div> */}
+                </div>
               </div>
             </div>
         ) : (

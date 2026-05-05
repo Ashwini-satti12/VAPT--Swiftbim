@@ -1381,26 +1381,26 @@ export default function VendorBimLeadProjects() {
               <div className="flex-1 overflow-y-auto pb-10 custom-scrollbar -mr-6 space-y-8">
               {/* Fixed KPI Cards at top */}
               <div className="mt-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
                   {[
                     {
                       label: "To Do Tasks",
-                      value: taskStats.todo,
+                      value: loadingTaskStats ? "..." : taskStats.todo,
                       status: "todo",
                     },
                     {
-                      label: "In Progress",
-                      value: taskStats.inProgress,
+                      label: "In Progress Tasks",
+                      value: loadingTaskStats ? "..." : taskStats.inProgress,
                       status: "in_progress",
                     },
                     {
-                      label: "Paused",
-                      value: taskStats.paused,
+                      label: "Paused Tasks",
+                      value: loadingTaskStats ? "..." : taskStats.paused,
                       status: "paused",
                     },
                     {
-                      label: "Completed",
-                      value: taskStats.completed,
+                      label: "Completed Tasks",
+                      value: loadingTaskStats ? "..." : taskStats.completed,
                       status: "completed",
                     },
                   ].map((stat, i) => (
@@ -1416,12 +1416,12 @@ export default function VendorBimLeadProjects() {
                               : ""),
                         )
                       }
-                      className="text-left bg-[#F2F2F2] p-3 md:p-4 rounded-md flex flex-col h-[70px] md:h-[90px] hover:bg-[#DD4342] focus:outline-none cursor-pointer transition-all group border-1 border-slate-200"
+                      className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                     >
-                      <p className="text-[#353535] group-hover:text-white text-[16px] md:text-[18px] font-medium">
+                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
                         {stat.label}
                       </p>
-                      <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[22px] font-bold leading-none mt-auto self-center lg:self-center">
+                      <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
                         {stat.value}
                       </p>
                     </button>
@@ -1466,7 +1466,10 @@ export default function VendorBimLeadProjects() {
                               className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[150px]"
                             >
                               <div className="flex justify-between items-start mb-2">
-                                <h5 className="text-[16px] font-Gantari font-medium text-[#1A1A1A] truncate pr-2">
+                                <h5 
+                                  className="text-[16px] font-Gantari font-medium text-[#1A1A1A] truncate pr-2"
+                                  title={tower.name}
+                                >
                                   {tower.name}
                                 </h5>
                                 <div
@@ -1767,7 +1770,7 @@ export default function VendorBimLeadProjects() {
                         <span className="text-[#616161] mx-4 shrink-0">:</span>
                         {selectedProject.document_attachment ? (
                           <div className="flex items-center gap-3">
-                            <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1">
+                            <span className="text-[16px] font-medium text-[#616161] line-clamp-1 flex-1 font-gantari">
                               {selectedProject.document_attachment.split("/").pop()?.split("_").pop() || "Document.pdf"}
                             </span>
                             <a
@@ -1871,7 +1874,7 @@ export default function VendorBimLeadProjects() {
                       <div
                         key={p.id}
                          onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(openMenuProjectId === p.id ? null : p.id); }}
-                        className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                        className="bg-white rounded-md border border-slate-200 p-4 pt-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
                         <div>
                           <div className="flex items-start justify-between mb-4 mt-2 pr-0">

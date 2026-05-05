@@ -1712,10 +1712,10 @@ export default function MytaskV() {
                     SHOW_ENTRIES_PLACEHOLDER
                   ) : (
                     <>
-                      <span className="text-[14px]">
+                      <span className="text-[14px] text-[#8B8B8B]">
                         {SHOW_ENTRIES_SELECTED_PREFIX}
                       </span>{" "}
-                      <span className="font-semibold">
+                      <span className="font-semibold text-[#353535]">
                         {selectedShowRange.label}
                       </span>
                     </>

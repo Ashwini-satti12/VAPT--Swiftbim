@@ -1850,9 +1850,9 @@ export default function ProjectsBC() {
                                 return (
                                   <div
                                     key={idx}
-                                    className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-slate-200 w-full md:max-w-md mt-1"
+                                    className="flex items-center gap-3 px-4 py-2.5 w-full md:max-w-md mt-1"
                                   >
-                                    <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1 font-gantari">
+                                    <span className="text-[16px] font-medium text-[#616161] line-clamp-1 flex-1 font-gantari">
                                       {fileName.split("_").pop() || "Document"}
                                     </span>
                                     <div className="flex gap-2.5">
@@ -3886,7 +3886,7 @@ export default function ProjectsBC() {
                       <div
                         key={p.id}
                          onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(openMenuProjectId === p.id ? null : p.id); }}
-                        className="bg-white rounded-md border border-slate-200 p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                        className="bg-white rounded-md border border-slate-200 p-4 gap-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
                         <div>
                           <div className="flex items-start justify-between mb-4 pr-0">

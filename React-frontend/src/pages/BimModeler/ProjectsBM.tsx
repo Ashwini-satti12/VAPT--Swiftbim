@@ -1284,7 +1284,7 @@ export default function ProjectsBL() {
                                   <div className="p-1.5 bg-white rounded-lg shadow-sm">
                                     <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
                                   </div>
-                                  <span className="text-[13px] font-bold text-[#353535] line-clamp-1 flex-1">
+                                  <span className="text-[16px] font-medium text-[#616161] line-clamp-1 flex-1 font-gantari">
                                     {fileName.split('_').pop() || "Document"}
                                   </span>
                                   <div className="flex gap-1">

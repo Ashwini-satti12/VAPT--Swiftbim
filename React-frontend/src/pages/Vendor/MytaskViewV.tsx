@@ -584,27 +584,20 @@ export default function MytaskViewV() {
                   <div className="absolute right-0 top-full mt-1 z-50 w-[140px] rounded-[5px] border border-slate-200 bg-white py-1 shadow-lg">
                     {STATUS_OPTIONS.map((opt) => {
                       const disabled = isStatusOptionDisabled(statusDisplay, opt.value);
+                      const isSelected = statusDisplay === opt.value;
                       return (
                         <button
                           key={opt.value}
                           type="button"
                           onClick={() => handleStatusUpdate(opt.value)}
                           disabled={disabled}
-                          className={`flex w-full items-center gap-2 px-4 py-2 text-[14px] font-Gantari transition-colors ${
-                            disabled
-                              ? "cursor-not-allowed opacity-50 text-[#8B8B8B]"
-                              : "hover:bg-[#F2F2F2] cursor-pointer text-[#8B8B8B]"
-                          }`}
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full shrink-0 ${
-                              opt.value === "todo"
-                                ? "bg-[#F35C08]"
-                                : opt.value === "in_progress"
-                                  ? "bg-[#09B8FF]"
-                                  : "bg-[#03D955]"
+                          className={`flex w-full items-center gap-2 px-4 py-2 text-[14px] font-Gantari transition-colors ${disabled
+                            ? "cursor-not-allowed opacity-50 text-[#8B8B8B]"
+                            : isSelected
+                              ? "bg-[#F2F2F2] text-[#353535] font-medium"
+                              : "text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] cursor-pointer"
                             }`}
-                          />
+                        >
                           <span>{opt.label}</span>
                         </button>
                       );
@@ -779,10 +772,10 @@ export default function MytaskViewV() {
             <h4 className="text-black text-md mb-2">Task Description</h4>
             <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
               {task.description &&
-              task.description
-                .replace(/<[^>]*>?/gm, "")
-                .replace(/&nbsp;/g, "")
-                .trim().length > 0 ? (
+                task.description
+                  .replace(/<[^>]*>?/gm, "")
+                  .replace(/&nbsp;/g, "")
+                  .trim().length > 0 ? (
                 <div
                   className="prose prose-sm max-w-none prose-p:my-0"
                   dangerouslySetInnerHTML={{ __html: task.description }}
@@ -797,44 +790,44 @@ export default function MytaskViewV() {
           {(isUnderReview ||
             ((task as any).review_remark &&
               String((task as any).review_remark).trim() !== "")) && (
-            <div className="mt-6 border border-slate-200 rounded-xl p-6">
-              <h4 className="text-black text-md mb-2">Review Remark</h4>
-              {isCurrentUserAssigner && isUnderReview ? (
-                <div className="flex flex-col gap-4">
-                  <textarea
-                    value={reviewRemarkInput}
-                    onChange={(e) => setReviewRemarkInput(e.target.value)}
-                    placeholder="Enter corrections / changes for assignee..."
-                    rows={4}
-                    className="w-full rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 font-Gantari border border-transparent outline-none focus:border-slate-300 resize-none"
-                  />
-                  <div className="flex justify-end gap-3">
-                    <button
-                      type="button"
-                      onClick={handleSendBackWork}
-                      disabled={sendingBack || updatingStatus}
-                      className="rounded-md bg-[#DBE9FE] px-4 py-2 text-[14px] font-semibold text-[#101827] disabled:opacity-50 cursor-pointer transition-colors hover:bg-blue-200"
-                    >
-                      {sendingBack ? "Sending..." : "Send Back To Assignee"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleApproveWork}
-                      disabled={updatingStatus || sendingBack}
-                      className="rounded-md bg-green-100 px-6 py-2 text-[14px] font-semibold text-green-700 hover:bg-green-600 hover:text-white transition-colors disabled:opacity-50 cursor-pointer border border-green-200"
-                    >
-                      {updatingStatus ? "Approving..." : "Approve Task"}
-                    </button>
+              <div className="mt-6 border border-slate-200 rounded-xl p-6">
+                <h4 className="text-black text-md mb-2">Review Remark</h4>
+                {isCurrentUserAssigner && isUnderReview ? (
+                  <div className="flex flex-col gap-4">
+                    <textarea
+                      value={reviewRemarkInput}
+                      onChange={(e) => setReviewRemarkInput(e.target.value)}
+                      placeholder="Enter corrections / changes for assignee..."
+                      rows={4}
+                      className="w-full rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 font-Gantari border border-transparent outline-none focus:border-slate-300 resize-none"
+                    />
+                    <div className="flex justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={handleSendBackWork}
+                        disabled={sendingBack || updatingStatus}
+                        className="rounded-md bg-[#DBE9FE] px-4 py-2 text-[14px] font-semibold text-[#101827] disabled:opacity-50 cursor-pointer transition-colors hover:bg-blue-200"
+                      >
+                        {sendingBack ? "Sending..." : "Send Back To Assignee"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleApproveWork}
+                        disabled={updatingStatus || sendingBack}
+                        className="rounded-md bg-green-100 px-6 py-2 text-[14px] font-semibold text-green-700 hover:bg-green-600 hover:text-white transition-colors disabled:opacity-50 cursor-pointer border border-green-200"
+                      >
+                        {updatingStatus ? "Approving..." : "Approve Task"}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-                  {(task as any).review_remark ||
-                    "No review remark provided."}
-                </div>
-              )}
-            </div>
-          )}
+                ) : (
+                  <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+                    {(task as any).review_remark ||
+                      "No review remark provided."}
+                  </div>
+                )}
+              </div>
+            )}
         </div>
       </div>
     </div>
