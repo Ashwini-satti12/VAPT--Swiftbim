@@ -2149,7 +2149,7 @@ export default function ProjectsV() {
                                     <div className="p-1.5 bg-white rounded-lg shadow-sm">
                                       <FiPaperclip className="w-4 h-4 text-[#DD4342]" />
                                     </div>
-                                    <span className="text-[13px] font-bold text-[#353535] line-clamp-1 flex-1">
+                                    <span className="text-[16px] font-medium text-[#616161] line-clamp-1 flex-1 font-gantari">
                                       {fileName.split("_").pop() || "Document"}
                                     </span>
                                     <div className="flex gap-1">
@@ -2235,13 +2235,13 @@ export default function ProjectsV() {
         ) : (
           /* Project List */
           <>
-            <div className="flex items-center justify-between pb-6">
+            <div className="flex items-center justify-between pb-6 px-5">
               <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
                 Projects
               </h2>
             </div>
-            <div className="flex-1 overflow-y-auto pt-4 pb-4 px-4 space-y-8 custom-scrollbar">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="flex-1 overflow-y-auto pt-4 pb-4 px-5 space-y-8 custom-scrollbar">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {list.length === 0 ? (
                   <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
                     No projects found. Create your first project or accept a
@@ -2269,7 +2269,7 @@ export default function ProjectsV() {
                       <div
                         key={p.id}
                          onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(openMenuProjectId === p.id ? null : p.id); }}
-                        className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                        className="bg-white rounded-md border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
                         <div className="flex items-start justify-between mb-4 mt-2 pr-0">
                           <div className="relative flex items-center justify-center shrink-0">

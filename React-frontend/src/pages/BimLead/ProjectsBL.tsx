@@ -1994,7 +1994,7 @@ export default function ProjectsBL() {
                                   key={idx}
                                   className="flex items-center gap-2 w-full md:max-w-xs mt-1"
                                 >
-                                  <span className="text-[14px] font-medium text-[#353535] line-clamp-1 flex-1">
+                                  <span className="text-[16px] font-medium text-[#616161] line-clamp-1 flex-1 font-gantari">
                                     {fileName.split("_").pop() || "Document"}
                                   </span>
                                   <div className="flex gap-1">
