@@ -41,7 +41,7 @@ def _serialize_row(d):
 
 
 # Roles that see all company projects and tasks
-MANAGEMENT_ROLES = ("Technical Director", "CEO")
+MANAGEMENT_ROLES = ("Technical Director", "Project Manager", "CEO")
 
 # Match tasks.list_tasks: do not count `tasks` rows for main projects tied to vendor_projects
 # (those are shown as vendor_task / outsource on Team Task).
@@ -51,10 +51,10 @@ _TD_TASKS_EXCLUDE_OUTSOURCE_SQL = """NOT EXISTS (
     WHERE mp.id = t.projectid AND mp.Company_id = t.Company_id
 )"""
 
-def _count_vendor_projects_for_company(cur, company_id, only_completed=False):
+def _count_vendor_projects_for_company(cur, company_id, uid, user_role, only_completed=False):
     """
-    Count outsource (vendor_projects) visible to a staff company.
-    Must match vendor.py staff visibility rules (projects join, vp.Company_id fallback, vendor_bidding->projects link).
+    Count outsource (vendor_projects) visible to a staff user.
+    Must respect the user's role/involvement (similar to internal projects).
     """
     status_sql = ""
     if only_completed:
@@ -67,30 +67,59 @@ def _count_vendor_projects_for_company(cur, company_id, only_completed=False):
             )
         )
         """
+    
+    # Base visibility: linked to staff company
+    visibility_where = """(
+        p.Company_id = %s
+        OR vp.Company_id = %s
+        OR EXISTS (
+            SELECT 1
+            FROM snh6_swiftproject.vendor_bidding vb2
+            JOIN snh6_swiftproject.projects p2 ON p2.id = vb2.project_id
+            WHERE vb2.id = vp.opportunity_id
+              AND p2.Company_id = %s
+        )
+    )"""
+    params = [company_id, company_id, company_id]
+
+    # Involvement filter for non-management
+    involvement_where = "1=1"
+    if user_role not in MANAGEMENT_ROLES:
+        if user_role == "BIM Coordinator":
+            involvement_where = "FIND_IN_SET(%s, REPLACE(IFNULL(p.bim_coordinator_id, ''), ' ', '')) > 0"
+            params.append(uid)
+        elif user_role == "BIM Lead":
+            involvement_where = "FIND_IN_SET(%s, REPLACE(IFNULL(p.lead_id, ''), ' ', '')) > 0"
+            params.append(uid)
+        elif user_role == "Project Manager":
+            involvement_where = "FIND_IN_SET(%s, REPLACE(IFNULL(p.project_manager_id, ''), ' ', '')) > 0"
+            params.append(uid)
+        elif user_role == "BIM Modeler":
+            involvement_where = "FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0"
+            params.append(uid)
+        else:
+            # For others, if it doesn't have a linked project 'p', they might not see it unless uploader/etc.
+            # But for simplicity, we'll check common fields on the joined project.
+            involvement_where = """(
+                p.client_id = %s OR p.project_manager_id = %s OR p.lead_id = %s OR p.bim_coordinator_id = %s OR p.uploaderid = %s
+                OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
+            )"""
+            params.extend([uid] * 6)
+
     try:
         cur.execute(
             f"""
-            SELECT COUNT(*) AS cnt
+            SELECT COUNT(DISTINCT vp.id) AS cnt
             FROM snh6_swiftproject.vendor_projects vp
             LEFT JOIN snh6_swiftproject.projects p
               ON (
                 (vp.main_project_id IS NOT NULL AND p.id = vp.main_project_id)
                 OR (p.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci)
               )
-            WHERE (
-                p.Company_id = %s
-                OR vp.Company_id = %s
-                OR EXISTS (
-                    SELECT 1
-                    FROM snh6_swiftproject.vendor_bidding vb2
-                    JOIN snh6_swiftproject.projects p2 ON p2.id = vb2.project_id
-                    WHERE vb2.id = vp.opportunity_id
-                      AND p2.Company_id = %s
-                )
-            )
-            {status_sql}
+            WHERE {visibility_where} AND {involvement_where} {status_sql}
+              AND p.id IS NULL
             """,
-            (company_id, company_id, company_id),
+            tuple(params),
         )
         row = cur.fetchone() or {}
         return int(row.get("cnt") or 0)
@@ -331,9 +360,9 @@ def stats():
     in_progress_tasks = my_in_progress + team_in_progress
     completed_tasks = my_completed + team_completed
     
-    # Include outsource (vendor_*) counts for Team Task counts if needed
-    outsource_total_projects = _count_vendor_projects_for_company(cur, company_id, only_completed=False)
-    outsource_completed_projects = _count_vendor_projects_for_company(cur, company_id, only_completed=True)
+    # Include outsource (vendor_*) counts that this specific user is involved in
+    outsource_total_projects = _count_vendor_projects_for_company(cur, company_id, user_id, user_role, only_completed=False)
+    outsource_completed_projects = _count_vendor_projects_for_company(cur, company_id, user_id, user_role, only_completed=True)
     total_projects += outsource_total_projects
     completed_projects += outsource_completed_projects
  
