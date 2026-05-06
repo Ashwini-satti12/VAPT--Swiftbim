@@ -23,6 +23,24 @@ import { TimePickerWheel } from "../../components/TimePickerWheel";
 import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 const getApiBaseUrl = () => import.meta.env.VITE_API_URL || "";
 const getProfileUrl = (path: string | undefined): string => {
     if (!path || path.trim() === "") return "";
@@ -1250,6 +1268,7 @@ export default function TeamtaskBL() {
 
     return (
         <div className="flex flex-col h-full bg-white overflow-hidden">
+            <style>{SCROLLBAR_STYLE}</style>
             <div className="bg-white px-5 py-2 flex-shrink-0">
                 {/* Top row: title + Filters + Add task */}
                 <div className="max-w-full mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-3">

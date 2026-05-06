@@ -12,6 +12,24 @@ import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
 const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
 const showEntriesOptions: {
@@ -589,6 +607,7 @@ export default function CreateteamBL() {
 
   return (
     <div className="h-full flex flex-col p-2 overflow-hidden bg-white">
+      <style>{SCROLLBAR_STYLE}</style>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 px-2 sm:px-0">
         <h2 className="text-[24px] font-semibold text-[#000000] font-Gantari">
           Team Workspace

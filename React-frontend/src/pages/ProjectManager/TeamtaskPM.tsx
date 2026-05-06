@@ -817,6 +817,24 @@ function TaskCard({
   );
 }
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 const SHOW_OPTIONS = [
   "Show Entries",
   "1-50",
@@ -1247,6 +1265,7 @@ export default function TeamtaskPM() {
 
   return (
     <div className="flex flex-col h-full bg-white px-2 py-2 overflow-hidden font-Gantari">
+      <style>{SCROLLBAR_STYLE}</style>
       <div className="bg-white pb-3 flex-shrink-0">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
           <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">

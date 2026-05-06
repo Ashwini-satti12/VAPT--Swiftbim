@@ -13,6 +13,24 @@ import CloseIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
 const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
 const showEntriesOptions: {
@@ -643,6 +661,7 @@ export default function CreateteamTD() {
 
   return (
     <div className="h-full flex flex-col p-2 overflow-hidden bg-white relative">
+      <style>{SCROLLBAR_STYLE}</style>
       {successMsg && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-3 px-5 py-3 rounded-lg bg-white shadow-[0_4px_20px_rgba(0,0,0,0.1)] border border-gray-100 min-w-[300px] animate-in fade-in slide-in-from-top-2 duration-300 font-Gantari">
           <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#58D662]">

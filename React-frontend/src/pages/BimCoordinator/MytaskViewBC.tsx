@@ -9,6 +9,24 @@ import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import downloadIcon from "../../assets/TechnicalDirector/download icon.svg";
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 interface Task {
   id: number;
   task_name?: string;
@@ -380,6 +398,7 @@ export default function MytaskViewBC() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-white">
+      <style>{SCROLLBAR_STYLE}</style>
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-2 shrink-0 mb-4">
         <Link
@@ -402,7 +421,7 @@ export default function MytaskViewBC() {
         <div className="w-9" />
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-6 scroll-smooth">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 scroll-smooth custom-scrollbar">
         <div className="max-w-7xl mx-auto">
           {/* Status row */}
           <div className="flex items-center justify-between gap-4 mb-6">

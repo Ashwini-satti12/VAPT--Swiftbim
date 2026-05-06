@@ -73,6 +73,25 @@ function normalizeStatus(s: string | undefined, approval?: string): StatusKey {
 
 type StatusKey = "todo" | "in_progress" | "completed" | "approved" | "rejected";
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
+
 const getTaskImageUrl = (filename: string) => {
   if (!filename) return "";
   const apiBaseUrl = import.meta.env.VITE_API_URL || "";
@@ -422,6 +441,7 @@ export default function MytaskViewTD() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-white">
+      <style>{SCROLLBAR_STYLE}</style>
       {/* Header */}
       <div className="flex items-center justify-between px-6 pt-4 shrink-0">
         <div className="group relative inline-flex shrink-0">
@@ -446,7 +466,7 @@ export default function MytaskViewTD() {
         <div className="w-9" />
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-6 scroll-smooth">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 scroll-smooth custom-scrollbar">
         <div className="max-w-7xl mx-auto">
           {/* Status row */}
           <div className="flex items-center justify-between gap-4 mb-6">

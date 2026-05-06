@@ -21,6 +21,24 @@ import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import { useAuth } from "../../contexts/AuthContext";
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 const getApiBaseUrl = () => import.meta.env.VITE_API_URL || "";
 const getProfileUrl = (path: string | undefined): string => {
   if (!path || path.trim() === "") return "";
@@ -1045,6 +1063,7 @@ export default function MytaskBL() {
   }
   return (
     <div className="h-full flex flex-col overflow-hidden bg-white pt-2">
+      <style>{SCROLLBAR_STYLE}</style>
       {/* Header Section (Title & Filters) - Stays fixed due to flex-col */}
       <div className="bg-white px-5 py-2 shrink-0 z-10">
         <div className="max-w-full mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">

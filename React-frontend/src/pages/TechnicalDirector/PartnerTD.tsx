@@ -8,8 +8,8 @@ import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
 const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;

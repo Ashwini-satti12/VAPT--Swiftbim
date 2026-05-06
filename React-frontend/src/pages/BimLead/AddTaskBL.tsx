@@ -23,6 +23,24 @@ import {
   type Project,
 } from "../TechnicalDirector/MytaskTD";
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 function openAttachmentInNewTab(file: File) {
   const url = URL.createObjectURL(file);
   const opened = window.open(url, "_blank", "noopener,noreferrer");
@@ -762,28 +780,25 @@ export default function AddTaskBL() {
 
   return (
     <div className="flex-1 min-h-0 pl-5 bg-white overflow-hidden">
+      <style>{SCROLLBAR_STYLE}</style>
       <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col">
         <div className="relative flex items-center justify-center py-4 border-b border-slate-50 flex-shrink-0">
           {/* Left Close / Back Button */}
-          <div className="absolute left-1 flex items-center group">
-            <button
-              type="button"
-              onClick={goBack}
-              className="p-2 rounded-md bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
-            >
-              <img src={backIcon} alt="Back" className="w-5 h-5" />
-            </button>
-
-            {/* Tooltip */}
+          <button
+            type="button"
+            onClick={goBack}
+            className="absolute left-1 group relative p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer"
+          >
+            <img src={backIcon} alt="Back" className="w-5 h-5" />
             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
               <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-3 py-0.5 relative z-10">
-                <span className="font-gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
-                  Go back
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
+                <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                  Go Back
                 </span>
               </div>
             </div>
-          </div>
+          </button>
 
           {/* Center Heading */}
           <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center">

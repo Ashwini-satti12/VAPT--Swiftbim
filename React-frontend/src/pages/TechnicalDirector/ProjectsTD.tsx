@@ -40,6 +40,26 @@ const CURRENCIES = [
   { code: "IDR", symbol: "Rp", label: "Indonesian Rupiah" },
 ];
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
+
+
 const nameToId = (name: string, employeesList: Employee[]) => {
   if (!name || name === "Nothing Selected") return undefined;
   if (/^\d+$/.test(name)) return Number(name);
@@ -1196,6 +1216,7 @@ export default function ProjectsTD() {
 
   return (
     <div className="bg-white min-h-screen">
+      <style>{SCROLLBAR_STYLE}</style>
       <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden">
         {/* Main Content View Switcher */}
         {showProjectView ? (
@@ -3183,7 +3204,7 @@ export default function ProjectsTD() {
               </h3>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto p-8">
+            <div className="flex-1 min-h-0 overflow-y-auto p-8 custom-scrollbar">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
