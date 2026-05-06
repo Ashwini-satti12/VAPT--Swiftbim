@@ -404,7 +404,7 @@ export default function DashboardPM() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-1">
             {/* Total Projects — first card red, white text */}
             <div
-              onClick={() => navigate("/pm/projects")}
+              onClick={() => navigate("/projects")}
               className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
             >
               <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Total Projects</h3>
@@ -412,7 +412,7 @@ export default function DashboardPM() {
             </div>
             {/* Completed Projects */}
             <div
-              onClick={() => navigate("/pm/projects?status=Completed")}
+              onClick={() => navigate("/projects?status=Completed")}
               className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
             >
               <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Projects</h3>
@@ -420,7 +420,7 @@ export default function DashboardPM() {
             </div>
             {/* In Progress Task */}
             <div
-              onClick={() => navigate('/pm/teamtasks')}
+              onClick={() => navigate('/teamtask')}
               className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
             >
               <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">In Progress Tasks</h3>
@@ -428,7 +428,7 @@ export default function DashboardPM() {
             </div>
             {/* Completed Tasks */}
             <div
-              onClick={() => navigate('/pm/teamtasks')}
+              onClick={() => navigate('/teamtask')}
               className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
             >
               <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Tasks</h3>
@@ -658,7 +658,6 @@ export default function DashboardPM() {
         <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-4">Dashboard</h1>
         {/* KPI Grid: compact cards — label left, number right (match DashboardTD) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-1">
-          {/* Total Projects */}
           <div
             onClick={() => navigate("/projects")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
@@ -666,7 +665,6 @@ export default function DashboardPM() {
             <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Total Projects</h3>
             <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
           </div>
-          {/* Completed Projects */}
           <div
             onClick={() => navigate("/projects?status=Completed")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
@@ -674,15 +672,13 @@ export default function DashboardPM() {
             <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Projects</h3>
             <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
           </div>
-          {/* In-Progress Tasks */}
           <div
             onClick={() => navigate("/teamtask?status=in_progress")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >
-            <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">In Progress Tasks</h3>
+            <h3 className="text-[14px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">In-Progress Tasks</h3>
             <p className="text-[16px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
           </div>
-          {/* Completed Tasks */}
           <div
             onClick={() => navigate("/teamtask?status=completed")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-3 sm:px-4 py-4 sm:py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
