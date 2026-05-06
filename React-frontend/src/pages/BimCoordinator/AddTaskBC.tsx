@@ -20,6 +20,24 @@ import {
     type Project,
 } from "../TechnicalDirector/MytaskTD";
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 function openAttachmentInNewTab(file: File) {
     const url = URL.createObjectURL(file);
     const opened = window.open(url, "_blank", "noopener,noreferrer");
@@ -391,6 +409,7 @@ export default function AddTaskBC() {
 
     return (
         <div className="flex-1 min-h-0 px-5 py-2 bg-white overflow-hidden">
+            <style>{SCROLLBAR_STYLE}</style>
             <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col w-full">
                 <div className="flex shrink-0 items-center justify-between mb-4 sm:mb-6 relative">
                     <button

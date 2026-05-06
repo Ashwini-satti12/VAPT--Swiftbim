@@ -22,6 +22,24 @@ import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal"
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import { useAuth } from "../../contexts/AuthContext";
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 export function formatTimeForDisplay(value: string): string {
   if (!value || !value.match(/^\d{1,2}:\d{2}$/)) return "--:--";
   const [hStr, mStr] = value.split(":");
@@ -1319,6 +1337,7 @@ export default function MytaskBC() {
 
   return (
     <div className="h-full min-h-0 flex flex-col overflow-hidden">
+      <style>{SCROLLBAR_STYLE}</style>
       <div className="bg-white px-5 py-2 flex-shrink-0">
         {/* Top row: title + dropdowns + Add task */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-3">

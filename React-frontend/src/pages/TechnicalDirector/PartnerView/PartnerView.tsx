@@ -14,6 +14,24 @@ import PortfolioProject from './components/PortfolioProject';
 import Certificates from './components/Certificates';
 import type { Vendor } from './types';
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 const PartnerView = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -74,6 +92,7 @@ const PartnerView = () => {
 
     return (
         <div className="bg-white font-Gantari flex flex-col h-screen overflow-hidden">
+            <style>{SCROLLBAR_STYLE}</style>
             {/* Toast Notifications Container */}
             <Toaster />
 

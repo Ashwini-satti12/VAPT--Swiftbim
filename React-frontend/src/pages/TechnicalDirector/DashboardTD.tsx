@@ -51,6 +51,24 @@ const defaultStats: DashboardStats = {
   completedTasks: 0,
 };
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 function formatDateOnly(isoOrDate: string | null | undefined): string {
   if (!isoOrDate) return "—";
   const d = new Date(isoOrDate);
@@ -129,6 +147,17 @@ export default function DashboardTD() {
   const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
   const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const styleTag = document.createElement("style");
+    styleTag.setAttribute("data-dashboard-scrollbar", "1");
+    styleTag.textContent = SCROLLBAR_STYLE;
+    document.head.appendChild(styleTag);
+    return () => {
+      document.head.removeChild(styleTag);
+    };
+  }, []);
+
   useEffect(() => {
     const id = setInterval(() => setNowMs(Date.now()), 1000);
     return () => clearInterval(id);

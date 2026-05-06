@@ -23,6 +23,25 @@ import {
     type Project,
 } from "./MytaskTD";
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
+
 const initialForm = {
     projectName: "",
     module: "",
@@ -585,6 +604,7 @@ export default function AddTaskTD() {
 
     return (
         <div className="flex-1 min-h-0 px-5 py-2 bg-white overflow-hidden">
+            <style>{SCROLLBAR_STYLE}</style>
             <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col">
                 <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
                     <div className="group relative inline-flex shrink-0">

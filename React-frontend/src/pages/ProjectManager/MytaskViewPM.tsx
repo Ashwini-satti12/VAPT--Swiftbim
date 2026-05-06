@@ -10,6 +10,24 @@ import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import downloadIcon from "../../assets/TechnicalDirector/download icon.svg";
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 interface Task {
   id: number;
   task_name?: string;
@@ -402,6 +420,7 @@ export default function MytaskViewPM() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-white">
+      <style>{SCROLLBAR_STYLE}</style>
       {/* Header */}
       <div className="flex items-center justify-between px-6 ">
         <div className="relative group p-2">

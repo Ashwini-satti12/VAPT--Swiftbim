@@ -23,6 +23,24 @@ import closeIcon from "../../assets/ProjectManager/project/close button.png";
 import { useAuth } from "../../contexts/AuthContext";
 
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 export function formatTimeForDisplay(value: string): string {
   if (!value || !value.match(/^\d{1,2}:\d{2}$/)) return "--:--";
   const [hStr, mStr] = value.split(":");
@@ -1070,6 +1088,7 @@ export default function MytaskBM() {
 
   return (
     <div className="min-h-0 flex flex-col overflow-hidden px-4 md:px-5 py-2 bg-white">
+      <style>{SCROLLBAR_STYLE}</style>
       <div className="flex-shrink-0 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <h1 className="text-[24px] font-medium text-[#000000] font-Gantari">

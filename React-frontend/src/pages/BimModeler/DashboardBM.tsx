@@ -51,6 +51,24 @@ const defaultStats: DashboardStats = {
   teamTodoTasks: 0,
 };
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 /** Match MytaskBM.tsx: personal list is assigned_to OR uploaderid; stats API only counts assigned_to. */
 type MyTaskRow = { id: number; status?: string; Approval?: string };
 
@@ -149,6 +167,16 @@ export default function DashboardBM() {
       .then(({ data }) => setStats(data))
       .catch(() => setStats(defaultStats))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const styleTag = document.createElement("style");
+    styleTag.setAttribute("data-dashboard-scrollbar", "1");
+    styleTag.textContent = SCROLLBAR_STYLE;
+    document.head.appendChild(styleTag);
+    return () => {
+      document.head.removeChild(styleTag);
+    };
   }, []);
 
   useEffect(() => {

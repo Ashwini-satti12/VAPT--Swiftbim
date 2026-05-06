@@ -18,6 +18,24 @@ import {
   formatDateForDisplay,
 } from "../TechnicalDirector/MytaskTD";
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 /** Opens a local `File` in a new browser tab (e.g. PDF viewer). */
 function openAttachmentInNewTab(file: File) {
   const url = URL.createObjectURL(file);
@@ -847,26 +865,25 @@ export default function AddTaskPM() {
   };
 
   return (
-    <div className="h-full flex-1 min-h-0 px-5 py-2 bg-white overflow-hidden overflow-y-hidden">
-      <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col overflow-hidden overflow-y-hidden">
+    <div className="flex-1 min-h-0 px-5 py-2 bg-white overflow-hidden">
+      <style>{SCROLLBAR_STYLE}</style>
+      <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col w-full">
         <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
-          <div className="group relative inline-flex shrink-0">
-            <button
-              type="button"
-              onClick={goBack}
-              className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
-            >
-              <img src={backIcon} alt="Back" className="w-5 h-5" />
-            </button>
-            <div className="absolute top-full left-9 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-              <div className="w-2 h-2 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-[1.5px] relative z-10">
+          <button
+            type="button"
+            onClick={goBack}
+            className="group relative p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer"
+          >
+            <img src={backIcon} alt="Back" className="w-5 h-5" />
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+              <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+              <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md px-2 py-0.5 relative z-10">
                 <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                   Go Back
                 </span>
               </div>
             </div>
-          </div>
+          </button>
           <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
             {editingTaskId !== null ? "Edit Task" : "Add New Task"}
           </h3>

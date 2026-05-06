@@ -47,6 +47,24 @@ const defaultStats: DashboardStats = {
   teamCompletedTasks: 0,
 };
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 /** Same as TeamtaskBC.tsx — board columns use this, not MytaskBC normalizeStatus. */
 const BC_TEAMTASK_STORAGE_KEY = "bc_teamTask_localTasks";
 const BC_TEAMTASK_DELETED_IDS_KEY = "bc_teamTask_deletedIds";
@@ -177,6 +195,16 @@ export default function DashboardBC() {
       .then(({ data }) => setStats(data))
       .catch(() => setStats(defaultStats))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const styleTag = document.createElement("style");
+    styleTag.setAttribute("data-dashboard-scrollbar", "1");
+    styleTag.textContent = SCROLLBAR_STYLE;
+    document.head.appendChild(styleTag);
+    return () => {
+      document.head.removeChild(styleTag);
+    };
   }, []);
 
   useEffect(() => {

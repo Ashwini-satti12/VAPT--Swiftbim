@@ -17,6 +17,24 @@ import {
 } from "./MytaskBC";
 import { useAuth } from "../../contexts/AuthContext";
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 
 const getEffectiveStatus = (task: Task): "todo" | "in_progress" | "completed" => {
@@ -373,6 +391,7 @@ export default function TeamtaskBC() {
 
     return (
         <div className="h-full min-h-0 flex flex-col overflow-hidden">
+            <style>{SCROLLBAR_STYLE}</style>
             <div className="bg-white px-5 py-2 flex-shrink-0 ">
                 {/* Top row: title + dropdowns + Add task */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
