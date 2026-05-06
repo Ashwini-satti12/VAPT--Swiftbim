@@ -602,6 +602,7 @@ export default function MyTaskViewEV({
                   <div className="absolute right-0 top-full mt-1 z-50 w-[140px] rounded-[5px] border border-slate-200 bg-white py-1 shadow-lg">
                     {STATUS_OPTIONS.map((opt) => {
                       const disabled = isStatusOptionDisabled(statusDisplay, opt.value);
+                      const isSelected = statusDisplay === opt.value;
                       return (
                         <button
                           key={opt.value}
@@ -611,18 +612,11 @@ export default function MyTaskViewEV({
                           className={`flex w-full items-center gap-2 px-4 py-2 text-[14px] font-Gantari transition-colors ${
                             disabled
                               ? "cursor-not-allowed opacity-50 text-[#8B8B8B]"
-                              : "hover:bg-[#F2F2F2] cursor-pointer text-[#8B8B8B]"
+                              : isSelected
+                                ? "bg-[#F2F2F2] text-[#353535] font-medium"
+                                : "text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] cursor-pointer"
                           }`}
                         >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full shrink-0 ${
-                              opt.value === "todo"
-                                ? "bg-[#F35C08]"
-                                : opt.value === "in_progress"
-                                  ? "bg-[#09B8FF]"
-                                  : "bg-[#03D955]"
-                            }`}
-                          />
                           <span>{opt.label}</span>
                         </button>
                       );

@@ -1382,135 +1382,108 @@ export default function ResourcesV() {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-white animate-in fade-in duration-300">
       {/* Detail Modal */}
-      {showDetailsModal && selectedEmployee && (
-        <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl border border-slate-200 w-full max-w-3xl relative flex flex-col max-h-[90vh] overflow-hidden shadow-xl animate-in fade-in zoom-in duration-300">
-            {/* Modal Header */}
-            <div className="p-8 pb-0 shrink-0">
-              <div className="group relative w-fit">
+      {showDetailsModal && selectedEmployee && createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/10 backdrop-blur-[3px]">
+          <div className="bg-white rounded-md max-w-[520px] w-full max-h-[90vh] overflow-hidden pt-[20px] pb-[5px] px-[20px] relative shadow-2xl flex flex-col gap-4 font-Gantari animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-center relative shrink-0">
+              <div className="absolute left-1 group inline-flex shrink-0">
                 <button
-                  onClick={() => setShowDetailsModal(false)}
-                  className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer border-0 shadow-none transition-all hover:bg-[#EAEAEA]"
+                  type="button"
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    setSelectedEmployee(null);
+                  }}
+                  className="p-2 rounded-md bg-[#F2F2F2] transition-all cursor-pointer"
                 >
-                  <img
-                    src={backIcon}
-                    alt="Back"
-                    className="w-5 h-5 translate-y-[1px]"
-                  />
+                  <FiX className="w-5 h-5 font-bold" />
                 </button>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-4 py-0.5 relative z-10">
-                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-3 py-0.5 relative z-10">
+                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                       Close
                     </span>
                   </div>
                 </div>
               </div>
+              <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">
+                View Resource Details
+              </h3>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
-              {/* Profile Header section from ConsultantdetailsTD.tsx */}
-              <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-                <div className="flex items-center gap-6 w-full sm:w-auto">
-                  <div className="w-[85px] h-[85px] rounded-full bg-[#3d3399]/20 flex items-center justify-center text-3xl font-semibold text-[#3d3399] overflow-hidden shadow-sm shrink-0">
-                    {selectedEmployee.profile_picture ? (
-                      <img
-                        src={getGlobalProfileUrl(
-                          selectedEmployee.id,
-                          selectedEmployee.profile_picture,
-                          "vendor",
-                        )}
-                        alt={selectedEmployee.full_name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = "none";
-                          if (target.parentElement) {
-                            target.parentElement.innerHTML =
-                              selectedEmployee.full_name
-                                ?.charAt(0)
-                                .toUpperCase() || "?";
-                          }
-                        }}
-                      />
-                    ) : (
-                      (selectedEmployee.full_name || "?")
-                        .charAt(0)
-                        .toUpperCase()
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1 min-w-0 flex-1">
-                    <h2 className="text-[20px] font-bold text-slate-800 font-Gantari break-words uppercase">
-                      {selectedEmployee.full_name}
-                    </h2>
-                    <p className="text-[16px] text-[#8B8B8B] font-Gantari font-medium truncate">
-                      {selectedEmployee.email}
-                    </p>
-                    <span
-                      className={`inline-flex mt-1 px-3 py-1 text-[12px] font-semibold rounded-full w-fit ${
-                        selectedEmployee.active === "active"
-                          ? "bg-[#E0FFE8] text-[#008F22]"
-                          : "bg-[#FFEEEE] text-[#E00100]"
-                      }`}
-                    >
-                      ●{" "}
-                      {selectedEmployee.active === "active"
-                        ? "Active"
-                        : "Inactive"}
-                    </span>
-                  </div>
-                </div>
+            {/* Profile Section */}
+            <div className="flex items-center justify-between px-4 mt-4">
+              <div className="flex flex-col gap-0.5 text-left flex-1">
+                <h4 className="text-[20px] font-medium text-[#000000] font-Gantari leading-tight">
+                  {toCamelCase(selectedEmployee.full_name)}
+                </h4>
               </div>
+              <span
+                className={`px-4 py-1 rounded-full text-[12px] font-medium shrink-0 ${selectedEmployee.active !== "active"
+                  ? "bg-[#FFEEEE] text-[#E00100]"
+                  : selectedEmployee.status === "Online"
+                    ? "bg-[#E0FFE8] text-[#008F22]"
+                    : "bg-[#FFEEEE] text-[#E00100]"
+                  }`}
+              >
+                ●{" "}
+                {selectedEmployee.active !== "active"
+                  ? "Inactive"
+                  : selectedEmployee.status === "Online"
+                    ? "Online"
+                    : "Offline"}
+              </span>
+            </div>
 
-              {/* Details Grid from ConsultantdetailsTD.tsx */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-6 mt-10">
-                {[
-                  { label: "Login Email", value: selectedEmployee.email },
-                  { label: "Phone", value: selectedEmployee.phone_number },
-                  { label: "Role", value: selectedEmployee.user_role },
-                  { label: "Department", value: selectedEmployee.department },
-                  {
-                    label: "Expertise",
-                    value: selectedEmployee.expertise,
-                  },
-                  { label: "Software", value: selectedEmployee.software },
-                ].map((item, idx) =>
-                  item.value ? (
-                    <div
-                      key={idx}
-                      className="grid grid-cols-[140px_15px_1fr] items-center"
-                    >
-                      <span className="text-[14px] text-[#616161] font-Gantari font-medium">
-                        {item.label}
-                      </span>
-                      <span className="text-[14px] text-[#616161] font-Gantari font-medium">
-                        :
-                      </span>
-                      <span className="text-[14px] font-bold text-[#353535] font-Gantari truncate">
-                        {item.value}
-                      </span>
-                    </div>
-                  ) : null,
-                )}
-                {selectedEmployee.address && (
-                  <div className="md:col-span-2 grid grid-cols-[140px_15px_1fr] items-start">
-                    <span className="text-[14px] text-[#616161] font-Gantari font-medium">
-                      Address
-                    </span>
-                    <span className="text-[14px] text-[#616161] font-Gantari font-medium">
+            <div className="px-2 sm:px-4 overflow-y-auto max-h-[60vh] custom-scrollbar">
+              {[
+                { label: "Login Email", value: selectedEmployee.email },
+                {
+                  label: "Phone Number",
+                  value: selectedEmployee.phone_number,
+                },
+                { label: "Role", value: selectedEmployee.user_role },
+                { label: "Designation", value: selectedEmployee.designation },
+                { label: "Discipline", value: selectedEmployee.discipline },
+                {
+                  label: "Years of Experience",
+                  value: selectedEmployee.years_of_experience,
+                },
+                {
+                  label: "Resource Role",
+                  value: selectedEmployee.resource_role,
+                },
+                { label: "Expertise", value: selectedEmployee.expertise },
+                { label: "Software", value: selectedEmployee.software },
+                {
+                  label: "Projects Worked On",
+                  value: selectedEmployee.projects_worked_on,
+                },
+                { label: "Address", value: selectedEmployee.address },
+              ].map(({ label, value }) =>
+                value ? (
+                  <div
+                    key={label}
+                    className="grid grid-cols-[150px_15px_1fr] text-[14px] items-start pb-2"
+                  >
+                    <span className="text-[#353535] font-Gantari">{label}</span>
+                    <span className="text-[#353535] font-Gantari text-center">
                       :
                     </span>
-                    <span className="text-[14px] font-bold text-[#353535] font-Gantari leading-relaxed">
-                      {selectedEmployee.address}
+                    <span className="text-[#616161] font-Gantari break-words leading-relaxed">
+                      {value}
                     </span>
                   </div>
-                )}
-              </div>
+                ) : null,
+              )}
+              <div className="mt-4">{renderProfileCertificationsCard()}</div>
             </div>
-          </div>
-        </div>
-      )}
+
+            </div>
+          </div>,
+          document.body
+        )}
 
       {certificationPreviewRaw && (
         <VendorUploadPreviewModal
@@ -1522,36 +1495,28 @@ export default function ResourcesV() {
       {activeView === "list" ? (
         renderList()
       ) : (
-        <div
-          className="flex-1 overflow-y-auto px-5 py-2 bg-white relative custom-scrollbar"
-          key={activeView}
-        >
-          <div className="max-w-[1174px] mx-auto pt-2">
+        <div className="flex-1 overflow-y-auto px-5 py-2 bg-white relative custom-scrollbar">
+          <div className="max-w-[1174px] mx-auto">
             <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
-              <div className="group relative inline-flex">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setForm(formInitialState);
-                    setAddError("");
-                    setInviteEmails("");
-                    setInviteMessage("");
-                    setInviteShowSuccess(false);
-                    setActiveView("list");
-                  }}
-                  className="p-2 rounded-md bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
-                >
-                  <img src={backIcon} alt="Back" className="w-5 h-5" />
-                </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInviteShowSuccess(false);
+                  setActiveView("list");
+                }}
+                className="p-2 rounded-md bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer group relative"
+                aria-label="Back"
+              >
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                   <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0)] px-2 py-0.5 relative z-10">
-                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] whitespace-nowrap">
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                       Go Back
                     </span>
                   </div>
                 </div>
-              </div>
+              </button>
               <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
                 {activeView === "add"
                   ? "Add New Worker"
@@ -1569,19 +1534,18 @@ export default function ResourcesV() {
                 onSubmit={
                   activeView === "add" ? handleAddSubmit : handleEditSubmit
                 }
-                className="space-y-8"
+                className="space-y-6"
               >
                 {addError && (
                   <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm font-semibold">
                     {addError}
                   </div>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                   <div className="space-y-6">
                     <div>
-                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
-                        Full Name
-                        <span className="text-red-500">*</span>
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                        Full Name <span className="text-[#DD4342]">*</span>
                       </label>
 
                       <input
@@ -1601,14 +1565,13 @@ export default function ResourcesV() {
                               full_name: e.target.value,
                             })
                         }
-                        className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
+                        className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
-                        Email Address
-                        <span className="text-red-500">*</span>
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                        Email Address <span className="text-[#DD4342]">*</span>
                       </label>
                       <input
                         type="email"
@@ -1625,19 +1588,19 @@ export default function ResourcesV() {
                               email: e.target.value,
                             })
                         }
-                        className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
+                        className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                         Password{" "}
                         {activeView === "edit" && !isVpmRoute
                           ? "(Leave blank to keep current)"
-                          : ""}
-                        <span className="text-red-500">*</span>
+                          : ""}{" "}
+                        <span className="text-[#DD4342]">*</span>
                         {activeView === "edit" && isVpmRoute ? (
-                          <span className="text-red-500"> *</span>
+                          <span className="text-[#DD4342]"> *</span>
                         ) : null}
                       </label>
                       <div className="relative">
@@ -1661,7 +1624,7 @@ export default function ResourcesV() {
                                 password: e.target.value,
                               });
                           }}
-                          className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
+                          className="w-full px-4 py-2 pr-10 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                           required={activeView === "add"}
                           disabled={activeView === "edit" && isVpmRoute}
                         />
@@ -1689,9 +1652,8 @@ export default function ResourcesV() {
                   </div>
                   <div className="space-y-6 ">
                     <div>
-                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
-                        Role
-                        <span className="text-red-500">*</span>
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                        Role <span className="text-[#DD4342]">*</span>
                       </label>
                       <CustomDropdown
                         options={
@@ -1714,9 +1676,8 @@ export default function ResourcesV() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
-                        Department
-                        <span className="text-red-500">*</span>
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                        Department <span className="text-[#DD4342]">*</span>
                       </label>
                       <CustomDropdown
                         options={
@@ -1744,9 +1705,8 @@ export default function ResourcesV() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
-                        Phone Number
-                        <span className="text-red-500">*</span>
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                        Phone Number <span className="text-[#DD4342]">*</span>
                       </label>
                       <div className="flex flex-col sm:flex-row gap-2">
                         <select
@@ -1758,7 +1718,7 @@ export default function ResourcesV() {
                               ? setCountryCode(e.target.value)
                               : setEditCountryCode(e.target.value)
                           }
-                          className="w-full sm:w-[75px] px-3 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium appearance-none bg-[url('https://api.iconify.design/heroicons:chevron-down-20-solid.svg')] bg-[length:1.25rem_1.25rem] bg-[right_0.5rem_center] bg-no-repeat pr-8"
+                          className="px-3 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari focus:border-[#AEACAC52] outline-none"
                         >
                           {COUNTRY_CODES.map((c) => (
                             <option key={c} value={c}>
@@ -1786,13 +1746,13 @@ export default function ResourcesV() {
                                 phone_number: e.target.value,
                               })
                           }
-                          className="flex-1 px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
+                          className="flex-1 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                         />
                       </div>
                     </div>
                   </div>
                   <div className="col-span-full">
-                    <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                       Address
                     </label>
                     <textarea
@@ -1808,24 +1768,24 @@ export default function ResourcesV() {
                             address: e.target.value,
                           })
                       }
-                      className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all resize-none"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                       placeholder="Residential or Office Address"
                       placeholder-class="text-[#353535] text-[14px] font-medium"
                     ></textarea>
                   </div>
                   <div className="col-span-full">
-                    <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                       Profile Picture
                     </label>
-                    <div className="flex bg-[#F4F4F4] rounded-lg overflow-hidden border border-transparent focus-within:border-[#DD4342]/30 transition-all flex-col sm:flex-row">
-                      <div className="flex-1 px-4 py-3 text-sm text-[#717171] truncate">
-                        {(activeView === "add"
-                          ? form.profile_picture
-                          : editForm.profile_picture
-                        )?.name || "Choose JPG/JPEG Image"}
-                      </div>
-                      <label className="px-6 py-3 bg-[#EAEAEA] text-[#353535] text-[14px] font-medium transition-all cursor-pointer text-center">
-                        Browse
+                      <div className="flex bg-[#F2F3F4] rounded-[5px] overflow-hidden">
+                        <div className="flex-1 px-4 text-[14px] text-[#979797] truncate min-w-0 py-2">
+                          {(activeView === "add"
+                            ? form.profile_picture
+                            : editForm.profile_picture
+                          )?.name || "Choose file (JPEG or JPG only)"}
+                        </div>
+                        <label className="px-5 py-2 bg-[#E2E2E2] text-[#8B8B8B] text-[14px] cursor-pointer transition-colors shrink-0 font-Gantari border-0">
+                          Browse File
                         <input
                           type="file"
                           className="hidden"
@@ -1846,26 +1806,26 @@ export default function ResourcesV() {
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-4 justify-center pt-10 border-t border-[#F0F0F0]">
+                <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
                   <button
                     type="button"
                     onClick={() => setActiveView("list")}
-                    className="px-5 py-2 bg-[#F2F2F2] text-[#353535] text-[14px] font-medium rounded-md cursor-pointer"
+                    className="w-full sm:w-auto px-6 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-medium text-[14px] transition-all font-Gantari cursor-pointer"
                   >
-                    Cancel
+                    Discard
                   </button>
                   <button
                     type="submit"
                     disabled={addSubmitting || editSubmitting}
-                    className="px-5 py-2 bg-[#DBE9FE] text-[#353535] text-[14px] font-medium rounded-md cursor-pointer"
+                    className="w-full sm:w-auto px-6 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-medium text-[14px] disabled:opacity-50 transition-all font-Gantari cursor-pointer"
                   >
                     {activeView === "add"
                       ? addSubmitting
-                        ? "Adding..."
-                        : "Save Worker"
+                        ? "Submitting..."
+                        : "Submit"
                       : editSubmitting
-                        ? "Saving..."
-                        : "Update Details"}
+                        ? "Submitting..."
+                        : "Submit"}
                   </button>
                 </div>
               </form>
@@ -1922,8 +1882,8 @@ export default function ResourcesV() {
                 <form onSubmit={handleInvite} className="space-y-10">
                   <div className="space-y-6">
                     <div>
-                      <label className="block text-[16px] font-medium text-[#353535] mb-2">
-                        Email Addresses<span className="text-red-500">*</span>
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                        Email Addresses <span className="text-[#DD4342]">*</span>
                       </label>
                       <textarea
                         value={inviteEmails}
@@ -1932,9 +1892,9 @@ export default function ResourcesV() {
                           if (inviteEmailError) setInviteEmailError("");
                         }}
                         rows={5}
-                        className={`w-full px-5 py-4 bg-[#F2F3F4] rounded-md outline-none text-sm leading-relaxed transition-all ${inviteEmailError
+                        className={`w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] resize-none ${inviteEmailError
                           ? "border border-red-400 focus:border-red-400"
-                          : "border-none"
+                          : ""
                           }`}
                         placeholder="email1@example.com, email2@example.com"
                         placeholder-class="text-[#353535] text-[14px] font-medium"
@@ -1949,26 +1909,33 @@ export default function ResourcesV() {
                       </p>
                     </div>
                     <div>
-                      <label className="block text-[16px] font-medium text-[#353535] mb-2">
+                      <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                         Message (Optional)
                       </label>
                       <textarea
                         value={inviteMessage}
                         onChange={(e) => setInviteMessage(e.target.value)}
                         rows={3}
-                        className="w-full px-5 py-4 bg-[#F2F3F4] rounded-md border-none outline-none text-sm leading-relaxed"
+                        className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] resize-none"
                         placeholder="Welcome to our team!"
                         placeholder-class="text-[#353535] text-[14px] font-medium"
                       ></textarea>
                     </div>
                   </div>
-                  <div className="flex justify-center pt-4">
+                  <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
+                    <button
+                      type="button"
+                      onClick={() => setActiveView("list")}
+                      className="w-full sm:w-auto px-6 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-medium text-[14px] transition-all font-Gantari cursor-pointer"
+                    >
+                      Discard
+                    </button>
                     <button
                       type="submit"
                       disabled={inviteSubmitting}
-                      className="px-5 py-2 bg-[#DBE9FE] text-[#353535] text-[14px] font-medium rounded-md cursor-pointer"
+                      className="w-full sm:w-auto px-6 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-medium text-[14px] disabled:opacity-50 transition-all font-Gantari cursor-pointer"
                     >
-                      {inviteSubmitting ? "Sending..." : "Send Invitations"}
+                      {inviteSubmitting ? "Submitting..." : "Submit"}
                     </button>
                   </div>
                 </form>

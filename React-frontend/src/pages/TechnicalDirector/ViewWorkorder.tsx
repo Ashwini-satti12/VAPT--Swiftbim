@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 
@@ -34,6 +35,7 @@ interface WorkOrder {
 export default function ViewWorkorder() {
   const location = useLocation();
   const navigate = useNavigate();
+  const printableRef = useRef<HTMLDivElement>(null);
   const state = (location.state || {}) as { selectedWO?: WorkOrder | null };
   const selectedWO: WorkOrder | null = state.selectedWO || null;
 
@@ -45,6 +47,46 @@ export default function ViewWorkorder() {
         dangerouslySetInnerHTML={{ __html: html }}
       />
     );
+  };
+
+  const handleDownload = () => {
+    const content = printableRef.current;
+    if (!content) return;
+
+    const printWindow = window.open("", "_blank", "width=1200,height=900");
+    if (!printWindow) return;
+
+    const styles = Array.from(
+      document.querySelectorAll<HTMLLinkElement | HTMLStyleElement>(
+        'link[rel="stylesheet"], style',
+      ),
+    )
+      .map((el) => el.outerHTML)
+      .join("\n");
+
+    const title = `Work Order ${selectedWO?.po_number || selectedWO?.id || ""}`.trim();
+
+    printWindow.document.open();
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${title}</title>
+          ${styles}
+          <style>
+            body { margin: 0; padding: 24px; background: #fff; font-family: Gantari, sans-serif; }
+          </style>
+        </head>
+        <body>
+          ${content.outerHTML}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.onload = () => {
+      printWindow.print();
+      printWindow.close();
+    };
   };
 
   if (!selectedWO) {
@@ -100,15 +142,40 @@ export default function ViewWorkorder() {
           </div>
         </div>
 
-        <div className="flex-1 flex items-center justify-center gap-4">
+        <div className="flex-1 flex items-center justify-center">
           <h1 className="text-[24px] font-semibold text-[#000000]">
             Work Order Details
           </h1>
         </div>
-        <div className="shrink-0 min-w-[50px]"></div>
+        <div className="shrink-0 min-w-[50px] flex justify-end">
+          <button
+            type="button"
+            onClick={handleDownload}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#DD4342] text-white text-[14px] font-semibold font-gantari shadow-sm hover:opacity-90 transition-all cursor-pointer"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 3v10m0 0l4-4m-4 4L8 9m-3 8h14"
+              />
+            </svg>
+            Download
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 px-2 min-w-0 space-y-8 mx-auto w-full pt-4">
+      <div
+        ref={printableRef}
+        className="flex-1 px-2 min-w-0 space-y-8 mx-auto w-full pt-4"
+      >
         {/* Header Info Banner */}
         <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-4 sm:py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-y-4">
           <div className="px-4 sm:px-6 sm:border-r border-[#AEACAC52]">
@@ -155,11 +222,17 @@ export default function ViewWorkorder() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white rounded-md border border-[#AEACAC52] p-6">
           <div>
-            <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Project Location</p>
-            <p className="text-[15px] font-medium text-[#353535]">{selectedWO.project_location || "—"}</p>
+            <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">
+              Project Location
+            </p>
+            <p className="text-[15px] font-medium text-[#353535]">
+              {selectedWO.project_location || "—"}
+            </p>
           </div>
           <div>
-            <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Timeline</p>
+            <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">
+              Timeline
+            </p>
             <div className="text-[15px] font-medium text-[#353535]">
               {(() => {
                 const val = selectedWO.timeline || selectedWO.duration || "—";
@@ -171,8 +244,12 @@ export default function ViewWorkorder() {
             </div>
           </div>
           <div className="md:col-span-2">
-            <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Vendor Address</p>
-            <p className="text-[14px] whitespace-pre-wrap text-[#353535] leading-relaxed bg-[#F2F2F2] p-3 rounded-md">{selectedWO.vendor_address || "—"}</p>
+            <p className="text-[12px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">
+              Vendor Address
+            </p>
+            <p className="text-[14px] whitespace-pre-wrap text-[#353535] leading-relaxed bg-[#F2F2F2] p-3 rounded-md">
+              {selectedWO.vendor_address || "—"}
+            </p>
           </div>
         </div>
 
@@ -255,7 +332,6 @@ export default function ViewWorkorder() {
             </div>
           )}
 
-
           {/* Signatures Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-10 border-t border-[#AEACAC52]">
             {/* Company Signature */}
@@ -271,27 +347,35 @@ export default function ViewWorkorder() {
                     className="h-full object-contain"
                   />
                 ) : (
-                  <span className="text-gray-400 italic text-sm">No signature</span>
+                  <span className="text-gray-400 italic text-sm">
+                    No signature
+                  </span>
                 )}
               </div>
               <div className="space-y-1 text-sm font-gantari">
                 <div className="flex border-b border-gray-200 py-1">
                   <span className="w-24 text-gray-500">Name:</span>
-                  <span className="font-semibold">{selectedWO.company_sign_name || "—"}</span>
+                  <span className="font-semibold">
+                    {selectedWO.company_sign_name || "—"}
+                  </span>
                 </div>
                 <div className="flex border-b border-gray-200 py-1">
                   <span className="w-24 text-gray-500">Designation:</span>
-                  <span className="font-semibold">{selectedWO.company_sign_designation || "—"}</span>
+                  <span className="font-semibold">
+                    {selectedWO.company_sign_designation || "—"}
+                  </span>
                 </div>
                 <div className="flex border-b border-gray-200 py-1">
                   <span className="w-24 text-gray-500">Date:</span>
-                  <span className="font-semibold">{selectedWO.company_sign_date || "—"}</span>
+                  <span className="font-semibold">
+                    {selectedWO.company_sign_date || "—"}
+                  </span>
                 </div>
               </div>
             </div>
 
             {/* Vendor Signature */}
-            <div className="space-y-4">
+            {/* <div className="space-y-4">
               <h3 className="font-bold text-[14px] uppercase tracking-wide text-[#000000]">
                 Vendor
               </h3>
@@ -320,7 +404,7 @@ export default function ViewWorkorder() {
                   <span className="font-semibold">{selectedWO.vendor_sign_date || "—"}</span>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

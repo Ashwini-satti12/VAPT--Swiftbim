@@ -21,6 +21,24 @@ const showEntriesOptions: {
     { value: "all", label: "All", start: 0, end: null },
 ];
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 0px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+ 
 type AcceptedBid = {
     id: number;
     vendor_id: number;
@@ -160,6 +178,16 @@ export default function ProposalsV() {
     const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
     const [searchParams] = useSearchParams();
     const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+
+    useEffect(() => {
+        const styleTag = document.createElement("style");
+        styleTag.setAttribute("data-proposals-scrollbar", "1");
+        styleTag.textContent = SCROLLBAR_STYLE;
+        document.head.appendChild(styleTag);
+        return () => {
+            document.head.removeChild(styleTag);
+        };
+    }, []);
 
     useEffect(() => {
         const state: any = (location && (location as any).state) || {};
@@ -406,8 +434,8 @@ export default function ProposalsV() {
             </div>
 
             {/* Table Card */}
-            <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-                <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-220px)]">
+            <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mx-0 mb-2">
+                <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
                     {loading ? (
                         <div className="flex justify-center items-center py-20">
                             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DE3D3A]" />
@@ -421,16 +449,16 @@ export default function ProposalsV() {
                             <p className="text-sm">Once your bid is accepted, you can create and submit a proposal here.</p>
                         </div>
                     ) : (
-                        <table className="min-w-full border-collapse">
-                            <thead className="sticky top-0 z-10 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1.5px] after:bg-[rgb(89,89,89)]/10">
+                        <table className="min-w-full border-separate border-spacing-0">
+                            <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                                 <tr className="bg-white">
-                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap border-b-[1.5px] border-[#F2F2F2]">Sl.No</th>
-                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap border-b-[1.5px] border-[#F2F2F2]">Project Name</th>
-                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap border-b-[1.5px] border-[#F2F2F2]">Vendor Name</th>
-                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap border-b-[1.5px] border-[#F2F2F2]">Bid Amount</th>
-                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap border-b-[1.5px] border-[#F2F2F2]">Timeline</th>
-                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap border-b-[1.5px] border-[#F2F2F2]">Status</th>
-                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap border-b-[1.5px] border-[#F2F2F2]">Action</th>
+                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
+                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Vendor Name</th>
+                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Bid Amount</th>
+                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Timeline</th>
+                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
+                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
@@ -447,25 +475,25 @@ export default function ProposalsV() {
                                         (clarificationEdit && bid.proposal_id != null && bid.proposal_id !== undefined);
                                     return (
                                         <tr key={bid.id} className={`${(tablePageStartIndex + index) % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'} transition-colors`}>
-                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{slNo}</td>
-                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">{slNo}</td>
+                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">
                                                 {bid.project_name}
                                             </td>
-                                            <td className="px-4 py-6 text-center whitespace-nowrap align-middle">
+                                            <td className="px-4 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
                                                 <div className="text-[14px] text-[#353535] font-gantari">{bid.vendor_name || '—'}</div>
                                             </td>
-                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">
                                                 {bid.bid_amount != null ? `${bid.bid_amount} ${bid.bid_currency || bid.opportunity_currency || ""}` : "—"}
                                             </td>
-                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">
                                                 {bid.timeline || '—'}
                                             </td>
-                                            <td className="px-4 py-6 text-center whitespace-nowrap align-middle">
+                                            <td className="px-4 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
                                                 <span className={`inline-flex px-4 py-1.5 rounded-md text-[14px] font-gantari ${getStatusBadge(displayStatus)}`}>
                                                     {getStatusLabel(displayStatus)}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-6 text-center whitespace-nowrap align-middle">
+                                            <td className="px-4 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
                                                         onClick={() =>

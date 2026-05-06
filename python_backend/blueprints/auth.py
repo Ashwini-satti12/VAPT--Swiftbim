@@ -79,9 +79,12 @@ def login():
         company_id = row.get("Company_id") or 0
         
     # vendor_employee uses 'status', employee uses 'active'
-    active_status = str(row.get("active", row.get("status", ""))).lower()
+    active_status = str(row.get("active", "")).lower()
     if active_status not in ["active", "1"]:
-        return jsonify({"success": False, "message": "Account is inactive."}), 403
+        return jsonify({
+            "success": False,
+            "message": "Account is inactive."
+        }), 403
 
     # Keep vendor phone_number synced from vendor_onboarding.contact_mobile (new_swiftbim)
     if user_type == "vendor":

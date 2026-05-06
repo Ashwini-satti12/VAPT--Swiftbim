@@ -458,7 +458,11 @@ export default function InvoicesPage() {
     <div>
       <h3 className="font-semibold text-[18px] mb-3">{sideTitle}</h3>
       {!list.length ? (
-        <p className="text-[#999]">No invoices generated yet.</p>
+        <div className="flex flex-col items-center justify-center py-40">
+          <p className="text-[#616161] text-[16px] font-Gantari">
+            No invoices generated yet.
+          </p>
+        </div>
       ) : (
         <div
           className={

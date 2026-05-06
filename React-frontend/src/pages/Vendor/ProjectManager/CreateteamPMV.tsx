@@ -7,6 +7,23 @@ import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
 import eyeIcon from "../../../assets/ProjectManager/consultant/eyeIcon.svg";
 import upArrow from "../../../assets/TechnicalDirector/upArrow.svg";
 
+const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
+const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
+const showEntriesOptions: {
+    value: string;
+    label: string;
+    start: number;
+    end: number | null;
+}[] = [
+        { value: "1-50", label: "1-50", start: 0, end: 50 },
+        { value: "51-100", label: "51-100", start: 50, end: 100 },
+        { value: "101-150", label: "101-150", start: 100, end: 150 },
+        { value: "151-200", label: "151-200", start: 150, end: 200 },
+        { value: "201-250", label: "201-250", start: 200, end: 250 },
+        { value: "251-300", label: "251-300", start: 250, end: 300 },
+        { value: "all", label: "All", start: 0, end: null },
+    ];
+
 interface Employee {
     id: number;
     full_name: string;
@@ -190,6 +207,13 @@ export default function CreateteamPMV() {
     const [memberSearchQuery, setMemberSearchQuery] = useState("");
     const [memberDropdownUpward, setMemberDropdownUpward] = useState(false);
     const memberDropdownRef = useRef<HTMLDivElement>(null);
+    const [selectedProjectFilter, setSelectedProjectFilter] = useState<{ id: string | number; name: string } | null>(null);
+    const [showProjectFilterDropdown, setShowProjectFilterDropdown] = useState(false);
+    const projectFilterDropdownRef = useRef<HTMLDivElement>(null);
+
+    const [showEntries, setShowEntries] = useState("");
+    const [showEntriesDropdown, setShowEntriesDropdown] = useState(false);
+    const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -201,6 +225,12 @@ export default function CreateteamPMV() {
             }
             if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target as Node)) {
                 setShowProjectDropdown(false);
+            }
+            if (projectFilterDropdownRef.current && !projectFilterDropdownRef.current.contains(event.target as Node)) {
+                setShowProjectFilterDropdown(false);
+            }
+            if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
+                setShowEntriesDropdown(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -389,30 +419,208 @@ export default function CreateteamPMV() {
             {/* Header section */}
             <div className="flex justify-between items-center mb-8">
                 <h2 className="text-[24px] font-semibold text-[#000000] font-Gantari">Create Team</h2>
-                <button
-                    onClick={() => setShowAddModal(true)}
-                    className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md transition-all font-semibold shadow-lg shadow-red-200 cursor-pointer"
-                >
-                    <PlusIcon className="w-5 h-5 stroke-[3]" />
-                    New Team
-                </button>
+                <div className="flex items-center gap-3">
+                    {/* Project Filter */}
+                    <div className="relative min-w-[140px] max-w-[220px] sm:w-[200px]" ref={projectFilterDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={() => setShowProjectFilterDropdown(!showProjectFilterDropdown)}
+                            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-Gantari transition-all cursor-pointer border-0"
+                        >
+                            <span className={`truncate text-left flex-1 ${!selectedProjectFilter ? "text-[#8B8B8B]" : "text-[#353535]"}`}>
+                                {!selectedProjectFilter ? (
+                                    "Select Project"
+                                ) : (
+                                    <>
+                                        <span className="font-normal">Project:</span>{" "}
+                                        <span className="font-semibold">{selectedProjectFilter.name}</span>
+                                    </>
+                                )}
+                            </span>
+                            <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 12 12"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                className={`shrink-0 transition-transform duration-200 ${showProjectFilterDropdown ? "rotate-180" : ""} ${!selectedProjectFilter ? "opacity-60 grayscale" : "opacity-90"}`}
+                            >
+                                <path d="M3 4.5L6 7.5L9 4.5" stroke="#8B8B8B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </button>
+
+                        {showProjectFilterDropdown && (
+                            <div className="absolute top-full right-0 mt-1 w-full bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                                <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedProjectFilter(null);
+                                            setShowProjectFilterDropdown(false);
+                                        }}
+                                        className="w-full px-4 py-2 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors font-Gantari"
+                                    >
+                                        All Projects
+                                    </button>
+                                    {projects.map((proj) => {
+                                        const isChosen = selectedProjectFilter?.id === proj.id;
+                                        return (
+                                            <button
+                                                key={proj.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedProjectFilter({ id: proj.id, name: proj.project_name || "Untitled" });
+                                                    setShowProjectFilterDropdown(false);
+                                                }}
+                                                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari transition-colors cursor-pointer ${isChosen
+                                                    ? "text-[#353535] bg-[#F2F2F2] font-semibold"
+                                                    : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                                    }`}
+                                            >
+                                                <span className="truncate flex-1">{proj.project_name || "Untitled"}</span>
+                                                {isChosen && (
+                                                    <svg
+                                                        className="w-4 h-4 shrink-0 text-[#353535]"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2.5}
+                                                            d="M5 13l4 4L19 7"
+                                                        />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Show Entries Dropdown */}
+                    <div className="relative min-w-[140px] max-w-[200px] w-[150px]" ref={showEntriesDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={() => setShowEntriesDropdown(!showEntriesDropdown)}
+                            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-Gantari transition-all cursor-pointer border-0"
+                        >
+                            <span className={`truncate text-left flex-1 ${!showEntries ? "text-[#8B8B8B]" : "text-[#353535]"}`}>
+                                {!showEntries ? (
+                                    SHOW_ENTRIES_PLACEHOLDER
+                                ) : (
+                                    <>
+                                        <span className="text-[14px] font-normal">{SHOW_ENTRIES_SELECTED_PREFIX}</span>{" "}
+                                        <span className="font-semibold">{showEntries}</span>
+                                    </>
+                                )}
+                            </span>
+                            <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 12 12"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                className={`shrink-0 transition-transform duration-200 ${showEntriesDropdown ? "rotate-180" : ""} ${!showEntries ? "opacity-60 grayscale" : "opacity-90"}`}
+                            >
+                                <path d="M3 4.5L6 7.5L9 4.5" stroke="#8B8B8B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </button>
+
+                        {showEntriesDropdown && (
+                            <div className="absolute top-full right-0 mt-1 w-full bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                                <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowEntries("");
+                                            setShowEntriesDropdown(false);
+                                        }}
+                                        className="w-full px-4 py-2 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors font-Gantari"
+                                    >
+                                        {SHOW_ENTRIES_PLACEHOLDER}
+                                    </button>
+                                    {showEntriesOptions.map((opt) => {
+                                        const isChosen = showEntries === opt.value;
+                                        return (
+                                            <button
+                                                key={opt.value}
+                                                type="button"
+                                                onClick={() => {
+                                                    setShowEntries(opt.value);
+                                                    setShowEntriesDropdown(false);
+                                                }}
+                                                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari transition-colors cursor-pointer ${isChosen
+                                                    ? "text-[#353535] bg-[#F2F2F2] font-semibold"
+                                                    : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                                    }`}
+                                            >
+                                                <span className="truncate flex-1">{opt.label}</span>
+                                                {isChosen && (
+                                                    <svg
+                                                        className="w-4 h-4 shrink-0 text-[#353535]"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2.5}
+                                                            d="M5 13l4 4L19 7"
+                                                        />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md transition-all font-semibold shadow-lg shadow-red-200 cursor-pointer"
+                    >
+                        <PlusIcon className="w-5 h-5 stroke-[3]" />
+                        New Team
+                    </button>
+                </div>
             </div>
 
             {/* Teams Grid */}
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {teams.length === 0 ? (
-                        <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-[#AEACAC52] flex flex-col items-center justify-center gap-4">
-                            <div className="w-16 h-16 bg-[#F8FAFC] rounded-full flex items-center justify-center">
-                                <PlusIcon className="w-8 h-8 text-[#94A3B8]" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-[#1E293B]">No teams found</h3>
-                                <p className="text-[#64748B]">Click "New Team" to get started.</p>
-                            </div>
-                        </div>
-                    ) : (
-                        teams.map((team) => (
+                    {(() => {
+                        const filtered = teams.filter(t => {
+                            if (!selectedProjectFilter) return true;
+                            const pid = t.project_id || (t.project_name ? projects.find(p => p.project_name === t.project_name)?.id : null);
+                            return String(pid) === String(selectedProjectFilter.id);
+                        });
+
+                        const paged = filtered.slice(
+                            showEntriesOptions.find((o) => o.value === showEntries)?.start || 0,
+                            showEntriesOptions.find((o) => o.value === showEntries)?.end || teams.length
+                        );
+
+                        if (paged.length === 0) {
+                            return (
+                                <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-[#AEACAC52] flex flex-col items-center justify-center gap-4">
+                                    <div className="w-16 h-16 bg-[#F8FAFC] rounded-full flex items-center justify-center">
+                                        <PlusIcon className="w-8 h-8 text-[#94A3B8]" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-[#1E293B]">No teams found</h3>
+                                        <p className="text-[#64748B]">Click "New Team" to get started.</p>
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        return paged.map((team) => (
                             <TeamCard
                                 key={team.team_id}
                                 team={team}
@@ -424,8 +632,8 @@ export default function CreateteamPMV() {
                                     setShowDetailsModal(true);
                                 }}
                             />
-                        ))
-                    )}
+                        ));
+                    })()}
                 </div>
             </div>
 
