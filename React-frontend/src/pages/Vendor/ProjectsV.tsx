@@ -1602,7 +1602,7 @@ export default function ProjectsV() {
             {/* Project View Content */}
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Scrollable Content Including KPI Cards */}
-              <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 md:px-4 pb-10 pt-4 md:pt-4 custom-scrollbar space-y-8">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-2 md:px-4 pb-10 pt-4 md:pt-4 space-y-8">
                 {/* KPI Cards */}
                 <div className="mt-0">
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
@@ -1655,7 +1655,7 @@ export default function ProjectsV() {
                   <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">
                     Modules
                   </h4>
-                  <div className="max-h-[220px] overflow-y-auto custom-scrollbar pr-2">
+                  <div className="max-h-[220px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-4">
                       {loadingTaskStats ? (
                         <div className="col-span-full py-10 flex flex-col items-center justify-center gap-3">
@@ -1682,31 +1682,17 @@ export default function ProjectsV() {
                           return (
                             <div
                               key={tower.id}
-                              className="bg-white border border-slate-200 rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[120px]"
+                              className="bg-white border border-slate-200 rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[126px]"
                             >
-                              <div className="flex justify-between items-start mb-2">
+                              <div className="flex justify-between items-start min-h-0 pb-2">
                                 <h5
-                                  className="text-[18px] font-Gantari font-medium text-[#1A1A1A] truncate pr-2"
+                                  className="text-[16px] font-Gantari font-medium text-[#000000] truncate pr-2 w-full"
                                   title={tower.name}
                                 >
                                   {tower.name}
                                 </h5>
-                                <div
-                                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0 ${statusBg}`}
-                                >
-                                  <span
-                                    className="w-1.5 h-1.5 rounded-full"
-                                    style={{ backgroundColor: statusColor }}
-                                  ></span>
-                                  <span
-                                    className="text-[12px] font-bold font-Gantari"
-                                    style={{ color: statusColor }}
-                                  >
-                                    {tower.status}
-                                  </span>
-                                </div>
                               </div>
-                              <div className="flex items-center justify-between mt-auto">
+                              <div className="flex items-center justify-between mt-2 mb-2">
                                 <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
                                   <svg
                                     className="w-full h-full transform -rotate-90"
@@ -1723,8 +1709,8 @@ export default function ProjectsV() {
                                     <circle
                                       cx="32"
                                       cy="32"
-                                      r="26"
-                                      stroke={statusColor}
+                                      r="28"
+                                      stroke="#0a9344"
                                       strokeWidth="5"
                                       fill="transparent"
                                       strokeDasharray={163.36}
@@ -1738,19 +1724,19 @@ export default function ProjectsV() {
                                       }}
                                     />
                                   </svg>
-                                  <span className="absolute text-[13px] font-bold text-[#353535] font-Gantari">
+                                  <span className="absolute text-[12px] font-bold text-[#616161] font-Gantari">
                                     {tower.progress}%
                                   </span>
                                 </div>
-                                <div className="flex flex-col items-end">
-                                  <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1">
+                                <div className="flex flex-col flex-1 min-w-0 ml-2">
+                                  <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1 text-right">
                                     Tasks Done
                                   </p>
-                                  <div className="flex items-baseline border-t border-slate-100 pt-1">
-                                    <p className="text-[18px] font-bold text-[#353535] font-Gantari">
+                                  <div className="flex items-baseline justify-center ml-16 pt-1">
+                                    <p className="text-[16px] font-medium text-[#000000] font-Gantari">
                                       {tower.completedTasks}
                                     </p>
-                                    <p className="text-[14px] font-bold text-[#8B8B8B] font-Gantari">
+                                    <p className="text-[16px] font-medium text-[#000000] font-Gantari">
                                       /{tower.totalTasks}
                                     </p>
                                   </div>
@@ -2245,7 +2231,7 @@ export default function ProjectsV() {
                 Projects
               </h2>
             </div>
-            <div className="flex-1 overflow-y-auto pt-4 pb-4 px-5 space-y-8 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto pt-4 pb-8 px-5 space-y-8 custom-scrollbar [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent]">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {list.length === 0 ? (
                   <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
@@ -2287,42 +2273,42 @@ export default function ProjectsV() {
                               openMenuProjectId === p.id ? null : p.id,
                             );
                           }}
-                          className="bg-white rounded-md border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                          className="relative overflow-hidden bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                         >
                           <div className="flex items-start justify-between mb-4 mt-2 pr-0">
-                            <div className="relative flex items-center justify-center shrink-0">
-                              <svg className="w-12 h-12 md:w-16 md:h-16 transform -rotate-90">
-                                <circle
-                                  cx="50%"
-                                  cy="50%"
-                                  r={22}
-                                  stroke="#f1f5f9"
-                                  strokeWidth="4"
-                                  fill="transparent"
-                                />
-                                <circle
-                                  cx="50%"
-                                  cy="50%"
-                                  r={22}
-                                  stroke="#0a9344"
-                                  strokeWidth="4"
-                                  fill="transparent"
-                                  strokeDasharray={2 * Math.PI * 22}
-                                  strokeDashoffset={
-                                    2 * Math.PI * 22 -
-                                    (progress / 100) * (2 * Math.PI * 22)
-                                  }
-                                  strokeLinecap="round"
-                                  style={{
-                                    transition:
-                                      "stroke-dashoffset 0.8s ease-in-out",
-                                  }}
-                                />
-                              </svg>
-                              <span className="absolute text-[12px] font-Gantari font-bold text-[#353535]">
-                                {progress}%
-                              </span>
-                            </div>
+                              <div className="relative flex items-center justify-center shrink-0">
+                                <svg className="w-16 h-16 md:w-20 md:h-20 transform -rotate-90">
+                                  <circle
+                                    cx="50%"
+                                    cy="50%"
+                                    r={radius}
+                                    stroke="#f1f5f9"
+                                    strokeWidth="4"
+                                    fill="transparent"
+                                  />
+                                  <circle
+                                    cx="50%"
+                                    cy="50%"
+                                    r={radius}
+                                    stroke="#0a9344"
+                                    strokeWidth="4"
+                                    fill="transparent"
+                                    strokeDasharray={2 * Math.PI * radius}
+                                    strokeDashoffset={
+                                      2 * Math.PI * radius -
+                                      (progress / 100) * (2 * Math.PI * radius)
+                                    }
+                                    strokeLinecap="round"
+                                    style={{
+                                      transition:
+                                        "stroke-dashoffset 0.8s ease-in-out",
+                                    }}
+                                  />
+                                </svg>
+                                <span className="absolute text-[14px] md:text-[16px] font-Gantari font-bold text-[#353535]">
+                                  {progress}%
+                                </span>
+                              </div>
                             <div className="relative shrink-0 project-menu-container">
                               <button
                                 type="button"
