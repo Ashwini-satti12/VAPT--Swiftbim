@@ -38,7 +38,7 @@ const SCROLLBAR_STYLE = `
     scrollbar-color: #979797 transparent;
   }
 `;
-
+ 
 type AcceptedBid = {
     id: number;
     vendor_id: number;

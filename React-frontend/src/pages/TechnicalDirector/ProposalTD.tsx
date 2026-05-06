@@ -400,9 +400,9 @@ export default function ProposalTD() {
   }, [selectedShowEntries, searchQuery, projectFilter, vendorFilter]);
 
   return (
-    <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
+    <div className="px-4 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white relative">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0 px-4 py-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
         <div className="flex items-center justify-between w-full sm:w-auto">
           <h2 className="text-xl sm:text-2xl font-semibold text-[#000000]">
             Proposals
@@ -523,7 +523,7 @@ export default function ProposalTD() {
       </div>
 
       {/* Table/Card Card */}
-      <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mx-2 mb-2 sm:mx-0 sm:mb-0">
+      <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mx-0 mb-2 mb-[-2px]">
         {loading ? (
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DD4342]" />
@@ -551,22 +551,20 @@ export default function ProposalTD() {
               </p>
           </div>
         ) : (
-          <>
-              <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-250px)] sm:max-h-[calc(100vh-220px)]">
-                {/* Simplified Table View (Always Visible, scrollable) */}
-              <table className="min-w-full border-collapse">
-                  <thead className="sticky top-0 z-10 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                    <tr className="bg-white">
-                      <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
-                      <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
-                      <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Vendor Name</th>
-                      <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Bid Amount</th>
-                      <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Timeline</th>
-                      <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
-                      <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
+          <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
+            <table className="min-w-full border-separate border-spacing-0">
+              <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                <tr className="bg-white">
+                  <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Sl.No</th>
+                  <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Project Name</th>
+                  <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Vendor Name</th>
+                  <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Bid Amount</th>
+                  <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Timeline</th>
+                  <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Status</th>
+                  <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
                     {displayList.map((p, index) => {
                       const slNo = (
                         selectedRange.start +
@@ -579,21 +577,19 @@ export default function ProposalTD() {
                       const displayStatus = p.status;
                       return (
                         <tr key={p.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{slNo}</td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{p.project_name || "—"}</td>
-                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                            <div className="text-[14px] text-[#353535] font-gantari">{p.vendor_name || "—"}</div>
-                          </td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">{slNo}</td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">{p.project_name || "—"}</td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">{p.vendor_name || "—"}</td>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">
                             {formatCurrency(p.bid_amount, p.bid_currency || p.opportunity_currency)}
                           </td>
-                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{p.timeline || "—"}</td>
-                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                            <span className={`inline-flex px-4 py-1.5 rounded-lg text-[14px] font-gantari ${getStatusBadge(displayStatus)}`}>
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-Gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">{p.timeline || "—"}</td>
+                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
+                            <span className={`inline-flex px-4 py-1.5 rounded-md text-[14px] font-Gantari ${getStatusBadge(displayStatus)}`}>
                               {getStatusLabel(displayStatus)}
                             </span>
                           </td>
-                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                          <td className="px-3 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() =>
@@ -615,19 +611,21 @@ export default function ProposalTD() {
                   </tbody>
                 </table>
               </div>
-          </>
         )}
       </div>
       {!loading && filtered.length > 0 && listInRange.length > 0 && (
-        <div className="w-full flex items-center justify-end py-2 pr-4">
-          <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-[20px] px-5 py-2">
+        <div className="w-full flex items-center justify-end mt-2 mb-[-12px] py-2 mx-2 sm:mx-0">
+          <div className="flex items-center gap-4 bg-[#E8E8E8] rounded-md px-5 py-2">
             <span className="text-[#353535] text-[16px] font-medium font-gantari leading-none">
               Showing:
             </span>
             <button
               type="button"
               onClick={() =>
-                setTableCurrentPage((p) => Math.max(1, p - 1))
+                setTableCurrentPage((p) => {
+                  const cur = Math.min(Math.max(1, p), tableTotalPages);
+                  return Math.max(1, cur - 1);
+                })
               }
               disabled={safeTableCurrentPage === 1}
               className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
@@ -644,7 +642,7 @@ export default function ProposalTD() {
             </button>
             <button
               type="button"
-              className="px-4 py-1 rounded-[10px] bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
+              className="px-4 py-1 rounded-md bg-[#DD4342] text-[#FFFFFF] text-[14px] font-semibold font-gantari leading-none cursor-default"
               aria-current="page"
             >
               {tablePageRangeLabel}
@@ -652,7 +650,10 @@ export default function ProposalTD() {
             <button
               type="button"
               onClick={() =>
-                setTableCurrentPage((p) => Math.min(tableTotalPages, p + 1))
+                setTableCurrentPage((p) => {
+                  const cur = Math.min(Math.max(1, p), tableTotalPages);
+                  return Math.min(tableTotalPages, cur + 1);
+                })
               }
               disabled={safeTableCurrentPage >= tableTotalPages}
               className={`inline-flex items-center gap-1 text-[15px] font-medium font-gantari leading-none cursor-pointer ${
