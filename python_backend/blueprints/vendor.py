@@ -3951,6 +3951,7 @@ def _current_vendor_onboarding_id():
         row = cur.fetchone()
         if row:
             return row["id"]
+
     # Final fallback for token-based sessions where company_id is already the
     # vendor id used in vendor_resource_profiles.
     if cid is not None:
