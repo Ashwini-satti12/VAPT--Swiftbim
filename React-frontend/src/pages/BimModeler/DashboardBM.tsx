@@ -16,6 +16,8 @@ type DashboardStats = {
   teamInProgressTasks?: number;
   myCompletedTasks?: number;
   teamCompletedTasks?: number;
+  myTodoTasks?: number;
+  teamTodoTasks?: number;
 };
 
 type InvolvedPerson = {
@@ -45,6 +47,8 @@ const defaultStats: DashboardStats = {
   teamInProgressTasks: 0,
   myCompletedTasks: 0,
   teamCompletedTasks: 0,
+  myTodoTasks: 0,
+  teamTodoTasks: 0,
 };
 
 /** Match MytaskBM.tsx: personal list is assigned_to OR uploaderid; stats API only counts assigned_to. */
@@ -548,7 +552,7 @@ export default function DashboardBM() {
         <h1 className="text-[24px] font-medium font-gantari text-slate-800 mb-6">
           Dashboard
         </h1>
-        {/* KPI Grid — same style as DashboardTD */}
+        {/* KPI Grid — Mix of projects and personal tasks */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Link
             to="/bm/mytasks"
@@ -573,25 +577,25 @@ export default function DashboardBM() {
             </p>
           </Link>
           <Link
-            to="/bm/mytasks"
+            to="/bm/mytasks?status=in_progress"
             className="bg-[#F2F3F4] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 cursor-pointer no-underline transition-all duration-300"
           >
             <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
               In-Progress Task
             </h3>
             <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
-              {stats.inProgressTasks}
+              {stats.myInProgressTasks || 0}
             </p>
           </Link>
           <Link
-            to="/bm/mytasks"
+            to="/bm/mytasks?status=completed"
             className="bg-[#F2F3F4] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 flex items-center justify-between min-h-0 cursor-pointer no-underline transition-all duration-300"
           >
             <h3 className="text-sm sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
               Completed Task
             </h3>
             <p className="text-xl sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">
-              {stats.completedTasks}
+              {stats.myCompletedTasks || 0}
             </p>
           </Link>
         </div>
