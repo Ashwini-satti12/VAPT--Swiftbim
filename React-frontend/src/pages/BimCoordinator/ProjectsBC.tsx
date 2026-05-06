@@ -58,18 +58,23 @@ const nameToId = (name: string, employeesList: Employee[]) => {
   return emp ? emp.id : undefined;
 };
 
-const idToName = (id: string | number | undefined, employeesList: Employee[]) => {
-  if (!id) return '';
+const idToName = (
+  id: string | number | undefined,
+  employeesList: Employee[],
+) => {
+  if (!id) return "";
   const emp = employeesList.find((e) => String(e.id) === String(id));
-  return emp ? emp.full_name : '';
+  return emp ? emp.full_name : "";
 };
 
 const firstCsvValue = (value: string | undefined): string => {
-  if (!value) return '';
-  return value
-    .split(',')
-    .map((v) => v.trim())
-    .filter(Boolean)[0] ?? '';
+  if (!value) return "";
+  return (
+    value
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean)[0] ?? ""
+  );
 };
 
 const namesToIds = (names: string[], employeesList: Employee[]) => {
@@ -228,7 +233,7 @@ function FormSelect({
       >
         <span
           className={
-            (isMulti ? (Array.isArray(value) && value.length > 0) : value)
+            (isMulti ? Array.isArray(value) && value.length > 0 : value)
               ? "text-[#353535] font-medium truncate pr-2"
               : "text-[#8B8B8B] font-medium"
           }
@@ -352,14 +357,18 @@ export default function ProjectsBC() {
   const [editPriority, setEditPriority] = useState("");
   const [editMember, _setEditMember] = useState("");
   const [createClientName, setCreateClientName] = useState("");
-  const [createProjectManager, setCreateProjectManager] = useState<string[]>([]);
+  const [createProjectManager, setCreateProjectManager] = useState<string[]>(
+    [],
+  );
   const [createStartDate, setCreateStartDate] = useState("");
   const [createEndDate, setCreateEndDate] = useState("");
   const [createTotalHours, setCreateTotalHours] = useState("");
   const [createPerDay, setCreatePerDay] = useState("");
   const [createDepartment, setCreateDepartment] = useState("");
   const [createBIMLead, setCreateBIMLead] = useState<string[]>([]);
-  const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState<string[]>([]);
+  const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState<string[]>(
+    [],
+  );
   const [createDescription, setCreateDescription] = useState("");
   const [createFiles, setCreateFiles] = useState<File[]>([]);
   const [existingFiles, setExistingFiles] = useState<string[]>([]);
@@ -442,56 +451,64 @@ export default function ProjectsBC() {
     const fetchEmployeesAndDepartments = async () => {
       try {
         // Fetch Employees
-        api.get("/api/employees")
+        api
+          .get("/api/employees")
           .then(({ data }) => {
             if (!isMounted) return;
             const empData: Employee[] = data.employees || [];
-            const selectable = empData.filter(isEmployeeActiveForProjectAssignment);
-            const roleOf = (e: Employee) => String(e.user_role || "").toLowerCase().trim();
-            
+            const selectable = empData.filter(
+              isEmployeeActiveForProjectAssignment,
+            );
+            const roleOf = (e: Employee) =>
+              String(e.user_role || "")
+                .toLowerCase()
+                .trim();
+
             setProjectManagers(
               selectable
                 .filter((e) => roleOf(e).includes("project manager"))
-                .map((e) => e.full_name)
+                .map((e) => e.full_name),
             );
             setBimLeads(
               selectable
                 .filter((e) => roleOf(e).includes("bim lead"))
-                .map((e) => e.full_name)
+                .map((e) => e.full_name),
             );
             setBimCoordinators(
               selectable
                 .filter((e) => roleOf(e).includes("coordinator"))
-                .map((e) => e.full_name)
+                .map((e) => e.full_name),
             );
             setAllEmployees(empData);
           })
-          .catch(err => console.error("Error fetching employees:", err));
+          .catch((err) => console.error("Error fetching employees:", err));
 
         // Fetch Departments
-        api.get("/api/departments")
+        api
+          .get("/api/departments")
           .then(({ data }) => {
             if (isMounted) setDepartments(data.departments || []);
           })
-          .catch(err => console.error("Error fetching departments:", err));
+          .catch((err) => console.error("Error fetching departments:", err));
 
         // Fetch Clients - Try vendors/clients first, fallback if needed
-        api.get("/api/vendors/clients")
+        api
+          .get("/api/vendors/clients")
           .then(({ data }) => {
             if (isMounted) setClientsList(data.clients || []);
           })
           .catch(() => {
             // If vendors/clients fails, try clients/from-users as fallback
-            api.get("/api/clients/from-users")
+            api
+              .get("/api/clients/from-users")
               .then(({ data }) => {
                 if (isMounted) setClientsList(data.clients || []);
               })
-              .catch(err => {
+              .catch((err) => {
                 console.error("Error fetching clients:", err);
                 if (isMounted) setClientsList([]);
               });
           });
-
       } catch (error) {
         console.error("General error in fetch:", error);
       }
@@ -1358,123 +1375,134 @@ export default function ProjectsBC() {
 
                     {/* BIM Coordinator */}
                     {(() => {
-                        const bcIds = selectedProjectForView.bim_coordinator_id
-                          ? String(selectedProjectForView.bim_coordinator_id)
-                              .split(",")
-                              .map((id) => id.trim())
-                              .filter(Boolean)
-                          : [];
-                        const bcNames = selectedProjectForView.bim_coordinator_name
+                      const bcIds = selectedProjectForView.bim_coordinator_id
+                        ? String(selectedProjectForView.bim_coordinator_id)
+                            .split(",")
+                            .map((id) => id.trim())
+                            .filter(Boolean)
+                        : [];
+                      const bcNames =
+                        selectedProjectForView.bim_coordinator_name
                           ? String(selectedProjectForView.bim_coordinator_name)
                               .split(",")
                               .map((n) => n.trim())
                               .filter(Boolean)
                           : [];
 
-                        if (bcIds.length === 0 && bcNames.length === 0) {
-                          return (
-                            <div className="min-w-0">
-                              <p className="text-md font-Gantari font-semibold text-[#000000]">
-                                BIM Coordinator
-                              </p>
-                            </div>
-                          );
-                        }
-
-                        const maxCount = Math.max(bcIds.length, bcNames.length);
-                        const bcEntries = Array.from({ length: maxCount }).map(
-                          (_, i) => {
-                            const pId = bcIds[i];
-                            const pName = bcNames[i];
-                            const bcEmp = pId
-                              ? allEmployees.find((e: any) => String(e.id) === pId)
-                              : null;
-                            const dName = bcEmp?.full_name || pName || "Unknown";
-                            const url = bcEmp?.profile_picture
-                              ? getGlobalProfileUrl(bcEmp.id, bcEmp.profile_picture)
-                              : null;
-                            return { key: i, dName, url };
-                          }
-                        );
-                        const visibleBc = bcEntries.slice(0, 3);
-                        const bcRemaining = Math.max(0, bcEntries.length - 3);
-                        const bcOverflowTitle =
-                          bcRemaining > 0
-                            ? bcEntries
-                                .slice(3)
-                                .map((e) => e.dName)
-                                .join(", ")
-                            : undefined;
-
+                      if (bcIds.length === 0 && bcNames.length === 0) {
                         return (
                           <div className="min-w-0">
-                            <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
-                              {maxCount > 1 ? "BIM Coordinators" : "BIM Coordinator"}
+                            <p className="text-md font-Gantari font-semibold text-[#000000]">
+                              BIM Coordinator
                             </p>
-                            {maxCount === 1 ? (
-                              <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
-                                  {visibleBc[0].url ? (
-                                    <img
-                                      src={visibleBc[0].url}
-                                      className="w-full h-full object-cover"
-                                      alt=""
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).src =
-                                          ProfileIcon;
-                                      }}
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                      {visibleBc[0].dName.charAt(0).toUpperCase()}
-                                    </div>
-                                  )}
-                                </div>
-                                <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
-                                  {visibleBc[0].dName}
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center -space-x-3">
-                                {visibleBc.map((entry) => (
-                                  <div key={entry.key} className="relative group shrink-0">
-                                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
-                                      {entry.url ? (
-                                        <img
-                                          src={entry.url}
-                                          className="w-full h-full object-cover"
-                                          alt=""
-                                          onError={(e) => {
-                                            (e.target as HTMLImageElement).src =
-                                              ProfileIcon;
-                                          }}
-                                        />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                          {entry.dName.charAt(0).toUpperCase()}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                      {entry.dName}
-                                    </div>
-                                  </div>
-                                ))}
-                                {bcRemaining > 0 && (
-                                  <div className="relative group shrink-0">
-                                    <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
-                                      +{bcRemaining}
-                                    </div>
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                      {bcOverflowTitle}
-                                    </div>
+                          </div>
+                        );
+                      }
+
+                      const maxCount = Math.max(bcIds.length, bcNames.length);
+                      const bcEntries = Array.from({ length: maxCount }).map(
+                        (_, i) => {
+                          const pId = bcIds[i];
+                          const pName = bcNames[i];
+                          const bcEmp = pId
+                            ? allEmployees.find(
+                                (e: any) => String(e.id) === pId,
+                              )
+                            : null;
+                          const dName = bcEmp?.full_name || pName || "Unknown";
+                          const url = bcEmp?.profile_picture
+                            ? getGlobalProfileUrl(
+                                bcEmp.id,
+                                bcEmp.profile_picture,
+                              )
+                            : null;
+                          return { key: i, dName, url };
+                        },
+                      );
+                      const visibleBc = bcEntries.slice(0, 3);
+                      const bcRemaining = Math.max(0, bcEntries.length - 3);
+                      const bcOverflowTitle =
+                        bcRemaining > 0
+                          ? bcEntries
+                              .slice(3)
+                              .map((e) => e.dName)
+                              .join(", ")
+                          : undefined;
+
+                      return (
+                        <div className="min-w-0">
+                          <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                            {maxCount > 1
+                              ? "BIM Coordinators"
+                              : "BIM Coordinator"}
+                          </p>
+                          {maxCount === 1 ? (
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
+                                {visibleBc[0].url ? (
+                                  <img
+                                    src={visibleBc[0].url}
+                                    className="w-full h-full object-cover"
+                                    alt=""
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src =
+                                        ProfileIcon;
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                    {visibleBc[0].dName.charAt(0).toUpperCase()}
                                   </div>
                                 )}
                               </div>
-                            )}
-                          </div>
-                        );
-                      })()}
+                              <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                                {visibleBc[0].dName}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center -space-x-3">
+                              {visibleBc.map((entry) => (
+                                <div
+                                  key={entry.key}
+                                  className="relative group shrink-0"
+                                >
+                                  <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
+                                    {entry.url ? (
+                                      <img
+                                        src={entry.url}
+                                        className="w-full h-full object-cover"
+                                        alt=""
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).src =
+                                            ProfileIcon;
+                                        }}
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                        {entry.dName.charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                    {entry.dName}
+                                  </div>
+                                </div>
+                              ))}
+                              {bcRemaining > 0 && (
+                                <div className="relative group shrink-0">
+                                  <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
+                                    +{bcRemaining}
+                                  </div>
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                    {bcOverflowTitle}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Department Involved
                     <div className="flex flex-col gap-3">
@@ -1842,10 +1870,12 @@ export default function ProjectsBC() {
                               .map((fileName, idx) => {
                                 const isOutsource =
                                   selectedProjectForView.source === "Outsource";
-                                 const fileBaseUrl = (api.defaults.baseURL || "").replace(/\/api\/?$/, "");
-                                 const url = isOutsource
-                                   ? `${fileBaseUrl}/static/uploads/vendor_docs/${fileName}`
-                                   : `${fileBaseUrl}/uploads/${fileName}`;
+                                const fileBaseUrl = (
+                                  api.defaults.baseURL || ""
+                                ).replace(/\/api\/?$/, "");
+                                const url = isOutsource
+                                  ? `${fileBaseUrl}/static/uploads/vendor_docs/${fileName}`
+                                  : `${fileBaseUrl}/uploads/${fileName}`;
 
                                 return (
                                   <div
@@ -2199,7 +2229,7 @@ export default function ProjectsBC() {
                   </div>
                 </div>
               </div>
-              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">
+              <h3 className="text-[24px] font-Gantari font-semibold text-[#000000]">
                 Add New Project
               </h3>
             </div>
@@ -2259,10 +2289,7 @@ export default function ProjectsBC() {
                   );
                   if (pmIdsCreate)
                     formData.append("project_manager_id", pmIdsCreate);
-                  const leadIdsCreate = namesToIds(
-                    createBIMLead,
-                    allEmployees,
-                  );
+                  const leadIdsCreate = namesToIds(createBIMLead, allEmployees);
                   if (leadIdsCreate) formData.append("lead_id", leadIdsCreate);
                   const bcIdsCreate = namesToIds(
                     createBIMCoOrdinator,
@@ -2779,13 +2806,15 @@ export default function ProjectsBC() {
                         <div className="overflow-y-auto">
                           {allEmployees
                             .filter(isEmployeeActiveForProjectAssignment)
-                            .filter(e => {
-                              const role = String(e.user_role || '').toLowerCase();
+                            .filter((e) => {
+                              const role = String(
+                                e.user_role || "",
+                              ).toLowerCase();
                               return (
-                                !role.includes('project manager') &&
-                                !role.includes('bim lead') &&
-                                !role.includes('coordinator') &&
-                                !role.includes('technical director')
+                                !role.includes("project manager") &&
+                                !role.includes("bim lead") &&
+                                !role.includes("coordinator") &&
+                                !role.includes("technical director")
                               );
                             })
                             .filter((e) =>
@@ -3541,13 +3570,15 @@ export default function ProjectsBC() {
                         <div className="overflow-y-auto">
                           {allEmployees
                             .filter(isEmployeeActiveForProjectAssignment)
-                            .filter(e => {
-                              const role = String(e.user_role || '').toLowerCase();
+                            .filter((e) => {
+                              const role = String(
+                                e.user_role || "",
+                              ).toLowerCase();
                               return (
-                                !role.includes('project manager') &&
-                                !role.includes('bim lead') &&
-                                !role.includes('coordinator') &&
-                                !role.includes('technical director')
+                                !role.includes("project manager") &&
+                                !role.includes("bim lead") &&
+                                !role.includes("coordinator") &&
+                                !role.includes("technical director")
                               );
                             })
                             .filter((e) =>
@@ -3885,7 +3916,12 @@ export default function ProjectsBC() {
                     return (
                       <div
                         key={p.id}
-                         onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(openMenuProjectId === p.id ? null : p.id); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuProjectId(
+                            openMenuProjectId === p.id ? null : p.id,
+                          );
+                        }}
                         className="bg-white rounded-md border border-slate-200 p-4 gap-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
                         <div>
@@ -4018,7 +4054,14 @@ export default function ProjectsBC() {
                                         ) ||
                                         p.project_manager ||
                                         "";
-                                      setCreateProjectManager(pmDisplay ? pmDisplay.split(',').map(s => s.trim()).filter(Boolean) : []);
+                                      setCreateProjectManager(
+                                        pmDisplay
+                                          ? pmDisplay
+                                              .split(",")
+                                              .map((s) => s.trim())
+                                              .filter(Boolean)
+                                          : [],
+                                      );
                                       setCreateStartDate(
                                         p.start_date
                                           ? String(p.start_date)
@@ -4047,7 +4090,14 @@ export default function ProjectsBC() {
                                           allEmployees,
                                         ) ||
                                         "";
-                                      setCreateBIMLead(blDisplay ? blDisplay.split(',').map(s => s.trim()).filter(Boolean) : []);
+                                      setCreateBIMLead(
+                                        blDisplay
+                                          ? blDisplay
+                                              .split(",")
+                                              .map((s) => s.trim())
+                                              .filter(Boolean)
+                                          : [],
+                                      );
                                       const bcDisplay =
                                         p.bim_coordinator_name ||
                                         csvToDisplayNamesFromIds(
@@ -4059,7 +4109,14 @@ export default function ProjectsBC() {
                                           allEmployees,
                                         ) ||
                                         "";
-                                      setCreateBIMCoOrdinator(bcDisplay ? bcDisplay.split(',').map(s => s.trim()).filter(Boolean) : []);
+                                      setCreateBIMCoOrdinator(
+                                        bcDisplay
+                                          ? bcDisplay
+                                              .split(",")
+                                              .map((s) => s.trim())
+                                              .filter(Boolean)
+                                          : [],
+                                      );
                                       setSelectedMemberIds(
                                         p.member
                                           ? p.member
@@ -4130,16 +4187,14 @@ export default function ProjectsBC() {
                             </div>
                           </div>
 
-                          <div className="mb-2 ml-6 -mt-2 min-h-[45px] flex items-center">
-                            <h3 className="text-[18px] font-Gantari font-semibold text-[#1A1A1A] leading-tight line-clamp-2">
+                          <div className="mb-2 ml-4 -mt-4 min-h-[45px] flex flex-col justify-center">
+                            <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight">
                               {p.project_name ?? "Untitled Project"}
                             </h3>
                           </div>
                         </div>
 
-                        <div
-                          className="flex items-center justify-between border-t border-[#E8E8E8] pt-2 mt-auto"
-                        >
+                        <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-2 mt-auto">
                           <div
                             className="flex items-center -space-x-4"
                             onClick={(e) => e.stopPropagation()}
@@ -4400,8 +4455,14 @@ export default function ProjectsBC() {
                     required
                   />
                   <div className="flex flex-col sm:flex-row justify-between gap-1 text-[12px] md:text-[13px] font-Gantari font-bold text-[#999999]">
-                    <span>Project Budget: {selectedProjectForView?.budget || "0"} {selectedProjectForView?.currency || "INR"}</span>
-                    <span>Available Budget: {selectedProjectForView?.budget || "0"} {selectedProjectForView?.currency || "INR"}</span>
+                    <span>
+                      Project Budget: {selectedProjectForView?.budget || "0"}{" "}
+                      {selectedProjectForView?.currency || "INR"}
+                    </span>
+                    <span>
+                      Available Budget: {selectedProjectForView?.budget || "0"}{" "}
+                      {selectedProjectForView?.currency || "INR"}
+                    </span>
                   </div>
                 </div>
 

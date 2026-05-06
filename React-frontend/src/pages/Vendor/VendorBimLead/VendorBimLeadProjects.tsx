@@ -110,7 +110,10 @@ function toCalendarYmd(raw: string): string | null {
   return s;
 }
 
-function countInclusiveProjectDays(startYmd: string, endYmd: string): number | null {
+function countInclusiveProjectDays(
+  startYmd: string,
+  endYmd: string,
+): number | null {
   const a = toCalendarYmd(startYmd);
   const b = toCalendarYmd(endYmd);
   if (!a || !b) return null;
@@ -132,7 +135,7 @@ export default function VendorBimLeadProjects() {
     ((p?.selected_currency || p?.currency || "INR") as string).toUpperCase();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const [list, setList] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(
@@ -543,30 +546,38 @@ export default function VendorBimLeadProjects() {
 
           // Update selected project state if it is currently being viewed
           if (selectedProject && selectedProject.id === editId) {
-            setSelectedProject((prev) => 
-               prev ? {
-                ...prev,
-                project_name: createName,
-                budget: createBudget,
-                modules: createModuleName,
-                client_id: String(getClientIdByName(createClientName)),
-                project_manager_id: nameToId(createProjectManager, projectManagers),
-                start_date: createStartDate,
-                end_date: createEndDate,
-                totalhours: computedTotalHours,
-                per_day: createPerDay,
-                lead_id: nameToId(createBIMLead, bimLeads),
-                bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
-                bim_coordinator: createBIMCoOrdinator,
-                members: selectedMemberIds.join(","),
-                resources: createResources,
-                required_resources: createRequiredResources,
-                priority: createPriority,
-                location: createLocation,
-                description: createDescription,
-                deliverables: createTaskName,
-                department: createDepartment,
-              } : null
+            setSelectedProject((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    project_name: createName,
+                    budget: createBudget,
+                    modules: createModuleName,
+                    client_id: String(getClientIdByName(createClientName)),
+                    project_manager_id: nameToId(
+                      createProjectManager,
+                      projectManagers,
+                    ),
+                    start_date: createStartDate,
+                    end_date: createEndDate,
+                    totalhours: computedTotalHours,
+                    per_day: createPerDay,
+                    lead_id: nameToId(createBIMLead, bimLeads),
+                    bim_coordinator_id: nameToId(
+                      createBIMCoOrdinator,
+                      bimCoordinators,
+                    ),
+                    bim_coordinator: createBIMCoOrdinator,
+                    members: selectedMemberIds.join(","),
+                    resources: createResources,
+                    required_resources: createRequiredResources,
+                    priority: createPriority,
+                    location: createLocation,
+                    description: createDescription,
+                    deliverables: createTaskName,
+                    department: createDepartment,
+                  }
+                : null,
             );
           }
 
@@ -1101,7 +1112,9 @@ export default function VendorBimLeadProjects() {
             placeholder="Total Estimated Hours"
             value={computedTotalHours}
           />
-          <p className="text-[10px] text-gray-400 mt-1">Auto-calculated from project dates and per day.</p>
+          <p className="text-[10px] text-gray-400 mt-1">
+            Auto-calculated from project dates and per day.
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -1379,58 +1392,58 @@ export default function VendorBimLeadProjects() {
             </div>
             <div className="flex-1 flex flex-col overflow-hidden px-5">
               <div className="flex-1 overflow-y-auto pb-10 custom-scrollbar -mr-6 space-y-8">
-              {/* Fixed KPI Cards at top */}
-              <div className="mt-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
-                  {[
-                    {
-                      label: "To Do Tasks",
-                      value: loadingTaskStats ? "..." : taskStats.todo,
-                      status: "todo",
-                    },
-                    {
-                      label: "In Progress Tasks",
-                      value: loadingTaskStats ? "..." : taskStats.inProgress,
-                      status: "in_progress",
-                    },
-                    {
-                      label: "Paused Tasks",
-                      value: loadingTaskStats ? "..." : taskStats.paused,
-                      status: "paused",
-                    },
-                    {
-                      label: "Completed Tasks",
-                      value: loadingTaskStats ? "..." : taskStats.completed,
-                      status: "completed",
-                    },
-                  ].map((stat, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() =>
-                        navigate(
-                          "/vendor-bim-lead/teamtasks?status=" +
-                            stat.status +
-                            (selectedProject?.project_name
-                              ? `&project=${encodeURIComponent(selectedProject.project_name)}`
-                              : ""),
-                        )
-                      }
-                      className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
-                    >
-                      <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
-                        {stat.label}
-                      </p>
-                      <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
-                        {stat.value}
-                      </p>
-                    </button>
-                  ))}
+                {/* Fixed KPI Cards at top */}
+                <div className="mt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+                    {[
+                      {
+                        label: "To Do Tasks",
+                        value: loadingTaskStats ? "..." : taskStats.todo,
+                        status: "todo",
+                      },
+                      {
+                        label: "In Progress Tasks",
+                        value: loadingTaskStats ? "..." : taskStats.inProgress,
+                        status: "in_progress",
+                      },
+                      {
+                        label: "Paused Tasks",
+                        value: loadingTaskStats ? "..." : taskStats.paused,
+                        status: "paused",
+                      },
+                      {
+                        label: "Completed Tasks",
+                        value: loadingTaskStats ? "..." : taskStats.completed,
+                        status: "completed",
+                      },
+                    ].map((stat, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            "/vendor-bim-lead/teamtasks?status=" +
+                              stat.status +
+                              (selectedProject?.project_name
+                                ? `&project=${encodeURIComponent(selectedProject.project_name)}`
+                                : ""),
+                          )
+                        }
+                        className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                      >
+                        <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                          {stat.label}
+                        </p>
+                        <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none">
+                          {stat.value}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Scrollable Content Below KPI Cards */}
-              
+                {/* Scrollable Content Below KPI Cards */}
+
                 {/* Modules */}
                 <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-4">
                   <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-4">
@@ -1466,7 +1479,7 @@ export default function VendorBimLeadProjects() {
                               className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[150px]"
                             >
                               <div className="flex justify-between items-start mb-2">
-                                <h5 
+                                <h5
                                   className="text-[16px] font-Gantari font-medium text-[#1A1A1A] truncate pr-2"
                                   title={tower.name}
                                 >
@@ -1576,122 +1589,211 @@ export default function VendorBimLeadProjects() {
                     Team Overview
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                                         {/* Project Manager */}
-                                         <div className="space-y-4">
-                                             <p className="text-[16px] font-medium text-[#000000]">Project Manager</p>
-                                             <div className="flex items-center gap-4">
-                                                 {(() => {
-                                                     const id = selectedProject.project_manager_id;
-                                                     const name = getEmployeeName(id);
-                                                     const emp = projectManagers.find(e => e.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
-                                                     const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : null;
-                                                     return (
-                                                         <>
-                                                             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
-                                                                 {profileUrl ? (
-                                                                     <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
-                                                                 ) : (
-                                                                     <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
-                                                                 )}
-                                                             </div>
-                                                             <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
-                                                                 {name || "Not assigned"}
-                                                             </p>
-                                                         </>
-                                                     );
-                                                 })()}
-                                             </div>
-                                         </div>
+                    {/* Project Manager */}
+                    <div className="space-y-4">
+                      <p className="text-[16px] font-medium text-[#000000]">
+                        Project Manager
+                      </p>
+                      <div className="flex items-center gap-4">
+                        {(() => {
+                          const id = selectedProject.project_manager_id;
+                          const name = getEmployeeName(id);
+                          const emp =
+                            projectManagers.find((e) => e.id === Number(id)) ||
+                            allEmployees.find((e) => e.id === Number(id));
+                          const profileUrl = emp?.profile_picture
+                            ? getGlobalProfileUrl(
+                                emp.id,
+                                emp.profile_picture,
+                                "vendor",
+                              )
+                            : null;
+                          return (
+                            <>
+                              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                                {profileUrl ? (
+                                  <img
+                                    src={profileUrl}
+                                    className="w-full h-full object-cover"
+                                    alt=""
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src =
+                                        swifterzLogo;
+                                    }}
+                                  />
+                                ) : (
+                                  <img
+                                    src={swifterzLogo}
+                                    className="w-7 h-7 object-contain"
+                                    alt=""
+                                  />
+                                )}
+                              </div>
+                              <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                                {name || "Not assigned"}
+                              </p>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
 
-                                         {/* BIM Lead */}
-                                         <div className="space-y-4">
-                                             <p className="text-[16px] font-medium text-[#000000]">BIM Lead</p>
-                                             <div className="flex items-center gap-4">
-                                                 {(() => {
-                                                     const id = selectedProject.lead_id;
-                                                     const name = getEmployeeName(id);
-                                                     const emp = bimLeads.find(e => e.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
-                                                     const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : null;
-                                                     return (
-                                                         <>
-                                                             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
-                                                                 {profileUrl ? (
-                                                                     <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
-                                                                 ) : (
-                                                                     <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
-                                                                 )}
-                                                             </div>
-                                                             <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
-                                                                 {name || "Not assigned"}
-                                                             </p>
-                                                         </>
-                                                     );
-                                                 })()}
-                                             </div>
-                                         </div>
+                    {/* BIM Lead */}
+                    <div className="space-y-4">
+                      <p className="text-[16px] font-medium text-[#000000]">
+                        BIM Lead
+                      </p>
+                      <div className="flex items-center gap-4">
+                        {(() => {
+                          const id = selectedProject.lead_id;
+                          const name = getEmployeeName(id);
+                          const emp =
+                            bimLeads.find((e) => e.id === Number(id)) ||
+                            allEmployees.find((e) => e.id === Number(id));
+                          const profileUrl = emp?.profile_picture
+                            ? getGlobalProfileUrl(
+                                emp.id,
+                                emp.profile_picture,
+                                "vendor",
+                              )
+                            : null;
+                          return (
+                            <>
+                              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                                {profileUrl ? (
+                                  <img
+                                    src={profileUrl}
+                                    className="w-full h-full object-cover"
+                                    alt=""
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src =
+                                        swifterzLogo;
+                                    }}
+                                  />
+                                ) : (
+                                  <img
+                                    src={swifterzLogo}
+                                    className="w-7 h-7 object-contain"
+                                    alt=""
+                                  />
+                                )}
+                              </div>
+                              <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                                {name || "Not assigned"}
+                              </p>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
 
-                                         {/* Members Involved */}
-                                         <div className="space-y-4">
-                                             <p className="text-[16px] font-medium text-[#000000]">Members Involved</p>
-                                             {(() => {
-                                                 const memberIds = (selectedProject.members || "").split(",").filter(Boolean);
-                                                 const projectMembers = memberIds.map(id => {
-                                                     return vendorResourceProfiles.find(r => r.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
-                                                 }).filter(Boolean);
+                    {/* Members Involved */}
+                    <div className="space-y-4">
+                      <p className="text-[16px] font-medium text-[#000000]">
+                        Members Involved
+                      </p>
+                      {(() => {
+                        const memberIds = (selectedProject.members || "")
+                          .split(",")
+                          .filter(Boolean);
+                        const projectMembers = memberIds
+                          .map((id) => {
+                            return (
+                              vendorResourceProfiles.find(
+                                (r) => r.id === Number(id),
+                              ) || allEmployees.find((e) => e.id === Number(id))
+                            );
+                          })
+                          .filter(Boolean);
 
-                                                 if (projectMembers.length === 0) {
-                                                     return (
-                                                         <div className="h-10 flex items-center text-[14px] font-bold text-[#666666]">
-                                                             N/A
-                                                         </div>
-                                                     );
-                                                 }
+                        if (projectMembers.length === 0) {
+                          return (
+                            <div className="h-10 flex items-center text-[14px] font-bold text-[#666666]">
+                              N/A
+                            </div>
+                          );
+                        }
 
-                                                 return (
-                                                     <div className="flex items-center -space-x-3">
-                                                         {projectMembers.slice(0, 3).map((member: any) => {
-                                                             const profileUrl = member.profile_picture ? getGlobalProfileUrl(member.id, member.profile_picture, "vendor") : null;
-                                                             return (
-                                                                 <div key={member.id} className="relative group shrink-0">
-                                                                     <div
-                                                                         role="button"
-                                                                         tabIndex={0}
-                                                                         className="w-10 h-10 rounded-full bg-white flex items-center justify-center border-2 border-white overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                                                         onClick={() => openMemberProfile(member)}
-                                                                         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openMemberProfile(member); } }}
-                                                                     >
-                                                                         {profileUrl ? (
-                                                                             <img src={profileUrl} className="w-full h-full object-cover" alt={member.full_name || "Member"} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                                                         ) : (
-                                                                             <img src={ProfileIcon} className="w-full h-full object-cover p-1" alt={member.full_name || "Member"} />
-                                                                         )}
-                                                                     </div>
-                                                                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                                                         <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
-                                                                             <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                                                                 {member.full_name || "Unknown"}
-                                                                             </span>
-                                                                         </div>
-                                                                         <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
-                                                                     </div>
-                                                                 </div>
-                                                             );
-                                                         })}
-                                                         {projectMembers.length > 3 && (
-                                                             <div
-                                                                 role="button"
-                                                                 tabIndex={0}
-                                                                 className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                                                                 onClick={() => { setAllMembersList(projectMembers as any[]); setShowAllMembersModal(true); }}
-                                                                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAllMembersList(projectMembers as any[]); setShowAllMembersModal(true); } }}
-                                                             >
-                                                                 +{projectMembers.length - 3}
-                                                             </div>
-                                                         )}
-                                                     </div>
-                                                 );
-                                             })()}
-                                         </div>
+                        return (
+                          <div className="flex items-center -space-x-3">
+                            {projectMembers.slice(0, 3).map((member: any) => {
+                              const profileUrl = member.profile_picture
+                                ? getGlobalProfileUrl(
+                                    member.id,
+                                    member.profile_picture,
+                                    "vendor",
+                                  )
+                                : null;
+                              return (
+                                <div
+                                  key={member.id}
+                                  className="relative group shrink-0"
+                                >
+                                  <div
+                                    role="button"
+                                    tabIndex={0}
+                                    className="w-10 h-10 rounded-full bg-white flex items-center justify-center border-2 border-white overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                    onClick={() => openMemberProfile(member)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        openMemberProfile(member);
+                                      }
+                                    }}
+                                  >
+                                    {profileUrl ? (
+                                      <img
+                                        src={profileUrl}
+                                        className="w-full h-full object-cover"
+                                        alt={member.full_name || "Member"}
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).src =
+                                            ProfileIcon;
+                                        }}
+                                      />
+                                    ) : (
+                                      <img
+                                        src={ProfileIcon}
+                                        className="w-full h-full object-cover p-1"
+                                        alt={member.full_name || "Member"}
+                                      />
+                                    )}
+                                  </div>
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                                      <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                        {member.full_name || "Unknown"}
+                                      </span>
+                                    </div>
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {projectMembers.length > 3 && (
+                              <div
+                                role="button"
+                                tabIndex={0}
+                                className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                                onClick={() => {
+                                  setAllMembersList(projectMembers as any[]);
+                                  setShowAllMembersModal(true);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    setAllMembersList(projectMembers as any[]);
+                                    setShowAllMembersModal(true);
+                                  }
+                                }}
+                              >
+                                +{projectMembers.length - 3}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
 
@@ -1702,79 +1804,131 @@ export default function VendorBimLeadProjects() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-2 md:gap-y-4 lg:gap-x-16">
                     <div className="space-y-2">
                       <div className="flex">
-                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Client Name</span>
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">
+                          Client Name
+                        </span>
                         <span className="text-[#616161] mx-4 shrink-0">:</span>
-                        <span className="text-[14px] font-medium text-[#616161] font-gantari">{getClientNameById(selectedProject.client_id) || "N/A"}</span>
-                      </div>
-                      <div className="flex">
-                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Start Date</span>
-                        <span className="text-[#616161] mx-4 shrink-0">:</span>
-                        <span className="text-[14px] font-medium text-[#616161] font-gantari">{formatDate(selectedProject.start_date)}</span>
-                      </div>
-                      <div className="flex">
-                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Total Project Hours</span>
-                        <span className="text-[#616161] mx-4 shrink-0">:</span>
-                        <span className="text-[14px] font-medium text-[#616161]">
-                          {selectedProject.totalhours || (selectedProject as any).total_hours ? `${selectedProject.totalhours || (selectedProject as any).total_hours}hrs` : "N/A"}
+                        <span className="text-[14px] font-medium text-[#616161] font-gantari">
+                          {getClientNameById(selectedProject.client_id) ||
+                            "N/A"}
                         </span>
                       </div>
                       <div className="flex">
-                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Budget</span>
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">
+                          Start Date
+                        </span>
                         <span className="text-[#616161] mx-4 shrink-0">:</span>
                         <span className="text-[14px] font-medium text-[#616161] font-gantari">
-                          {selectedProject.budget || selectedProject.budget_ceiling
+                          {formatDate(selectedProject.start_date)}
+                        </span>
+                      </div>
+                      <div className="flex">
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">
+                          Total Project Hours
+                        </span>
+                        <span className="text-[#616161] mx-4 shrink-0">:</span>
+                        <span className="text-[14px] font-medium text-[#616161]">
+                          {selectedProject.totalhours ||
+                          (selectedProject as any).total_hours
+                            ? `${selectedProject.totalhours || (selectedProject as any).total_hours}hrs`
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex">
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">
+                          Budget
+                        </span>
+                        <span className="text-[#616161] mx-4 shrink-0">:</span>
+                        <span className="text-[14px] font-medium text-[#616161] font-gantari">
+                          {selectedProject.budget ||
+                          selectedProject.budget_ceiling
                             ? `${selectedProject.budget || selectedProject.budget_ceiling} ${projectCurrencyCode(selectedProject)}`
                             : "N/A"}
                         </span>
                       </div>
                       <div className="flex">
-                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Total Resources Available</span>
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">
+                          Total Resources Available
+                        </span>
                         <span className="text-[#616161] mx-4 shrink-0">:</span>
-                        <span className="text-[14px] font-medium text-[#616161]">{selectedProject.no_resource || "000"}</span>
+                        <span className="text-[14px] font-medium text-[#616161]">
+                          {selectedProject.no_resource || "000"}
+                        </span>
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <div className="flex">
-                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Location</span>
-                        <span className="text-[#616161] mx-4 shrink-0">:</span>
-                        <span className="text-[14px] font-medium text-[#616161]">{selectedProject.location || "N/A"}</span>
-                      </div>
-                      <div className="flex">
-                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">End Date</span>
-                        <span className="text-[#616161] mx-4 shrink-0">:</span>
-                        <span className="text-[14px] font-medium text-[#616161]">{formatDate(selectedProject.end_date || selectedProject.due_date)}</span>
-                      </div>
-                      <div className="flex">
-                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Hours/Day</span>
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">
+                          Location
+                        </span>
                         <span className="text-[#616161] mx-4 shrink-0">:</span>
                         <span className="text-[14px] font-medium text-[#616161]">
-                          {selectedProject.per_day || selectedProject.perday ? `${selectedProject.per_day || selectedProject.perday}hrs` : "0:00hrs"}
+                          {selectedProject.location || "N/A"}
                         </span>
                       </div>
                       <div className="flex">
-                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Total Resources Required</span>
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">
+                          End Date
+                        </span>
                         <span className="text-[#616161] mx-4 shrink-0">:</span>
-                        <span className="text-[14px] font-medium text-[#616161]">{selectedProject.no_resources_required || "000"}</span>
+                        <span className="text-[14px] font-medium text-[#616161]">
+                          {formatDate(
+                            selectedProject.end_date ||
+                              selectedProject.due_date,
+                          )}
+                        </span>
                       </div>
                       <div className="flex">
-                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Required Resources</span>
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">
+                          Hours/Day
+                        </span>
                         <span className="text-[#616161] mx-4 shrink-0">:</span>
-                        <span className="text-[14px] font-medium text-[#616161]">{selectedProject.required_resources || "000"}</span>
+                        <span className="text-[14px] font-medium text-[#616161]">
+                          {selectedProject.per_day || selectedProject.perday
+                            ? `${selectedProject.per_day || selectedProject.perday}hrs`
+                            : "0:00hrs"}
+                        </span>
+                      </div>
+                      <div className="flex">
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">
+                          Total Resources Required
+                        </span>
+                        <span className="text-[#616161] mx-4 shrink-0">:</span>
+                        <span className="text-[14px] font-medium text-[#616161]">
+                          {selectedProject.no_resources_required || "000"}
+                        </span>
+                      </div>
+                      <div className="flex">
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">
+                          Required Resources
+                        </span>
+                        <span className="text-[#616161] mx-4 shrink-0">:</span>
+                        <span className="text-[14px] font-medium text-[#616161]">
+                          {selectedProject.required_resources || "000"}
+                        </span>
                       </div>
                     </div>
 
                     <div className="lg:col-span-2 ">
                       <div className="flex items-center">
-                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">Project Document</span>
+                        <span className="w-48 text-[14px] font-medium text-[#353535] shrink-0">
+                          Project Document
+                        </span>
                         <span className="text-[#616161] mx-4 shrink-0">:</span>
                         {selectedProject.document_attachment ? (
                           <div className="flex items-center gap-3">
                             <span className="text-[16px] font-medium text-[#616161] line-clamp-1 flex-1 font-gantari">
-                              {selectedProject.document_attachment.split("/").pop()?.split("_").pop() || "Document.pdf"}
+                              {selectedProject.document_attachment
+                                .split("/")
+                                .pop()
+                                ?.split("_")
+                                .pop() || "Document.pdf"}
                             </span>
                             <a
-                              href={resolveVendorDocUrl(selectedProject.document_attachment)}
+                              href={resolveVendorDocUrl(
+                                selectedProject.document_attachment,
+                              )}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="px-2 py-1 bg-[#E8F0FE] text-[#1967D2] rounded flex items-center justify-center hover:bg-[#D2E3FC] transition-colors"
@@ -1783,7 +1937,9 @@ export default function VendorBimLeadProjects() {
                             </a>
                           </div>
                         ) : (
-                          <span className="text-[14px] font-medium text-[#616161]">No Document Available</span>
+                          <span className="text-[14px] font-medium text-[#616161]">
+                            No Document Available
+                          </span>
                         )}
                       </div>
                     </div>
@@ -1814,7 +1970,9 @@ export default function VendorBimLeadProjects() {
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-[26px] font-bold text-center pr-10">Payment Milestones</h3>
+                  <h3 className="text-[26px] font-bold text-center pr-10">
+                    Payment Milestones
+                  </h3>
                   <p className="text-[16px] font-bold text-[#999999] text-center pr-10">
                     {milestonesProject.project_name}
                   </p>
@@ -1840,15 +1998,24 @@ export default function VendorBimLeadProjects() {
             <div className="flex-1 overflow-y-auto pt-4 pb-10 px-5 space-y-6 custom-scrollbar">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {(() => {
-                  const filteredList = searchQuery 
-                    ? list.filter((p) => 
-                        (p.project_name || "").toLowerCase().includes(searchQuery) ||
-                        (getClientNameById(p.client_id) || "").toLowerCase().includes(searchQuery) ||
-                        (p.location || "").toLowerCase().includes(searchQuery) ||
-                        (p.priority || "").toLowerCase().includes(searchQuery)
+                  const filteredList = searchQuery
+                    ? list.filter(
+                        (p) =>
+                          (p.project_name || "")
+                            .toLowerCase()
+                            .includes(searchQuery) ||
+                          (getClientNameById(p.client_id) || "")
+                            .toLowerCase()
+                            .includes(searchQuery) ||
+                          (p.location || "")
+                            .toLowerCase()
+                            .includes(searchQuery) ||
+                          (p.priority || "")
+                            .toLowerCase()
+                            .includes(searchQuery),
                       )
                     : list;
-                  
+
                   if (filteredList.length === 0) {
                     return (
                       <div className="col-span-full bg-[#F8FAFC] rounded-2xl border-2 border-dashed border-slate-200 p-20 text-center">
@@ -1873,7 +2040,12 @@ export default function VendorBimLeadProjects() {
                     return (
                       <div
                         key={p.id}
-                         onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(openMenuProjectId === p.id ? null : p.id); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuProjectId(
+                            openMenuProjectId === p.id ? null : p.id,
+                          );
+                        }}
                         className="bg-white rounded-md border border-slate-200 p-4 pt-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
                         <div>
@@ -1950,7 +2122,9 @@ export default function VendorBimLeadProjects() {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setOpenMenuProjectId(null);
-                                    navigate(`/v/milestones?project_id=${p.id}`);
+                                    navigate(
+                                      `/v/milestones?project_id=${p.id}`,
+                                    );
                                   }}
                                   className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                 >
@@ -2014,7 +2188,7 @@ export default function VendorBimLeadProjects() {
                                       ? getGlobalProfileUrl(
                                           emp.id,
                                           emp.profile_picture,
-                                          "vendor"
+                                          "vendor",
                                         )
                                       : null;
 
@@ -2094,9 +2268,9 @@ export default function VendorBimLeadProjects() {
                           {p.priority ? (
                             <div
                               className={`px-4 py-1 rounded-[5px] text-white text-[13px] font-medium font-Gantari shadow-sm shrink-0 ${
-                                (p.priority || "").toLowerCase() === "high" || 
-                                (p.priority || "").toLowerCase() === "urgent" 
-                                  ? "bg-[#DD4342]" 
+                                (p.priority || "").toLowerCase() === "high" ||
+                                (p.priority || "").toLowerCase() === "urgent"
+                                  ? "bg-[#DD4342]"
                                   : "bg-[#94D6F2]"
                               }`}
                             >
