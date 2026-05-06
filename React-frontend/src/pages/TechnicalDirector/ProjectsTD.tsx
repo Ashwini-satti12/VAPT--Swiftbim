@@ -40,10 +40,8 @@ const CURRENCIES = [
   { code: "IDR", symbol: "Rp", label: "Indonesian Rupiah" },
 ];
 
-
 const nameToId = (name: string, employeesList: Employee[]) => {
-  if (!name || name === "Nothing Selected")
-    return undefined;
+  if (!name || name === "Nothing Selected") return undefined;
   if (/^\d+$/.test(name)) return Number(name);
   const emp = employeesList.find((e) => e.full_name === name);
   return emp ? emp.id : name;
@@ -82,7 +80,12 @@ function CustomDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, bottom: 0 });
+  const [coords, setCoords] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+    bottom: 0,
+  });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -133,22 +136,27 @@ function CustomDropdown({
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-2 transition-all outline-none font-Gantari min-w-0 ${styleType === "header"
+        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-2 transition-all outline-none font-Gantari min-w-0 ${
+          styleType === "header"
             ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[12px] sm:text-[14px] font-semibold"
-            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[12px] sm:text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""
-            }`
-          }`}
+            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[12px] sm:text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${
+                isOpen ? "!border-[#AEACAC52]" : ""
+              }`
+        }`}
       >
         <span
-          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${isPlaceholder || isOpen ? "text-[#8B8B8B]" : "text-[#353535]"
-            }`}
+          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+            isPlaceholder || isOpen ? "text-[#8B8B8B]" : "text-[#353535]"
+          }`}
         >
           {isPlaceholder || isOpen ? (
             placeholder
           ) : (
             <>
               {selectedPrefix && (
-                <span className="text-[14px] font-normal">{selectedPrefix}</span>
+                <span className="text-[14px] font-normal">
+                  {selectedPrefix}
+                </span>
               )}{" "}
               <span>{value}</span>
             </>
@@ -157,8 +165,9 @@ function CustomDropdown({
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""
-            } ${isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
+          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${
+            isOpen ? "rotate-180" : ""
+          } ${isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
         />
       </button>
 
@@ -185,10 +194,11 @@ function CustomDropdown({
                   onChange(option);
                   setIsOpen(false);
                 }}
-                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${value === option
+                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${
+                  value === option
                     ? "text-[#353535] bg-[#F2F2F2]"
                     : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
-                  }`}
+                }`}
               >
                 <span className="truncate min-w-0">{option}</span>
                 {value === option && (
@@ -716,7 +726,8 @@ export default function ProjectsTD() {
       total_hours: str(r.totalhours),
       per_day: str(r.perday),
       resources: str(r.resources) ?? str(r.no_resource),
-      required_resources: str(r.required_resources) ?? str(r.no_resources_required),
+      required_resources:
+        str(r.required_resources) ?? str(r.no_resources_required),
       department: str(r.department_name),
       budget_ceiling: str(r.budget_ceiling),
       bidding_end_date: str(r.bidding_end_date),
@@ -733,11 +744,13 @@ export default function ProjectsTD() {
       source: str(r.source),
       document_attachment: str(r.document_attachment),
       currency:
-        (r.selected_currency != null && String(r.selected_currency).trim().length > 0)
+        r.selected_currency != null &&
+        String(r.selected_currency).trim().length > 0
           ? String(r.selected_currency)
           : str(r.currency) || "INR",
       currency_locked:
-        r.selected_currency != null && String(r.selected_currency).trim().length > 0,
+        r.selected_currency != null &&
+        String(r.selected_currency).trim().length > 0,
       commercial_verification_status: commercialVerificationStatus,
       requires_advance_payment: Boolean(r.requires_advance_payment),
       advance_payment_verified: Boolean(r.advance_payment_verified),
@@ -747,13 +760,21 @@ export default function ProjectsTD() {
   const isCommercialVerificationPending = (project: Project) => {
     const isOutsourceProject =
       String(project.source || "").toLowerCase() === "outsource" ||
-      String(project.department || "").trim().toLowerCase() === "submission deadline";
+      String(project.department || "")
+        .trim()
+        .toLowerCase() === "submission deadline";
     if (!isOutsourceProject) return false;
-    const raw = String(project.commercial_verification_status || "").trim().toLowerCase();
+    const raw = String(project.commercial_verification_status || "")
+      .trim()
+      .toLowerCase();
     // For outsource projects, missing status is treated as not verified yet.
     if (!raw) return true;
     const normalized = raw.replace(/[\s-]+/g, "_");
-    if (["verified", "approved", "validated", "completed", "paid"].includes(normalized)) {
+    if (
+      ["verified", "approved", "validated", "completed", "paid"].includes(
+        normalized,
+      )
+    ) {
       return false;
     }
     return [
@@ -802,11 +823,14 @@ export default function ProjectsTD() {
     const status = searchParams.get("status");
     Promise.all([
       api.get<{ projects?: Record<string, unknown>[] }>("/api/projects", {
-        params: { status: status || undefined }
+        params: { status: status || undefined },
       }),
-      api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects", {
-        params: { status: status || undefined }
-      })
+      api.get<{ projects?: Record<string, unknown>[] }>(
+        "/api/vendors/vendor-projects",
+        {
+          params: { status: status || undefined },
+        },
+      ),
     ])
       .then(([res1, res2]) => {
         const rawP1 = res1.data.projects ?? [];
@@ -820,12 +844,18 @@ export default function ProjectsTD() {
 
         const vendorMainProjectIds = new Set<number>(
           rawP2
-            .map((p) => Number((p as { main_project_id?: unknown }).main_project_id))
+            .map((p) =>
+              Number((p as { main_project_id?: unknown }).main_project_id),
+            )
             .filter((id) => Number.isFinite(id) && id > 0),
         );
         const vendorProjectNames = new Set<string>(
           rawP2
-            .map((p) => String(p.project_name ?? "").trim().toLowerCase())
+            .map((p) =>
+              String(p.project_name ?? "")
+                .trim()
+                .toLowerCase(),
+            )
             .filter(Boolean),
         );
 
@@ -850,7 +880,9 @@ export default function ProjectsTD() {
             if (p.source !== "Outsource") return true;
             const byId = vendorMainProjectIds.has(Number(p.id));
             const byName = vendorProjectNames.has(
-              String(p.project_name ?? "").trim().toLowerCase(),
+              String(p.project_name ?? "")
+                .trim()
+                .toLowerCase(),
             );
             return !byId && !byName;
           });
@@ -867,7 +899,7 @@ export default function ProjectsTD() {
       .then(() => {
         /* departments data consumed but state was removed */
       })
-      .catch(() => { });
+      .catch(() => {});
 
     api
       .get<{
@@ -1008,12 +1040,19 @@ export default function ProjectsTD() {
 
     setLoadingTaskStats(true);
     // Initialize towerData from selectedProjectForView.module_name to avoid empty modules during load or failure
-    const initialTowers = (selectedProjectForView?.module_name ? selectedProjectForView.module_name.split(',').map(m => m.trim()).filter(Boolean) : []).map((name, idx) => ({
+    const initialTowers = (
+      selectedProjectForView?.module_name
+        ? selectedProjectForView.module_name
+            .split(",")
+            .map((m) => m.trim())
+            .filter(Boolean)
+        : []
+    ).map((name, idx) => ({
       id: idx + 1,
       name,
       progress: selectedProjectForView?.progress ?? 0,
       completedTasks: selectedProjectForView?.completed_tasks ?? 0,
-      totalTasks: selectedProjectForView?.total_tasks ?? 0
+      totalTasks: selectedProjectForView?.total_tasks ?? 0,
     }));
     setTowerData(initialTowers);
 
@@ -1072,7 +1111,7 @@ export default function ProjectsTD() {
           completed: projectCompleted,
         });
         // Keep the initialTowers derived above instead of clearing to []
-        // setTowerData([]); 
+        // setTowerData([]);
       })
       .finally(() => {
         if (!cancelled) setLoadingTaskStats(false);
@@ -1188,7 +1227,6 @@ export default function ProjectsTD() {
                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A]">
                   {selectedProjectForView?.project_name ?? "Loading..."}
                 </h3>
-
               </div>
             </div>
 
@@ -1213,9 +1251,9 @@ export default function ProjectsTD() {
                         onClick={() =>
                           navigate(
                             "/td/teamtasks?status=todo" +
-                            (selectedProjectForView?.project_name
-                              ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                              : ""),
+                              (selectedProjectForView?.project_name
+                                ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                                : ""),
                           )
                         }
                         className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
@@ -1234,9 +1272,9 @@ export default function ProjectsTD() {
                         onClick={() =>
                           navigate(
                             "/td/teamtasks?status=in_progress" +
-                            (selectedProjectForView?.project_name
-                              ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                              : ""),
+                              (selectedProjectForView?.project_name
+                                ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                                : ""),
                           )
                         }
                         className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
@@ -1255,9 +1293,9 @@ export default function ProjectsTD() {
                         onClick={() =>
                           navigate(
                             "/td/teamtasks?status=paused" +
-                            (selectedProjectForView?.project_name
-                              ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                              : ""),
+                              (selectedProjectForView?.project_name
+                                ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                                : ""),
                           )
                         }
                         className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
@@ -1276,9 +1314,9 @@ export default function ProjectsTD() {
                         onClick={() =>
                           navigate(
                             "/td/teamtasks?status=completed" +
-                            (selectedProjectForView?.project_name
-                              ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                              : ""),
+                              (selectedProjectForView?.project_name
+                                ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                                : ""),
                           )
                         }
                         className="text-left bg-[#F2F2F2] px-4 py-4 rounded-md flex items-center justify-between h-[70px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
@@ -1312,14 +1350,20 @@ export default function ProjectsTD() {
                                 className="bg-white border border-slate-200 rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[126px]"
                               >
                                 <div className="flex justify-between items-start min-h-0 pb-2">
-                                  <h5 className="text-[16px] font-Gantari font-medium text-[#000000] truncate pr-2 w-full" title={tower.name}>
+                                  <h5
+                                    className="text-[16px] font-Gantari font-medium text-[#000000] truncate pr-2 w-full"
+                                    title={tower.name}
+                                  >
                                     {tower.name}
                                   </h5>
                                 </div>
 
                                 <div className="flex items-center justify-between mt-2 mb-2">
                                   <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
-                                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
+                                    <svg
+                                      className="w-full h-full transform -rotate-90"
+                                      viewBox="0 0 64 64"
+                                    >
                                       <circle
                                         cx="32"
                                         cy="32"
@@ -1337,7 +1381,8 @@ export default function ProjectsTD() {
                                         fill="transparent"
                                         strokeDasharray={163.36}
                                         strokeDashoffset={
-                                          163.36 - (tower.progress / 100) * 163.36
+                                          163.36 -
+                                          (tower.progress / 100) * 163.36
                                         }
                                         strokeLinecap="round"
                                         style={{
@@ -1389,7 +1434,9 @@ export default function ProjectsTD() {
                         <div
                           className="project-description-html text-[14px] font-Gantari font-medium text-[#666666] mt-4 w-full min-w-0 max-w-full leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] [&_*]:max-w-full [&_*]:whitespace-normal [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#DD4342] [&_a]:underline"
                           dangerouslySetInnerHTML={{
-                            __html: normalizeProjectDescriptionHtml(selectedProjectForView.description),
+                            __html: normalizeProjectDescriptionHtml(
+                              selectedProjectForView.description,
+                            ),
                           }}
                         />
                       ) : (
@@ -1407,55 +1454,69 @@ export default function ProjectsTD() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-center">
                         {/* Project Manager */}
                         {(() => {
-                          const pmIds = selectedProjectForView.project_manager_id
-                            ? String(selectedProjectForView.project_manager_id)
-                              .split(",")
-                              .map((id) => id.trim())
-                              .filter(Boolean)
-                            : [];
+                          const pmIds =
+                            selectedProjectForView.project_manager_id
+                              ? String(
+                                  selectedProjectForView.project_manager_id,
+                                )
+                                  .split(",")
+                                  .map((id) => id.trim())
+                                  .filter(Boolean)
+                              : [];
                           const pmNames =
                             selectedProjectForView.project_manager_name
                               ? String(
-                                selectedProjectForView.project_manager_name,
-                              )
-                                .split(",")
-                                .map((n) => n.trim())
-                                .filter((n) => Boolean(n) && !["unknown", "nothing selected", "not assigned"].includes(n.toLowerCase()))
+                                  selectedProjectForView.project_manager_name,
+                                )
+                                  .split(",")
+                                  .map((n) => n.trim())
+                                  .filter(
+                                    (n) =>
+                                      Boolean(n) &&
+                                      ![
+                                        "unknown",
+                                        "nothing selected",
+                                        "not assigned",
+                                      ].includes(n.toLowerCase()),
+                                  )
                               : [];
 
                           if (pmIds.length === 0 && pmNames.length === 0) {
                             return null;
                           }
 
-                          const maxCount = Math.max(pmIds.length, pmNames.length);
-                          const pmEntries = Array.from({ length: maxCount }).map(
-                            (_, i) => {
-                              const pId = pmIds[i];
-                              const pName = pmNames[i];
-                              const pmEmp = pId
-                                ? allEmployees.find(
+                          const maxCount = Math.max(
+                            pmIds.length,
+                            pmNames.length,
+                          );
+                          const pmEntries = Array.from({
+                            length: maxCount,
+                          }).map((_, i) => {
+                            const pId = pmIds[i];
+                            const pName = pmNames[i];
+                            const pmEmp = pId
+                              ? allEmployees.find(
                                   (e: any) => String(e.id) === pId,
                                 )
-                                : null;
-                              const dName =
-                                pmEmp?.full_name || pName || "Unknown";
-                              const url = pmEmp?.profile_picture
-                                ? getGlobalProfileUrl(
+                              : null;
+                            const dName =
+                              pmEmp?.full_name || pName || "Unknown";
+                            const url = pmEmp?.profile_picture
+                              ? getGlobalProfileUrl(
                                   pmEmp.id,
                                   pmEmp.profile_picture,
                                 )
-                                : null;
-                              return { key: i, dName, url, emp: pmEmp };
-                            },
-                          );
+                              : null;
+                            return { key: i, dName, url, emp: pmEmp };
+                          });
                           const visiblePm = pmEntries.slice(0, 3);
                           const pmRemaining = Math.max(0, pmEntries.length - 3);
                           const pmOverflowTitle =
                             pmRemaining > 0
                               ? pmEntries
-                                .slice(3)
-                                .map((e) => e.dName)
-                                .join(", ")
+                                  .slice(3)
+                                  .map((e) => e.dName)
+                                  .join(", ")
                               : undefined;
 
                           return (
@@ -1466,28 +1527,64 @@ export default function ProjectsTD() {
                                   : "Project Manager"}
                               </p>
                               {maxCount === 1 ? (
-                                <div className={`flex items-center gap-3 ${visiblePm[0].emp ? "cursor-pointer" : ""}`} onClick={() => visiblePm[0].emp && openMemberProfile(visiblePm[0].emp)}>
+                                <div
+                                  className={`flex items-center gap-3 ${visiblePm[0].emp ? "cursor-pointer" : ""}`}
+                                  onClick={() =>
+                                    visiblePm[0].emp &&
+                                    openMemberProfile(visiblePm[0].emp)
+                                  }
+                                >
                                   <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
                                     {visiblePm[0].url ? (
-                                      <img src={visiblePm[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                      <img
+                                        src={visiblePm[0].url}
+                                        className="w-full h-full object-cover"
+                                        alt=""
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).src =
+                                            ProfileIcon;
+                                        }}
+                                      />
                                     ) : (
                                       <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                        {visiblePm[0].dName.charAt(0).toUpperCase()}
+                                        {visiblePm[0].dName
+                                          .charAt(0)
+                                          .toUpperCase()}
                                       </div>
                                     )}
                                   </div>
-                                  <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visiblePm[0].dName}</span>
+                                  <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                                    {visiblePm[0].dName}
+                                  </span>
                                 </div>
                               ) : (
                                 <div className="flex items-center -space-x-3">
                                   {visiblePm.map((entry) => (
-                                    <div key={entry.key} className={`relative group shrink-0 ${entry.emp ? "cursor-pointer" : ""}`} onClick={() => entry.emp && openMemberProfile(entry.emp)}>
+                                    <div
+                                      key={entry.key}
+                                      className={`relative group shrink-0 ${entry.emp ? "cursor-pointer" : ""}`}
+                                      onClick={() =>
+                                        entry.emp &&
+                                        openMemberProfile(entry.emp)
+                                      }
+                                    >
                                       <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
                                         {entry.url ? (
-                                          <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                          <img
+                                            src={entry.url}
+                                            className="w-full h-full object-cover"
+                                            alt=""
+                                            onError={(e) => {
+                                              (
+                                                e.target as HTMLImageElement
+                                              ).src = ProfileIcon;
+                                            }}
+                                          />
                                         ) : (
                                           <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                            {entry.dName.charAt(0).toUpperCase()}
+                                            {entry.dName
+                                              .charAt(0)
+                                              .toUpperCase()}
                                           </div>
                                         )}
                                       </div>
@@ -1516,15 +1613,23 @@ export default function ProjectsTD() {
                         {(() => {
                           const blIds = selectedProjectForView.lead_id
                             ? String(selectedProjectForView.lead_id)
-                              .split(",")
-                              .map((id) => id.trim())
-                              .filter(Boolean)
+                                .split(",")
+                                .map((id) => id.trim())
+                                .filter(Boolean)
                             : [];
                           const blNames = selectedProjectForView.lead_name
                             ? String(selectedProjectForView.lead_name)
-                              .split(",")
-                              .map((n) => n.trim())
-                              .filter((n) => Boolean(n) && !["unknown", "nothing selected", "not assigned"].includes(n.toLowerCase()))
+                                .split(",")
+                                .map((n) => n.trim())
+                                .filter(
+                                  (n) =>
+                                    Boolean(n) &&
+                                    ![
+                                      "unknown",
+                                      "nothing selected",
+                                      "not assigned",
+                                    ].includes(n.toLowerCase()),
+                                )
                             : [];
 
                           if (blIds.length === 0 && blNames.length === 0) {
@@ -1537,35 +1642,38 @@ export default function ProjectsTD() {
                             );
                           }
 
-                          const maxCount = Math.max(blIds.length, blNames.length);
-                          const blEntries = Array.from({ length: maxCount }).map(
-                            (_, i) => {
-                              const pId = blIds[i];
-                              const pName = blNames[i];
-                              const blEmp = pId
-                                ? allEmployees.find(
+                          const maxCount = Math.max(
+                            blIds.length,
+                            blNames.length,
+                          );
+                          const blEntries = Array.from({
+                            length: maxCount,
+                          }).map((_, i) => {
+                            const pId = blIds[i];
+                            const pName = blNames[i];
+                            const blEmp = pId
+                              ? allEmployees.find(
                                   (e: any) => String(e.id) === pId,
                                 )
-                                : null;
-                              const dName =
-                                blEmp?.full_name || pName || "Unknown";
-                              const url = blEmp?.profile_picture
-                                ? getGlobalProfileUrl(
+                              : null;
+                            const dName =
+                              blEmp?.full_name || pName || "Unknown";
+                            const url = blEmp?.profile_picture
+                              ? getGlobalProfileUrl(
                                   blEmp.id,
                                   blEmp.profile_picture,
                                 )
-                                : null;
-                              return { key: i, dName, url, emp: blEmp };
-                            },
-                          );
+                              : null;
+                            return { key: i, dName, url, emp: blEmp };
+                          });
                           const visibleBl = blEntries.slice(0, 3);
                           const blRemaining = Math.max(0, blEntries.length - 3);
                           const blOverflowTitle =
                             blRemaining > 0
                               ? blEntries
-                                .slice(3)
-                                .map((e) => e.dName)
-                                .join(", ")
+                                  .slice(3)
+                                  .map((e) => e.dName)
+                                  .join(", ")
                               : undefined;
 
                           return (
@@ -1574,28 +1682,64 @@ export default function ProjectsTD() {
                                 {maxCount > 1 ? "BIM Leads" : "BIM Lead"}
                               </p>
                               {maxCount === 1 ? (
-                                <div className={`flex items-center gap-3 ${visibleBl[0].emp ? "cursor-pointer" : ""}`} onClick={() => visibleBl[0].emp && openMemberProfile(visibleBl[0].emp)}>
+                                <div
+                                  className={`flex items-center gap-3 ${visibleBl[0].emp ? "cursor-pointer" : ""}`}
+                                  onClick={() =>
+                                    visibleBl[0].emp &&
+                                    openMemberProfile(visibleBl[0].emp)
+                                  }
+                                >
                                   <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
                                     {visibleBl[0].url ? (
-                                      <img src={visibleBl[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                      <img
+                                        src={visibleBl[0].url}
+                                        className="w-full h-full object-cover"
+                                        alt=""
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).src =
+                                            ProfileIcon;
+                                        }}
+                                      />
                                     ) : (
                                       <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                        {visibleBl[0].dName.charAt(0).toUpperCase()}
+                                        {visibleBl[0].dName
+                                          .charAt(0)
+                                          .toUpperCase()}
                                       </div>
                                     )}
                                   </div>
-                                  <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visibleBl[0].dName}</span>
+                                  <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                                    {visibleBl[0].dName}
+                                  </span>
                                 </div>
                               ) : (
                                 <div className="flex items-center -space-x-3">
                                   {visibleBl.map((entry) => (
-                                    <div key={entry.key} className={`relative group shrink-0 ${entry.emp ? "cursor-pointer" : ""}`} onClick={() => entry.emp && openMemberProfile(entry.emp)}>
+                                    <div
+                                      key={entry.key}
+                                      className={`relative group shrink-0 ${entry.emp ? "cursor-pointer" : ""}`}
+                                      onClick={() =>
+                                        entry.emp &&
+                                        openMemberProfile(entry.emp)
+                                      }
+                                    >
                                       <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
                                         {entry.url ? (
-                                          <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                          <img
+                                            src={entry.url}
+                                            className="w-full h-full object-cover"
+                                            alt=""
+                                            onError={(e) => {
+                                              (
+                                                e.target as HTMLImageElement
+                                              ).src = ProfileIcon;
+                                            }}
+                                          />
                                         ) : (
                                           <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                            {entry.dName.charAt(0).toUpperCase()}
+                                            {entry.dName
+                                              .charAt(0)
+                                              .toUpperCase()}
                                           </div>
                                         )}
                                       </div>
@@ -1622,18 +1766,30 @@ export default function ProjectsTD() {
 
                         {/* BIM Coordinator */}
                         {(() => {
-                          const bcIds = selectedProjectForView.bim_coordinator_id
-                            ? String(selectedProjectForView.bim_coordinator_id)
-                              .split(",")
-                              .map((id) => id.trim())
-                              .filter(Boolean)
-                            : [];
-                          const bcNames = selectedProjectForView.bim_co_ordinator
-                            ? String(selectedProjectForView.bim_co_ordinator)
-                              .split(",")
-                              .map((n) => n.trim())
-                              .filter((n) => Boolean(n) && !["unknown", "nothing selected", "not assigned"].includes(n.toLowerCase()))
-                            : [];
+                          const bcIds =
+                            selectedProjectForView.bim_coordinator_id
+                              ? String(
+                                  selectedProjectForView.bim_coordinator_id,
+                                )
+                                  .split(",")
+                                  .map((id) => id.trim())
+                                  .filter(Boolean)
+                              : [];
+                          const bcNames =
+                            selectedProjectForView.bim_co_ordinator
+                              ? String(selectedProjectForView.bim_co_ordinator)
+                                  .split(",")
+                                  .map((n) => n.trim())
+                                  .filter(
+                                    (n) =>
+                                      Boolean(n) &&
+                                      ![
+                                        "unknown",
+                                        "nothing selected",
+                                        "not assigned",
+                                      ].includes(n.toLowerCase()),
+                                  )
+                              : [];
 
                           if (bcIds.length === 0 && bcNames.length === 0) {
                             return (
@@ -1645,65 +1801,106 @@ export default function ProjectsTD() {
                             );
                           }
 
-                          const maxCount = Math.max(bcIds.length, bcNames.length);
-                          const bcEntries = Array.from({ length: maxCount }).map(
-                            (_, i) => {
-                              const pId = bcIds[i];
-                              const pName = bcNames[i];
-                              const bcEmp = pId
-                                ? allEmployees.find(
+                          const maxCount = Math.max(
+                            bcIds.length,
+                            bcNames.length,
+                          );
+                          const bcEntries = Array.from({
+                            length: maxCount,
+                          }).map((_, i) => {
+                            const pId = bcIds[i];
+                            const pName = bcNames[i];
+                            const bcEmp = pId
+                              ? allEmployees.find(
                                   (e: any) => String(e.id) === pId,
                                 )
-                                : null;
-                              const dName =
-                                bcEmp?.full_name || pName || "Unknown";
-                              const url = bcEmp?.profile_picture
-                                ? getGlobalProfileUrl(
+                              : null;
+                            const dName =
+                              bcEmp?.full_name || pName || "Unknown";
+                            const url = bcEmp?.profile_picture
+                              ? getGlobalProfileUrl(
                                   bcEmp.id,
                                   bcEmp.profile_picture,
                                 )
-                                : null;
-                              return { key: i, dName, url, emp: bcEmp };
-                            },
-                          );
+                              : null;
+                            return { key: i, dName, url, emp: bcEmp };
+                          });
                           const visibleBc = bcEntries.slice(0, 3);
                           const bcRemaining = Math.max(0, bcEntries.length - 3);
                           const bcOverflowTitle =
                             bcRemaining > 0
                               ? bcEntries
-                                .slice(3)
-                                .map((e) => e.dName)
-                                .join(", ")
+                                  .slice(3)
+                                  .map((e) => e.dName)
+                                  .join(", ")
                               : undefined;
 
                           return (
                             <div className="min-w-0">
                               <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
-                                {maxCount > 1 ? "BIM Coordinators" : "BIM Coordinator"}
+                                {maxCount > 1
+                                  ? "BIM Coordinators"
+                                  : "BIM Coordinator"}
                               </p>
                               {maxCount === 1 ? (
-                                <div className={`flex items-center gap-3 ${bcEntries[0].emp ? "cursor-pointer" : ""}`} onClick={() => bcEntries[0].emp && openMemberProfile(bcEntries[0].emp)}>
+                                <div
+                                  className={`flex items-center gap-3 ${bcEntries[0].emp ? "cursor-pointer" : ""}`}
+                                  onClick={() =>
+                                    bcEntries[0].emp &&
+                                    openMemberProfile(bcEntries[0].emp)
+                                  }
+                                >
                                   <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
                                     {visibleBc[0].url ? (
-                                      <img src={visibleBc[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                      <img
+                                        src={visibleBc[0].url}
+                                        className="w-full h-full object-cover"
+                                        alt=""
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).src =
+                                            ProfileIcon;
+                                        }}
+                                      />
                                     ) : (
                                       <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                        {visibleBc[0].dName.charAt(0).toUpperCase()}
+                                        {visibleBc[0].dName
+                                          .charAt(0)
+                                          .toUpperCase()}
                                       </div>
                                     )}
                                   </div>
-                                  <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visibleBc[0].dName}</span>
+                                  <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                                    {visibleBc[0].dName}
+                                  </span>
                                 </div>
                               ) : (
                                 <div className="flex items-center -space-x-3">
                                   {visibleBc.map((entry) => (
-                                    <div key={entry.key} className={`relative group shrink-0 ${entry.emp ? "cursor-pointer" : ""}`} onClick={() => entry.emp && openMemberProfile(entry.emp)}>
+                                    <div
+                                      key={entry.key}
+                                      className={`relative group shrink-0 ${entry.emp ? "cursor-pointer" : ""}`}
+                                      onClick={() =>
+                                        entry.emp &&
+                                        openMemberProfile(entry.emp)
+                                      }
+                                    >
                                       <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
                                         {entry.url ? (
-                                          <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                          <img
+                                            src={entry.url}
+                                            className="w-full h-full object-cover"
+                                            alt=""
+                                            onError={(e) => {
+                                              (
+                                                e.target as HTMLImageElement
+                                              ).src = ProfileIcon;
+                                            }}
+                                          />
                                         ) : (
                                           <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                            {entry.dName.charAt(0).toUpperCase()}
+                                            {entry.dName
+                                              .charAt(0)
+                                              .toUpperCase()}
                                           </div>
                                         )}
                                       </div>
@@ -1750,14 +1947,14 @@ export default function ProjectsTD() {
                               // Get members from project (IDs can be numeric or string from API)
                               const rawIds =
                                 selectedProjectForView.members ||
-                                  selectedProjectForView.member
+                                selectedProjectForView.member
                                   ? String(
-                                    selectedProjectForView.members ||
-                                    selectedProjectForView.member,
-                                  )
-                                    .split(",")
-                                    .map((m) => m.trim())
-                                    .filter(Boolean)
+                                      selectedProjectForView.members ||
+                                        selectedProjectForView.member,
+                                    )
+                                      .split(",")
+                                      .map((m) => m.trim())
+                                      .filter(Boolean)
                                   : [];
                               const memberIds = rawIds.map((m) => {
                                 const n = Number(m);
@@ -1797,14 +1994,20 @@ export default function ProjectsTD() {
                               return memberIds.length === 1 ? (
                                 <div className="flex items-center gap-3">
                                   {visibleMembers.map((emp) => (
-                                    <div key={emp.id} className="flex items-center gap-3">
+                                    <div
+                                      key={emp.id}
+                                      className="flex items-center gap-3"
+                                    >
                                       <div
                                         role="button"
                                         tabIndex={0}
                                         className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
                                         onClick={() => openMemberProfile(emp)}
                                         onKeyDown={(e) => {
-                                          if (e.key === "Enter" || e.key === " ") {
+                                          if (
+                                            e.key === "Enter" ||
+                                            e.key === " "
+                                          ) {
                                             e.preventDefault();
                                             openMemberProfile(emp);
                                           }
@@ -1823,7 +2026,9 @@ export default function ProjectsTD() {
                                           />
                                         ) : (
                                           <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                            {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
+                                            {(emp.full_name || `E${emp.id}`)
+                                              .charAt(0)
+                                              .toUpperCase()}
                                           </div>
                                         )}
                                       </div>
@@ -1837,55 +2042,66 @@ export default function ProjectsTD() {
                                 <div className="flex items-center -space-x-3">
                                   {visibleMembers.length > 0
                                     ? visibleMembers.map((emp) => (
-                                      <div key={emp.id} className="relative group shrink-0">
                                         <div
-                                          role="button"
-                                          tabIndex={0}
-                                          className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                          onClick={() => openMemberProfile(emp)}
-                                          onKeyDown={(e) => {
-                                            if (e.key === "Enter" || e.key === " ") {
-                                              e.preventDefault();
-                                              openMemberProfile(emp);
-                                            }
-                                          }}
+                                          key={emp.id}
+                                          className="relative group shrink-0"
                                         >
-                                          {getProfileImageUrl(emp) ? (
+                                          <div
+                                            role="button"
+                                            tabIndex={0}
+                                            className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                            onClick={() =>
+                                              openMemberProfile(emp)
+                                            }
+                                            onKeyDown={(e) => {
+                                              if (
+                                                e.key === "Enter" ||
+                                                e.key === " "
+                                              ) {
+                                                e.preventDefault();
+                                                openMemberProfile(emp);
+                                              }
+                                            }}
+                                          >
+                                            {getProfileImageUrl(emp) ? (
+                                              <img
+                                                src={getProfileImageUrl(emp)}
+                                                alt={emp.full_name || "Member"}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                  (
+                                                    e.target as HTMLImageElement
+                                                  ).src = ProfileIcon;
+                                                }}
+                                              />
+                                            ) : (
+                                              <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                                {(emp.full_name || `E${emp.id}`)
+                                                  .charAt(0)
+                                                  .toUpperCase()}
+                                              </div>
+                                            )}
+                                          </div>
+                                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                            {emp.full_name ||
+                                              `Employee ${emp.id}`}
+                                          </div>
+                                        </div>
+                                      ))
+                                    : hasIdsButNoResolved
+                                      ? [1, 2, 3].map((j) => (
+                                          <div
+                                            key={j}
+                                            className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
+                                          >
                                             <img
-                                              src={getProfileImageUrl(emp)}
-                                              alt={emp.full_name || "Member"}
+                                              src={ProfileIcon}
+                                              alt="avatar"
                                               className="w-full h-full object-cover"
-                                              onError={(e) => {
-                                                (
-                                                  e.target as HTMLImageElement
-                                                ).src = ProfileIcon;
-                                              }}
                                             />
-                                          ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                              {(emp.full_name || `E${emp.id}`)
-                                                .charAt(0)
-                                                .toUpperCase()}
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                          {emp.full_name || `Employee ${emp.id}`}
-                                        </div>
-                                      </div>
-                                    ))
-                                    : hasIdsButNoResolved ? [1, 2, 3].map((j) => (
-                                      <div
-                                        key={j}
-                                        className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
-                                      >
-                                        <img
-                                          src={ProfileIcon}
-                                          alt="avatar"
-                                          className="w-full h-full object-cover"
-                                        />
-                                      </div>
-                                    )) : null}
+                                          </div>
+                                        ))
+                                      : null}
                                   {(hasMore || hasIdsButNoResolved) && (
                                     <div className="relative group shrink-0">
                                       <div
@@ -1898,7 +2114,10 @@ export default function ProjectsTD() {
                                           openAllMembersModal();
                                         }}
                                         onKeyDown={(e) => {
-                                          if (e.key === "Enter" || e.key === " ") {
+                                          if (
+                                            e.key === "Enter" ||
+                                            e.key === " "
+                                          ) {
                                             e.preventDefault();
                                             openAllMembersModal();
                                           }
@@ -1936,12 +2155,12 @@ export default function ProjectsTD() {
                             <span className="text-[16px] font-gantari font-medium text-[#616161]">
                               {selectedProjectForView.start_date
                                 ? new Date(
-                                  selectedProjectForView.start_date,
-                                ).toLocaleDateString("en-GB", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                })
+                                    selectedProjectForView.start_date,
+                                  ).toLocaleDateString("en-GB", {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  })
                                 : "N/A"}
                             </span>
                           </div>
@@ -2012,16 +2231,24 @@ export default function ProjectsTD() {
                                   .map((file) => file.trim())
                                   .filter(Boolean)
                                   .map((fileName, idx) => {
-                                    const isOutsource = selectedProjectForView.source === "Outsource";
-                                    const fileBaseUrl = (api.defaults.baseURL || "").replace(/\/api\/?$/, "");
+                                    const isOutsource =
+                                      selectedProjectForView.source ===
+                                      "Outsource";
+                                    const fileBaseUrl = (
+                                      api.defaults.baseURL || ""
+                                    ).replace(/\/api\/?$/, "");
                                     const url = isOutsource
                                       ? `${fileBaseUrl}/static/uploads/vendor_docs/${fileName}`
                                       : `${fileBaseUrl}/uploads/${fileName}`;
 
                                     return (
-                                      <div key={idx} className="flex items-center gap-3 w-full md:max-w-md mt-1">
+                                      <div
+                                        key={idx}
+                                        className="flex items-center gap-3 w-full md:max-w-md mt-1"
+                                      >
                                         <span className="text-[16px] font-medium text-[#616161] line-clamp-1 flex-1 font-gantari">
-                                          {fileName.split("_").pop() || "Document"}
+                                          {fileName.split("_").pop() ||
+                                            "Document"}
                                         </span>
                                         <div className="flex gap-2.5">
                                           <div className="relative group/tooltip inline-flex shrink-0">
@@ -2102,12 +2329,12 @@ export default function ProjectsTD() {
                             <span className="text-md font-Gantari font-medium text-[#666666]">
                               {selectedProjectForView.end_date
                                 ? new Date(
-                                  selectedProjectForView.end_date,
-                                ).toLocaleDateString("en-GB", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                })
+                                    selectedProjectForView.end_date,
+                                  ).toLocaleDateString("en-GB", {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  })
                                 : "N/A"}
                             </span>
                           </div>
@@ -2132,7 +2359,8 @@ export default function ProjectsTD() {
                               :
                             </span>
                             <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                              {selectedProjectForView.required_resources || "N/A"}
+                              {selectedProjectForView.required_resources ||
+                                "N/A"}
                             </span>
                           </div>
                         </div>
@@ -2247,15 +2475,17 @@ export default function ProjectsTD() {
               ) : milestones.length === 0 ? (
                 <div className="space-y-4">
                   <p className="text-[15px] font-Gantari font-medium text-[#666666] py-1">
-                    {milestonesReadOnly
-                      ? "No client payment milestones are linked for this project in the commercial database yet."
-                      : (
-                        <>
-                          No payment milestones yet. Use{" "}
-                          <span className="font-semibold text-[#353535]">Add Milestone</span>{" "}
-                          in the header to create your first payment.
-                        </>
-                      )}
+                    {milestonesReadOnly ? (
+                      "No client payment milestones are linked for this project in the commercial database yet."
+                    ) : (
+                      <>
+                        No payment milestones yet. Use{" "}
+                        <span className="font-semibold text-[#353535]">
+                          Add Milestone
+                        </span>{" "}
+                        in the header to create your first payment.
+                      </>
+                    )}
                   </p>
                 </div>
               ) : (
@@ -2281,8 +2511,9 @@ export default function ProjectsTD() {
                           ? `${dbPct}%`
                           : totalForTerms > 0
                             ? `${Math.round(
-                              (Number(m.milestone_amount) / totalForTerms) * 100,
-                            )}%`
+                                (Number(m.milestone_amount) / totalForTerms) *
+                                  100,
+                              )}%`
                             : "—";
                       const invoiceLabel = readMilestoneInvoiceLabel(m);
 
@@ -2350,7 +2581,9 @@ export default function ProjectsTD() {
                                     api
                                       .post(`/api/milestones/${m.id}/mark-paid`)
                                       .then(() => {
-                                        toast.success("Milestone marked as paid!");
+                                        toast.success(
+                                          "Milestone marked as paid!",
+                                        );
                                         currentProject?.id &&
                                           fetchMilestones(
                                             currentProject.id,
@@ -2358,7 +2591,9 @@ export default function ProjectsTD() {
                                           );
                                       })
                                       .catch(() => {
-                                        toast.error("Failed to mark milestone as paid");
+                                        toast.error(
+                                          "Failed to mark milestone as paid",
+                                        );
                                       });
                                   }}
                                   className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
@@ -2391,7 +2626,9 @@ export default function ProjectsTD() {
                                       api
                                         .delete(`/api/milestones/${m.id}`)
                                         .then(() => {
-                                          toast.success("Milestone deleted successfully!");
+                                          toast.success(
+                                            "Milestone deleted successfully!",
+                                          );
                                           currentProject?.id &&
                                             fetchMilestones(
                                               currentProject.id,
@@ -2399,7 +2636,9 @@ export default function ProjectsTD() {
                                             );
                                         })
                                         .catch(() => {
-                                          toast.error("Failed to delete milestone");
+                                          toast.error(
+                                            "Failed to delete milestone",
+                                          );
                                         });
                                     }
                                   }}
@@ -2454,15 +2693,16 @@ export default function ProjectsTD() {
                                   toast(invoiceLabel, { icon: "ℹ️" });
                                 }
                               }}
-                              className={`shrink-0 px-5 py-2.5 rounded-md bg-[#DD4342] text-white font-Gantari font-bold text-[14px] shadow-sm hover:bg-[#c93a39] transition-colors ${milestonesReadOnly &&
-                                  m.swiftbim_invoice_id !== undefined &&
-                                  m.swiftbim_invoice_id !== null &&
-                                  Number(m.swiftbim_invoice_id) > 0
+                              className={`shrink-0 px-5 py-2.5 rounded-md bg-[#DD4342] text-white font-Gantari font-bold text-[14px] shadow-sm hover:bg-[#c93a39] transition-colors ${
+                                milestonesReadOnly &&
+                                m.swiftbim_invoice_id !== undefined &&
+                                m.swiftbim_invoice_id !== null &&
+                                Number(m.swiftbim_invoice_id) > 0
                                   ? "cursor-pointer"
                                   : milestonesReadOnly
                                     ? "cursor-not-allowed opacity-80"
                                     : "cursor-default"
-                                }`}
+                              }`}
                               title={
                                 milestonesReadOnly
                                   ? m.swiftbim_invoice_id
@@ -2515,13 +2755,9 @@ export default function ProjectsTD() {
                     )}
                     <div className="shrink-0">
                       <CustomDropdown
-                        options={["Execution Type","In House", "Outsource"]}
+                        options={["Execution Type", "In House", "Outsource"]}
                         value={typeFilter}
-                        onChange={(val) =>
-                          setTypeFilter(
-                            val as any,
-                          )
-                        }
+                        onChange={(val) => setTypeFilter(val as any)}
                         placeholder="Execution Type"
                         className="w-[130px] sm:w-[160px]"
                         styleType="header"
@@ -2532,7 +2768,6 @@ export default function ProjectsTD() {
                 </div>
               </div>
             </div>
-
 
             {/* Dashboard Content with Scrollbar */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden pt-0 pb-8 pl-4 pr-1 custom-scrollbar [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')]">
@@ -2552,7 +2787,6 @@ export default function ProjectsTD() {
                   }
 
                   return displayList.map((p) => {
-
                     // Use data directly from projects table
                     const progress = Math.round(p.progress ?? 0);
                     const hasProjectStarted =
@@ -2563,10 +2797,10 @@ export default function ProjectsTD() {
                     // Get members from project.member field (comma-separated string)
                     const memberIds = p.member
                       ? p.member
-                        .split(",")
-                        .map((m) => m.trim())
-                        .filter(Boolean)
-                        .map(Number)
+                          .split(",")
+                          .map((m) => m.trim())
+                          .filter(Boolean)
+                          .map(Number)
                       : [];
 
                     const radius = 28;
@@ -2577,7 +2811,12 @@ export default function ProjectsTD() {
                     return (
                       <div
                         key={p.id}
-                        onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(openMenuProjectId === p.id ? null : p.id); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuProjectId(
+                            openMenuProjectId === p.id ? null : p.id,
+                          );
+                        }}
                         className="relative overflow-hidden bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer"
                       >
                         <div>
@@ -2695,19 +2934,19 @@ export default function ProjectsTD() {
                                             String(c.id) ===
                                             String(p.client_name),
                                         )?.fullName ??
-                                        clientsList.find(
-                                          (c) =>
-                                            String(c.id) ===
-                                            String(p.client_name),
-                                        )?.full_name ??
-                                        p.client_name ??
-                                        "",
+                                          clientsList.find(
+                                            (c) =>
+                                              String(c.id) ===
+                                              String(p.client_name),
+                                          )?.full_name ??
+                                          p.client_name ??
+                                          "",
                                       );
                                       setCreateProjectManager(
                                         p.project_manager
                                           ? p.project_manager
-                                            .split(",")
-                                            .map((s) => s.trim())
+                                              .split(",")
+                                              .map((s) => s.trim())
                                           : [],
                                       );
                                       setCreateStartDate(p.start_date ?? "");
@@ -2732,15 +2971,15 @@ export default function ProjectsTD() {
                                       setCreateBIMLead(
                                         p.bim_lead
                                           ? p.bim_lead
-                                            .split(",")
-                                            .map((s) => s.trim())
+                                              .split(",")
+                                              .map((s) => s.trim())
                                           : [],
                                       );
                                       setCreateBIMCoOrdinator(
                                         p.bim_co_ordinator
                                           ? p.bim_co_ordinator
-                                            .split(",")
-                                            .map((s) => s.trim())
+                                              .split(",")
+                                              .map((s) => s.trim())
                                           : [],
                                       );
                                       setCreateMember(p.member ?? "");
@@ -2765,7 +3004,7 @@ export default function ProjectsTD() {
                                                 if (
                                                   data.client_budget !== null &&
                                                   data.client_budget !==
-                                                  undefined
+                                                    undefined
                                                 ) {
                                                   setCreateBudget(
                                                     String(data.client_budget),
@@ -2835,9 +3074,9 @@ export default function ProjectsTD() {
                                   {visibleMembers.map((emp) => {
                                     const profileUrl = emp.profile_picture
                                       ? getGlobalProfileUrl(
-                                        emp.id,
-                                        emp.profile_picture,
-                                      )
+                                          emp.id,
+                                          emp.profile_picture,
+                                        )
                                       : null;
 
                                     return (
@@ -2891,10 +3130,11 @@ export default function ProjectsTD() {
                           <div className="flex items-center gap-3">
                             {p.priority && (
                               <div
-                                className={`px-3.5 py-1 rounded-md text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
-                                  ? "bg-[#DD4342]"
-                                  : "bg-[#94D6F2]"
-                                  }`}
+                                className={`px-3.5 py-1 rounded-md text-white text-[13px] font-bold font-Gantari shadow-sm ${
+                                  p.priority.toLowerCase() === "high"
+                                    ? "bg-[#DD4342]"
+                                    : "bg-[#94D6F2]"
+                                }`}
                               >
                                 {p.priority}
                               </div>
@@ -2910,7 +3150,6 @@ export default function ProjectsTD() {
           </>
         )}
       </div>
-
 
       {/* Create Project Modal */}
       {showCreateModal && (
@@ -2953,7 +3192,9 @@ export default function ProjectsTD() {
                   const endpoint = "/api/projects";
                   if (createDepartment === "Submission Deadline") {
                     if (!createBudgetCeiling || !createBiddingEndDate) {
-                      setCreateError("Outsourcing Budget and Bidding End Date are required for outsource projects.");
+                      setCreateError(
+                        "Outsourcing Budget and Bidding End Date are required for outsource projects.",
+                      );
                       setCreateSubmitting(false);
                       return;
                     }
@@ -2963,51 +3204,79 @@ export default function ProjectsTD() {
                   formData.append("project_name", createName.trim());
                   if (createBudget) formData.append("budget", createBudget);
                   formData.append("currency", createCurrency);
-                  if (createModuleName) formData.append("modules", createModuleName);
+                  if (createModuleName)
+                    formData.append("modules", createModuleName);
 
                   const clientId = (() => {
                     if (!createClientName) return undefined;
-                    const byName = clientsList.find((c) => (c.fullName ?? c.full_name) === createClientName);
+                    const byName = clientsList.find(
+                      (c) => (c.fullName ?? c.full_name) === createClientName,
+                    );
                     if (byName) return byName.id;
-                    if (/^\d+$/.test(createClientName)) return Number(createClientName);
+                    if (/^\d+$/.test(createClientName))
+                      return Number(createClientName);
                     return undefined;
                   })();
-                  if (clientId !== undefined) formData.append("client_id", String(clientId));
+                  if (clientId !== undefined)
+                    formData.append("client_id", String(clientId));
 
-                  const pmIds = namesToIds(createProjectManager, projectManagers);
+                  const pmIds = namesToIds(
+                    createProjectManager,
+                    projectManagers,
+                  );
                   if (pmIds) formData.append("project_manager_id", pmIds);
 
                   const leadIds = namesToIds(createBIMLead, bimLeads);
                   if (leadIds) formData.append("lead_id", leadIds);
 
-                  const coordIds = namesToIds(createBIMCoOrdinator, bimCoordinators);
+                  const coordIds = namesToIds(
+                    createBIMCoOrdinator,
+                    bimCoordinators,
+                  );
                   if (coordIds) formData.append("bim_coordinator_id", coordIds);
 
                   const members = selectedMemberIds.join(",") || createMember;
                   if (members) formData.append("members", members);
 
-                  if (createDepartment) formData.append("department", createDepartment);
+                  if (createDepartment)
+                    formData.append("department", createDepartment);
                   if (createDepartment === "Submission Deadline") {
-                    if (createBudgetCeiling) formData.append("budget_ceiling", createBudgetCeiling);
-                    if (createBiddingEndDate) formData.append("bidding_end_date", createBiddingEndDate);
+                    if (createBudgetCeiling)
+                      formData.append("budget_ceiling", createBudgetCeiling);
+                    if (createBiddingEndDate)
+                      formData.append("bidding_end_date", createBiddingEndDate);
                   }
 
                   if (createEndDate) formData.append("due_date", createEndDate);
-                  if (createStartDate) formData.append("start_date", createStartDate);
-                  if (createTotalHours) formData.append("totalhours", createTotalHours);
+                  if (createStartDate)
+                    formData.append("start_date", createStartDate);
+                  if (createTotalHours)
+                    formData.append("totalhours", createTotalHours);
                   if (createPerDay) formData.append("perday", createPerDay);
-                  if (createResources) formData.append("resources", createResources);
-                  if (createRequiredResources) formData.append("required_resources", createRequiredResources);
-                  if (createPriority) formData.append("priority", createPriority);
-                  if (createLocation) formData.append("location", createLocation);
-                  if (createDescription) formData.append("description", createDescription);
+                  if (createResources)
+                    formData.append("resources", createResources);
+                  if (createRequiredResources)
+                    formData.append(
+                      "required_resources",
+                      createRequiredResources,
+                    );
+                  if (createPriority)
+                    formData.append("priority", createPriority);
+                  if (createLocation)
+                    formData.append("location", createLocation);
+                  if (createDescription)
+                    formData.append("description", createDescription);
 
                   createFiles.forEach((file) => formData.append("files", file));
 
                   api
-                    .post<{ success?: boolean; project_id?: number }>(endpoint, formData, {
-                      headers: { "Content-Type": "multipart/form-data" },
-                    })
+                    .post<{ success?: boolean; project_id?: number }>(
+                      endpoint,
+                      formData,
+                      {
+                        headers: { "Content-Type": "multipart/form-data" },
+                      },
+                    )
                     .then(({ data }) => {
                       if (data.success) {
                         toast.success("Project created successfully!");
@@ -3036,8 +3305,12 @@ export default function ProjectsTD() {
                         setCreateFiles([]);
                         setRemovedFiles([]);
                         Promise.all([
-                          api.get<{ projects?: Record<string, unknown>[] }>("/api/projects"),
-                          api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects")
+                          api.get<{ projects?: Record<string, unknown>[] }>(
+                            "/api/projects",
+                          ),
+                          api.get<{ projects?: Record<string, unknown>[] }>(
+                            "/api/vendors/vendor-projects",
+                          ),
                         ])
                           .then(([res1, res2]) => {
                             const rawP1 = res1.data.projects ?? [];
@@ -3059,7 +3332,9 @@ export default function ProjectsTD() {
                             const vendorProjectNames = new Set<string>(
                               rawP2
                                 .map((p) =>
-                                  String(p.project_name ?? "").trim().toLowerCase(),
+                                  String(p.project_name ?? "")
+                                    .trim()
+                                    .toLowerCase(),
                                 )
                                 .filter(Boolean),
                             );
@@ -3074,7 +3349,9 @@ export default function ProjectsTD() {
                               }))
                               .filter((p) => {
                                 if (p.source !== "Outsource") return true;
-                                const byId = vendorMainProjectIds.has(Number(p.id));
+                                const byId = vendorMainProjectIds.has(
+                                  Number(p.id),
+                                );
                                 const byName = vendorProjectNames.has(
                                   String(p.project_name ?? "")
                                     .trim()
@@ -3084,11 +3361,13 @@ export default function ProjectsTD() {
                               });
                             setList([...p1, ...p2]);
                           })
-                          .catch(() => { });
+                          .catch(() => {});
                       }
                     })
                     .catch((err) => {
-                      const msg = err.response?.data?.message || "Failed to create project";
+                      const msg =
+                        err.response?.data?.message ||
+                        "Failed to create project";
                       setCreateError(msg);
                       toast.error(msg);
                     })
@@ -3140,23 +3419,24 @@ export default function ProjectsTD() {
                             className={`w-3.5 h-3.5 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
                           />
                         </button>
-                        {currencyDropdownOpen && !selectedProjectForEdit?.currency_locked && (
-                          <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
-                            {CURRENCIES.map((c) => (
-                              <button
-                                key={c.code}
-                                type="button"
-                                onClick={() => {
-                                  setCreateCurrency(c.code);
-                                  setCurrencyDropdownOpen(false);
-                                }}
-                                className={`w-full text-left px-4 py-2 text-[14px] transition-colors hover:bg-[#F2F2F2] flex items-center justify-between cursor-pointer ${createCurrency === c.code ? "text-[#353535] bg-[#F8F8F8] font-bold" : "text-[#8B8B8B] font-medium"}`}
-                              >
-                                {c.code}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                        {currencyDropdownOpen &&
+                          !selectedProjectForEdit?.currency_locked && (
+                            <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                              {CURRENCIES.map((c) => (
+                                <button
+                                  key={c.code}
+                                  type="button"
+                                  onClick={() => {
+                                    setCreateCurrency(c.code);
+                                    setCurrencyDropdownOpen(false);
+                                  }}
+                                  className={`w-full text-left px-4 py-2 text-[14px] transition-colors hover:bg-[#F2F2F2] flex items-center justify-between cursor-pointer ${createCurrency === c.code ? "text-[#353535] bg-[#F8F8F8] font-bold" : "text-[#8B8B8B] font-medium"}`}
+                                >
+                                  {c.code}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                       </div>
                       <input
                         type="text"
@@ -3209,7 +3489,7 @@ export default function ProjectsTD() {
                         <span
                           className={
                             createDepartment === "Budget Ceiling" ||
-                              createDepartment === "Submission Deadline"
+                            createDepartment === "Submission Deadline"
                               ? "text-gray-700"
                               : "text-gray-400"
                           }
@@ -3343,7 +3623,8 @@ export default function ProjectsTD() {
                     <>
                       <div className="space-y-2">
                         <label className="block text-[16px] font-medium text-[#000000]">
-                          Outsourcing Budget <span className="text-[#DD4342]">*</span>
+                          Outsourcing Budget{" "}
+                          <span className="text-[#DD4342]">*</span>
                         </label>
                         <div className="flex items-center gap-2">
                           <select
@@ -3394,7 +3675,8 @@ export default function ProjectsTD() {
                       </div>
                       <div className="space-y-2">
                         <label className="block text-[16px] font-medium text-[#000000]">
-                          Bidding End Date <span className="text-[#DD4342]">*</span>
+                          Bidding End Date{" "}
+                          <span className="text-[#DD4342]">*</span>
                         </label>
                         <input
                           type="date"
@@ -3408,7 +3690,6 @@ export default function ProjectsTD() {
                     </>
                   )}
                 </div>
-
 
                 <div className="flex justify-center gap-4 pt-4 ">
                   <button
@@ -3479,14 +3760,21 @@ export default function ProjectsTD() {
                 type="button"
                 onClick={() => {
                   if (!deleteProject) return;
-                  const endpoint = deleteProject.source === "Outsource" ? `/api/vendors/vendor-projects/${deleteProject.id}` : `/api/projects/${deleteProject.id}`;
+                  const endpoint =
+                    deleteProject.source === "Outsource"
+                      ? `/api/vendors/vendor-projects/${deleteProject.id}`
+                      : `/api/projects/${deleteProject.id}`;
                   api
                     .delete(endpoint)
                     .then(({ data }) => {
                       if ((data as { success?: boolean }).success) {
                         Promise.all([
-                          api.get<{ projects?: Record<string, unknown>[] }>("/api/projects"),
-                          api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects")
+                          api.get<{ projects?: Record<string, unknown>[] }>(
+                            "/api/projects",
+                          ),
+                          api.get<{ projects?: Record<string, unknown>[] }>(
+                            "/api/vendors/vendor-projects",
+                          ),
                         ])
                           .then(([res1, res2]) => {
                             const rawP1 = res1.data.projects ?? [];
@@ -3508,7 +3796,9 @@ export default function ProjectsTD() {
                             const vendorProjectNames = new Set<string>(
                               rawP2
                                 .map((p) =>
-                                  String(p.project_name ?? "").trim().toLowerCase(),
+                                  String(p.project_name ?? "")
+                                    .trim()
+                                    .toLowerCase(),
                                 )
                                 .filter(Boolean),
                             );
@@ -3523,7 +3813,9 @@ export default function ProjectsTD() {
                               }))
                               .filter((p) => {
                                 if (p.source !== "Outsource") return true;
-                                const byId = vendorMainProjectIds.has(Number(p.id));
+                                const byId = vendorMainProjectIds.has(
+                                  Number(p.id),
+                                );
                                 const byName = vendorProjectNames.has(
                                   String(p.project_name ?? "")
                                     .trim()
@@ -3533,7 +3825,7 @@ export default function ProjectsTD() {
                               });
                             setList([...p1, ...p2]);
                           })
-                          .catch(() => { });
+                          .catch(() => {});
                         toast.success("Project deleted successfully!");
                         setDeleteProject(null);
                       }
@@ -3603,7 +3895,9 @@ export default function ProjectsTD() {
                     fetchMilestones(currentProject.id, currentProject.source);
                   })
                   .catch((err) => {
-                    toast.error(err.response?.data?.message || "Failed to add milestone");
+                    toast.error(
+                      err.response?.data?.message || "Failed to add milestone",
+                    );
                   });
               }}
               className="space-y-6 px-1"
@@ -3781,46 +4075,72 @@ export default function ProjectsTD() {
                   formData.append("project_name", createName.trim());
                   if (createBudget) formData.append("budget", createBudget);
                   formData.append("currency", createCurrency);
-                  if (createModuleName) formData.append("modules", createModuleName);
+                  if (createModuleName)
+                    formData.append("modules", createModuleName);
 
                   const clientId = (() => {
                     if (!createClientName) return undefined;
-                    const byName = clientsList.find((c) => (c.fullName ?? c.full_name) === createClientName);
+                    const byName = clientsList.find(
+                      (c) => (c.fullName ?? c.full_name) === createClientName,
+                    );
                     if (byName) return byName.id;
-                    if (/^\d+$/.test(createClientName)) return Number(createClientName);
+                    if (/^\d+$/.test(createClientName))
+                      return Number(createClientName);
                     return undefined;
                   })();
-                  if (clientId !== undefined) formData.append("client_id", String(clientId));
+                  if (clientId !== undefined)
+                    formData.append("client_id", String(clientId));
 
-                  const pmIds = namesToIds(createProjectManager, projectManagers);
+                  const pmIds = namesToIds(
+                    createProjectManager,
+                    projectManagers,
+                  );
                   if (pmIds) formData.append("project_manager_id", pmIds);
 
                   const leadIds = namesToIds(createBIMLead, bimLeads);
                   if (leadIds) formData.append("lead_id", leadIds);
 
-                  const coordIds = namesToIds(createBIMCoOrdinator, bimCoordinators);
+                  const coordIds = namesToIds(
+                    createBIMCoOrdinator,
+                    bimCoordinators,
+                  );
                   if (coordIds) formData.append("bim_coordinator_id", coordIds);
 
                   if (createMember) formData.append("members", createMember);
 
-                  if (createDepartment) formData.append("department", createDepartment);
+                  if (createDepartment)
+                    formData.append("department", createDepartment);
                   if (isEditSourceOutsource) {
-                    if (createBudgetCeiling) formData.append("budget_ceiling", createBudgetCeiling);
-                    if (createBiddingEndDate) formData.append("bidding_end_date", createBiddingEndDate);
+                    if (createBudgetCeiling)
+                      formData.append("budget_ceiling", createBudgetCeiling);
+                    if (createBiddingEndDate)
+                      formData.append("bidding_end_date", createBiddingEndDate);
                   }
 
                   if (createEndDate) formData.append("due_date", createEndDate);
-                  if (createStartDate) formData.append("start_date", createStartDate);
-                  if (createTotalHours) formData.append("totalhours", createTotalHours);
+                  if (createStartDate)
+                    formData.append("start_date", createStartDate);
+                  if (createTotalHours)
+                    formData.append("totalhours", createTotalHours);
                   if (createPerDay) formData.append("perday", createPerDay);
-                  if (createResources) formData.append("resources", createResources);
-                  if (createRequiredResources) formData.append("required_resources", createRequiredResources);
-                  if (createPriority) formData.append("priority", createPriority);
-                  if (createLocation) formData.append("location", createLocation);
-                  if (createDescription) formData.append("description", createDescription);
+                  if (createResources)
+                    formData.append("resources", createResources);
+                  if (createRequiredResources)
+                    formData.append(
+                      "required_resources",
+                      createRequiredResources,
+                    );
+                  if (createPriority)
+                    formData.append("priority", createPriority);
+                  if (createLocation)
+                    formData.append("location", createLocation);
+                  if (createDescription)
+                    formData.append("description", createDescription);
 
                   createFiles.forEach((file) => formData.append("files", file));
-                  removedFiles.forEach((file) => formData.append("removed_files", file));
+                  removedFiles.forEach((file) =>
+                    formData.append("removed_files", file),
+                  );
 
                   const putPrimary = () =>
                     api.put(primaryEndpoint, formData, {
@@ -3836,7 +4156,9 @@ export default function ProjectsTD() {
                       // Some merged-list rows can carry a mismatched source/id pair.
                       // If primary endpoint says "Project not found", retry alternate endpoint.
                       const message = String(
-                        err?.response?.data?.message || err?.response?.data?.error || "",
+                        err?.response?.data?.message ||
+                          err?.response?.data?.error ||
+                          "",
                       ).toLowerCase();
                       const status = Number(err?.response?.status || 0);
                       const isNotFound =
@@ -3853,19 +4175,30 @@ export default function ProjectsTD() {
                         setCreateBiddingEndDate("");
                         // Refresh the project list to get updated data
                         Promise.all([
-                          api.get<{ projects?: Record<string, unknown>[] }>("/api/projects"),
-                          api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects")
+                          api.get<{ projects?: Record<string, unknown>[] }>(
+                            "/api/projects",
+                          ),
+                          api.get<{ projects?: Record<string, unknown>[] }>(
+                            "/api/vendors/vendor-projects",
+                          ),
                         ])
                           .then(([res1, res2]) => {
-                            const p1 = (res1.data.projects ?? []).map(mapApiProjectToProject);
-                            const p2 = (res2.data.projects ?? []).map(mapApiProjectToProject);
+                            const p1 = (res1.data.projects ?? []).map(
+                              mapApiProjectToProject,
+                            );
+                            const p2 = (res2.data.projects ?? []).map(
+                              mapApiProjectToProject,
+                            );
                             setList([...p1, ...p2]);
                           })
-                          .catch(() => { });
+                          .catch(() => {});
                       }
                     })
                     .catch((err) => {
-                      toast.error(err.response?.data?.message || "Failed to update project details");
+                      toast.error(
+                        err.response?.data?.message ||
+                          "Failed to update project details",
+                      );
                     })
                     .finally(() => setIsEditSubmitting(false));
                 }}
@@ -3922,23 +4255,24 @@ export default function ProjectsTD() {
                             className={`w-3.5 h-3.5 transition-transform duration-200 ${currencyDropdownOpen ? "rotate-180" : ""}`}
                           />
                         </button>
-                        {currencyDropdownOpen && !selectedProjectForEdit?.currency_locked && (
-                          <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
-                            {CURRENCIES.map((c) => (
-                              <button
-                                key={c.code}
-                                type="button"
-                                onClick={() => {
-                                  setCreateCurrency(c.code);
-                                  setCurrencyDropdownOpen(false);
-                                }}
-                                className={`w-full text-left px-4 py-2 text-[14px] transition-colors hover:bg-[#F2F2F2] flex items-center justify-between cursor-pointer ${createCurrency === c.code ? "text-[#353535] bg-[#F8F8F8] font-bold" : "text-[#8B8B8B] font-medium"}`}
-                              >
-                                {c.code}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                        {currencyDropdownOpen &&
+                          !selectedProjectForEdit?.currency_locked && (
+                            <div className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                              {CURRENCIES.map((c) => (
+                                <button
+                                  key={c.code}
+                                  type="button"
+                                  onClick={() => {
+                                    setCreateCurrency(c.code);
+                                    setCurrencyDropdownOpen(false);
+                                  }}
+                                  className={`w-full text-left px-4 py-2 text-[14px] transition-colors hover:bg-[#F2F2F2] flex items-center justify-between cursor-pointer ${createCurrency === c.code ? "text-[#353535] bg-[#F8F8F8] font-bold" : "text-[#8B8B8B] font-medium"}`}
+                                >
+                                  {c.code}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                       </div>
                       <input
                         type="text"
@@ -3966,7 +4300,7 @@ export default function ProjectsTD() {
                         <span
                           className={
                             createDepartment === "Budget Ceiling" ||
-                              createDepartment === "Submission Deadline"
+                            createDepartment === "Submission Deadline"
                               ? "text-gray-700"
                               : "text-gray-400"
                           }
@@ -3999,10 +4333,11 @@ export default function ProjectsTD() {
                               setCreateDepartment("");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${!createDepartment
-                              ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                              : "text-gray-700"
-                              }`}
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${
+                              !createDepartment
+                                ? "bg-[#E2EEFF] text-[#1D7AFC]"
+                                : "text-gray-700"
+                            }`}
                           >
                             Select Source
                           </button>
@@ -4012,10 +4347,11 @@ export default function ProjectsTD() {
                               setCreateDepartment("Budget Ceiling");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${createDepartment === "Budget Ceiling"
-                              ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                              : "text-gray-700"
-                              }`}
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${
+                              createDepartment === "Budget Ceiling"
+                                ? "bg-[#E2EEFF] text-[#1D7AFC]"
+                                : "text-gray-700"
+                            }`}
                           >
                             In House
                           </button>
@@ -4025,10 +4361,11 @@ export default function ProjectsTD() {
                               setCreateDepartment("Submission Deadline");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${createDepartment === "Submission Deadline"
-                              ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                              : "text-gray-700"
-                              }`}
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${
+                              createDepartment === "Submission Deadline"
+                                ? "bg-[#E2EEFF] text-[#1D7AFC]"
+                                : "text-gray-700"
+                            }`}
                           >
                             Outsource
                           </button>
@@ -4126,9 +4463,13 @@ export default function ProjectsTD() {
                             placeholder="Enter Outsourcing Budget"
                             value={createBudgetCeiling}
                             onChange={(e) => {
-                              const val = e.target.value.replace(/[^0-9.]/g, "");
+                              const val = e.target.value.replace(
+                                /[^0-9.]/g,
+                                "",
+                              );
                               const parts = val.split(".");
-                              if (parts.length <= 2) setCreateBudgetCeiling(val);
+                              if (parts.length <= 2)
+                                setCreateBudgetCeiling(val);
                             }}
                           />
                         </div>
@@ -4166,7 +4507,6 @@ export default function ProjectsTD() {
                     </>
                   )}
                 </div>
-
 
                 {/* Footer Buttons */}
                 <div className="flex justify-center gap-6 pt-6">
@@ -4211,7 +4551,7 @@ export default function ProjectsTD() {
                         (isEditSourceOutsource &&
                           createBudgetCeiling.trim() &&
                           parseBudgetValue(createBudgetCeiling) >
-                          parseBudgetValue(createBudget))
+                            parseBudgetValue(createBudget))
                       )
                     }
                     className="px-6 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-Gantari font-medium text-[14px] transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
