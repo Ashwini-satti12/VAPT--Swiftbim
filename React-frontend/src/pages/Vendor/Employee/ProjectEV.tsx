@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import api from "../../../lib/api";
 import { useAuth } from "../../../contexts/AuthContext";
 import { FiUploadCloud } from "react-icons/fi";
@@ -241,7 +242,117 @@ function formatDate(d: any) {
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
+  return `${day}-${month}-${year}`;
+}
+
+const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
+const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
+const showEntriesOptions: {
+    value: string;
+    label: string;
+    start: number;
+    end: number | null;
+}[] = [
+    { value: "1-50", label: "1-50", start: 0, end: 50 },
+    { value: "51-100", label: "51-100", start: 50, end: 100 },
+    { value: "101-150", label: "101-150", start: 100, end: 150 },
+    { value: "151-200", label: "151-200", start: 150, end: 200 },
+    { value: "201-250", label: "201-250", start: 200, end: 250 },
+    { value: "251-300", label: "251-300", start: 250, end: 300 },
+    { value: "all", label: "All", start: 0, end: null },
+];
+
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 0px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
+function HeaderDropdown({
+    value,
+    onChange,
+    placeholder,
+    options,
+    className,
+}: {
+    value: string;
+    onChange: (val: string) => void;
+    placeholder: string;
+    options: { label: string; value: string }[];
+    className?: string;
+}) {
+    const [open, setOpen] = useState(false);
+    const wrapRef = useRef<HTMLDivElement>(null);
+    const selectedLabel =
+        options.find((opt) => opt.value === value)?.label || placeholder;
+
+    useEffect(() => {
+        const onOutside = (e: MouseEvent) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", onOutside);
+        return () => document.removeEventListener("mousedown", onOutside);
+    }, []);
+
+    return (
+        <div ref={wrapRef} className={`relative ${className || "w-full"}`}>
+            <button
+                type="button"
+                onClick={() => setOpen((p) => !p)}
+                className="w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+            >
+                <span className={`${value ? "text-[#353535]" : "text-[#8B8B8B]"} truncate`}>
+                    {selectedLabel}
+                </span>
+                <img
+                    src={ArrowDown}
+                    alt=""
+                    className={`w-3 h-3 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+                    aria-hidden
+                />
+            </button>
+            {open && (
+                <div className="absolute top-full left-0 mt-2 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-[10px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-50 overflow-hidden">
+                    <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                        {options.map((opt) => {
+                            const selected = opt.value === value;
+                            return (
+                                <button
+                                    key={`${placeholder}-${opt.value}-${opt.label}`}
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        onChange(opt.value);
+                                        setOpen(false);
+                                    }}
+                                    className={`w-full text-left px-4 py-3 text-[14px] font-gantari transition-colors cursor-pointer ${selected
+                                            ? "text-[#353535] bg-[#F2F2F2]"
+                                            : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                        }`}
+                                >
+                                    {opt.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 }
 
 export default function ProjectEV() {
@@ -429,15 +540,70 @@ export default function ProjectEV() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const [projectFilter, setProjectFilter] = useState("");
+  const [selectedShowEntries, setSelectedShowEntries] = useState("");
+  const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+  const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const styleTag = document.createElement("style");
+    styleTag.setAttribute("data-ev-scrollbar", "1");
+    styleTag.textContent = SCROLLBAR_STYLE;
+    document.head.appendChild(styleTag);
+    return () => {
+      document.head.removeChild(styleTag);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        showEntriesDropdownRef.current &&
+        !showEntriesDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowEntriesOpen(false);
+      }
+    };
+    if (showEntriesOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showEntriesOpen]);
+
+  const projectNames = useMemo(() => {
+    return Array.from(new Set(projects.map((p) => (p.project_name || "").trim()).filter(Boolean))).sort();
+  }, [projects]);
+
+  const projectFilterOptions = useMemo(() => {
+    return [
+      { label: "Project Name", value: "" },
+      ...projectNames.map((name) => ({ label: name, value: name })),
+    ];
+  }, [projectNames]);
+
+  const handleProjectFilter = (v: string) => {
+    setProjectFilter(v);
+  };
+
   const filtered = useMemo(() => {
-    if (!q) return projects;
     return projects.filter((p) => {
       const name = String(p.project_name || "").toLowerCase();
       const status = String(p.status || "").toLowerCase();
       const prio = String(p.priority || "").toLowerCase();
-      return `${name} ${status} ${prio}`.includes(q);
+      const matchesSearch = !q || `${name} ${status} ${prio}`.includes(q);
+      if (!matchesSearch) return false;
+      if (projectFilter && p.project_name !== projectFilter) return false;
+      return true;
     });
-  }, [projects, q]);
+  }, [projects, q, projectFilter]);
+
+  const effectiveShowEntryValue = selectedShowEntries || showEntriesOptions[0].value;
+  const selectedRange = showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ?? showEntriesOptions[0];
+  const rangeEnd = selectedRange.end === null ? filtered.length : Math.min(selectedRange.end, filtered.length);
+  const listInRange = useMemo(() => {
+    return filtered.slice(selectedRange.start, rangeEnd);
+  }, [filtered, selectedRange, rangeEnd]);
 
   const profileNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -826,26 +992,124 @@ export default function ProjectEV() {
         ) : (
           <div className="px-5">
             <div className="bg-white py-3 flex-shrink-0">
-              <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
                 <h1 className="text-[24px] font-semibold text-[#000000] font-Gantari">Projects</h1>
-                <input
-                  value={searchParams.get("q") || ""}
-                  onChange={(e) => {
-                    const next = new URLSearchParams(searchParams);
-                    const value = e.target.value.trim();
-                    if (value) next.set("q", value);
-                    else next.delete("q");
-                    setSearchParams(next, { replace: true });
-                  }}
-                  placeholder="Search project"
-                  className="w-[220px] rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                />
+                <div className="flex flex-wrap items-center gap-3">
+                    <HeaderDropdown
+                        value={projectFilter}
+                        onChange={handleProjectFilter}
+                        placeholder="Project Name"
+                        options={projectFilterOptions}
+                        className="w-full sm:w-[180px]"
+                    />
+                    <div className="relative w-full sm:w-[150px]" ref={showEntriesDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowEntriesOpen((o) => !o);
+                            }}
+                            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                        >
+                            <span
+                                className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
+                                    ? "text-[#8B8B8B]"
+                                    : "text-[#353535]"
+                                    }`}
+                            >
+                                {selectedShowEntries === "" ? (
+                                    SHOW_ENTRIES_PLACEHOLDER
+                                ) : (
+                                    <>
+                                        <span className="text-[14px]">
+                                            {SHOW_ENTRIES_SELECTED_PREFIX}
+                                        </span>{" "}
+                                        <span className="font-semibold">{selectedRange.label}</span>
+                                    </>
+                                )}
+                            </span>
+                            <img
+                                src={ArrowDown}
+                                alt=""
+                                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                                    } ${selectedShowEntries === ""
+                                        ? "opacity-60 grayscale"
+                                        : "opacity-90"
+                                    }`}
+                                aria-hidden
+                            />
+                        </button>
+                        {showEntriesOpen && (
+                            <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                                <div
+                                    ref={showEntriesDropdownContentRef}
+                                    className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                                >
+                                    <button
+                                        type="button"
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setSelectedShowEntries("");
+                                            setShowEntriesOpen(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                    >
+                                        {SHOW_ENTRIES_PLACEHOLDER}
+                                    </button>
+                                    {showEntriesOptions.map((opt) => {
+                                        const isChosen = selectedShowEntries === opt.value;
+                                        return (
+                                            <button
+                                                key={`${opt.value}-${opt.start}-${String(opt.end)}`}
+                                                type="button"
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setSelectedShowEntries(opt.value);
+                                                    setShowEntriesOpen(false);
+                                                }}
+                                                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
+                                                    ? "text-[#353535] bg-[#F2F2F2]"
+                                                    : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                                    }`}
+                                            >
+                                                <span className="truncate min-w-0">{opt.label}</span>
+                                                {isChosen && (
+                                                    <svg
+                                                        className="w-4 h-4 shrink-0 text-[#353535]"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                        aria-hidden
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2.5}
+                                                            d="M5 13l4 4L19 7"
+                                                        />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
               </div>
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-4">
-                {filtered.map((p) => {
+                {listInRange.length === 0 ? (
+                  <div className="col-span-full rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500 font-gantari">
+                    No projects found.
+                  </div>
+                ) : (
+                  listInRange.map((p) => {
                   const normalizedStatus = normalizeProjectStatus(p);
                   const progress = normalizedStatus === "completed" ? 100 : safePercent(p.progress, 0);
                   const memberIds = p.members ? p.members.split(",").filter(Boolean).map(Number) : [];
@@ -979,12 +1243,7 @@ export default function ProjectEV() {
                       </div>
                     </div>
                   );
-                })}
-                {filtered.length === 0 && (
-                  <div className="col-span-full rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">
-                    No projects found.
-                  </div>
-                )}
+                }))}
               </div>
             </div>
           </div>

@@ -52,22 +52,22 @@ interface Employee {
 }
 
 export default function VendorBimLeadCreateTeam() {
-const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
-const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
-const showEntriesOptions: {
-  value: string;
-  label: string;
-  start: number;
-  end: number | null;
-}[] = [
-    { value: "1-50", label: "1-50", start: 0, end: 50 },
-    { value: "51-100", label: "51-100", start: 50, end: 100 },
-    { value: "101-150", label: "101-150", start: 100, end: 150 },
-    { value: "151-200", label: "151-200", start: 150, end: 200 },
-    { value: "201-250", label: "201-250", start: 200, end: 250 },
-    { value: "251-300", label: "251-300", start: 250, end: 300 },
-    { value: "all", label: "All", start: 0, end: null },
-  ];
+  const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
+  const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
+  const showEntriesOptions: {
+    value: string;
+    label: string;
+    start: number;
+    end: number | null;
+  }[] = [
+      { value: "1-50", label: "1-50", start: 0, end: 50 },
+      { value: "51-100", label: "51-100", start: 50, end: 100 },
+      { value: "101-150", label: "101-150", start: 100, end: 150 },
+      { value: "151-200", label: "151-200", start: 150, end: 200 },
+      { value: "201-250", label: "201-250", start: 200, end: 250 },
+      { value: "251-300", label: "251-300", start: 250, end: 300 },
+      { value: "all", label: "All", start: 0, end: null },
+    ];
   const [teams, setTeams] = useState<Team[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -170,7 +170,7 @@ const showEntriesOptions: {
 
     const projectMembers = employees.filter(e => involvedIds.has(String(e.id))).map(e => ({ ...e, isProjectMember: true }));
     const otherMembers = employees.filter(e => !involvedIds.has(String(e.id))).map(e => ({ ...e, isProjectMember: false }));
-    
+
     return [...projectMembers, ...otherMembers];
   };
 
@@ -545,7 +545,7 @@ const showEntriesOptions: {
               onClick={() => setShowCreateModal(true)}
               className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium font-gantari text-white shadow-sm cursor-pointer whitespace-nowrap"
             >
-              <img src={AddBtn} alt="Add" className="h-5 w-5" />
+
               New Team
             </button>
           </div>

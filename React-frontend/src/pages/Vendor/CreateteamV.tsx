@@ -373,7 +373,7 @@ export default function CreateteamV() {
 
         const projectMembers = employees.filter(e => involvedIds.has(String(e.id))).map(e => ({ ...e, isProjectMember: true }));
         const otherMembers = employees.filter(e => !involvedIds.has(String(e.id))).map(e => ({ ...e, isProjectMember: false }));
-        
+
         return [...projectMembers, ...otherMembers];
     };
 
@@ -679,7 +679,7 @@ export default function CreateteamV() {
                         }}
                         className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-[#F2F2F2] rounded-md transition-all font-medium text-[14px] shadow-sm cursor-pointer"
                     >
-                        <PlusIcon className="w-5 h-5 stroke-[2.5]" />
+
                         New Team
                     </button>
                 </div>
@@ -803,266 +803,266 @@ export default function CreateteamV() {
                         <div className="flex-1 overflow-y-auto px-1 custom-scrollbar">
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div>
-                                <label className="block text-[14px] font-medium text-[#353535] mb-3 font-Gantari">
-                                    Team Name <span className="text-[#DD4342]">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="Enter Team Name"
-                                    className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-[14px] text-[#353535] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
-                                    value={form.team_name}
-                                    onChange={(e) =>
-                                        setForm({ ...form, team_name: e.target.value })
-                                    }
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-[16px] font-medium text-[#8B8B8B] mb-3">
-                                    Select Project
-                                </label>
-                                <div className="relative" ref={projectDropdownRef}>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            const el = projectDropdownRef.current;
-                                            if (el) {
-                                                const rect = el.getBoundingClientRect();
-                                                setProjectDropdownUpward(window.innerHeight - rect.bottom < 220);
-                                            }
-                                            setShowProjectDropdown(!showProjectDropdown);
-                                        }}
-                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer"
-                                    >
-                                        <span className={form.project_id ? "text-[#353535]" : "text-[#8B8B8B]"}>
-                                            {form.project_id
-                                                ? projects.find((p) => String(p.id) === String(form.project_id))?.project_name ?? "Selected Project"
-                                                : "Select Project"}
-                                        </span>
-                                        <img
-                                            src={ArrowDown}
-                                            alt=""
-                                            className={`w-4 h-4 transition-transform duration-200 ${showProjectDropdown ? "rotate-180" : ""}`}
-                                        />
-                                    </button>
-
-                                    {showProjectDropdown && (
-                                        <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${projectDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
-                                            <div className="p-2 border-b border-[#E5E7EB]">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Search project..."
-                                                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
-                                                    value={projectSearchQuery}
-                                                    onChange={(e) => setProjectSearchQuery(e.target.value)}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                />
-                                            </div>
-                                            <div className="max-h-48 overflow-y-auto custom-scrollbar">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setForm({ ...form, project_id: "" });
-                                                        setShowProjectDropdown(false);
-                                                        setProjectSearchQuery("");
-                                                    }}
-                                                    className="w-full px-4 py-2 text-left text-sm text-[#8B8B8B] hover:bg-slate-50 transition-colors"
-                                                >
-                                                    Select Project
-                                                </button>
-                                                {projects
-                                                    .filter((p) => (p.project_name || "").toLowerCase().includes(projectSearchQuery.toLowerCase()))
-                                                    .map((project) => (
-                                                        <button
-                                                            key={project.id}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setForm({ ...form, project_id: String(project.id), leader: '', employee: [] });
-                                                                setShowProjectDropdown(false);
-                                                                setProjectSearchQuery("");
-                                                            }}
-                                                            className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${String(form.project_id) === String(project.id) ? "text-[#DD4342] font-semibold bg-[#DD4342]/5" : "text-[#353535]"}`}
-                                                        >
-                                                            {project.project_name}
-                                                        </button>
-                                                    ))}
-                                            </div>
-                                        </div>
-                                    )}
+                                    <label className="block text-[14px] font-medium text-[#353535] mb-3 font-Gantari">
+                                        Team Name <span className="text-[#DD4342]">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter Team Name"
+                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-[14px] text-[#353535] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                                        value={form.team_name}
+                                        onChange={(e) =>
+                                            setForm({ ...form, team_name: e.target.value })
+                                        }
+                                        required
+                                    />
                                 </div>
-                            </div>
 
-                            <div>
-                                <label className="block text-[16px] font-medium text-[#000000] mb-3 font-Gantari">
-                                    Team Leader <span className="text-[#DD4342]">*</span>
-                                </label>
-                                <div className="relative" ref={leaderDropdownRef}>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            const el = leaderDropdownRef.current;
-                                            if (el) {
-                                                const rect = el.getBoundingClientRect();
-                                                setLeaderDropdownUpward(window.innerHeight - rect.bottom < 220);
-                                            }
-                                            setShowLeaderDropdown(!showLeaderDropdown);
-                                        }}
-                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer font-Gantari"
-                                    >
-                                        <span className={form.leader ? "text-[#353535]" : "text-[#8B8B8B]"}>
-                                            {form.leader
-                                                ? employees.find((e) => String(e.id) === String(form.leader))?.full_name ?? "Selected Leader"
-                                                : "Select Leader"}
-                                        </span>
-                                        <img
-                                            src={ArrowDown}
-                                            alt=""
-                                            className={`w-4 h-4 transition-transform duration-200 ${showLeaderDropdown ? "rotate-180" : ""}`}
-                                        />
-                                    </button>
+                                <div>
+                                    <label className="block text-[16px] font-medium text-[#8B8B8B] mb-3">
+                                        Select Project
+                                    </label>
+                                    <div className="relative" ref={projectDropdownRef}>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const el = projectDropdownRef.current;
+                                                if (el) {
+                                                    const rect = el.getBoundingClientRect();
+                                                    setProjectDropdownUpward(window.innerHeight - rect.bottom < 220);
+                                                }
+                                                setShowProjectDropdown(!showProjectDropdown);
+                                            }}
+                                            className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer"
+                                        >
+                                            <span className={form.project_id ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                                                {form.project_id
+                                                    ? projects.find((p) => String(p.id) === String(form.project_id))?.project_name ?? "Selected Project"
+                                                    : "Select Project"}
+                                            </span>
+                                            <img
+                                                src={ArrowDown}
+                                                alt=""
+                                                className={`w-4 h-4 transition-transform duration-200 ${showProjectDropdown ? "rotate-180" : ""}`}
+                                            />
+                                        </button>
 
-                                    {showLeaderDropdown && (
-                                        <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${leaderDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
-                                            <div className="p-2 border-b border-[#E5E7EB]">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Search employee..."
-                                                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
-                                                    value={leaderSearchQuery}
-                                                    onChange={(e) => setLeaderSearchQuery(e.target.value)}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                />
-                                            </div>
-                                            <div className="max-h-48 overflow-y-auto custom-scrollbar">
-                                                {employees
-                                                    .filter((e) => (e.full_name || "").toLowerCase().includes(leaderSearchQuery.toLowerCase()))
-                                                    .map((emp) => (
-                                                        <button
-                                                            key={emp.id}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setForm({ ...form, leader: String(emp.id) });
-                                                                setShowLeaderDropdown(false);
-                                                                setLeaderSearchQuery("");
-                                                            }}
-                                                            className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${String(form.leader) === String(emp.id) ? "text-[#DD4342] font-semibold bg-[#DD4342]/5" : "text-[#353535]"}`}
-                                                        >
-                                                            {emp.full_name}
-                                                        </button>
-                                                    ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-[16px] font-medium text-[#000000] mb-3 font-Gantari">
-                                    Add Members ({form.employee.length})
-                                </label>
-                                <div className="relative" ref={memberDropdownRef}>
-                                    <div
-                                        onClick={() => {
-                                            const el = memberDropdownRef.current;
-                                            if (el) {
-                                                const rect = el.getBoundingClientRect();
-                                                setMemberDropdownUpward(window.innerHeight - rect.bottom < 220);
-                                            }
-                                            setShowMemberDropdown(!showMemberDropdown);
-                                        }}
-                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer min-h-[44px] font-Gantari"
-                                    >
-                                        <div className="flex flex-wrap gap-1.5 flex-1 pr-4">
-                                            {form.employee.length > 0 ? (
-                                                form.employee.map((eid) => (
-                                                    <span
-                                                        key={eid}
-                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#E5E7EB] rounded-md text-xs font-semibold text-[#353535] shadow-sm animate-in zoom-in-95 duration-150"
+                                        {showProjectDropdown && (
+                                            <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${projectDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
+                                                <div className="p-2 border-b border-[#E5E7EB]">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Search project..."
+                                                        className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
+                                                        value={projectSearchQuery}
+                                                        onChange={(e) => setProjectSearchQuery(e.target.value)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                </div>
+                                                <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setForm({ ...form, project_id: "" });
+                                                            setShowProjectDropdown(false);
+                                                            setProjectSearchQuery("");
+                                                        }}
+                                                        className="w-full px-4 py-2 text-left text-sm text-[#8B8B8B] hover:bg-slate-50 transition-colors"
                                                     >
-                                                        {employees.find((e) => String(e.id) === String(eid))?.full_name || eid}
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleMemberToggle(eid);
-                                                            }}
-                                                            className="hover:text-red-500 transition-colors"
-                                                        >
-                                                            <PlusIcon className="w-3 h-3 rotate-45 stroke-[3]" />
-                                                        </button>
-                                                    </span>
-                                                ))
-                                            ) : (
-                                                <span className="text-[#8B8B8B]">Select teammates</span>
-                                            )}
-                                        </div>
-                                        <img
-                                            src={ArrowDown}
-                                            alt=""
-                                            className={`w-4 h-4 transition-transform duration-200 ${showMemberDropdown ? "rotate-180" : ""}`}
-                                        />
-                                    </div>
-
-                                    {showMemberDropdown && (
-                                        <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${memberDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
-                                            <div className="p-2 border-b border-[#E5E7EB]">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Search member..."
-                                                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
-                                                    value={memberSearchQuery}
-                                                    onChange={(e) => setMemberSearchQuery(e.target.value)}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                />
+                                                        Select Project
+                                                    </button>
+                                                    {projects
+                                                        .filter((p) => (p.project_name || "").toLowerCase().includes(projectSearchQuery.toLowerCase()))
+                                                        .map((project) => (
+                                                            <button
+                                                                key={project.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setForm({ ...form, project_id: String(project.id), leader: '', employee: [] });
+                                                                    setShowProjectDropdown(false);
+                                                                    setProjectSearchQuery("");
+                                                                }}
+                                                                className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${String(form.project_id) === String(project.id) ? "text-[#DD4342] font-semibold bg-[#DD4342]/5" : "text-[#353535]"}`}
+                                                            >
+                                                                {project.project_name}
+                                                            </button>
+                                                        ))}
+                                                </div>
                                             </div>
-                                            <div className="max-h-48 overflow-y-auto custom-scrollbar">
-                                                {getProjectEmployees(form.project_id)
-                                                    .filter((e) => String(e.id) !== String(form.leader))
-                                                    .filter((e) => (e.full_name || "").toLowerCase().includes(memberSearchQuery.toLowerCase()))
-                                                    .map((emp) => {
-                                                        const isSelected = form.employee.includes(String(emp.id));
-                                                        return (
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[16px] font-medium text-[#000000] mb-3 font-Gantari">
+                                        Team Leader <span className="text-[#DD4342]">*</span>
+                                    </label>
+                                    <div className="relative" ref={leaderDropdownRef}>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const el = leaderDropdownRef.current;
+                                                if (el) {
+                                                    const rect = el.getBoundingClientRect();
+                                                    setLeaderDropdownUpward(window.innerHeight - rect.bottom < 220);
+                                                }
+                                                setShowLeaderDropdown(!showLeaderDropdown);
+                                            }}
+                                            className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer font-Gantari"
+                                        >
+                                            <span className={form.leader ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                                                {form.leader
+                                                    ? employees.find((e) => String(e.id) === String(form.leader))?.full_name ?? "Selected Leader"
+                                                    : "Select Leader"}
+                                            </span>
+                                            <img
+                                                src={ArrowDown}
+                                                alt=""
+                                                className={`w-4 h-4 transition-transform duration-200 ${showLeaderDropdown ? "rotate-180" : ""}`}
+                                            />
+                                        </button>
+
+                                        {showLeaderDropdown && (
+                                            <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${leaderDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
+                                                <div className="p-2 border-b border-[#E5E7EB]">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Search employee..."
+                                                        className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
+                                                        value={leaderSearchQuery}
+                                                        onChange={(e) => setLeaderSearchQuery(e.target.value)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                </div>
+                                                <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                                    {employees
+                                                        .filter((e) => (e.full_name || "").toLowerCase().includes(leaderSearchQuery.toLowerCase()))
+                                                        .map((emp) => (
                                                             <button
                                                                 key={emp.id}
                                                                 type="button"
-                                                                onClick={() => handleMemberToggle(String(emp.id))}
-                                                                className={`w-full px-4 py-2.5 text-left text-sm flex items-center justify-between transition-all hover:bg-slate-50 ${isSelected ? "bg-[#DD4342]/5 text-[#DD4342] font-semibold" : "text-[#353535]"}`}
+                                                                onClick={() => {
+                                                                    setForm({ ...form, leader: String(emp.id) });
+                                                                    setShowLeaderDropdown(false);
+                                                                    setLeaderSearchQuery("");
+                                                                }}
+                                                                className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${String(form.leader) === String(emp.id) ? "text-[#DD4342] font-semibold bg-[#DD4342]/5" : "text-[#353535]"}`}
                                                             >
-                                                                <span>{emp.full_name}</span>
-                                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${isSelected ? "bg-[#DD4342] border-[#DD4342]" : "border-[#AEACAC52]"}`}>
-                                                                    {isSelected && <PlusIcon className="w-3 h-3 text-white stroke-[3] rotate-45" />}
-                                                                </div>
+                                                                {emp.full_name}
                                                             </button>
-                                                        );
-                                                    })}
+                                                        ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="flex justify-center gap-6 pt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAddModal(false)}
-                                    className="px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] text-[14px] font-medium transition-all active:scale-[0.98] cursor-pointer shadow-sm"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="px-12 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-medium transition-all disabled:opacity-50 cursor-pointer shadow-sm"
-                                >
-                                    {submitting ? "Creating..." : "Create Team"}
-                                </button>
-                            </div>
-                        </form>
+                                <div>
+                                    <label className="block text-[16px] font-medium text-[#000000] mb-3 font-Gantari">
+                                        Add Members ({form.employee.length})
+                                    </label>
+                                    <div className="relative" ref={memberDropdownRef}>
+                                        <div
+                                            onClick={() => {
+                                                const el = memberDropdownRef.current;
+                                                if (el) {
+                                                    const rect = el.getBoundingClientRect();
+                                                    setMemberDropdownUpward(window.innerHeight - rect.bottom < 220);
+                                                }
+                                                setShowMemberDropdown(!showMemberDropdown);
+                                            }}
+                                            className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer min-h-[44px] font-Gantari"
+                                        >
+                                            <div className="flex flex-wrap gap-1.5 flex-1 pr-4">
+                                                {form.employee.length > 0 ? (
+                                                    form.employee.map((eid) => (
+                                                        <span
+                                                            key={eid}
+                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#E5E7EB] rounded-md text-xs font-semibold text-[#353535] shadow-sm animate-in zoom-in-95 duration-150"
+                                                        >
+                                                            {employees.find((e) => String(e.id) === String(eid))?.full_name || eid}
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleMemberToggle(eid);
+                                                                }}
+                                                                className="hover:text-red-500 transition-colors"
+                                                            >
+                                                                <PlusIcon className="w-3 h-3 rotate-45 stroke-[3]" />
+                                                            </button>
+                                                        </span>
+                                                    ))
+                                                ) : (
+                                                    <span className="text-[#8B8B8B]">Select teammates</span>
+                                                )}
+                                            </div>
+                                            <img
+                                                src={ArrowDown}
+                                                alt=""
+                                                className={`w-4 h-4 transition-transform duration-200 ${showMemberDropdown ? "rotate-180" : ""}`}
+                                            />
+                                        </div>
+
+                                        {showMemberDropdown && (
+                                            <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${memberDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
+                                                <div className="p-2 border-b border-[#E5E7EB]">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Search member..."
+                                                        className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
+                                                        value={memberSearchQuery}
+                                                        onChange={(e) => setMemberSearchQuery(e.target.value)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                </div>
+                                                <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                                    {getProjectEmployees(form.project_id)
+                                                        .filter((e) => String(e.id) !== String(form.leader))
+                                                        .filter((e) => (e.full_name || "").toLowerCase().includes(memberSearchQuery.toLowerCase()))
+                                                        .map((emp) => {
+                                                            const isSelected = form.employee.includes(String(emp.id));
+                                                            return (
+                                                                <button
+                                                                    key={emp.id}
+                                                                    type="button"
+                                                                    onClick={() => handleMemberToggle(String(emp.id))}
+                                                                    className={`w-full px-4 py-2.5 text-left text-sm flex items-center justify-between transition-all hover:bg-slate-50 ${isSelected ? "bg-[#DD4342]/5 text-[#DD4342] font-semibold" : "text-[#353535]"}`}
+                                                                >
+                                                                    <span>{emp.full_name}</span>
+                                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${isSelected ? "bg-[#DD4342] border-[#DD4342]" : "border-[#AEACAC52]"}`}>
+                                                                        {isSelected && <PlusIcon className="w-3 h-3 text-white stroke-[3] rotate-45" />}
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-center gap-6 pt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAddModal(false)}
+                                        className="px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] text-[14px] font-medium transition-all active:scale-[0.98] cursor-pointer shadow-sm"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="px-12 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-medium transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                                    >
+                                        {submitting ? "Creating..." : "Create Team"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
-            </div>
-        )}
+            )}
             {/* Edit Modal */}
             {showEditModal && (
                 <div className="fixed inset-0 z-100 flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
@@ -1090,242 +1090,242 @@ export default function CreateteamV() {
 
                         <div className="flex-1 overflow-y-auto px-1 custom-scrollbar">
                             <form onSubmit={handleUpdate} className="space-y-6">
-                            <div>
-                                <label className="block text-[14px] font-medium text-[#353535] mb-3 font-Gantari">
-                                    Team Name <span className="text-[#DD4342]">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="Enter Team Name"
-                                    className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-[14px] text-[#353535] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
-                                    value={editForm.team_name}
-                                    onChange={(e) =>
-                                        setEditForm({ ...editForm, team_name: e.target.value })
-                                    }
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-[16px] font-medium text-[#000000] mb-3 font-Gantari">
-                                    Select Project
-                                </label>
-                                <div className="relative" ref={projectDropdownRef}>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            const el = projectDropdownRef.current;
-                                            if (el) {
-                                                const rect = el.getBoundingClientRect();
-                                                setProjectDropdownUpward(window.innerHeight - rect.bottom < 220);
-                                            }
-                                            setShowProjectDropdown(!showProjectDropdown);
-                                        }}
-                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer font-Gantari"
-                                    >
-                                        <span className={editForm.project_id ? "text-[#353535]" : "text-[#8B8B8B]"}>
-                                            {editForm.project_id
-                                                ? projects.find((p) => String(p.id) === String(editForm.project_id))?.project_name ?? "Selected Project"
-                                                : "Select Project"}
-                                        </span>
-                                        <img
-                                            src={ArrowDown}
-                                            alt=""
-                                            className={`w-4 h-4 transition-transform duration-200 ${showProjectDropdown ? "rotate-180" : ""}`}
-                                        />
-                                    </button>
-
-                                    {showProjectDropdown && (
-                                        <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${projectDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
-                                            <div className="p-2 border-b border-[#E5E7EB]">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Search project..."
-                                                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
-                                                    value={projectSearchQuery}
-                                                    onChange={(e) => setProjectSearchQuery(e.target.value)}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                />
-                                            </div>
-                                            <div className="max-h-48 overflow-y-auto custom-scrollbar">
-                                                {projects
-                                                    .filter((p) => (p.project_name || "").toLowerCase().includes(projectSearchQuery.toLowerCase()))
-                                                    .map((project) => (
-                                                        <button
-                                                            key={project.id}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setEditForm({ ...editForm, project_id: String(project.id), leader: '', employee: [] });
-                                                                setShowProjectDropdown(false);
-                                                                setProjectSearchQuery("");
-                                                            }}
-                                                            className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${String(editForm.project_id) === String(project.id) ? "text-[#DD4342] font-semibold bg-[#DD4342]/5" : "text-[#353535]"}`}
-                                                        >
-                                                            {project.project_name}
-                                                        </button>
-                                                    ))}
-                                            </div>
-                                        </div>
-                                    )}
+                                <div>
+                                    <label className="block text-[14px] font-medium text-[#353535] mb-3 font-Gantari">
+                                        Team Name <span className="text-[#DD4342]">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter Team Name"
+                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-[14px] text-[#353535] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
+                                        value={editForm.team_name}
+                                        onChange={(e) =>
+                                            setEditForm({ ...editForm, team_name: e.target.value })
+                                        }
+                                        required
+                                    />
                                 </div>
-                            </div>
 
-                            <div>
-                                <label className="block text-[16px] font-medium text-[#000000] mb-3 font-Gantari">
-                                    Team Leader <span className="text-[#DD4342]">*</span>
-                                </label>
-                                <div className="relative" ref={leaderDropdownRef}>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            const el = leaderDropdownRef.current;
-                                            if (el) {
-                                                const rect = el.getBoundingClientRect();
-                                                setLeaderDropdownUpward(window.innerHeight - rect.bottom < 220);
-                                            }
-                                            setShowLeaderDropdown(!showLeaderDropdown);
-                                        }}
-                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer font-Gantari"
-                                    >
-                                        <span className={editForm.leader ? "text-[#353535]" : "text-[#8B8B8B]"}>
-                                            {editForm.leader
-                                                ? employees.find((e) => String(e.id) === String(editForm.leader))?.full_name ?? "Selected Leader"
-                                                : "Select Leader"}
-                                        </span>
-                                        <img
-                                            src={ArrowDown}
-                                            alt=""
-                                            className={`w-4 h-4 transition-transform duration-200 ${showLeaderDropdown ? "rotate-180" : ""}`}
-                                        />
-                                    </button>
+                                <div>
+                                    <label className="block text-[16px] font-medium text-[#000000] mb-3 font-Gantari">
+                                        Select Project
+                                    </label>
+                                    <div className="relative" ref={projectDropdownRef}>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const el = projectDropdownRef.current;
+                                                if (el) {
+                                                    const rect = el.getBoundingClientRect();
+                                                    setProjectDropdownUpward(window.innerHeight - rect.bottom < 220);
+                                                }
+                                                setShowProjectDropdown(!showProjectDropdown);
+                                            }}
+                                            className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer font-Gantari"
+                                        >
+                                            <span className={editForm.project_id ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                                                {editForm.project_id
+                                                    ? projects.find((p) => String(p.id) === String(editForm.project_id))?.project_name ?? "Selected Project"
+                                                    : "Select Project"}
+                                            </span>
+                                            <img
+                                                src={ArrowDown}
+                                                alt=""
+                                                className={`w-4 h-4 transition-transform duration-200 ${showProjectDropdown ? "rotate-180" : ""}`}
+                                            />
+                                        </button>
 
-                                    {showLeaderDropdown && (
-                                        <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${leaderDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
-                                            <div className="p-2 border-b border-[#E5E7EB]">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Search employee..."
-                                                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
-                                                    value={leaderSearchQuery}
-                                                    onChange={(e) => setLeaderSearchQuery(e.target.value)}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                />
+                                        {showProjectDropdown && (
+                                            <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${projectDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
+                                                <div className="p-2 border-b border-[#E5E7EB]">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Search project..."
+                                                        className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
+                                                        value={projectSearchQuery}
+                                                        onChange={(e) => setProjectSearchQuery(e.target.value)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                </div>
+                                                <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                                    {projects
+                                                        .filter((p) => (p.project_name || "").toLowerCase().includes(projectSearchQuery.toLowerCase()))
+                                                        .map((project) => (
+                                                            <button
+                                                                key={project.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setEditForm({ ...editForm, project_id: String(project.id), leader: '', employee: [] });
+                                                                    setShowProjectDropdown(false);
+                                                                    setProjectSearchQuery("");
+                                                                }}
+                                                                className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${String(editForm.project_id) === String(project.id) ? "text-[#DD4342] font-semibold bg-[#DD4342]/5" : "text-[#353535]"}`}
+                                                            >
+                                                                {project.project_name}
+                                                            </button>
+                                                        ))}
+                                                </div>
                                             </div>
-                                            <div className="max-h-48 overflow-y-auto custom-scrollbar">
-                                                {getProjectEmployees(editForm.project_id)
-                                                    .filter((e) => (e.full_name || "").toLowerCase().includes(leaderSearchQuery.toLowerCase()))
-                                                    .map((emp) => (
-                                                        <button
-                                                            key={emp.id}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setEditForm({ ...editForm, leader: String(emp.id) });
-                                                                setShowLeaderDropdown(false);
-                                                                setLeaderSearchQuery("");
-                                                            }}
-                                                            className={`w-full px-4 py-2 text-left text-sm flex items-center justify-between transition-colors hover:bg-slate-50 ${String(editForm.leader) === String(emp.id) ? "text-[#DD4342] font-semibold bg-[#DD4342]/5" : "text-[#353535]"}`}
-                                                        >
-                                                            <span>{emp.full_name}</span>
-                                                            {(emp as any).isProjectMember && (
-                                                                <span className="text-[10px] bg-[#DD4342]/10 text-[#DD4342] px-1.5 py-0.5 rounded font-bold uppercase">Project</span>
-                                                            )}
-                                                        </button>
-                                                    ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-[16px] font-medium text-[#000000] mb-3 font-Gantari">
-                                    Members ({editForm.employee.length})
-                                </label>
-                                <div className="relative" ref={memberDropdownRef}>
-                                    <div
-                                        onClick={() => {
-                                            const el = memberDropdownRef.current;
-                                            if (el) {
-                                                const rect = el.getBoundingClientRect();
-                                                setMemberDropdownUpward(window.innerHeight - rect.bottom < 220);
-                                            }
-                                            setShowMemberDropdown(!showMemberDropdown);
-                                        }}
-                                        className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer min-h-[44px] font-Gantari"
-                                    >
-                                        <div className="flex flex-wrap gap-1.5 flex-1 pr-4">
-                                            {editForm.employee.length > 0 ? (
-                                                editForm.employee.map((eid) => (
-                                                    <span
-                                                        key={eid}
-                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#E5E7EB] rounded-md text-xs font-semibold text-[#353535] shadow-sm animate-in zoom-in-95 duration-150"
-                                                    >
-                                                        {employees.find((e) => String(e.id) === String(eid))?.full_name || eid}
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleMemberToggle(eid, true);
-                                                            }}
-                                                            className="hover:text-red-500 transition-colors"
-                                                        >
-                                                            <PlusIcon className="w-3 h-3 rotate-45 stroke-[3]" />
-                                                        </button>
-                                                    </span>
-                                                ))
-                                            ) : (
-                                                <span className="text-[#8B8B8B]">Select teammates</span>
-                                            )}
-                                        </div>
-                                        <img
-                                            src={ArrowDown}
-                                            alt=""
-                                            className={`w-4 h-4 transition-transform duration-200 ${showMemberDropdown ? "rotate-180" : ""}`}
-                                        />
+                                        )}
                                     </div>
+                                </div>
 
-                                    {showMemberDropdown && (
-                                        <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${memberDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
-                                            <div className="p-2 border-b border-[#E5E7EB]">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Search member..."
-                                                    className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
-                                                    value={memberSearchQuery}
-                                                    onChange={(e) => setMemberSearchQuery(e.target.value)}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                />
-                                            </div>
-                                            <div className="max-h-48 overflow-y-auto custom-scrollbar">
-                                                {getProjectEmployees(editForm.project_id)
-                                                    .filter((e) => String(e.id) !== String(editForm.leader))
-                                                    .filter((e) => (e.full_name || "").toLowerCase().includes(memberSearchQuery.toLowerCase()))
-                                                    .map((emp) => {
-                                                        const isSelected = editForm.employee.includes(String(emp.id));
-                                                        return (
+                                <div>
+                                    <label className="block text-[16px] font-medium text-[#000000] mb-3 font-Gantari">
+                                        Team Leader <span className="text-[#DD4342]">*</span>
+                                    </label>
+                                    <div className="relative" ref={leaderDropdownRef}>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const el = leaderDropdownRef.current;
+                                                if (el) {
+                                                    const rect = el.getBoundingClientRect();
+                                                    setLeaderDropdownUpward(window.innerHeight - rect.bottom < 220);
+                                                }
+                                                setShowLeaderDropdown(!showLeaderDropdown);
+                                            }}
+                                            className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer font-Gantari"
+                                        >
+                                            <span className={editForm.leader ? "text-[#353535]" : "text-[#8B8B8B]"}>
+                                                {editForm.leader
+                                                    ? employees.find((e) => String(e.id) === String(editForm.leader))?.full_name ?? "Selected Leader"
+                                                    : "Select Leader"}
+                                            </span>
+                                            <img
+                                                src={ArrowDown}
+                                                alt=""
+                                                className={`w-4 h-4 transition-transform duration-200 ${showLeaderDropdown ? "rotate-180" : ""}`}
+                                            />
+                                        </button>
+
+                                        {showLeaderDropdown && (
+                                            <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${leaderDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
+                                                <div className="p-2 border-b border-[#E5E7EB]">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Search employee..."
+                                                        className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
+                                                        value={leaderSearchQuery}
+                                                        onChange={(e) => setLeaderSearchQuery(e.target.value)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                </div>
+                                                <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                                    {getProjectEmployees(editForm.project_id)
+                                                        .filter((e) => (e.full_name || "").toLowerCase().includes(leaderSearchQuery.toLowerCase()))
+                                                        .map((emp) => (
                                                             <button
                                                                 key={emp.id}
                                                                 type="button"
-                                                                onClick={() => handleMemberToggle(String(emp.id), true)}
-                                                                className={`w-full px-4 py-2.5 text-left text-sm flex items-center justify-between transition-all hover:bg-slate-50 ${isSelected ? "bg-[#DD4342]/5 text-[#DD4342] font-semibold" : "text-[#353535]"}`}
+                                                                onClick={() => {
+                                                                    setEditForm({ ...editForm, leader: String(emp.id) });
+                                                                    setShowLeaderDropdown(false);
+                                                                    setLeaderSearchQuery("");
+                                                                }}
+                                                                className={`w-full px-4 py-2 text-left text-sm flex items-center justify-between transition-colors hover:bg-slate-50 ${String(editForm.leader) === String(emp.id) ? "text-[#DD4342] font-semibold bg-[#DD4342]/5" : "text-[#353535]"}`}
                                                             >
-                                                                <div className="flex items-center gap-2">
-                                                                    <span>{emp.full_name}</span>
-                                                                    {(emp as any).isProjectMember && (
-                                                                        <span className="text-[10px] bg-[#DD4342]/10 text-[#DD4342] px-1.5 py-0.5 rounded font-bold uppercase">Project</span>
-                                                                    )}
-                                                                </div>
-                                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${isSelected ? "bg-[#DD4342] border-[#DD4342]" : "border-[#AEACAC52]"}`}>
-                                                                    {isSelected && <PlusIcon className="w-3 h-3 text-white stroke-[3] rotate-45" />}
-                                                                </div>
+                                                                <span>{emp.full_name}</span>
+                                                                {(emp as any).isProjectMember && (
+                                                                    <span className="text-[10px] bg-[#DD4342]/10 text-[#DD4342] px-1.5 py-0.5 rounded font-bold uppercase">Project</span>
+                                                                )}
                                                             </button>
-                                                        );
-                                                    })}
+                                                        ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+
+                                <div>
+                                    <label className="block text-[16px] font-medium text-[#000000] mb-3 font-Gantari">
+                                        Members ({editForm.employee.length})
+                                    </label>
+                                    <div className="relative" ref={memberDropdownRef}>
+                                        <div
+                                            onClick={() => {
+                                                const el = memberDropdownRef.current;
+                                                if (el) {
+                                                    const rect = el.getBoundingClientRect();
+                                                    setMemberDropdownUpward(window.innerHeight - rect.bottom < 220);
+                                                }
+                                                setShowMemberDropdown(!showMemberDropdown);
+                                            }}
+                                            className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2.5 rounded-md text-left text-[14px] flex items-center justify-between group active:ring-1 active:ring-[#AEACAC52] transition-all cursor-pointer min-h-[44px] font-Gantari"
+                                        >
+                                            <div className="flex flex-wrap gap-1.5 flex-1 pr-4">
+                                                {editForm.employee.length > 0 ? (
+                                                    editForm.employee.map((eid) => (
+                                                        <span
+                                                            key={eid}
+                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#E5E7EB] rounded-md text-xs font-semibold text-[#353535] shadow-sm animate-in zoom-in-95 duration-150"
+                                                        >
+                                                            {employees.find((e) => String(e.id) === String(eid))?.full_name || eid}
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleMemberToggle(eid, true);
+                                                                }}
+                                                                className="hover:text-red-500 transition-colors"
+                                                            >
+                                                                <PlusIcon className="w-3 h-3 rotate-45 stroke-[3]" />
+                                                            </button>
+                                                        </span>
+                                                    ))
+                                                ) : (
+                                                    <span className="text-[#8B8B8B]">Select teammates</span>
+                                                )}
+                                            </div>
+                                            <img
+                                                src={ArrowDown}
+                                                alt=""
+                                                className={`w-4 h-4 transition-transform duration-200 ${showMemberDropdown ? "rotate-180" : ""}`}
+                                            />
+                                        </div>
+
+                                        {showMemberDropdown && (
+                                            <div className={`absolute left-0 right-0 z-20 bg-white border border-[#E5E7EB] rounded-md shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 ${memberDropdownUpward ? "bottom-full mb-1" : "top-full mt-1"}`}>
+                                                <div className="p-2 border-b border-[#E5E7EB]">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Search member..."
+                                                        className="w-full px-3 py-1.5 text-sm bg-slate-50 border border-[#E5E7EB] rounded outline-none focus:border-[#DD4342]/30"
+                                                        value={memberSearchQuery}
+                                                        onChange={(e) => setMemberSearchQuery(e.target.value)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                </div>
+                                                <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                                    {getProjectEmployees(editForm.project_id)
+                                                        .filter((e) => String(e.id) !== String(editForm.leader))
+                                                        .filter((e) => (e.full_name || "").toLowerCase().includes(memberSearchQuery.toLowerCase()))
+                                                        .map((emp) => {
+                                                            const isSelected = editForm.employee.includes(String(emp.id));
+                                                            return (
+                                                                <button
+                                                                    key={emp.id}
+                                                                    type="button"
+                                                                    onClick={() => handleMemberToggle(String(emp.id), true)}
+                                                                    className={`w-full px-4 py-2.5 text-left text-sm flex items-center justify-between transition-all hover:bg-slate-50 ${isSelected ? "bg-[#DD4342]/5 text-[#DD4342] font-semibold" : "text-[#353535]"}`}
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span>{emp.full_name}</span>
+                                                                        {(emp as any).isProjectMember && (
+                                                                            <span className="text-[10px] bg-[#DD4342]/10 text-[#DD4342] px-1.5 py-0.5 rounded font-bold uppercase">Project</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${isSelected ? "bg-[#DD4342] border-[#DD4342]" : "border-[#AEACAC52]"}`}>
+                                                                        {isSelected && <PlusIcon className="w-3 h-3 text-white stroke-[3] rotate-45" />}
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
 
                                 <div className="flex justify-center gap-6 pt-6">
                                     <button
