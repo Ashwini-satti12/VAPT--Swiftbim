@@ -521,8 +521,8 @@ export default function BiddingTD() {
             </p>
           </div>
         ) : (
-          <>
-            <div className="overflow-x-auto overflow-y-auto custom-scrollbar hide-scrollbar-x smooth-scroll flex-1 min-h-[280px]">
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <div className="overflow-auto h-[calc(100%+17px)] pb-[17px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:!hidden">
               <table className="min-w-full border-collapse">
                 <thead className="sticky top-0 z-30 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                   <tr className="border-b border-gray-100 bg-white">
@@ -642,7 +642,7 @@ export default function BiddingTD() {
                 </tbody>
               </table>
             </div>
-          </>
+          </div>
         )}
       </div>
       {!loading && filtered.length > 0 && listInRange.length > 0 && (

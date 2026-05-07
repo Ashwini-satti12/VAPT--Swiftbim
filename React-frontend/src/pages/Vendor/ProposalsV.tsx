@@ -435,112 +435,114 @@ export default function ProposalsV() {
 
             {/* Table Card */}
             <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative mx-0 mb-2">
-                <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
-                    {loading ? (
-                        <div className="flex justify-center items-center py-20">
-                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DE3D3A]" />
-                        </div>
-                    ) : displayList.length === 0 ? (
-                        <div className="py-20 text-center text-[#616161] font-gantari">
-                            <svg className="w-14 h-14 mx-auto mb-4 text-[#AEACAC]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <p className="text-lg font-semibold mb-1 text-[#353535]">No accepted bids yet</p>
-                            <p className="text-sm">Once your bid is accepted, you can create and submit a proposal here.</p>
-                        </div>
-                    ) : (
-                        <table className="min-w-full border-separate border-spacing-0">
-                            <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                                <tr className="bg-white">
-                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
-                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
-                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Vendor Name</th>
-                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Bid Amount</th>
-                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Timeline</th>
-                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
-                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {displayList.map((bid, index) => {
-                                    const slNo = (selectedRange.start + tablePageStartIndex + index + 1).toString().padStart(2, '0');
-                                    const displayStatus =
-                                        bid.proposal_exists && bid.proposal_status
-                                            ? bid.proposal_status
-                                            : bid.status;
-                                    const clarificationEdit =
-                                        (displayStatus || '').toLowerCase().replace(/-/g, '_') === 'clarification_requested';
-                                    const canOpenCreateOrEdit =
-                                        !bid.proposal_exists ||
-                                        (clarificationEdit && bid.proposal_id != null && bid.proposal_id !== undefined);
-                                    return (
-                                        <tr key={bid.id} className={`${(tablePageStartIndex + index) % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'} transition-colors`}>
-                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">{slNo}</td>
-                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">
-                                                {bid.project_name}
-                                            </td>
-                                            <td className="px-4 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
-                                                <div className="text-[14px] text-[#353535] font-gantari">{bid.vendor_name || '—'}</div>
-                                            </td>
-                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">
-                                                {bid.bid_amount != null ? `${bid.bid_amount} ${bid.bid_currency || bid.opportunity_currency || ""}` : "—"}
-                                            </td>
-                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">
-                                                {bid.timeline || '—'}
-                                            </td>
-                                            <td className="px-4 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
-                                                <span className={`inline-flex px-4 py-1.5 rounded-md text-[14px] font-gantari ${getStatusBadge(displayStatus)}`}>
-                                                    {getStatusLabel(displayStatus)}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <button
-                                                        onClick={() =>
-                                                            canOpenCreateOrEdit &&
-                                                            navigate("/v/create-proposal", {
-                                                                state: {
-                                                                    bid,
-                                                                    ...(clarificationEdit && bid.proposal_id != null
-                                                                        ? { proposalId: bid.proposal_id, editProposal: true }
-                                                                        : {}),
-                                                                },
-                                                            })
-                                                        }
-                                                        disabled={!canOpenCreateOrEdit}
-                                                        title={clarificationEdit ? "Edit proposal" : "Create proposal"}
-                                                        className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${!canOpenCreateOrEdit ? 'cursor-not-allowed opacity-50' : ''}`}
-                                                    >
-                                                        <img src={viewIcon} alt="" className="w-4 h-4 object-contain brightness-0 invert" />
-                                                        {clarificationEdit ? "Edit" : "Create"}
-                                                    </button>
+                <div className="flex-1 min-h-0 overflow-hidden">
+                    <div className="overflow-auto custom-scrollbar smooth-scroll h-[calc(100%+17px)] pr-1 pb-[17px]">
+                        {loading ? (
+                            <div className="flex justify-center items-center py-20">
+                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DE3D3A]" />
+                            </div>
+                        ) : displayList.length === 0 ? (
+                            <div className="py-20 text-center text-[#616161] font-gantari">
+                                <svg className="w-14 h-14 mx-auto mb-4 text-[#AEACAC]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <p className="text-lg font-semibold mb-1 text-[#353535]">No accepted bids yet</p>
+                                <p className="text-sm">Once your bid is accepted, you can create and submit a proposal here.</p>
+                            </div>
+                        ) : (
+                            <table className="min-w-full border-separate border-spacing-0">
+                                <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                                    <tr className="bg-white">
+                                        <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                                        <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
+                                        <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Vendor Name</th>
+                                        <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Bid Amount</th>
+                                        <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Timeline</th>
+                                        <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
+                                        <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {displayList.map((bid, index) => {
+                                        const slNo = (selectedRange.start + tablePageStartIndex + index + 1).toString().padStart(2, '0');
+                                        const displayStatus =
+                                            bid.proposal_exists && bid.proposal_status
+                                                ? bid.proposal_status
+                                                : bid.status;
+                                        const clarificationEdit =
+                                            (displayStatus || '').toLowerCase().replace(/-/g, '_') === 'clarification_requested';
+                                        const canOpenCreateOrEdit =
+                                            !bid.proposal_exists ||
+                                            (clarificationEdit && bid.proposal_id != null && bid.proposal_id !== undefined);
+                                        return (
+                                            <tr key={bid.id} className={`${(tablePageStartIndex + index) % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'} transition-colors`}>
+                                                <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">{slNo}</td>
+                                                <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">
+                                                    {bid.project_name}
+                                                </td>
+                                                <td className="px-4 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
+                                                    <div className="text-[14px] text-[#353535] font-gantari">{bid.vendor_name || '—'}</div>
+                                                </td>
+                                                <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">
+                                                    {bid.bid_amount != null ? `${bid.bid_amount} ${bid.bid_currency || bid.opportunity_currency || ""}` : "—"}
+                                                </td>
+                                                <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle border-b border-[#F0F0F0]">
+                                                    {bid.timeline || '—'}
+                                                </td>
+                                                <td className="px-4 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
+                                                    <span className={`inline-flex px-4 py-1.5 rounded-md text-[14px] font-gantari ${getStatusBadge(displayStatus)}`}>
+                                                        {getStatusLabel(displayStatus)}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-6 text-center whitespace-nowrap align-middle border-b border-[#F0F0F0]">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <button
+                                                            onClick={() =>
+                                                                canOpenCreateOrEdit &&
+                                                                navigate("/v/create-proposal", {
+                                                                    state: {
+                                                                        bid,
+                                                                        ...(clarificationEdit && bid.proposal_id != null
+                                                                            ? { proposalId: bid.proposal_id, editProposal: true }
+                                                                            : {}),
+                                                                    },
+                                                                })
+                                                            }
+                                                            disabled={!canOpenCreateOrEdit}
+                                                            title={clarificationEdit ? "Edit proposal" : "Create proposal"}
+                                                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${!canOpenCreateOrEdit ? 'cursor-not-allowed opacity-50' : ''}`}
+                                                        >
+                                                            <img src={viewIcon} alt="" className="w-4 h-4 object-contain brightness-0 invert" />
+                                                            {clarificationEdit ? "Edit" : "Create"}
+                                                        </button>
 
-                                                    <button
-                                                        onClick={() =>
-                                                            bid.proposal_exists && navigate(`/v/view-proposal?proposalId=${bid.proposal_id}&source=vendor_submitted`, {
-                                                                state: {
-                                                                    proposalId: bid.proposal_id,
-                                                                    bid,
-                                                                    source: "vendor_submitted",
-                                                                    returnTo: "/v/proposals",
-                                                                },
-                                                            })
-                                                        }
-                                                        disabled={!bid.proposal_exists}
-                                                        title="View Proposal"
-                                                        className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${!bid.proposal_exists ? 'cursor-not-allowed opacity-50' : ''}`}
-                                                    >
-                                                        <img src={viewIcon} alt="View" className="w-4 h-4 object-contain brightness-0 invert" />
-                                                        View
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    )}
+                                                        <button
+                                                            onClick={() =>
+                                                                bid.proposal_exists && navigate(`/v/view-proposal?proposalId=${bid.proposal_id}&source=vendor_submitted`, {
+                                                                    state: {
+                                                                        proposalId: bid.proposal_id,
+                                                                        bid,
+                                                                        source: "vendor_submitted",
+                                                                        returnTo: "/v/proposals",
+                                                                    },
+                                                                })
+                                                            }
+                                                            disabled={!bid.proposal_exists}
+                                                            title="View Proposal"
+                                                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${!bid.proposal_exists ? 'cursor-not-allowed opacity-50' : ''}`}
+                                                        >
+                                                            <img src={viewIcon} alt="View" className="w-4 h-4 object-contain brightness-0 invert" />
+                                                            View
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
                 </div>
             </div>
             {!loading && filteredBids.length > 0 && listInRange.length > 0 && (

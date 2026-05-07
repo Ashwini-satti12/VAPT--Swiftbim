@@ -183,6 +183,8 @@ const DUMMY_LEAVES: LeaveEntry[] = [
   },
 ];
 
+const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
+
 const showEntriesOptions: {
   value: string;
   label: string;

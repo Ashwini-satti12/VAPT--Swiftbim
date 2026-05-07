@@ -13,6 +13,24 @@ import Certificates from '../TechnicalDirector/PartnerView/components/Certificat
 import type { PortfolioProject as PortfolioProjectType } from '../TechnicalDirector/PartnerView/types';
 import PortfolioModal from './components/PortfolioModal';
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 function parseJsonArray(val: unknown): string[] {
     if (!val) return [];
     if (Array.isArray(val)) return val;
@@ -273,6 +291,7 @@ export default function CompanyProfileV() {
 
     return (
         <div className="h-full bg-white font-Gantari flex flex-col overflow-hidden p-2">
+            <style>{SCROLLBAR_STYLE}</style>
             <div className="flex items-center justify-between mb-10 shrink-0">
                 {/* Left: Title */}
                 <h3 className="text-[24px] font-semibold font-Gantari text-[#12141D] whitespace-nowrap">

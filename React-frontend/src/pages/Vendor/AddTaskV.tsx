@@ -35,10 +35,42 @@ const initialForm = {
   description: "",
 };
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar,
+  .lg\\:custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track,
+  .lg\\:custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb,
+  .lg\\:custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar,
+  .lg\\:custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
+
 export default function AddTaskV() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+
+  useEffect(() => {
+    const styleEl = document.createElement("style");
+    styleEl.innerHTML = SCROLLBAR_STYLE;
+    document.head.appendChild(styleEl);
+    return () => {
+      document.head.removeChild(styleEl);
+    };
+  }, []);
   const editingTask = location.state?.task as Task | undefined;
   const fromState = location.state?.from;
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
@@ -461,7 +493,7 @@ export default function AddTaskV() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer group relative"
+            className="p-2 rounded-md bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer group relative"
             aria-label="Back"
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
@@ -474,7 +506,7 @@ export default function AddTaskV() {
             </div>
           </button>
           <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] text-center flex-1">
-            {editingTaskId ? "Edit Task" : "Add New Task"}
+            {editingTaskId ? "Edit Task Details" : "Add New Task"}
           </h3>
           <div className="w-10" />
         </div>
@@ -832,14 +864,14 @@ export default function AddTaskV() {
               <button
                 type="button"
                 onClick={() => navigate("/v/mytasks")}
-                className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
+                className="w-full sm:w-auto px-12 py-2 rounded-md bg-[#F2F2F2] text-[#616161] font-medium text-[14px] transition-all font-Gantari min-w-[160px] cursor-pointer"
               >
                 Discard
               </button>
               <button
                 type="submit"
                 disabled={addSubmitting}
-                className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto px-12 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-medium text-[14px] transition-all font-Gantari min-w-[160px] cursor-pointer disabled:opacity-50"
               >
                 {addSubmitting ? "Submitting..." : "Submit"}
               </button>

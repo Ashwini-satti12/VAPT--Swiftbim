@@ -128,6 +128,8 @@ function taskProgressAndCountdown(
     return { progress, countdown };
 }
 
+const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 36;
+
 export default function DashboardV() {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<DashboardStats>(defaultStats);
@@ -261,9 +263,9 @@ export default function DashboardV() {
         { label: 'Total Bids Submitted', value: stats.bids_submitted, to: '/v/opportunities?tab=my-bids' },
         { label: 'Proposals Awaiting', value: stats.proposals_awaiting, to: '/v/opportunities?tab=my-bids&bidStatus=shortlisted' },
         { label: 'Total Projects', value: Math.max(stats.total_projects, projects.length), to: '/v/projects' },
-        { label: 'Completed Projects', value: stats.completed_projects, to: '/v/projects?status=completed' },
-        { label: 'In Progress Tasks', value: stats.in_progress_tasks, to: '/v/teamtasks?status=in_progress' },
-        { label: 'Completed Tasks', value: stats.completed_tasks, to: '/v/teamtasks?status=completed' },
+        // { label: 'Completed Projects', value: stats.completed_projects, to: '/v/projects?status=completed' },
+        // { label: 'In Progress Tasks', value: stats.in_progress_tasks, to: '/v/teamtasks?status=in_progress' },
+        // { label: 'Completed Tasks', value: stats.completed_tasks, to: '/v/teamtasks?status=completed' },
     ];
 
     if (loading) {
@@ -272,9 +274,36 @@ export default function DashboardV() {
 
     return (
         <div className="flex flex-col h-screen bg-[#FDFDFD] overflow-hidden">
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <style>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 4px;
+                    height: 4px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #CBD5E1;
+                    border-radius: 2px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #94A3B8;
+                }
+                .custom-scrollbar {
+                    scrollbar-width: thin;
+                    scrollbar-color: #CBD5E1 transparent;
+                }
+                .main-page-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+                .main-page-scrollbar {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+            `}</style>
+            <div className="flex-1 overflow-y-auto main-page-scrollbar">
                 {/* Header and KPI Cards */}
-                <div className="bg-white pb-6 shrink-0">
+                <div className="bg-white pb-6 shrink-0 px-2">
                     <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">Dashboard</h1>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {kpiCards.map((card, i) => (
@@ -291,21 +320,21 @@ export default function DashboardV() {
                 </div>
 
                 {/* Main Content Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="h-auto lg:h-full lg:flex-1 lg:min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2 pb-4 overflow-visible lg:overflow-hidden">
                     {/* Today's Priority */}
-                    <div className="lg:col-span-2 flex flex-col bg-white rounded-md border border-[#AEACAC52] shadow-sm pt-5 pl-5 pb-5 pr-4 h-[520px]">
-                        <div className="mb-6 shrink-0 px-2">
-                            <h2 className="text-[20px] font-medium text-[#353535] font-gantari">Today's Priority</h2>
+                    <div className="lg:col-span-2 flex flex-col bg-white rounded-md border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[280px] overflow-hidden">
+                        <div className="mb-4 shrink-0 pr-4">
+                            <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#353535] font-gantari">Today's Priority</h2>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-0">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-0">
                             {projects.length === 0 && priorityTasks.length === 0 ? (
                                 <p className="text-[#717171] text-lg font-gantari py-6 text-center">No projects or priority tasks for today.</p>
                             ) : (
                                 <div className="mb-4">
-                                    <div className="flex items-center justify-between mb-3 px-2">
-                                        <h3 className="text-[14px] font-normal text-[#353535] font-gantari">Projects</h3>
-                                        <Link to="/v/projects" className="text-[14px] font-normal text-[#DE3D3A] hover:underline font-gantari">View all</Link>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h3 className="text-base sm:text-lg font-semibold text-[#353535] font-gantari">Projects</h3>
+                                        <Link to="/v/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
                                     </div>
 
                                     {priorityTasks.length > 0 ? (() => {
@@ -316,13 +345,19 @@ export default function DashboardV() {
                                             if (!byProject.has(pid)) byProject.set(pid, { projectName: name, tasks: [] });
                                             byProject.get(pid)!.tasks.push(task);
                                         }
-                                        return Array.from(byProject.entries()).slice(0, 1).map(([id, { projectName, tasks: pTasks }]) => (
-                                            <div key={id} className="px-2">
-                                                <p className="text-[20px] font-normal text-[#353535] font-gantari mb-4 truncate">
-                                                    {projectName}
+                                        return Array.from(byProject.entries()).map(([id, { projectName, tasks: pTasks }]) => (
+                                            <div key={id}>
+                                                <p className="text-sm font-semibold text-[#353535] font-gantari mb-3 truncate pr-2">
+                                                    <Link
+                                                        to="/v/projects"
+                                                        className="hover:text-[#DE3D3A] hover:underline"
+                                                        title={projectName}
+                                                    >
+                                                        {projectName}
+                                                    </Link>
                                                 </p>
-                                                <div className="space-y-4">
-                                                    {pTasks.slice(0, 1).map((task) => {
+                                                <div className="space-y-4 pr-4">
+                                                    {pTasks.map((task) => {
                                                         const { progress, countdown } = taskProgressAndCountdown(task.due_date, task.perferstart_time, task.perferend_time, nowMs);
                                                         const dateL = formatDateOnly(task.due_date);
                                                         const hs = (task.perferstart_time || '').trim().length > 0;
@@ -331,25 +366,53 @@ export default function DashboardV() {
                                                         const eT = he ? formatTimeStringToAMPM(task.perferend_time) : '—';
                                                         const tR = hs || he ? `${sT} — ${eT}` : '—';
                                                         return (
-                                                            <div key={task.id} className="flex items-center gap-6 p-8 bg-[#F8F9FA] rounded-[20px] border border-[#AEACAC52] shadow-sm relative min-h-[160px]">
-                                                                <div className="relative w-[110px] h-[110px] flex items-center justify-center shrink-0">
+                                                            <div key={task.id} className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 p-4 sm:p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+                                                                <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center shrink-0">
                                                                     <svg className="w-full h-full -rotate-90">
-                                                                        <circle cx="55" cy="55" r="50" stroke="#F1F5F9" strokeWidth="6" fill="white" />
-                                                                        <circle cx="55" cy="55" r="50" stroke="#00882E" strokeWidth="6" fill="transparent" strokeDasharray={314} strokeDashoffset={314 * (1 - progress / 100)} strokeLinecap="round" />
+                                                                        <circle
+                                                                            cx="40"
+                                                                            cy="40"
+                                                                            r="36"
+                                                                            stroke="#E5E7EB"
+                                                                            strokeWidth="5"
+                                                                            fill="transparent"
+                                                                            className="opacity-60"
+                                                                        />
+                                                                        <circle
+                                                                            cx="40"
+                                                                            cy="40"
+                                                                            r="36"
+                                                                            stroke="#00882E"
+                                                                            strokeWidth="5"
+                                                                            fill="transparent"
+                                                                            strokeDasharray={CIRCLE_CIRCUMFERENCE}
+                                                                            strokeDashoffset={CIRCLE_CIRCUMFERENCE * (1 - progress / 100)}
+                                                                            strokeLinecap="round"
+                                                                        />
                                                                     </svg>
-                                                                    <span className="absolute text-[15px] font-bold text-black font-mono tracking-tighter">{countdown}</span>
+                                                                    <span className="absolute text-[9px] sm:text-[10px] font-bold text-black font-mono">
+                                                                        {countdown}
+                                                                    </span>
                                                                 </div>
-                                                                <div className="flex-1 min-w-0 pl-2">
-                                                                    <h3 className="text-[28px] font-bold text-black truncate mb-1 font-gantari leading-tight">{task.task_name ?? 'Task'}</h3>
-                                                                    <p className="text-[18px] text-[#353535] font-medium font-gantari opacity-80">{dateL} — {tR}</p>
+                                                                <div className="flex-1 min-w-0 pr-0 sm:pr-2">
+                                                                    <div className="flex flex-col-reverse sm:flex-row sm:items-start justify-between gap-1 mb-1 sm:mb-0.5">
+                                                                        <h3 className="text-lg sm:text-xl font-bold text-black truncate pr-16 sm:pr-0 font-gantari" title={task.task_name ?? 'Task'}>
+                                                                            {task.task_name ?? "Task"}
+                                                                        </h3>
+                                                                        <div className="static sm:absolute sm:top-4 sm:right-4 mb-2 sm:mb-0">
+                                                                            <span className="bg-[#3B82F6] text-white text-[10px] sm:text-[12px] px-2.5 sm:px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight whitespace-nowrap leading-none lowercase shadow-sm">
+                                                                                task
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <p className="text-[12px] sm:text-[14px] text-[#6B7280] font-medium leading-tight font-gantari">
+                                                                        {dateL} — {tR}
+                                                                    </p>
                                                                 </div>
-                                                                <div className="absolute top-6 right-6">
-                                                                    <span className="bg-[#3B82F6] text-white text-[14px] px-4 py-1.5 rounded-lg font-medium font-gantari tracking-tight leading-none lowercase shadow-sm">task</span>
-                                                                </div>
-                                                                <div className="absolute bottom-6 right-6 flex -space-x-4">
+                                                                <div className="flex self-end sm:self-auto sm:absolute sm:bottom-4 sm:right-4 -space-x-3 sm:-space-x-4 mt-2 sm:mt-0">
                                                                     {(task.involved_persons || []).slice(0, 3).map((v) => (
-                                                                        <div key={v.id} className="w-12 h-12 rounded-full border-2 border-white bg-white shadow-md flex items-center justify-center overflow-hidden" title={v.full_name}>
-                                                                            {v.profile_picture ? <img src={getGlobalProfileUrl(v.id, v.profile_picture, "vendor")} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[12px] font-bold text-[#353535]">{v.full_name?.slice(0, 2).toUpperCase() || '?'}</div>}
+                                                                        <div key={v.id} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white bg-white shadow-md flex items-center justify-center overflow-hidden" title={v.full_name}>
+                                                                            {v.profile_picture ? <img src={getGlobalProfileUrl(v.id, v.profile_picture, "vendor")} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[8px] sm:text-[10px] font-bold text-[#353535]">{v.full_name?.slice(0, 2).toUpperCase() || '?'}</div>}
                                                                         </div>
                                                                     ))}
                                                                 </div>
@@ -360,27 +423,80 @@ export default function DashboardV() {
                                             </div>
                                         ));
                                     })() : projects.length > 0 && (
-                                        <div className="px-2">
-                                            {projects.slice(0, 1).map((p) => (
-                                                <Link key={p.id} to="/v/projects" className="bg-[#F8F9FA] p-4 rounded-xl border border-[#AEACAC52] transition-all group relative block">
-                                                    <div className="flex flex-col gap-4">
-                                                        <div className="flex justify-between items-start">
-                                                            <h4 className="font-bold text-[#353535] text-[18px] font-gantari truncate pr-2 group-hover:text-[#DE3D3A]">{p.project_name}</h4>
-                                                            <span className={`text-[11px] px-3 py-1 rounded-md font-bold uppercase tracking-widest ${p.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-[#E3F2FD] text-[#1565C0]'}`}>{p.status === 'Completed' ? 'COMPLETED' : 'ACTIVE'}</span>
-                                                        </div>
-                                                        <div className="flex items-center justify-between text-[13px] text-[#717171] font-semibold">
-                                                            <span>Client: {p.client_name || 'N/A'}</span>
-                                                            <span>Due: {formatDateOnly(p.due_date)}</span>
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <div className="w-full bg-[#E5E7EB] h-3 rounded-full overflow-hidden">
-                                                                <div className="bg-[#DE3D3A] h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${p.progress || 0}%` }} />
+                                        <div className="space-y-4 pr-4">
+                                            {projects.map((p) => {
+                                                const progress = Math.round(Number(p.progress) || 0);
+                                                const pDueDate = p.due_date || '';
+                                                const pStartTime = "09:00";
+                                                const pEndTime = "18:00";
+                                                const { countdown: pCountdown } = taskProgressAndCountdown(pDueDate, pStartTime, pEndTime, nowMs);
+
+                                                return (
+                                                    <div key={p.id}>
+                                                        <p className="text-sm font-semibold text-[#353535] font-gantari mb-3 truncate pr-2">
+                                                            <Link
+                                                                to="/v/projects"
+                                                                className="hover:text-[#DE3D3A] hover:underline"
+                                                                title={p.project_name}
+                                                            >
+                                                                {p.project_name}
+                                                            </Link>
+                                                        </p>
+                                                        <Link
+                                                            to="/v/projects"
+                                                            className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 p-4 sm:p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative overflow-hidden group block cursor-pointer transition-colors hover:bg-slate-50"
+                                                        >
+                                                            <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center shrink-0">
+                                                                <svg className="w-full h-full -rotate-90">
+                                                                    <circle
+                                                                        cx="40"
+                                                                        cy="40"
+                                                                        r="36"
+                                                                        stroke="#E5E7EB"
+                                                                        strokeWidth="5"
+                                                                        fill="transparent"
+                                                                        className="opacity-60"
+                                                                    />
+                                                                    <circle
+                                                                        cx="40"
+                                                                        cy="40"
+                                                                        r="36"
+                                                                        stroke="#00882E"
+                                                                        strokeWidth="5"
+                                                                        fill="transparent"
+                                                                        strokeDasharray={CIRCLE_CIRCUMFERENCE}
+                                                                        strokeDashoffset={CIRCLE_CIRCUMFERENCE * (1 - progress / 100)}
+                                                                        strokeLinecap="round"
+                                                                    />
+                                                                </svg>
+                                                                <span className="absolute text-[9px] sm:text-[10px] font-bold text-black font-mono">
+                                                                    {pCountdown}
+                                                                </span>
                                                             </div>
-                                                            <div className="flex justify-end"><span className="text-[14px] font-bold text-[#353535]">{p.progress || 0}%</span></div>
-                                                        </div>
+                                                            <div className="flex-1 min-w-0 pr-0 sm:pr-2">
+                                                                <div className="flex flex-col-reverse sm:flex-row sm:items-start justify-between gap-1 mb-1 sm:mb-0.5">
+                                                                    <h3 className="text-lg sm:text-xl font-bold text-black truncate pr-16 sm:pr-0 font-gantari" title={p.project_name}>
+                                                                        {p.project_name}
+                                                                    </h3>
+                                                                    <div className="static sm:absolute sm:top-4 sm:right-4 mb-2 sm:mb-0">
+                                                                        <span className="bg-[#3B82F6] text-white text-[10px] sm:text-[12px] px-2.5 sm:px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight leading-none lowercase shadow-sm">
+                                                                            {p.status?.toLowerCase() === 'completed' ? 'completed' : 'active'}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <p className="text-[12px] sm:text-[14px] text-[#6B7280] font-medium leading-tight font-gantari">
+                                                                    {formatDateOnly(p.due_date)} — 9:00 AM — 6:00 PM
+                                                                </p>
+                                                            </div>
+                                                            <div className="flex self-end sm:self-auto sm:absolute sm:bottom-4 sm:right-4 -space-x-3 sm:-space-x-4 mt-2 sm:mt-0">
+                                                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white bg-white shadow-md flex items-center justify-center overflow-hidden" title="Project Manager">
+                                                                    <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[8px] sm:text-[10px] font-bold text-[#353535]">PM</div>
+                                                                </div>
+                                                            </div>
+                                                        </Link>
                                                     </div>
-                                                </Link>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>
@@ -389,7 +505,7 @@ export default function DashboardV() {
                     </div>
 
                     {/* Calendar & Celebrations */}
-                    <div className="lg:col-span-1 flex flex-col h-[520px]">
+                    <div className="lg:col-span-1 flex flex-col h-[280px] overflow-hidden">
                         <div className="bg-white rounded-md border border-[#AEACAC52] pt-4 pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full min-h-0">
                             {/* Calendar Header — exact match: left = Month/Year stacked; center = large day; right = full day name */}
                             <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 pt-2 px-4">

@@ -172,7 +172,6 @@ export default function EditConsultantBC() {
               email: emp.email || '',
               phone_number: phone,
               user_role: emp.user_role || '',
-              department: emp.department || '',
               address: emp.address || '',
               dob: emp.dob || '',
               password: '', // Don't show password

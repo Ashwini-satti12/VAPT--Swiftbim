@@ -1113,10 +1113,41 @@ const PERIOD_OPTIONS = [
   "Custom",
 ];
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar,
+  .lg\\:custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track,
+  .lg\\:custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb,
+  .lg\\:custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar,
+  .lg\\:custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 export default function MytaskV() {
   const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
   const { user } = useAuth();
+
+  useEffect(() => {
+    const styleEl = document.createElement("style");
+    styleEl.innerHTML = SCROLLBAR_STYLE;
+    document.head.appendChild(styleEl);
+    return () => {
+      document.head.removeChild(styleEl);
+    };
+  }, []);
   
   const isTeam =
     searchParams.get("condition") === "1" || 
@@ -1812,7 +1843,7 @@ export default function MytaskV() {
             <button
               type="button"
               onClick={() => navigate("/v/mytasks/add")}
-              className="hidden sm:inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-6 py-1.5 lg:py-2 bg-[#DD4342] text-white rounded-md font-Gantari font-semibold transition-all shadow-sm cursor-pointer"
+              className="hidden sm:inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-6 py-1.5 lg:py-2 text-white font-Gantari font-medium text-[14px] transition-all shadow-sm cursor-pointer"
             >
               <img src={AddBtn} alt="Add" className="h-5 w-5" />
               Add task

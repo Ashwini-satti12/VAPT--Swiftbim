@@ -28,6 +28,8 @@ type Opportunity = {
   host_name?: string;
   currency?: string;
   already_bid?: boolean;
+  project_sector?: string | null;
+  bim_services_required?: string | null;
 };
 
 type Bid = {
@@ -251,6 +253,30 @@ const daysUntil = (dateStr: string) => {
   return Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 };
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+  .hide-scrollbar-x::-webkit-scrollbar:horizontal {
+    display: none;
+  }
+  .hide-scrollbar-x {
+    -ms-overflow-style: none;
+  }
+`;
+
 export default function BiddingV() {
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get('q')?.toLowerCase() || "";
@@ -281,6 +307,13 @@ export default function BiddingV() {
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
 
   const knownOppIdsRef = useRef<Set<number> | null>(null);
+
+  useEffect(() => {
+    const styleTag = document.createElement('style');
+    styleTag.textContent = SCROLLBAR_STYLE;
+    document.head.appendChild(styleTag);
+    return () => { document.head.removeChild(styleTag); };
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -1566,114 +1599,116 @@ export default function BiddingV() {
         /* MY BIDS VIEW */
         <div className="flex-1 flex flex-col min-h-0 font-gantari pt-2">
           <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-[300px]">
-            <div className="overflow-x-hidden overflow-y-auto custom-scrollbar flex-1">
-              {filteredBids.length === 0 ? (
-                <div className="py-20 text-center text-[#616161]">
-                  <svg
-                    className="w-14 h-14 mx-auto mb-4 text-[#AEACAC]"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="1.5"
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                  <p className="text-lg font-semibold mb-1 text-[#353535]">
-                    No bids submitted yet
-                  </p>
-                  <p className="text-sm">
-                    Visit the Opportunities tab to find projects.
-                  </p>
-                </div>
-              ) : (
-                <table className="min-w-full border-collapse font-gantari">
-                  <thead className="sticky top-0 z-10 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1.5px] after:bg-[rgb(89,89,89)]/10">
-                    <tr className="">
-                      <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] font-gantari whitespace-nowrap">
-                        Sl.No
-                      </th>
-                      <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] font-gantari whitespace-nowrap">
-                        Project Name
-                      </th>
-                      <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] font-gantari whitespace-nowrap">
-                        Bid Amount
-                      </th>
-                      <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] font-gantari whitespace-nowrap">
-                        Outsource Budget
-                      </th>
-                      <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] font-gantari whitespace-nowrap">
-                        Submitted On
-                      </th>
-                      <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] font-gantari whitespace-nowrap">
-                        Status
-                      </th>
-                      <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] font-gantari whitespace-nowrap">
-                        Action
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {displayBids.map((bid, idx) => (
-                      <tr
-                        key={bid.id}
-                        className={`${(tablePageStartIndex + idx) % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}`}
-                      >
-                        <td className="px-4 py-6 text-center text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
-                          {tablePageStartIndex + idx + 1}
-                        </td>
-                        <td className="px-4 py-6 text-center">
-                          <p className="text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
-                            {bid.project_name ||
-                              `Opportunity #${bid.opportunity_id}`}
-                          </p>
-                        </td>
-                        <td className="px-4 py-6 text-center text-[14px] font-medium text-[#DE3D3A] font-gantari whitespace-nowrap">
-                          {formatBudget(bid.bid_amount, bid.currency)}
-                        </td>
-                        <td className="px-4 py-6 text-center text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
-                          {formatBudget(
-                            Number(bid.outsource_budget || 0),
-                            bid.currency,
-                          )}
-                        </td>
-                        <td className="px-4 py-6 text-center text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
-                          {bid.created_at
-                            ? new Date(bid.created_at).toLocaleDateString()
-                            : "—"}
-                        </td>
-                        <td className="px-4 py-6 text-center">
-                          <span
-                            className={`px-3 py-1 rounded-lg text-[14px] font-medium font-gantari ${getStatusBadge(bid.status)} whitespace-nowrap`}
-                          >
-                            {getStatusLabel(bid.status)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-6 text-center">
-                          <div className="flex justify-center">
-                            <div className="relative group">
-                              <button
-                                onClick={() => openBidDetail(bid)}
-                                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#DD4342] text-white rounded-md transition-all font-medium font-gantari text-[14px] whitespace-nowrap cursor-pointer"
-                              >
-                                <img
-                                  src={viewIcon}
-                                  alt="view"
-                                  className="w-4 h-4 brightness-0 invert"
-                                />
-                                View
-                              </button>
-                            </div>
-                          </div>
-                        </td>
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <div className="overflow-auto custom-scrollbar smooth-scroll h-[calc(100%+17px)] pr-1 pb-[17px]">
+                {filteredBids.length === 0 ? (
+                  <div className="py-20 text-center text-[#616161]">
+                    <svg
+                      className="w-14 h-14 mx-auto mb-4 text-[#AEACAC]"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.5"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <p className="text-lg font-semibold mb-1 text-[#353535]">
+                      No bids submitted yet
+                    </p>
+                    <p className="text-sm">
+                      Visit the Opportunities tab to find projects.
+                    </p>
+                  </div>
+                ) : (
+                  <table className="min-w-full border-collapse font-gantari">
+                    <thead className="sticky top-0 z-10 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1.5px] after:bg-[rgb(89,89,89)]/10">
+                      <tr className="">
+                        <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] font-gantari whitespace-nowrap">
+                          Sl.No
+                        </th>
+                        <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] font-gantari whitespace-nowrap">
+                          Project Name
+                        </th>
+                        <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] font-gantari whitespace-nowrap">
+                          Bid Amount
+                        </th>
+                        <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] font-gantari whitespace-nowrap">
+                          Outsource Budget
+                        </th>
+                        <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] font-gantari whitespace-nowrap">
+                          Submitted On
+                        </th>
+                        <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] font-gantari whitespace-nowrap">
+                          Status
+                        </th>
+                        <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] font-gantari whitespace-nowrap">
+                          Action
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {displayBids.map((bid, idx) => (
+                        <tr
+                          key={bid.id}
+                          className={`${(tablePageStartIndex + idx) % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}`}
+                        >
+                          <td className="px-4 py-6 text-center text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
+                            {tablePageStartIndex + idx + 1}
+                          </td>
+                          <td className="px-4 py-6 text-center">
+                            <p className="text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
+                              {bid.project_name ||
+                                `Opportunity #${bid.opportunity_id}`}
+                            </p>
+                          </td>
+                          <td className="px-4 py-6 text-center text-[14px] font-medium text-[#DE3D3A] font-gantari whitespace-nowrap">
+                            {formatBudget(bid.bid_amount, bid.currency)}
+                          </td>
+                          <td className="px-4 py-6 text-center text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
+                            {formatBudget(
+                              Number(bid.outsource_budget || 0),
+                              bid.currency,
+                            )}
+                          </td>
+                          <td className="px-4 py-6 text-center text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
+                            {bid.created_at
+                              ? new Date(bid.created_at).toLocaleDateString()
+                              : "—"}
+                          </td>
+                          <td className="px-4 py-6 text-center">
+                            <span
+                              className={`px-3 py-1 rounded-lg text-[14px] font-medium font-gantari ${getStatusBadge(bid.status)} whitespace-nowrap`}
+                            >
+                              {getStatusLabel(bid.status)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-6 text-center">
+                            <div className="flex justify-center">
+                              <div className="relative group">
+                                <button
+                                  onClick={() => openBidDetail(bid)}
+                                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#DD4342] text-white rounded-md transition-all font-medium font-gantari text-[14px] whitespace-nowrap cursor-pointer"
+                                >
+                                  <img
+                                    src={viewIcon}
+                                    alt="view"
+                                    className="w-4 h-4 brightness-0 invert"
+                                  />
+                                  View
+                                </button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
           </div>
           {filteredBids.length > 0 && listInRange.length > 0 && (

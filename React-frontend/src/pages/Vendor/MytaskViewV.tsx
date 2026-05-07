@@ -172,6 +172,28 @@ function isStatusOptionDisabled(
   return false;
 }
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar,
+  .lg\\:custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track,
+  .lg\\:custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb,
+  .lg\\:custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar,
+  .lg\\:custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 export default function MytaskViewV() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
@@ -180,6 +202,15 @@ export default function MytaskViewV() {
   const fromTeamTask = state?.from === "teamtask";
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  useEffect(() => {
+    const styleEl = document.createElement("style");
+    styleEl.innerHTML = SCROLLBAR_STYLE;
+    document.head.appendChild(styleEl);
+    return () => {
+      document.head.removeChild(styleEl);
+    };
+  }, []);
 
   const [task, setTask] = useState<Task | undefined>(initialTask);
 
@@ -806,7 +837,7 @@ export default function MytaskViewV() {
                         type="button"
                         onClick={handleSendBackWork}
                         disabled={sendingBack || updatingStatus}
-                        className="rounded-md bg-[#DBE9FE] px-4 py-2 text-[14px] font-semibold text-[#101827] disabled:opacity-50 cursor-pointer transition-colors hover:bg-blue-200"
+                        className="rounded-md bg-[#DBE9FE] px-4 py-2 text-[14px] font-medium text-[#101827] disabled:opacity-50 cursor-pointer transition-colors hover:bg-blue-200"
                       >
                         {sendingBack ? "Sending..." : "Send Back To Assignee"}
                       </button>
@@ -814,7 +845,7 @@ export default function MytaskViewV() {
                         type="button"
                         onClick={handleApproveWork}
                         disabled={updatingStatus || sendingBack}
-                        className="rounded-md bg-green-100 px-6 py-2 text-[14px] font-semibold text-green-700 hover:bg-green-600 hover:text-white transition-colors disabled:opacity-50 cursor-pointer border border-green-200"
+                        className="rounded-md bg-green-100 px-6 py-2 text-[14px] font-medium text-green-700 hover:bg-green-600 hover:text-white transition-colors disabled:opacity-50 cursor-pointer border border-green-200"
                       >
                         {updatingStatus ? "Approving..." : "Approve Task"}
                       </button>

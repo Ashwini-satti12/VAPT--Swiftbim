@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import toast from "react-hot-toast";
@@ -145,6 +146,179 @@ const nameOrCsvToIdCsv = (value: string, employeesList: Employee[]): string => {
     .filter(Boolean)
     .join(",");
 };
+
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
+function CustomDropdown({
+  options,
+  value,
+  onChange,
+  placeholder,
+  className = "",
+  styleType = "form",
+  alignMenu = "right",
+  menuMaxHeightClass = "max-h-[220px]",
+  direction = "down",
+}: {
+  options: string[];
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  className?: string;
+  styleType?: "form" | "header" | "table";
+  alignMenu?: "left" | "right";
+  menuMaxHeightClass?: string;
+  direction?: "up" | "down";
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, bottom: 0 });
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      const isInsideTrigger = dropdownRef.current && dropdownRef.current.contains(target);
+      const isInsideMenu = menuRef.current && menuRef.current.contains(target);
+
+      if (!isInsideTrigger && !isInsideMenu) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && dropdownRef.current) {
+      const updatePosition = () => {
+        if (dropdownRef.current) {
+          const rect = dropdownRef.current.getBoundingClientRect();
+          setCoords({
+            top: rect.bottom,
+            left: rect.left,
+            width: coords.width, // fallback or direct rect.width
+            bottom: window.innerHeight - rect.top,
+          });
+          // Note: we can use rect.width directly in style or coords
+        }
+      };
+
+      const rect = dropdownRef.current.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom,
+        left: rect.left,
+        width: rect.width,
+        bottom: window.innerHeight - rect.top,
+      });
+
+      window.addEventListener("scroll", updatePosition, true);
+      window.addEventListener("resize", updatePosition);
+
+      return () => {
+        window.removeEventListener("scroll", updatePosition, true);
+        window.removeEventListener("resize", updatePosition);
+      };
+    }
+  }, [isOpen]);
+
+  const isPlaceholder = !value || value === placeholder;
+
+  const menuContent = (
+    <div
+      ref={menuRef}
+      className="fixed z-[9999] bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden"
+      style={{
+        width: coords.width,
+        left: coords.left,
+        ...(direction === "up"
+          ? { bottom: coords.bottom + 4 }
+          : { top: coords.top + 4 }),
+      }}
+    >
+      <div className={`flex flex-col py-2 overflow-y-auto ${menuMaxHeightClass} custom-scrollbar`}>
+        {options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => {
+              onChange(option);
+              setIsOpen(false);
+            }}
+            className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${
+              value === option
+                ? "text-[#353535] bg-[#F2F2F2]"
+                : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+            }`}
+          >
+            <span className="truncate min-w-0">{option}</span>
+            {value === option && (
+              <svg
+                className="w-4 h-4 shrink-0 text-[#353535]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={`relative ${className}`} ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-2 transition-all outline-none font-Gantari min-w-0 ${
+          styleType === "header"
+            ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[12px] sm:text-[14px] font-semibold"
+            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[12px] sm:text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${
+                isOpen ? "!border-[#AEACAC52]" : ""
+              }`
+        }`}
+      >
+        <span className={`min-w-0 flex-1 truncate overflow-hidden text-left ${isPlaceholder || isOpen ? "text-[#8B8B8B]" : "text-[#353535]"}`}>
+          {isPlaceholder || isOpen ? placeholder : value}
+        </span>
+        <img
+          src={ArrowDown}
+          alt="arrow"
+          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""} ${isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
+        />
+      </button>
+      {isOpen && createPortal(menuContent, document.body)}
+    </div>
+  );
+}
 
 function FormSelect({
   placeholder,
@@ -384,6 +558,7 @@ export default function ProjectsBL() {
     completed: 0,
   });
   const [blTaskStatsLoading, setBlTaskStatsLoading] = useState(false);
+  const [typeFilter, setTypeFilter] = useState("All");
 
   useEffect(() => {
     const computedTotal = calculateTotalHours(
@@ -4220,34 +4395,56 @@ export default function ProjectsBL() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden font-Gantari">
           {/* Dashboard Header */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-0">
-            <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
-              {title}
-            </h2>
-            {canCreate && (
-              <div className="relative group inline-flex shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    resetFormFields();
-                    setShowCreateModal(true);
-                  }}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all cursor-pointer"
-                >
-                  Create Project
-                </button>
+          <div className="sticky top-0 z-30 bg-white mb-2 sm:mt-0 overflow-visible px-2 sm:px-3">
+            <div className="flex flex-col xl:flex-row w-full xl:items-center justify-between gap-3 overflow-visible pt-0 pb-2">
+              <div className="flex items-center justify-between w-full xl:w-auto">
+                <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
+                  {title}
+                </h2>
               </div>
-            )}
+              <div className="flex flex-col sm:flex-row flex-1 items-stretch sm:items-center justify-end gap-3 min-w-0 overflow-visible">
+                <div className="flex flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 px-0.5 custom-scrollbar min-w-0">
+                  {canCreate && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resetFormFields();
+                        setShowCreateModal(true);
+                      }}
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 h-[36px] min-h-[36px] rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] font-Gantari font-semibold hover:bg-[#DD4342]/90 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                    >
+                      <img
+                        src={addBtnIcon}
+                        alt="Create Project"
+                        className="w-4 h-4 shrink-0"
+                      />
+                      Create Project
+                    </button>
+                  )}
+
+                  <div className="w-[140px] sm:w-[160px] shrink-0 overflow-visible">
+                    <CustomDropdown
+                      options={["All", "In House", "Outsource"]}
+                      value={typeFilter}
+                      onChange={(val) => setTypeFilter(val)}
+                      placeholder="All"
+                      styleType="header"
+                      menuMaxHeightClass="max-h-[220px]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Dashboard Content with Scrollbar */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden pt-0 pb-8 pl-4 pr-1 custom-scrollbar [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')]">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden pt-1 pb-10 px-2 sm:px-3 custom-scrollbar [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')]">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
               {(() => {
                 const q = searchParams.get("q")?.toLowerCase() || "";
-                const filtered = q
+                let filtered = q
                   ? list.filter((p) =>
                       [
                         p.project_name,
@@ -4258,6 +4455,10 @@ export default function ProjectsBL() {
                       ].some((f) => (f || "").toLowerCase().includes(q)),
                     )
                   : list;
+
+                if (typeFilter !== "All") {
+                  filtered = filtered.filter((p) => p.source === typeFilter);
+                }
 
                 if (filtered.length === 0) {
                   return (
@@ -4277,7 +4478,7 @@ export default function ProjectsBL() {
                         .map(Number)
                     : [];
 
-                  const radius = 22;
+                  const radius = 28;
                   const circumference = 2 * Math.PI * radius;
                   const offset =
                     circumference - (progress / 100) * circumference;
@@ -4286,23 +4487,23 @@ export default function ProjectsBL() {
                     <div
                       key={p.id}
                       onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === p.id ? null : p.id); }}
-                      className="bg-white rounded-md border border-slate-200 p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                      className="relative overflow-hidden bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer"
                     >
                       <div>
                         <div className="flex items-start justify-between mb-4 mt-2 pr-0">
                           <div className="relative flex items-center justify-center">
-                            <svg className="w-[52px] h-[52px] transform -rotate-90">
+                            <svg className="w-16 h-16 md:w-20 md:h-20 transform -rotate-90">
                               <circle
-                                cx="26"
-                                cy="26"
+                                cx="50%"
+                                cy="50%"
                                 r={radius}
                                 stroke="#f1f5f9"
                                 strokeWidth="4"
                                 fill="transparent"
                               />
                               <circle
-                                cx="26"
-                                cy="26"
+                                cx="50%"
+                                cy="50%"
                                 r={radius}
                                 stroke="#0a9344"
                                 strokeWidth="4"
@@ -4316,7 +4517,7 @@ export default function ProjectsBL() {
                                 }}
                               />
                             </svg>
-                            <span className="absolute text-[12px] font-Gantari font-bold text-[#353535]">
+                            <span className="absolute text-[14px] md:text-[16px] font-Gantari font-bold text-[#353535]">
                               {progress}%
                             </span>
                           </div>
@@ -4515,14 +4716,14 @@ export default function ProjectsBL() {
                           </div>
                         </div>
 
-                        <div className="mb-2 ml-6 -mt-2 min-h-[45px] flex items-center">
-                          <h3 className="text-[18px] font-Gantari font-semibold text-[#1A1A1A] leading-tight line-clamp-2">
+                        <div className="mb-2 ml-6 -mt-2 min-h-[45px] flex flex-col justify-center">
+                          <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight line-clamp-2">
                             {p.project_name ?? "Untitled Project"}
                           </h3>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-2 mt-auto">
+                      <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
                         <div className="flex -space-x-4">
                           {(() => {
                             const projectEmployees = memberIds
@@ -4548,6 +4749,8 @@ export default function ProjectsBL() {
                                   return (
                                     <div
                                       key={emp.id}
+                                      className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                      title={emp.full_name}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         openMemberProfile(emp);
@@ -4593,7 +4796,7 @@ export default function ProjectsBL() {
                         <div className="flex items-center gap-3">
                           {p.priority && (
                             <div
-                              className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${
+                              className={`px-3.5 py-1 rounded-md text-white text-[13px] font-bold font-Gantari shadow-sm ${
                                 p.priority.toLowerCase() === "high"
                                   ? "bg-[#DD4342]"
                                   : "bg-[#94D6F2]"

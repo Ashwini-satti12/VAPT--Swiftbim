@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
@@ -165,6 +166,171 @@ const calculateTotalHours = (
   if (!durationDays) return "";
   return (perDayNum * durationDays).toFixed(2);
 };
+
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
+function CustomDropdown({
+  options,
+  value,
+  onChange,
+  placeholder,
+  className = "",
+  styleType = "form",
+  alignMenu = "right",
+  menuMaxHeightClass = "max-h-[220px]",
+  direction = "down",
+}: {
+  options: string[];
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  className?: string;
+  styleType?: "form" | "header" | "table";
+  alignMenu?: "left" | "right";
+  menuMaxHeightClass?: string;
+  direction?: "up" | "down";
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, bottom: 0 });
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      const isInsideTrigger = dropdownRef.current && dropdownRef.current.contains(target);
+      const isInsideMenu = menuRef.current && menuRef.current.contains(target);
+
+      if (!isInsideTrigger && !isInsideMenu) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && dropdownRef.current) {
+      const updatePosition = () => {
+        if (dropdownRef.current) {
+          const rect = dropdownRef.current.getBoundingClientRect();
+          setCoords({
+            top: rect.bottom,
+            left: rect.left,
+            width: rect.width,
+            bottom: window.innerHeight - rect.top,
+          });
+        }
+      };
+
+      updatePosition();
+      window.addEventListener("scroll", updatePosition, true);
+      window.addEventListener("resize", updatePosition);
+
+      return () => {
+        window.removeEventListener("scroll", updatePosition, true);
+        window.removeEventListener("resize", updatePosition);
+      };
+    }
+  }, [isOpen]);
+
+  const isPlaceholder = !value || value === placeholder;
+
+  const menuContent = (
+    <div
+      ref={menuRef}
+      className="fixed z-[9999] bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden"
+      style={{
+        width: coords.width,
+        left: coords.left,
+        ...(direction === "up"
+          ? { bottom: coords.bottom + 4 }
+          : { top: coords.top + 4 }),
+      }}
+    >
+      <div className={`flex flex-col py-2 overflow-y-auto ${menuMaxHeightClass} custom-scrollbar`}>
+        {options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => {
+              onChange(option);
+              setIsOpen(false);
+            }}
+            className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-Gantari font-normal transition-colors cursor-pointer ${
+              value === option
+                ? "text-[#353535] bg-[#F2F2F2]"
+                : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+            }`}
+          >
+            <span className="truncate min-w-0">{option}</span>
+            {value === option && (
+              <svg
+                className="w-4 h-4 shrink-0 text-[#353535]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={`relative ${className}`} ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        className={`w-full h-[36px] min-h-[36px] flex items-center justify-between gap-2 transition-all outline-none font-Gantari min-w-0 ${
+          styleType === "header"
+            ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[12px] sm:text-[14px] font-semibold"
+            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[12px] sm:text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${
+                isOpen ? "!border-[#AEACAC52]" : ""
+              }`
+        }`}
+      >
+        <span className={`min-w-0 flex-1 truncate overflow-hidden text-left ${isPlaceholder || isOpen ? "text-[#8B8B8B]" : "text-[#353535]"}`}>
+          {isPlaceholder || isOpen ? placeholder : value}
+        </span>
+        <img
+          src={ArrowDown}
+          alt="arrow"
+          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""} ${isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
+        />
+      </button>
+      {isOpen && createPortal(menuContent, document.body)}
+    </div>
+  );
+}
 
 function FormSelect({
   placeholder,
@@ -441,6 +607,7 @@ export default function ProjectsBC() {
   const [departments, setDepartments] = useState<string[]>([]);
   const priorityOptions = ["High", "Low", "Normal"];
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<"Execution Type" | "In House" | "Outsource">("Execution Type");
   const [clientsList, setClientsList] = useState<
     Array<{ id: number; fullName?: string; full_name?: string }>
   >([]);
@@ -808,6 +975,7 @@ export default function ProjectsBC() {
 
   return (
     <div className="bg-white h-full overflow-hidden">
+      <style>{SCROLLBAR_STYLE}</style>
       {successMsg && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl bg-white border border-gray-100 min-w-[320px] animate-in fade-in slide-in-from-top-2 duration-300 font-gantari">
           <div className="flex items-center justify-center w-7 h-7 rounded-full bg-[#1A8A47] shrink-0">
@@ -3853,465 +4021,491 @@ export default function ProjectsBC() {
         ) : (
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {/* Dashboard Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-0">
-              <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
-                {title}
-              </h2>
-              {canCreate && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCreateName("");
-                    setCreateBudget("");
-                    setCreateClientName("");
-                    setCreateProjectManager([]);
-                    setCreateStartDate("");
-                    setCreateEndDate("");
-                    setCreateTotalHours("");
-                    setCreatePerDay("");
-                    setCreateDepartment("");
-                    setCreateBIMLead([]);
-                    setCreateBIMCoOrdinator([]);
-                    setCreateDescription("");
-                    setCreateFiles([]);
-                    setExistingFiles([]);
-                    setRemovedFiles([]);
-                    setCreateResources("");
-                    setCreateRequiredResources("");
-                    setCreatePriority("");
-                    setCreateLocation("");
-                    setModuleNameTags([]);
-                    setModuleNameInput("");
-                    setEditModuleTags([]);
-                    setEditModuleInput("");
-                    setSelectedMemberIds([]);
-                    setMemberSearch("");
-                    setCreateTaskTags([]);
-                    setCreateTaskInput("");
-                    setCreateError("");
-                    setShowCreateModal(true);
-                  }}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
-                >
-                  Create Project
-                </button>
-              )}
+            <div className="sticky top-0 z-30 bg-white mb-2 sm:mt-0 overflow-visible px-2 sm:px-3">
+              <div className="flex flex-col xl:flex-row w-full xl:items-center justify-between gap-3 overflow-visible pt-0 pb-2">
+                <div className="flex items-center justify-between w-full xl:w-auto">
+                  <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
+                    {title}
+                  </h2>
+                </div>
+                <div className="flex flex-col sm:flex-row flex-1 items-stretch sm:items-center justify-end gap-3 min-w-0 overflow-visible">
+                  <div className="flex flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 px-0.5 custom-scrollbar min-w-0">
+                    {canCreate && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCreateName("");
+                          setCreateBudget("");
+                          setCreateClientName("");
+                          setCreateProjectManager([]);
+                          setCreateStartDate("");
+                          setCreateEndDate("");
+                          setCreateTotalHours("");
+                          setCreatePerDay("");
+                          setCreateDepartment("");
+                          setCreateBIMLead([]);
+                          setCreateBIMCoOrdinator([]);
+                          setCreateDescription("");
+                          setCreateFiles([]);
+                          setExistingFiles([]);
+                          setRemovedFiles([]);
+                          setCreateResources("");
+                          setCreateRequiredResources("");
+                          setCreatePriority("");
+                          setCreateLocation("");
+                          setModuleNameTags([]);
+                          setModuleNameInput("");
+                          setEditModuleTags([]);
+                          setEditModuleInput("");
+                          setSelectedMemberIds([]);
+                          setMemberSearch("");
+                          setCreateTaskTags([]);
+                          setCreateTaskInput("");
+                          setCreateError("");
+                          setShowCreateModal(true);
+                        }}
+                        className="flex items-center gap-1 sm:gap-2 shrink-0 px-2.5 py-1.5 sm:px-4 sm:py-1.5 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] xl:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer shadow-sm"
+                      >
+                        Create Project
+                      </button>
+                    )}
+                    <div className="shrink-0">
+                      <CustomDropdown
+                        options={["Execution Type", "In House", "Outsource"]}
+                        value={typeFilter}
+                        onChange={(val) => setTypeFilter(val as any)}
+                        placeholder="Execution Type"
+                        className="w-[130px] sm:w-[160px]"
+                        styleType="header"
+                        direction="down"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Dashboard Content with Scrollbar */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden pt-0 pb-8 pl-4 pr-1 custom-scrollbar [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')]">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredList.length === 0 ? (
-                  <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
-                    No projects found.
-                  </div>
-                ) : (
-                  filteredList.map((p) => {
-                    const progress = Math.round(p.progress ?? 0);
-                    const radius = 22;
-                    const circumference = 2 * Math.PI * radius;
-                    const offset =
-                      circumference - (progress / 100) * circumference;
+                {(() => {
+                  const displayList =
+                    typeFilter === "Execution Type"
+                      ? filteredList
+                      : filteredList.filter((p) => p.source === typeFilter);
 
-                    return (
-                      <div
-                        key={p.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenMenuProjectId(
-                            openMenuProjectId === p.id ? null : p.id,
-                          );
-                        }}
-                        className="bg-white rounded-md border border-slate-200 p-4 gap-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
-                      >
-                        <div>
-                          <div className="flex items-start justify-between mb-4 pr-0">
-                            <div className="relative flex items-center justify-center">
-                              <svg className="w-[52px] h-[52px] transform -rotate-90">
-                                <circle
-                                  cx="26"
-                                  cy="26"
-                                  r={radius}
-                                  stroke="#f1f5f9"
-                                  strokeWidth="4"
-                                  fill="transparent"
-                                />
-                                <circle
-                                  cx="26"
-                                  cy="26"
-                                  r={radius}
-                                  stroke={
-                                    progress >= 80
-                                      ? "#0a9344"
-                                      : progress >= 1
-                                        ? "#DD4342"
-                                        : "#999999"
-                                  }
-                                  strokeWidth="4"
-                                  fill="transparent"
-                                  strokeDasharray={circumference}
-                                  strokeDashoffset={offset}
-                                  strokeLinecap="round"
-                                  style={{
-                                    transition:
-                                      "stroke-dashoffset 0.8s ease-in-out",
-                                  }}
-                                />
-                              </svg>
-                              <span className="absolute text-[12px] font-Gantari font-bold text-[#353535]">
-                                {progress}%
-                              </span>
-                            </div>
-                            <div className="relative project-menu-container">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenMenuProjectId((prev) =>
-                                    prev === p.id ? null : p.id,
-                                  );
-                                }}
-                                className="rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
-                              >
-                                <img
-                                  src={threedot}
-                                  alt="threeDots"
-                                  className="w-4 h-4 text-[#8B8B8B]"
-                                />
-                              </button>
-                              <div
-                                className={`absolute right-0 mt-3 w-60 bg-white/90 backdrop-blur-md rounded-md border border-[#595959]/50 shadow-xl transition-all origin-top-right z-50 ${
-                                  openMenuProjectId === p.id
-                                    ? "opacity-100 scale-100 visible"
-                                    : "opacity-0 scale-95 invisible"
-                                }`}
-                                onClick={(e) => e.stopPropagation()}
-                              >
+                  return displayList.length === 0 ? (
+                    <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
+                      No projects found.
+                    </div>
+                  ) : (
+                    displayList.map((p) => {
+                      const progress = Math.round(p.progress ?? 0);
+                      const radius = 28;
+                      const circumference = 2 * Math.PI * radius;
+                      const offset =
+                        circumference - (progress / 100) * circumference;
+
+                      return (
+                        <div
+                          key={p.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuProjectId(
+                              openMenuProjectId === p.id ? null : p.id,
+                            );
+                          }}
+                          className="relative overflow-hidden bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer"
+                        >
+                          <div>
+                            <div className="flex items-start justify-between mb-4 mt-2 pr-0">
+                              <div className="relative flex items-center justify-center">
+                                <svg className="w-16 h-16 md:w-20 md:h-20 transform -rotate-90">
+                                  <circle
+                                    cx="50%"
+                                    cy="50%"
+                                    r={radius}
+                                    stroke="#f1f5f9"
+                                    strokeWidth="4"
+                                    fill="transparent"
+                                  />
+                                  <circle
+                                    cx="50%"
+                                    cy="50%"
+                                    r={radius}
+                                    stroke={
+                                      progress >= 80
+                                        ? "#0a9344"
+                                        : progress >= 1
+                                          ? "#DD4342"
+                                          : "#999999"
+                                    }
+                                    strokeWidth="4"
+                                    fill="transparent"
+                                    strokeDasharray={circumference}
+                                    strokeDashoffset={offset}
+                                    strokeLinecap="round"
+                                    style={{
+                                      transition:
+                                        "stroke-dashoffset 0.8s ease-in-out",
+                                    }}
+                                  />
+                                </svg>
+                                <span className="absolute text-[14px] md:text-[16px] font-Gantari font-bold text-[#353535]">
+                                  {progress}%
+                                </span>
+                              </div>
+                              <div className="relative project-menu-container">
                                 <button
+                                  type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setOpenMenuProjectId(null);
-                                    setSearchParams({
-                                      projectId: String(p.id),
-                                      source: String(p.source || "In House"),
-                                    });
+                                    setOpenMenuProjectId((prev) =>
+                                      prev === p.id ? null : p.id,
+                                    );
                                   }}
-                                  className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
+                                  className="rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
                                 >
                                   <img
-                                    src={viewIcon}
-                                    alt="view"
-                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                    src={threedot}
+                                    alt="threeDots"
+                                    className="w-4 h-4 text-[#8B8B8B]"
                                   />
-                                  <span className="text-[14px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    View
-                                  </span>
                                 </button>
-                                {/* {(isTechnicalDirector || isManagement) && (
+                                <div
+                                  className={`absolute right-0 mt-3 w-56 bg-white/20 backdrop-blur-md rounded-md border border-[#595959]/50 shadow-xl transition-all origin-top-right z-50 ${
+                                    openMenuProjectId === p.id
+                                      ? "opacity-100 scale-100 visible"
+                                      : "opacity-0 scale-95 invisible"
+                                  }`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setOpenMenuProjectId(null);
-                                      setCurrentProject(p);
-                                      setShowMilestones(true);
+                                      setSearchParams({
+                                        projectId: String(p.id),
+                                        source: String(p.source || "In House"),
+                                      });
                                     }}
-                                    className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
+                                    className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer hover:bg-slate-50/50"
                                   >
                                     <img
-                                      src={paymentMilestone}
-                                      alt="payment milestone"
-                                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                      src={viewIcon}
+                                      alt="view"
+                                      className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                     />
-                                    <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
-                                      Payment Milestones
+                                    <span className="text-[14px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                      View
                                     </span>
                                   </button>
-                                )} */}
-                                {canEdit && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setOpenMenuProjectId(null);
-                                      setSelectedProjectForEdit(p);
-                                      setCreateName(p.project_name ?? "");
-                                      setCreateBudget(
-                                        p.budget ? `${p.budget}` : "",
-                                      );
-                                      setEditModuleTags(
-                                        p.module_name
-                                          ? p.module_name
+                                  {/* {(isTechnicalDirector || isManagement) && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuProjectId(null);
+                                        setCurrentProject(p);
+                                        setShowMilestones(true);
+                                      }}
+                                      className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer hover:bg-slate-50/50"
+                                    >
+                                      <img
+                                        src={paymentMilestone}
+                                        alt="payment milestone"
+                                        className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                      />
+                                      <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                        Payment Milestones
+                                      </span>
+                                    </button>
+                                  )} */}
+                                  {canEdit && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuProjectId(null);
+                                        setSelectedProjectForEdit(p);
+                                        setCreateName(p.project_name ?? "");
+                                        setCreateBudget(
+                                          p.budget ? `${p.budget}` : "",
+                                        );
+                                        setEditModuleTags(
+                                          p.module_name
+                                            ? p.module_name
+                                                .split(",")
+                                                .map((m) => m.trim())
+                                                .filter(Boolean)
+                                            : [],
+                                        );
+                                        setCreateClientName(p.client_name ?? "");
+                                        const pmDisplay =
+                                          p.project_manager_name ||
+                                          csvToDisplayNamesFromIds(
+                                            p.project_manager_id,
+                                            allEmployees,
+                                          ) ||
+                                          p.project_manager ||
+                                          "";
+                                        setCreateProjectManager(
+                                          pmDisplay
+                                            ? pmDisplay
+                                                .split(",")
+                                                .map((s) => s.trim())
+                                                .filter(Boolean)
+                                            : [],
+                                        );
+                                        setCreateStartDate(
+                                          p.start_date
+                                            ? String(p.start_date)
+                                                .split("T")[0]
+                                                .split(" ")[0]
+                                            : "",
+                                        );
+                                        setCreateEndDate(
+                                          p.end_date
+                                            ? String(p.end_date)
+                                                .split("T")[0]
+                                                .split(" ")[0]
+                                            : "",
+                                        );
+                                        setCreateTotalHours(p.total_hours ?? "");
+                                        setCreatePerDay(p.per_day ?? "");
+                                        setCreateDepartment(p.department ?? "");
+                                        const blDisplay =
+                                          p.lead_name ||
+                                          csvToDisplayNamesFromIds(
+                                            p.lead_id,
+                                            allEmployees,
+                                          ) ||
+                                          csvToDisplayNamesFromIds(
+                                            p.bim_lead,
+                                            allEmployees,
+                                          ) ||
+                                          "";
+                                        setCreateBIMLead(
+                                          blDisplay
+                                            ? blDisplay
+                                                .split(",")
+                                                .map((s) => s.trim())
+                                                .filter(Boolean)
+                                            : [],
+                                        );
+                                        const bcDisplay =
+                                          p.bim_coordinator_name ||
+                                          csvToDisplayNamesFromIds(
+                                            p.bim_coordinator_id,
+                                            allEmployees,
+                                          ) ||
+                                          csvToDisplayNamesFromIds(
+                                            p.bim_co_ordinator,
+                                            allEmployees,
+                                          ) ||
+                                          "";
+                                        setCreateBIMCoOrdinator(
+                                          bcDisplay
+                                            ? bcDisplay
+                                                .split(",")
+                                                .map((s) => s.trim())
+                                                .filter(Boolean)
+                                            : [],
+                                        );
+                                        setSelectedMemberIds(
+                                          p.member
+                                            ? p.member
+                                                .split(",")
+                                                .map((m) =>
+                                                  parseInt(m.trim(), 10),
+                                                )
+                                                .filter((n) => !isNaN(n))
+                                            : [],
+                                        );
+                                        setCreateResources(p.resources ?? "");
+                                        setCreateRequiredResources(
+                                          p.required_resources ?? "",
+                                        );
+                                        setCreatePriority(p.priority ?? "");
+                                        setEditPriority(p.priority ?? "");
+                                        setCreateLocation(p.location ?? "");
+                                        setCreateDescription(p.description ?? "");
+                                        const tasksArr = p.tasks
+                                          ? p.tasks
                                               .split(",")
-                                              .map((m) => m.trim())
+                                              .map((t) => t.trim())
                                               .filter(Boolean)
-                                          : [],
-                                      );
-                                      setCreateClientName(p.client_name ?? "");
-                                      const pmDisplay =
-                                        p.project_manager_name ||
-                                        csvToDisplayNamesFromIds(
-                                          p.project_manager_id,
-                                          allEmployees,
-                                        ) ||
-                                        p.project_manager ||
-                                        "";
-                                      setCreateProjectManager(
-                                        pmDisplay
-                                          ? pmDisplay
-                                              .split(",")
-                                              .map((s) => s.trim())
-                                              .filter(Boolean)
-                                          : [],
-                                      );
-                                      setCreateStartDate(
-                                        p.start_date
-                                          ? String(p.start_date)
-                                              .split("T")[0]
-                                              .split(" ")[0]
-                                          : "",
-                                      );
-                                      setCreateEndDate(
-                                        p.end_date
-                                          ? String(p.end_date)
-                                              .split("T")[0]
-                                              .split(" ")[0]
-                                          : "",
-                                      );
-                                      setCreateTotalHours(p.total_hours ?? "");
-                                      setCreatePerDay(p.per_day ?? "");
-                                      setCreateDepartment(p.department ?? "");
-                                      const blDisplay =
-                                        p.lead_name ||
-                                        csvToDisplayNamesFromIds(
-                                          p.lead_id,
-                                          allEmployees,
-                                        ) ||
-                                        csvToDisplayNamesFromIds(
-                                          p.bim_lead,
-                                          allEmployees,
-                                        ) ||
-                                        "";
-                                      setCreateBIMLead(
-                                        blDisplay
-                                          ? blDisplay
-                                              .split(",")
-                                              .map((s) => s.trim())
-                                              .filter(Boolean)
-                                          : [],
-                                      );
-                                      const bcDisplay =
-                                        p.bim_coordinator_name ||
-                                        csvToDisplayNamesFromIds(
-                                          p.bim_coordinator_id,
-                                          allEmployees,
-                                        ) ||
-                                        csvToDisplayNamesFromIds(
-                                          p.bim_co_ordinator,
-                                          allEmployees,
-                                        ) ||
-                                        "";
-                                      setCreateBIMCoOrdinator(
-                                        bcDisplay
-                                          ? bcDisplay
-                                              .split(",")
-                                              .map((s) => s.trim())
-                                              .filter(Boolean)
-                                          : [],
-                                      );
-                                      setSelectedMemberIds(
-                                        p.member
-                                          ? p.member
-                                              .split(",")
-                                              .map((m) =>
-                                                parseInt(m.trim(), 10),
-                                              )
-                                              .filter((n) => !isNaN(n))
-                                          : [],
-                                      );
-                                      setCreateResources(p.resources ?? "");
-                                      setCreateRequiredResources(
-                                        p.required_resources ?? "",
-                                      );
-                                      setCreatePriority(p.priority ?? "");
-                                      setEditPriority(p.priority ?? "");
-                                      setCreateLocation(p.location ?? "");
-                                      setCreateDescription(p.description ?? "");
-                                      const tasksArr = p.tasks
-                                        ? p.tasks
-                                            .split(",")
-                                            .map((t) => t.trim())
-                                            .filter(Boolean)
-                                        : [];
-                                      setEditTaskTags(tasksArr);
-                                      setExistingFiles(
-                                        p.document_attachment
-                                          ? p.document_attachment
-                                              .split(",")
-                                              .map((f) => f.trim())
-                                              .filter(Boolean)
-                                          : [],
-                                      );
-                                      setShowEditModal(true);
-                                    }}
-                                    className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
-                                  >
-                                    <img
-                                      src={editIcon}
-                                      alt="edit"
-                                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                    />
-                                    <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
-                                      Edit
-                                    </span>
-                                  </button>
-                                )}
-                                {/* {canDelete && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setOpenMenuProjectId(null);
-                                      setDeleteProject(p);
-                                    }}
-                                    className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
-                                  >
-                                    <img
-                                      src={deleteIcon}
-                                      alt="delete"
-                                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                    />
-                                    <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
-                                      Delete
-                                    </span>
-                                  </button>
-                                )} */}
+                                          : [];
+                                        setEditTaskTags(tasksArr);
+                                        setExistingFiles(
+                                          p.document_attachment
+                                            ? p.document_attachment
+                                                .split(",")
+                                                .map((f) => f.trim())
+                                                .filter(Boolean)
+                                            : [],
+                                        );
+                                        setShowEditModal(true);
+                                      }}
+                                      className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer hover:bg-slate-50/50"
+                                    >
+                                      <img
+                                        src={editIcon}
+                                        alt="edit"
+                                        className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                      />
+                                      <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                        Edit
+                                      </span>
+                                    </button>
+                                  )}
+                                  {/* {canDelete && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMenuProjectId(null);
+                                        setDeleteProject(p);
+                                      }}
+                                      className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer hover:bg-slate-50/50"
+                                    >
+                                      <img
+                                        src={deleteIcon}
+                                        alt="delete"
+                                        className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                      />
+                                      <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                        Delete
+                                      </span>
+                                    </button>
+                                  )} */}
+                                </div>
                               </div>
                             </div>
+
+                            <div className="mb-2 ml-6 -mt-2 min-h-[45px] flex flex-col justify-center">
+                              <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight line-clamp-2">
+                                {p.project_name ?? "Untitled Project"}
+                              </h3>
+                            </div>
                           </div>
 
-                          <div className="mb-2 ml-4 -mt-4 min-h-[45px] flex flex-col justify-center">
-                            <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight">
-                              {p.project_name ?? "Untitled Project"}
-                            </h3>
-                          </div>
-                        </div>
+                          <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
+                            <div
+                              className="flex items-center -space-x-4"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {(() => {
+                                const rawIds = p.member
+                                  ? p.member
+                                      .split(",")
+                                      .map((m) => m.trim())
+                                      .filter(Boolean)
+                                  : [];
+                                const memberIds_card = rawIds.map((m) => {
+                                  const n = Number(m);
+                                  return Number.isNaN(n) ? m : n;
+                                });
+                                const projectEmployees = memberIds_card
+                                  .map((id) =>
+                                    allEmployees.find(
+                                      (e) =>
+                                        Number(e.id) === Number(id) ||
+                                        String(e.id) === String(id),
+                                    ),
+                                  )
+                                  .filter(Boolean) as Employee[];
 
-                        <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-2 mt-auto">
-                          <div
-                            className="flex items-center -space-x-4"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {(() => {
-                              const rawIds = p.member
-                                ? p.member
-                                    .split(",")
-                                    .map((m) => m.trim())
-                                    .filter(Boolean)
-                                : [];
-                              const memberIds_card = rawIds.map((m) => {
-                                const n = Number(m);
-                                return Number.isNaN(n) ? m : n;
-                              });
-                              const projectEmployees = memberIds_card
-                                .map((id) =>
-                                  allEmployees.find(
-                                    (e) =>
-                                      Number(e.id) === Number(id) ||
-                                      String(e.id) === String(id),
-                                  ),
-                                )
-                                .filter(Boolean) as Employee[];
+                                const visibleMembers = projectEmployees.slice(
+                                  0,
+                                  3,
+                                );
+                                const remainingCount = Math.max(
+                                  0,
+                                  projectEmployees.length - 3,
+                                );
 
-                              const visibleMembers = projectEmployees.slice(
-                                0,
-                                3,
-                              );
-                              const remainingCount = Math.max(
-                                0,
-                                projectEmployees.length - 3,
-                              );
+                                return (
+                                  <>
+                                    {visibleMembers.map((emp) => {
+                                      const profileUrl = emp.profile_picture
+                                        ? getGlobalProfileUrl(
+                                            emp.id,
+                                            emp.profile_picture,
+                                          )
+                                        : null;
 
-                              return (
-                                <>
-                                  {visibleMembers.map((emp) => {
-                                    const profileUrl = emp.profile_picture
-                                      ? getGlobalProfileUrl(
-                                          emp.id,
-                                          emp.profile_picture,
-                                        )
-                                      : null;
-
-                                    return (
+                                      return (
+                                        <div
+                                          key={emp.id}
+                                          role="button"
+                                          tabIndex={0}
+                                          className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                          title={emp.full_name}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedMember(emp);
+                                            setShowMemberProfileModal(true);
+                                          }}
+                                        >
+                                          {profileUrl ? (
+                                            <img
+                                              src={profileUrl}
+                                              alt={emp.full_name}
+                                              className="w-full h-full object-cover"
+                                              onError={(e) => {
+                                                (
+                                                  e.target as HTMLImageElement
+                                                ).src = ProfileIcon;
+                                              }}
+                                            />
+                                          ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
+                                              {(emp.full_name || "U")
+                                                .charAt(0)
+                                                .toUpperCase()}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                    {remainingCount > 0 && (
                                       <div
-                                        key={emp.id}
                                         role="button"
                                         tabIndex={0}
-                                        className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                        title={emp.full_name}
+                                        className="relative z-10 w-9 h-9 min-w-[2.25rem] min-h-[2.25rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
                                         onClick={(e) => {
+                                          e.preventDefault();
                                           e.stopPropagation();
-                                          setSelectedMember(emp);
-                                          setShowMemberProfileModal(true);
+                                          setAllMembersList(projectEmployees);
+                                          setShowAllMembersModal(true);
                                         }}
                                       >
-                                        {profileUrl ? (
-                                          <img
-                                            src={profileUrl}
-                                            alt={emp.full_name}
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => {
-                                              (
-                                                e.target as HTMLImageElement
-                                              ).src = ProfileIcon;
-                                            }}
-                                          />
-                                        ) : (
-                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
-                                            {(emp.full_name || "U")
-                                              .charAt(0)
-                                              .toUpperCase()}
-                                          </div>
-                                        )}
+                                        +{remainingCount}
                                       </div>
-                                    );
-                                  })}
-                                  {remainingCount > 0 && (
-                                    <div
-                                      role="button"
-                                      tabIndex={0}
-                                      className="relative z-10 w-9 h-9 min-w-[2.25rem] min-h-[2.25rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setAllMembersList(projectEmployees);
-                                        setShowAllMembersModal(true);
-                                      }}
-                                    >
-                                      +{remainingCount}
-                                    </div>
-                                  )}
-                                </>
-                              );
-                            })()}
-                          </div>
-                          {p.priority && (
-                            <div
-                              className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${
-                                p.priority === "High"
-                                  ? "bg-[#DD4342]"
-                                  : "bg-[#94D6F2]"
-                              }`}
-                            >
-                              {p.priority}
+                                    )}
+                                  </>
+                                );
+                              })()}
                             </div>
-                          )}
+                            {p.priority && (
+                              <div
+                                className={`px-3.5 py-1 rounded-md text-white text-[13px] font-bold font-Gantari shadow-sm ${
+                                  p.priority === "High"
+                                    ? "bg-[#DD4342]"
+                                    : "bg-[#94D6F2]"
+                                }`}
+                              >
+                                {p.priority}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })
-                )}
+                      );
+                    })
+                  );
+                })()}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
         {deleteProject !== null && (
           <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">

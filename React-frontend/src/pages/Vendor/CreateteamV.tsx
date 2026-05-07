@@ -13,6 +13,25 @@ import ProfileIcon from '../../assets/ProductNavbarIcons/Profile.svg';
 import CloseIcon from '../../assets/ProductNavbarIcons/close button.svg';
 import viewIcon from '../../assets/ProjectManager/project/viewIcon.svg';
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
+
 const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
 const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
 const showEntriesOptions: {
@@ -516,6 +535,7 @@ export default function CreateteamV() {
 
     return (
         <div className="h-full flex flex-col p-2 font-Gantari">
+            <style>{SCROLLBAR_STYLE}</style>
             <div className="flex items-center justify-between mb-8">
                 <h2 className="text-[24px] font-semibold text-[#000000]">
                     Team Workspace
@@ -618,7 +638,7 @@ export default function CreateteamV() {
                             <img
                                 src={ArrowDown}
                                 alt=""
-                                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesDropdown ? "rotate-180" : ""} ${!showEntries ? "opacity-60 grayscale" : "opacity-90"}`}
+                                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesDropdown ? "rotate-180" : ""} ${!showEntries ? "opacity-60 grayscale" : "opacity-90"}`}
                             />
                         </button>
 
@@ -657,7 +677,7 @@ export default function CreateteamV() {
                             setShowMemberDropdown(false);
                             setShowAddModal(true);
                         }}
-                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-[#F2F2F2] rounded-md transition-all font-bold text-[14px] shadow-sm cursor-pointer"
+                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-[#F2F2F2] rounded-md transition-all font-medium text-[14px] shadow-sm cursor-pointer"
                     >
                         <PlusIcon className="w-5 h-5 stroke-[2.5]" />
                         New Team
@@ -1331,87 +1351,133 @@ export default function CreateteamV() {
 
             {/* Details Modal */}
             {showDetailsModal && selectedTeam && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg shadow-2xl max-w-[500px] w-full animate-in fade-in zoom-in duration-200 relative">
-                        <div className="group absolute top-8 left-8 z-10">
-                            <button
-                                onClick={() => setShowDetailsModal(false)}
-                                className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer border-0 shadow-none font-Gantari font-semibold"
-                            >
-                                <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
-                            </button>
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
-                                <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-sm px-4 py-0.5 relative z-10">
-                                    <span className="font-gantari text-[12px] font-semibold text-[#353535] whitespace-nowrap">Close</span>
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
+                    <div className="bg-white rounded-md shadow-2xl max-w-[600px] w-full max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 relative overflow-hidden font-Gantari">
+                        <div className="p-8 pb-4 relative flex items-center justify-center min-h-[40px] w-full">
+                            <div className="group absolute left-8 z-20 top-1/2 -translate-y-1/2">
+                                <button
+                                    onClick={() => setShowDetailsModal(false)}
+                                    className="p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
+                                >
+                                    <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
+                                </button>
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                        <span className="font-gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                            Close
+                                        </span>
+                                    </div>
                                 </div>
+                            </div>
+
+                            <div className="text-center">
+                                <h3 className="text-[20px] font-semibold text-slate-800 font-Gantari px-12 truncate max-w-full">
+                                    {selectedTeam.team_name ||
+                                        selectedTeam.teamname ||
+                                        selectedTeam.leader_name ||
+                                        getEmp(selectedTeam.leader)?.full_name ||
+                                        'Unnamed Team'}
+                                </h3>
+                                <p className="text-[16px] text-slate-500 mt-1 font-Gantari">Team Details</p>
                             </div>
                         </div>
-                        <div className="p-8">
-                            <div className="text-center mb-6">
-                                <h3 className="text-[22px] font-medium text-[#1E293B] px-12 font-Gantari">Team Details</h3>
-                            </div>
 
+                        <div className="p-8 pt-0 flex-1 overflow-y-auto custom-scrollbar">
                             <div className="space-y-6">
                                 <div>
-                                    <label className="text-[16px] font-Gantari block mb-1 font-medium text-[#000000]">Team Name</label>
-                                    <div className="text-[14px] font-Gantari bg-[#F2F3F4] border-2 border-[#AEACAC52] py-3 px-2 rounded-lg text-[#353535]">
-                                        {selectedTeam.team_name || selectedTeam.teamname || 'Unnamed Team'}
+                                    <h4 className="text-[18px] font-semibold text-slate-800 mb-4 font-Gantari">
+                                        Project Name
+                                    </h4>
+                                    <div className="bg-[#F2F2F2] rounded-md p-6 border border-[#AEACAC52]">
+                                        <p className="font-semibold text-slate-800 font-Gantari">
+                                            {selectedTeam.project_name || "N/A"}
+                                        </p>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="text-[16px] font-Gantari block mb-1 font-medium text-[#000000]">Project Name</label>
-                                    <div className="text-[14px] font-Gantari bg-[#F2F3F4] border-2 border-[#AEACAC52] py-3 px-2 rounded-lg text-[#353535]">
-                                        {selectedTeam.project_name || 'N/A'}
+                                    <h4 className="text-[18px] font-semibold text-slate-800 mb-4 font-Gantari">
+                                        Team Lead
+                                    </h4>
+                                    <div className="bg-[#F2F2F2] rounded-md p-6 border border-[#AEACAC52]">
+                                        <div className="flex items-center gap-4">
+                                            {(() => {
+                                                const leaderEmp = getEmp(selectedTeam.leader);
+                                                const profileUrl = leaderEmp?.profile_picture ? getGlobalProfileUrl(leaderEmp.id, leaderEmp.profile_picture, "vendor") : null;
+                                                const leaderName = selectedTeam.leader_name || leaderEmp?.full_name || 'N/A';
+                                                return (
+                                                    <>
+                                                        <div className="w-12 h-12 bg-white rounded-full border border-slate-200 flex items-center justify-center text-lg font-bold text-slate-700 shadow-sm overflow-hidden shrink-0">
+                                                            {profileUrl ? (
+                                                                <img
+                                                                    src={profileUrl}
+                                                                    alt="Leader"
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(e) => {
+                                                                        (e.target as HTMLImageElement).src = ProfileIcon;
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                leaderName[0] || ""
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-semibold text-slate-800 font-Gantari">
+                                                                {leaderName}
+                                                            </p>
+                                                            <p className="text-[14px] text-slate-500 font-Gantari">Team Leader</p>
+                                                        </div>
+                                                    </>
+                                                );
+                                            })()}
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="text-[16px] font-Gantari block mb-1 font-medium text-[#000000]">Team Leader</label>
-                                    <div className="flex items-center gap-3 bg-[#F2F3F4] border-2 border-[#AEACAC52] py-3 px-2 rounded-xl">
-                                        {(() => {
-                                            const emp = getEmp(selectedTeam.leader);
-                                            const name = emp?.full_name || 'N/A';
-                                            const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : '';
-                                            return (
-                                                <>
-                                                    <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center font-Gantari font-medium uppercase overflow-hidden shadow-sm">
-                                                        {avatarUrl ? (
-                                                            <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <span>{name[0]}</span>
-                                                        )}
+                                    <h4 className="text-[18px] font-semibold text-slate-800 mb-4 pl-1 font-Gantari">
+                                        Team Members ({selectedTeam.employee.split(",").filter(Boolean).length})
+                                    </h4>
+                                    <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md overflow-hidden">
+                                        {selectedTeam.employee
+                                            .split(",")
+                                            .filter(Boolean)
+                                            .map((eid, i) => {
+                                                const empInfo = getEmp(eid);
+                                                const memberName = empInfo?.full_name || eid;
+                                                return (
+                                                    <div
+                                                        key={eid}
+                                                        className={`flex items-center gap-4 p-4 transition-colors ${i !== 0 ? "border-t border-slate-100" : ""}`}
+                                                    >
+                                                        <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-sm font-bold text-slate-600 overflow-hidden shrink-0">
+                                                            {empInfo?.profile_picture ? (
+                                                                <img
+                                                                    src={getGlobalProfileUrl(empInfo.id, empInfo.profile_picture, "vendor")}
+                                                                    alt={memberName}
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(e) => {
+                                                                        (e.target as HTMLImageElement).src = ProfileIcon;
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                memberName[0] || ""
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-semibold text-slate-800 truncate font-Gantari">
+                                                                {memberName}
+                                                            </p>
+                                                            {empInfo?.email && (
+                                                                <p className="text-[14px] text-slate-500 truncate font-Gantari">
+                                                                    {empInfo.email}
+                                                                </p>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    <div className="font-Gantari font-medium text-[#334155]">{name}</div>
-                                                </>
-                                            );
-                                        })()}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="text-[16px] font-Gantari block mb-2 font-medium text-[#000000]">
-                                        Members ({selectedTeam.employee.split(',').filter(Boolean).length})
-                                    </label>
-                                    <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
-                                        {selectedTeam.employee.split(',').filter(Boolean).map(eid => {
-                                            const emp = getEmp(eid);
-                                            const name = emp?.full_name || 'N/A';
-                                            const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : '';
-                                            return (
-                                                <div key={eid} className="flex items-center gap-2.5 bg-[#F2F3F4] border-2 border-[#AEACAC52] py-3 px-2 rounded-lg group hover:bg-white transition-colors">
-                                                    <div className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-[11px] font-bold text-slate-600 uppercase overflow-hidden shadow-sm">
-                                                        {avatarUrl ? (
-                                                            <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <span>{name[0]}</span>
-                                                        )}
-                                                    </div>
-                                                    <div className="text-[14px] font-bold text-[#475569] font-Gantari">{name}</div>
-                                                </div>
-                                            );
-                                        })}
+                                                );
+                                            })}
                                     </div>
                                 </div>
                             </div>

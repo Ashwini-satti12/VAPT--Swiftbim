@@ -5,6 +5,24 @@ import type { ResourceProfile } from '../TechnicalDirector/PartnerView/types';
 import ResourceProfileForm from './components/ResourceProfileForm';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
 function companyProfileBaseFromPath(pathname: string): string {
     if (pathname.includes('/vpm/company-profile')) return '/vpm/company-profile';
     return '/v/company-profile';
@@ -99,6 +117,7 @@ export default function CompanyProfileResourcePageV() {
 
     return (
         <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white px-2 pt-2 pb-0 font-Gantari">
+            <style>{SCROLLBAR_STYLE}</style>
             <div className="relative mb-6 flex shrink-0 items-center justify-between pb-4 sm:mb-8">
                 <div className="group relative inline-flex shrink-0">
                     <button
