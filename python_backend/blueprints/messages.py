@@ -130,6 +130,27 @@ def _chat_auth_required(f):
 # Chat endpoints
 # ---------------------------------------------------------------------------
 
+def _get_sender_name(cur, user_id, sender_type, company_id):
+    if sender_type == "client":
+        try:
+            vendor_conn = _get_vendor_db()
+            vendor_cur = vendor_conn.cursor(dictionary=True)
+            vendor_cur.execute("SELECT full_name FROM users WHERE id = %s", (user_id,))
+            crow = vendor_cur.fetchone()
+            vendor_conn.close()
+            if crow and crow.get("full_name"):
+                return crow.get("full_name")
+        except Exception:
+            pass
+        return "Client"
+    else:
+        cur.execute("SELECT full_name FROM employee WHERE id = %s AND Company_id = %s LIMIT 1", (user_id, company_id))
+        row = cur.fetchone()
+        if row:
+            return row.get("full_name") if isinstance(row, dict) else row[0]
+        return "Colleague"
+
+
 @chat_bp.route("/contacts", methods=["GET"])
 @_chat_auth_required
 def get_contacts():
@@ -598,6 +619,14 @@ def send_message():
                 attachments_json,
             ),
         )
+        sender_name = _get_sender_name(cur, client_id, "client", company_id)
+        cur.execute(
+            """
+            INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+            VALUES (%s, NULL, %s, %s, %s, 'chat', %s, 0, NOW(), %s)
+            """,
+            (employee_id, f"New Message from {sender_name}", f"{sender_name} sent you a message.", "message", client_id, company_id)
+        )
     else:
         # Employee portal:
         # Decide whether `to_id` is another employee in this company or a client.
@@ -624,6 +653,14 @@ def send_message():
                     VALUES (%s, %s, %s, %s, 0, NOW(), %s, %s)
                 """,
                 (to_id, user_id, message_text, sender_type, company_id, attachments_json),
+            )
+            sender_name = _get_sender_name(cur, user_id, "employee", company_id)
+            cur.execute(
+                """
+                INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                VALUES (%s, NULL, %s, %s, %s, 'chat', %s, 0, NOW(), %s)
+                """,
+                (to_id, f"New Message from {sender_name}", f"{sender_name} sent you a message.", "message", user_id, company_id)
             )
         else:
             # Employee → client.
@@ -656,6 +693,14 @@ def send_message():
                     company_id,
                     attachments_json,
                 ),
+            )
+            sender_name = _get_sender_name(cur, user_id, "employee", company_id)
+            cur.execute(
+                """
+                INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                VALUES (%s, NULL, %s, %s, %s, 'chat', %s, 0, NOW(), %s)
+                """,
+                (client_id, f"New Message from {sender_name}", f"{sender_name} sent you a message.", "message", user_id, company_id)
             )
 
     new_id = cur.lastrowid

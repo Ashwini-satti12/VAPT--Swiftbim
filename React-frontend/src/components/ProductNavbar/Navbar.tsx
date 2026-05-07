@@ -276,6 +276,19 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
       else navigate(`/td/proposals`);
       return;
     }
+
+    if (et === "chat") {
+      const seg = (location.pathname || "").split("/").filter(Boolean)[0] || "";
+      const state = { selectedUserId: eid };
+      if (seg === "client") navigate("/client/chat", { state });
+      else if (seg === "vpm") navigate("/vpm/communication", { state });
+      else if (seg === "ve") navigate("/ve/communication", { state });
+      else if (seg === "vendor-bim-lead") navigate("/vendor-bim-lead/communication", { state });
+      else if (prefix === "/v") navigate("/v/chat", { state });
+      else if (prefix) navigate(`${prefix}/chat`, { state });
+      else navigate("/chat", { state });
+      return;
+    }
   };
 
   const clearAllNotifications = async () => {
