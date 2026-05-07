@@ -553,7 +553,7 @@ function TaskCard({
     );
 }
 
-const SHOW_OPTIONS = ["Show Entries", "1-50", "50-100", "101-150", "151-200","201-250","251-300","All"];
+const SHOW_OPTIONS = ["Show Entries", "1-50", "50-100", "101-150", "151-200", "201-250", "251-300", "All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
@@ -592,7 +592,7 @@ export default function MytaskEV() {
     const allTasks = list.filter((t) => t && t.id != null).filter((t) => {
         // Trust the backend filtering
         if (searchQueryParam) {
-            const matchesSearch = 
+            const matchesSearch =
                 (t.task_name || "").toLowerCase().includes(searchQueryParam) ||
                 (t.project_name || "").toLowerCase().includes(searchQueryParam) ||
                 (t.status || "").toLowerCase().includes(searchQueryParam);
@@ -882,156 +882,156 @@ export default function MytaskEV() {
     return (
         <div className="h-full min-h-0 flex flex-col overflow-hidden px-5 font-Gantari">
             {/* Top row: title + dropdowns + Add task */}
-            <div className="bg-white flex-shrink-0 px-5 pt-0 sm:pt-0 sm:mt-2">
-          {/* Row 1: Title and Add Task button for mobile only (hidden on lg) */}
-          <div className="flex flex-row items-center justify-between w-full mb-4 lg:hidden">
-            <h2 className="text-[20px] sm:text-[24px] font-semibold text-slate-800 font-Gantari">
-              {isTeam ? "Team Task" : "My Task"}
-            </h2>
-            <button
-              type="button"
-              onClick={openAddTask}
-              className="sm:hidden inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-2 py-1.5 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all border-0"
-            >
-              Add Task
-            </button>
-          </div>
-
-          {/* Row 2: Title (LG only) + Filters + Desktop Add Task button */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
-            <h2 className="hidden lg:block text-[24px] font-semibold text-slate-800 font-Gantari">
-              {isTeam ? "Team Task" : "My Task"}
-            </h2>
-            <div
-              ref={dropdownsContainerRef}
-              className="grid grid-cols-2 lg:flex lg:flex-row lg:items-center gap-2.5 w-full lg:w-auto font-Gantari"
-            >
-              <div className="w-full lg:w-auto">
-                <TaskDropdown
-                  label="Select Employee"
-                  options={employeeOptions}
-                  selected={selectedEmployee}
-                  onSelect={setSelectedEmployee}
-                  isOpen={openDropdown === "employee"}
-                  onToggle={() =>
-                    setOpenDropdown((d) => (d === "employee" ? null : "employee"))
-                  }
-                  onClose={() => setOpenDropdown(null)}
-                  triggerRef={employeeTriggerRef}
-                  dropdownRef={employeeMenuRef}
-                  searchable
-                  searchPlaceholder="Search employee..."
-                  maxVisibleItems={5}
-                />
-              </div>
-              <div className="w-full lg:w-auto">
-                <TaskDropdown
-                  label="Select Project"
-                  options={projectOptions}
-                  selected={selectedProject}
-                  onSelect={setSelectedProject}
-                  isOpen={openDropdown === "projects"}
-                  onToggle={() =>
-                    setOpenDropdown((d) => (d === "projects" ? null : "projects"))
-                  }
-                  onClose={() => setOpenDropdown(null)}
-                  triggerRef={projectsTriggerRef}
-                  dropdownRef={projectsMenuRef}
-                  searchable
-                  searchPlaceholder="Search project..."
-                  maxVisibleItems={5}
-                />
-              </div>
-              <div className="w-full lg:w-auto">
-                <TaskDropdown
-                  label="Show Entries"
-                  options={SHOW_OPTIONS}
-                  selected={selectedShow}
-                  onSelect={setSelectedShow}
-                  isOpen={openDropdown === "show"}
-                  onToggle={() =>
-                    setOpenDropdown((d) => (d === "show" ? null : "show"))
-                  }
-                  onClose={() => setOpenDropdown(null)}
-                  triggerRef={showTriggerRef}
-                  dropdownRef={showMenuRef}
-                  narrow
-                />
-              </div>
-              <div className="w-full lg:w-auto">
-                <TaskDropdown
-                  label="Period"
-                  options={PERIOD_OPTIONS}
-                  selected={selectedPeriod}
-                  onSelect={setSelectedPeriod}
-                  isOpen={openDropdown === "period"}
-                  onToggle={() =>
-                    setOpenDropdown((d) => (d === "period" ? null : "period"))
-                  }
-                  onClose={() => setOpenDropdown(null)}
-                  triggerRef={periodTriggerRef}
-                  dropdownRef={periodMenuRef}
-                  narrow
-                />
-              </div>
-              <button
-                type="button"
-                onClick={openAddTask}
-                className="hidden sm:inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-semibold text-white shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all border-0 font-Gantari h-[38px]"
-              >
-                Add Task
-              </button>
-            </div>
-          </div>
-        </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-5 pt-2">
-                    <Link
-                        to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                        className={`flex items-center p-4 gap-3 md:gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all relative cursor-pointer ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
+            <div className="bg-white flex-shrink-0 pt-0 sm:pt-0 sm:mt-2">
+                {/* Row 1: Title and Add Task button for mobile only (hidden on lg) */}
+                <div className="flex flex-row items-center justify-between w-full mb-4 lg:hidden">
+                    <h2 className="text-[20px] sm:text-[24px] font-semibold text-slate-800 font-Gantari">
+                        {isTeam ? "Team Task" : "My Task"}
+                    </h2>
+                    <button
+                        type="button"
+                        onClick={openAddTask}
+                        className="sm:hidden inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-2 py-1.5 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all border-0"
                     >
-                        <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
-                            To Do
-                        </span>
-                        <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
-                            ({counts.todo})
-                        </span>
-                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-                            <img src={Group1} alt="Group1" className="w-6 h-6 md:w-8 md:h-8" />
-                        </div>
-                    </Link>
-                    <Link
-                        to={statusFilter === "in_progress" ? pathname : `${pathname}?status=in_progress`}
-                        className={`flex items-center p-4 gap-3 md:gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all relative cursor-pointer ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
-                    >
-                        <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
-                            Inprogress
-                        </span>
-                        <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
-                            ({counts.in_progress})
-                        </span>
-                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-                            <img src={Group2} alt="Group2" className="w-6 h-6 md:w-8 md:h-8" />
-                        </div>
-                    </Link>
-                    <Link
-                        to={statusFilter === "completed" ? pathname : `${pathname}?status=completed`}
-                        className={`flex items-center p-4 gap-3 md:gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all relative cursor-pointer ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
-                    >
-                        <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
-                            Completed
-                        </span>
-                        <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
-                            ({counts.completed})
-                        </span>
-                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
-                            <img src={Group3} alt="Group3" className="w-6 h-6 md:w-8 md:h-8" />
-                        </div>
-                    </Link>
+                        Add Task
+                    </button>
                 </div>
 
+                {/* Row 2: Title (LG only) + Filters + Desktop Add Task button */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
+                    <h2 className="hidden lg:block text-[24px] font-semibold text-slate-800 font-Gantari">
+                        {isTeam ? "Team Task" : "My Task"}
+                    </h2>
+                    <div
+                        ref={dropdownsContainerRef}
+                        className="grid grid-cols-2 lg:flex lg:flex-row lg:items-center gap-2.5 w-full lg:w-auto font-Gantari"
+                    >
+                        <div className="w-full lg:w-auto">
+                            <TaskDropdown
+                                label="Select Employee"
+                                options={employeeOptions}
+                                selected={selectedEmployee}
+                                onSelect={setSelectedEmployee}
+                                isOpen={openDropdown === "employee"}
+                                onToggle={() =>
+                                    setOpenDropdown((d) => (d === "employee" ? null : "employee"))
+                                }
+                                onClose={() => setOpenDropdown(null)}
+                                triggerRef={employeeTriggerRef}
+                                dropdownRef={employeeMenuRef}
+                                searchable
+                                searchPlaceholder="Search employee..."
+                                maxVisibleItems={5}
+                            />
+                        </div>
+                        <div className="w-full lg:w-auto">
+                            <TaskDropdown
+                                label="Select Project"
+                                options={projectOptions}
+                                selected={selectedProject}
+                                onSelect={setSelectedProject}
+                                isOpen={openDropdown === "projects"}
+                                onToggle={() =>
+                                    setOpenDropdown((d) => (d === "projects" ? null : "projects"))
+                                }
+                                onClose={() => setOpenDropdown(null)}
+                                triggerRef={projectsTriggerRef}
+                                dropdownRef={projectsMenuRef}
+                                searchable
+                                searchPlaceholder="Search project..."
+                                maxVisibleItems={5}
+                            />
+                        </div>
+                        <div className="w-full lg:w-auto">
+                            <TaskDropdown
+                                label="Show Entries"
+                                options={SHOW_OPTIONS}
+                                selected={selectedShow}
+                                onSelect={setSelectedShow}
+                                isOpen={openDropdown === "show"}
+                                onToggle={() =>
+                                    setOpenDropdown((d) => (d === "show" ? null : "show"))
+                                }
+                                onClose={() => setOpenDropdown(null)}
+                                triggerRef={showTriggerRef}
+                                dropdownRef={showMenuRef}
+                                narrow
+                            />
+                        </div>
+                        <div className="w-full lg:w-auto">
+                            <TaskDropdown
+                                label="Period"
+                                options={PERIOD_OPTIONS}
+                                selected={selectedPeriod}
+                                onSelect={setSelectedPeriod}
+                                isOpen={openDropdown === "period"}
+                                onToggle={() =>
+                                    setOpenDropdown((d) => (d === "period" ? null : "period"))
+                                }
+                                onClose={() => setOpenDropdown(null)}
+                                triggerRef={periodTriggerRef}
+                                dropdownRef={periodMenuRef}
+                                narrow
+                            />
+                        </div>
+                        <button
+                            type="button"
+                            onClick={openAddTask}
+                            className="hidden sm:inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-semibold text-white shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all border-0 font-Gantari h-[38px]"
+                        >
+                            Add Task
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-5 pt-2">
+                <Link
+                    to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
+                    className={`flex items-center p-4 gap-3 md:gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all relative cursor-pointer ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
+                >
+                    <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
+                        To Do
+                    </span>
+                    <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
+                        ({counts.todo})
+                    </span>
+                    <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                        <img src={Group1} alt="Group1" className="w-6 h-6 md:w-8 md:h-8" />
+                    </div>
+                </Link>
+                <Link
+                    to={statusFilter === "in_progress" ? pathname : `${pathname}?status=in_progress`}
+                    className={`flex items-center p-4 gap-3 md:gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all relative cursor-pointer ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
+                >
+                    <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
+                        Inprogress
+                    </span>
+                    <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
+                        ({counts.in_progress})
+                    </span>
+                    <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                        <img src={Group2} alt="Group2" className="w-6 h-6 md:w-8 md:h-8" />
+                    </div>
+                </Link>
+                <Link
+                    to={statusFilter === "completed" ? pathname : `${pathname}?status=completed`}
+                    className={`flex items-center p-4 gap-3 md:gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all relative cursor-pointer ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
+                >
+                    <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
+                        Completed
+                    </span>
+                    <span className="text-[16px] md:text-[20px] font-bold text-[#0D1829] font-Gantari">
+                        ({counts.completed})
+                    </span>
+                    <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                        <img src={Group3} alt="Group3" className="w-6 h-6 md:w-8 md:h-8" />
+                    </div>
+                </Link>
+            </div>
+
             {/* Task cards under each status - drag and drop columns */}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')] pr-1 -mr-1">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-10 mt-2">
                     <div
                         className="space-y-4 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors"
@@ -1109,7 +1109,7 @@ export default function MytaskEV() {
             {deleteTaskId !== null && (
                 <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
                     <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center animate-in zoom-in-95 duration-200">
-                        
+
                         {/* Close Icon in Top Left with Tooltip */}
                         <div className="absolute left-4 top-4 group z-50">
                             <button

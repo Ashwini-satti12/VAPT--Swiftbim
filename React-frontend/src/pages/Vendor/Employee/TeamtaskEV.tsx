@@ -480,48 +480,97 @@ function TaskCard({
             </div>
             <div className="h-1.5 rounded-full bg-[#EAEAEA] overflow-hidden mb-5">
                 <div
-                    className="h-full rounded-full transition-all duration-500"
+                    className="h-full rounded-full transition-all duration-500 bg-[#8B8B8B]"
                     style={{
-                        width: `${progress}%`,
-                        backgroundColor: progress === 100 ? "#22C55E" : "#8B8B8B"
+                        width: `${progress}%`
                     }}
                 />
             </div>
 
             <div className="flex items-center justify-between gap-2 mt-auto">
-                <div className="flex items-center gap-2 overflow-hidden">
+                <div className="flex items-center gap-1">
                     <div className="flex -space-x-2">
-                        {(() => {
-                            const url = getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture, "vendor");
-                            return (
-                                <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-slate-100 flex-shrink-0">
-                                    <img
-                                        src={url}
-                                        alt="assignee"
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(task.assigned_full_name || "U")}&background=random`;
-                                        }}
-                                    />
-                                </div>
-                            );
-                        })()}
+                        {task.assigned_full_name &&
+                            (() => {
+                                const src = getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture, "vendor");
+                                const initials = task.assigned_full_name
+                                    .split(" ")
+                                    .filter(Boolean)
+                                    .map((p) => p[0])
+                                    .join("")
+                                    .slice(0, 2)
+                                    .toUpperCase();
+                                return (
+                                    <div
+                                        className="w-8 h-8 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                                        title={`Assigned To: ${task.assigned_full_name}`}
+                                    >
+                                        {src ? (
+                                            <img
+                                                src={src}
+                                                alt={task.assigned_full_name}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(task.assigned_full_name || "U")}&background=random`;
+                                                }}
+                                            />
+                                        ) : (
+                                            <span>{initials}</span>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+                        {task.uploader_full_name &&
+                            (() => {
+                                const src = getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture, "vendor");
+                                const initials = task.uploader_full_name
+                                    .split(" ")
+                                    .filter(Boolean)
+                                    .map((p) => p[0])
+                                    .join("")
+                                    .slice(0, 2)
+                                    .toUpperCase();
+                                return (
+                                    <div
+                                        className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                                        title={`Assigned By: ${task.uploader_full_name}`}
+                                    >
+                                        {src ? (
+                                            <img
+                                                src={src}
+                                                alt={task.uploader_full_name}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(task.uploader_full_name || "U")}&background=random`;
+                                                }}
+                                            />
+                                        ) : (
+                                            <span>{initials}</span>
+                                        )}
+                                    </div>
+                                );
+                            })()}
                     </div>
-                    <span className="text-sm font-medium text-[#353535] truncate" title={task.assigned_full_name}>
-                        {task.assigned_full_name || "Unassigned"}
-                    </span>
                 </div>
-                <div className="flex items-center gap-1.5 px-3 py-1 bg-[#F2F3F4] rounded-full shrink-0">
-                    <span className="text-[12px] font-medium text-[#616161] truncate max-w-[80px]">
-                        {task.category || task.category_name || "General"}
-                    </span>
-                </div>
+                <button
+                    type="button"
+                    draggable={false}
+                    onClick={() => onViewTask?.(task)}
+                    className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer"
+                >
+                    Details
+                    <img
+                        src={Arrow}
+                        alt="Arrow"
+                        className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
+                    />
+                </button>
             </div>
         </div>
     );
 }
 
-const SHOW_OPTIONS = ["Show Entries", "1-50", "50-100", "101-150", "151-200","201-250","251-300","All"];
+const SHOW_OPTIONS = ["Show Entries", "1-50", "50-100", "101-150", "151-200", "201-250", "251-300", "All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
@@ -560,7 +609,7 @@ export default function TeamtaskEV() {
     const allTasks = list.filter((t) => t && t.id != null).filter((t) => {
         // Trust the backend filtering
         if (searchQueryParam) {
-            const matchesSearch = 
+            const matchesSearch =
                 (t.task_name || "").toLowerCase().includes(searchQueryParam) ||
                 (t.project_name || "").toLowerCase().includes(searchQueryParam) ||
                 (t.status || "").toLowerCase().includes(searchQueryParam);
@@ -873,110 +922,110 @@ export default function TeamtaskEV() {
     return (
         <div className="h-full min-h-0 flex flex-col overflow-hidden px-5 font-Gantari">
             {/* Top row: title + dropdowns + Add task */}
-        <div className="bg-white flex-shrink-0 px-5 pt-0 sm:pt-0 sm:mt-2">
-          {/* Row 1: Title and Add Task button for mobile only (hidden on lg) */}
-          <div className="flex flex-row items-center justify-between w-full mb-4 lg:hidden">
-            <h2 className="text-[20px] sm:text-[24px] font-semibold text-slate-800 font-Gantari">
-              {isTeam ? "Team Task" : "My Task"}
-            </h2>
-            <button
-              type="button"
-              onClick={openAddTask}
-              className="sm:hidden inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-2 py-1.5 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all border-0"
-            >
-              <img src={AddBtn} alt="Add" className="h-4 w-4" />
-              Add Task
-            </button>
-          </div>
+            <div className="bg-white flex-shrink-0 pt-0 sm:pt-0 sm:mt-2">
+                {/* Row 1: Title and Add Task button for mobile only (hidden on lg) */}
+                <div className="flex flex-row items-center justify-between w-full mb-4 lg:hidden">
+                    <h2 className="text-[20px] sm:text-[24px] font-semibold text-slate-800 font-Gantari">
+                        {isTeam ? "Team Task" : "My Task"}
+                    </h2>
+                    <button
+                        type="button"
+                        onClick={openAddTask}
+                        className="sm:hidden inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-2 py-1.5 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all border-0"
+                    >
 
-          {/* Row 2: Title (LG only) + Filters + Desktop Add Task button */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
-            <h2 className="hidden lg:block text-[24px] font-semibold text-slate-800 font-Gantari">
-              {isTeam ? "Team Task" : "My Task"}
-            </h2>
-            <div
-              ref={dropdownsContainerRef}
-              className="grid grid-cols-2 lg:flex lg:flex-row lg:items-center gap-2.5 w-full lg:w-auto font-Gantari"
-            >
-              <div className="w-full lg:w-auto">
-                <TaskDropdown
-                  label="Select Employee"
-                  options={employeeOptions}
-                  selected={selectedEmployee}
-                  onSelect={setSelectedEmployee}
-                  isOpen={openDropdown === "employee"}
-                  onToggle={() =>
-                    setOpenDropdown((d) => (d === "employee" ? null : "employee"))
-                  }
-                  onClose={() => setOpenDropdown(null)}
-                  triggerRef={employeeTriggerRef}
-                  dropdownRef={employeeMenuRef}
-                  searchable
-                  searchPlaceholder="Search employee..."
-                  maxVisibleItems={5}
-                />
-              </div>
-              <div className="w-full lg:w-auto">
-                <TaskDropdown
-                  label="Select Project"
-                  options={projectOptions}
-                  selected={selectedProject}
-                  onSelect={setSelectedProject}
-                  isOpen={openDropdown === "projects"}
-                  onToggle={() =>
-                    setOpenDropdown((d) => (d === "projects" ? null : "projects"))
-                  }
-                  onClose={() => setOpenDropdown(null)}
-                  triggerRef={projectsTriggerRef}
-                  dropdownRef={projectsMenuRef}
-                  searchable
-                  searchPlaceholder="Search project..."
-                  maxVisibleItems={5}
-                />
-              </div>
-              <div className="w-full lg:w-auto">
-                <TaskDropdown
-                  label="Show Entries"
-                  options={SHOW_OPTIONS}
-                  selected={selectedShow}
-                  onSelect={setSelectedShow}
-                  isOpen={openDropdown === "show"}
-                  onToggle={() =>
-                    setOpenDropdown((d) => (d === "show" ? null : "show"))
-                  }
-                  onClose={() => setOpenDropdown(null)}
-                  triggerRef={showTriggerRef}
-                  dropdownRef={showMenuRef}
-                  narrow
-                />
-              </div>
-              <div className="w-full lg:w-auto">
-                <TaskDropdown
-                  label="Period"
-                  options={PERIOD_OPTIONS}
-                  selected={selectedPeriod}
-                  onSelect={setSelectedPeriod}
-                  isOpen={openDropdown === "period"}
-                  onToggle={() =>
-                    setOpenDropdown((d) => (d === "period" ? null : "period"))
-                  }
-                  onClose={() => setOpenDropdown(null)}
-                  triggerRef={periodTriggerRef}
-                  dropdownRef={periodMenuRef}
-                  narrow
-                />
-              </div>
-              <button
-                type="button"
-                onClick={openAddTask}
-                className="hidden sm:inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-semibold text-white shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all border-0 font-Gantari h-[38px]"
-              >
-                <img src={AddBtn} alt="Add" className="h-5 w-5" />
-                Add Task
-              </button>
+                        Add Task
+                    </button>
+                </div>
+
+                {/* Row 2: Title (LG only) + Filters + Desktop Add Task button */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
+                    <h2 className="hidden lg:block text-[24px] font-semibold text-slate-800 font-Gantari">
+                        {isTeam ? "Team Task" : "My Task"}
+                    </h2>
+                    <div
+                        ref={dropdownsContainerRef}
+                        className="grid grid-cols-2 lg:flex lg:flex-row lg:items-center gap-2.5 w-full lg:w-auto font-Gantari"
+                    >
+                        <div className="w-full lg:w-auto">
+                            <TaskDropdown
+                                label="Select Employee"
+                                options={employeeOptions}
+                                selected={selectedEmployee}
+                                onSelect={setSelectedEmployee}
+                                isOpen={openDropdown === "employee"}
+                                onToggle={() =>
+                                    setOpenDropdown((d) => (d === "employee" ? null : "employee"))
+                                }
+                                onClose={() => setOpenDropdown(null)}
+                                triggerRef={employeeTriggerRef}
+                                dropdownRef={employeeMenuRef}
+                                searchable
+                                searchPlaceholder="Search employee..."
+                                maxVisibleItems={5}
+                            />
+                        </div>
+                        <div className="w-full lg:w-auto">
+                            <TaskDropdown
+                                label="Select Project"
+                                options={projectOptions}
+                                selected={selectedProject}
+                                onSelect={setSelectedProject}
+                                isOpen={openDropdown === "projects"}
+                                onToggle={() =>
+                                    setOpenDropdown((d) => (d === "projects" ? null : "projects"))
+                                }
+                                onClose={() => setOpenDropdown(null)}
+                                triggerRef={projectsTriggerRef}
+                                dropdownRef={projectsMenuRef}
+                                searchable
+                                searchPlaceholder="Search project..."
+                                maxVisibleItems={5}
+                            />
+                        </div>
+                        <div className="w-full lg:w-auto">
+                            <TaskDropdown
+                                label="Show Entries"
+                                options={SHOW_OPTIONS}
+                                selected={selectedShow}
+                                onSelect={setSelectedShow}
+                                isOpen={openDropdown === "show"}
+                                onToggle={() =>
+                                    setOpenDropdown((d) => (d === "show" ? null : "show"))
+                                }
+                                onClose={() => setOpenDropdown(null)}
+                                triggerRef={showTriggerRef}
+                                dropdownRef={showMenuRef}
+                                narrow
+                            />
+                        </div>
+                        <div className="w-full lg:w-auto">
+                            <TaskDropdown
+                                label="Period"
+                                options={PERIOD_OPTIONS}
+                                selected={selectedPeriod}
+                                onSelect={setSelectedPeriod}
+                                isOpen={openDropdown === "period"}
+                                onToggle={() =>
+                                    setOpenDropdown((d) => (d === "period" ? null : "period"))
+                                }
+                                onClose={() => setOpenDropdown(null)}
+                                triggerRef={periodTriggerRef}
+                                dropdownRef={periodMenuRef}
+                                narrow
+                            />
+                        </div>
+                        <button
+                            type="button"
+                            onClick={openAddTask}
+                            className="hidden sm:inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-semibold text-white shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all border-0 font-Gantari h-[38px]"
+                        >
+                           
+                            Add Task
+                        </button>
+                    </div>
+                </div>
             </div>
-          </div>
-        </div>
 
             {/* Status summary cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-5 pt-2">
@@ -1025,78 +1074,78 @@ export default function TeamtaskEV() {
             </div>
 
             {/* Task cards under each status - drag and drop columns */}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-10 mt-2">
-                <div
-                    className="space-y-4 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
-                    }}
-                >
-                    {displayedTasksByStatus.todo.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            status="todo"
-                            onViewTask={openViewTask}
-                            onEditTask={openEditTask}
-                            onDeleteTask={openDeleteTask}
-                        />
-                    ))}
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent] [&::-webkit-scrollbar-button]:block [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-button:vertical:decrement]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 2L1 8h8z\' fill=\'%23979797\'/></svg>')] [&::-webkit-scrollbar-button:vertical:increment]:bg-[url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 10 10\'><path d=\'M5 8L1 2h8z\' fill=\'%23979797\'/></svg>')] pr-1 -mr-1">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-10 mt-2">
+                    <div
+                        className="space-y-4 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors"
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const taskId = Number(e.dataTransfer.getData("taskId"));
+                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
+                        }}
+                    >
+                        {displayedTasksByStatus.todo.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                status="todo"
+                                onViewTask={openViewTask}
+                                onEditTask={openEditTask}
+                                onDeleteTask={openDeleteTask}
+                            />
+                        ))}
+                    </div>
+                    <div
+                        className="space-y-4 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors"
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const taskId = Number(e.dataTransfer.getData("taskId"));
+                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
+                        }}
+                    >
+                        {displayedTasksByStatus.in_progress.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                status="in_progress"
+                                onViewTask={openViewTask}
+                                onEditTask={openEditTask}
+                                onDeleteTask={openDeleteTask}
+                            />
+                        ))}
+                    </div>
+                    <div
+                        className="space-y-4 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors"
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const taskId = Number(e.dataTransfer.getData("taskId"));
+                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
+                        }}
+                    >
+                        {displayedTasksByStatus.completed.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                status="completed"
+                                onViewTask={openViewTask}
+                                onEditTask={openEditTask}
+                                onDeleteTask={openDeleteTask}
+                            />
+                        ))}
+                    </div>
                 </div>
-                <div
-                    className="space-y-4 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
-                    }}
-                >
-                    {displayedTasksByStatus.in_progress.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            status="in_progress"
-                            onViewTask={openViewTask}
-                            onEditTask={openEditTask}
-                            onDeleteTask={openDeleteTask}
-                        />
-                    ))}
-                </div>
-                <div
-                    className="space-y-4 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
-                    }}
-                >
-                    {displayedTasksByStatus.completed.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            status="completed"
-                            onViewTask={openViewTask}
-                            onEditTask={openEditTask}
-                            onDeleteTask={openDeleteTask}
-                        />
-                    ))}
-                </div>
-            </div>
             </div>
 
             {/* Delete Task confirmation modal */}

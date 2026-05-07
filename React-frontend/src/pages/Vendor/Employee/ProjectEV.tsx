@@ -1186,51 +1186,119 @@ export default function ProjectEV() {
                       </div>
 
                       <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
-                        <div className="flex -space-x-2 min-w-0">
-                          {(() => {
-                            const projectEmployees = memberIds.map((id) => resolveVendorMember(id)).filter(Boolean) as VendorResourceProfileRow[];
-                            const visibleMembers = projectEmployees.slice(0, 3);
-                            const remainingCount = Math.max(0, projectEmployees.length - 3);
-                            return (
-                              <>
-                                {visibleMembers.map((emp) => {
-                                  const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture, "vendor") : null;
-                                  return (
+                        {(() => {
+                          const projectEmployees = memberIds
+                            .map((id) => resolveVendorMember(id))
+                            .filter(Boolean) as VendorResourceProfileRow[];
+
+                          if (projectEmployees.length === 0) return null;
+
+                          const visibleMembers = projectEmployees.slice(0, 3);
+                          const remainingCount = Math.max(
+                            0,
+                            projectEmployees.length - 3,
+                          );
+
+                          return (
+                            <div className="flex -space-x-2 min-w-0 pr-2">
+                              {visibleMembers.map((emp) => {
+                                const profileUrl = emp.profile_picture
+                                  ? getGlobalProfileUrl(
+                                      emp.id,
+                                      emp.profile_picture,
+                                      "vendor",
+                                    )
+                                  : null;
+
+                                return (
+                                  <div
+                                    key={emp.id}
+                                    className="relative group shrink-0"
+                                  >
                                     <div
-                                      key={emp.id}
-                                      className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 overflow-hidden cursor-pointer"
-                                      title={emp.full_name}
+                                      role="button"
+                                      tabIndex={0}
+                                      className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0 hover:ring-2 hover:ring-[#DD4342]/20 transition-all cursor-pointer"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         openMemberProfile(emp);
                                       }}
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === "Enter" ||
+                                          e.key === " "
+                                        ) {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          openMemberProfile(emp);
+                                        }
+                                      }}
                                     >
                                       {profileUrl ? (
-                                        <img src={profileUrl} alt={emp.full_name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                        <img
+                                          src={profileUrl}
+                                          alt={emp.full_name}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            (
+                                              e.target as HTMLImageElement
+                                            ).src = ProfileIcon;
+                                          }}
+                                        />
                                       ) : (
                                         <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-medium text-slate-600">
-                                          {(emp.full_name || "U").charAt(0).toUpperCase()}
+                                          {(emp.full_name || "U")
+                                            .charAt(0)
+                                            .toUpperCase()}
                                         </div>
                                       )}
                                     </div>
-                                  );
-                                })}
-                                {remainingCount > 0 && (
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                                        <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                          {emp.full_name || "Unknown"}
+                                        </span>
+                                      </div>
+                                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                              {remainingCount > 0 && (
+                                <div className="relative group shrink-0">
                                   <div
-                                    className="w-8 h-8 rounded-full border-2 border-white bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer"
+                                    role="button"
+                                    tabIndex={0}
+                                    className="w-8 h-8 rounded-full border-2 border-white bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setAllMembersList(projectEmployees);
                                       setShowAllMembersModal(true);
                                     }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setAllMembersList(projectEmployees);
+                                        setShowAllMembersModal(true);
+                                      }
+                                    }}
                                   >
                                     +{remainingCount}
                                   </div>
-                                )}
-                              </>
-                            );
-                          })()}
-                        </div>
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                    <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
+                                      <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                        {remainingCount} more
+                                      </span>
+                                    </div>
+                                    <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                         <div
                           className={`px-3 py-1 rounded-[5px] text-white text-[12px] font-medium font-Gantari shadow-sm shrink-0 ${
                             (p.priority || "").toLowerCase() === "high" || (p.priority || "").toLowerCase() === "urgent"
@@ -1293,12 +1361,31 @@ export default function ProjectEV() {
 
       {showMemberProfileModal && selectedMember && (
         <div className="fixed inset-0 z-[230] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[2rem] shadow-2xl max-w-xl w-full max-h-[80vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h3 className="text-[28px] font-semibold text-[#1A1A1A] font-Gantari">View Details</h3>
-              <button onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }} className="p-2 rounded-[5px] bg-[#F2F2F2] cursor-pointer">
+          <div className="bg-white rounded-md shadow-2xl max-w-sm w-full max-h-[80vh] flex flex-col overflow-hidden">
+            <div className="relative z-10 flex items-center justify-center px-6 py-4 border-b border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMemberProfileModal(false);
+                  setSelectedMember(null);
+                }}
+                className="absolute left-6 p-2 rounded-md bg-[#F2F2F2] cursor-pointer group"
+                aria-label="Close"
+              >
                 <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                {/* Tooltip */}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                  <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-t border-l border-[#C1C1C1] rotate-45 relative z-20 -mb-[5.5px]"></div>
+                  <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                    <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                      Close
+                    </span>
+                  </div>
+                </div>
               </button>
+              <h3 className="text-[24px] font-bold text-[#1A1A1A] font-Gantari text-center">
+                View Details
+              </h3>
             </div>
             <div className="overflow-y-auto px-8 py-6 custom-scrollbar space-y-4">
               <p className="text-[20px] font-Gantari font-bold text-[#1A1A1A]">{selectedMember.full_name || "Not Available"}</p>

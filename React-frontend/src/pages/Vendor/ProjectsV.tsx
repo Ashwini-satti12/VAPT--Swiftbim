@@ -2656,18 +2656,7 @@ export default function ProjectsV() {
 
                         <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
                           <div className="flex items-center min-w-0">
-                            {memberIds.length === 0 ? (
-                              <div className="flex items-center -space-x-3">
-                                <div
-                                  className="w-9 h-9 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
-                                  title="Not assigned"
-                                >
-                                  <span className="text-slate-600 text-[10px] font-bold">
-                                    TM
-                                  </span>
-                                </div>
-                              </div>
-                            ) : memberIds.length === 1 ? (
+                            {memberIds.length === 0 ? null : memberIds.length === 1 ? (
                               <div className="flex items-center gap-3">
                                 {(() => {
                                   const id = memberIds[0];
@@ -2779,7 +2768,7 @@ export default function ProjectsV() {
                                         )}
                                       </div>
                                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                        <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
                                           <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                                             {getEmployeeName(id) || "Unknown"}
                                           </span>
@@ -2824,7 +2813,7 @@ export default function ProjectsV() {
                                       +{memberIds.length - 3}
                                     </div>
                                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-2 py-0.5 relative z-10">
                                         <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
                                           {memberIds.length - 3} more
                                         </span>
