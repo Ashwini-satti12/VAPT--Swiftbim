@@ -1,5 +1,6 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
+import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import api from "../../../lib/api";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -140,6 +141,116 @@ function countInclusiveProjectDays(
   return diffDays + 1;
 }
 
+const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
+const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
+const showEntriesOptions: {
+    value: string;
+    label: string;
+    start: number;
+    end: number | null;
+}[] = [
+    { value: "1-50", label: "1-50", start: 0, end: 50 },
+    { value: "51-100", label: "51-100", start: 50, end: 100 },
+    { value: "101-150", label: "101-150", start: 100, end: 150 },
+    { value: "151-200", label: "151-200", start: 150, end: 200 },
+    { value: "201-250", label: "201-250", start: 200, end: 250 },
+    { value: "251-300", label: "251-300", start: 250, end: 300 },
+    { value: "all", label: "All", start: 0, end: null },
+];
+
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 0px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
+function HeaderDropdown({
+    value,
+    onChange,
+    placeholder,
+    options,
+    className,
+}: {
+    value: string;
+    onChange: (val: string) => void;
+    placeholder: string;
+    options: { label: string; value: string }[];
+    className?: string;
+}) {
+    const [open, setOpen] = useState(false);
+    const wrapRef = useRef<HTMLDivElement>(null);
+    const selectedLabel =
+        options.find((opt) => opt.value === value)?.label || placeholder;
+
+    useEffect(() => {
+        const onOutside = (e: MouseEvent) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", onOutside);
+        return () => document.removeEventListener("mousedown", onOutside);
+    }, []);
+
+    return (
+        <div ref={wrapRef} className={`relative ${className || "w-full"}`}>
+            <button
+                type="button"
+                onClick={() => setOpen((p) => !p)}
+                className="w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+            >
+                <span className={`${value ? "text-[#353535]" : "text-[#8B8B8B]"} truncate`}>
+                    {selectedLabel}
+                </span>
+                <img
+                    src={ArrowDown}
+                    alt=""
+                    className={`w-3 h-3 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+                    aria-hidden
+                />
+            </button>
+            {open && (
+                <div className="absolute top-full left-0 mt-2 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-[10px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-50 overflow-hidden">
+                    <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                        {options.map((opt) => {
+                            const selected = opt.value === value;
+                            return (
+                                <button
+                                    key={`${placeholder}-${opt.value}-${opt.label}`}
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        onChange(opt.value);
+                                        setOpen(false);
+                                    }}
+                                    className={`w-full text-left px-4 py-3 text-[14px] font-gantari transition-colors cursor-pointer ${selected
+                                            ? "text-[#353535] bg-[#F2F2F2]"
+                                            : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                        }`}
+                                >
+                                    {opt.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function ProjectsPMV() {
   const projectCurrencyCode = (p?: Project | null) =>
     ((p?.selected_currency || p?.currency || "INR") as string).toUpperCase();
@@ -235,6 +346,72 @@ export default function ProjectsPMV() {
 
   const [searchParams] = useSearchParams();
   const statusFilter = searchParams.get("status");
+
+  const [projectFilter, setProjectFilter] = useState("");
+  const [selectedShowEntries, setSelectedShowEntries] = useState("");
+  const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+  const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const styleTag = document.createElement("style");
+    styleTag.setAttribute("data-pm-scrollbar", "1");
+    styleTag.textContent = SCROLLBAR_STYLE;
+    document.head.appendChild(styleTag);
+    return () => {
+      document.head.removeChild(styleTag);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        showEntriesDropdownRef.current &&
+        !showEntriesDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowEntriesOpen(false);
+      }
+    };
+    if (showEntriesOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showEntriesOpen]);
+
+  const projectNames = useMemo(() => {
+    return Array.from(new Set(list.map((p) => (p.project_name || "").trim()).filter(Boolean))).sort();
+  }, [list]);
+
+  const projectFilterOptions = useMemo(() => {
+    return [
+      { label: "Project Name", value: "" },
+      ...projectNames.map((name) => ({ label: name, value: name })),
+    ];
+  }, [projectNames]);
+
+  const handleProjectFilter = (v: string) => {
+    setProjectFilter(v);
+  };
+
+  const searchQueryParam = searchParams.get('q')?.toLowerCase() || "";
+  const filteredList = useMemo(() => {
+    return list.filter(p => {
+      const matchesSearch = !searchQueryParam || (
+        (p.project_name || "").toLowerCase().includes(searchQueryParam) ||
+        (p.client_name || "").toLowerCase().includes(searchQueryParam)
+      );
+      if (!matchesSearch) return false;
+      if (projectFilter && p.project_name !== projectFilter) return false;
+      return true;
+    });
+  }, [list, searchQueryParam, projectFilter]);
+
+  const effectiveShowEntryValue = selectedShowEntries || showEntriesOptions[0].value;
+  const selectedRange = showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ?? showEntriesOptions[0];
+  const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
+  const listInRange = useMemo(() => {
+    return filteredList.slice(selectedRange.start, rangeEnd);
+  }, [filteredList, selectedRange, rangeEnd]);
 
   const resolveVendorDocUrl = (rawPath: string) => {
     const cleaned = (rawPath || "").trim();
@@ -2213,26 +2390,126 @@ export default function ProjectsPMV() {
         ) : (
           /* Project List */
           <>
-            {/* <div className="flex items-center justify-between pb-6">
-                            <h2 className="text-[24px] font-semibold text-[#000000]">Projects</h2>
-                            <button onClick={() => { setShowCreateModal(true); setSelectedMemberIds([]); }}
-                                className="flex items-center gap-2 bg-[#DD4342] text-white px-5 py-2.5 rounded-lg hover:opacity-90 transition-all font-semibold shadow-sm text-sm cursor-pointer">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
-                                Create Project
-                            </button>
-                        </div> */}
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-4 py-3">
+                <div className="flex items-center justify-between w-full md:w-auto">
+                    <h2 className="text-2xl font-semibold text-[#000000]">Projects</h2>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                    <HeaderDropdown
+                        value={projectFilter}
+                        onChange={handleProjectFilter}
+                        placeholder="Project Name"
+                        options={projectFilterOptions}
+                        className="w-full sm:w-[180px]"
+                    />
+                    <div className="relative w-full sm:w-[150px]" ref={showEntriesDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowEntriesOpen((o) => !o);
+                            }}
+                            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                        >
+                            <span
+                                className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
+                                    ? "text-[#8B8B8B]"
+                                    : "text-[#353535]"
+                                    }`}
+                            >
+                                {selectedShowEntries === "" ? (
+                                    SHOW_ENTRIES_PLACEHOLDER
+                                ) : (
+                                    <>
+                                        <span className="text-[14px]">
+                                            {SHOW_ENTRIES_SELECTED_PREFIX}
+                                        </span>{" "}
+                                        <span className="font-semibold">{selectedRange.label}</span>
+                                    </>
+                                )}
+                            </span>
+                            <img
+                                src={ArrowDown}
+                                alt=""
+                                className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                                    } ${selectedShowEntries === ""
+                                        ? "opacity-60 grayscale"
+                                        : "opacity-90"
+                                    }`}
+                                aria-hidden
+                            />
+                        </button>
+                        {showEntriesOpen && (
+                            <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                                <div
+                                    ref={showEntriesDropdownContentRef}
+                                    className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                                >
+                                    <button
+                                        type="button"
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setSelectedShowEntries("");
+                                            setShowEntriesOpen(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                    >
+                                        {SHOW_ENTRIES_PLACEHOLDER}
+                                    </button>
+                                    {showEntriesOptions.map((opt) => {
+                                        const isChosen = selectedShowEntries === opt.value;
+                                        return (
+                                            <button
+                                                key={`${opt.value}-${opt.start}-${String(opt.end)}`}
+                                                type="button"
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setSelectedShowEntries(opt.value);
+                                                    setShowEntriesOpen(false);
+                                                }}
+                                                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
+                                                    ? "text-[#353535] bg-[#F2F2F2]"
+                                                    : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                                    }`}
+                                            >
+                                                <span className="truncate min-w-0">{opt.label}</span>
+                                                {isChosen && (
+                                                    <svg
+                                                        className="w-4 h-4 shrink-0 text-[#353535]"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                        aria-hidden
+                                                     >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2.5}
+                                                            d="M5 13l4 4L19 7"
+                                                        />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
             <div className="flex-1 overflow-y-auto pt-4 pb-4 px-4 space-y-8 custom-scrollbar">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {(() => {
-                  const searchQueryParam = searchParams.get('q')?.toLowerCase() || "";
-                  const filteredList = list.filter(p => !searchQueryParam || (p.project_name || "").toLowerCase().includes(searchQueryParam) || (p.client_name || "").toLowerCase().includes(searchQueryParam));
-                  return filteredList.length === 0 ? (
+                {listInRange.length === 0 ? (
                   <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
                     No projects found. Create your first project or accept a
                     proposal.
                   </div>
                 ) : (
-                  filteredList.map((p) => {
+                  listInRange.map((p) => {
                     const progress = Math.round(Number(p.progress) || 0);
                     const memberIds = p.members
                       ? p.members.split(",").filter(Boolean).map(Number)
@@ -2548,8 +2825,7 @@ export default function ProjectsPMV() {
                       </div>
                     );
                   })
-                );
-                })()}
+                )}
               </div>
             </div>
           </>

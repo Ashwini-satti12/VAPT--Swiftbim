@@ -1047,7 +1047,6 @@ export default function MytaskPMV() {
               onClick={() => navigate("/vpm/mytasks/add")}
               className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm cursor-pointer border-0"
             >
-              <img src={AddBtn} alt="Add" className="h-5 w-5" />
               Add task
             </button>
           </div>

@@ -587,7 +587,7 @@ export default function TeamtaskPMV() {
                         <TaskDropdown label="Show Entries" options={SHOW_OPTIONS} selected={selectedShow} onSelect={setSelectedShow} isOpen={openDropdown === "show"} onToggle={() => setOpenDropdown(d => d === "show" ? null : "show")} onClose={() => setOpenDropdown(null)} triggerRef={showTriggerRef} dropdownRef={showMenuRef} narrow />
                         <TaskDropdown label="Period" options={PERIOD_OPTIONS} selected={selectedPeriod} onSelect={setSelectedPeriod} isOpen={openDropdown === "period"} onToggle={() => setOpenDropdown(d => d === "period" ? null : "period")} onClose={() => setOpenDropdown(null)} triggerRef={periodTriggerRef} dropdownRef={periodMenuRef} narrow />
                         <button onClick={() => navigate("/vpm/teamtasks/add", { state: { from: "teamtasks" } })} className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#c93a39] transition-colors border-0">
-                            <img src={AddBtn} className="w-5 h-5" alt="" /> Add task
+                            Add task
                         </button>
                     </div>
                 </div>

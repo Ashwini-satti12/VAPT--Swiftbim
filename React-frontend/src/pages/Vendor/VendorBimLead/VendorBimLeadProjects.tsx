@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import api from "../../../lib/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { RiDeleteBin5Fill } from "react-icons/ri";
@@ -13,6 +13,7 @@ import closeBtnIcon from "../../../assets/ProductNavbarIcons/close button.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
 import swifterzLogo from "../../../assets/ProductNavbarIcons/swifterzlogo.png";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
+import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 
 interface Project {
   id: number;
@@ -127,6 +128,111 @@ function countInclusiveProjectDays(
   return diffDays + 1;
 }
 
+const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
+const SHOW_ENTRIES_SELECTED_PREFIX = "Show Entries: ";
+
+const showEntriesOptions = [
+  { label: "5 Entries", value: "5", start: 0, end: 5 },
+  { label: "10 Entries", value: "10", start: 0, end: 10 },
+  { label: "15 Entries", value: "15", start: 0, end: 15 },
+  { label: "20 Entries", value: "20", start: 0, end: 20 },
+  { label: "25 Entries", value: "25", start: 0, end: 25 },
+  { label: "All Entries", value: "all", start: 0, end: null },
+];
+
+function HeaderDropdown({
+  value,
+  onChange,
+  placeholder,
+  options,
+  className,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  options: { label: string; value: string }[];
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const selectedLabel =
+    options.find((opt) => opt.value === value)?.label || placeholder;
+
+  useEffect(() => {
+    const onOutside = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onOutside);
+    return () => document.removeEventListener("mousedown", onOutside);
+  }, []);
+
+  return (
+    <div ref={wrapRef} className={`relative ${className || "w-full"}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((p) => !p)}
+        className="w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+      >
+        <span className={`${value ? "text-[#353535]" : "text-[#8B8B8B]"} truncate`}>
+          {selectedLabel}
+        </span>
+        <img
+          src={ArrowDown}
+          alt=""
+          className={`w-3 h-3 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          aria-hidden
+        />
+      </button>
+      {open && (
+        <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+          <div className="max-h-[168px] overflow-y-auto custom-scrollbar">
+            {options.map((opt) => {
+              const isChosen = value === opt.value;
+              return (
+                <button
+                  key={`${opt.value}`}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onChange(opt.value);
+                    setOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${
+                    isChosen
+                      ? "text-[#353535] bg-[#F2F2F2]"
+                      : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                  }`}
+                >
+                  <span className="truncate min-w-0">{opt.label}</span>
+                  {isChosen && (
+                    <svg
+                      className="w-4 h-4 shrink-0 text-[#353535]"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function VendorBimLeadProjects() {
   const getCurrencySymbol = (code?: string) => {
     return (code || "INR").toUpperCase();
@@ -141,6 +247,11 @@ export default function VendorBimLeadProjects() {
   const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(
     null,
   );
+  const [projectFilter, setProjectFilter] = useState("");
+  const [selectedShowEntries, setSelectedShowEntries] = useState("");
+  const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+  const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [vendorResourceProfiles, setVendorResourceProfiles] = useState<
     Employee[]
@@ -322,6 +433,21 @@ export default function VendorBimLeadProjects() {
   }, []);
 
   useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        showEntriesDropdownRef.current &&
+        !showEntriesDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowEntriesOpen(false);
+      }
+    };
+    if (showEntriesOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showEntriesOpen]);
+
+  useEffect(() => {
     let cancelled = false;
     const projectId =
       showProjectView && selectedProject?.id ? selectedProject.id : null;
@@ -420,6 +546,42 @@ export default function VendorBimLeadProjects() {
     const found = list.find((c) => String(c.id) === String(id));
     return found?.fullName || found?.full_name || "";
   };
+
+  const projectNames = useMemo(() => {
+    return Array.from(new Set(list.map((p) => (p.project_name || "").trim()).filter(Boolean))).sort();
+  }, [list]);
+
+  const projectFilterOptions = useMemo(() => {
+    return [
+      { label: "Project Name", value: "" },
+      ...projectNames.map((name) => ({ label: name, value: name })),
+    ];
+  }, [projectNames]);
+
+  const handleProjectFilter = (v: string) => {
+    setProjectFilter(v);
+  };
+
+  const filteredList = useMemo(() => {
+    return list.filter(p => {
+      const matchesSearch = !searchQuery || (
+        (p.project_name || "").toLowerCase().includes(searchQuery) ||
+        (getClientNameById(p.client_id) || "").toLowerCase().includes(searchQuery) ||
+        (p.location || "").toLowerCase().includes(searchQuery) ||
+        (p.priority || "").toLowerCase().includes(searchQuery)
+      );
+      if (!matchesSearch) return false;
+      if (projectFilter && p.project_name !== projectFilter) return false;
+      return true;
+    });
+  }, [list, searchQuery, projectFilter]);
+
+  const effectiveShowEntryValue = selectedShowEntries || showEntriesOptions[0].value;
+  const selectedRange = showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ?? showEntriesOptions[0];
+  const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
+  const listInRange = useMemo(() => {
+    return filteredList.slice(selectedRange.start, rangeEnd);
+  }, [filteredList, selectedRange, rangeEnd]);
 
   const openEdit = (p: Project) => {
     setEditId(p.id);
@@ -1994,39 +2156,118 @@ export default function VendorBimLeadProjects() {
               <h2 className="text-[24px] font-semibold text-[#000000]">
                 Projects
               </h2>
+              <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+                <HeaderDropdown
+                  value={projectFilter}
+                  onChange={handleProjectFilter}
+                  placeholder="Project Name"
+                  options={projectFilterOptions}
+                  className="w-full sm:w-[180px]"
+                />
+                <div className="relative w-full sm:w-[150px]" ref={showEntriesDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowEntriesOpen((o) => !o);
+                    }}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                  >
+                    <span
+                      className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                        selectedShowEntries === "" ? "text-[#8B8B8B]" : "text-[#353535]"
+                      }`}
+                    >
+                      {selectedShowEntries === "" ? (
+                        SHOW_ENTRIES_PLACEHOLDER
+                      ) : (
+                        <>
+                          <span className="text-[14px]">{SHOW_ENTRIES_SELECTED_PREFIX}</span>{" "}
+                          <span className="font-semibold">{selectedRange.label}</span>
+                        </>
+                      )}
+                    </span>
+                    <img
+                      src={ArrowDown}
+                      alt=""
+                      className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
+                        showEntriesOpen ? "rotate-180" : ""
+                      } ${selectedShowEntries === "" ? "opacity-60 grayscale" : "opacity-90"}`}
+                      aria-hidden
+                    />
+                  </button>
+                  {showEntriesOpen && (
+                    <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                      <div
+                        ref={showEntriesDropdownContentRef}
+                        className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                      >
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedShowEntries("");
+                            setShowEntriesOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                        >
+                          {SHOW_ENTRIES_PLACEHOLDER}
+                        </button>
+                        {showEntriesOptions.map((opt) => {
+                          const isChosen = selectedShowEntries === opt.value;
+                          return (
+                            <button
+                              key={`${opt.value}-${opt.start}-${String(opt.end)}`}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setSelectedShowEntries(opt.value);
+                                setShowEntriesOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${
+                                isChosen
+                                  ? "text-[#353535] bg-[#F2F2F2]"
+                                  : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                              }`}
+                            >
+                              <span className="truncate min-w-0">{opt.label}</span>
+                              {isChosen && (
+                                <svg
+                                  className="w-4 h-4 shrink-0 text-[#353535]"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                  aria-hidden
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2.5}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto pt-4 pb-10 px-5 space-y-6 custom-scrollbar">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {(() => {
-                  const filteredList = searchQuery
-                    ? list.filter(
-                        (p) =>
-                          (p.project_name || "")
-                            .toLowerCase()
-                            .includes(searchQuery) ||
-                          (getClientNameById(p.client_id) || "")
-                            .toLowerCase()
-                            .includes(searchQuery) ||
-                          (p.location || "")
-                            .toLowerCase()
-                            .includes(searchQuery) ||
-                          (p.priority || "")
-                            .toLowerCase()
-                            .includes(searchQuery),
-                      )
-                    : list;
-
-                  if (filteredList.length === 0) {
-                    return (
-                      <div className="col-span-full bg-[#F8FAFC] rounded-2xl border-2 border-dashed border-slate-200 p-20 text-center">
-                        <p className="text-slate-500 font-medium">
-                          No projects found.
-                        </p>
-                      </div>
-                    );
-                  }
-
-                  return filteredList.map((p) => {
+                {listInRange.length === 0 ? (
+                  <div className="col-span-full bg-[#F8FAFC] rounded-2xl border-2 border-dashed border-slate-200 p-20 text-center">
+                    <p className="text-slate-500 font-medium font-gantari">
+                      No projects found.
+                    </p>
+                  </div>
+                ) : (
+                  listInRange.map((p) => {
                     const progress = Math.round(Number(p.progress) || 0);
                     const memberIds = p.members
                       ? p.members.split(",").filter(Boolean).map(Number)
@@ -2284,8 +2525,8 @@ export default function VendorBimLeadProjects() {
                         </div>
                       </div>
                     );
-                  });
-                })()}
+                  })
+                )}
               </div>
             </div>
           </>

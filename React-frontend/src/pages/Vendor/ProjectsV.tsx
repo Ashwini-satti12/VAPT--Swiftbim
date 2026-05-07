@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import toast from "react-hot-toast";
 import api from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
@@ -173,6 +174,116 @@ async function viewRemoteDocument(url: string) {
   }
 }
 
+const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
+const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
+const showEntriesOptions: {
+  value: string;
+  label: string;
+  start: number;
+  end: number | null;
+}[] = [
+    { value: "1-50", label: "1-50", start: 0, end: 50 },
+    { value: "51-100", label: "51-100", start: 50, end: 100 },
+    { value: "101-150", label: "101-150", start: 100, end: 150 },
+    { value: "151-200", label: "151-200", start: 150, end: 200 },
+    { value: "201-250", label: "201-250", start: 200, end: 250 },
+    { value: "251-300", label: "251-300", start: 250, end: 300 },
+    { value: "all", label: "All", start: 0, end: null },
+  ];
+
+const SCROLLBAR_STYLE = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 0px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #979797;
+    border-radius: 10px;
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
+`;
+
+function HeaderDropdown({
+  value,
+  onChange,
+  placeholder,
+  options,
+  className,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  options: { label: string; value: string }[];
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const selectedLabel =
+    options.find((opt) => opt.value === value)?.label || placeholder;
+
+  useEffect(() => {
+    const onOutside = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onOutside);
+    return () => document.removeEventListener("mousedown", onOutside);
+  }, []);
+
+  return (
+    <div ref={wrapRef} className={`relative ${className || "w-full"}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((p) => !p)}
+        className="w-full flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+      >
+        <span className={`${value ? "text-[#353535]" : "text-[#8B8B8B]"} truncate`}>
+          {selectedLabel}
+        </span>
+        <img
+          src={ArrowDown}
+          alt=""
+          className={`w-3 h-3 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          aria-hidden
+        />
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-2 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-[10px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-50 overflow-hidden">
+          <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+            {options.map((opt) => {
+              const selected = opt.value === value;
+              return (
+                <button
+                  key={`${placeholder}-${opt.value}-${opt.label}`}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onChange(opt.value);
+                    setOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-3 text-[14px] font-gantari transition-colors cursor-pointer ${selected
+                    ? "text-[#353535] bg-[#F2F2F2]"
+                    : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                    }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ProjectsV() {
   const { user: authUser } = useAuth();
   const userRole = authUser?.user_role || "";
@@ -312,6 +423,71 @@ export default function ProjectsV() {
   const [searchParams] = useSearchParams();
   const statusFilter = searchParams.get("status");
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+
+  const [projectFilter, setProjectFilter] = useState("");
+  const [selectedShowEntries, setSelectedShowEntries] = useState("");
+  const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+  const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const styleTag = document.createElement("style");
+    styleTag.setAttribute("data-v-scrollbar", "1");
+    styleTag.textContent = SCROLLBAR_STYLE;
+    document.head.appendChild(styleTag);
+    return () => {
+      document.head.removeChild(styleTag);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        showEntriesDropdownRef.current &&
+        !showEntriesDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowEntriesOpen(false);
+      }
+    };
+    if (showEntriesOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showEntriesOpen]);
+
+  const projectNames = useMemo(() => {
+    return Array.from(new Set(list.map((p) => (p.project_name || "").trim()).filter(Boolean))).sort();
+  }, [list]);
+
+  const projectFilterOptions = useMemo(() => {
+    return [
+      { label: "Project Name", value: "" },
+      ...projectNames.map((name) => ({ label: name, value: name })),
+    ];
+  }, [projectNames]);
+
+  const handleProjectFilter = (v: string) => {
+    setProjectFilter(v);
+  };
+
+  const filteredList = useMemo(() => {
+    return list.filter(p => {
+      const matchesSearch = !searchQuery || (
+        (p.project_name || "").toLowerCase().includes(searchQuery) ||
+        (p.client_name || "").toLowerCase().includes(searchQuery)
+      );
+      if (!matchesSearch) return false;
+      if (projectFilter && p.project_name !== projectFilter) return false;
+      return true;
+    });
+  }, [list, searchQuery, projectFilter]);
+
+  const effectiveShowEntryValue = selectedShowEntries || showEntriesOptions[0].value;
+  const selectedRange = showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ?? showEntriesOptions[0];
+  const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
+  const listInRange = useMemo(() => {
+    return filteredList.slice(selectedRange.start, rangeEnd);
+  }, [filteredList, selectedRange, rangeEnd]);
 
   const fetchProjects = (status?: string | null) => {
     const params: any = {};
@@ -600,15 +776,15 @@ export default function ProjectsV() {
     // Prefer hydrated client_name from backend; otherwise resolve via id
     setCreateClientName(
       p.client_name ||
-        getClientNameById(p.client_id) ||
-        (p.client_id ? String(p.client_id) : ""),
+      getClientNameById(p.client_id) ||
+      (p.client_id ? String(p.client_id) : ""),
     );
     // Resolve Project Manager from projectManagers array (vendor PMs from vendor-by-role API)
     // Fall back to allEmployees if not found in projectManagers
     setCreateProjectManager(
       idToName(p.project_manager_id, projectManagers) ||
-        idToName(p.project_manager_id, allEmployees) ||
-        "",
+      idToName(p.project_manager_id, allEmployees) ||
+      "",
     );
     // Improvement: check both start_date and potentially other date fields if missing
     const rawStartDate = p.start_date || "";
@@ -1026,11 +1202,10 @@ export default function ProjectsV() {
                       setCreateProjectManager(pm.full_name || "");
                       setEditDropdownOpen(null);
                     }}
-                    className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F2F2] ${
-                      createProjectManager === pm.full_name
+                    className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F2F2] ${createProjectManager === pm.full_name
                         ? "bg-[#FFF1F1] text-[#DD4342]"
                         : "text-[#353535]"
-                    }`}
+                      }`}
                   >
                     {pm.full_name || `Employee ${pm.id}`}
                   </button>
@@ -1092,11 +1267,10 @@ export default function ProjectsV() {
                       setCreateBIMLead(lead.full_name || "");
                       setEditDropdownOpen(null);
                     }}
-                    className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F2F2] ${
-                      createBIMLead === lead.full_name
+                    className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F2F2] ${createBIMLead === lead.full_name
                         ? "bg-[#FFF1F1] text-[#DD4342]"
                         : "text-[#353535]"
-                    }`}
+                      }`}
                   >
                     {lead.full_name || `Employee ${lead.id}`}
                   </button>
@@ -1294,11 +1468,10 @@ export default function ProjectsV() {
                       setCreatePriority(p);
                       setEditDropdownOpen(null);
                     }}
-                    className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F2F2] ${
-                      createPriority === p
+                    className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F2F2] ${createPriority === p
                         ? "bg-[#FFF1F1] text-[#DD4342]"
                         : "text-[#353535]"
-                    }`}
+                      }`}
                   >
                     {p}
                   </button>
@@ -1791,10 +1964,10 @@ export default function ProjectsV() {
                         allEmployees.find((e) => e.id === Number(id));
                       const profileUrl = emp?.profile_picture
                         ? getGlobalProfileUrl(
-                            emp.id,
-                            emp.profile_picture,
-                            "vendor",
-                          )
+                          emp.id,
+                          emp.profile_picture,
+                          "vendor",
+                        )
                         : null;
                       return (
                         <div className="space-y-4">
@@ -1839,10 +2012,10 @@ export default function ProjectsV() {
                         allEmployees.find((e) => e.id === Number(id));
                       const profileUrl = emp?.profile_picture
                         ? getGlobalProfileUrl(
-                            emp.id,
-                            emp.profile_picture,
-                            "vendor",
-                          )
+                          emp.id,
+                          emp.profile_picture,
+                          "vendor",
+                        )
                         : null;
                       return (
                         <div className="space-y-4">
@@ -1919,10 +2092,10 @@ export default function ProjectsV() {
                             {projectMembers.slice(0, 3).map((member: any) => {
                               const profileUrl = member.profile_picture
                                 ? getGlobalProfileUrl(
-                                    member.id,
-                                    member.profile_picture,
-                                    "vendor",
-                                  )
+                                  member.id,
+                                  member.profile_picture,
+                                  "vendor",
+                                )
                                 : null;
                               return (
                                 <div
@@ -2086,7 +2259,7 @@ export default function ProjectsV() {
                         <span className="text-[16px] font-gantari font-medium text-[#616161]">
                           {formatDate(
                             selectedProject.end_date ||
-                              selectedProject.due_date,
+                            selectedProject.due_date,
                           )}
                         </span>
                       </div>
@@ -2226,322 +2399,295 @@ export default function ProjectsV() {
         ) : (
           /* Project List */
           <>
-            <div className="flex items-center justify-between pb-6 px-5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 px-5 gap-4">
               <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
                 Projects
               </h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <HeaderDropdown
+                  value={projectFilter}
+                  onChange={handleProjectFilter}
+                  placeholder="Project Name"
+                  options={projectFilterOptions}
+                  className="w-full sm:w-[180px]"
+                />
+                <div className="relative w-full sm:w-[150px]" ref={showEntriesDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowEntriesOpen((o) => !o);
+                    }}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                  >
+                    <span
+                      className={`min-w-0 flex-1 truncate overflow-hidden text-left ${selectedShowEntries === ""
+                        ? "text-[#8B8B8B]"
+                        : "text-[#353535]"
+                        }`}
+                    >
+                      {selectedShowEntries === "" ? (
+                        SHOW_ENTRIES_PLACEHOLDER
+                      ) : (
+                        <>
+                          <span className="text-[14px]">
+                            {SHOW_ENTRIES_SELECTED_PREFIX}
+                          </span>{" "}
+                          <span className="font-semibold">{selectedRange.label}</span>
+                        </>
+                      )}
+                    </span>
+                    <img
+                      src={ArrowDown}
+                      alt=""
+                      className={`w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""
+                        } ${selectedShowEntries === ""
+                          ? "opacity-60 grayscale"
+                          : "opacity-90"
+                        }`}
+                      aria-hidden
+                    />
+                  </button>
+                  {showEntriesOpen && (
+                    <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                      <div
+                        ref={showEntriesDropdownContentRef}
+                        className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                      >
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedShowEntries("");
+                            setShowEntriesOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                        >
+                          {SHOW_ENTRIES_PLACEHOLDER}
+                        </button>
+                        {showEntriesOptions.map((opt) => {
+                          const isChosen = selectedShowEntries === opt.value;
+                          return (
+                            <button
+                              key={`${opt.value}-${opt.start}-${String(opt.end)}`}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setSelectedShowEntries(opt.value);
+                                setShowEntriesOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen
+                                ? "text-[#353535] bg-[#F2F2F2]"
+                                : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                                }`}
+                            >
+                              <span className="truncate min-w-0">{opt.label}</span>
+                              {isChosen && (
+                                <svg
+                                  className="w-4 h-4 shrink-0 text-[#353535]"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                  aria-hidden
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2.5}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto pt-4 pb-8 px-5 space-y-8 custom-scrollbar [&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#979797] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-[#7F7F7F] [scrollbar-width:thin] [scrollbar-color:#979797_transparent]">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {list.length === 0 ? (
-                  <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
-                    No projects found. Create your first project or accept a
-                    proposal.
+                {listInRange.length === 0 ? (
+                  <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500 font-gantari">
+                    No projects found. Create your first project or accept a proposal.
                   </div>
                 ) : (
-                  list
-                    .filter((p) => {
-                      if (!searchQuery) return true;
-                      return (
-                        (p.project_name || "")
-                          .toLowerCase()
-                          .includes(searchQuery) ||
-                        (p.client_name || "")
-                          .toLowerCase()
-                          .includes(searchQuery) ||
-                        (p.location || "")
-                          .toLowerCase()
-                          .includes(searchQuery) ||
-                        (p.priority || "").toLowerCase().includes(searchQuery)
-                      );
-                    })
-                    .map((p) => {
-                      const progress = Math.round(Number(p.progress) || 0);
-                      const memberIds = p.members
-                        ? p.members.split(",").filter(Boolean).map(Number)
-                        : [];
-                      const radius = 28;
-                      const isHighPri =
-                        (p.priority || "").toLowerCase() === "high" ||
-                        (p.priority || "").toLowerCase() === "urgent";
-                      return (
-                        <div
-                          key={p.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenuProjectId(
-                              openMenuProjectId === p.id ? null : p.id,
-                            );
-                          }}
-                          className="relative overflow-hidden bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
-                        >
-                          <div className="flex items-start justify-between mb-4 mt-2 pr-0">
-                              <div className="relative flex items-center justify-center shrink-0">
-                                <svg className="w-16 h-16 md:w-20 md:h-20 transform -rotate-90">
-                                  <circle
-                                    cx="50%"
-                                    cy="50%"
-                                    r={radius}
-                                    stroke="#f1f5f9"
-                                    strokeWidth="4"
-                                    fill="transparent"
-                                  />
-                                  <circle
-                                    cx="50%"
-                                    cy="50%"
-                                    r={radius}
-                                    stroke="#0a9344"
-                                    strokeWidth="4"
-                                    fill="transparent"
-                                    strokeDasharray={2 * Math.PI * radius}
-                                    strokeDashoffset={
-                                      2 * Math.PI * radius -
-                                      (progress / 100) * (2 * Math.PI * radius)
-                                    }
-                                    strokeLinecap="round"
-                                    style={{
-                                      transition:
-                                        "stroke-dashoffset 0.8s ease-in-out",
-                                    }}
-                                  />
-                                </svg>
-                                <span className="absolute text-[14px] md:text-[16px] font-Gantari font-bold text-[#353535]">
-                                  {progress}%
-                                </span>
-                              </div>
-                            <div className="relative shrink-0 project-menu-container">
+                  listInRange.map((p) => {
+                    const progress = Math.round(Number(p.progress) || 0);
+                    const memberIds = p.members
+                      ? p.members.split(",").filter(Boolean).map(Number)
+                      : [];
+                    const radius = 28;
+                    const isHighPri =
+                      (p.priority || "").toLowerCase() === "high" ||
+                      (p.priority || "").toLowerCase() === "urgent";
+                    return (
+                      <div
+                        key={p.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuProjectId(
+                            openMenuProjectId === p.id ? null : p.id,
+                          );
+                        }}
+                        className="relative bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                      >
+                        <div className="flex items-start justify-between mb-4 mt-2 pr-0">
+                          <div className="relative flex items-center justify-center shrink-0">
+                            <svg className="w-16 h-16 md:w-20 md:h-20 transform -rotate-90">
+                              <circle
+                                cx="50%"
+                                cy="50%"
+                                r={radius}
+                                stroke="#f1f5f9"
+                                strokeWidth="4"
+                                fill="transparent"
+                              />
+                              <circle
+                                cx="50%"
+                                cy="50%"
+                                r={radius}
+                                stroke="#0a9344"
+                                strokeWidth="4"
+                                fill="transparent"
+                                strokeDasharray={2 * Math.PI * radius}
+                                strokeDashoffset={
+                                  2 * Math.PI * radius -
+                                  (progress / 100) * (2 * Math.PI * radius)
+                                }
+                                strokeLinecap="round"
+                                style={{
+                                  transition:
+                                    "stroke-dashoffset 0.8s ease-in-out",
+                                }}
+                              />
+                            </svg>
+                            <span className="absolute text-[14px] md:text-[16px] font-Gantari font-bold text-[#353535]">
+                              {progress}%
+                            </span>
+                          </div>
+                          <div className="relative shrink-0 project-menu-container">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuProjectId((prev) =>
+                                  prev === p.id ? null : p.id,
+                                );
+                              }}
+                              className="p-2 rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
+                            >
+                              <img
+                                src={threedot}
+                                alt="threeDots"
+                                className="w-4 h-4 text-[#8B8B8B]"
+                              />
+                            </button>
+                            <div
+                              className={`absolute right-0 mt-3 w-60 bg-white/20 backdrop-blur-md rounded-xl border border-[#595959]/50 shadow-xl transition-all origin-top-right z-50 ${openMenuProjectId === p.id ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
+                            >
                               <button
-                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setOpenMenuProjectId((prev) =>
-                                    prev === p.id ? null : p.id,
-                                  );
+                                  setOpenMenuProjectId(null);
+                                  setSelectedProject(p);
+                                  setShowProjectView(true);
                                 }}
-                                className="p-2 rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
+                                className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                               >
                                 <img
-                                  src={threedot}
-                                  alt="threeDots"
-                                  className="w-4 h-4 text-[#8B8B8B]"
+                                  src={viewIcon}
+                                  alt="view"
+                                  className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                 />
+                                <span className="text-[14px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                  View
+                                </span>
                               </button>
-                              <div
-                                className={`absolute right-0 mt-3 w-60 bg-white/20 backdrop-blur-md rounded-xl border border-[#595959]/50 shadow-xl transition-all origin-top-right z-50 ${openMenuProjectId === p.id ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuProjectId(null);
+                                  openEdit(p);
+                                }}
+                                className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                               >
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOpenMenuProjectId(null);
-                                    setSelectedProject(p);
-                                    setShowProjectView(true);
-                                  }}
-                                  className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
-                                >
-                                  <img
-                                    src={viewIcon}
-                                    alt="view"
-                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                  />
-                                  <span className="text-[14px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    View
-                                  </span>
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOpenMenuProjectId(null);
-                                    openEdit(p);
-                                  }}
-                                  className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
-                                >
-                                  <img
-                                    src={editIcon}
-                                    alt="edit"
-                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                  />
-                                  <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
-                                    Edit
-                                  </span>
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOpenMenuProjectId(null);
-                                    navigate(
-                                      `/v/milestones?project_id=${p.id}`,
-                                    );
-                                  }}
-                                  className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
-                                >
-                                  <img
-                                    src={paymentMilestoneIcon}
-                                    alt="payment milestone"
-                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                  />
-                                  <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari whitespace-nowrap">
-                                    Payment Milestones
-                                  </span>
-                                </button>
-                              </div>
+                                <img
+                                  src={editIcon}
+                                  alt="edit"
+                                  className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                />
+                                <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                  Edit
+                                </span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuProjectId(null);
+                                  navigate(
+                                    `/v/milestones?project_id=${p.id}`,
+                                  );
+                                }}
+                                className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
+                              >
+                                <img
+                                  src={paymentMilestoneIcon}
+                                  alt="payment milestone"
+                                  className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                />
+                                <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari whitespace-nowrap">
+                                  Payment Milestones
+                                </span>
+                              </button>
                             </div>
                           </div>
+                        </div>
 
-                          <div className="mb-2 ml-4 -mt-4 min-h-[45px] flex flex-col justify-center">
-                            <h3 className="text-[18px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
-                              {p.project_name ?? "Untitled Project"}
-                            </h3>
-                          </div>
+                        <div className="mb-2 ml-4 -mt-4 min-h-[45px] flex flex-col justify-center">
+                          <h3 className="text-[18px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                            {p.project_name ?? "Untitled Project"}
+                          </h3>
+                        </div>
 
-                          <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
-                            <div className="flex items-center min-w-0">
-                              {memberIds.length === 0 ? (
-                                <div className="flex items-center -space-x-3">
-                                  <div
-                                    className="w-9 h-9 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
-                                    title="Not assigned"
-                                  >
-                                    <span className="text-slate-600 text-[10px] font-bold">
-                                      TM
-                                    </span>
-                                  </div>
+                        <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
+                          <div className="flex items-center min-w-0">
+                            {memberIds.length === 0 ? (
+                              <div className="flex items-center -space-x-3">
+                                <div
+                                  className="w-9 h-9 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
+                                  title="Not assigned"
+                                >
+                                  <span className="text-slate-600 text-[10px] font-bold">
+                                    TM
+                                  </span>
                                 </div>
-                              ) : memberIds.length === 1 ? (
-                                <div className="flex items-center gap-3">
-                                  {(() => {
-                                    const id = memberIds[0];
-                                    const emp = getMemberForAvatar(id);
-                                    const url = emp?.profile_picture
-                                      ? getGlobalProfileUrl(
-                                          emp.id,
-                                          emp.profile_picture,
-                                          "vendor",
-                                        )
-                                      : null;
-                                    return (
-                                      <>
-                                        <div
-                                          role="button"
-                                          tabIndex={0}
-                                          className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0 hover:ring-2 hover:ring-[#DD4342]/20 transition-all cursor-pointer"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            openMemberProfile(emp);
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (
-                                              e.key === "Enter" ||
-                                              e.key === " "
-                                            ) {
-                                              e.preventDefault();
-                                              e.stopPropagation();
-                                              openMemberProfile(emp);
-                                            }
-                                          }}
-                                        >
-                                          {url ? (
-                                            <img
-                                              src={url}
-                                              alt=""
-                                              className="w-full h-full object-cover"
-                                              onError={(e) => {
-                                                (
-                                                  e.target as HTMLImageElement
-                                                ).src = ProfileIcon;
-                                              }}
-                                            />
-                                          ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-slate-200 text-[10px] font-bold text-slate-600">
-                                              {(getEmployeeName(id) ||
-                                                "?")[0]?.toUpperCase()}
-                                            </div>
-                                          )}
-                                        </div>
-                                        <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
-                                          {getEmployeeName(id) || "Unknown"}
-                                        </span>
-                                      </>
-                                    );
-                                  })()}
-                                </div>
-                              ) : (
-                                <div className="flex items-center -space-x-4">
-                                  {memberIds.slice(0, 3).map((id) => {
-                                    const emp = getMemberForAvatar(id);
-                                    const url = emp?.profile_picture
-                                      ? getGlobalProfileUrl(
-                                          emp.id,
-                                          emp.profile_picture,
-                                          "vendor",
-                                        )
-                                      : null;
-                                    return (
-                                      <div
-                                        key={id}
-                                        className="relative group shrink-0"
-                                      >
-                                        <div
-                                          role="button"
-                                          tabIndex={0}
-                                          className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0 hover:ring-2 hover:ring-[#DD4342]/20 transition-all cursor-pointer"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            openMemberProfile(emp);
-                                          }}
-                                          onKeyDown={(e) => {
-                                            if (
-                                              e.key === "Enter" ||
-                                              e.key === " "
-                                            ) {
-                                              e.preventDefault();
-                                              e.stopPropagation();
-                                              openMemberProfile(emp);
-                                            }
-                                          }}
-                                        >
-                                          {url ? (
-                                            <img
-                                              src={url}
-                                              alt=""
-                                              className="w-full h-full object-cover"
-                                              onError={(e) => {
-                                                (
-                                                  e.target as HTMLImageElement
-                                                ).src = ProfileIcon;
-                                              }}
-                                            />
-                                          ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-slate-200 text-[10px] font-bold text-slate-600">
-                                              {(getEmployeeName(id) ||
-                                                "?")[0]?.toUpperCase()}
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
-                                          <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
-                                            <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                              {getEmployeeName(id) || "Unknown"}
-                                            </span>
-                                          </div>
-                                          <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                  {memberIds.length > 3 && (
-                                    <div className="relative group shrink-0">
+                              </div>
+                            ) : memberIds.length === 1 ? (
+                              <div className="flex items-center gap-3">
+                                {(() => {
+                                  const id = memberIds[0];
+                                  const emp = getMemberForAvatar(id);
+                                  const url = emp?.profile_picture
+                                    ? getGlobalProfileUrl(
+                                      emp.id,
+                                      emp.profile_picture,
+                                      "vendor",
+                                    )
+                                    : null;
+                                  return (
+                                    <>
                                       <div
                                         role="button"
                                         tabIndex={0}
-                                        className="relative z-10 w-9 h-9 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm shrink-0 hover:bg-slate-100 transition-colors cursor-pointer"
+                                        className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0 hover:ring-2 hover:ring-[#DD4342]/20 transition-all cursor-pointer"
                                         onClick={(e) => {
-                                          e.preventDefault();
                                           e.stopPropagation();
-                                          const emps = memberIds
-                                            .map((id) => getMemberForAvatar(id))
-                                            .filter(Boolean) as Employee[];
-                                          setAllMembersList(emps);
-                                          setShowAllMembersModal(true);
+                                          openMemberProfile(emp);
                                         }}
                                         onKeyDown={(e) => {
                                           if (
@@ -2550,40 +2696,155 @@ export default function ProjectsV() {
                                           ) {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            const emps = memberIds
-                                              .map((id) =>
-                                                getMemberForAvatar(id),
-                                              )
-                                              .filter(Boolean) as Employee[];
-                                            setAllMembersList(emps);
-                                            setShowAllMembersModal(true);
+                                            openMemberProfile(emp);
                                           }
                                         }}
                                       >
-                                        +{memberIds.length - 3}
+                                        {url ? (
+                                          <img
+                                            src={url}
+                                            alt=""
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                              (
+                                                e.target as HTMLImageElement
+                                              ).src = ProfileIcon;
+                                            }}
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-slate-200 text-[10px] font-bold text-slate-600">
+                                            {(getEmployeeName(id) ||
+                                              "?")[0]?.toUpperCase()}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                                        {getEmployeeName(id) || "Unknown"}
+                                      </span>
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            ) : (
+                              <div className="flex items-center -space-x-4">
+                                {memberIds.slice(0, 3).map((id) => {
+                                  const emp = getMemberForAvatar(id);
+                                  const url = emp?.profile_picture
+                                    ? getGlobalProfileUrl(
+                                      emp.id,
+                                      emp.profile_picture,
+                                      "vendor",
+                                    )
+                                    : null;
+                                  return (
+                                    <div
+                                      key={id}
+                                      className="relative group shrink-0"
+                                    >
+                                      <div
+                                        role="button"
+                                        tabIndex={0}
+                                        className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0 hover:ring-2 hover:ring-[#DD4342]/20 transition-all cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openMemberProfile(emp);
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (
+                                            e.key === "Enter" ||
+                                            e.key === " "
+                                          ) {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            openMemberProfile(emp);
+                                          }
+                                        }}
+                                      >
+                                        {url ? (
+                                          <img
+                                            src={url}
+                                            alt=""
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                              (
+                                                e.target as HTMLImageElement
+                                              ).src = ProfileIcon;
+                                            }}
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-slate-200 text-[10px] font-bold text-slate-600">
+                                            {(getEmployeeName(id) ||
+                                              "?")[0]?.toUpperCase()}
+                                          </div>
+                                        )}
                                       </div>
                                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
                                         <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
                                           <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
-                                            {memberIds.length - 3} more
+                                            {getEmployeeName(id) || "Unknown"}
                                           </span>
                                         </div>
                                         <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
                                       </div>
                                     </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            <div
-                              className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm shrink-0 ${isHighPri ? "bg-[#DD4342]" : "bg-[#94D6F2]"}`}
-                            >
-                              {p.priority || "Low"}
-                            </div>
+                                  );
+                                })}
+                                {memberIds.length > 3 && (
+                                  <div className="relative group shrink-0">
+                                    <div
+                                      role="button"
+                                      tabIndex={0}
+                                      className="relative z-10 w-9 h-9 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm shrink-0 hover:bg-slate-100 transition-colors cursor-pointer"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        const emps = memberIds
+                                          .map((id) => getMemberForAvatar(id))
+                                          .filter(Boolean) as Employee[];
+                                        setAllMembersList(emps);
+                                        setShowAllMembersModal(true);
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === "Enter" ||
+                                          e.key === " "
+                                        ) {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          const emps = memberIds
+                                            .map((id) =>
+                                              getMemberForAvatar(id),
+                                            )
+                                            .filter(Boolean) as Employee[];
+                                          setAllMembersList(emps);
+                                          setShowAllMembersModal(true);
+                                        }
+                                      }}
+                                    >
+                                      +{memberIds.length - 3}
+                                    </div>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] flex flex-col items-center">
+                                      <div className="bg-[#FFFFFF] border border-[#C1C1C1] rounded-md shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35)] px-4 py-0.5 relative z-10">
+                                        <span className="font-Gantari text-[14px] font-semibold text-[#353535] text-center block whitespace-nowrap">
+                                          {memberIds.length - 3} more
+                                        </span>
+                                      </div>
+                                      <div className="w-2.5 h-2.5 bg-[#FFFFFF] border-b border-r border-[#C1C1C1] rotate-45 relative z-20 -mt-[5.5px]"></div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <div
+                            className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm shrink-0 ${isHighPri ? "bg-[#DD4342]" : "bg-[#94D6F2]"}`}
+                          >
+                            {p.priority || "Low"}
                           </div>
                         </div>
-                      );
-                    })
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -2685,10 +2946,10 @@ export default function ProjectsV() {
                   {allMembersList.map((member, index) => {
                     const profileUrl = member.profile_picture
                       ? getGlobalProfileUrl(
-                          member.id,
-                          member.profile_picture,
-                          "vendor",
-                        )
+                        member.id,
+                        member.profile_picture,
+                        "vendor",
+                      )
                       : null;
                     return (
                       <div
@@ -2740,18 +3001,15 @@ export default function ProjectsV() {
 
       {showMemberProfileModal && selectedMember && (
         <div className="fixed inset-0 z-[230] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[2rem] shadow-2xl max-w-xl w-full max-h-[80vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h3 className="text-[28px] font-bold text-[#1A1A1A] font-Gantari">
-                View Details
-              </h3>
+          <div className="bg-white rounded-md shadow-2xl max-w-sm w-full max-h-[80vh] flex flex-col overflow-hidden">
+            <div className="relative z-10 flex items-center justify-center px-6 py-4 border-b border-slate-100">
               <button
                 type="button"
                 onClick={() => {
                   setShowMemberProfileModal(false);
                   setSelectedMember(null);
                 }}
-                className="relative p-2 rounded-md bg-[#F2F2F2] cursor-pointer group"
+                className="absolute left-6 p-2 rounded-md bg-[#F2F2F2] cursor-pointer group"
                 aria-label="Close"
               >
                 <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
@@ -2765,6 +3023,9 @@ export default function ProjectsV() {
                   </div>
                 </div>
               </button>
+              <h3 className="text-[24px] font-bold text-[#1A1A1A] font-Gantari text-center">
+                View Details
+              </h3>
             </div>
             <div className="overflow-y-auto px-8 py-6 custom-scrollbar space-y-4">
               <p className="text-[20px] font-Gantari font-bold text-[#1A1A1A]">
