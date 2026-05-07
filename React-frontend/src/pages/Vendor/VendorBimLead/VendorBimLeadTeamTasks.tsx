@@ -576,7 +576,6 @@ export default function VendorBimLeadTeamTasks() {
                   onClick={() => navigate("/vendor-bim-lead/teamtasks/add")}
                   className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-white cursor-pointer"
                 >
-                  <img src={AddBtn} alt="Add" className="h-5 w-5" />
                   Add Task
                 </button>
               </div>

@@ -893,7 +893,6 @@ export default function MytaskEV() {
               onClick={openAddTask}
               className="sm:hidden inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-2 py-1.5 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all border-0"
             >
-              <img src={AddBtn} alt="Add" className="h-4 w-4" />
               Add Task
             </button>
           </div>
@@ -980,7 +979,6 @@ export default function MytaskEV() {
                 onClick={openAddTask}
                 className="hidden sm:inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-semibold text-white shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all border-0 font-Gantari h-[38px]"
               >
-                <img src={AddBtn} alt="Add" className="h-5 w-5" />
                 Add Task
               </button>
             </div>

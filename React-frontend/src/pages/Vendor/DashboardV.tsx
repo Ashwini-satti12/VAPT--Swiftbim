@@ -301,7 +301,7 @@ export default function DashboardV() {
                     scrollbar-width: none;
                 }
             `}</style>
-            <div className="flex-1 overflow-y-auto main-page-scrollbar">
+            <div className="flex-1">
                 {/* Header and KPI Cards */}
                 <div className="bg-white pb-6 shrink-0 px-2">
                     <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">Dashboard</h1>
@@ -320,7 +320,7 @@ export default function DashboardV() {
                 </div>
 
                 {/* Main Content Grid */}
-                <div className="h-auto lg:h-full lg:flex-1 lg:min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2 pb-4 overflow-visible lg:overflow-hidden">
+                <div className="h-auto lg:h-full lg:flex-1 lg:min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 px-2 pt-2 pb-4 overflow-visible lg:overflow-hidden">
                     {/* Today's Priority */}
                     <div className="lg:col-span-2 flex flex-col bg-white rounded-md border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[280px] overflow-hidden">
                         <div className="mb-4 shrink-0 pr-4">

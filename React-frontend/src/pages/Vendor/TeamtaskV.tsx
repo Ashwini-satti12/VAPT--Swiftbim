@@ -1586,7 +1586,6 @@ export default function TeamtaskV() {
             onClick={() => navigate("/v/mytasks/add")}
             className="sm:hidden inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-2 py-1.5 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer whitespace-nowrap active:scale-[0.98] transition-all"
           >
-            <img src={AddBtn} alt="Add" className="h-4 w-4" />
             Add task
           </button>
         </div>
@@ -1760,7 +1759,6 @@ export default function TeamtaskV() {
               onClick={() => navigate("/v/mytasks/add")}
               className="hidden sm:inline-flex items-center justify-center gap-2 rounded-md bg-[#DD4342] px-6 py-1.5 lg:py-2 text-white font-Gantari font-medium text-[14px] transition-all shadow-sm cursor-pointer"
             >
-              <img src={AddBtn} alt="Add" className="h-5 w-5" />
               Add task
             </button>
           </div>
