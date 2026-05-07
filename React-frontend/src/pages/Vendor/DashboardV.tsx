@@ -510,14 +510,14 @@ export default function DashboardV() {
                             {/* Calendar Header — exact match: left = Month/Year stacked; center = large day; right = full day name */}
                             <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 pt-2 px-4">
                                 <div className="flex flex-col items-start min-w-[70px]">
-                                    <span className="text-[15px] lg:text-[17px] font-semibold text-black font-Gantari leading-tight">{currentMonthName}</span>
-                                    <span className="text-[15px] lg:text-[17px] font-semibold text-black font-Gantari leading-tight">{displayYear}</span>
+                                    <span className="text-[15px] lg:text-[17px] font-semibold text-black font-gantari leading-tight">{currentMonthName}</span>
+                                    <span className="text-[15px] lg:text-[17px] font-semibold text-black font-gantari leading-tight">{displayYear}</span>
                                 </div>
                                 <div className="flex flex-col items-center flex-1 min-w-0">
                                     <span className="text-[32px] lg:text-[38px] font-bold text-black leading-none tracking-tighter">{selectedDate.getDate()}</span>
                                 </div>
                                 <div className="flex flex-col items-end min-w-[75px]">
-                                    <span className="text-[14px] lg:text-[16px] font-semibold text-black font-Gantari tracking-wide pr-2">{currentDayName}</span>
+                                    <span className="text-[14px] lg:text-[16px] font-semibold text-black font-gantari tracking-wide pr-2">{currentDayName}</span>
                                 </div>
                             </div>
 
@@ -529,7 +529,7 @@ export default function DashboardV() {
                                     <button
                                         type="button"
                                         onClick={() => setMonthDropdownOpen((o) => !o)}
-                                        className="flex items-center justify-between gap-1 w-full rounded-md py-2 pl-0 pr-6 text-left text-[13px] font-medium text-slate-800 hover:bg-slate-50 font-Gantari border-none bg-transparent cursor-pointer"
+                                        className="flex items-center justify-between gap-1 w-full rounded-md py-2 pl-0 pr-6 text-left text-[13px] font-medium text-slate-800 hover:bg-slate-50 font-gantari border-none bg-transparent cursor-pointer"
                                         aria-expanded={monthDropdownOpen}
                                     >
                                         {currentMonthName}
@@ -548,7 +548,7 @@ export default function DashboardV() {
                                                                 setDisplayMonth(m);
                                                                 setMonthDropdownOpen(false);
                                                             }}
-                                                            className={`block w-full px-4 py-2.5 text-left text-[13px] font-medium font-Gantari transition-colors truncate cursor-pointer ${isSelected ? 'bg-[#2563eb] text-white' : 'text-slate-800 hover:bg-slate-100'}`}
+                                                            className={`block w-full px-4 py-2.5 text-left text-[13px] font-medium font-gantari transition-colors truncate cursor-pointer ${isSelected ? 'bg-[#2563eb] text-white' : 'text-slate-800 hover:bg-slate-100'}`}
                                                         >
                                                             {name}
                                                         </button>
@@ -559,7 +559,7 @@ export default function DashboardV() {
                                     )}
                                 </div>
                                 <div className="flex items-center">
-                                    <span className="min-w-[40px] text-[13px] font-semibold text-slate-700 font-Gantari">{displayYear}</span>
+                                    <span className="min-w-[40px] text-[13px] font-semibold text-slate-700 font-gantari">{displayYear}</span>
                                     <div className="flex flex-col gap-0 -space-y-px">
                                         <button type="button" onClick={() => setDisplayYear((y) => y + 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none cursor-pointer" aria-label="Next year">
                                             <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z" /></svg>
@@ -577,10 +577,10 @@ export default function DashboardV() {
                             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
                                 {isCalendarExpanded && (
                                     <div className="mb-2 py-2 animate-in fade-in duration-200">
-                                        <div className="grid grid-cols-7 gap-0 text-center text-[12px] lg:text-[13px] font-bold text-black font-Gantari mb-2 [&>div]:py-0.5">
+                                        <div className="grid grid-cols-7 gap-0 text-center text-[12px] lg:text-[13px] font-bold text-black font-gantari mb-2 [&>div]:py-0.5">
                                             <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
                                         </div>
-                                        <div className="grid grid-cols-7 gap-y-1 text-center text-[13px] lg:text-[14px] font-semibold font-Gantari px-1">
+                                        <div className="grid grid-cols-7 gap-y-1 text-center text-[13px] lg:text-[14px] font-semibold font-gantari px-1">
                                             {calendarDays.map((c, i) => {
                                                 const d = getCellDate(c);
                                                 const isSel = isSameDay(d, selectedDate);
