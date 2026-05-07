@@ -301,7 +301,7 @@ export default function DashboardV() {
                     scrollbar-width: none;
                 }
             `}</style>
-            <div className="flex-1">
+            <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Header and KPI Cards */}
                 <div className="bg-white pb-6 shrink-0 px-2">
                     <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">Dashboard</h1>
@@ -320,9 +320,9 @@ export default function DashboardV() {
                 </div>
 
                 {/* Main Content Grid */}
-                <div className="h-auto lg:h-full lg:flex-1 lg:min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 px-2 pt-2 pb-4 overflow-visible lg:overflow-hidden">
+                <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2 pb-4 overflow-y-auto lg:overflow-hidden">
                     {/* Today's Priority */}
-                    <div className="lg:col-span-2 flex flex-col bg-white rounded-md border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[280px] overflow-hidden">
+                    <div className="lg:col-span-2 flex flex-col bg-white rounded-md border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[400px] sm:h-[480px] lg:h-full overflow-hidden">
                         <div className="mb-4 shrink-0 pr-4">
                             <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#353535] font-gantari">Today's Priority</h2>
                         </div>
@@ -334,7 +334,7 @@ export default function DashboardV() {
                                 <div className="mb-4">
                                     <div className="flex items-center justify-between mb-3">
                                         <h3 className="text-base sm:text-lg font-semibold text-[#353535] font-gantari">Projects</h3>
-                                        <Link to="/v/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
+                                        <Link to="/v/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari mr-6">View all</Link>
                                     </div>
 
                                     {priorityTasks.length > 0 ? (() => {
@@ -505,7 +505,7 @@ export default function DashboardV() {
                     </div>
 
                     {/* Calendar & Celebrations */}
-                    <div className="lg:col-span-1 flex flex-col h-[280px] overflow-hidden">
+                    <div className="lg:col-span-1 flex flex-col h-full overflow-hidden">
                         <div className="bg-white rounded-md border border-[#AEACAC52] pt-4 pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full min-h-0">
                             {/* Calendar Header — exact match: left = Month/Year stacked; center = large day; right = full day name */}
                             <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 pt-2 px-4">
