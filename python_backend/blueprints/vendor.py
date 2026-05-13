@@ -1144,56 +1144,43 @@ def vendor_dashboard_project_stats():
         vendor_id_filter = list(set(vendor_id_filter))
         task_placeholders = ",".join(["%s"] * len(vendor_id_filter)) if vendor_id_filter else "NULL"
 
-        # Resolve all IDs for the current user and company to be robust
-        my_ids = list(set([user_id] + v_prof_ids))
+        # Resolve this user's own IDs only (not all company employees)
+        my_ids = list(set([int(user_id)] + v_prof_ids))
+        my_ids_placeholders = ",".join(["%s"] * len(my_ids))
+
+        # Task filter uses company-wide IDs (for task counts)
         all_company_ids = list(set(vendor_employee_ids + v_prof_ids))
         if company_vendor_id:
             all_company_ids.append(int(company_vendor_id))
         all_company_ids = list(set(all_company_ids))
-        
-        # Project filter: creators, assignments, company links, and main projects table
-        params = []
-        where_clauses = []
-        
-        # 1. Company/Creator filter
-        ps_all = ",".join(["%s"] * len(all_company_ids))
-        comp_id_val = str(company_vendor_id) if company_vendor_id else "-1"
-        where_clauses.append(f"(vp.vendor_id IN ({ps_all}) OR vp.Company_id = %s OR p.Company_id = %s)")
-        params.extend(all_company_ids)
-        params.append(comp_id_val)
-        params.append(comp_id_val)
-            
-        # 2. Assignment filter (PM, Lead, BC)
-        assign_clause = """(
+        task_id_placeholders = ",".join(["%s"] * len(all_company_ids)) if all_company_ids else "NULL"
+
+        # Project filter: ONLY count projects specifically assigned to THIS user
+        # (by ID or name as PM/Lead/BC), or where this user has a task
+        # Do NOT include all company projects — that would overcount.
+        proj_params = []
+        proj_where = []
+
+        # 1. User is explicitly assigned as PM, Lead, or BIM Coordinator
+        proj_where.append("""(
             FIND_IN_SET(%s, REPLACE(IFNULL(vp.project_manager_id, ''), ' ', '')) > 0
             OR FIND_IN_SET(%s, REPLACE(IFNULL(vp.project_manager_id, ''), ' ', '')) > 0
             OR FIND_IN_SET(%s, REPLACE(IFNULL(vp.lead_id, ''), ' ', '')) > 0
             OR FIND_IN_SET(%s, REPLACE(IFNULL(vp.lead_id, ''), ' ', '')) > 0
             OR FIND_IN_SET(%s, REPLACE(IFNULL(vp.bim_coordinator_id, ''), ' ', '')) > 0
             OR FIND_IN_SET(%s, REPLACE(IFNULL(vp.bim_coordinator_id, ''), ' ', '')) > 0
-        )"""
-        where_clauses.append(assign_clause)
-        params.extend([str(user_id), user_name, str(user_id), user_name, str(user_id), user_name])
-        
-        # 3. Bidding/Opportunity link: projects won via bids
-        if company_vendor_id:
-            where_clauses.append(f"""EXISTS (
-                SELECT 1 FROM snh6_swiftproject.vendor_bidding vb_e
-                JOIN snh6_swiftproject.projects p_e ON p_e.id = vb_e.project_id
-                WHERE vb_e.id = vp.opportunity_id
-                AND p_e.Company_id = %s
-            )""")
-            params.append(str(company_vendor_id))
-
-        # 4. Task-based visibility fallback: if anyone in the company has a task in the project
-        where_clauses.append(f"""EXISTS (
-            SELECT 1 FROM snh6_swiftproject.vendor_task vt_exists 
-            WHERE vt_exists.project_id = vp.id 
-            AND (vt_exists.assigned_to IN ({ps_all}) OR vt_exists.vendor_id IN ({ps_all}))
         )""")
-        params.extend(all_company_ids + all_company_ids)
+        proj_params.extend([str(user_id), user_name, str(user_id), user_name, str(user_id), user_name])
 
-        final_where = " OR ".join(where_clauses)
+        # 2. User created the project (uploaderid = this user)
+        proj_where.append(f"vp.uploaderid IN ({my_ids_placeholders})")
+        proj_params.extend(my_ids)
+
+        # 3. User is vendor_id (creator) of the project
+        proj_where.append(f"vp.vendor_id IN ({my_ids_placeholders})")
+        proj_params.extend(my_ids)
+
+        final_proj_where = " OR ".join(proj_where)
 
         try:
             cur.execute(
@@ -1201,22 +1188,26 @@ def vendor_dashboard_project_stats():
                 SELECT
                     COUNT(DISTINCT vp.id) AS total_projects,
                     COUNT(DISTINCT CASE
-                        WHEN (vp.progress IS NOT NULL AND (vp.progress REGEXP '^[0-9]+' AND CAST(vp.progress AS DECIMAL(10,2)) >= 100))
-                          OR (LOWER(COALESCE(vp.status, '')) IN ('completed', 'done', 'complete'))
+                        WHEN vp.progress IS NOT NULL
+                             AND vp.progress REGEXP '^[0-9]+'
+                             AND CAST(vp.progress AS DECIMAL(10,2)) >= 100
                         THEN vp.id END
                     ) AS completed_projects
                 FROM snh6_swiftproject.vendor_projects vp
-                LEFT JOIN snh6_swiftproject.projects p ON p.id = vp.main_project_id
-                WHERE {final_where}
+                WHERE {final_proj_where}
                 """,
-                params,
+                proj_params,
             )
             row = cur.fetchone() or {}
             total_projects = int(row.get("total_projects") or 0)
             completed_projects = int(row.get("completed_projects") or 0)
-        except Exception:
+        except Exception as e:
+            print(f"[project-stats] project query error: {e}")
             total_projects = 0
             completed_projects = 0
+
+
+
 
         # Tasks: count items created by/assigned to anyone in the resolved profile list.
         try:

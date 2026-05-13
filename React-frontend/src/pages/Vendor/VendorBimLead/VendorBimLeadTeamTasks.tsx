@@ -1081,10 +1081,10 @@ export default function TeamtaskV() {
       document.head.removeChild(styleEl);
     };
   }, []);
-  
+
   const isTeam =
-    searchParams.get("condition") === "1" || 
-    pathname.endsWith("/team") || 
+    searchParams.get("condition") === "1" ||
+    pathname.endsWith("/team") ||
     pathname.includes("teamtask");
 
   const statusFilter =
@@ -1092,7 +1092,7 @@ export default function TeamtaskV() {
   const STORAGE_KEY = "v_teamTask_localTasks";
   const DELETED_IDS_KEY = "v_teamTask_deletedIds";
   const STATUS_OVERRIDES_KEY = "v_teamTask_statusOverrides";
-  
+
   const loadDeletedIds = (): number[] => {
     try {
       const raw = localStorage.getItem(DELETED_IDS_KEY);
@@ -1123,7 +1123,7 @@ export default function TeamtaskV() {
       return {};
     }
   };
-  
+
   const [list, setList] = useState<Task[]>([]);
   const [localTasks, setLocalTasks] = useState<Task[]>(() => {
     try {
@@ -1466,31 +1466,31 @@ export default function TeamtaskV() {
           api.get<{ success?: boolean; resources?: Employee[] }>("/api/vendors/vendor-resource-profiles"),
           api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
         ]);
-        
+
         if (!cancelled) {
           const vendorTasks = (tasksRes.data.tasks ?? []).map(t => ({
             ...t,
             source: "Outsource" as const
           }));
-          
+
           setEmployees(
             (resourcesRes.data.resources ?? []).filter(
               isEmployeeActiveForProjectAssignment,
             ),
           );
-          
+
           setProjects((projRes.data.projects ?? []).map(p => ({
             ...p,
             source: "Outsource"
           })) as Project[]);
-          
+
           vendorTasks.sort((a, b) => {
             const dateA = new Date(a.created_at || a.start_date || 0).getTime();
             const dateB = new Date(b.created_at || b.start_date || 0).getTime();
             if (dateB !== dateA) return dateB - dateA;
             return (b.id || 0) - (a.id || 0);
           });
-          
+
           setList(vendorTasks as Task[]);
           setLoading(false);
         }
