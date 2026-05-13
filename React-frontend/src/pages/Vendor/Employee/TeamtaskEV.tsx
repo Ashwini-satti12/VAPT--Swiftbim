@@ -600,7 +600,7 @@ export default function TeamtaskEV() {
     const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
     const [selectedProject, setSelectedProject] = useState<string | null>(null);
-    const [selectedShow, setSelectedShow] = useState<string | null>("Show Entries");
+    const [selectedShow, setSelectedShow] = useState<string | null>("All");
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
     const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
 
@@ -823,9 +823,9 @@ export default function TeamtaskEV() {
                         ? projectRows.filter((p) => involvedProjectIds.has(Number(p.id)))
                         : [];
 
-                setList(enrichTasksWithProjectNames(scopedTasks, projectRows));
+                setList(enrichTasksWithProjectNames(allTasks, projectRows));
                 setEmployees(resourcesRes.data.resources ?? []);
-                setProjects(scopedProjects);
+                setProjects(projectRows);
             })
             .catch(() => {
                 setList([]);

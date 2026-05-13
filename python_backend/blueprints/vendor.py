@@ -801,14 +801,15 @@ def vendor_dashboard_stats():
     if user_id:
         try:
             main_cur = conn.cursor(dictionary=True)
-            # 1. Count bids and proposals
+            # 1. Count bids and proposals (only for existing opportunities)
             main_cur.execute(
                 """
                 SELECT
-                    COUNT(*) AS total_cnt,
-                    SUM(CASE WHEN status = 'shortlisted' THEN 1 ELSE 0 END) AS shortlisted_cnt
-                FROM snh6_swiftproject.vendor_bids
-                WHERE vendor_id = %s
+                    COUNT(DISTINCT vb.opportunity_id) AS total_cnt,
+                    COUNT(DISTINCT CASE WHEN vb.status = 'shortlisted' THEN vb.opportunity_id END) AS shortlisted_cnt
+                FROM snh6_swiftproject.vendor_bids vb
+                INNER JOIN snh6_swiftproject.vendor_bidding b ON vb.opportunity_id = b.id
+                WHERE vb.vendor_id = %s
                 """,
                 (user_id,),
             )
@@ -902,18 +903,20 @@ def vendor_dashboard_priority_tasks():
             return float(v)
         return v
 
-    # Resolve vendor company employees for the logged-in vendor employee id.
-    # We derive the vendor "company key" from snh6_swiftproject.vendor_employee.vendor_id
-    # so this works even if g.user_type / g.company_id are not set consistently.
-    vendor_employee_ids = [user_id]
+    # We get the user's role and vendor company ID
     try:
         ecur = conn.cursor(dictionary=True)
         ecur.execute(
-            "SELECT vendor_id FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+            "SELECT vendor_id, role, full_name FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
             (user_id,),
         )
         row = ecur.fetchone() or {}
         company_vendor_id = row.get("vendor_id")
+        user_role = (row.get("role") or "").strip()
+        user_name = (row.get("full_name") or "").strip()
+        
+        # Get all vendor employees in the company (for company-wide queries)
+        vendor_employee_ids = [user_id]
         if company_vendor_id is not None:
             ecur.execute(
                 "SELECT id FROM snh6_swiftproject.vendor_employee WHERE vendor_id = %s",
@@ -924,22 +927,53 @@ def vendor_dashboard_priority_tasks():
             if ids:
                 vendor_employee_ids = ids
     except Exception:
+        company_vendor_id = None
+        user_role = ""
+        user_name = ""
         vendor_employee_ids = [user_id]
-
-    placeholders = ",".join(["%s"] * len(vendor_employee_ids))
 
     _ensure_vendor_task_table()
     _ensure_vp_table()
 
     try:
-        # Resolve profile IDs for these employees
+        # Resolve profile IDs from new_swiftbim
         v_prof_ids = []
         try:
-            v_prof_ids = _get_profile_ids_for_employees(vendor_employee_ids)
+            v_prof_ids = _get_profile_ids_for_employees([user_id])
         except Exception: pass
         
-        combined_ids = list(set(vendor_employee_ids + v_prof_ids))
-        pslots_final = ",".join(["%s"] * len(combined_ids))
+        my_ids = list(set([user_id] + v_prof_ids))
+        
+        # For company-wide roles
+        all_company_prof_ids = []
+        try:
+            all_company_prof_ids = _get_profile_ids_for_employees(vendor_employee_ids)
+        except Exception: pass
+        all_company_ids = list(set(vendor_employee_ids + all_company_prof_ids))
+
+        # Role-based filtering logic (similar to in-house dashboard/priority-tasks)
+        if user_role == "Vendor" or not user_role:
+            # Main vendor: sees all priority tasks for the company
+            id_list = ",".join(["%s"] * len(all_company_ids))
+            scope_where = f"(vt.vendor_id IN ({id_list}) OR vt.assigned_to IN ({id_list}))"
+            params = [*all_company_ids, *all_company_ids]
+        elif user_role == "Vendor PM":
+            # PM: tasks in projects where they are PM, OR assigned to them/created by them
+            my_id_list = ",".join(["%s"] * len(my_ids))
+            scope_where = f"""(
+                FIND_IN_SET(%s, REPLACE(IFNULL(vp.project_manager_id, ''), ' ', '')) > 0
+                OR FIND_IN_SET(%s, REPLACE(IFNULL(vp.project_manager_id, ''), ' ', '')) > 0
+                OR vt.assigned_to IN ({my_id_list})
+                OR vt.vendor_id IN ({my_id_list})
+            )"""
+            params = [user_id, user_name, *my_ids, *my_ids]
+        else:
+            # Employee / BIM Lead / etc: tasks assigned to them OR in projects they are involved in
+            # For simplicity, if they have tasks assigned to them, or they created them.
+            # To mirror in-house "assigned to him and self assign", we explicitly check assignment.
+            my_id_list = ",".join(["%s"] * len(my_ids))
+            scope_where = f"(vt.assigned_to IN ({my_id_list}) OR vt.vendor_id IN ({my_id_list}))"
+            params = [*my_ids, *my_ids]
 
         cur.execute(
             f"""
@@ -949,8 +983,8 @@ def vendor_dashboard_priority_tasks():
                 vt.due_date,
                 vt.status,
                 vt.category,
-                vt.perferstart_time,
-                vt.perferend_time,
+                vt.start_time AS perferstart_time,
+                vt.end_time AS perferend_time,
                 vt.project_id AS projectid,
                 vp.project_name,
                 vt.assigned_to,
@@ -965,13 +999,16 @@ def vendor_dashboard_priority_tasks():
             LEFT JOIN employee e_uploader ON e_uploader.id = vt.vendor_id AND ve_uploader.id IS NULL
             LEFT JOIN snh6_swiftproject.vendor_employee ve_assignee ON vt.assigned_to = ve_assignee.id
             LEFT JOIN employee e_assignee ON e_assignee.id = vt.assigned_to AND ve_assignee.id IS NULL
-            WHERE (vt.vendor_id IN ({pslots_final}) OR vt.assigned_to IN ({pslots_final}))
+            WHERE {scope_where}
               AND LOWER(vt.status) IN ('todo', 'inprogress', 'in progress', 'pause', 'active')
-              AND DATE(vt.due_date) >= %s
-            ORDER BY DATE(vt.due_date) ASC, COALESCE(vt.perferstart_time, '00:00:00') ASC
+              AND (
+                  DATE(vt.due_date) = %s 
+                  OR vt.due_date LIKE CONCAT('%%', %s, '%%')
+              )
+            ORDER BY DATE(vt.due_date) ASC, COALESCE(vt.start_time, '00:00:00') ASC
             LIMIT 20
             """,
-            [*combined_ids, *combined_ids, today],
+            [*params, today, datetime.strptime(today, "%Y-%m-%d").strftime("%d-%m-%Y")],
         )
         rows = cur.fetchall() or []
 
@@ -999,7 +1036,8 @@ def vendor_dashboard_priority_tasks():
                     )
             d["involved_persons"] = involved
             tasks.append(d)
-    except Exception:
+    except Exception as e:
+        print("VENDOR_DASHBOARD_PRIORITY_TASKS ERROR:", e)
         tasks = []
 
     return jsonify({"tasks": tasks})
@@ -1040,18 +1078,37 @@ def vendor_dashboard_project_stats():
         conn = get_db()
         cur = conn.cursor(dictionary=True)
 
-        # Vendor dashboards are company-wide: resolve all vendor_employee ids
-        # for the same `vendor_employee.vendor_id` as the logged-in employee.
+        # Resolve company ID and all employee IDs in that company
+        company_vendor_id = getattr(g, "company_id", None)
         vendor_employee_ids = [int(user_id)]
+        
         try:
             ecur = conn.cursor(dictionary=True)
-            ecur.execute(
-                "SELECT vendor_id FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
-                (user_id,),
-            )
-            row = ecur.fetchone() or {}
-            company_vendor_id = row.get("vendor_id")
-            if company_vendor_id is not None:
+            if not company_vendor_id:
+                # 1. Primary: check vendor_employee table
+                ecur.execute("SELECT vendor_id FROM snh6_swiftproject.vendor_employee WHERE id = %s", (user_id,))
+                row = ecur.fetchone()
+                if row: company_vendor_id = row.get("vendor_id")
+                
+            if not company_vendor_id:
+                # 2. Secondary: check resource profiles
+                ecur.execute("SELECT vendor_employee_id FROM snh6_swiftproject.vendor_resource_profiles WHERE id = %s", (user_id,))
+                row = ecur.fetchone()
+                if row and row.get("vendor_employee_id"):
+                    ecur.execute("SELECT vendor_id FROM snh6_swiftproject.vendor_employee WHERE id = %s", (row["vendor_employee_id"],))
+                    row2 = ecur.fetchone()
+                    if row2: company_vendor_id = row2.get("vendor_id")
+
+            if not company_vendor_id:
+                # 3. Tertiary: check if user is assigned to any tasks, and get company from those tasks
+                ecur.execute("SELECT vendor_id FROM snh6_swiftproject.vendor_task WHERE assigned_to = %s LIMIT 1", (user_id,))
+                t_row = ecur.fetchone()
+                if t_row and t_row.get("vendor_id"):
+                    ecur.execute("SELECT vendor_id FROM snh6_swiftproject.vendor_employee WHERE id = %s", (t_row["vendor_id"],))
+                    row3 = ecur.fetchone()
+                    if row3: company_vendor_id = row3.get("vendor_id")
+
+            if company_vendor_id:
                 ecur.execute(
                     "SELECT id FROM snh6_swiftproject.vendor_employee WHERE vendor_id = %s",
                     (company_vendor_id,),
@@ -1063,34 +1120,96 @@ def vendor_dashboard_project_stats():
         except Exception:
             vendor_employee_ids = [int(user_id)]
 
+        # Get user name for assignment filtering (works for both vendor and staff)
+        user_name = ""
+        try:
+            ecur = conn.cursor(dictionary=True)
+            ecur.execute("SELECT full_name FROM snh6_swiftproject.vendor_employee WHERE id = %s", (user_id,))
+            urow = ecur.fetchone()
+            if not urow:
+                ecur.execute("SELECT full_name FROM employee WHERE id = %s", (user_id,))
+                urow = ecur.fetchone()
+            user_name = (urow.get("full_name") or "").strip() if urow else ""
+        except Exception: pass
         # Resolve profile IDs from new_swiftbim for these employees
         v_prof_ids = []
         try:
             v_prof_ids = _get_profile_ids_for_employees(vendor_employee_ids)
-        except Exception: pass
+        except Exception: pass        
         
+        # Task filter: based on all employees, their profile IDs, AND the company itself
         vendor_id_filter = list(set(vendor_employee_ids + v_prof_ids))
+        if company_vendor_id is not None:
+            vendor_id_filter.append(int(company_vendor_id))
+        vendor_id_filter = list(set(vendor_id_filter))
+        task_placeholders = ",".join(["%s"] * len(vendor_id_filter)) if vendor_id_filter else "NULL"
 
-        placeholders_final = ",".join(["%s"] * len(vendor_id_filter))
+        # Resolve all IDs for the current user and company to be robust
+        my_ids = list(set([user_id] + v_prof_ids))
+        all_company_ids = list(set(vendor_employee_ids + v_prof_ids))
+        if company_vendor_id:
+            all_company_ids.append(int(company_vendor_id))
+        all_company_ids = list(set(all_company_ids))
+        
+        # Project filter: creators, assignments, company links, and main projects table
+        params = []
+        where_clauses = []
+        
+        # 1. Company/Creator filter
+        ps_all = ",".join(["%s"] * len(all_company_ids))
+        comp_id_val = str(company_vendor_id) if company_vendor_id else "-1"
+        where_clauses.append(f"(vp.vendor_id IN ({ps_all}) OR vp.Company_id = %s OR p.Company_id = %s)")
+        params.extend(all_company_ids)
+        params.append(comp_id_val)
+        params.append(comp_id_val)
+            
+        # 2. Assignment filter (PM, Lead, BC)
+        assign_clause = """(
+            FIND_IN_SET(%s, REPLACE(IFNULL(vp.project_manager_id, ''), ' ', '')) > 0
+            OR FIND_IN_SET(%s, REPLACE(IFNULL(vp.project_manager_id, ''), ' ', '')) > 0
+            OR FIND_IN_SET(%s, REPLACE(IFNULL(vp.lead_id, ''), ' ', '')) > 0
+            OR FIND_IN_SET(%s, REPLACE(IFNULL(vp.lead_id, ''), ' ', '')) > 0
+            OR FIND_IN_SET(%s, REPLACE(IFNULL(vp.bim_coordinator_id, ''), ' ', '')) > 0
+            OR FIND_IN_SET(%s, REPLACE(IFNULL(vp.bim_coordinator_id, ''), ' ', '')) > 0
+        )"""
+        where_clauses.append(assign_clause)
+        params.extend([str(user_id), user_name, str(user_id), user_name, str(user_id), user_name])
+        
+        # 3. Bidding/Opportunity link: projects won via bids
+        if company_vendor_id:
+            where_clauses.append(f"""EXISTS (
+                SELECT 1 FROM snh6_swiftproject.vendor_bidding vb_e
+                JOIN snh6_swiftproject.projects p_e ON p_e.id = vb_e.project_id
+                WHERE vb_e.id = vp.opportunity_id
+                AND p_e.Company_id = %s
+            )""")
+            params.append(str(company_vendor_id))
+
+        # 4. Task-based visibility fallback: if anyone in the company has a task in the project
+        where_clauses.append(f"""EXISTS (
+            SELECT 1 FROM snh6_swiftproject.vendor_task vt_exists 
+            WHERE vt_exists.project_id = vp.id 
+            AND (vt_exists.assigned_to IN ({ps_all}) OR vt_exists.vendor_id IN ({ps_all}))
+        )""")
+        params.extend(all_company_ids + all_company_ids)
+
+        final_where = " OR ".join(where_clauses)
 
         try:
             cur.execute(
-                """
+                f"""
                 SELECT
-                    COUNT(*) AS total_projects,
-                    SUM(
-                        CASE
-                            WHEN (vp.progress IS NOT NULL AND (vp.progress REGEXP '^[0-9]+' AND CAST(vp.progress AS DECIMAL(10,2)) >= 100))
-                              OR (LOWER(COALESCE(vp.status, '')) IN ('completed', 'done', 'complete'))
-                            THEN 1 ELSE 0
-                        END
+                    COUNT(DISTINCT vp.id) AS total_projects,
+                    COUNT(DISTINCT CASE
+                        WHEN (vp.progress IS NOT NULL AND (vp.progress REGEXP '^[0-9]+' AND CAST(vp.progress AS DECIMAL(10,2)) >= 100))
+                          OR (LOWER(COALESCE(vp.status, '')) IN ('completed', 'done', 'complete'))
+                        THEN vp.id END
                     ) AS completed_projects
                 FROM snh6_swiftproject.vendor_projects vp
-                WHERE vp.vendor_id IN ("""
-                + placeholders_final
-                + """)
+                LEFT JOIN snh6_swiftproject.projects p ON p.id = vp.main_project_id
+                WHERE {final_where}
                 """,
-                vendor_id_filter,
+                params,
             )
             row = cur.fetchone() or {}
             total_projects = int(row.get("total_projects") or 0)
@@ -1101,34 +1220,50 @@ def vendor_dashboard_project_stats():
 
         # Tasks: count items created by/assigned to anyone in the resolved profile list.
         try:
-            cur.execute(
-                """
-                SELECT
-                    SUM(CASE WHEN LOWER(status) IN ('inprogress', 'in progress', 'active') THEN 1 ELSE 0 END) AS in_progress_tasks,
-                    SUM(CASE WHEN LOWER(status) IN ('completed', 'done') THEN 1 ELSE 0 END) AS completed_tasks
-                FROM snh6_swiftproject.vendor_task
-                WHERE vendor_id IN ("""
-                + placeholders_final
-                + """)
-                   OR assigned_to IN ("""
-                + placeholders_final
-                + """)
-                """,
-                [*vendor_id_filter, *vendor_id_filter],
-            )
-            row = cur.fetchone() or {}
-            in_progress_tasks = int(row.get("in_progress_tasks") or 0)
-            completed_tasks = int(row.get("completed_tasks") or 0)
+            if vendor_id_filter:
+                cur.execute(
+                    """
+                    SELECT
+                        SUM(
+                            CASE 
+                                WHEN LOWER(status) IN ('inprogress', 'in progress', 'active') 
+                                     AND (Approval IS NULL OR LOWER(Approval) NOT IN ('approved', 'rejected'))
+                                THEN 1 ELSE 0 
+                            END
+                        ) AS in_progress_tasks,
+                        SUM(
+                            CASE 
+                                WHEN LOWER(status) IN ('completed', 'done', 'complete') 
+                                     OR LOWER(Approval) IN ('approved', 'rejected')
+                                THEN 1 ELSE 0 
+                            END
+                        ) AS completed_tasks
+                    FROM snh6_swiftproject.vendor_task
+                    WHERE vendor_id IN ("""
+                    + task_placeholders
+                    + """)
+                       OR assigned_to IN ("""
+                    + task_placeholders
+                    + """)
+                    """,
+                    vendor_id_filter + vendor_id_filter,
+                )
+                row = cur.fetchone() or {}
+                in_progress_tasks = int(row.get("in_progress_tasks") or 0)
+                completed_tasks = int(row.get("completed_tasks") or 0)
+            else:
+                in_progress_tasks = 0
+                completed_tasks = 0
         except Exception:
             in_progress_tasks = 0
             completed_tasks = 0
 
         return jsonify(
             {
-                "totalProjects": total_projects,
-                "completedProjects": completed_projects,
-                "inProgressTasks": in_progress_tasks,
-                "completedTasks": completed_tasks,
+                "total_projects": total_projects,
+                "completed_projects": completed_projects,
+                "in_progress_tasks": in_progress_tasks,
+                "completed_tasks": completed_tasks,
             }
         )
     except Exception:
@@ -5279,6 +5414,7 @@ CREATE TABLE IF NOT EXISTS vendor_task (
     checklist TEXT,
     outputfilepath TEXT,
     progress VARCHAR(255),
+    reviewer_progress VARCHAR(255) DEFAULT '',
     review_remark TEXT,
     Approval VARCHAR(100),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -5306,6 +5442,7 @@ def _ensure_vendor_task_table():
         "modules": "VARCHAR(255) DEFAULT ''",
         "outputfilepath": "TEXT NULL",
         "progress": "VARCHAR(255) NULL",
+        "reviewer_progress": "VARCHAR(255) DEFAULT ''",
         "review_remark": "TEXT NULL",
         "Approval": "VARCHAR(100) NULL",
     }
@@ -5451,8 +5588,9 @@ def list_vendor_tasks():
     if not is_team_view:
         # My Tasks logic:
         # 1. Assigned to me.
-        # 2. I assigned it to someone else AND it's under review (progress=95/100 or completed).
-        review_sql = "(vt.vendor_id = %s AND vt.assigned_to NOT IN (" + placeholders + ") AND vt.progress IN ('95', '100', 'completed'))"
+        # 2. I assigned it to someone else AND it's under review (95/100) OR I am currently reviewing it (50).
+        placeholders_my = ",".join(["%s"] * len(my_ids))
+        review_sql = "(vt.vendor_id = %s AND vt.assigned_to NOT IN (" + placeholders_my + ") AND (vt.progress IN ('95', '100', 'completed') OR vt.reviewer_progress = '50'))"
         review_params = [user_id] + my_ids
         
         where.append(f"({assigned_to_me_sql} OR {review_sql})")
@@ -5467,13 +5605,47 @@ def list_vendor_tasks():
                 params.extend([task_company_id, task_company_id])
     else:
         # Team Tasks logic:
-        # 1. Assigned to someone ELSE.
-        where.append(f"NOT ({assigned_to_me_sql})")
-        params.extend(assigned_to_me_params)
+        # 1. Assigned to someone ELSE (unless employeeid=all is requested)
+        employee_id_param = request.args.get("employeeid")
+        if employee_id_param != "all":
+            where.append(f"NOT ({assigned_to_me_sql})")
+            params.extend(assigned_to_me_params)
         
         if is_vendor_user_task:
             # Vendor Team view can see all tasks for the project assigned to others
-            pass
+            # MUST filter by company!
+            try:
+                ecur = conn.cursor(dictionary=True)
+                ecur.execute(
+                    "SELECT vendor_id FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+                    (user_id,),
+                )
+                r = ecur.fetchone() or {}
+                comp_v_id = r.get("vendor_id")
+                
+                comp_ids = [user_id]
+                if comp_v_id is not None:
+                    ecur.execute(
+                        "SELECT id FROM snh6_swiftproject.vendor_employee WHERE vendor_id = %s",
+                        (comp_v_id,),
+                    )
+                    rows = ecur.fetchall() or []
+                    ids = [int(rr["id"]) for rr in rows if rr.get("id") is not None]
+                    if ids:
+                        comp_ids = ids
+                
+                try:
+                    v_prof_ids = _get_profile_ids_for_employees(comp_ids)
+                except Exception:
+                    v_prof_ids = []
+                
+                final_ids = list(set(comp_ids + v_prof_ids))
+                placeholders_co = ",".join(["%s"] * len(final_ids))
+                where.append(f"(vt.vendor_id IN ({placeholders_co}) OR vt.assigned_to IN ({placeholders_co}))")
+                params.extend(final_ids)
+                params.extend(final_ids)
+            except Exception:
+                pass
         else:
             if staff_role not in VENDOR_TASK_STAFF_ROLES:
                 return jsonify({"tasks": []})
@@ -5482,23 +5654,21 @@ def list_vendor_tasks():
                 params.extend([task_company_id, task_company_id])
 
     if status:
-        if not is_team_view and status == "Todo":
-            where.append(
-                """(
-                    vt.status = %s
-                    OR (vt.vendor_id = %s AND vt.assigned_to <> vt.vendor_id AND vt.progress = '95')
-                )"""
-            )
-            params.extend([status, user_id])
-        elif not is_team_view and status == "Completed":
-            # Exclude delegated review items from assigner's Completed list (they are in Todo)
-            where.append(
-                """(
-                    vt.status = %s
-                    AND NOT (vt.vendor_id = %s AND vt.assigned_to <> vt.vendor_id AND vt.progress = '95')
-                )"""
-            )
-            params.extend([status, user_id])
+        if status == "Todo":
+            if not is_team_view:
+                where.append("""(vt.status = %s OR (vt.vendor_id = %s AND vt.assigned_to <> vt.vendor_id AND vt.progress = '95'))""")
+                params.extend([status, user_id])
+            else:
+                where.append("vt.status = %s")
+                params.append(status)
+        elif status == "InProgress":
+            where.append("vt.status = 'InProgress'")
+        elif status == "Completed":
+            if not is_team_view:
+                where.append("""(vt.status = 'Completed' OR (vt.vendor_id = %s AND vt.assigned_to <> vt.vendor_id AND vt.progress = '95'))""")
+                params.append(user_id)
+            else:
+                where.append("vt.status = 'Completed'")
         else:
             where.append("vt.status = %s")
             params.append(status)
@@ -5511,6 +5681,7 @@ def list_vendor_tasks():
             f"""
         SELECT
             vt.*,
+            vt.vendor_id AS uploaderid,
             COALESCE(vp.project_name, mp_direct.project_name) AS project_name,
             COALESCE(ve.full_name, e_up.full_name) AS uploader_full_name,
             COALESCE(ve.profile_picture, e_up.profile_picture) AS uploader_profile_picture,
@@ -5552,7 +5723,32 @@ def list_vendor_tasks():
         name_map = {}
 
     tasks = []
+    tasks = []
     for r in rows:
+        vid = str(r.get('vendor_id'))
+        aid = str(r.get('assigned_to') if r.get('assigned_to') else "")
+        uid = str(user_id)
+        is_self = (vid == aid)
+        is_owner_reviewer = (vid == uid and not is_self)
+        
+        # Determine if the reviewer needs to act (for frontend use)
+        if is_owner_reviewer:
+            rev_p = r.get('reviewer_progress')
+            p = r.get('progress')
+            if rev_p == '50':
+                r['reviewer_action'] = 'correction'
+            elif p == '95':
+                r['reviewer_action'] = 'review'
+        
+        # Convert progress to numeric for frontend consistency
+        try:
+            p_val = r.get('progress')
+            if p_val == '95': r['progress'] = 95
+            elif p_val == '100' or r.get('status') == 'Completed': r['progress'] = 100
+            else: r['progress'] = int(p_val or 0)
+        except:
+            r['progress'] = 0
+
         if not is_team_view and is_vendor_user_task:
             creator_id = r.get("vendor_id")
             assigned_to_raw = r.get("assigned_to")
@@ -6161,58 +6357,94 @@ def delete_vendor_task(task_id):
 def update_vendor_task_status(task_id):
     """
     PATCH /api/vendors/vendor-tasks/<id>/status
-    Body: { status: 'Todo' | 'InProgress' | 'Completed' }
+    Body: { status: 'Todo' | 'InProgress' | 'Completed' | 'Approved' }
     """
     data = request.get_json(silent=True) or request.form
-    status = data.get("status")
-    if status not in ("Todo", "InProgress", "Completed", "Approved"):
-        return jsonify({"success": False, "message": "Invalid status"}), 400
+    raw_status = data.get("status")
+    if not raw_status:
+        return jsonify({"success": False, "message": "Missing status"}), 400
+    
+    # Normalize status for internal matching
+    target_status = "Todo"
+    s = str(raw_status).strip().lower().replace("_", "").replace("-", "")
+    if s == "completed" or s == "complete" or s == "done":
+        target_status = "Completed"
+    elif s == "inprogress" or s == "active":
+        target_status = "InProgress"
+    elif s == "approved":
+        target_status = "Approved"
+    elif s == "todo":
+        target_status = "Todo"
+    else:
+        return jsonify({"success": False, "message": f"Invalid status: {raw_status}"}), 400
 
     _ensure_vendor_task_table()
     conn = get_db()
     cur = conn.cursor(dictionary=True)
-    progress = "0"
-    if status == "InProgress":
-        progress = "50"
-    elif status == "Completed":
-        cur.execute(
-            "SELECT vendor_id, assigned_to FROM vendor_task WHERE id = %s LIMIT 1",
-            (task_id,),
-        )
-        row = cur.fetchone() or {}
-        vendor_id = row.get("vendor_id")
-        assigned_to = row.get("assigned_to")
-        current_user_id = str(getattr(g, "user_id", None))
-        
-        is_current_user_assigner = (vendor_id is not None and str(vendor_id) == current_user_id)
-        is_assigned_by_someone_else = (
-            vendor_id is not None
-            and assigned_to is not None
-            and str(vendor_id) != str(assigned_to)
-        )
-        
-        if is_current_user_assigner:
-            progress = "100"
-        else:
-            progress = "95" if is_assigned_by_someone_else else "100"
-    approval_val = None
-    if status == "Approved":
-        progress = "100"
-        status = "Completed"
-        approval_val = "Approved"
-    elif status == "Todo" or status == "InProgress":
-        approval_val = ""
+    
+    cur.execute("SELECT * FROM vendor_task WHERE id = %s", (task_id,))
+    task = cur.fetchone()
+    if not task:
+        return jsonify({"success": False, "message": "Task not found"}), 404
 
-    if approval_val is not None:
-        cur.execute(
-            "UPDATE vendor_task SET status = %s, progress = %s, Approval = %s WHERE id = %s",
-            (status, progress, approval_val, task_id),
-        )
-    else:
-        cur.execute(
-            "UPDATE vendor_task SET status = %s, progress = %s WHERE id = %s",
-            (status, progress, task_id),
-        )
+    current_user_id = str(getattr(g, "user_id", None))
+    vendor_id = str(task.get("vendor_id"))
+    assigned_to = str(task.get("assigned_to") if task.get("assigned_to") else "")
+    is_self_assigned = (vendor_id == assigned_to)
+    is_reviewer = (vendor_id == current_user_id and not is_self_assigned)
+    is_assignee = (assigned_to == current_user_id)
+
+    status = task.get("status")
+    progress = task.get("progress")
+    reviewer_progress = task.get("reviewer_progress") or ""
+    approval = task.get("Approval") or ""
+
+    if target_status == "Todo":
+        status = "Todo"
+        progress = "0"
+        reviewer_progress = ""
+        approval = ""
+    elif target_status == "InProgress":
+        if is_reviewer:
+            # Option 2: Move Back to In Progress (by Reviewer)
+            # Only affect's A's view. Status/Progress for B remains Under Review (95).
+            reviewer_progress = "50"
+        else:
+            status = "InProgress"
+            progress = "50"
+            reviewer_progress = ""
+            approval = ""
+    elif target_status == "Completed":
+        if is_self_assigned:
+            # Self-Assigned Flow: Direct completion
+            status = "Completed"
+            progress = "100"
+            reviewer_progress = "100"
+            approval = "Approved"
+        elif is_reviewer:
+            # Option 1: Approve / Move to Complete (by Reviewer)
+            status = "Completed"
+            progress = "100"
+            reviewer_progress = "100"
+            approval = "Approved"
+        else:
+            # Assignee completing a task assigned by someone else
+            status = "Completed"
+            progress = "95"
+            reviewer_progress = "0" # A sees it as 0% progress initially
+            approval = ""
+    elif target_status == "Approved":
+        status = "Completed"
+        progress = "100"
+        reviewer_progress = "100"
+        approval = "Approved"
+
+    cur.execute(
+        """UPDATE vendor_task 
+           SET status = %s, progress = %s, reviewer_progress = %s, Approval = %s 
+           WHERE id = %s""",
+        (status, progress, reviewer_progress, approval, task_id),
+    )
     conn.commit()
     return jsonify({"success": True})
 
@@ -6352,6 +6584,15 @@ def list_vendor_projects():
             except Exception:
                 # On any error, keep the default [user_id] fallback
                 vendor_employee_ids = [user_id]
+                
+    # Get user name for assignment filtering
+    user_name = ""
+    try:
+        ecur = conn.cursor(dictionary=True)
+        ecur.execute("SELECT full_name FROM snh6_swiftproject.vendor_employee WHERE id = %s", (user_id,))
+        urow = ecur.fetchone()
+        user_name = (urow.get("full_name") or "").strip() if urow else ""
+    except Exception: pass
 
     placeholders = ",".join(["%s"] * len(vendor_employee_ids))
 
@@ -6424,9 +6665,42 @@ def list_vendor_projects():
             """
 
     if is_vendor_user:
-        # Vendor user: filter by vendor employee IDs
-        where_clause = f"vp.vendor_id IN ({placeholders})"
-        query_params = vendor_employee_ids
+        # Vendor user: creators, assignments, company links, and main projects table
+        ps = ",".join(["%s"] * len(vendor_employee_ids))
+        where_clauses = [f"(vp.vendor_id IN ({ps}) OR vp.Company_id = %s OR p.Company_id = %s)"]
+        comp_id_str = str(company_id) if company_id else "-1"
+        query_params = list(vendor_employee_ids) + [comp_id_str, comp_id_str]
+        
+        assign_clause = """(
+            FIND_IN_SET(%s, REPLACE(IFNULL(vp.project_manager_id, ''), ' ', '')) > 0
+            OR FIND_IN_SET(%s, REPLACE(IFNULL(vp.project_manager_id, ''), ' ', '')) > 0
+            OR FIND_IN_SET(%s, REPLACE(IFNULL(vp.lead_id, ''), ' ', '')) > 0
+            OR FIND_IN_SET(%s, REPLACE(IFNULL(vp.lead_id, ''), ' ', '')) > 0
+            OR FIND_IN_SET(%s, REPLACE(IFNULL(vp.bim_coordinator_id, ''), ' ', '')) > 0
+            OR FIND_IN_SET(%s, REPLACE(IFNULL(vp.bim_coordinator_id, ''), ' ', '')) > 0
+        )"""
+        where_clauses.append(assign_clause)
+        query_params.extend([str(user_id), user_name, str(user_id), user_name, str(user_id), user_name])
+
+        # Task-based fallback: if user has tasks in project
+        all_my_ids = list(set([user_id] + _get_profile_ids_for_employees([user_id])))
+        ps_my = ",".join(["%s"] * len(all_my_ids))
+        task_fallback = f"EXISTS (SELECT 1 FROM snh6_swiftproject.vendor_task vt_e WHERE vt_e.project_id = vp.id AND vt_e.assigned_to IN ({ps_my}))"
+        where_clauses.append(task_fallback)
+        query_params.extend(all_my_ids)
+        
+        # Bidding/Opportunity link: projects won via bids
+        if company_id:
+            bid_link = f"""EXISTS (
+                SELECT 1 FROM snh6_swiftproject.vendor_bidding vb_e
+                JOIN snh6_swiftproject.projects p_e ON p_e.id = vb_e.project_id
+                WHERE vb_e.id = vp.opportunity_id
+                AND p_e.Company_id = %s
+            )"""
+            where_clauses.append(bid_link)
+            query_params.append(str(company_id))
+        
+        where_clause = "(" + " OR ".join(where_clauses) + ")"
     else:
         # Staff user: only TD/PM/BL can see outsource vendor projects
         # BC, BM and other roles should NOT see vendor_projects

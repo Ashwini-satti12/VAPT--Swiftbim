@@ -149,10 +149,10 @@ export default function VendorBimLeadDashboard() {
       .then(({ data }) =>
         setStats((prev) => ({
           ...prev,
-          total_projects: Number(data?.totalProjects) || 0,
-          completed_projects: Number(data?.completedProjects) || 0,
-          in_progress_tasks: Number(data?.inProgressTasks) || 0,
-          completed_tasks: Number(data?.completedTasks) || 0,
+          total_projects: Number(data?.total_projects) || 0,
+          completed_projects: Number(data?.completed_projects) || 0,
+          in_progress_tasks: Number(data?.in_progress_tasks) || 0,
+          completed_tasks: Number(data?.completed_tasks) || 0,
         })),
       )
       .catch(() => {});
@@ -162,9 +162,10 @@ export default function VendorBimLeadDashboard() {
   useEffect(() => {
     api
       .get<{ tasks: PriorityTask[] }>("/api/vendors/dashboard/priority-tasks")
-      .then(({ data }) =>
-        setPriorityTasks(Array.isArray(data.tasks) ? data.tasks : []),
-      )
+      .then(({ data }) => {
+        const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+        setPriorityTasks(tasks);
+      })
       .catch(() => setPriorityTasks([]));
 
     api

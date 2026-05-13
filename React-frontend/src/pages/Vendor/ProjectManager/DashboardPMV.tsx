@@ -164,79 +164,37 @@ export default function DashboardPMV() {
         return out;
     };
 
-    // Compute KPI cards from the same involvement scope used in Projects/Team Task pages
+    // Compute KPI cards from the backend directly
     useEffect(() => {
         let cancelled = false;
 
-        const fetchAll = async () => {
-            try {
-                const [projectsResp, myTasksResp, allTasksResp] = await Promise.all([
-                    api.get<{ projects?: any[] }>('/api/vendors/vendor-projects').catch(() => ({ data: { projects: [] } } as any)),
-                    api.get<{ tasks?: any[] }>('/api/vendors/vendor-tasks').catch(() => ({ data: { tasks: [] } } as any)),
-                    api.get<{ tasks?: any[] }>('/api/vendors/vendor-tasks', {
-                        params: { condition: '1', employeeid: 'all' },
-                    }).catch(() => ({ data: { tasks: [] } } as any)),
-                ]);
-
-                const projectsList = Array.isArray(projectsResp?.data?.projects) ? projectsResp.data.projects : [];
-                const myTasks = Array.isArray(myTasksResp?.data?.tasks) ? myTasksResp.data.tasks : [];
-                const allTasks = Array.isArray(allTasksResp?.data?.tasks) ? allTasksResp.data.tasks : [];
-                const userId = user?.id != null ? String(user.id) : "";
-                const hasCsvId = (csvLike: unknown, target: string) =>
-                    String(csvLike ?? "")
-                        .split(",")
-                        .map((v) => v.trim())
-                        .filter(Boolean)
-                        .includes(target);
-                const pmAssignedProjects = userId
-                    ? projectsList.filter((p: any) => hasCsvId(p?.project_manager_id, userId))
-                    : [];
-                const pmAssignedProjectIds = new Set<number>(
-                    pmAssignedProjects
-                        .map((p: any) => Number(p?.id))
-                        .filter((id: number) => !Number.isNaN(id) && id > 0),
-                );
-
-                const involvedProjectIds = new Set<number>(
-                    myTasks
-                        .map((t: any) => Number(t?.projectid ?? t?.project_id))
-                        .filter((id: number) => !Number.isNaN(id) && id > 0),
-                );
-                const involvedProjects = involvedProjectIds.size > 0
-                    ? projectsList.filter((p: any) => involvedProjectIds.has(Number(p?.id)))
-                    : projectsList;
-                const scopedProjects = pmAssignedProjects.length > 0
-                    ? pmAssignedProjects
-                    : involvedProjects;
-                const uniqueInvolvedProjects = uniqueById(scopedProjects);
-                const scopedTasks = pmAssignedProjectIds.size > 0
-                    ? allTasks.filter((t: any) => pmAssignedProjectIds.has(Number(t?.projectid ?? t?.project_id)))
-                    : involvedProjectIds.size > 0
-                    ? allTasks.filter((t: any) => involvedProjectIds.has(Number(t?.projectid ?? t?.project_id)))
-                    : allTasks;
-                const uniqueScopedTasks = uniqueById(scopedTasks);
-
+        api.get<any>('/api/vendors/dashboard/project-stats')
+            .then(({ data }) => {
                 if (!cancelled) {
-                    setStats({
-                        total_projects: uniqueInvolvedProjects.length,
-                        completed_projects: uniqueInvolvedProjects.filter((p: any) => normalizeVendorProjectStatus(p).isCompleted).length,
-                        in_progress_tasks: uniqueScopedTasks.filter((t: any) => normalizeVendorTaskStatus(t).isInProgress).length,
-                        completed_tasks: uniqueScopedTasks.filter((t: any) => normalizeVendorTaskStatus(t).isCompleted).length,
-                    });
+                    setStats(prev => ({
+                        ...prev,
+                        total_projects: Number(data?.total_projects) || 0,
+                        completed_projects: Number(data?.completed_projects) || 0,
+                        in_progress_tasks: Number(data?.in_progress_tasks) || 0,
+                        completed_tasks: Number(data?.completed_tasks) || 0,
+                    }));
                 }
-            } finally {
+            })
+            .catch(() => {})
+            .finally(() => {
                 if (!cancelled) setLoading(false);
-            }
-        };
+            });
 
-        fetchAll();
         return () => { cancelled = true; };
     }, [user?.id]);
 
     // GET /api/vendors/dashboard/priority-tasks → Today's Priority tasks
     useEffect(() => {
         api.get<{ tasks: PriorityTask[] }>('/api/vendors/dashboard/priority-tasks')
-            .then(({ data }) => setPriorityTasks(Array.isArray(data.tasks) ? data.tasks : []))
+            .then(({ data }) => {
+                const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+                setPriorityTasks(tasks);
+            })
             .catch(() => setPriorityTasks([]));
     }, []);
 

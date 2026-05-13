@@ -719,23 +719,34 @@ function TaskCard({
   onDeleteTask?: (task: Task) => void;
   onApproveTask?: (task: Task) => void;
 }) {
+  const { user } = useAuth();
+  const uploaderId = (task as any).uploaderid ?? (task as any).vendor_id;
+  const isOwner = String(uploaderId) === String(user?.id);
+  const isAssignee = String(task.assigned_to) === String(user?.id);
+  const isSelf = isOwner && isAssignee;
+
+  // Real data from task
+  const realStatus = normalizeStatus(task.status, task.Approval);
+  const realProgress = task.progress;
+
+  // isUnderReview for TAG display
   const isUnderReview =
-    status === "completed" &&
-    task.assigned_to != null &&
-    ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
-    String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id) &&
+    !isSelf &&
+    (realProgress === 95 || realProgress === "95" || (task as any).reviewer_progress === "50") &&
     task.Approval?.toLowerCase() !== "approved";
 
-  const progress = isUnderReview
-    ? 95
-    : status === "todo"
-      ? 0
-      : status === "in_progress"
-        ? 50
-        : task.Approval?.toLowerCase() === "approved"
-          ? 100
-          : 100;
-  const { user } = useAuth();
+  // Progress to display on this specific card in this specific column
+  const progress = (status === "todo" && (realProgress === 95 || realProgress === "95") && isOwner)
+    ? 0
+    : (status === "in_progress" && (task as any).reviewer_progress === "50" && isOwner)
+      ? 50
+      : isUnderReview
+        ? 95
+        : status === "todo"
+          ? (task.progress && !isNaN(Number(task.progress)) ? Number(task.progress) : 0)
+          : status === "in_progress"
+            ? (task.progress && !isNaN(Number(task.progress)) ? Number(task.progress) : 50)
+            : 100;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -1203,8 +1214,9 @@ export default function TeamtaskV() {
   });
 
   const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" => {
-    const status = normalizeStatus(statusOverrides[t.id] ?? t.status);
-    const progress = t.progress ?? (t as any).progress;
+    const status = normalizeStatus(statusOverrides[t.id] ?? t.status, t.Approval);
+    const progress = t.progress;
+
     const uploaderId = (t as any).uploaderid ?? (t as any).vendor_id;
     const isOwner = String(uploaderId) === String(user?.id);
     const userName = (user?.full_name || user?.name || "").trim().toLowerCase();
@@ -1212,9 +1224,16 @@ export default function TeamtaskV() {
     const isAssignedToMe = String(t.assigned_to) === String(user?.id) || (userName && taskAssigneeName === userName);
     const isAssignedToOthers = t.assigned_to != null && !isAssignedToMe;
 
-    if ((isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && status === "completed") || (t as any).review_required === true) {
+    const isUnderReviewForMe = isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && normalizeStatus(t.status) === "completed";
+    const isCorrectionForMe = isOwner && isAssignedToOthers && (t as any).reviewer_progress === "50";
+
+    if (isCorrectionForMe) {
+      return "in_progress";
+    }
+    if (isUnderReviewForMe) {
       return "todo";
     }
+
     return status;
   };
 
@@ -1226,17 +1245,14 @@ export default function TeamtaskV() {
         : "Completed";
   };
 
-  const handleMoveTask = (
-    taskId: number,
-    newStatus: "todo" | "in_progress" | "completed",
-  ) => {
-    const task =
-      list.find((t) => t.id === taskId) ??
-      safeLocal.find((t) => t.id === taskId);
+  const handleMoveTask = (taskId: number, newStatus: "todo" | "in_progress" | "completed") => {
+    const task = allTasks.find((t) => t.id === taskId);
     if (!task) return;
 
-    const current = normalizeStatus(statusOverrides[taskId] ?? task.status);
-    if (current === "todo" && newStatus === "completed") {
+    const current = getEffectiveStatus(task);
+    const isReviewer = String((task as any).uploaderid ?? (task as any).vendor_id) === String(user?.id) && String(task.assigned_to) !== String(user?.id);
+
+    if (current === "todo" && newStatus === "completed" && !isReviewer) {
       toast.error("Move the task to In Progress before marking it completed.");
       return;
     }
@@ -1245,8 +1261,10 @@ export default function TeamtaskV() {
       return;
     }
 
-    const label = statusToLabel(newStatus);
-    setStatusOverrides((prev) => ({ ...prev, [taskId]: label }));
+    const label = newStatus === "todo" ? "Todo" : newStatus === "in_progress" ? "In Progress" : "Completed";
+    const newOverrides = { ...statusOverrides, [taskId]: label };
+    setStatusOverrides(newOverrides);
+    localStorage.setItem(STATUS_OVERRIDES_KEY, JSON.stringify(newOverrides));
 
     const statusMap = {
       todo: "Todo",
@@ -1254,59 +1272,73 @@ export default function TeamtaskV() {
       completed: "Completed",
     };
 
-    setList((prev) =>
-      prev.map((t) =>
-        t.id === taskId
-          ? {
-            ...t,
-            status: statusMap[newStatus],
-            Approval:
-              newStatus === "completed" && String((t as any).uploaderid ?? (t as any).vendor_id) === String(user?.id)
-                ? "Approved"
-                : t.Approval,
-            progress:
-              newStatus === "completed"
-                ? String((t as any).uploaderid ?? (t as any).vendor_id) === String(user?.id)
-                  ? 100
-                  : 95
-                : newStatus === "in_progress"
-                  ? 50
-                  : 0,
-          }
-          : t,
-      ),
-    );
-    setLocalTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, status: label } : t)),
-    );
+    const updateTaskState = (t: Task): Task => {
+      if (t.id !== taskId) return t;
+      const uploaderId = (t as any).uploaderid ?? (t as any).vendor_id;
+      const isOwner = String(uploaderId) === String(user?.id);
+      const isAssignee = String(t.assigned_to) === String(user?.id);
+      const isReviewer = isOwner && !isAssignee;
+
+      const normalizedLabel = newStatus.toLowerCase().replace(/\s+/g, "_");
+
+      if (isReviewer) {
+        if (normalizedLabel === "completed") {
+          return { ...t, status: "Completed", Approval: "Approved", progress: 100, reviewer_progress: "100" };
+        }
+        if (normalizedLabel === "in_progress") {
+          return { ...t, status: "InProgress", reviewer_progress: "50", progress: 95 };
+        }
+      }
+
+      const isSelf = isOwner && isAssignee;
+
+      return {
+        ...t,
+        status: statusMap[newStatus] || label,
+        progress: newStatus === "completed" ? (isSelf ? 100 : 95) : newStatus === "in_progress" ? 50 : 0,
+        Approval: (newStatus === "completed" && isSelf) ? "Approved" : t.Approval,
+      };
+    };
+
+    const nextLocal = localTasks.map(updateTaskState);
+    setLocalTasks(nextLocal);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextLocal));
+
+    const nextList = list.map(updateTaskState);
+    setList(nextList);
 
     const endpoint = `/api/vendors/vendor-tasks/${taskId}/status`;
     const projectId = (task as any)?.projectid ?? (task as any)?.project_id;
 
-    api
-      .patch(endpoint, {
-        status: newStatus.replace("_", ""),
-        projectId,
-      })
+    api.patch(endpoint, {
+      status: newStatus.replace("_", ""),
+      projectId,
+    })
       .then(() => {
-        setSuccessMsg("Updated successfully");
-        setTimeout(() => setSuccessMsg(""), 3000);
+        toast.success("Updated successfully");
       })
       .catch((err) => {
         console.error("Failed to update task status:", err);
+        toast.error("Failed to update status");
       });
   };
 
   const handleApproveTask = (task: Task) => {
     const endpoint = `/api/vendors/vendor-tasks/${task.id}/status`;
-
     api.patch(endpoint, { status: "Approved" })
       .then(() => {
         toast.success("Task Approved");
-        setList(prev => prev.map(t => t.id === task.id ? { ...t, Approval: "Approved", progress: 100 } : t));
+        const update = (t: Task) => t.id === task.id ? { ...t, Approval: "Approved", progress: 100 } : t;
+        setLocalTasks(prev => prev.map(update));
+        setList(prev => prev.map(update));
       })
       .catch(() => toast.error("Failed to approve task"));
   };
+
+  useEffect(() => {
+    (window as any).handleApproveTask = handleApproveTask;
+    return () => { delete (window as any).handleApproveTask; };
+  }, [list, localTasks]);
 
   useEffect(() => {
     try {

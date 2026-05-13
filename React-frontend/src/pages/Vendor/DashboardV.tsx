@@ -169,7 +169,10 @@ export default function DashboardV() {
     // GET data
     useEffect(() => {
         api.get<{ tasks: PriorityTask[] }>('/api/vendors/dashboard/priority-tasks')
-            .then(({ data }) => setPriorityTasks(Array.isArray(data.tasks) ? data.tasks : []))
+            .then(({ data }) => {
+                const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+                setPriorityTasks(tasks);
+            })
             .catch(() => setPriorityTasks([]));
 
         api.get<{ projects?: Project[] }>('/api/vendors/vendor-projects')
@@ -260,12 +263,11 @@ export default function DashboardV() {
 
     const kpiCards = [
         { label: 'Active Opportunities', value: stats.active_opportunities, to: '/v/opportunities?tab=opportunities&oppStatus=active' },
-        { label: 'Total Bids Submitted', value: stats.bids_submitted, to: '/v/opportunities?tab=my-bids' },
-        { label: 'Proposals Awaiting', value: stats.proposals_awaiting, to: '/v/opportunities?tab=my-bids&bidStatus=shortlisted' },
+        { label: 'Bids Submitted', value: stats.bids_submitted, to: '/v/opportunities?tab=my-bids' },
         { label: 'Total Projects', value: Math.max(stats.total_projects, projects.length), to: '/v/projects' },
-        // { label: 'Completed Projects', value: stats.completed_projects, to: '/v/projects?status=completed' },
-        // { label: 'In Progress Tasks', value: stats.in_progress_tasks, to: '/v/teamtasks?status=in_progress' },
-        // { label: 'Completed Tasks', value: stats.completed_tasks, to: '/v/teamtasks?status=completed' },
+        { label: 'Completed Projects', value: stats.completed_projects, to: '/v/projects?status=completed' },
+        // { label: 'Inprogress Tasks', value: stats.in_progress_tasks || 0, to: '/v/teamtasks?status=in_progress' },
+        // { label: 'Completed Tasks', value: stats.completed_tasks || 0, to: '/v/teamtasks?status=completed' },
     ];
 
     if (loading) {
@@ -326,18 +328,16 @@ export default function DashboardV() {
                         <div className="mb-4 shrink-0 pr-4">
                             <h2 className="text-[18px] sm:text-[20px] font-semibold text-[#353535] font-gantari">Today's Priority</h2>
                         </div>
-
                         <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 min-h-0">
-                            {projects.length === 0 && priorityTasks.length === 0 ? (
-                                <p className="text-[#717171] text-lg font-gantari py-6 text-center">No projects or priority tasks for today.</p>
+                            {priorityTasks.length === 0 ? (
+                                <p className="text-[#717171] text-lg font-gantari py-6 text-center">No priority tasks for today.</p>
                             ) : (
                                 <div className="mb-4">
                                     <div className="flex items-center justify-between mb-3">
                                         <h3 className="text-base sm:text-lg font-semibold text-[#353535] font-gantari">Projects</h3>
                                         <Link to="/v/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari mr-6">View all</Link>
                                     </div>
-
-                                    {priorityTasks.length > 0 ? (() => {
+                                    {(() => {
                                         const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
                                         for (const task of priorityTasks) {
                                             const pid = task.projectid ?? 0;
@@ -346,7 +346,7 @@ export default function DashboardV() {
                                             byProject.get(pid)!.tasks.push(task);
                                         }
                                         return Array.from(byProject.entries()).map(([id, { projectName, tasks: pTasks }]) => (
-                                            <div key={id}>
+                                            <div key={id} className="mb-6">
                                                 <p className="text-sm font-semibold text-[#353535] font-gantari mb-3 truncate pr-2">
                                                     <Link
                                                         to="/v/projects"
@@ -422,83 +422,7 @@ export default function DashboardV() {
                                                 </div>
                                             </div>
                                         ));
-                                    })() : projects.length > 0 && (
-                                        <div className="space-y-4 pr-4">
-                                            {projects.map((p) => {
-                                                const progress = Math.round(Number(p.progress) || 0);
-                                                const pDueDate = p.due_date || '';
-                                                const pStartTime = "09:00";
-                                                const pEndTime = "18:00";
-                                                const { countdown: pCountdown } = taskProgressAndCountdown(pDueDate, pStartTime, pEndTime, nowMs);
-
-                                                return (
-                                                    <div key={p.id}>
-                                                        <p className="text-sm font-semibold text-[#353535] font-gantari mb-3 truncate pr-2">
-                                                            <Link
-                                                                to="/v/projects"
-                                                                className="hover:text-[#DE3D3A] hover:underline"
-                                                                title={p.project_name}
-                                                            >
-                                                                {p.project_name}
-                                                            </Link>
-                                                        </p>
-                                                        <Link
-                                                            to="/v/projects"
-                                                            className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5 p-4 sm:p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative overflow-hidden group block cursor-pointer transition-colors hover:bg-slate-50"
-                                                        >
-                                                            <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center shrink-0">
-                                                                <svg className="w-full h-full -rotate-90">
-                                                                    <circle
-                                                                        cx="40"
-                                                                        cy="40"
-                                                                        r="36"
-                                                                        stroke="#E5E7EB"
-                                                                        strokeWidth="5"
-                                                                        fill="transparent"
-                                                                        className="opacity-60"
-                                                                    />
-                                                                    <circle
-                                                                        cx="40"
-                                                                        cy="40"
-                                                                        r="36"
-                                                                        stroke="#00882E"
-                                                                        strokeWidth="5"
-                                                                        fill="transparent"
-                                                                        strokeDasharray={CIRCLE_CIRCUMFERENCE}
-                                                                        strokeDashoffset={CIRCLE_CIRCUMFERENCE * (1 - progress / 100)}
-                                                                        strokeLinecap="round"
-                                                                    />
-                                                                </svg>
-                                                                <span className="absolute text-[9px] sm:text-[10px] font-bold text-black font-mono">
-                                                                    {pCountdown}
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex-1 min-w-0 pr-0 sm:pr-2">
-                                                                <div className="flex flex-col-reverse sm:flex-row sm:items-start justify-between gap-1 mb-1 sm:mb-0.5">
-                                                                    <h3 className="text-lg sm:text-xl font-bold text-black truncate pr-16 sm:pr-0 font-gantari" title={p.project_name}>
-                                                                        {p.project_name}
-                                                                    </h3>
-                                                                    <div className="static sm:absolute sm:top-4 sm:right-4 mb-2 sm:mb-0">
-                                                                        <span className="bg-[#3B82F6] text-white text-[10px] sm:text-[12px] px-2.5 sm:px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight leading-none lowercase shadow-sm">
-                                                                            {p.status?.toLowerCase() === 'completed' ? 'completed' : 'active'}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                                <p className="text-[12px] sm:text-[14px] text-[#6B7280] font-medium leading-tight font-gantari">
-                                                                    {formatDateOnly(p.due_date)} — 9:00 AM — 6:00 PM
-                                                                </p>
-                                                            </div>
-                                                            <div className="flex self-end sm:self-auto sm:absolute sm:bottom-4 sm:right-4 -space-x-3 sm:-space-x-4 mt-2 sm:mt-0">
-                                                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white bg-white shadow-md flex items-center justify-center overflow-hidden" title="Project Manager">
-                                                                    <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[8px] sm:text-[10px] font-bold text-[#353535]">PM</div>
-                                                                </div>
-                                                            </div>
-                                                        </Link>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
+                                    })()}
                                 </div>
                             )}
                         </div>
