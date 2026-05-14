@@ -375,6 +375,7 @@ export default function VendorBimLeadTasks() {
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [selectedShowEntries, setSelectedShowEntries] = useState("");
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+  const [statusOverrides, setStatusOverrides] = useState<Record<number, string>>({});
 
   const dropdownsContainerRef = useRef<HTMLDivElement>(null);
   const employeeTriggerRef = useRef<HTMLButtonElement>(null);
@@ -514,7 +515,7 @@ export default function VendorBimLeadTasks() {
     s: string | undefined,
     approval?: string,
   ): "todo" | "in_progress" | "completed" => {
-    if (approval?.toLowerCase() === "approved" || approval?.toLowerCase() === "rejected")
+    if (approval?.toLowerCase() === "approved")
       return "completed";
     if (!s) return "todo";
     const lower = s.toLowerCase().replace(/\s+/g, "_");
@@ -526,47 +527,68 @@ export default function VendorBimLeadTasks() {
 
   const handleMoveTask = (
     taskId: number,
-    newBucket: "todo" | "in_progress" | "completed",
+    newStatus: "todo" | "in_progress" | "completed",
   ) => {
-    const taskRow = tasks.find((t) => t.id === taskId);
-    if (!taskRow) return;
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
 
-    const current = getEffectiveStatus(taskRow);
-    if (current === newBucket) return;
+    const current = getEffectiveStatus(task);
+    const isReviewer = String((task as any).uploaderid ?? (task as any).vendor_id) === String(user?.id) && String(task.assigned_to) !== String(user?.id);
 
-    if (current === "todo" && newBucket === "completed") {
+    if (current === "todo" && newStatus === "completed" && !isReviewer) {
       toast.error("Move task to In Progress before completing.");
       return;
     }
-    if (current === "completed" && newBucket !== "completed") {
+    if (current === "completed" && newStatus !== "completed") {
       toast.error("Completed tasks cannot be moved.");
       return;
     }
 
-    const uploaderId = (taskRow as any).uploaderid ?? (taskRow as any).vendor_id;
-    const isOwner = String(uploaderId) === String(user?.id);
+    const label = newStatus === "todo" ? "Todo" : newStatus === "in_progress" ? "In Progress" : "Completed";
+    setStatusOverrides((prev) => ({ ...prev, [taskId]: label }));
+
     const statusMap = {
       todo: "Todo",
       in_progress: "InProgress",
       completed: "Completed",
     } as const;
-    const apiStatus = statusMap[newBucket];
-    const nextProgress = newBucket === "completed" ? (isOwner ? 100 : 95) : newBucket === "in_progress" ? 50 : 0;
+
+    const updateTaskState = (t: Task): Task => {
+      if (t.id !== taskId) return t;
+      const uploaderId = (t as any).uploaderid ?? (t as any).vendor_id;
+      const isOwner = String(uploaderId) === String(user?.id);
+      const isAssignee = String(t.assigned_to) === String(user?.id);
+      const isReviewer = isOwner && !isAssignee;
+
+      const normalizedLabel = newStatus.toLowerCase().replace(/\s+/g, "_");
+
+      if (isReviewer) {
+        if (normalizedLabel === "completed") {
+          return { ...t, status: "Completed", Approval: "Approved", progress: 100, reviewer_progress: "100" } as any;
+        }
+        if (normalizedLabel === "in_progress") {
+          return { ...t, status: "InProgress", reviewer_progress: "50", progress: 95 } as any;
+        }
+      }
+
+      const isSelf = isOwner && isAssignee;
+
+      return {
+        ...t,
+        status: statusMap[newStatus] || label,
+        progress: newStatus === "completed" ? (isSelf ? 100 : 95) : newStatus === "in_progress" ? 50 : 0,
+        Approval: (newStatus === "completed" && isSelf) ? "Approved" : t.Approval,
+      } as any;
+    };
+
+    setTasks((prev) => prev.map(updateTaskState));
 
     api
       .patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
-        status: apiStatus,
-        progress: nextProgress,
+        status: statusMap[newStatus],
       })
       .then(() => {
-        setTasks((prev) =>
-          prev.map((t) =>
-            t.id === taskId
-              ? { ...t, status: apiStatus, progress: nextProgress }
-              : t,
-          ),
-        );
-        toast.success(`Task moved to ${newBucket}`);
+        toast.success(`Task moved to ${newStatus}`);
       })
       .catch(() => {
         toast.error("Failed to update status");
@@ -575,18 +597,25 @@ export default function VendorBimLeadTasks() {
   };
 
   const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" => {
-    const status = normalizeStatus(t.status, t.Approval);
+    const status = normalizeStatus(statusOverrides[t.id] ?? t.status, t.Approval);
     const progress = (t as any).progress;
     const uploaderId = (t as any).uploaderid ?? (t as any).vendor_id;
     const isOwner = String(uploaderId) === String(user?.id);
     const userName = (user?.full_name || user?.name || "").trim().toLowerCase();
-    const taskAssigneeName = (t.assigned_full_name || t.assign_to || "").trim().toLowerCase();
+    const taskAssigneeName = (t.assigned_full_name || t.assigned_to_name || t.assign_to || "").trim().toLowerCase();
     const isAssignedToMe = String(t.assigned_to) === String(user?.id) || (userName && taskAssigneeName === userName);
     const isAssignedToOthers = t.assigned_to != null && !isAssignedToMe;
 
-    if ((isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && status === "completed") || (t as any).review_required === true) {
+    const isUnderReviewForMe = isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && normalizeStatus(t.status) === "completed";
+    const isCorrectionForMe = isOwner && isAssignedToOthers && (t as any).reviewer_progress === "50";
+
+    if (isCorrectionForMe) {
+      return "in_progress";
+    }
+    if (isUnderReviewForMe) {
       return "todo";
     }
+    
     return status;
   };
 
@@ -1038,142 +1067,176 @@ export default function VendorBimLeadTasks() {
                     }}
                     className={`mt-2 rounded-lg border border-[#AEACAC52] bg-white p-3 shadow-sm relative mx-auto w-full max-w-full lg:max-w-none ${isCompletedCol ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
                   >
-                    <div className="flex items-center justify-between gap-2 mb-4">
-                      <div className="flex flex-col min-w-0 flex-1">
-                        <h4 className="font-medium text-[#353535] text-[20px] truncate leading-tight">
-                          {task.task_name || "Task Name"}
-                        </h4>
-                      </div>
-                      <div
-                        className="relative"
-                        ref={openMenuTaskId === task.id ? cardMenuRef : null}
-                      >
-                        <button
-                          type="button"
-                          draggable={false}
-                          onClick={() =>
-                            setOpenMenuTaskId(
-                              openMenuTaskId === task.id ? null : task.id,
-                            )
-                          }
-                          className="p-0.5 rounded cursor-pointer"
-                        >
-                          <img
-                            src={Dot}
-                            alt="Dot"
-                            className="w-4 h-4 text-slate-600"
-                          />
-                        </button>
-                        {openMenuTaskId === task.id && (
-                          <div className="absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right">
-                            <button
-                              type="button"
-                              draggable={false}
-                              onClick={() => handleViewAction(task)}
-                              className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
+                    {/* Progress & Tag Logic */}
+                    {(() => {
+                      const uploaderId = (task as any).uploaderid ?? (task as any).vendor_id;
+                      const isOwner = String(uploaderId) === String(user?.id);
+                      const isAssignee = String(task.assigned_to) === String(user?.id);
+                      const isSelf = isOwner && isAssignee;
+
+                      const realProgress = (task as any).progress;
+                      const isUnderReview = !isSelf && (realProgress === 95 || realProgress === "95" || (task as any).reviewer_progress === "50") && task.Approval?.toLowerCase() !== "approved";
+
+                      const displayProgress = (bucket === "todo" && (realProgress === 95 || realProgress === "95") && isOwner)
+                        ? 0
+                        : (bucket === "in_progress" && (task as any).reviewer_progress === "50" && isOwner)
+                          ? 50
+                          : isUnderReview
+                            ? 95
+                            : bucket === "todo"
+                              ? (realProgress && !isNaN(Number(realProgress)) ? Number(realProgress) : 0)
+                              : bucket === "in_progress"
+                                ? (realProgress && !isNaN(Number(realProgress)) ? Number(realProgress) : 50)
+                                : 100;
+
+                      return (
+                        <>
+                          <div className="flex items-center justify-between gap-2 mb-4">
+                            <div className="flex flex-col min-w-0 flex-1">
+                              <h4 className="font-medium text-[#353535] text-[20px] truncate leading-tight">
+                                {task.task_name || "Task Name"}
+                              </h4>
+                            </div>
+                            <div
+                              className="relative"
+                              ref={openMenuTaskId === task.id ? cardMenuRef : null}
                             >
-                              <img
-                                src={viewIcon}
-                                alt="view"
-                                className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                              />
-                              <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                View
-                              </span>
-                            </button>
-                            {!isCompletedCol && (
-                              <>
-                                <button
-                                  type="button"
-                                  draggable={false}
-                                  onClick={() => {
-                                    setOpenMenuTaskId(null);
-                                    navigate("/vendor-bim-lead/tasks/edit", {
-                                      state: { task, from: "tasks" },
-                                    });
-                                  }}
-                                  className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
-                                >
-                                  <img
-                                    src={editIcon}
-                                    alt="edit"
-                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                  />
-                                  <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    Edit
-                                  </span>
-                                </button>
-                                <button
-                                  type="button"
-                                  draggable={false}
-                                  onClick={() => {
-                                    setOpenMenuTaskId(null);
-                                    handleDelete(task.id);
-                                  }}
-                                  className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
-                                >
-                                  <img
-                                    src={deleteIcon}
-                                    alt="delete"
-                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                  />
-                                  <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    Delete
-                                  </span>
-                                </button>
-                              </>
-                            )}
-                            {isReviewState && String((task as any).uploaderid ?? (task as any).vendor_id) === String(user?.id) && (
                               <button
                                 type="button"
-                                className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer border-0 bg-transparent shadow-none"
-                                onClick={() => {
-                                  setOpenMenuTaskId(null);
-                                  (window as any).handleApproveTask?.(task);
-                                }}
+                                draggable={false}
+                                onClick={() =>
+                                  setOpenMenuTaskId(
+                                    openMenuTaskId === task.id ? null : task.id,
+                                  )
+                                }
+                                className="p-0.5 rounded cursor-pointer"
                               >
-                                <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 transition-colors group-hover:bg-green-600 group-hover:text-white">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </div>
-                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-green-600">
-                                  Approve
-                                </span>
+                                <img
+                                  src={Dot}
+                                  alt="Dot"
+                                  className="w-4 h-4 text-slate-600"
+                                />
                               </button>
-                            )}
+                              {openMenuTaskId === task.id && (
+                                <div className="absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right">
+                                  <button
+                                    type="button"
+                                    draggable={false}
+                                    onClick={() => handleViewAction(task)}
+                                    className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
+                                  >
+                                    <img
+                                      src={viewIcon}
+                                      alt="view"
+                                      className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                    />
+                                    <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                      View
+                                    </span>
+                                  </button>
+                                  {!isCompletedCol && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        draggable={false}
+                                        onClick={() => {
+                                          setOpenMenuTaskId(null);
+                                          navigate("/vendor-bim-lead/tasks/edit", {
+                                            state: { task, from: "tasks" },
+                                          });
+                                        }}
+                                        className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
+                                      >
+                                        <img
+                                          src={editIcon}
+                                          alt="edit"
+                                          className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                        />
+                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                          Edit
+                                        </span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        draggable={false}
+                                        onClick={() => {
+                                          setOpenMenuTaskId(null);
+                                          handleDelete(task.id);
+                                        }}
+                                        className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
+                                      >
+                                        <img
+                                          src={deleteIcon}
+                                          alt="delete"
+                                          className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                        />
+                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                          Delete
+                                        </span>
+                                      </button>
+                                    </>
+                                  )}
+                                  {isUnderReview && String((task as any).uploaderid ?? (task as any).vendor_id) === String(user?.id) && (
+                                    <button
+                                      type="button"
+                                      className="flex w-full items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer border-0 bg-transparent shadow-none"
+                                      onClick={() => {
+                                        setOpenMenuTaskId(null);
+                                        (window as any).handleApproveTask?.(task);
+                                      }}
+                                    >
+                                      <div className="w-5 h-5 flex items-center justify-center rounded-full bg-green-100 text-green-600 transition-colors group-hover:bg-green-600 group-hover:text-white">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                      </div>
+                                      <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-green-600">
+                                        Approve
+                                      </span>
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    </div>
 
-                    <div className="flex items-start justify-between gap-2 mb-4">
-                      <div className="flex flex-col">
-                        <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
-                        <span className="text-[14px] font-medium text-[#8B8B8B]">
-                          {formatDateForDisplay(task.start_date || (task as any).startdate) || "—"}
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[14px] font-medium text-[#000000]">End Date</span>
-                        <span className="text-[14px] font-medium text-[#8B8B8B]">
-                          {formatDateForDisplay(task.due_date) || "—"}
-                        </span>
-                      </div>
-                    </div>
+                          <div className="flex items-start justify-between gap-2 mb-4">
+                            <div className="flex flex-col">
+                              <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
+                              <span className="text-[14px] font-medium text-[#8B8B8B]">
+                                {formatDateForDisplay(task.start_date || (task as any).startdate) || "—"}
+                              </span>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+                              <span className="text-[14px] font-medium text-[#8B8B8B]">
+                                {formatDateForDisplay(task.due_date) || "—"}
+                              </span>
+                            </div>
+                          </div>
 
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-[12px] text-[#8B8B8B]">Progress</span>
-                      <span className="text-[12px] text-[#8B8B8B]">
-                        {isReviewState ? "95% (Under Review)" : `${progressValue}%`}
-                      </span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
-                      <div
-                        className="h-full rounded-full bg-[#8B8B8B]"
-                        style={{ width: `${Math.min(100, Math.max(0, progressValue))}%` }}
-                      />
-                    </div>
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <span className="text-[12px] text-[#8B8B8B]">Progress</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[12px] text-[#8B8B8B]">
+                                {displayProgress}%
+                              </span>
+                              {isUnderReview && (
+                                <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium bg-orange-100 text-orange-800">
+                                  Under Review
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
+                            <div
+                              className="h-full rounded-full bg-[#8B8B8B]"
+                              style={{ width: `${Math.min(100, Math.max(0, displayProgress))}%` }}
+                            />
+                          </div>
+                        </>
+                      );
+                    })()}
 
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1">

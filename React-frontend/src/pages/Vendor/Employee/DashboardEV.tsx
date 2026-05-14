@@ -288,72 +288,26 @@ export default function DashboardEV() {
 
   useEffect(() => {
     if (!user?.id) return;
-
-    Promise.all([
-      api.get<{ projects?: VendorProjectScopeRow[] }>("/api/vendors/vendor-projects"),
-      api.get<{ tasks?: { project_id?: number; projectid?: number }[] }>(
-        "/api/vendors/vendor-tasks",
-      ),
-      api.get<{ success?: boolean; resources?: VendorResourceProfileRow[] }>(
-        "/api/vendors/vendor-resource-profiles",
-      ),
-      api.get<{ tasks?: VendorTaskScopeRow[] }>("/api/vendors/vendor-tasks", {
-        params: { condition: "1", employeeid: "all" },
-      }),
-    ])
-      .then(([projRes, myTasksRes, resRes, allTasksRes]) => {
-        const allProjects = projRes.data.projects ?? [];
-        const myTasks = myTasksRes.data.tasks ?? [];
-        const profiles = resRes.data.resources ?? [];
-        const involvedProjects = filterInvolvedVendorProjects(
-          allProjects,
-          myTasks,
-          user,
-          profiles,
-        );
-
-        // IMPORTANT: Team Task board scopes tasks by my-scope task project ids.
-        // Use the same ID set so KPI task counts match the board.
-        const involvedProjectIds = new Set<number>(
-          (myTasks ?? [])
-            .map((t) => Number(t.project_id ?? t.projectid))
-            .filter((id) => !Number.isNaN(id) && id > 0),
-        );
-
-        const completedProjects = involvedProjects.filter(
-          (p) => normalizeProjectStatus(p) === "completed",
-        ).length;
-
-        const allVendorTasks = allTasksRes.data.tasks ?? [];
-        const scopedTasks = involvedProjectIds.size
-          ? allVendorTasks.filter((t) => {
-              const pid = Number(t.project_id ?? t.projectid);
-              return !Number.isNaN(pid) && involvedProjectIds.has(pid);
-            })
-          : [];
-
-        const inProgressCount = scopedTasks.filter(
-          (t) => normalizeTaskStatus(t.status, t.Approval) === "in_progress",
-        ).length;
-        const completedCount = scopedTasks.filter(
-          (t) => normalizeTaskStatus(t.status, t.Approval) === "completed",
-        ).length;
-
-        setStats((prev) => ({
-          ...prev,
-          total_projects: involvedProjects.length,
-          completed_projects: completedProjects,
-          in_progress_tasks: inProgressCount,
-          completed_tasks: completedCount,
-        }));
-      })
-      .catch(() => {});
-  }, [user]);
+    api.get<any>('/api/vendors/dashboard/project-stats')
+        .then(({ data }) => {
+            setStats(prev => ({
+                ...prev,
+                total_projects: Number(data?.total_projects) || 0,
+                completed_projects: Number(data?.completed_projects) || 0,
+                in_progress_tasks: Number(data?.in_progress_tasks) || 0,
+                completed_tasks: Number(data?.completed_tasks) || 0,
+            }));
+        })
+        .catch(() => {});
+  }, [user?.id]);
 
   // GET /api/vendors/dashboard/priority-tasks → Today's Priority tasks
   useEffect(() => {
     api.get<{ tasks: PriorityTask[] }>('/api/vendors/dashboard/priority-tasks')
-        .then(({ data }) => setPriorityTasks(Array.isArray(data.tasks) ? data.tasks : []))
+        .then(({ data }) => {
+            const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+            setPriorityTasks(tasks);
+        })
         .catch(() => setPriorityTasks([]));
   }, []);
 

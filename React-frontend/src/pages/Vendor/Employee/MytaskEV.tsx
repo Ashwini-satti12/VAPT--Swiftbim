@@ -263,20 +263,33 @@ function TaskCard({
     onDeleteTask?: (task: Task) => void;
 }) {
     const { user } = useAuth();
+    const uploaderId = (task as any).uploaderid ?? (task as any).vendor_id;
+    const isOwner = String(uploaderId) === String(user?.id);
+    const isAssignee = String(task.assigned_to) === String(user?.id);
+    const isSelf = isOwner && isAssignee;
+
+    // Real data from task
+    const realStatus = normalizeStatus(task.status, task.Approval);
+    const realProgress = task.progress;
+
+    // isUnderReview for TAG display
     const isUnderReview =
-        status === "completed" &&
-        task.assigned_to != null &&
-        ((task as any).uploaderid != null || (task as any).vendor_id != null) &&
-        String(task.assigned_to) !== String((task as any).uploaderid ?? (task as any).vendor_id) &&
+        !isSelf &&
+        (realProgress === 95 || realProgress === "95" || (task as any).reviewer_progress === "50") &&
         task.Approval?.toLowerCase() !== "approved";
 
-    const progress = isUnderReview
-        ? 95
-        : status === "todo"
-            ? (task.progress && !isNaN(Number(task.progress)) ? Number(task.progress) : 0)
-            : status === "in_progress"
-                ? (task.progress && !isNaN(Number(task.progress)) ? Number(task.progress) : 50)
-                : 100;
+    // Progress to display on this specific card in this specific column
+    const progress = (status === "todo" && (realProgress === 95 || realProgress === "95") && isOwner)
+        ? 0
+        : (status === "in_progress" && (task as any).reviewer_progress === "50" && isOwner)
+            ? 50
+            : isUnderReview
+                ? 95
+                : status === "todo"
+                    ? (task.progress && !isNaN(Number(task.progress)) ? Number(task.progress) : 0)
+                    : status === "in_progress"
+                        ? (task.progress && !isNaN(Number(task.progress)) ? Number(task.progress) : 50)
+                        : 100;
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -638,9 +651,12 @@ export default function MytaskEV() {
     };
     (window as any).handleApproveTask = handleApproveTask;
 
+    const [statusOverrides, setStatusOverrides] = useState<Record<number, string>>({});
+
     const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" => {
-        const status = normalizeStatus(t.status, (t as any).Approval);
-        const progress = t.progress ?? (t as any).progress;
+        const status = normalizeStatus(statusOverrides[t.id] ?? t.status, t.Approval);
+        const progress = t.progress;
+
         const uploaderId = (t as any).uploaderid ?? (t as any).vendor_id;
         const isOwner = String(uploaderId) === String(user?.id);
         const userName = (user?.full_name || user?.name || "").trim().toLowerCase();
@@ -648,9 +664,18 @@ export default function MytaskEV() {
         const isAssignedToMe = String(t.assigned_to) === String(user?.id) || (userName && taskAssigneeName === userName);
         const isAssignedToOthers = t.assigned_to != null && !isAssignedToMe;
 
-        if (isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && status === "completed") {
-            return "todo";
+        const isUnderReviewForMe = isOwner && isAssignedToOthers && (progress === 95 || progress === "95") && normalizeStatus(t.status) === "completed";
+        const isCorrectionForMe = isOwner && isAssignedToOthers && (t as any).reviewer_progress === "50";
+
+        if (!isTeam) {
+            if (isCorrectionForMe) {
+                return "in_progress";
+            }
+            if (isUnderReviewForMe) {
+                return "todo";
+            }
         }
+
         return status;
     };
 
@@ -660,47 +685,75 @@ export default function MytaskEV() {
         completed: "Completed",
     };
 
-    const handleMoveTask = (
-        taskId: number,
-        newBucket: "todo" | "in_progress" | "completed"
-    ) => {
-        const taskRow = list.find((t) => t && t.id === taskId);
-        if (!taskRow) return;
+    const handleMoveTask = (taskId: number, newStatus: "todo" | "in_progress" | "completed") => {
+        const task = list.find((t) => t.id === taskId);
+        if (!task) return;
 
-        const currentBucket = getEffectiveStatus(taskRow);
-        if (currentBucket === newBucket) return;
+        const current = getEffectiveStatus(task);
+        const isReviewer = String(task.uploaderid ?? (task as any).vendor_id) === String(user?.id) && String(task.assigned_to) !== String(user?.id);
 
-        if (currentBucket === "todo" && newBucket === "completed") {
-            toast.error("Move task to In Progress before completing.");
+        if (current === "todo" && newStatus === "completed" && !isReviewer) {
+            toast.error("Move the task to In Progress before marking it completed.");
             return;
         }
-        if (currentBucket === "completed" && newBucket !== "completed") {
+        if (current === "completed" && newStatus !== "completed") {
             toast.error("Completed tasks cannot be moved.");
             return;
         }
 
-        const uploaderId = (taskRow as any).uploaderid ?? (taskRow as any).vendor_id;
-        const isOwner = String(uploaderId) === String(user?.id);
+        const label = newStatus === "todo" ? "Todo" : newStatus === "in_progress" ? "In Progress" : "Completed";
+        setStatusOverrides((prev) => ({ ...prev, [taskId]: label }));
 
-        const statusMapApi = { todo: "Todo", in_progress: "InProgress", completed: "Completed" };
-        const nextProgress = newBucket === "completed" ? (isOwner ? 100 : 95) : newBucket === "in_progress" ? 50 : 0;
+        const statusMapApi = {
+            todo: "Todo",
+            in_progress: "InProgress",
+            completed: "Completed",
+        };
 
-        api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
-            status: statusMapApi[newBucket],
-            progress: nextProgress,
-        }).then(() => {
-            setList((prev) =>
-                prev.map((t) =>
-                    t && t.id === taskId
-                        ? { ...t, status: statusMapApi[newBucket], progress: nextProgress }
-                        : t
-                )
-            );
-            toast.success(`Task moved to ${newBucket}`);
-        }).catch((err) => {
-            console.error("Failed to update status:", err);
-            toast.error("Failed to update status");
-        });
+        const updateTaskState = (t: Task): Task => {
+            if (t.id !== taskId) return t;
+            const uploaderId = (t as any).uploaderid ?? (t as any).vendor_id;
+            const isOwner = String(uploaderId) === String(user?.id);
+            const isAssignee = String(t.assigned_to) === String(user?.id);
+            const isReviewer = isOwner && !isAssignee;
+
+            const normalizedLabel = newStatus.toLowerCase().replace(/\s+/g, "_");
+
+            if (isReviewer) {
+                if (normalizedLabel === "completed") {
+                    return { ...t, status: "Completed", Approval: "Approved", progress: 100, reviewer_progress: "100" };
+                }
+                if (normalizedLabel === "in_progress") {
+                    return { ...t, status: "InProgress", reviewer_progress: "50", progress: 95 };
+                }
+            }
+
+            const isSelf = isOwner && isAssignee;
+
+            return {
+                ...t,
+                status: statusMapApi[newStatus] || label,
+                progress: newStatus === "completed" ? (isSelf ? 100 : 95) : newStatus === "in_progress" ? 50 : 0,
+                Approval: (newStatus === "completed" && isSelf) ? "Approved" : t.Approval,
+            };
+        };
+
+        setList((prev) => prev.map(updateTaskState));
+
+        const endpoint = `/api/vendors/vendor-tasks/${taskId}/status`;
+        const projectId = (task as any)?.projectid ?? (task as any)?.project_id;
+
+        api.patch(endpoint, {
+            status: newStatus.replace("_", ""),
+            projectId,
+        })
+            .then(() => {
+                toast.success("Updated successfully");
+            })
+            .catch((err) => {
+                console.error("Failed to update task status:", err);
+                toast.error("Failed to update status");
+            });
     };
 
     const navigate = useNavigate();
